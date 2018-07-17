@@ -9,14 +9,11 @@
 import doctest
 import timeit
 import unittest
-from schedula import Dispatcher
-from schedula.utils.cst import START, EMPTY, SINK, NONE, SELF
-from schedula.utils.dsp import SubDispatchFunction
-from schedula.utils.sol import Solution
+import schedula as sh
 
 
 def _setup_dsp():
-    dsp = Dispatcher()
+    dsp = sh.Dispatcher()
 
     dsp.add_function('min', min, inputs=['a', 'c'], outputs=['d'])
     dsp.add_function('max', max, inputs=['b', 'd'], outputs=['c'])
@@ -74,7 +71,7 @@ class TestDoctest(unittest.TestCase):
 
 class TestCreateDispatcher(unittest.TestCase):
     def setUp(self):
-        sub_dsp = Dispatcher(name='sub_dispatcher')
+        sub_dsp = sh.Dispatcher(name='sub_dispatcher')
         sub_dsp.add_data('a', 1)
         sub_dsp.add_function(function=min, inputs=['a', 'b'], outputs=['c'])
 
@@ -85,7 +82,7 @@ class TestCreateDispatcher(unittest.TestCase):
         self.sub_dsp = sub_dsp
 
     def test_add_data(self):
-        dsp = Dispatcher()
+        dsp = sh.Dispatcher()
 
         self.assertEqual(dsp.add_data(data_id='a'), 'a')
         self.assertEqual(dsp.add_data(data_id='a'), 'a')
@@ -111,7 +108,7 @@ class TestCreateDispatcher(unittest.TestCase):
         self.assertRaises(ValueError, dsp.add_data, *('fun',))
 
     def test_add_function(self):
-        dsp = Dispatcher()
+        dsp = sh.Dispatcher()
 
         def my_function(a, b):
             return a + b, a - b
@@ -186,7 +183,7 @@ class TestCreateDispatcher(unittest.TestCase):
             'type': 'function',
             'inputs': ['a'],
             'function': None,
-            'outputs': [SINK],
+            'outputs': [sh.SINK],
             'wait_inputs': True
         }
         self.assertEqual(dsp.dmap.nodes[fun_id], res)
@@ -199,7 +196,7 @@ class TestCreateDispatcher(unittest.TestCase):
     def test_add_dispatcher(self):
         sub_dsp = self.sub_dsp
 
-        dsp = Dispatcher()
+        dsp = sh.Dispatcher()
 
         dsp.add_function(function=max, inputs=['a', 'b'], outputs=['c'])
 
@@ -243,7 +240,7 @@ class TestCreateDispatcher(unittest.TestCase):
         self.assertEqual(dsp.default_values['d'], res)
 
     def test_load_from_lists(self):
-        dsp = Dispatcher()
+        dsp = sh.Dispatcher()
         self.assertEqual(dsp.add_from_lists(), ([], [], []))
 
         def fun(**kwargs):
@@ -308,7 +305,7 @@ class TestCreateDispatcher(unittest.TestCase):
         self.assertEqual(dsp.dmap.nodes, res)
 
     def test_set_default_value(self):
-        dsp = Dispatcher()
+        dsp = sh.Dispatcher()
 
         dsp.add_data('a', default_value=1, initial_dist=1)
         dfl = {'value': 1, 'initial_dist': 1}
@@ -318,7 +315,7 @@ class TestCreateDispatcher(unittest.TestCase):
         dfl = {'value': 2, 'initial_dist': 3}
         self.assertEqual(dsp.default_values['a'], dfl)
 
-        dsp.set_default_value('a', value=EMPTY)
+        dsp.set_default_value('a', value=sh.EMPTY)
         self.assertFalse('a' in dsp.default_values)
 
         self.assertRaises(ValueError, dsp.set_default_value, *('b', 3))
@@ -342,7 +339,7 @@ class TestCreateDispatcher(unittest.TestCase):
 
 class TestSubDMap(unittest.TestCase):
     def setUp(self):
-        dsp = Dispatcher()
+        dsp = sh.Dispatcher()
         dsp.add_data(data_id='b', wait_inputs=True, default_value=3)
 
         dsp.add_function('max', inputs=['a', 'b'], outputs=['c'])
@@ -353,12 +350,12 @@ class TestSubDMap(unittest.TestCase):
         self.sol = dsp.dispatch(['a', 'b'], no_call=True)
         self.dsp = dsp
 
-        sub_dsp = Dispatcher()
+        sub_dsp = sh.Dispatcher()
         sub_dsp.add_data(data_id='a', default_value=1)
         sub_dsp.add_data(data_id='b', default_value=2)
         sub_dsp.add_data(data_id='c')
 
-        dsp = Dispatcher()
+        dsp = sh.Dispatcher()
         dsp.add_data(data_id='C', default_value=1)
         dsp.add_dispatcher(
             sub_dsp, {'C': 'c'}, {'a': 'A', 'b': 'B', 'c': 'D'}, 'sdsp'
@@ -538,11 +535,11 @@ class TestDispatch(unittest.TestCase):
 
         self.dsp_wildcard_2.dmap.edges['e', 'x ^ y']['weight'] = -100
 
-        self.dsp_raises = Dispatcher(raises=True)
+        self.dsp_raises = sh.Dispatcher(raises=True)
         from math import log
         self.dsp_raises.add_function(function=log, inputs=['a'], outputs=['b'])
 
-        sub_dsp = Dispatcher(name='sub_dispatcher')
+        sub_dsp = sh.Dispatcher(name='sub_dispatcher')
         sub_dsp.add_data('a', 1)
         sub_dsp.add_function(function=min, inputs=['a', 'b'], outputs=['c'])
 
@@ -554,7 +551,7 @@ class TestDispatch(unittest.TestCase):
 
         sub_dsp.add_function(function=fun, inputs=['c'], outputs=['d', 'e'])
 
-        dsp = Dispatcher()
+        dsp = sh.Dispatcher()
         dsp.add_function('max', function=max, inputs=['a', 'b'], outputs=['c'])
         dsp.add_dispatcher(
             sub_dsp.copy(), {'d': 'a', 'e': 'b'}, {'d': 'c', 'e': 'f'},
@@ -566,7 +563,7 @@ class TestDispatch(unittest.TestCase):
         sub_dsp.set_default_value('a', 2)
         sub_dsp.set_default_value('b', 0)
 
-        dsp = Dispatcher()
+        dsp = sh.Dispatcher()
         dsp.add_function('max', function=max, inputs=['a', 'b'], outputs=['c'])
         dsp.add_dispatcher(
             sub_dsp.copy(), {'c': ('a', 'd')}, {'d': ('d', 'f'), 'e': 'g'},
@@ -574,7 +571,7 @@ class TestDispatch(unittest.TestCase):
         )
         self.dsp_of_dsp_4 = dsp
 
-        dsp = Dispatcher()
+        dsp = sh.Dispatcher()
         dsp.add_function('max', function=max, inputs=['a', 'b'], outputs=['c'])
         dsp.add_dispatcher(
             sub_dsp.copy(), {'c': ('d', 'a')}, {'d': ('d', 'f'), 'e': 'g'},
@@ -585,11 +582,11 @@ class TestDispatch(unittest.TestCase):
         def fun(c):
             return c + 3, c - 3
 
-        sub_sub_dsp = Dispatcher(name='sub_sub_dispatcher')
+        sub_sub_dsp = sh.Dispatcher(name='sub_sub_dispatcher')
         sub_sub_dsp.add_function('fun', fun, inputs=['a'], outputs=['b', 'c'])
         sub_sub_dsp.add_function('min', min, inputs=['b', 'c'], outputs=['d'])
 
-        sub_dsp = Dispatcher(name='sub_dispatcher')
+        sub_dsp = sh.Dispatcher(name='sub_dispatcher')
         sub_dsp.add_data('a', 1)
         sub_dsp.add_function('min', min, inputs=['a', 'b'], outputs=['c'])
         sub_dsp.add_dispatcher(
@@ -601,7 +598,7 @@ class TestDispatch(unittest.TestCase):
 
         sub_dsp.add_function('fun', fun, inputs=['d'], outputs=['e', 'f'])
 
-        dsp = Dispatcher()
+        dsp = sh.Dispatcher()
         dsp.add_function('max', function=max, inputs=['a', 'b'], outputs=['c'])
         dsp.add_dispatcher(
             sub_dsp, {'d': 'a', 'e': 'b'}, {'e': 'c', 'f': 'f'},
@@ -614,29 +611,30 @@ class TestDispatch(unittest.TestCase):
                          input_domain=lambda *args: False)
         self.dsp_of_dsp_3 = dsp
 
-        dsp = Dispatcher()
+        dsp = sh.Dispatcher()
         dsp.add_data('c', 0, 10)
         dsp.add_function('max', max, ['a', 'b'], ['c'])
         dsp.add_function('min', min, ['c', 'b'], ['d'])
 
         self.dsp_dfl_input_dist = dsp
 
-        dsp = Dispatcher()
+        dsp = sh.Dispatcher()
         f = lambda x: x + 1
         dsp.add_data('a', 0, filters=(f, f, f))
         dsp.add_function('f', f, ['a'], ['b'], filters=(f, f, f, f))
-        dsp.add_function('f', f, ['a'], ['c'], filters=(f, lambda x: NONE))
+        dsp.add_function('f', f, ['a'], ['c'], filters=(f, lambda x: sh.NONE))
         self.dsp_with_filters = dsp
 
-        dsp = Dispatcher()
-        dsp.add_data(SELF)
+        dsp = sh.Dispatcher()
+        dsp.add_data(sh.SELF)
         self.dsp_select_output_kw = dsp
 
     def test_without_outputs(self):
         dsp = self.dsp
 
         o = dsp.dispatch({'a': 5, 'b': 6, 'f': 9})
-        r = {'2 / (d + 1)', 'a', 'b', 'c', 'd', 'e', 'log(b - a)', 'min', START}
+        r = {'2 / (d + 1)', 'a', 'b', 'c', 'd', 'e', 'log(b - a)', 'min',
+             sh.START}
         w = {
             'a': {'log(b - a)': {'value': 5}, 'min': {'value': 5}},
             'b': {'log(b - a)': {'value': 6}},
@@ -646,7 +644,7 @@ class TestDispatch(unittest.TestCase):
             '2 / (d + 1)': {'e': {'value': 2.0}},
             'log(b - a)': {'c': {'value': 0.0}},
             'min': {'d': {'value': 0.0}},
-            START: {'a': {'value': 5}, 'b': {'value': 6}}
+            sh.START: {'a': {'value': 5}, 'b': {'value': 6}}
         }
         self.assertEqual(o, {'a': 5, 'b': 6, 'c': 0, 'd': 0, 'e': 2, 'f': 9})
         self.assertEqual(set(o.workflow.node), r)
@@ -658,8 +656,8 @@ class TestDispatch(unittest.TestCase):
         self.assertEqual(o.workflow.adj, w)
 
         o = dsp.dispatch({'a': 5, 'b': 3})
-        r = {'2 / (d + 1)', 'a', 'b', 'c', 'd', 'e', 'log(b - a)', 'max', START,
-             'x - 4'}
+        r = {'2 / (d + 1)', 'a', 'b', 'c', 'd', 'e', 'log(b - a)', 'max',
+             sh.START, 'x - 4'}
         w = {
             'a': {'log(b - a)': {'value': 5}, 'x - 4': {'value': 5}},
             'b': {'log(b - a)': {'value': 3}, 'max': {'value': 3}},
@@ -669,7 +667,7 @@ class TestDispatch(unittest.TestCase):
             '2 / (d + 1)': {'e': {'value': 1.0}},
             'log(b - a)': {},
             'max': {'c': {'value': 3}},
-            START: {'a': {'value': 5}, 'b': {'value': 3}},
+            sh.START: {'a': {'value': 5}, 'b': {'value': 3}},
             'x - 4': {'d': {'value': 1}}
         }
         self.assertEqual(o, {'a': 5, 'b': 3, 'c': 3, 'd': 1, 'e': 1})
@@ -684,7 +682,8 @@ class TestDispatch(unittest.TestCase):
     def test_no_call(self):
         dsp = self.dsp
         o = dsp.dispatch(['a', 'b'], no_call=True)
-        r = {'2 / (d + 1)', 'a', 'b', 'c', 'd', 'e', 'log(b - a)', 'min', START}
+        r = {'2 / (d + 1)', 'a', 'b', 'c', 'd', 'e', 'log(b - a)', 'min',
+             sh.START}
         w = {
             'a': {'log(b - a)': {}, 'min': {}},
             'b': {'log(b - a)': {}},
@@ -694,14 +693,14 @@ class TestDispatch(unittest.TestCase):
             '2 / (d + 1)': {'e': {}},
             'log(b - a)': {'c': {}},
             'min': {'d': {}},
-            START: {'a': {}, 'b': {}}
+            sh.START: {'a': {}, 'b': {}}
         }
-        self.assertEqual(o, dict.fromkeys(['a', 'b', 'c', 'd', 'e'], NONE))
+        self.assertEqual(o, dict.fromkeys(['a', 'b', 'c', 'd', 'e'], sh.NONE))
         self.assertEqual(set(o.workflow.node), r)
         self.assertEqual(o.workflow.adj, w)
 
         o = dsp.dispatch(['a', 'b'], no_call=True, shrink=True)
-        self.assertEqual(o, dict.fromkeys(['a', 'b', 'c', 'd', 'e'], NONE))
+        self.assertEqual(o, dict.fromkeys(['a', 'b', 'c', 'd', 'e'], sh.NONE))
         self.assertEqual(set(o.workflow.node), r)
         self.assertEqual(o.workflow.adj, w)
 
@@ -709,7 +708,7 @@ class TestDispatch(unittest.TestCase):
         dsp = self.dsp
 
         o = dsp.dispatch({'a': 5, 'b': 6}, ['d'])
-        r = {'a', 'b', 'c', 'd', 'log(b - a)', 'max', 'min', START, 'x - 4'}
+        r = {'a', 'b', 'c', 'd', 'log(b - a)', 'max', 'min', sh.START, 'x - 4'}
         w = {
             'a': {'log(b - a)': {'value': 5}, 'min': {'value': 5},
                   'x - 4': {'value': 5}},
@@ -719,7 +718,7 @@ class TestDispatch(unittest.TestCase):
             'log(b - a)': {'c': {'value': 0.0}},
             'max': {},
             'min': {'d': {'value': 0.0}},
-            START: {'a': {'value': 5}, 'b': {'value': 6}},
+            sh.START: {'a': {'value': 5}, 'b': {'value': 6}},
             'x - 4': {},
         }
         self.assertEqual(o, {'a': 5, 'b': 6, 'c': 0, 'd': 0})
@@ -746,7 +745,7 @@ class TestDispatch(unittest.TestCase):
 
         dsp = self.dsp_of_dsp_1
         o = dsp.dispatch(inputs={'a': 3, 'b': 5, 'd': 10, 'e': 15})
-        r = {'a', 'b', 'c', 'd', 'e', 'max', START, 'sub_dsp'}
+        r = {'a', 'b', 'c', 'd', 'e', 'max', sh.START, 'sub_dsp'}
         w = {
             'a': {'max': {'value': 3}},
             'b': {'max': {'value': 5}},
@@ -754,7 +753,7 @@ class TestDispatch(unittest.TestCase):
             'd': {'sub_dsp': {'value': 10}},
             'e': {'sub_dsp': {'value': 15}},
             'max': {'c': {'value': 5}},
-            START: {
+            sh.START: {
                 'a': {'value': 3},
                 'e': {'value': 15},
                 'b': {'value': 5},
@@ -774,12 +773,12 @@ class TestDispatch(unittest.TestCase):
         self.assertEqual(o.workflow.adj, w)
 
         o = dsp.dispatch(inputs={'a': 3, 'b': 5, 'd': 10, 'e': 20})
-        r = {'a', 'b', 'c', 'd', 'e', 'f', 'max', START, 'sub_dsp'}
+        r = {'a', 'b', 'c', 'd', 'e', 'f', 'max', sh.START, 'sub_dsp'}
         w['d'] = {'sub_dsp': {'value': 10}}
         w['e'] = {'sub_dsp': {'value': 20}}
         w['f'] = {}
         w['sub_dsp'] = {'f': {'value': 7}}
-        w[START]['e'] = {'value': 20}
+        w[sh.START]['e'] = {'value': 20}
         self.assertEqual(o, {'a': 3, 'b': 5, 'c': 5, 'd': 10, 'e': 20, 'f': 7})
         self.assertEqual(set(o.workflow.node), r)
         self.assertEqual(o.workflow.adj, w)
@@ -788,7 +787,7 @@ class TestDispatch(unittest.TestCase):
         o = dsp.dispatch(
             inputs={'a': 3, 'b': 5, 'd': 10, 'e': 20},
             shrink=True)
-        r = {'a', 'b', 'c', 'd', 'e', 'f', 'max', START, 'sub_dsp'}
+        r = {'a', 'b', 'c', 'd', 'e', 'f', 'max', sh.START, 'sub_dsp'}
         w = {
             'a': {'max': {'value': 3}},
             'b': {'max': {'value': 5}},
@@ -798,7 +797,7 @@ class TestDispatch(unittest.TestCase):
             'f': {},
             'max': {'c': {'value': 5}},
             'sub_dsp': {'f': {'value': 4}},
-            START: {
+            sh.START: {
                 'a': {'value': 3},
                 'e': {'value': 20},
                 'b': {'value': 5},
@@ -815,7 +814,7 @@ class TestDispatch(unittest.TestCase):
             'fun': {'e': {'value': 10}, 'f': {'value': 4}},
             'min': {'c': {'value': 10}},
             'sub_sub_dsp': {'d': {'value': 7}},
-            START: {
+            sh.START: {
                 'a': {'value': 10},
                 'b': {'value': 20}
             },
@@ -827,7 +826,7 @@ class TestDispatch(unittest.TestCase):
             'd': {},
             'fun': {'b': {'value': 13}, 'c': {'value': 7}},
             'min': {'d': {'value': 7}},
-            START: {'a': {'value': 10}},
+            sh.START: {'a': {'value': 10}},
         }
         self.assertEqual(o, {'a': 3, 'b': 5, 'c': 5, 'd': 10, 'e': 20, 'f': 4})
         self.assertEqual(set(o.workflow.node), r)
@@ -878,7 +877,7 @@ class TestDispatch(unittest.TestCase):
 
         dsp = self.dsp_of_dsp_4
         o = dsp.dispatch(inputs={'a': 6, 'b': 5})
-        r = {'a', 'b', 'c', 'd', 'f', 'g', START, 'sub_dsp'}
+        r = {'a', 'b', 'c', 'd', 'f', 'g', sh.START, 'sub_dsp'}
         w = {
             'a': {},
             'b': {},
@@ -886,7 +885,7 @@ class TestDispatch(unittest.TestCase):
             'd': {},
             'f': {},
             'g': {},
-            START: {'a': {'value': 6}, 'b': {'value': 5}, 'c': {'value': 2}},
+            sh.START: {'a': {'value': 6}, 'b': {'value': 5}, 'c': {'value': 2}},
             'sub_dsp': {
                 'd': {'value': 2},
                 'f': {'value': 2},
@@ -904,7 +903,7 @@ class TestDispatch(unittest.TestCase):
 
         dsp = self.dsp_of_dsp_5
         o = dsp.dispatch(inputs={'a': 6, 'b': 5})
-        r = {'a', 'b', 'c', 'd', 'f', 'g', 'max', START, 'sub_dsp'}
+        r = {'a', 'b', 'c', 'd', 'f', 'g', 'max', sh.START, 'sub_dsp'}
         w = {
             'a': {'max': {'value': 6}},
             'b': {'max': {'value': 5}},
@@ -913,7 +912,7 @@ class TestDispatch(unittest.TestCase):
             'f': {},
             'g': {},
             'max': {'c': {'value': 6}},
-            START: {'a': {'value': 6}, 'b': {'value': 5}},
+            sh.START: {'a': {'value': 6}, 'b': {'value': 5}},
             'sub_dsp': {
                 'd': {'value': 6},
                 'f': {'value': 6},
@@ -933,7 +932,7 @@ class TestDispatch(unittest.TestCase):
         dsp = self.dsp_cutoff
 
         o = dsp.dispatch({'a': 5, 'b': 6}, cutoff=2)
-        r = {'a', 'b', 'c', 'log(b - a)', 'max', 'min', START}
+        r = {'a', 'b', 'c', 'log(b - a)', 'max', 'min', sh.START}
         w = {
             'a': {'log(b - a)': {'value': 5}, 'min': {'value': 5}},
             'b': {'log(b - a)': {'value': 6}, 'max': {'value': 6}},
@@ -941,7 +940,7 @@ class TestDispatch(unittest.TestCase):
             'log(b - a)': {'c': {'value': 0.0}},
             'max': {},
             'min': {},
-            START: {'a': {'value': 5}, 'b': {'value': 6}}
+            sh.START: {'a': {'value': 5}, 'b': {'value': 6}}
         }
         self.assertEqual(o, {'a': 5, 'b': 6, 'c': 0})
         self.assertEqual(set(o.workflow.node), r)
@@ -958,7 +957,7 @@ class TestDispatch(unittest.TestCase):
 
         dsp.weight = None
         o = dsp.dispatch({'a': 5, 'b': 6}, cutoff=2)
-        r = {'a', 'b', 'c', 'd', 'log(b - a)', 'max', 'min', START, 'x - 4'}
+        r = {'a', 'b', 'c', 'd', 'log(b - a)', 'max', 'min', sh.START, 'x - 4'}
         w = {
             'a': {'log(b - a)': {'value': 5}, 'min': {'value': 5},
                   'x - 4': {'value': 5}},
@@ -969,7 +968,7 @@ class TestDispatch(unittest.TestCase):
             'min': {},
             'log(b - a)': {'c': {'value': 0.0}},
             'x - 4': {'d': {'value': 1}},
-            START: {'a': {'value': 5}, 'b': {'value': 6}}
+            sh.START: {'a': {'value': 5}, 'b': {'value': 6}}
         }
         self.assertEqual(o, {'a': 5, 'b': 6, 'c': 0, 'd': 1})
         self.assertEqual(set(o.workflow.node), r)
@@ -987,8 +986,8 @@ class TestDispatch(unittest.TestCase):
     def test_wildcard(self):
         dsp = self.dsp
         o = dsp.dispatch({'a': 5, 'b': 6}, ['a', 'b'], wildcard=True)
-        r = {'2 / (d + 1)', 'a', 'b', 'c', 'd', 'e', 'log(b - a)', 'min', START,
-             'x ^ y'}
+        r = {'2 / (d + 1)', 'a', 'b', 'c', 'd', 'e', 'log(b - a)', 'min',
+             sh.START, 'x ^ y'}
         w = {
             'a': {'log(b - a)': {'value': 5}, 'min': {'value': 5}},
             'b': {'log(b - a)': {'value': 6}},
@@ -998,7 +997,7 @@ class TestDispatch(unittest.TestCase):
             '2 / (d + 1)': {'e': {'value': 2.0}},
             'log(b - a)': {'c': {'value': 0.0}},
             'min': {'d': {'value': 0.0}},
-            START: {'a': {'value': 5}, 'b': {'value': 6}},
+            sh.START: {'a': {'value': 5}, 'b': {'value': 6}},
             'x ^ y': {'b': {'value': 1.0}}
         }
         self.assertEqual(o, {'b': 1, 'c': 0, 'd': 0, 'e': 2})
@@ -1037,14 +1036,14 @@ class TestDispatch(unittest.TestCase):
 
         o = dsp.dispatch({'a': 5, 'b': 6}, cutoff=2,
                          inputs_dist={'b': 1})
-        r = {'a', 'b', 'log(b - a)', 'max', 'min', START}
+        r = {'a', 'b', 'log(b - a)', 'max', 'min', sh.START}
         w = {
             'a': {'log(b - a)': {'value': 5}, 'min': {'value': 5}},
             'b': {'log(b - a)': {'value': 6}, 'max': {'value': 6}},
             'log(b - a)': {},
             'max': {},
             'min': {},
-            START: {'a': {'value': 5}, 'b': {'value': 6}}
+            sh.START: {'a': {'value': 5}, 'b': {'value': 6}}
         }
         self.assertEqual(o, {'a': 5, 'b': 6})
         self.assertEqual(set(o.workflow.node), r)
@@ -1063,7 +1062,7 @@ class TestDispatch(unittest.TestCase):
         dsp.weight = None
         o = dsp.dispatch({'a': 5, 'b': 6}, cutoff=2,
                          inputs_dist={'b': 1})
-        r = {'a', 'b', 'd', 'log(b - a)', 'max', 'min', START, 'x - 4'}
+        r = {'a', 'b', 'd', 'log(b - a)', 'max', 'min', sh.START, 'x - 4'}
         w = {
             'a': {'log(b - a)': {'value': 5}, 'min': {'value': 5},
                   'x - 4': {'value': 5}},
@@ -1073,7 +1072,7 @@ class TestDispatch(unittest.TestCase):
             'min': {},
             'log(b - a)': {},
             'x - 4': {'d': {'value': 1}},
-            START: {'a': {'value': 5}, 'b': {'value': 6}}
+            sh.START: {'a': {'value': 5}, 'b': {'value': 6}}
         }
         self.assertEqual(o, {'a': 5, 'b': 6, 'd': 1})
         self.assertEqual(set(o.workflow.node), r)
@@ -1092,7 +1091,7 @@ class TestDispatch(unittest.TestCase):
         dsp = self.dsp
         o = dsp.dispatch({'a': 5, 'b': 6, 'd': 0}, ['a', 'b', 'd'],
                          wildcard=True, inputs_dist={'a': 1})
-        r = {'2 / (d + 1)', 'a', 'b', 'c', 'd', 'e', 'max', 'min', START,
+        r = {'2 / (d + 1)', 'a', 'b', 'c', 'd', 'e', 'max', 'min', sh.START,
              'x ^ y'}
         w = {
             '2 / (d + 1)': {'e': {'value': 2.0}},
@@ -1104,7 +1103,7 @@ class TestDispatch(unittest.TestCase):
             'e': {'x ^ y': {'value': 2.0}},
             'max': {'c': {'value': 6}},
             'min': {'d': {'value': 5}},
-            START: {'a': {'value': 5}, 'b': {'value': 6}, 'd': {'value': 0}},
+            sh.START: {'a': {'value': 5}, 'b': {'value': 6}, 'd': {'value': 0}},
             'x ^ y': {'b': {'value': 1.0}}
         }
         self.assertEqual(o, {'b': 1, 'c': 6, 'd': 5, 'e': 2})
@@ -1141,7 +1140,7 @@ class TestDispatch(unittest.TestCase):
             'd': {},
             'max': {'c': {'value': 6}},
             'min': {'d': {'value': 5}},
-            START: {'b': {'value': 5}, 'c': {'value': 0}, 'a': {'value': 6}},
+            sh.START: {'b': {'value': 5}, 'c': {'value': 0}, 'a': {'value': 6}},
         }
         self.assertEqual({'a': 6, 'b': 5, 'c': 6, 'd': 5}, o)
         self.assertEqual(o.workflow.adj, w)
@@ -1155,7 +1154,7 @@ class TestDispatch(unittest.TestCase):
             'd': {},
             'max': {},
             'min': {'d': {'value': 0}},
-            START: {'a': {'value': 6}, 'b': {'value': 5}, 'c': {'value': 0}},
+            sh.START: {'a': {'value': 6}, 'b': {'value': 5}, 'c': {'value': 0}},
         }
 
         self.assertEqual({'b': 5, 'c': 0, 'd': 0}, o)
@@ -1168,29 +1167,29 @@ class TestDispatch(unittest.TestCase):
 
     def test_select_output_kw(self):
         dsp = self.dsp_select_output_kw
-        select_output_kw = {'keys': (SELF,), 'output_type': 'values'}
+        select_output_kw = {'keys': (sh.SELF,), 'output_type': 'values'}
         self.assertEqual(dsp.dispatch(select_output_kw=select_output_kw), dsp)
 
 
 class TestBoundaryDispatch(unittest.TestCase):
     def setUp(self):
-        self.dsp = Dispatcher()
+        self.dsp = sh.Dispatcher()
 
         def f(*args):
             return 3, 5
 
-        self.dsp.add_function(function=f, outputs=['a', SINK])
-        self.dsp.add_function(function=f, outputs=[SINK, 'b'])
+        self.dsp.add_function(function=f, outputs=['a', sh.SINK])
+        self.dsp.add_function(function=f, outputs=[sh.SINK, 'b'])
 
-        self.dsp_1 = Dispatcher()
+        self.dsp_1 = sh.Dispatcher()
         self.dsp_1.add_function('A', max, inputs=['a', 'b'], outputs=['c'])
         self.dsp_1.add_function('B', min, inputs=['a', 'b'], outputs=['c'])
 
-        self.dsp_2 = Dispatcher()
+        self.dsp_2 = sh.Dispatcher()
         self.dsp_2.add_function('B', max, inputs=['a', 'b'], outputs=['c'])
         self.dsp_2.add_function('A', min, inputs=['a', 'b'], outputs=['c'])
 
-        self.dsp_3 = Dispatcher()
+        self.dsp_3 = sh.Dispatcher()
 
         def f(kwargs):
             return 1 / list(kwargs.values())[0]
@@ -1198,7 +1197,7 @@ class TestBoundaryDispatch(unittest.TestCase):
         self.dsp_3.add_function('A', min, inputs=['a', 'b'], outputs=['c'])
         self.dsp_3.add_data('c', function=f, callback=f)
 
-        self.dsp_4 = Dispatcher()
+        self.dsp_4 = sh.Dispatcher()
         self.dsp_4.add_dispatcher(
             dsp=self.dsp_3.copy(),
             inputs={'A': 'a', 'B': 'b'},
@@ -1237,15 +1236,16 @@ class TestBoundaryDispatch(unittest.TestCase):
 
 class TestNodeOutput(unittest.TestCase):
     def setUp(self):
-        dsp = Dispatcher()
+        dsp = sh.Dispatcher()
 
         dsp.add_data('a', default_value=[1, 2])
         dsp.add_function('max', max, inputs=['a'], outputs=['b'])
         dsp.add_function('max', inputs=['a'], outputs=['b'])
         dsp.add_function('max', max, inputs=['a'], outputs=['c'])
+        from schedula.utils.sol import Solution
         sol = Solution(dsp)
-        sol.workflow.add_node(START, **{'type': 'start'})
-        sol.workflow.add_edge(START, 'a', **{'value': [1, 2]})
+        sol.workflow.add_node(sh.START, **{'type': 'start'})
+        sol.workflow.add_edge(sh.START, 'a', **{'value': [1, 2]})
 
         dsp.add_data('b', wait_inputs=True)
 
@@ -1270,7 +1270,7 @@ class TestNodeOutput(unittest.TestCase):
             'max': {},
             'max<0>': {},
             'max<1>': {},
-            START: {'a': {'value': [1, 2]}}
+            sh.START: {'a': {'value': [1, 2]}}
         }
         self.assertEqual(wf_edge, r)
         self.assertEqual(sol, {'a': [1, 2]})
@@ -1298,7 +1298,7 @@ class TestNodeOutput(unittest.TestCase):
 
 class TestShrinkDispatcher(unittest.TestCase):
     def setUp(self):
-        dsp = Dispatcher()
+        dsp = sh.Dispatcher()
         dsp.add_function(function_id='h', inputs=['a', 'b'], outputs=['c'])
         dsp.add_function(function_id='h', inputs=['b', 'd'], outputs=['e'])
         dsp.add_function(function_id='h', inputs=['d', 'e'], outputs=['c', 'f'])
@@ -1306,7 +1306,7 @@ class TestShrinkDispatcher(unittest.TestCase):
         dsp.add_function(function_id='h', inputs=['a', 'b'], outputs=['a'])
         self.dsp_1 = dsp
 
-        dsp = Dispatcher()
+        dsp = sh.Dispatcher()
         dsp.add_function(function_id='h', inputs=['a'], outputs=['b'])
         dsp.add_function(function_id='h', inputs=['b'], outputs=['c'])
         dsp.add_function(function_id='h', inputs=['c'], outputs=['d'])
@@ -1314,7 +1314,7 @@ class TestShrinkDispatcher(unittest.TestCase):
         dsp.add_function(function_id='h', inputs=['e'], outputs=['a'])
         self.dsp_2 = dsp
 
-        dsp = Dispatcher()
+        dsp = sh.Dispatcher()
         dsp.add_function(
             function_id='h', input_domain=bool, inputs=['a', 'b'], outputs=['g']
         )
@@ -1333,13 +1333,13 @@ class TestShrinkDispatcher(unittest.TestCase):
         dsp.add_data('i', wait_inputs=True)
         self.dsp_3 = dsp
 
-        sub_dsp = Dispatcher()
+        sub_dsp = sh.Dispatcher()
         sub_dsp.add_function(function_id='h', inputs=['a', 'b'], outputs=['c'])
         sub_dsp.add_function(function_id='h', inputs=['c'], outputs=['d', 'e'])
         sub_dsp.add_function(function_id='h', inputs=['c', 'e'], outputs=['f'])
         sub_dsp.add_function(function_id='h', inputs=['c', 'a'], outputs=['g'])
 
-        dsp = Dispatcher()
+        dsp = sh.Dispatcher()
         dsp.add_dispatcher(
             sub_dsp, {'a': 'a', 'b': 'b', 'd': 'd'},
             {'d': 'd', 'e': 'e', 'f': 'f', 'g': 'g', 'a': 'a'},
@@ -1351,8 +1351,8 @@ class TestShrinkDispatcher(unittest.TestCase):
             function_id='h', input_domain=bool, inputs=['b'], outputs=['e'])
         self.dsp_of_dsp = dsp
 
-        dsp = Dispatcher()
-        sub_dsp = Dispatcher()
+        dsp = sh.Dispatcher()
+        sub_dsp = sh.Dispatcher()
         sub_dsp.add_function(function_id='h', inputs=['a', 'b'], outputs=['c'],
                              weight=10)
         sub_dsp.add_function(function_id='h', inputs=['c'], outputs=['d'])
@@ -1541,17 +1541,17 @@ class TestShrinkDispatcher(unittest.TestCase):
 
 class TestPipe(unittest.TestCase):
     def setUp(self):
-        dsp = Dispatcher()
+        dsp = sh.Dispatcher()
 
         dsp.add_function('max', max, ['a', 'b'], ['c'])
         dsp.add_function('dict', dict, ['c'], ['d'])
-        f = SubDispatchFunction(dsp, 'SubDispatchFunction', ['a', 'b'], ['d'])
-        sub_dsp = Dispatcher()
+        f = sh.SubDispatchFunction(dsp, 'SubDispatchFunction', ['a', 'b'], ['d'])
+        sub_dsp = sh.Dispatcher()
 
         sub_dsp.add_function('SubDispatchFunction', f, ['A', 'B'], ['D'])
         sub_dsp.add_function('min', min, ['C', 'E'], ['F'])
 
-        dsp = Dispatcher()
+        dsp = sh.Dispatcher()
 
         dsp.add_dispatcher(
             dsp_id='sub_dsp',

@@ -8,46 +8,50 @@
 
 import unittest
 import platform
-from schedula import Dispatcher
-from schedula.utils.dsp import SubDispatch, SubDispatchFunction, \
-    SubDispatchPipe, bypass
-from schedula.utils.cst import SINK, PLOT
-from schedula.utils.drw import SiteMap, Site
+import schedula as sh
 import tempfile
 import os.path as osp
+import os
 
+EXTRAS = os.environ.get('EXTRAS', 'all')
 PLATFORM = platform.system().lower()
 
 
+@unittest.skipIf(EXTRAS not in ('all', 'plot'), 'Not for extra %s.' % EXTRAS)
 class TestDispatcherDraw(unittest.TestCase):
     def setUp(self):
-        ss_dsp = Dispatcher()
+        ss_dsp = sh.Dispatcher()
 
         fun = lambda a: (a + 1, 5, a - 1)
         dom = lambda kw: True
         c = '|!"£$%&/()=?^*+éè[]#¶ù§çò@:;-_.,<>'
-        ss_dsp.add_function(function=fun, inputs=['a'], outputs=['b', SINK, c],
-                            input_domain=dom, weight=1)
+        ss_dsp.add_function(
+            function=fun, inputs=['a'], outputs=['b', sh.SINK, c],
+            input_domain=dom, weight=1
+        )
 
         def raise_fun(a):
             raise ValueError('Error')
 
         ss_dsp.add_function(function=raise_fun, inputs=['a'], outputs=['b'])
 
-        sdspfunc = SubDispatchFunction(ss_dsp, 'SubDispatchFunction', ['a'],
-                                       ['b', c])
+        sdspfunc = sh.SubDispatchFunction(
+            ss_dsp, 'SubDispatchFunction', ['a'], ['b', c]
+        )
 
-        sdsppipe = SubDispatchPipe(ss_dsp, 'SubDispatchPipe', ['a'], ['b', c])
+        sdsppipe = sh.SubDispatchPipe(
+            ss_dsp, 'SubDispatchPipe', ['a'], ['b', c]
+        )
 
-        sdsp = SubDispatch(ss_dsp, ['b', c], output_type='list')
+        sdsp = sh.SubDispatch(ss_dsp, ['b', c], output_type='list')
 
-        s_dsp = Dispatcher()
+        s_dsp = sh.Dispatcher()
         s_dsp.add_function(None, sdspfunc, ['a'], ['b', 'c'], weight=2)
         s_dsp.add_function(None, sdsppipe, ['a'], ['b', 'c'],
                            out_weight={'c': 5})
         s_dsp.add_function('SubDispatch', sdsp, ['d'], ['e', 'f'])
 
-        dsp = Dispatcher()
+        dsp = sh.Dispatcher()
         dsp.add_data('A', default_value=[0] * 1000)
         dsp.add_data('D', default_value={'a': 3})
 
@@ -60,11 +64,13 @@ class TestDispatcherDraw(unittest.TestCase):
         self.sol = dsp.dispatch()
         self.dsp = dsp
 
-        dsp = Dispatcher()
-        dsp.add_function(function=bypass, inputs=['a'], outputs=[PLOT])
+        dsp = sh.Dispatcher()
+        dsp.add_function(function=sh.bypass, inputs=['a'], outputs=[sh.PLOT])
         self.dsp_plot = dsp
 
     def test_plot(self):
+        from schedula.utils.drw import SiteMap
+
         dsp, sol = self.dsp, self.sol
 
         plt = dsp.plot(view=False)
@@ -80,12 +86,14 @@ class TestDispatcherDraw(unittest.TestCase):
         self.assertIsInstance(plt, SiteMap)
 
     def test_view(self):
+        from schedula.utils.drw import SiteMap, Site
+
         sol = self.sol
         SiteMap._view = lambda *args, **kwargs: None
         plt = sol.plot(view=True)
         self.assertIsInstance(plt, SiteMap)
 
-        plt = self.dsp_plot({'a': {}})[PLOT]['plot']
+        plt = self.dsp_plot({'a': {}})[sh.PLOT]['plot']
         self.assertIsInstance(plt, SiteMap)
 
         sites = set()
@@ -99,7 +107,9 @@ class TestDispatcherDraw(unittest.TestCase):
         self.assertTrue(site.shutdown())
         self.assertFalse(site.shutdown())
 
-        plt = self.dsp_plot({'a': dict(view=True, sites=sites)})[PLOT]['plot']
+        plt = self.dsp_plot(
+            {'a': dict(view=True, sites=sites)}
+        )[sh.PLOT]['plot']
         self.assertIsInstance(plt, SiteMap)
         site = sites.pop()
         self.assertIsInstance(site, Site)
@@ -109,6 +119,7 @@ class TestDispatcherDraw(unittest.TestCase):
         self.assertFalse(site.shutdown())
 
     def test_long_path(self):
+        from schedula.utils.drw import SiteMap
         dsp = self.dsp
         filename = osp.join(tempfile.TemporaryDirectory().name, 'a' * 200)
         smap = dsp.plot(view=False)

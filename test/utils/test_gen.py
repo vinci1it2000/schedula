@@ -8,7 +8,7 @@
 
 from __future__ import division, print_function, unicode_literals
 
-from schedula.utils.gen import pairwise, Token
+import schedula as sh
 import doctest
 import unittest
 from copy import copy, deepcopy
@@ -25,16 +25,16 @@ class TestDoctest(unittest.TestCase):
 
 class TestUtils(unittest.TestCase):
     def test_token(self):
-        a = Token('a')
+        a = sh.Token('a')
         self.assertNotEqual(a, 'a')
         self.assertEqual(str(a), 'a')
         self.assertTrue(a >= 'a')
-        self.assertNotEqual(a, Token('a'))
+        self.assertNotEqual(a, sh.Token('a'))
         self.assertEqual(a, copy(a))
         self.assertEqual(a, deepcopy(a))
         self.assertEqual(sorted(['c', a, 'b']), [a, 'b', 'c'])
 
-        a = Token(1)
+        a = sh.Token(1)
         self.assertNotEqual(a, '1')
         self.assertEqual(str(a), '1')
 
@@ -42,6 +42,6 @@ class TestUtils(unittest.TestCase):
         self.assertEqual({a: 1, 1: 3}, {b: 1, 1: 3})
 
     def test_pairwise(self):
-        self.assertEqual(list(pairwise([1, 2, 3])), [(1, 2), (2, 3)])
-        pairwise([1, 2, 3, 4])
-        self.assertEqual(list(pairwise([1])), [])
+        self.assertEqual(list(sh.pairwise([1, 2, 3])), [(1, 2), (2, 3)])
+        sh.pairwise([1, 2, 3, 4])
+        self.assertEqual(list(sh.pairwise([1])), [])

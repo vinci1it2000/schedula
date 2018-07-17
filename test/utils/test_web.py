@@ -7,36 +7,38 @@
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
 import unittest
-import platform
-from schedula import Dispatcher
-from schedula.utils.dsp import SubDispatch, SubDispatchFunction, SubDispatchPipe, bypass
+import schedula as sh
+import os
+
+EXTRAS = os.environ.get('EXTRAS', 'all')
 
 
-PLATFORM = platform.system().lower()
-
-
+@unittest.skipIf(EXTRAS not in ('all', 'web'), 'Not for extra %s.' % EXTRAS)
 class TestDispatcherWeb(unittest.TestCase):
     def setUp(self):
-        ss_dsp = Dispatcher(name='ss_dsp')
+        ss_dsp = sh.Dispatcher(name='ss_dsp')
 
         fun = lambda a: (a + 1, 5, a - 1)
         dom = lambda kw: True
         ss_dsp.add_function(function=fun, inputs=['a'], outputs=['b', 'd', 'c'],
                             input_domain=dom, weight=1)
 
-        sdspfunc = SubDispatchFunction(ss_dsp, 'SubDispatchFunction', ['a'],
-                                       ['b', 'c'])
+        sdspfunc = sh.SubDispatchFunction(
+            ss_dsp, 'SubDispatchFunction', ['a'], ['b', 'c']
+        )
 
-        sdsppipe = SubDispatchPipe(ss_dsp, 'SubDispatchPipe', ['a'], ['b', 'c'])
+        sdsppipe = sh.SubDispatchPipe(
+            ss_dsp, 'SubDispatchPipe', ['a'], ['b', 'c']
+        )
 
-        sdsp = SubDispatch(ss_dsp, ['b', 'c'], output_type='list')
+        sdsp = sh.SubDispatch(ss_dsp, ['b', 'c'], output_type='list')
 
-        s_dsp = Dispatcher(name='s_dsp')
+        s_dsp = sh.Dispatcher(name='s_dsp')
         s_dsp.add_function(None, sdspfunc, ['a'], ['b', 'c'])
         s_dsp.add_function(None, sdsppipe, ['a'], ['g'])
         s_dsp.add_function('SubDispatch', sdsp, ['d'], ['e', 'f'])
 
-        dsp = Dispatcher(name='model')
+        dsp = sh.Dispatcher(name='model')
         dsp.add_data('A', default_value=0)
         dsp.add_data('D', default_value={'a': 3})
 
@@ -71,10 +73,12 @@ class TestDispatcherWeb(unittest.TestCase):
             if 'results' not in v:
                 continue
             inputs = s._wf_pred[k]  # List of the function's arguments.
-            inputs = bypass(*[inputs[k]['value'] for k in s.nodes[k]['inputs']])
+            inputs = sh.bypass(*[
+                inputs[k]['value'] for k in s.nodes[k]['inputs']
+            ])
             io.append((rule, inputs, v['results']))
 
-        self.sol1 =sol = dsp.dispatch({'A': 1})
+        self.sol1 = sol = dsp.dispatch({'A': 1})
         self.io1 = io = []
         for rule in rules.values():
             n = rule.split('/')[1:]
@@ -90,7 +94,9 @@ class TestDispatcherWeb(unittest.TestCase):
             if 'results' not in v:
                 continue
             inputs = s._wf_pred[k]  # List of the function's arguments.
-            inputs = bypass(*[inputs[k]['value'] for k in s.nodes[k]['inputs']])
+            inputs = sh.bypass(*[
+                inputs[k]['value'] for k in s.nodes[k]['inputs']
+            ])
             io.append((rule, inputs, v['results']))
 
     def tearDown(self):

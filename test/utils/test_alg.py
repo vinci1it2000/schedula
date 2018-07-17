@@ -8,10 +8,7 @@
 
 import doctest
 import unittest
-from schedula.utils.alg import get_sub_node
-from schedula.utils.dsp import SubDispatch, SubDispatchFunction
-from schedula import Dispatcher
-from schedula.utils.cst import SINK
+import schedula as sh
 from functools import partial
 
 
@@ -26,7 +23,7 @@ class TestDoctest(unittest.TestCase):
 
 class TestDispatcherGetSubNode(unittest.TestCase):
     def setUp(self):
-        ss_dsp = Dispatcher()
+        ss_dsp = sh.Dispatcher()
 
         def fun(a, c):
             """
@@ -46,19 +43,21 @@ class TestDispatcherGetSubNode(unittest.TestCase):
             return a + 1, c, a - 1
 
         ss_dsp.add_function('fun', fun, ['a', 'e'], ['b', 'c', 'd'])
-        ss_dsp_func = SubDispatchFunction(
+        ss_dsp_func = sh.SubDispatchFunction(
             ss_dsp, 'func', ['e', 'a'], ['c', 'd', 'b'])
         sub_disfun = partial(ss_dsp_func, 5)
 
-        s_dsp = Dispatcher()
+        s_dsp = sh.Dispatcher()
 
-        s_dsp.add_function('sub_dispatch', sub_disfun, ['a'], ['b', 'c', SINK])
+        s_dsp.add_function(
+            'sub_dispatch', sub_disfun, ['a'], ['b', 'c', sh.SINK]
+        )
 
-        dispatch = SubDispatch(s_dsp, ['b', 'c', 'a'], output_type='list')
-        dsp = Dispatcher()
+        dispatch = sh.SubDispatch(s_dsp, ['b', 'c', 'a'], output_type='list')
+        dsp = sh.Dispatcher()
         dsp.add_data('input', default_value={'a': 3})
 
-        dsp.add_function('dispatch', dispatch, ['input'], [SINK, 'h', 'i'])
+        dsp.add_function('dispatch', dispatch, ['input'], [sh.SINK, 'h', 'i'])
 
         self.sol = dsp.dispatch(inputs={'f': 'new'})
 
@@ -70,6 +69,7 @@ class TestDispatcherGetSubNode(unittest.TestCase):
         self.ss_dsp_func = ss_dsp_func
 
     def test_get_sub_node(self):
+        from schedula.utils.alg import get_sub_node
         dsp = self.dsp
         path = ('dispatch', 'b')
         o, p = get_sub_node(dsp, path)
@@ -109,7 +109,7 @@ class TestDispatcherGetSubNode(unittest.TestCase):
         self.assertEqual(o, self.fun)
         self.assertEqual(p, path)
 
-        path = ('dispatch', SINK)
+        path = ('dispatch', sh.SINK)
         o, p = get_sub_node(dsp, path, node_attr='wait_inputs')
         self.assertEqual(o, True)
         self.assertEqual(p, path)

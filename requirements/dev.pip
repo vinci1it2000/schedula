@@ -1,0 +1,7 @@
+-r all.pip
+-r test.pip
+
+wheel
+sphinx_rtd_theme
+setuptools>=36.0.1
+sphinxcontrib-restbuilder

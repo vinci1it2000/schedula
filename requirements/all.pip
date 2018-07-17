@@ -1,0 +1,4 @@
+-r base.pip
+-r plot.pip
+-r web.pip
+-r sphinx.pip

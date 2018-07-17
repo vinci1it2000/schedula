@@ -8,8 +8,12 @@
 
 import unittest
 import doctest
+import os
+
+EXTRAS = os.environ.get('EXTRAS', 'all')
 
 
+@unittest.skipIf(EXTRAS not in ('all',), 'Not for extra %s.' % EXTRAS)
 class TestDoctest(unittest.TestCase):
     def runTest(self):
         import schedula.utils.base as utl

@@ -1,13 +1,11 @@
+import os
 import unittest
-from schedula import Dispatcher
-from sphinx.ext.autodoc import AutoDirective
-from schedula.ext.dispatcher import PLOT
-from docutils.statemachine import ViewList
-
+import schedula as sh
 try:
     from .util import TestApp, Struct
 except SystemError:
     from test.docs.util import TestApp, Struct
+
 app = None
 
 directive = options = None
@@ -15,8 +13,9 @@ directive = options = None
 _warnings = []
 
 
-def setup_test(**kw):
+def _setup(**kw):
     global options, directive, _warnings, app
+    from schedula.ext.dispatcher import PLOT
     _warnings = []
     options = Struct(
         des=True,
@@ -40,7 +39,7 @@ def setup_test(**kw):
         member_order='alphabetic',
         exclude_members=set(),
     )
-
+    from docutils.statemachine import ViewList
     directive = Struct(
         env=app.builder.env,
         genopt=options,
@@ -67,6 +66,10 @@ def assert_equal_items(test, items):
     del directive.result[:]
 
 
+EXTRAS = os.environ.get('EXTRAS', 'all')
+
+
+@unittest.skipIf(EXTRAS not in ('all', 'sphinx'), 'Not for extra %s.' % EXTRAS)
 class TestDispatcherDirective(unittest.TestCase):
     def setUp(self):
         global app
@@ -79,10 +82,11 @@ class TestDispatcherDirective(unittest.TestCase):
         app.cleanup()
 
     def test_format_signature(self):
-        setup_test()
+        _setup()
 
         def formatsig(objtype, name, obj, args, retann):
             global directive
+            from sphinx.ext.autodoc import AutoDirective
             inst = AutoDirective._registry[objtype](directive, name)
             inst.fullname = name
             inst.doc_as_attr = False  # for class objtype
@@ -94,14 +98,15 @@ class TestDispatcherDirective(unittest.TestCase):
             return res
 
         # no signatures for dispatchers
-        dsp = Dispatcher()
+        dsp = sh.Dispatcher()
         self.assertEqual(formatsig('dispatcher', 'dsp', dsp, None, None), '')
 
     def test_get_doc(self):
-        setup_test()
+        _setup()
 
         def getdocl(objtype, obj, name, encoding=None):
             global directive
+            from sphinx.ext.autodoc import AutoDirective
             inst = AutoDirective._registry[objtype](directive, 'tmp')
 
             inst.objpath = [name]
@@ -112,10 +117,10 @@ class TestDispatcherDirective(unittest.TestCase):
             return res
 
         # objects without docstring
-        dsp_local = Dispatcher()
+        dsp_local = sh.Dispatcher()
         self.assertEqual(getdocl('dispatcher', dsp_local, 'dsp_local'), [])
 
-        dsp_local = Dispatcher(description='Description')
+        dsp_local = sh.Dispatcher(description='Description')
         res = getdocl('dispatcher', dsp_local, 'dsp_local')
         self.assertEqual(res, ['Description'])
 
@@ -124,10 +129,11 @@ class TestDispatcherDirective(unittest.TestCase):
         self.assertEqual(res, ['First line', '', 'Other', '  lines'])
 
     def test_docstring_property_processing(self):
-        setup_test()
+        _setup()
 
         def genarate_docstring(objtype, name, **kw):
             global directive
+            from sphinx.ext.autodoc import AutoDirective
             inst = AutoDirective._registry[objtype](directive, name)
             inst.generate(**kw)
             results = list(directive.result)
@@ -147,7 +153,7 @@ class TestDispatcherDirective(unittest.TestCase):
              " >>> s = Dispatcher(name='Dispatcher')",
              " >>> f = s.add_function('fun', lambda x: 0, ['a'], ['b'])"])
         content._offset = content_offset
-        setup_test(
+        _setup(
             arguments=['dsp'],
             options={'opt': "graph_attr={'ratio': '1'}", 'code': True},
             content=content,
@@ -156,6 +162,7 @@ class TestDispatcherDirective(unittest.TestCase):
 
         def assert_result(self, items, objtype, name, **kw):
             global directive
+            from sphinx.ext.autodoc import AutoDirective
             inst = AutoDirective._registry[objtype](directive, name)
             inst.generate(**kw)
             assert len(_warnings) == 0, _warnings
@@ -181,10 +188,11 @@ class TestDispatcherDirective(unittest.TestCase):
         assert_result(self, res, 'dispatcher', 's', more_content=content)
 
     def test_generate(self):
-        setup_test()
+        _setup()
 
         def assert_result(self, items, objtype, name, **kw):
             global directive
+            from sphinx.ext.autodoc import AutoDirective
             inst = AutoDirective._registry[objtype](directive, name)
             inst.generate(**kw)
             assert len(_warnings) == 0, _warnings
@@ -280,7 +288,7 @@ def fun2(e, my_args, *args):
 #: Docstring 1
 #:
 #: good
-dsp = Dispatcher(name='Pippo', description='Docstring 2\n\ngood')
+dsp = sh.Dispatcher(name='Pippo', description='Docstring 2\n\ngood')
 dsp.add_data(data_id='a', description='Description of a\n\nerror')
 dsp.add_function(function_id='fun1', description='Fun1\n\nerror')
 dsp.add_function('fun2', fun2, ['b', 'e', 'd'], ['c'])

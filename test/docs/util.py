@@ -9,24 +9,30 @@
 
 import os
 import sys
-from six import StringIO
-from sphinx import application
-from sphinx.ext.autodoc import AutoDirective
-from os.path import abspath, join, exists, isdir
 import shutil
+import os.path as osp
+from six import StringIO
+
+EXTRAS = os.environ.get('EXTRAS', 'all')
+try:
+    from sphinx.application import Sphinx
+except ImportError as ex:
+    if EXTRAS not in ('all',):
+        Sphinx = object
+    else:
+        raise ex
 
 __all__ = ['Struct', 'ListOutput', 'TestApp']
 
-rootdir = abspath(os.path.dirname(__file__) or '.')
-
+rootdir = osp.abspath(os.path.dirname(__file__) or '.')
 
 # find a temp dir for testing and clean it up now
 if 'SPHINX_TEST_TEMPDIR' not in os.environ:
-    os.environ['SPHINX_TEST_TEMPDIR'] = abspath(join(rootdir, 'build'))
+    os.environ['SPHINX_TEST_TEMPDIR'] = osp.abspath(osp.join(rootdir, 'build'))
 
 tempdir = os.environ['SPHINX_TEST_TEMPDIR']
 try:
-    if exists(tempdir):
+    if osp.exists(tempdir):
         shutil.rmtree(tempdir)
     os.makedirs(tempdir)
 except PermissionError:
@@ -42,6 +48,7 @@ class ListOutput(object):
     """
     File-like object that collects written text in a list.
     """
+
     def __init__(self, name):
         self.name = name
         self.content = []
@@ -53,7 +60,7 @@ class ListOutput(object):
         self.content.append(text)
 
 
-class TestApp(application.Sphinx):
+class TestApp(Sphinx):
     """
     A subclass of :class:`Sphinx` that runs on the test root, with some
     better default values for the initialization parameters.
@@ -64,32 +71,32 @@ class TestApp(application.Sphinx):
                  tags=None, docutilsconf=None):
         if testroot is None:
             defaultsrcdir = 'root'
-            testroot = join(rootdir, 'root')
+            testroot = osp.join(rootdir, 'root')
         else:
             defaultsrcdir = 'test-' + testroot
-            testroot = join(rootdir, 'roots', 'test-' + testroot)
+            testroot = osp.join(rootdir, 'roots', 'test-' + testroot)
         if srcdir is None:
-            srcdir = join(tempdir, defaultsrcdir)
+            srcdir = osp.join(tempdir, defaultsrcdir)
         else:
-            srcdir = join(tempdir, srcdir)
+            srcdir = osp.join(tempdir, srcdir)
 
-        if not exists(srcdir):
+        if not osp.exists(srcdir):
             shutil.copytree(testroot, srcdir)
 
         if docutilsconf is not None:
-            with open(join(srcdir, 'docutils.conf'), 'w') as f:
+            with open(osp.join(srcdir, 'docutils.conf'), 'w') as f:
                 f.write(docutilsconf)
 
-        builddir = join(srcdir, '_build')
-#        if confdir is None:
+        builddir = osp.join(srcdir, '_build')
+        #        if confdir is None:
         confdir = srcdir
-#        if outdir is None:
-        outdir = join(builddir, buildername)
-        if not isdir(outdir):
+        #        if outdir is None:
+        outdir = osp.join(builddir, buildername)
+        if not osp.isdir(outdir):
             os.makedirs(outdir)
-#        if doctreedir is None:
-        doctreedir = join(builddir, 'doctrees')
-        if not isdir(doctreedir):
+        #        if doctreedir is None:
+        doctreedir = osp.join(builddir, 'doctrees')
+        if not osp.isdir(doctreedir):
             os.makedirs(doctreedir)
         if confoverrides is None:
             confoverrides = {}
@@ -97,16 +104,18 @@ class TestApp(application.Sphinx):
             status = StringIO()
         if warning is None:
             warning = ListOutput('stderr')
-#        if warningiserror is None:
+        #        if warningiserror is None:
         warningiserror = False
 
         self._saved_path = sys.path[:]
 
-        application.Sphinx.__init__(self, srcdir, confdir, outdir, doctreedir,
-                                    buildername, confoverrides, status, warning,
-                                    freshenv, warningiserror, tags)
+        super(TestApp, self).__init__(
+            srcdir, confdir, outdir, doctreedir, buildername, confoverrides,
+            status, warning, freshenv, warningiserror, tags
+        )
 
     def cleanup(self, doctrees=False):
+        from sphinx.ext.autodoc import AutoDirective
         AutoDirective._registry.clear()
         sys.path[:] = self._saved_path
         sys.modules.pop('autodoc_fodder', None)

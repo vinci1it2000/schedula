@@ -8,11 +8,8 @@
 
 import doctest
 import unittest
-
-from schedula.utils.dsp import *
-from schedula import Dispatcher
-from schedula.utils.cst import SINK, NONE
-from schedula.utils.exc import DispatcherError
+import functools
+import schedula as sh
 
 
 class TestDoctest(unittest.TestCase):
@@ -26,105 +23,107 @@ class TestDoctest(unittest.TestCase):
 
 class TestDispatcherUtils(unittest.TestCase):
     def test_combine_dicts(self):
-        res = combine_dicts({'a': 3, 'c': 3}, {'a': 1, 'b': 2})
+        res = sh.combine_dicts({'a': 3, 'c': 3}, {'a': 1, 'b': 2})
         self.assertEqual(res, {'a': 1, 'b': 2, 'c': 3})
 
     def test_bypass(self):
-        self.assertEqual(bypass('a', 'b', 'c'), ('a', 'b', 'c'))
-        self.assertEqual(bypass('a'), 'a')
+        self.assertEqual(sh.bypass('a', 'b', 'c'), ('a', 'b', 'c'))
+        self.assertEqual(sh.bypass('a'), 'a')
 
     def test_summation(self):
-        self.assertEqual(summation(1, 3.0, 4, 2), 10.0)
+        self.assertEqual(sh.summation(1, 3.0, 4, 2), 10.0)
 
     # noinspection PyArgumentList
     def test_selector(self):
         args = (['a', 'b'], {'a': 1, 'b': 2, 'c': 3})
-        self.assertEqual(selector(*args), {'a': 1, 'b': 2})
+        self.assertEqual(sh.selector(*args), {'a': 1, 'b': 2})
 
         args = (['a', 'b'], {'a': 1, 'b': object(), 'c': 3})
         res = {'a': 1, 'b': args[1]['b']}
-        self.assertEqual(selector(*args), res)
+        self.assertEqual(sh.selector(*args), res)
 
-        self.assertNotEqual(selector(*args, copy=True), res)
+        self.assertNotEqual(sh.selector(*args, copy=True), res)
 
         args = (['a', 'b'], {'a': 1, 'b': 2, 'c': 3})
-        self.assertSequenceEqual(selector(*args, output_type='list'), (1, 2))
+        self.assertSequenceEqual(sh.selector(*args, output_type='list'), (1, 2))
 
         args = ['a', 'd'], {'a': 1, 'b': 1}
-        self.assertEqual(selector(*args, allow_miss=True), {'a': 1})
+        self.assertEqual(sh.selector(*args, allow_miss=True), {'a': 1})
 
-        self.assertRaises(KeyError, selector, *args, output_type='list')
+        self.assertRaises(KeyError, sh.selector, *args, output_type='list')
 
     def test_replicate(self):
         v = {'a': object()}
-        self.assertEqual(replicate_value(v, n=3, copy=False), tuple([v] * 3))
+        self.assertEqual(sh.replicate_value(v, n=3, copy=False), tuple([v] * 3))
 
-        self.assertNotEqual(replicate_value(v, n=3)[0], v)
+        self.assertNotEqual(sh.replicate_value(v, n=3)[0], v)
 
     def test_map_dict(self):
-        d = map_dict({'a': 'c', 'b': 'a', 'c': 'a'}, {'a': 1, 'b': 1}, {'b': 2})
+        d = sh.map_dict(
+            {'a': 'c', 'b': 'a', 'c': 'a'}, {'a': 1, 'b': 1}, {'b': 2}
+        )
         self.assertEqual(d, {'a': 2, 'c': 1})
 
     def test_map_list(self):
         key_map = ['a', {'a': 'c'}, ['a', {'a': 'd'}]]
         inputs = (2, {'a': 3, 'b': 2}, [1, {'a': 4}])
-        res = map_list(key_map, *inputs)
+        res = sh.map_list(key_map, *inputs)
         self.assertEqual(res, {'a': 1, 'b': 2, 'c': 3, 'd': 4})
 
     def test_stack_nested_keys(self):
         d = {'a': {'b': {'c': ('d',)}}, 'A': {'B': {'C': ('D',)}}}
-        output = sorted(stack_nested_keys(d))
+        output = sorted(sh.stack_nested_keys(d))
         result = [(('A', 'B', 'C'), ('D',)), (('a', 'b', 'c'), ('d',))]
         self.assertEqual(output, result)
 
-        output = sorted(stack_nested_keys(d, key=(0,)))
+        output = sorted(sh.stack_nested_keys(d, key=(0,)))
         result = [((0, 'A', 'B', 'C'), ('D',)), ((0, 'a', 'b', 'c'), ('d',))]
         self.assertEqual(output, result)
 
-        output = sorted(stack_nested_keys(d, depth=2))
+        output = sorted(sh.stack_nested_keys(d, depth=2))
         result = [(('A', 'B'), {'C': ('D',)}), (('a', 'b'), {'c': ('d',)})]
         self.assertEqual(output, result)
 
     def test_get_nested_dicts(self):
         d = {'a': {'b': {'c': ('d',)}}, 'A': {'B': {'C': ('D',)}}}
-        output = get_nested_dicts(d, 'a', 'b', 'c')
+        output = sh.get_nested_dicts(d, 'a', 'b', 'c')
         result = ('d',)
         self.assertEqual(output, result)
 
-        output = get_nested_dicts(d, 0, default=list)
+        output = sh.get_nested_dicts(d, 0, default=list)
         self.assertIsInstance(output, list)
         self.assertTrue(0 in d)
         import collections
 
-        output = get_nested_dicts(d, 0, init_nesting=collections.OrderedDict)
+        output = sh.get_nested_dicts(d, 0, init_nesting=collections.OrderedDict)
         self.assertIsInstance(output, list)
 
-        output = get_nested_dicts(d, 1, init_nesting=collections.OrderedDict)
+        output = sh.get_nested_dicts(d, 1, init_nesting=collections.OrderedDict)
         self.assertIsInstance(output, collections.OrderedDict)
         self.assertTrue(1 in d)
 
-        output = get_nested_dicts(d, 2, 3, default=list,
-                                  init_nesting=collections.OrderedDict)
+        output = sh.get_nested_dicts(d, 2, 3, default=list,
+                                     init_nesting=collections.OrderedDict)
         self.assertIsInstance(output, list)
         self.assertTrue(2 in d)
         self.assertIsInstance(d[2], collections.OrderedDict)
 
     def test_are_in_nested_dicts(self):
         d = {'a': {'b': {'c': ('d',)}}, 'A': {'B': {'C': ('D',)}}}
-        self.assertTrue(are_in_nested_dicts(d, 'a', 'b', 'c'))
-        self.assertFalse(are_in_nested_dicts(d, 'a', 'b', 'C'))
-        self.assertFalse(are_in_nested_dicts(d, 'a', 'b', 'c', 'd'))
+        self.assertTrue(sh.are_in_nested_dicts(d, 'a', 'b', 'c'))
+        self.assertFalse(sh.are_in_nested_dicts(d, 'a', 'b', 'C'))
+        self.assertFalse(sh.are_in_nested_dicts(d, 'a', 'b', 'c', 'd'))
 
     def test_combine_nested_dicts(self):
         d1 = {'a': {'b': {'c': ('d',), 0: 1}}, 'A': {'B': ('C',), 0: 1}, 0: 1}
         d2 = {'A': {'B': {'C': 'D'}}, 'a': {'b': 'c'}}
         base = {0: 0, 1: 2}
-        output = combine_nested_dicts(d1, d2, base=base)
+        output = sh.combine_nested_dicts(d1, d2, base=base)
         result = {0: 1, 1: 2, 'A': {0: 1, 'B': {'C': 'D'}}, 'a': {'b': 'c'}}
         self.assertEqual(output, result)
         self.assertIs(output, base)
 
-        output = combine_nested_dicts(d1, d2, depth=1)
+        output = sh.combine_nested_dicts(d1, d2, depth=1)
         result = {0: 1, 'A': {'B': {'C': 'D'}}, 'a': {'b': 'c'}}
         self.assertEqual(output, result)
 
@@ -137,34 +136,34 @@ class TestDispatcherUtils(unittest.TestCase):
                 return list((a, b) + c)
 
         fo = original_func()
-        func = add_args(functools.partial(fo, 1, 2), 2)
+        func = sh.add_args(functools.partial(fo, 1, 2), 2)
         self.assertEqual(func.__name__, 'original_func')
         self.assertEqual(func.__doc__, None)
         self.assertEqual(func((1, 2, 3), 2, 4), [1, 2, 4])
-        func = add_args(functools.partial(functools.partial(func, 1), 1, 2), 2,
+        func = sh.add_args(functools.partial(functools.partial(func, 1), 1, 2), 2,
                         callback=lambda res, *args, **kwargs: res.pop())
         self.assertEqual(func.__name__, 'original_func')
         self.assertEqual(func.__doc__, None)
         self.assertEqual(func((1, 2, 3), 6, 5, 7), [1, 2, 2, 5])
-        func = parent_func(func)
+        func = sh.parent_func(func)
         self.assertEqual(func, fo)
 
 
 class TestSubDispatcher(unittest.TestCase):
     def setUp(self):
-        sub_dsp = Dispatcher()
+        sub_dsp = sh.Dispatcher()
 
         def fun(a):
             return a + 1, a - 1
 
         sub_dsp.add_function('fun', fun, ['a'], ['b', 'c'])
 
-        dispatch = SubDispatch(sub_dsp, ['a', 'b', 'c'])
-        dispatch_dict = SubDispatch(sub_dsp, ['c'], output_type='dict')
-        dispatch_list = SubDispatch(sub_dsp, ['a', 'c'], output_type='list')
-        dispatch_val = SubDispatch(sub_dsp, ['c'], output_type='list')
+        dispatch = sh.SubDispatch(sub_dsp, ['a', 'b', 'c'])
+        dispatch_dict = sh.SubDispatch(sub_dsp, ['c'], output_type='dict')
+        dispatch_list = sh.SubDispatch(sub_dsp, ['a', 'c'], output_type='list')
+        dispatch_val = sh.SubDispatch(sub_dsp, ['c'], output_type='list')
 
-        dsp = Dispatcher()
+        dsp = sh.Dispatcher()
         dsp.add_function('dispatch', dispatch, ['d'], ['e'])
         dsp.add_function('dispatch_dict', dispatch_dict, ['d'], ['f'])
         dsp.add_function('dispatch_list', dispatch_list, ['d'], ['g'])
@@ -185,37 +184,38 @@ class TestSubDispatcher(unittest.TestCase):
 
 class TestSubDispatchFunction(unittest.TestCase):
     def setUp(self):
-        dsp = Dispatcher()
+        dsp = sh.Dispatcher()
         dsp.add_function(function=max, inputs=['a', 'b'], outputs=['c'])
         dsp.add_function(function=min, inputs=['c', 'b'], outputs=['a'],
                          input_domain=lambda c, b: c * b > 0)
         self.dsp_1 = dsp
 
-        dsp = Dispatcher()
+        dsp = sh.Dispatcher()
 
         def f(a, b):
             return a + b, a - b
 
-        dsp.add_function(function=f, inputs=['a', 'b'], outputs=['c', SINK])
-        dsp.add_function(function=f, inputs=['c', 'b'], outputs=[SINK, 'd'])
+        dsp.add_function(function=f, inputs=['a', 'b'], outputs=['c', sh.SINK])
+        dsp.add_function(function=f, inputs=['c', 'b'], outputs=[sh.SINK, 'd'])
         self.dsp_2 = dsp
 
     def test_sub_dispatch_function(self):
-        fun = SubDispatchFunction(self.dsp_1, 'F', ['a', 'b'], ['a'])
+        fun = sh.SubDispatchFunction(self.dsp_1, 'F', ['a', 'b'], ['a'])
         self.assertEqual(fun.__name__, 'F')
 
         # noinspection PyCallingNonCallable
         self.assertEqual(fun(2, 1), 1)
         self.assertRaises(ValueError, fun, 3, -1)
 
-        fun = SubDispatchFunction(self.dsp_2, 'F', ['b', 'a'], ['c', 'd'])
+        fun = sh.SubDispatchFunction(self.dsp_2, 'F', ['b', 'a'], ['c', 'd'])
         # noinspection PyCallingNonCallable
         self.assertEqual(fun(1, 2), [3, 2])
         self.assertEqual(fun(1, a=2), [3, 2])
         self.assertEqual(fun(1, c=3), [3, 2])
 
         self.assertRaises(
-            ValueError, SubDispatchFunction, self.dsp_2, 'F', ['a', 'c'], ['d']
+            ValueError, sh.SubDispatchFunction, self.dsp_2, 'F', ['a', 'c'],
+            ['d']
         )
 
         self.assertRaises(TypeError, fun, 2, 1, a=2, b=2)
@@ -224,24 +224,24 @@ class TestSubDispatchFunction(unittest.TestCase):
 
 class TestSubDispatchPipe(unittest.TestCase):
     def setUp(self):
-        dsp = Dispatcher()
+        dsp = sh.Dispatcher()
         dsp.add_function(function=max, inputs=['a', 'b'], outputs=['c'])
         dsp.add_function(function=min, inputs=['c', 'b'], outputs=['a'],
                          input_domain=lambda c, b: c * b > 0)
         self.dsp_1 = dsp
 
-        dsp = Dispatcher()
+        dsp = sh.Dispatcher()
 
         def f(a, b):
             if b is None:
-                return a, NONE
+                return a, sh.NONE
             return a + b, a - b
 
-        dsp.add_function(function=f, inputs=['a', 'b'], outputs=['c', SINK])
-        dsp.add_function(function=f, inputs=['c', 'b'], outputs=[SINK, 'd'])
+        dsp.add_function(function=f, inputs=['a', 'b'], outputs=['c', sh.SINK])
+        dsp.add_function(function=f, inputs=['c', 'b'], outputs=[sh.SINK, 'd'])
         self.dsp_2 = dsp
 
-        dsp = Dispatcher()
+        dsp = sh.Dispatcher()
 
         dsp.add_function(function=f, inputs=['a', 'b'], outputs=['c', 'd'],
                          out_weight={'d': 100})
@@ -249,9 +249,9 @@ class TestSubDispatchPipe(unittest.TestCase):
                            outputs={'c': 'd'})
         self.dsp_3 = dsp
 
-        dsp = Dispatcher()
+        dsp = sh.Dispatcher()
 
-        dsp.add_function(function=SubDispatchFunction(
+        dsp.add_function(function=sh.SubDispatchFunction(
             self.dsp_3, 'f', ['b', 'a'], ['c', 'd']),
             inputs=['b', 'a'], outputs=['c', 'd'], out_weight={'d': 100}
         )
@@ -260,51 +260,51 @@ class TestSubDispatchPipe(unittest.TestCase):
         self.dsp_4 = dsp
 
     def test_sub_dispatch_function(self):
-        fun = SubDispatchPipe(self.dsp_1, 'F', ['a', 'b'], ['a'])
+        fun = sh.SubDispatchPipe(self.dsp_1, 'F', ['a', 'b'], ['a'])
         self.assertEqual(fun.__name__, 'F')
 
         # noinspection PyCallingNonCallable
         self.assertEqual(fun(2, 1), 1)
         self.assertRaises(ValueError, fun, 3, -1)
-        self.assertRaises(DispatcherError, fun, 3, None)
+        self.assertRaises(sh.DispatcherError, fun, 3, None)
 
-        fun = SubDispatchPipe(self.dsp_2, 'F', ['b', 'a'], ['c', 'd'])
+        fun = sh.SubDispatchPipe(self.dsp_2, 'F', ['b', 'a'], ['c', 'd'])
         # noinspection PyCallingNonCallable
         self.assertEqual(fun(1, 2), [3, 2])
 
         self.assertRaises(
-            ValueError, SubDispatchPipe, self.dsp_2, 'F', ['a', 'c'], ['d']
+            ValueError, sh.SubDispatchPipe, self.dsp_2, 'F', ['a', 'c'], ['d']
         )
 
-        fun = SubDispatchPipe(self.dsp_3, 'F', ['b', 'a'], ['c', 'd'])
+        fun = sh.SubDispatchPipe(self.dsp_3, 'F', ['b', 'a'], ['c', 'd'])
         # noinspection PyCallingNonCallable
         self.assertEqual(fun(5, 20), [25, 20])
 
-        fun = SubDispatchPipe(self.dsp_4, 'F', ['b', 'a'], ['c', 'd'])
+        fun = sh.SubDispatchPipe(self.dsp_4, 'F', ['b', 'a'], ['c', 'd'])
         # noinspection PyCallingNonCallable
         self.assertEqual(fun(5, 20), [25, 20])
 
 
 class TestDispatchPipe(unittest.TestCase):
     def setUp(self):
-        dsp = Dispatcher()
+        dsp = sh.Dispatcher()
         dsp.add_function(function=max, inputs=['a', 'b'], outputs=['c'])
         dsp.add_function(function=min, inputs=['c', 'b'], outputs=['a'],
                          input_domain=lambda c, b: c * b > 0)
         self.dsp_1 = dsp
 
-        dsp = Dispatcher()
+        dsp = sh.Dispatcher()
 
         def f(a, b):
             if b is None:
-                return a, NONE
+                return a, sh.NONE
             return a + b, a - b
 
-        dsp.add_function(function=f, inputs=['a', 'b'], outputs=['c', SINK])
-        dsp.add_function(function=f, inputs=['c', 'b'], outputs=[SINK, 'd'])
+        dsp.add_function(function=f, inputs=['a', 'b'], outputs=['c', sh.SINK])
+        dsp.add_function(function=f, inputs=['c', 'b'], outputs=[sh.SINK, 'd'])
         self.dsp_2 = dsp
 
-        dsp = Dispatcher()
+        dsp = sh.Dispatcher()
 
         dsp.add_function(function=f, inputs=['a', 'b'], outputs=['c', 'd'],
                          out_weight={'d': 100})
@@ -312,9 +312,9 @@ class TestDispatchPipe(unittest.TestCase):
                            outputs={'c': 'd'})
         self.dsp_3 = dsp
 
-        dsp = Dispatcher()
+        dsp = sh.Dispatcher()
 
-        dsp.add_function(function=SubDispatchFunction(
+        dsp.add_function(function=sh.SubDispatchFunction(
             self.dsp_3, 'f', ['b', 'a'], ['c', 'd']),
             inputs=['b', 'a'], outputs=['c', 'd'], out_weight={'d': 100}
         )
@@ -323,26 +323,26 @@ class TestDispatchPipe(unittest.TestCase):
         self.dsp_4 = dsp
 
     def test_sub_dispatch_function(self):
-        fun = DispatchPipe(self.dsp_1, 'F', ['a', 'b'], ['a'])
+        fun = sh.DispatchPipe(self.dsp_1, 'F', ['a', 'b'], ['a'])
         self.assertEqual(fun.__name__, 'F')
 
         # noinspection PyCallingNonCallable
         self.assertEqual(fun(2, 1), 1)
         self.assertRaises(ValueError, fun, 3, -1)
-        self.assertRaises(DispatcherError, fun, 3, None)
+        self.assertRaises(sh.DispatcherError, fun, 3, None)
 
-        fun = DispatchPipe(self.dsp_2, 'F', ['b', 'a'], ['c', 'd'])
+        fun = sh.DispatchPipe(self.dsp_2, 'F', ['b', 'a'], ['c', 'd'])
         # noinspection PyCallingNonCallable
         self.assertEqual(fun(1, 2), [3, 2])
 
         self.assertRaises(
-            ValueError, DispatchPipe, self.dsp_2, 'F', ['a', 'c'], ['d']
+            ValueError, sh.DispatchPipe, self.dsp_2, 'F', ['a', 'c'], ['d']
         )
 
-        fun = DispatchPipe(self.dsp_3, 'F', ['b', 'a'], ['c', 'd'])
+        fun = sh.DispatchPipe(self.dsp_3, 'F', ['b', 'a'], ['c', 'd'])
         # noinspection PyCallingNonCallable
         self.assertEqual(fun(5, 20), [25, 20])
 
-        fun = DispatchPipe(self.dsp_4, 'F', ['b', 'a'], ['c', 'd'])
+        fun = sh.DispatchPipe(self.dsp_4, 'F', ['b', 'a'], ['c', 'd'])
         # noinspection PyCallingNonCallable
         self.assertEqual(fun(5, 20), [25, 20])
