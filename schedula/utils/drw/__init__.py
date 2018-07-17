@@ -8,31 +8,37 @@
 
 """
 It provides functions to plot dispatcher map and workflow.
+
+Sub-Modules:
+
+.. currentmodule:: schedula.utils.drw
+
+.. autosummary::
+    :nosignatures:
+    :toctree: drw/
+
+    nodes
 """
-import graphviz as gviz
-import os.path as osp
-import string
-import urllib.parse as urlparse
-import pprint
-import inspect
-import platform
+
+import os
+import glob
 import copy
-import tempfile
-import html
-import logging
-import functools
-import itertools
 import regex
 import socket
-import datetime
-import os
-import pygments
-import bs4
-import jinja2
-import glob
+import pprint
+import string
+import inspect
 import weakref
+import logging
+import datetime
+import platform
+import tempfile
+import functools
+import itertools
 import collections
-from docutils import nodes as _nodes
+import os.path as osp
+import urllib.parse as urlparse
+
 from ..cst import START, SINK, END, EMPTY, SELF, NONE, PLOT
 from ..dsp import SubDispatch, combine_dicts, map_dict, combine_nested_dicts, \
     selector, stlp, parent_func
@@ -45,16 +51,6 @@ log = logging.getLogger(__name__)
 PLATFORM = platform.system().lower()
 
 _UNC = u'\\\\?\\' if PLATFORM == 'windows' else ''
-
-
-class _DspPlot(gviz.Digraph):
-    def __init__(self, sitemap, *args, **kwargs):
-        super(_DspPlot, self).__init__(*args, **kwargs)
-        self.sitemap = sitemap
-
-    @property
-    def filepath(self):
-        return uncpath(os.path.join(self.directory, self.filename))
 
 
 def uncpath(p):
@@ -94,36 +90,9 @@ def autoplot_callback(res):
     res['plot'] = res['dsp'].plot(**res['kw'])
 
 
-class _Table(_nodes.General, _nodes.Element):
-    tagname = 'TABLE'
-
-    def adds(self, *items):
-        for item in items:
-            # noinspection PyMethodFirstArgAssignment
-            self += item
-        return self
-
-
-class _Tr(_Table):
-    tagname = 'TR'
-
-    def add(self, text, **attributes):
-        # noinspection PyMethodFirstArgAssignment
-        self += _Td(**attributes).add(text)
-        return self
-
-
-class _Td(_nodes.General, _nodes.Element):
-    tagname = 'TD'
-
-    def add(self, text):
-        # noinspection PyMethodFirstArgAssignment
-        self += _nodes.Text(html.escape(text).replace('\n', '<BR/>'))
-        return self
-
-
 def jinja2_format(source, context=None, **kw):
-    return jinja2.Environment(**kw).from_string(source).render(context or {})
+    from jinja2 import Environment
+    return Environment(**kw).from_string(source).render(context or {})
 
 
 def valid_filename(item, filenames, ext=None):
@@ -165,9 +134,10 @@ _header = """
 
 def add_header(filepath, header):
     if header and osp.splitext(filepath)[1][1:] == 'html':
+        from bs4 import BeautifulSoup
         with open(filepath, 'r') as file:
-            soup = bs4.BeautifulSoup(header, 'lxml')
-            soup.html.body.append(bs4.BeautifulSoup(file, "lxml"))
+            soup = BeautifulSoup(header, 'lxml')
+            soup.html.body.append(BeautifulSoup(file, "lxml"))
         with open(filepath, 'wb') as file:
             file.write(soup.prettify("utf-8"))
 
@@ -238,11 +208,11 @@ class SiteNode(object):
         return self.title
 
     def render(self, *args, **kwargs):
-        import pygments.lexers as lexers
-        import pygments.formatters as formatters
+        from pygments import highlight
+        from pygments.lexers import Python3Lexer
+        from pygments.formatters import HtmlFormatter
         code = render_output(self.item, self.pprint.pformat)
-        formatter = formatters.HtmlFormatter(noclasses=True)
-        return pygments.highlight(code, lexers.Python3Lexer(), formatter)
+        return highlight(code, Python3Lexer(), HtmlFormatter(noclasses=True))
 
     def view(self, filepath, *args, header=_header, **kwargs):
         filepath = uncpath(filepath)
@@ -570,6 +540,7 @@ class FolderNode(object):
         dot = self.style()
         if 'label' in dot:
             return dot
+        from .nodes import _Tr, _Td
         key, val = dict(ALIGN="RIGHT", BORDER=1), dict(ALIGN="LEFT", BORDER=1)
         rows, funcs, cnt = [], list(self.render_funcs()), {'attr': val}
         cnt['parent_ref'] = functools.partial(self.parent_ref, context)
@@ -578,6 +549,7 @@ class FolderNode(object):
             if k == '.':
                 dot.update(func())
             elif not (k == '*' or k == '-' or k == '?'):
+
                 for i, j in func():
                     tr = _Tr().add(i, **key)
                     if i in links and (k == '!' or k == '+'):
@@ -603,6 +575,7 @@ class FolderNode(object):
 
         if rows:
             k = 'xlabel' if self.type == 'edge' else 'label'
+            from .nodes import _Table
             dot[k] = '<%s>' % _Table(BORDER=0, CELLSPACING=0).adds(rows)
 
         return {k: str(v) for k, v in dot.items()}
@@ -750,6 +723,7 @@ class SiteFolder(object):
             'body': {'label': '<%s>' % self.label_name}
         })
         kw['body'] = ['%s = %s' % (k, v) for k, v in sorted(kw['body'].items())]
+        from .nodes import _DspPlot
         dot = _DspPlot(self.sitemap, **kw)
         id_map = {}
         for node in self.nodes:
@@ -770,6 +744,7 @@ class SiteFolder(object):
                 directory=None,
                 cleanup=True
             )
+
             filepath = uncpath(filepath)
             if osp.isfile(filepath):
                 os.remove(filepath)
@@ -799,12 +774,13 @@ class SiteIndex(SiteNode):
 
     def render(self, context, *args, **kwargs):
         import pkg_resources
+        from jinja2 import PackageLoader
         pkg_dir = pkg_resources.resource_filename(__name__, '')
         fpath = osp.join(pkg_dir, 'templates', self.filename)
         with open(fpath) as myfile:
             return jinja2_format(myfile.read(), {'sitemap': self.sitemap,
                                                  'context': context},
-                                 loader=jinja2.PackageLoader(__name__))
+                                 loader=PackageLoader(__name__))
 
 
 def run_server(app, options):
@@ -942,7 +918,7 @@ class SiteMap(collections.OrderedDict):
     site_folder = SiteFolder
     site_node = SiteNode
     site_index = SiteIndex
-    _view = _DspPlot(None)._view
+    _view = None
     options = {
         'digraph', 'node_styles', 'node_data', 'node_function', 'edge_data',
         'max_lines', 'max_width'
@@ -951,6 +927,9 @@ class SiteMap(collections.OrderedDict):
 
     def __init__(self):
         super(SiteMap, self).__init__()
+        if self._view is None:
+            from .nodes import _DspPlot
+            self._view = _DspPlot(None)._view
         self._nodes = []
         self.foldername = ''
         self.index = self.site_index(self)

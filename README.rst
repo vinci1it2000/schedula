@@ -53,6 +53,25 @@ Or download the last git version and use (with root privileges):
 
     $ python setup.py install
 
+
+Install extras
+--------------
+Some additional functionality is enabled installing the following extras:
+
+- plot: enables the plot of the Dispatcher model and workflow
+  (see :func:`~schedula.Dispatcher.plot`).
+- web: enables to build a dispatcher Flask app (see
+  :func:`~schedula.Dispatcher.web`).
+- sphinx: enables the sphinx extension directives (i.e., autosummary and
+  dispatcher).
+
+To install schedula and all extras, do:
+
+.. code-block:: console
+
+    $ pip install schedula[all]
+
+
 .. _end-quick:
 
 Why may I use schedula?
@@ -71,11 +90,11 @@ execute the proper functions for the given inputs and the requested outputs.
 Moreover, schedula provides a flexible framework for structuring code. It
 allows to extract sub-models from a bigger one.
 
-.. note:: A successful application is |co2mpas|_, where schedula has been used
-   to model an entire vehicle_.
+.. note:: A successful application_ is |co2mpas|, where schedula has been used
+to model an entire vehicle_.
 
 .. |co2mpas| replace:: CO\ :sub:`2`\ MPAS
-.. _co2mpas : https://github.com/JRCSTU/CO2MPAS-TA
+.. _application: https://github.com/JRCSTU/CO2MPAS-TA
 .. _vehicle : https://co2mpas.io/explanation.html#execution-model
 
 

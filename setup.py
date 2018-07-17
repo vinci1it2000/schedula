@@ -58,11 +58,21 @@ url = 'https://github.com/vinci1it2000/%s' % name
 download_url = '%s/tarball/v%s' % (url, proj_ver)
 
 if __name__ == '__main__':
+    import functools
     # noinspection PyBroadException
     try:
         long_description = get_long_description()
     except Exception:
         long_description = ''
+
+    extras = {
+        'web': ['regex', 'flask'],
+        'plot': ['graphviz', 'regex', 'flask', 'Pygments', 'lxml', 'bs4',
+                 'jinja2', 'docutils'],
+        'sphinx': ['sphinx']
+    }
+    extras['sphinx'] = ['sphinx'] + extras['plot']
+    extras['all'] = sorted(functools.reduce(set.union, extras.values(), set()))
 
     setup(
         name=name,
@@ -107,19 +117,8 @@ if __name__ == '__main__':
             "Topic :: Software Development :: Libraries :: Python Modules",
             "Topic :: Utilities",
         ],
-        install_requires=[
-            'networkx>=2.0.0',
-            'dill!=0.2.7',
-            'graphviz',
-            'regex',
-            'flask',
-            'Pygments',
-            'lxml',
-            'bs4',
-            'jinja2',
-            'docutils',
-            'sphinx'
-        ],
+        install_requires=['networkx>=2.0.0', 'dill!=0.2.7'],
+        extras_require=extras,
         test_suite='nose.collector',
         setup_requires=['nose>=1.0'],
         package_data={
