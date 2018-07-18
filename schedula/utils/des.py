@@ -11,6 +11,7 @@ It provides tools to find data, function, and sub-dispatcher node description.
 """
 
 import re
+import inspect
 import logging
 from .dsp import SubDispatch, SubDispatchFunction, bypass, replicate_value, \
     parent_func
@@ -127,13 +128,18 @@ def _search_doc_in_func(dsp, node_id, where_succ=True, node_type='function',
 
             doc = fun.__doc__
             if not d and doc:
-                from sphinx.util.inspect import getargspec
-                attr_name = getargspec(fun)
-                try:
-                    attr_name = attr_name[0][n_ix] if where_succ else None
-                except IndexError:
-                    attr_name = attr_name[1]
-
+                if not where_succ:
+                    attr_name = None
+                else:
+                    try:
+                        sig = inspect.signature(fun)
+                    except ValueError:
+                        return None, ''
+                    VAR_POSITIONAL = inspect.Parameter.VAR_POSITIONAL
+                    for i, param in enumerate(sig.parameters.values()):
+                        attr_name = param.name
+                        if i == n_ix or param.kind is VAR_POSITIONAL:
+                            break
                 return get_attr_doc(doc, attr_name, where_succ, what), ''
 
             return d, ll
@@ -154,12 +160,7 @@ def _search_doc_in_func(dsp, node_id, where_succ=True, node_type='function',
 
     for k, v in ((k, nodes[k]) for k in sorted(neighbors[node_id])):
         if v['type'] == node_type and check(k):
-            # noinspection PyBroadException
-            try:
-                des, link = get_des(v)
-            except Exception:
-                pass
-
+            des, link = get_des(v)
         if des:
             return des, link
 
