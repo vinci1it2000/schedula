@@ -2,6 +2,25 @@ Changelog
 =========
 
 
+v0.2.0 (2018-07-19)
+-------------------
+
+Feat
+~~~~
+- (doc): Add changelog.
+
+- (travis): Test extras.
+
+- (des): Avoid using sphinx for `getargspec`.
+
+- (setup): Add extras_require to setup file.
+
+
+Fix
+~~~
+- (setup): Correct bug in `get_long_description`.
+
+
 v0.1.19 (2018-06-05)
 --------------------
 
