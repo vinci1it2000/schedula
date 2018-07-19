@@ -6,7 +6,6 @@
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
-from setuptools import setup, find_packages
 import io
 import os
 import os.path as osp
@@ -59,6 +58,8 @@ download_url = '%s/tarball/v%s' % (url, proj_ver)
 
 if __name__ == '__main__':
     import functools
+    from setuptools import setup, find_packages
+
     # noinspection PyBroadException
     try:
         long_description = get_long_description()
