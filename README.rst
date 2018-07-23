@@ -261,7 +261,7 @@ parallel.
     :target: https://coveralls.io/github/vinci1it2000/schedula?branch=master
     :alt: Code coverage
 
-.. |docs_status| image:: https://readthedocs.org/projects/schedula/badge/?version=master
+.. |docs_status| image:: https://schedula.readthedocs.io/en/master/?badge=master
     :alt: Documentation status
     :scale: 100%
     :target: https://readthedocs.org/builds/schedula/
