@@ -14,7 +14,7 @@ import re
 import inspect
 import logging
 from .dsp import SubDispatch, SubDispatchFunction, bypass, replicate_value, \
-    parent_func
+    parent_func, stlp
 
 __author__ = 'Vincenzo Arcidiacono'
 
@@ -102,9 +102,9 @@ def _search_doc_in_func(dsp, node_id, where_succ=True, node_type='function',
             d, ll = '', ''
             if where_succ:
                 fun, n = parent_func(func_node['function'], input_id=n_ix)
-                if n < 0 or fun in (bypass, replicate_value):
-                    fun, n_ix = parent_func(func_node['input_domain'],
-                                            input_id=n_ix)
+                if 'input_domain' in func_node and \
+                        (n < 0 or fun in (bypass, replicate_value)):
+                    fun, n_ix = parent_func(func_node['input_domain'], n_ix)
                     if n_ix < 0:
                         return d, ll
                 else:
@@ -125,6 +125,8 @@ def _search_doc_in_func(dsp, node_id, where_succ=True, node_type='function',
                     n_id = getattr(fun, node_attr)[n_ix]
                     n_att = sub_dsp.nodes[n_id]
                     d, ll = search_node_description(n_id, n_att, sub_dsp, what)
+            elif fun in (bypass, replicate_value):
+                return d, ll
 
             doc = fun.__doc__
             if not d and doc:
@@ -154,9 +156,14 @@ def _search_doc_in_func(dsp, node_id, where_succ=True, node_type='function',
 
         def get_des(dsp_node):
             sub_dsp = dsp_node['function']
-            n_id = get_id(dsp_node)
-            return search_node_description(n_id, sub_dsp.nodes[n_id], sub_dsp,
-                                           what)
+            d, ll = '', ''
+            for n_id in stlp(get_id(dsp_node)):
+                d, ll = search_node_description(
+                    n_id, sub_dsp.nodes[n_id], sub_dsp, what
+                )
+                if d:
+                    break
+            return d, ll
 
     for k, v in ((k, nodes[k]) for k in sorted(neighbors[node_id])):
         if v['type'] == node_type and check(k):
@@ -187,10 +194,8 @@ def search_node_description(node_id, node_attr, dsp, what='description'):
                 des = func.name
             elif isinstance(func, SubDispatch):
                 des = func.dsp.name
-    elif not func:
-        return _search_doc_in_func(dsp, node_id, what=what)
     else:
-        des = ''
+        return _search_doc_in_func(dsp, node_id, what=what)
 
     link = get_link(node_id, func)
     des = get_summary(des.split('\n'))
