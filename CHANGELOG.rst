@@ -2,6 +2,25 @@ Changelog
 =========
 
 
+v0.2.1 (2018-07-24)
+-------------------
+
+Feat
+~~~~
+- (setup): Update `Development Status` to `5 - Production/Stable`.
+
+- (setup): Add additional project_urls.
+
+- (doc): Add changelog to rtd.
+
+
+Fix
+~~~
+- (doc): Correct link docs_status.
+
+- (des): Correct bugs get_des.
+
+
 v0.2.0 (2018-07-19)
 -------------------
 
