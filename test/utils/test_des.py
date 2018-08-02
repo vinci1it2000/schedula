@@ -78,8 +78,8 @@ class TestDispatcherDes(unittest.TestCase):
         dsp.add_dispatcher(
             dsp_id='1',
             dsp=s_dsp,
-            inputs=('a', 'd', 'I', 'l', 'n', {'m': ('b', 'c')}),
-            outputs=['g', 'h', 'e', 'f', 'i']
+            inputs=('n', 'd', 'I', 'l', {'m': ('b', 'c'), ('a', 'a1'): 'a'}),
+            outputs=['g', 'i', {'f': ('h', 'f')}, {('e', 'h'): ('e', 'e1')}]
         )
 
     def test_des(self):
@@ -87,9 +87,12 @@ class TestDispatcherDes(unittest.TestCase):
         kw = dict(node_attr='description')
         self.assertEqual(d.get_node('1', **kw)[0], 'Sub-Dispatcher')
         self.assertEqual(d.get_node('a', **kw)[0], 'First param.')
+        self.assertEqual(d.get_node('a1', **kw)[0], 'First param.')
         self.assertEqual(d.get_node('m', **kw)[0], 'Second param.')
         self.assertEqual(d.get_node('e', **kw)[0], 'Out param.')
+        self.assertEqual(d.get_node('e1', **kw)[0], 'Out param.')
         self.assertEqual(d.get_node('f', **kw)[0], '')
+        self.assertEqual(d.get_node('h', **kw)[0], '')
         self.assertEqual(d.get_node('i', **kw)[0], 'max.')
         self.assertEqual(d.get_node('l', **kw)[0], '')
         self.assertEqual(d.get_node('n', **kw)[0], '')

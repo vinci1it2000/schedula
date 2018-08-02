@@ -148,11 +148,14 @@ def _search_doc_in_func(dsp, node_id, where_succ=True, node_type='function',
     else:
         if where_succ:
             def get_id(node):
-                return node[node_attr][node_id]
+                for n, m in node[node_attr].items():
+                    if node_id in stlp(n):
+                        return m
         else:
             def get_id(node):
-                it = node[node_attr].items()
-                return next(n for n, m in it if m == node_id)
+                for n, m in node[node_attr].items():
+                    if node_id in stlp(m):
+                        return n
 
         def get_des(dsp_node):
             sub_dsp = dsp_node['function']
