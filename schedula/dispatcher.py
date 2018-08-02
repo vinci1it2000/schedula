@@ -651,7 +651,8 @@ class Dispatcher(Base):
             ...
             >>> dsp.add_dispatcher(dsp_id='Sub-Dispatcher with domain',
             ...                    dsp=sub_dsp, inputs={'C': 'a', 'D': 'b'},
-            ...                    outputs={'c': 'E'}, input_domain=my_domain)
+            ...                    outputs={('c', 'b'): ('E', 'E1')},
+            ...                    input_domain=my_domain)
             'Sub-Dispatcher with domain'
         """
 
@@ -677,12 +678,12 @@ class Dispatcher(Base):
         _weight_from = dict.fromkeys(inputs.keys(), 0.0)
         _weight_from.update(inp_weight or {})
 
-        from .utils.alg import _children  # Get children and parents nodes.
+        from .utils.alg import _children, _iter_list_nodes  # Get children and parents nodes.
         children, parents = _children(inputs), _children(outputs)
 
         # Return dispatcher node id.
         dsp_id = self.add_function(
-            dsp_id, dsp, sorted(inputs), sorted(parents), input_domain, weight,
+            dsp_id, dsp, sorted(_iter_list_nodes(inputs)), sorted(parents), input_domain, weight,
             _weight_from, type='dispatcher', description=description,
             wait_inputs=False, **kwargs)
 
@@ -695,11 +696,11 @@ class Dispatcher(Base):
         remote_link = [dsp_id, self]  # Define the remote link.
 
         # Unlink node reference.
-        for k in children.union(outputs).intersection(dsp.nodes):
+        for k in children.union(_iter_list_nodes(outputs)).intersection(dsp.nodes):
             dsp.nodes[k] = dsp.nodes[k].copy()
 
         # Set remote link.
-        for it, is_parent in [(children, True), (outputs, False)]:
+        for it, is_parent in [(children, True), (_iter_list_nodes(outputs), False)]:
             for k in it:
                 dsp.set_data_remote_link(k, remote_link, is_parent=is_parent)
 

@@ -201,16 +201,16 @@ class TestCreateDispatcher(unittest.TestCase):
         dsp.add_function(function=max, inputs=['a', 'b'], outputs=['c'])
 
         dsp_id = dsp.add_dispatcher(sub_dsp,
-                                    inputs={'d': 'a', 'e': 'b'},
-                                    outputs={'c': 'd', 'e': 'e'})
+                                    inputs={('d', 'd1'): ('a', 'b'), 'e': 'b'},
+                                    outputs=('e', {'c': ('d', 'd1')}))
 
         self.assertEqual(dsp_id, 'sub_dispatcher')
         dsp.nodes[dsp_id].pop('function')
         res = {
             'index': (4,),
             'type': 'dispatcher',
-            'inputs': {'d': 'a', 'e': 'b'},
-            'outputs': {'e': 'e', 'c': 'd'},
+            'inputs': {'e': 'b', ('d', 'd1'): ('a', 'b')},
+            'outputs': {'c': ('d', 'd1'), 'e': 'e'},
             'wait_inputs': False,
         }
         self.assertEqual(dsp.nodes[dsp_id], res)
