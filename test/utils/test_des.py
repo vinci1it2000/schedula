@@ -64,8 +64,13 @@ class TestDispatcherDes(unittest.TestCase):
             """"""
             return
 
+        sdspfunci = sh.SubDispatchFunction(
+            ss_dsp, 'SubDispatchFunction', ['a', 'b', 'c', 'd']
+        )
+
         s_dsp = sh.Dispatcher(name='Sub-Dispatcher')
         s_dsp.add_function('3', sdspfunc, ['a', 'b', 'c', 'd'], ['g', 'h'])
+        s_dsp.add_function('8', sdspfunci, ['a', 'b', 'c', 'd'], ['o'])
         s_dsp.add_function('2', sdsp, ['I'], ['e', 'f'])
         s_dsp.add_function('4', max, ['e', 'f', 'l'], ['i'])
         s_dsp.add_function('5', inputs=['i'], outputs=['n'])
@@ -96,6 +101,7 @@ class TestDispatcherDes(unittest.TestCase):
         self.assertEqual(d.get_node('i', **kw)[0], 'max.')
         self.assertEqual(d.get_node('l', **kw)[0], '')
         self.assertEqual(d.get_node('n', **kw)[0], '')
+        self.assertEqual(d.get_node(*'1o', **kw)[0], '')
 
         self.assertEqual(d.get_node(*'1a', **kw)[0], 'First param.')
         self.assertEqual(d.get_node(*'1b', **kw)[0], 'Second param.')
