@@ -2,6 +2,18 @@ Changelog
 =========
 
 
+v0.2.2 (2018-08-02)
+-------------------
+
+Fix
+~~~
+- (des): Correct bug of get_id when tuple ids nodes are given as input
+  or outputs of a sub_dsp.
+
+- (des): Correct bug when tuple ids are given as `inputs` or `outputs`
+  of `add_dispatcher` method.
+
+
 v0.2.1 (2018-07-24)
 -------------------
 
