@@ -2,6 +2,14 @@ Changelog
 =========
 
 
+v0.2.7 (2018-09-13)
+-------------------
+
+Fix
+~~~
+- (setup): Correct bug when `long_description` fails.
+
+
 v0.2.6 (2018-09-13)
 -------------------
 
