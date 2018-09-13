@@ -32,20 +32,24 @@ def get_long_description(cleanup=True):
     from sphinx.util.osutil import abspath
     import tempfile
     import shutil
-
+    from doc.conf import extensions
+    from sphinxcontrib.writers.rst import RstTranslator
+    from sphinx.ext.graphviz import text_visit_graphviz
+    RstTranslator.visit_dsp = text_visit_graphviz
     outdir = tempfile.mkdtemp(prefix='setup-', dir='.')
     exclude_patterns = os.listdir(mydir or '.')
     exclude_patterns.remove('pypi.rst')
 
-    app = Sphinx(abspath(mydir), './doc/', outdir, outdir + '/.doctree', 'text',
+    app = Sphinx(abspath(mydir), './doc/', outdir, outdir + '/.doctree', 'rst',
                  confoverrides={
                      'exclude_patterns': exclude_patterns,
                      'master_doc': 'pypi',
                      'dispatchers_out_dir': abspath(outdir + '/_dispatchers'),
+                     'extensions': extensions + ['sphinxcontrib.restbuilder']
                  }, status=None, warning=None)
 
     app.build(filenames=[osp.join(app.srcdir, 'pypi.rst')])
-    res = open(outdir + '/pypi.txt').read()
+    res = open(outdir + '/pypi.rst').read()
     if cleanup:
         shutil.rmtree(outdir)
     return res
@@ -63,13 +67,7 @@ if __name__ == '__main__':
     import functools
     from setuptools import setup, find_packages
 
-    # noinspection PyBroadException
-    try:
-        long_description = get_long_description()
-    except Exception as ex:
-        import logging
-        logging.getLogger(__name__).warning('%r', ex)
-        long_description = ''
+    long_description = get_long_description()
 
     extras = {
         'web': ['regex', 'flask'],
