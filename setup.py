@@ -32,22 +32,20 @@ def get_long_description(cleanup=True):
     from sphinx.util.osutil import abspath
     import tempfile
     import shutil
-    from doc.conf import extensions
 
     outdir = tempfile.mkdtemp(prefix='setup-', dir='.')
     exclude_patterns = os.listdir(mydir or '.')
     exclude_patterns.remove('pypi.rst')
 
-    app = Sphinx(abspath(mydir), './doc/', outdir, outdir + '/.doctree', 'rst',
+    app = Sphinx(abspath(mydir), './doc/', outdir, outdir + '/.doctree', 'text',
                  confoverrides={
                      'exclude_patterns': exclude_patterns,
                      'master_doc': 'pypi',
                      'dispatchers_out_dir': abspath(outdir + '/_dispatchers'),
-                     'extensions': extensions + ['sphinxcontrib.restbuilder']
                  }, status=None, warning=None)
 
     app.build(filenames=[osp.join(app.srcdir, 'pypi.rst')])
-    res = open(outdir + '/pypi.rst').read()
+    res = open(outdir + '/pypi.txt').read()
     if cleanup:
         shutil.rmtree(outdir)
     return res
@@ -68,7 +66,9 @@ if __name__ == '__main__':
     # noinspection PyBroadException
     try:
         long_description = get_long_description()
-    except Exception:
+    except Exception as ex:
+        import logging
+        logging.getLogger(__name__).warning('%r', ex)
         long_description = ''
 
     extras = {
