@@ -2,6 +2,17 @@ Changelog
 =========
 
 
+v0.2.5 (2018-09-13)
+-------------------
+
+Fix
+~~~
+- (doc): Correct link docs_status.
+
+- (setup): Use text instead rst to compile `long_description` + add
+  logging.
+
+
 v0.2.4 (2018-09-13)
 -------------------
 
