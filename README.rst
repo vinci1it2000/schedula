@@ -261,10 +261,10 @@ parallel.
     :target: https://coveralls.io/github/vinci1it2000/schedula?branch=master
     :alt: Code coverage
 
-.. |docs_status| image:: https://schedula.readthedocs.io/en/master/?badge=master
+.. |docs_status| image:: https://readthedocs.org/projects/schedula/badge/?version=master
     :alt: Documentation status
     :scale: 100%
-    :target: https://readthedocs.org/builds/schedula/
+    :target: https://schedula.readthedocs.io/en/master/?badge=master
 
 .. |pypi_ver| image::  https://img.shields.io/pypi/v/schedula.svg?
     :target: https://pypi.python.org/pypi/schedula/
