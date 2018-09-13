@@ -12,6 +12,7 @@ Dispatcher directive.
 import re
 import hashlib
 import inspect
+import logging
 import os.path as osp
 import schedula as sh
 from . import graphviz as dir_graph
@@ -22,6 +23,8 @@ try:
     from sphinx.ext.autodoc.directive import AutodocDirective
 except ImportError:  # sphinx<1.7.1
     from sphinx.ext.autodoc import AutoDirective as AutodocDirective
+
+logger = logging.getLogger(__name__)
 
 
 # ------------------------------------------------------------------------------
@@ -345,11 +348,13 @@ class DispatcherDirective(AutodocDirective):
 
 
 def add_autodocumenter(app, cls):
-    app.debug('[app] adding autodocumenter: %r', cls)
-
-    from sphinx.ext import autodoc
-
-    autodoc.add_documenter(cls)
+    logger.debug('[app] adding autodocumenter: %r', cls)
+    try:
+        from sphinx.ext.autodoc.directive import AutodocDirective
+        app.registry.add_documenter(cls.objtype, cls)
+    except AttributeError:
+        from sphinx.ext import autodoc
+        autodoc.add_documenter(cls)
 
     app.add_directive('auto' + cls.objtype, DispatcherDirective)
 

@@ -84,10 +84,10 @@ class TestDispatcherDirective(unittest.TestCase):
     def test_format_signature(self):
         _setup()
 
-        def formatsig(objtype, name, obj, args, retann):
+        def formatsig(name, obj, args, retann):
             global directive
-            from sphinx.ext.autodoc import AutoDirective
-            inst = AutoDirective._registry[objtype](directive, name)
+            from schedula.ext.dispatcher.documenter import DispatcherDocumenter
+            inst = DispatcherDocumenter(directive, name)
             inst.fullname = name
             inst.doc_as_attr = False  # for class objtype
             inst.object = obj
@@ -99,15 +99,15 @@ class TestDispatcherDirective(unittest.TestCase):
 
         # no signatures for dispatchers
         dsp = sh.Dispatcher()
-        self.assertEqual(formatsig('dispatcher', 'dsp', dsp, None, None), '')
+        self.assertEqual(formatsig('dsp', dsp, None, None), '')
 
     def test_get_doc(self):
         _setup()
 
-        def getdocl(objtype, obj, name, encoding=None):
+        def getdocl(obj, name, encoding=None):
             global directive
-            from sphinx.ext.autodoc import AutoDirective
-            inst = AutoDirective._registry[objtype](directive, 'tmp')
+            from schedula.ext.dispatcher.documenter import DispatcherDocumenter
+            inst = DispatcherDocumenter(directive, name)
 
             inst.objpath = [name]
             inst.object = obj
@@ -118,29 +118,29 @@ class TestDispatcherDirective(unittest.TestCase):
 
         # objects without docstring
         dsp_local = sh.Dispatcher()
-        self.assertEqual(getdocl('dispatcher', dsp_local, 'dsp_local'), [])
+        self.assertEqual(getdocl(dsp_local, 'dsp_local'), [])
 
         dsp_local = sh.Dispatcher(description='Description')
-        res = getdocl('dispatcher', dsp_local, 'dsp_local')
+        res = getdocl(dsp_local, 'dsp_local')
         self.assertEqual(res, ['Description'])
 
         dsp_local.__doc__ = 'First line\n\nOther\n  lines'
-        res = getdocl('dispatcher', dsp_local, 'dsp_local')
+        res = getdocl(dsp_local, 'dsp_local')
         self.assertEqual(res, ['First line', '', 'Other', '  lines'])
 
     def test_docstring_property_processing(self):
         _setup()
 
-        def genarate_docstring(objtype, name, **kw):
+        def genarate_docstring(name, **kw):
             global directive
-            from sphinx.ext.autodoc import AutoDirective
-            inst = AutoDirective._registry[objtype](directive, name)
+            from schedula.ext.dispatcher.documenter import DispatcherDocumenter
+            inst = DispatcherDocumenter(directive, name)
             inst.generate(**kw)
             results = list(directive.result)
             del directive.result[:]
             return results
 
-        results = genarate_docstring('dispatcher', __name__ + '.dsp')
+        results = genarate_docstring(__name__ + '.dsp')
         assert '.. py:data:: dsp' in results
         assert '   :module: %s' % __name__ in results
         assert '   :annotation:  = Pippo' in results
@@ -160,10 +160,10 @@ class TestDispatcherDirective(unittest.TestCase):
             content_offset=content_offset
         )
 
-        def assert_result(self, items, objtype, name, **kw):
+        def assert_result(self, items, name, **kw):
             global directive
-            from sphinx.ext.autodoc import AutoDirective
-            inst = AutoDirective._registry[objtype](directive, name)
+            from schedula.ext.dispatcher.documenter import DispatcherDocumenter
+            inst = DispatcherDocumenter(directive, name)
             inst.generate(**kw)
             assert len(_warnings) == 0, _warnings
             assert_equal_items(self, items)
@@ -185,15 +185,15 @@ class TestDispatcherDirective(unittest.TestCase):
                '   ',
                '      ":func:`fun <None.<lambda>>`", ""',
                '   ']
-        assert_result(self, res, 'dispatcher', 's', more_content=content)
+        assert_result(self, res, 's', more_content=content)
 
     def test_generate(self):
         _setup()
 
-        def assert_result(self, items, objtype, name, **kw):
+        def assert_result(self, items, name, **kw):
             global directive
-            from sphinx.ext.autodoc import AutoDirective
-            inst = AutoDirective._registry[objtype](directive, name)
+            from schedula.ext.dispatcher.documenter import DispatcherDocumenter
+            inst = DispatcherDocumenter(directive, name)
             inst.generate(**kw)
             assert len(_warnings) == 0, _warnings
             assert_equal_items(self, items)
@@ -231,17 +231,17 @@ class TestDispatcherDirective(unittest.TestCase):
             '      ":func:`fun2 <%s.fun2>`", "Fun2"' % __name__,
             '      ":func:`fun3 <%s.fun2>`", "Fun3"' % __name__,
             '   ']
-        assert_result(self, res, 'dispatcher', 'dsp')
+        assert_result(self, res, 'dsp')
 
         res[1] = '.. py:data:: dsp_1'
         res[5] = '   Docstring 2'
         res[9] = '   .. dsp:: _build/_dispatchers/dispatcher-c4cdb95f7c323136c07b06e9cc9e97c054e65cd3.gv'
-        assert_result(self, res, 'dispatcher', 'dsp_1')
+        assert_result(self, res, 'dsp_1')
 
         res[1] = '.. py:data:: dsp_2'
         res[5] = '   Docstring 3'
         res[9] = '   .. dsp:: _build/_dispatchers/dispatcher-626650ebb81b12cfd2764e7dde8087e834a31bd1.gv'
-        assert_result(self, res, 'dispatcher', 'dsp_2')
+        assert_result(self, res, 'dsp_2')
 
     def test_build(self):
         app = TestApp()

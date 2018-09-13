@@ -10,6 +10,7 @@
 It is a patch to shpinx.ext.autosummary.
 """
 
+import logging
 import os.path as osp
 from sphinx import package_dir
 from sphinx.util.osutil import ensuredir
@@ -22,13 +23,19 @@ from sphinx.ext.autosummary.generate import (
     _simple_warn, _simple_info, find_autosummary_in_files
 )
 
+logger = logging.getLogger(__name__)
 
-def get_members(obj, typ, include_public=(), imported=False):
+
+def get_members(app, obj, typ, include_public=(), imported=False):
     items = []
     for name in dir(obj):
         try:
             obj_name = safe_getattr(obj, name)
-            documenter = get_documenter(obj_name, obj)
+            try:
+                documenter = get_documenter(app, obj_name, obj)
+            except TypeError:
+                documenter = get_documenter(obj_name, obj)
+
         except AttributeError:
             continue
         if documenter.objtype == typ:
@@ -44,9 +51,10 @@ def get_members(obj, typ, include_public=(), imported=False):
     return public, items
 
 
-def generate_autosummary_docs(sources, output_dir=None, suffix='.rst',
-                              warn=_simple_warn, info=_simple_info,
-                              base_path=None, builder=None, template_dir=None):
+def generate_autosummary_docs(
+        sources, output_dir=None, suffix='.rst', warn=_simple_warn,
+        info=_simple_info, base_path=None, builder=None, template_dir=None,
+        app=None):
     showed_sources = list(sorted(sources))
     if len(showed_sources) > 20:
         showed_sources = showed_sources[:10] + ['...'] + showed_sources[-10:]
@@ -108,7 +116,10 @@ def generate_autosummary_docs(sources, output_dir=None, suffix='.rst',
         f = open(fn, 'w')
 
         try:
-            doc = get_documenter(obj, parent)
+            try:
+                doc = get_documenter(app, obj, parent)
+            except TypeError:
+                doc = get_documenter(obj, parent)
 
             if template_name is not None:
                 template = template_env.get_template(template_name)
@@ -124,25 +135,25 @@ def generate_autosummary_docs(sources, output_dir=None, suffix='.rst',
             if doc.objtype == 'module':
                 ns['members'] = dir(obj)
                 ns['functions'], ns['all_functions'] = \
-                    get_members(obj, 'function')
+                    get_members(app, obj, 'function')
                 ns['classes'], ns['all_classes'] = \
-                    get_members(obj, 'class')
+                    get_members(app, obj, 'class')
                 ns['exceptions'], ns['all_exceptions'] = \
-                    get_members(obj, 'exception')
+                    get_members(app, obj, 'exception')
                 ns['data'], ns['all_data'] = \
-                    get_members(obj, 'data', imported=True)
+                    get_members(app, obj, 'data', imported=True)
 
                 ns['data'] = ', '.join(ns['data'])
                 ns['all_data'] = ', '.join(ns['all_data'])
 
                 ns['dispatchers'], ns['all_dispatchers'] = \
-                    get_members(obj, 'dispatcher', imported=True)
+                    get_members(app, obj, 'dispatcher', imported=True)
             elif doc.objtype == 'class':
                 ns['members'] = dir(obj)
                 ns['methods'], ns['all_methods'] = \
-                    get_members(obj, 'method', ['__init__'], True)
+                    get_members(app, obj, 'method', ['__init__'], True)
                 ns['attributes'], ns['all_attributes'] = \
-                    get_members(obj, 'attribute')
+                    get_members(app, obj, 'attribute')
 
             parts = name.split('.')
             if doc.objtype in ('method', 'attribute'):
@@ -171,7 +182,7 @@ def generate_autosummary_docs(sources, output_dir=None, suffix='.rst',
         generate_autosummary_docs(new_files, output_dir=output_dir,
                                   suffix=suffix, warn=warn, info=info,
                                   base_path=base_path, builder=builder,
-                                  template_dir=template_dir)
+                                  template_dir=template_dir, app=app)
 
 
 def process_generate_options(app):
@@ -188,10 +199,19 @@ def process_generate_options(app):
     ext = app.config.source_suffix[0]
     genfiles = [genfile + (not genfile.endswith(ext) and ext or '')
                 for genfile in genfiles]
+    try:
+        from sphinx.ext.autosummary import get_rst_suffix
+        suffix = get_rst_suffix(app)
+    except ImportError:
+        suffix = '.rst'
 
+    if suffix is None:
+        logger.warning('autosummary generats .rst files internally. '
+                       'But your source_suffix does not contain .rst. Skipped.')
+        return
     generate_autosummary_docs(genfiles, builder=app.builder,
-                              warn=app.warn, info=app.info, suffix=ext,
-                              base_path=app.srcdir)
+                              warn=logger.warning, info=logger.info,
+                              suffix=suffix, base_path=app.srcdir, app=app)
 
 
 def setup(app):
