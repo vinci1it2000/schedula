@@ -2,6 +2,15 @@ Changelog
 =========
 
 
+v0.2.6 (2018-09-13)
+-------------------
+
+Feat
+~~~~
+- (setup): Patch to use `sphinxcontrib.restbuilder` in setup
+  `long_description`.
+
+
 v0.2.5 (2018-09-13)
 -------------------
 
