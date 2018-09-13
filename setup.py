@@ -67,7 +67,13 @@ if __name__ == '__main__':
     import functools
     from setuptools import setup, find_packages
 
-    long_description = get_long_description()
+    try:
+        long_description = get_long_description()
+    except Exception as ex:
+        import logging
+
+        logging.getLogger(__name__).warning('%r', ex)
+        long_description = ''
 
     extras = {
         'web': ['regex', 'flask'],
