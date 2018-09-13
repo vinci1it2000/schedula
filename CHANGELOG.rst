@@ -2,6 +2,16 @@ Changelog
 =========
 
 
+v0.2.4 (2018-09-13)
+-------------------
+
+Fix
+~~~
+- (sphinx): Correct bug sphinx==1.8.0.
+
+- (sphinx): Remove all sphinx warnings.
+
+
 v0.2.3 (2018-08-02)
 -------------------
 
