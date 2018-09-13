@@ -196,8 +196,8 @@ def process_generate_options(app):
     if not genfiles:
         return
 
-    ext = app.config.source_suffix[0]
-    genfiles = [genfile + (not genfile.endswith(ext) and ext or '')
+    ext = tuple(app.config.source_suffix)
+    genfiles = [genfile + (not genfile.endswith(ext) and ext[0] or '')
                 for genfile in genfiles]
     try:
         from sphinx.ext.autosummary import get_rst_suffix
