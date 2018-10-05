@@ -15,6 +15,7 @@ import copy as _copy
 import functools
 import itertools
 import types
+import math
 from .base import Base
 from .exc import DispatcherError, DispatcherAbort
 from .gen import Token
@@ -1345,3 +1346,51 @@ def add_function(dsp, inputs_kwargs=False, inputs_defaults=False, **kw):
         return f
 
     return decorator
+
+
+class inf(collections.namedtuple('_inf', ['inf', 'num'])):
+    _methods = {
+        'add': {'func': lambda x, y: x + y, 'dfl': 0},
+        'sub': {'func': lambda x, y: x - y, 'dfl': 0},
+        'mul': {'func': lambda x, y: x * y},
+        'truediv': {'func': lambda x, y: x / y},
+        'pow': {'func': lambda x, y: x ** y},
+        'mod': {'func': lambda x, y: x % y},
+        'floordiv': {'func': lambda x, y: x // y},
+
+        'neg': {'func': lambda x: -x, 'self': True},
+        'pos': {'func': lambda x: +x, 'self': True},
+        'abs': {'func': lambda x: abs(x), 'self': True},
+        'round': {'func': lambda *a: round(*a), 'self': True},
+        'trunc': {'func': math.trunc, 'self': True},
+        'floor': {'func': math.floor, 'self': True},
+        'ceil': {'func': math.ceil, 'self': True},
+    }
+    for k in ('add', 'sub', 'mul', 'mod', 'pow', 'truediv', 'floordiv'):
+        _methods['r%s' % k] = combine_dicts(_methods[k], {'reverse': True})
+
+    for k in ('ge', 'gt', 'eq', 'le', 'lt', 'ne'):
+        _methods[k] = {'func': getattr(tuple, '__%s__' % k), 'dfl': 0, 'log': 1}
+
+    def _wrap(k, d):
+        f = d['func']
+        if d.get('log'):
+            def method(self, other, *a):
+                if not isinstance(other, self.__class__):
+                    other = d.get('dfl', other), other
+                return f(self, other, *a)
+        elif d.get('self'):
+            def method(self, *a):
+                return inf(*(f(x, *a) for x in self))
+        else:
+            i = -1 if d.get('reverse') else 1
+            def method(self, other, *a):
+                if not isinstance(other, self.__class__):
+                    other = d.get('dfl', other), other
+                return inf(*(f(x, y, *a) for x, y in zip(*(self, other)[::i])))
+        method.__name__ = k
+        return method
+
+    for k in _methods:
+        exec('__{0}__ = _wrap("__{0}__", _methods["{0}"])'.format(k))
+    del _wrap, _methods

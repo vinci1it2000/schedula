@@ -612,7 +612,7 @@ class TestDispatch(unittest.TestCase):
         self.dsp_of_dsp_3 = dsp
 
         dsp = sh.Dispatcher()
-        dsp.add_data('c', 0, 10)
+        dsp.add_data('c', 0, sh.inf(1, 1))
         dsp.add_function('max', max, ['a', 'b'], ['c'])
         dsp.add_function('min', min, ['c', 'b'], ['d'])
 
@@ -1146,7 +1146,7 @@ class TestDispatch(unittest.TestCase):
         self.assertEqual(o.workflow.adj, w)
 
         o = dsp.dispatch({'a': 6, 'b': 5}, ['d'],
-                         inputs_dist={'a': 50})
+                         inputs_dist={'a': sh.inf(2, 0)})
         w = {
             'a': {},
             'b': {'min': {'value': 5}, 'max': {'value': 5}},

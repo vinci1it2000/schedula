@@ -5,7 +5,7 @@
 # Licensed under the EUPL (the 'Licence');
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
-
+import math
 import doctest
 import unittest
 import functools
@@ -29,6 +29,55 @@ class TestDispatcherUtils(unittest.TestCase):
     def test_bypass(self):
         self.assertEqual(sh.bypass('a', 'b', 'c'), ('a', 'b', 'c'))
         self.assertEqual(sh.bypass('a'), 'a')
+
+    def test_inf(self):
+        self.assertTrue(sh.inf(1, 2.1) > 3)
+        self.assertTrue(sh.inf(1, 2.1) >= 3)
+        self.assertTrue(sh.inf(2, 2.1) >= sh.inf(1, 2))
+        self.assertTrue(sh.inf(0, 2.1) <= 2.1)
+        self.assertTrue(sh.inf(0, 2.1) < 3.1)
+        self.assertTrue(sh.inf(0, 2.1) <= sh.inf(0, 3))
+        self.assertTrue(sh.inf(1, 2.1) != 2.1)
+        self.assertTrue(sh.inf(1, 2.1) != sh.inf(3, 2))
+        self.assertTrue(sh.inf(0, 2.1) == 2.1)
+        self.assertTrue(sh.inf(1.1, 2.1) == sh.inf(1.1, 2.1))
+        self.assertTrue(sh.inf(0, 2.1) != (0, 2.1))
+        self.assertTrue(3 <= sh.inf(1, 2))
+        self.assertTrue(3 >= sh.inf(0, 2))
+        self.assertTrue(3 != sh.inf(1, 2))
+        self.assertTrue(2 == sh.inf(0, 2))
+        self.assertTrue((0, 2) != sh.inf(0, 2))
+
+        self.assertEqual(sh.inf(1.1, 2.1) + 1, sh.inf(1.1, 3.1))
+        self.assertEqual(1 + sh.inf(1.1, 2.1), sh.inf(1.1, 3.1))
+        self.assertEqual(sh.inf(1, 2) + sh.inf(1, 0), sh.inf(2, 2))
+        self.assertEqual(1 - sh.inf(1, 2), sh.inf(-1, -1))
+        self.assertEqual(sh.inf(1, 2) - 1, sh.inf(1, 1))
+        self.assertEqual(sh.inf(1, 2) - sh.inf(1, 0), sh.inf(0, 2))
+        self.assertEqual(sh.inf(2, 2) * 4, sh.inf(8, 8))
+        self.assertEqual(4 * sh.inf(2, 2), sh.inf(8, 8))
+        self.assertEqual(sh.inf(2, 2) * sh.inf(2, 0), sh.inf(4, 0))
+        self.assertEqual(sh.inf(2, 3) ** 2, sh.inf(4, 9))
+        self.assertEqual(2 ** sh.inf(2, 3), sh.inf(4, 8))
+        self.assertEqual(sh.inf(3, 2) ** sh.inf(2, 0), sh.inf(9, 1))
+        self.assertEqual(sh.inf(2, 2) / 2, sh.inf(1, 1))
+        self.assertEqual(2 / sh.inf(2, 2) , sh.inf(1, 1))
+        self.assertEqual(sh.inf(2, 2) / sh.inf(2, 1), sh.inf(1, 2))
+        self.assertEqual(3 // sh.inf(2.1, 4.1), sh.inf(1, 0))
+        self.assertEqual(sh.inf(2.1, 4.1) // 3, sh.inf(0, 1))
+        self.assertEqual(sh.inf(2, 5.1) // sh.inf(4, 1), sh.inf(0, 5))
+        self.assertEqual(3 % sh.inf(2, 4.1), sh.inf(1, 3))
+        self.assertEqual(sh.inf(2, 4) % 3, sh.inf(2, 1))
+        self.assertEqual(sh.inf(2, 5) % sh.inf(4, 1), sh.inf(2, 0))
+
+        self.assertEqual(-sh.inf(1, 2), sh.inf(-1, -2))
+        self.assertEqual(+sh.inf(-1, 2), sh.inf(-1, 2))
+        self.assertEqual(abs(sh.inf(-1, 2)), sh.inf(1, 2))
+        self.assertEqual(round(sh.inf(1.22, 2.62)), sh.inf(1, 3))
+        self.assertEqual(round(sh.inf(1.22, 2.67),1), sh.inf(1.2, 2.7))
+        self.assertEqual(math.trunc(sh.inf(1.2, 2.6)), sh.inf(1, 2))
+        self.assertEqual(math.ceil(sh.inf(1.2, 2.6)), sh.inf(2, 3))
+        self.assertEqual(math.floor(sh.inf(1.2, 2.6)), sh.inf(1, 2))
 
     def test_summation(self):
         self.assertEqual(sh.summation(1, 3.0, 4, 2), 10.0)
