@@ -2,6 +2,14 @@ Changelog
 =========
 
 
+v0.2.8 (2018-10-09)
+-------------------
+
+Feat
+~~~~
+- (dsp): Add inf class to model infinite numbers.
+
+
 v0.2.7 (2018-09-13)
 -------------------
 
