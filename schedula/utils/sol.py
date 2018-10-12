@@ -18,7 +18,7 @@ import time
 from .alg import add_edge_fun, remove_edge_fun, get_full_pipe, _sort_sk_wait_in
 from .cst import START, NONE, PLOT
 from .dsp import SubDispatch, stlp, parent_func, NoSub
-from .exc import DispatcherError, DispatcherAbort
+from .exc import DispatcherError, DispatcherAbort, SkipNode
 from .base import Base
 
 
@@ -533,6 +533,34 @@ class Solution(Base, collections.OrderedDict):
             res = func(*args)
         return res
 
+    def _evaluate_node(self, args, node_id, node_attr, skip_func=False):
+        try:
+            # noinspection PyUnresolvedReferences
+            attr = self.workflow.node[node_id]
+            if skip_func:
+                value = args[0]
+            else:
+                if not self.no_domain and 'input_domain' in node_attr:
+                    # noinspection PyCallingNonCallable
+                    attr['solution_domain'] = node_attr['input_domain'](*args)
+                    if not attr['solution_domain']:
+                        raise SkipNode
+                value = self._evaluate_function(args, node_id, node_attr, attr)
+            value = self._apply_filters(value, node_id, node_attr, attr)
+            if 'started' in attr:
+                attr['duration'] = time.time() - attr['started']
+            return value
+        except (KeyboardInterrupt, SkipNode) as ex:
+            raise ex
+        except Exception as ex:
+            if 'started' in attr:
+                dt = time.time() - attr['started']
+                attr['duration'] = dt
+            # Some error occurs.
+            msg = "Failed DISPATCHING '%s' due to:\n  %r"
+            self._warning(msg, node_id, ex)
+            raise SkipNode
+
     def _set_data_node_output(self, node_id, node_attr, no_call, next_nds=None):
         """
         Set the data node output from node estimations.
@@ -558,69 +586,22 @@ class Solution(Base, collections.OrderedDict):
         est, wait_in = self._get_node_estimations(node_attr, node_id)
 
         if not no_call:
-            # noinspection PyUnresolvedReferences
-            attr = self.workflow.node[node_id]
             if node_id is PLOT:
                 est = est.copy()
                 est[PLOT] = {'value': {'obj': self}}
-            # Final estimation of the node and node status.
-            if not wait_in:
-                if 'function' in node_attr:  # Evaluate output.
-                    try:
-                        kwargs = {k: v['value'] for k, v in est.items()}
-                        value = self._evaluate_function(
-                            (kwargs,), node_id, node_attr, attr
-                        )
-                    except KeyboardInterrupt as ex:
-                        raise ex
-                    except Exception as ex:
-                        if 'started' in attr:
-                            dt = time.time() - attr['started']
-                            attr['duration'] = dt
-                        # Some error occurs.
-                        msg = "Failed DISPATCHING '%s' due to:\n  %r"
-                        self._warning(msg, node_id, ex)
-                        return False
-                else:
-                    # Data node that has just one estimation value.
-                    value = list(est.values())[0]['value']
 
-            else:  # Use the estimation function of node.
-                try:
-                    # Dict of all data node estimations.
-                    kwargs = {k: v['value'] for k, v in est.items()}
-
-                    # Evaluate output.
-                    value = self._evaluate_function(
-                        (kwargs,), node_id, node_attr, attr
-                    )
-                except KeyboardInterrupt as ex:
-                    raise ex
-                except Exception as ex:
-                    if 'started' in attr:
-                        attr['duration'] = time.time() - attr['started']
-                    # Is missing estimation function of data node or some error.
-                    msg = "Failed DISPATCHING '%s' due to:\n  %r"
-                    self._warning(msg, node_id, ex)
-                    return False
+            sf, args = False, ({k: v['value'] for k, v in est.items()},)
+            if not (wait_in or 'function' in node_attr):
+                # Data node that has just one estimation value.
+                sf, args = True, tuple(args[0].values())
             try:
-                # Apply filters to output.
-                value = self._apply_filters(value, node_id, node_attr, attr)
-            except KeyboardInterrupt as ex:
-                raise ex
-            except Exception as ex:
-                if 'started' in attr:
-                    attr['duration'] = time.time() - attr['started']
-                # Some error occurs.
-                msg = "Failed DISPATCHING '%s' due to:\n  %r"
-                self._warning(msg, node_id, ex)
+                # Final estimation of the node and node status.
+                value = self._evaluate_node(args, node_id, node_attr, sf)
+            except SkipNode:
                 return False
 
             if value is not NONE:  # Set data output.
                 self[node_id] = value
-
-            if 'started' in attr:
-                attr['duration'] = time.time() - attr['started']
 
             if 'callback' in node_attr:  # Invoke callback func of data node.
                 try:
@@ -629,7 +610,7 @@ class Solution(Base, collections.OrderedDict):
                 except KeyboardInterrupt as ex:
                     raise ex
                 except Exception as ex:
-                    msg = "Failed CALLBACKING '%s' due to:\n  %s"
+                    msg = "Failed CALLBACK '%s' due to:\n  %s"
                     self._warning(msg, node_id, ex)
 
             value = {'value': value}  # Output value.
@@ -735,42 +716,15 @@ class Solution(Base, collections.OrderedDict):
         args = [args[k]['value'] for k in node_attr['inputs']]
         args = [v for v in args if v is not NONE]
 
-        attr = {'started': time.time()}
         try:
-            if not self.no_domain and 'input_domain' in node_attr:
-                # noinspection PyCallingNonCallable
-                attr['solution_domain'] = s = node_attr['input_domain'](*args)
-            else:
-                s = True
-            if not s:
-                return False  # Args are not respecting the domain.
-            else:  # Use the estimation function of node.
-                res = self._evaluate_function(args, node_id, node_attr, attr)
-                # Apply filters to results.
-                res = self._apply_filters(res, node_id, node_attr, attr)
-
-                attr['results'] = res
-                attr['duration'] = time.time() - attr['started']
-
-                # Save node.
-                self.workflow.add_node(node_id, **attr)
-
-                # List of function results.
-                res = res if len(o_nds) > 1 else [res]
-        except KeyboardInterrupt as ex:
-            raise ex
-        except Exception as ex:
-            if isinstance(ex, DispatcherError):  # Save intermediate results.
-                attr['duration'] = time.time() - attr['started']
-
-                # Save node.
-                self.workflow.add_node(node_id, **attr)
-            # Is missing function of the node or args are not in the domain.
-            msg = "Failed DISPATCHING '%s' due to:\n  %r"
-            self._warning(msg, node_id, ex)
+            res = self._evaluate_node(args, node_id, node_attr)
+            # noinspection PyUnresolvedReferences
+            self.workflow.node[node_id]['results'] = res
+        except SkipNode:
             return False
 
-        for k, v in zip(o_nds, res):  # Set workflow.
+        # Set workflow.
+        for k, v in zip(o_nds, res if len(o_nds) > 1 else [res]):
             if k in output_nodes and v is not NONE:
                 wf_add_edge(node_id, k, value=v)
 
@@ -1068,9 +1022,6 @@ class Solution(Base, collections.OrderedDict):
             heapq.heappush(fringe, item)
 
         return sol
-
-    def _check_close_sub_dsp(self):
-        pass
 
     def _see_remote_link_node(self, node_id, fringe=None, dist=None,
                               check_dsp=lambda x: True):

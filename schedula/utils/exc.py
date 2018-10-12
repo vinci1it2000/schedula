@@ -25,3 +25,7 @@ class DispatcherError(ValueError):
 
 class DispatcherAbort(DispatcherError):
     pass
+
+
+class SkipNode(Exception):
+    pass
