@@ -1313,6 +1313,7 @@ def add_function(dsp, inputs_kwargs=False, inputs_defaults=False, **kw):
     
     .. dispatcher:: dsp
        :opt: graph_attr={'ratio': '1'}
+       :code:
 
         >>> import schedula as sh
         >>> dsp = sh.Dispatcher(name='Dispatcher')
@@ -1322,6 +1323,7 @@ def add_function(dsp, inputs_kwargs=False, inputs_defaults=False, **kw):
         
     .. dispatcher:: dsp
        :opt: graph_attr={'ratio': '1'}
+       :code:
        
         >>> import schedula as sh
         >>> dsp = sh.Dispatcher(name='Dispatcher')
