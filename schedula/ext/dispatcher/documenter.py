@@ -31,6 +31,8 @@ logger = logging.getLogger(__name__)
 # Doctest handling
 # ------------------------------------------------------------------------------
 
+_re_doctest = re.compile(r'^\s*>>>', re.M)
+
 
 def contains_doctest(text):
     try:
@@ -39,9 +41,7 @@ def contains_doctest(text):
         return False
     except SyntaxError:
         pass
-    r = re.compile(r'^\s*>>>', re.M)
-    m = r.search(text)
-    return bool(m)
+    return bool(_re_doctest.search(text))
 
 
 # ------------------------------------------------------------------------------
@@ -215,7 +215,7 @@ def _functions(lines, dsp, node_type='function'):
 
 
 def _node_name(name):
-    return name.replace('<', '\<').replace('>', '\>')
+    return name.replace('<', '\\<').replace('>', '\\>')
 
 
 PLOT = object()

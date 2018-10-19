@@ -7,9 +7,9 @@
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
 """
-It is a patch to shpinx.ext.autosummary.
+It is a patch to sphinx.ext.autosummary.
 """
-
+import warnings
 import logging
 import os.path as osp
 from sphinx import package_dir
@@ -24,7 +24,7 @@ from sphinx.ext.autosummary.generate import (
 )
 
 logger = logging.getLogger(__name__)
-
+warnings.filterwarnings('ignore', category=DeprecationWarning, module='docutils')
 
 def get_members(app, obj, typ, include_public=(), imported=False):
     items = []

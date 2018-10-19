@@ -565,8 +565,14 @@ class FolderNode(object):
 
                     rows.append(tr)
 
+        def get_link():
+            for k, f in funcs:
+                if k == '*':
+                    for link_id in f():
+                        return link_id[0]
+
         if any(k[0] == '-' or (rows and k[0] == '?') for k in funcs):
-            link_id = next((next(f())[0] for k, f in funcs if k == '*'), None)
+            link_id = get_link()
             kw = combine_dicts(
                 self.href(context, link_id),
                 {'COLSPAN': 2, 'BORDER': 0, 'text': self.title}

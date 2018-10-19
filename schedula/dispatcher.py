@@ -38,7 +38,7 @@ class Dispatcher(Base):
 
     A workflow is a sequence of function calls.
 
-    \***************************************************************************
+    **------------------------------------------------------------------------**
 
     **Example**:
 
@@ -285,7 +285,7 @@ class Dispatcher(Base):
         .. seealso:: :func:`add_function`,  :func:`add_dispatcher`,
            :func:`add_from_lists`
 
-        \***********************************************************************
+        **--------------------------------------------------------------------**
 
         **Example**:
 
@@ -459,7 +459,7 @@ class Dispatcher(Base):
         .. seealso:: :func:`add_data`, :func:`add_dispatcher`,
            :func:`add_from_lists`
 
-        \***********************************************************************
+        **--------------------------------------------------------------------**
 
         **Example**:
 
@@ -623,7 +623,7 @@ class Dispatcher(Base):
         .. seealso:: :func:`add_data`, :func:`add_function`,
            :func:`add_from_lists`
 
-        \***********************************************************************
+        **--------------------------------------------------------------------**
 
         **Example**:
 
@@ -678,14 +678,16 @@ class Dispatcher(Base):
         _weight_from = dict.fromkeys(inputs.keys(), 0.0)
         _weight_from.update(inp_weight or {})
 
-        from .utils.alg import _children, _iter_list_nodes  # Get children and parents nodes.
+        from .utils.alg import _children, _iter_list_nodes
+        # Get children and parents nodes.
         children, parents = _children(inputs), _children(outputs)
 
         # Return dispatcher node id.
         dsp_id = self.add_function(
-            dsp_id, dsp, sorted(_iter_list_nodes(inputs)), sorted(parents), input_domain, weight,
-            _weight_from, type='dispatcher', description=description,
-            wait_inputs=False, **kwargs)
+            dsp_id, dsp, sorted(_iter_list_nodes(inputs)), sorted(parents),
+            input_domain, weight, _weight_from, type='dispatcher',
+            description=description, wait_inputs=False, **kwargs
+        )
 
         # Set proper inputs.
         self.nodes[dsp_id]['inputs'] = inputs
@@ -752,7 +754,7 @@ class Dispatcher(Base):
         .. seealso:: :func:`add_data`, :func:`add_function`,
            :func:`add_dispatcher`
 
-        \***********************************************************************
+        **--------------------------------------------------------------------**
 
         **Example**:
 
@@ -831,7 +833,7 @@ class Dispatcher(Base):
             default value is used.
         :type initial_dist: float, int, optional
 
-        \***********************************************************************
+        **--------------------------------------------------------------------**
 
         **Example**:
 
@@ -951,7 +953,7 @@ class Dispatcher(Base):
             will not be reflected in the original dispatcher map while changes
             to the attributes will.
 
-        \***********************************************************************
+        **--------------------------------------------------------------------**
 
         **Example**:
 
@@ -1079,7 +1081,7 @@ class Dispatcher(Base):
             will not be reflected in the original dispatcher map while changes
             to the attributes will.
 
-        \***********************************************************************
+        **--------------------------------------------------------------------**
 
         **Example**:
 
@@ -1375,7 +1377,7 @@ class Dispatcher(Base):
             Dictionary of estimated data node outputs.
         :rtype: schedula.utils.sol.Solution
 
-        \***********************************************************************
+        **--------------------------------------------------------------------**
 
         **Example**:
 
@@ -1501,7 +1503,7 @@ class Dispatcher(Base):
 
         .. seealso:: :func:`dispatch`
 
-        \***********************************************************************
+        **--------------------------------------------------------------------**
 
         **Example**:
 
