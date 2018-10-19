@@ -705,8 +705,7 @@ class SubDispatch(Base):
         self.rm_unused_nds = rm_unused_nds
         self.name = self.__name__ = dsp.name
         self.__doc__ = dsp.__doc__
-        from .sol import Solution
-        self.solution = Solution(dsp)
+        self.solution = dsp.solution.__class__(dsp)
 
     def __call__(self, *input_dicts, copy_input_dicts=False, _sol_output=None,
                  _sol=None):
@@ -862,8 +861,7 @@ class SubDispatchFunction(SubDispatch):
         self.inputs = inputs
         dsp.name = function_id  # Set dsp name equal to function id.
         no_call = False
-        from schedula.utils.sol import Solution
-        self._sol = sol = Solution(
+        self._sol = sol = dsp.solution.__class__(
             dsp, dict.fromkeys(inputs, None), outputs, wildcard, None,
             inputs_dist, no_call, False
         )
@@ -1015,8 +1013,7 @@ class SubDispatchPipe(SubDispatchFunction):
         :type inputs_dist: dict[str, int | float], optional
         """
 
-        from schedula.utils.sol import Solution
-        self.solution = sol = Solution(
+        self.solution = sol = dsp.solution.__class__(
             dsp, inputs, outputs, wildcard, cutoff, inputs_dist, True, True,
             no_domain=no_domain
         )
