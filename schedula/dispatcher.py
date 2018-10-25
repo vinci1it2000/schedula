@@ -9,14 +9,12 @@
 It provides Dispatcher class.
 """
 
-import threading
 from .utils.cst import EMPTY, START, NONE, SINK, SELF, PLOT
 from .utils.dsp import (
     bypass, combine_dicts, selector, stlp, parent_func, kk_dict
 )
 from .utils.gen import counter
 from .utils.base import Base
-
 
 __all__ = ['Dispatcher']
 __author__ = 'Vincenzo Arcidiacono'
@@ -29,12 +27,6 @@ class Dispatcher(Base):
 
     The scope of this data structure is to compute the shortest workflow between
     input and output data nodes.
-
-    :ivar stopper:
-        A semaphore (:class:`threading.Event`) to abort the dispatching.
-        
-    .. Tip::
-        Remember to set :attr:`stopper` to `False` before dispatching ;-)
 
     A workflow is a sequence of function calls.
 
@@ -138,11 +130,8 @@ class Dispatcher(Base):
         Solution([('a', 0), ('b', 1), ('c', 1), ('d', 2.0)])
     """
 
-    #: When True, the dispatching loop raise :exc:`DispatcherAbort` ASAP.
-    stopper = threading.Event()
-
     def __init__(self, dmap=None, name='', default_values=None, raises=False,
-                 description='', stopper=None):
+                 description=''):
         """
         Initializes the dispatcher.
 
@@ -167,10 +156,6 @@ class Dispatcher(Base):
         :param description:
             The dispatcher's description.
         :type description: str, optional
-
-        :param stopper:
-            A semaphore to abort the dispatching.
-        :type stopper: threading.Event, optional
         """
 
         from networkx import DiGraph
@@ -196,9 +181,6 @@ class Dispatcher(Base):
         #: If True the dispatcher interrupt the dispatch when an error occur.
         self.raises = raises
 
-        #: Stopper to abort the dispatcher execution.
-        self.stopper = stopper or self.__class__.stopper
-
         from .utils.sol import Solution
         #: Last dispatch solution.
         self.solution = Solution(self)
@@ -208,8 +190,7 @@ class Dispatcher(Base):
 
     def copy_structure(self, **kwargs):
         _map = {
-            'description': '__doc__', 'name': 'name', 'stopper': 'stopper',
-            'raises': 'raises'
+            'description': '__doc__', 'name': 'name', 'raises': 'raises'
         }
         base = {k: getattr(self, v) for k, v in _map.items()}
         obj = self.__class__(**combine_dicts(kwargs, base=base))
@@ -1371,7 +1352,7 @@ class Dispatcher(Base):
 
         :param stopper:
             A semaphore to abort the dispatching.
-        :type stopper: threading.Event, optional
+        :type stopper: multiprocessing.Event, optional
 
         :return:
             Dictionary of estimated data node outputs.
@@ -1455,11 +1436,11 @@ class Dispatcher(Base):
         # Initialize.
         self.solution = sol = self.solution.__class__(
             dsp, inputs, outputs, wildcard, cutoff, inputs_dist, no_call,
-            rm_unused_nds, _wait_in, stopper=stopper
+            rm_unused_nds, _wait_in
         )
 
         # Dispatch.
-        sol.run()
+        sol.run(stopper=stopper)
 
         if select_output_kw:
             return selector(dictionary=sol, **select_output_kw)

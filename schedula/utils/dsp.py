@@ -708,7 +708,7 @@ class SubDispatch(Base):
         self.solution = dsp.solution.__class__(dsp)
 
     def __call__(self, *input_dicts, copy_input_dicts=False, _sol_output=None,
-                 _sol=None):
+                 _sol=None, _stopper=None):
 
         # Combine input dictionaries.
         i = combine_dicts(*input_dicts, copy=copy_input_dicts)
@@ -717,7 +717,7 @@ class SubDispatch(Base):
         self.solution = self.dsp.dispatch(
             i, self.outputs, self.cutoff, self.inputs_dist, self.wildcard,
             self.no_call, self.shrink, self.rm_unused_nds,
-            stopper=_sol and _sol[1].stopper
+            stopper=_stopper
         )
 
         return self._return(self.solution, _sol_output, _sol)
@@ -906,13 +906,12 @@ class SubDispatchFunction(SubDispatch):
             raise TypeError(msg % (self.dsp.name, n, p, m))
         return inputs
 
-    def __call__(self, *args, _sol_output=None, _sol=None, **kwargs):
+    def __call__(self, *args, _sol_output=None, _sol=None, _stopper=None, **kw):
         # Namespace shortcuts.
         self.solution = sol = self._sol.copy_structure()
-        sol.stopper = (_sol and _sol[1].stopper) or self.dsp.stopper
 
         # Update inputs.
-        input_values = self.parse_inputs(self.dsp.nodes, *args, **kwargs)
+        input_values = self.parse_inputs(self.dsp.nodes, *args, **kw)
 
         # Define the function to populate the workflow.
         def i_val(k):
@@ -922,7 +921,7 @@ class SubDispatchFunction(SubDispatch):
         sol._init_workflow(input_values, i_val, self.inputs_dist, False)
 
         # Dispatch outputs.
-        sol.run()
+        sol.run(stopper=_stopper)
 
         # Return outputs sorted.
         return self._return(sol, _sol_output, _sol)
@@ -1042,10 +1041,9 @@ class SubDispatchPipe(SubDispatchFunction):
         self.pipe = [_make_tks(*v['task'][-1]) for v in self._sol.pipe.values()]
 
     def _init_new_solution(self, _sol):
-        key_map, sub_sol, stopper = {}, {}, _sol and _sol[1].stopper or None
+        key_map, sub_sol = {}, {}
         for k, s in self._sol.sub_sol.items():
             ns = s.copy_structure(dist=1)
-            ns.stopper = stopper or ns.stopper
             ns.sub_sol = sub_sol
             key_map[s] = ns
             sub_sol[ns.index] = ns
@@ -1059,14 +1057,14 @@ class SubDispatchPipe(SubDispatchFunction):
     def _callback_pipe_failure(self):
         pass
 
-    def __call__(self, *args, _sol_output=None, _sol=None, **kwargs):
+    def __call__(self, *args, _sol_output=None, _sol=None, _stopper=None, **kw):
         self.solution, key_map = self._init_new_solution(_sol)
-        self._init_workflows(self.parse_inputs(self.inputs, *args, **kwargs))
+        self._init_workflows(self.parse_inputs(self.inputs, *args, **kw))
 
         for v, s, nxt_nds, nxt_dsp in self.pipe:
             s = key_map(s)
 
-            if s.stopper.is_set():
+            if _stopper and _stopper.is_set():
                 raise DispatcherAbort("Stop requested.", sol=self.solution)
 
             if not s._set_node_output(v, False, next_nds=nxt_nds):
@@ -1383,6 +1381,7 @@ class inf(collections.namedtuple('_inf', ['inf', 'num'])):
                 return inf(*(f(x, *a) for x in self))
         else:
             i = -1 if d.get('reverse') else 1
+
             def method(self, other, *a):
                 if not isinstance(other, self.__class__):
                     other = d.get('dfl', other), other

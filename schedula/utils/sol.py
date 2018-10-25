@@ -21,7 +21,6 @@ from .dsp import SubDispatch, stlp, parent_func, NoSub
 from .exc import DispatcherError, DispatcherAbort, SkipNode
 from .base import Base
 
-
 log = logging.getLogger(__name__)
 
 
@@ -33,7 +32,7 @@ class Solution(Base, collections.OrderedDict):
     def __init__(self, dsp=None, inputs=None, outputs=None, wildcard=False,
                  cutoff=None, inputs_dist=None, no_call=False,
                  rm_unused_nds=False, wait_in=None, no_domain=False,
-                 _empty=False, index=(-1,), stopper=None):
+                 _empty=False, index=(-1,)):
 
         super(Solution, self).__init__()
         self.index = index
@@ -48,8 +47,6 @@ class Solution(Base, collections.OrderedDict):
 
         from .. import Dispatcher
         self._set_dsp_features(dsp or Dispatcher())
-
-        self.stopper = stopper or self.dsp.stopper
 
         if not _empty:
             self._set_inputs(inputs, inputs_dist)
@@ -191,7 +188,7 @@ class Solution(Base, collections.OrderedDict):
             return not set(p.dmap[k]).difference(p.dist)
         return False
 
-    def run(self):
+    def run(self, stopper=None):
         # Initialized and terminated dispatcher sets.
         dsp_closed, dsp_init, cached_ids = set(), {self.index}, {}
 
@@ -205,6 +202,7 @@ class Solution(Base, collections.OrderedDict):
         dsp_init_add, pipe_append = dsp_init.add, pipe.append
         dsp_closed_add = dsp_closed.add
         fringe, check_cutoff = self.fringe, self.check_cutoff
+        ctx = {'no_call': self.no_call, 'stopper': stopper}
 
         def _dsp_closed_add(s):
             dsp_closed_add(s.index)
@@ -217,7 +215,7 @@ class Solution(Base, collections.OrderedDict):
             # Visit the closest available node.
             n = (d, _, (v, sol)) = heapq.heappop(fringe)
 
-            if sol.stopper.is_set():
+            if stopper and stopper.is_set():
                 raise DispatcherAbort("Stop requested.", sol=self)
 
             # Skip terminated sub-dispatcher or visited nodes.
@@ -235,7 +233,7 @@ class Solution(Base, collections.OrderedDict):
             pipe_append(n)  # Add node to the pipe.
 
             # Set and visit nodes.
-            if not sol._visit_nodes(v, d, fringe, check_cutoff, self.no_call):
+            if not sol._visit_nodes(v, d, fringe, check_cutoff, **ctx):
                 if self is sol:
                     break  # Reach all targets.
                 else:
@@ -266,7 +264,7 @@ class Solution(Base, collections.OrderedDict):
         sol = self.__class__(
             self.dsp, self.inputs, self.outputs, False, self.cutoff,
             self.inputs_dist, self.no_call, self.rm_unused_nds, self._wait_in,
-            self.no_domain, True, self.index, self.stopper
+            self.no_domain, True, self.index
         )
         sol._clean_set()
         it = ['_wildcards', 'inputs', 'inputs_dist']
@@ -492,7 +490,7 @@ class Solution(Base, collections.OrderedDict):
                     n_d.add(k)
         return n_d, ll
 
-    def _set_node_output(self, node_id, no_call, next_nds=None):
+    def _set_node_output(self, node_id, no_call, next_nds=None, **kw):
         """
         Set the node outputs from node inputs.
 
@@ -515,25 +513,26 @@ class Solution(Base, collections.OrderedDict):
 
         if node_type == 'data':  # Set data node.
             return self._set_data_node_output(node_id, node_attr, no_call,
-                                              next_nds)
+                                              next_nds, **kw)
 
         elif node_type == 'function':  # Set function node.
             return self._set_function_node_output(node_id, node_attr, no_call,
-                                                  next_nds)
+                                                  next_nds, **kw)
 
-    def _evaluate_function(self, args, node_id, node_attr, attr):
+    def _evaluate_function(self, args, node_id, node_attr, attr, stopper=None):
         if 'started' not in attr:
             attr['started'] = time.time()
 
         func = node_attr['function']
         pfunc = parent_func(func)
         if isinstance(pfunc, SubDispatch) and not isinstance(pfunc, NoSub):
-            res = func(*args, _sol_output=attr, _sol=(node_id, self))
+            res = func(*args, _sol_output=attr, _sol=(node_id, self),
+                       _stopper=stopper)
         else:
             res = func(*args)
         return res
 
-    def _evaluate_node(self, args, node_id, node_attr, skip_func=False):
+    def _evaluate_node(self, args, node_id, node_attr, skip_func=False, **kw):
         try:
             # noinspection PyUnresolvedReferences
             attr = self.workflow.node[node_id]
@@ -545,8 +544,9 @@ class Solution(Base, collections.OrderedDict):
                     attr['solution_domain'] = node_attr['input_domain'](*args)
                     if not attr['solution_domain']:
                         raise SkipNode
-                value = self._evaluate_function(args, node_id, node_attr, attr)
-            value = self._apply_filters(value, node_id, node_attr, attr)
+                value = self._evaluate_function(args, node_id, node_attr, attr,
+                                                **kw)
+            value = self._apply_filters(value, node_id, node_attr, attr, **kw)
             if 'started' in attr:
                 attr['duration'] = time.time() - attr['started']
 
@@ -572,7 +572,8 @@ class Solution(Base, collections.OrderedDict):
             self._warning(msg, node_id, ex)
             raise SkipNode
 
-    def _set_data_node_output(self, node_id, node_attr, no_call, next_nds=None):
+    def _set_data_node_output(self, node_id, node_attr, no_call, next_nds=None,
+                              **kw):
         """
         Set the data node output from node estimations.
 
@@ -607,7 +608,7 @@ class Solution(Base, collections.OrderedDict):
                 sf, args = True, tuple(args[0].values())
             try:
                 # Final estimation of the node and node status.
-                value = self._evaluate_node(args, node_id, node_attr, sf)
+                value = self._evaluate_node(args, node_id, node_attr, sf, **kw)
             except SkipNode:
                 return False
 
@@ -652,7 +653,7 @@ class Solution(Base, collections.OrderedDict):
 
         return True  # Return that the output have been evaluated correctly.
 
-    def _apply_filters(self, res, node_id, node_attr, attr):
+    def _apply_filters(self, res, node_id, node_attr, attr, stopper=None):
         filters = []
         # Apply filters to results.
         for f in node_attr.get('filters', ()):
@@ -663,7 +664,8 @@ class Solution(Base, collections.OrderedDict):
             pfunc = parent_func(f)
             if isinstance(pfunc, SubDispatch) and not isinstance(pfunc, NoSub):
                 out = {}
-                res = f(res, _sol_output=out, _sol=(node_id, self))
+                res = f(res, _sol_output=out, _sol=(node_id, self),
+                        _stopper=stopper)
                 filters.append(out['solution'])
             else:
                 res = f(res)
@@ -675,7 +677,7 @@ class Solution(Base, collections.OrderedDict):
         return res
 
     def _set_function_node_output(self, node_id, node_attr, no_call,
-                                  next_nds=None):
+                                  next_nds=None, **kw):
         """
         Set the function node output from node inputs.
 
@@ -718,7 +720,7 @@ class Solution(Base, collections.OrderedDict):
         args = [v for v in args if v is not NONE]
 
         try:
-            res = self._evaluate_node(args, node_id, node_attr)
+            res = self._evaluate_node(args, node_id, node_attr, **kw)
             # noinspection PyUnresolvedReferences
             self.workflow.node[node_id]['results'] = res
         except SkipNode:
@@ -837,19 +839,14 @@ class Solution(Base, collections.OrderedDict):
         return False
 
     def _update_meeting(self, node_id, dist):
-        """
-
-        :param node_id:
-        :param dist:
-        :return:
-        """
         view = self._meet
         if node_id in self._meet:
             view[node_id] = max(dist, view[node_id])
         else:
             view[node_id] = dist
 
-    def _visit_nodes(self, node_id, dist, fringe, check_cutoff, no_call=False):
+    def _visit_nodes(self, node_id, dist, fringe, check_cutoff, no_call=False,
+                     **kw):
         """
         Visits a node, updating workflow, seen, and fringe..
 
@@ -886,7 +883,8 @@ class Solution(Base, collections.OrderedDict):
 
         self._visited.add(node_id)  # Update visited nodes.
 
-        if not self._set_node_output(node_id, no_call):  # Set node output.
+        if not self._set_node_output(node_id, no_call,
+                                     **kw):  # Set node output.
             # Some error occurs or inputs are not in the function domain.
             return True
 
@@ -1012,8 +1010,7 @@ class Solution(Base, collections.OrderedDict):
         # Initialize as sub-dispatcher.
         sol = self.__class__(
             dsp, {}, outputs, False, None, None, no_call, False,
-            wait_in=self._wait_in.get(dsp, None), index=self.index + index,
-            stopper=self.stopper
+            wait_in=self._wait_in.get(dsp, None), index=self.index + index
         )
 
         sol.sub_sol = self.sub_sol

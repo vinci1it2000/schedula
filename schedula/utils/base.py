@@ -11,17 +11,12 @@ It provides a base class to for dispatcher objects.
 """
 
 import copy
-import threading
 import tempfile
 from .cst import NONE
 
 
 class Base(object):
     def __deepcopy__(self, memo):
-        if hasattr(self, 'stopper'):
-            i = id(self.stopper)
-            if i not in memo:
-                memo[i] = threading.Event()
         cls = self.__class__
         memo[id(self)] = result = cls.__new__(cls)
         for k, v in self.__dict__.items():
