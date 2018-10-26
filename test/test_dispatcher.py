@@ -1578,8 +1578,14 @@ class TestPipe(unittest.TestCase):
         self.assertEqual(sp, list(n['sub_pipe'].keys()))
         e = 'Failed DISPATCHING \'SubDispatchFunction\' due to:\n  ' \
             'DispatcherError("\\n  Unreachable output-targets: {\'d\'}\\n  ' \
-            'Available outputs: [\'a\', \'b\', \'c\']",)'
-        self.assertEqual(e, n['error'])
+            'Available outputs: [\'a\', \'b\', \'c\']")'
+        er = n['error']
+        if er.endswith(',)'):  # python 3.7.
+            er = er[:-2] + ')'
+        self.assertEqual(e, er)
         e = 'Failed DISPATCHING \'dict\' due to:\n  ' \
-            'TypeError("\'int\' object is not iterable",)'
-        self.assertEqual(e, n['sub_pipe']['dict']['error'])
+            'TypeError("\'int\' object is not iterable")'
+        er = n['sub_pipe']['dict']['error']
+        if er.endswith(',)'):  # python 3.7.
+            er = er[:-2] + ')'
+        self.assertEqual(e, er)
