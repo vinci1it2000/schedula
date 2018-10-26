@@ -12,6 +12,29 @@ env:
   - EXTRAS=sphinx
   - EXTRAS=all
 
+matrix:
+  include:
+    - python: 3.7
+      dist: xenial
+      sudo: true
+      env: EXTRAS=base
+    - python: 3.7
+      dist: xenial
+      sudo: true
+      env: EXTRAS=web
+    - python: 3.7
+      dist: xenial
+      sudo: true
+      env: EXTRAS=plot
+    - python: 3.7
+      dist: xenial
+      sudo: true
+      env: EXTRAS=sphinx
+    - python: 3.7
+      dist: xenial
+      sudo: true
+      env: EXTRAS=all
+
 addons:
   apt:
     packages:
