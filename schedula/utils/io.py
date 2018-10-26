@@ -10,8 +10,6 @@
 It provides functions to read and save a dispatcher from/to files.
 """
 
-import dill
-
 __author__ = 'Vincenzo Arcidiacono'
 
 
@@ -45,7 +43,7 @@ def save_dispatcher(dsp, path):
         'max'
         >>> save_dispatcher(dsp, file_name)
     """
-
+    import dill
     with open(path, 'wb') as f:
         dill.dump(dsp, f)
 
@@ -84,7 +82,7 @@ def load_dispatcher(path):
         >>> dsp.dispatch(inputs={'b': 3})['c']
         3
     """
-
+    import dill
     # noinspection PyArgumentList
     with open(path, 'rb') as f:
         return dill.load(f)
@@ -120,7 +118,7 @@ def save_default_values(dsp, path):
         'max'
         >>> save_default_values(dsp, file_name)
     """
-
+    import dill
     with open(path, 'wb') as f:
         dill.dump(dsp.default_values, f)
 
@@ -160,7 +158,7 @@ def load_default_values(dsp, path):
         >>> dsp.dispatch(inputs={'b': 3})['c']
         3
     """
-
+    import dill
     # noinspection PyArgumentList
     with open(path, 'rb') as f:
         dsp.__init__(dmap=dsp.dmap, default_values=dill.load(f))
@@ -194,6 +192,7 @@ def save_map(dsp, path):
         'max'
         >>> save_map(dsp, file_name)
     """
+    import dill
     with open(path, 'wb') as f:
         dill.dump(dsp.dmap, f)
 
@@ -228,5 +227,6 @@ def load_map(dsp, path):
         >>> dsp.dispatch(inputs={'a': 1, 'b': 3})['c']
         3
     """
+    import dill
     with open(path, 'rb') as f:
         dsp.__init__(dmap=dill.load(f), default_values=dsp.default_values)
