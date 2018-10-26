@@ -549,6 +549,17 @@ class Solution(Base, collections.OrderedDict):
             value = self._apply_filters(value, node_id, node_attr, attr)
             if 'started' in attr:
                 attr['duration'] = time.time() - attr['started']
+
+            if 'callback' in node_attr:  # Invoke callback func of data node.
+                try:
+                    # noinspection PyCallingNonCallable
+                    node_attr['callback'](value)
+                except KeyboardInterrupt as ex:
+                    raise ex
+                except Exception as ex:
+                    msg = "Failed CALLBACK '%s' due to:\n  %s"
+                    self._warning(msg, node_id, ex)
+
             return value
         except (KeyboardInterrupt, SkipNode) as ex:
             raise ex
@@ -602,16 +613,6 @@ class Solution(Base, collections.OrderedDict):
 
             if value is not NONE:  # Set data output.
                 self[node_id] = value
-
-            if 'callback' in node_attr:  # Invoke callback func of data node.
-                try:
-                    # noinspection PyCallingNonCallable
-                    node_attr['callback'](value)
-                except KeyboardInterrupt as ex:
-                    raise ex
-                except Exception as ex:
-                    msg = "Failed CALLBACK '%s' due to:\n  %s"
-                    self._warning(msg, node_id, ex)
 
             value = {'value': value}  # Output value.
         else:
