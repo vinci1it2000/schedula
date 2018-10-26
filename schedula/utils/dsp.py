@@ -707,8 +707,8 @@ class SubDispatch(Base):
         self.__doc__ = dsp.__doc__
         self.solution = dsp.solution.__class__(dsp)
 
-    def __call__(self, *input_dicts, copy_input_dicts=False, _sol_output=None,
-                 _sol=None, _stopper=None):
+    def __call__(self, *input_dicts, copy_input_dicts=False, _stopper=None,
+                 _executors=None):
 
         # Combine input dictionaries.
         i = combine_dicts(*input_dicts, copy=copy_input_dicts)
@@ -717,17 +717,14 @@ class SubDispatch(Base):
         self.solution = self.dsp.dispatch(
             i, self.outputs, self.cutoff, self.inputs_dist, self.wildcard,
             self.no_call, self.shrink, self.rm_unused_nds,
-            stopper=_stopper
+            stopper=_stopper, executors=_executors
         )
 
-        return self._return(self.solution, _sol_output, _sol)
+        return self._return(self.solution)
 
-    def _return(self, solution, _sol_output, _sol):
+    def _return(self, solution):
         outs = self.outputs
-        solution.parent = _sol
-        # Store solution.
-        if _sol_output is not None:
-            _sol_output['solution'] = solution
+        solution.result()
 
         # Set output.
         if self.output_type != 'all':
@@ -906,7 +903,7 @@ class SubDispatchFunction(SubDispatch):
             raise TypeError(msg % (self.dsp.name, n, p, m))
         return inputs
 
-    def __call__(self, *args, _sol_output=None, _sol=None, _stopper=None, **kw):
+    def __call__(self, *args, _stopper=None, _executors=None, **kw):
         # Namespace shortcuts.
         self.solution = sol = self._sol.copy_structure()
 
@@ -921,10 +918,10 @@ class SubDispatchFunction(SubDispatch):
         sol._init_workflow(input_values, i_val, self.inputs_dist, False)
 
         # Dispatch outputs.
-        sol.run(stopper=_stopper)
+        sol.run(stopper=_stopper, executors=_executors)
 
         # Return outputs sorted.
-        return self._return(sol, _sol_output, _sol)
+        return self._return(sol)
 
 
 class SubDispatchPipe(SubDispatchFunction):
@@ -1040,7 +1037,7 @@ class SubDispatchPipe(SubDispatchFunction):
 
         self.pipe = [_make_tks(*v['task'][-1]) for v in self._sol.pipe.values()]
 
-    def _init_new_solution(self, _sol):
+    def _init_new_solution(self):
         key_map, sub_sol = {}, {}
         for k, s in self._sol.sub_sol.items():
             ns = s.copy_structure(dist=1)
@@ -1057,8 +1054,8 @@ class SubDispatchPipe(SubDispatchFunction):
     def _callback_pipe_failure(self):
         pass
 
-    def __call__(self, *args, _sol_output=None, _sol=None, _stopper=None, **kw):
-        self.solution, key_map = self._init_new_solution(_sol)
+    def __call__(self, *args, _stopper=None, _executors=None, **kw):
+        self.solution, key_map = self._init_new_solution()
         self._init_workflows(self.parse_inputs(self.inputs, *args, **kw))
 
         for v, s, nxt_nds, nxt_dsp in self.pipe:
@@ -1067,7 +1064,9 @@ class SubDispatchPipe(SubDispatchFunction):
             if _stopper and _stopper.is_set():
                 raise DispatcherAbort("Stop requested.", sol=self.solution)
 
-            if not s._set_node_output(v, False, next_nds=nxt_nds):
+            if not s._set_node_output(
+                    v, False, next_nds=nxt_nds, stopper=_stopper,
+                    executors=_executors):
                 self._callback_pipe_failure()
                 break
 
@@ -1076,7 +1075,7 @@ class SubDispatchPipe(SubDispatchFunction):
             s._see_remote_link_node(v)
 
         # Return outputs sorted.
-        return self._return(self.solution, _sol_output, _sol)
+        return self._return(self.solution)
 
 
 class NoSub:
@@ -1142,7 +1141,7 @@ class DispatchPipe(NoSub, SubDispatchPipe):
         0
     """
 
-    def _init_new_solution(self, _sol):
+    def _init_new_solution(self):
         return self._sol, lambda x: x
 
     def _init_workflows(self, inputs):

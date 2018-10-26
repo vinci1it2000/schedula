@@ -25,6 +25,8 @@ Modules:
 from .dispatcher import Dispatcher
 
 from .utils import (
+    PoolExecutor,
+
     EMPTY, START, NONE, SINK, SELF, END, PLOT,
 
     stlp, combine_dicts, bypass, summation, map_dict, map_list, selector,

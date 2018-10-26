@@ -519,6 +519,110 @@ class TestPerformance(unittest.TestCase):
             repeat=repeat, number=number)) / repeat
         print(msg % ('DispatchPipe.__call__', '', t, (t0 - t) / t0 * 100))
 
+        t = sum(timeit.repeat(
+            "fun(5, 6, _executors=executors)",
+            'from %s import _setup_dsp;'
+            'from schedula.utils.dsp import DispatchPipe;'
+            'from schedula.utils.asy import PoolExecutor;'
+            'from concurrent.futures import ThreadPoolExecutor;'
+            'dsp = _setup_dsp();'
+            'executors = {None: PoolExecutor(ThreadPoolExecutor(1))};'
+            "[v.pop('input_domain', 0) for v in dsp.function_nodes.values()];"
+            'fun = DispatchPipe(dsp, "f", ["a", "b"], ["c", "d", "e"])'
+            % __name__,
+            repeat=repeat, number=number)) / repeat
+        print(
+            msg % ('DispatchPipe.__call__ thread', '', t, (t0 - t) / t0 * 100))
+
+
+class TestAsync(unittest.TestCase):
+    def setUp(self):
+        import time
+        from multiprocessing import Value, Lock
+
+        self.dsp = dsp = sh.Dispatcher()
+        self.sub_dsp = sub_dsp = sh.Dispatcher()
+
+        def reset_counter():
+            global counter
+            counter = Counter()
+
+        self.reset_counter = reset_counter
+
+        class Counter:
+            def __init__(self, initval=-1):
+                self.val = Value('i', initval)
+                self.lock = Lock()
+
+            def increment(self):
+                with self.lock:
+                    self.val.value += 1
+                    return self.val.value
+
+        counter = Counter()
+
+        def sleep(x, *a):
+            global counter
+            start = counter.increment()
+            time.sleep(x / 10)
+            return (counter.increment(), start), None
+
+        def filter(x):
+            time.sleep(1 / 10)
+            return x
+
+        def callback(x):
+            global counter
+            counter.increment()
+            time.sleep(1 / 30)
+
+        sub_dsp.add_function(
+            function=sleep, inputs=['a'], outputs=['d', sh.SINK],
+            filters=[filter]
+        )
+        dsp.add_data('d', callback=callback)
+        dsp.add_dispatcher(sub_dsp, inputs=['a'], outputs=['d'])
+        self.func = func = sh.SubDispatchFunction(sub_dsp, 'func', ['a'], ['d'])
+        dsp.add_function(function=func, inputs=['b'], outputs=['e'], weight=1)
+        dsp.add_function(function=sleep, inputs=['b', 'd', 'e'],
+                         outputs=['f', sh.SINK])
+
+
+    def test_dispatch(self):
+        from concurrent.futures import ThreadPoolExecutor
+        exe = sh.PoolExecutor(ThreadPoolExecutor(3), ThreadPoolExecutor(3))
+        self.reset_counter()
+        sol = self.dsp({'a': 3, 'b': 1}, executors={None: exe})
+        from concurrent.futures import Future
+        self.assertTrue(all(isinstance(v, Future) for v in sol.values()))
+        sol.result()
+        self.assertEqual(
+            sol, {'a': 3, 'b': 1, 'd': (3, 0), 'e': (2, 1), 'f': (6, 5),
+                  sh.SINK: {'sleep': None}}
+        )
+        self.assertEqual(sol.sub_sol[(-1, 1)], {'a': 3, 'd': (3, 0)})
+        exe.shutdown()
+
+    def test_dispatch_pipe(self):
+        import time
+        from concurrent.futures import ThreadPoolExecutor
+        executor = sh.PoolExecutor(ThreadPoolExecutor(3), ThreadPoolExecutor(3))
+        self.reset_counter()
+        func = sh.DispatchPipe(self.dsp, '', ['a', 'b'], ['d', 'e', 'f'])
+        dt0 = time.time()
+        res = func(2, 1, _executors={None: executor})
+        dt0 = time.time() - dt0
+        self.assertEqual([(3, 0), (2, 1), (6, 5)], res)
+
+        self.reset_counter()
+        func = sh.DispatchPipe(self.dsp, '', ['a', 'b'], ['d', 'e', 'f'])
+        dt1 = time.time()
+        res = func(2, 1)
+        dt1 = time.time() - dt1
+        self.assertEqual([(1, 0), (3, 2), (6, 5)], res)
+        self.assertGreater(dt1, dt0)
+        executor.shutdown()
+
 
 class TestDispatch(unittest.TestCase):
     def setUp(self):

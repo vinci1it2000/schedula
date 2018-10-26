@@ -131,7 +131,7 @@ class Dispatcher(Base):
     """
 
     def __init__(self, dmap=None, name='', default_values=None, raises=False,
-                 description=''):
+                 description='', executor_id=None):
         """
         Initializes the dispatcher.
 
@@ -156,6 +156,10 @@ class Dispatcher(Base):
         :param description:
             The dispatcher's description.
         :type description: str, optional
+
+        :param executor_id:
+            A pool executor id to dispatch asynchronously.
+        :type executor_id: str, optional
         """
 
         from networkx import DiGraph
@@ -181,6 +185,9 @@ class Dispatcher(Base):
         #: If True the dispatcher interrupt the dispatch when an error occur.
         self.raises = raises
 
+        #: Pool executor to dispatch asynchronously.
+        self.executor_id = executor_id
+
         from .utils.sol import Solution
         #: Last dispatch solution.
         self.solution = Solution(self)
@@ -190,7 +197,8 @@ class Dispatcher(Base):
 
     def copy_structure(self, **kwargs):
         _map = {
-            'description': '__doc__', 'name': 'name', 'raises': 'raises'
+            'description': '__doc__', 'name': 'name',
+            'raises': 'raises', 'executor_id': 'executor_id'
         }
         base = {k: getattr(self, v) for k, v in _map.items()}
         obj = self.__class__(**combine_dicts(kwargs, base=base))
@@ -639,7 +647,10 @@ class Dispatcher(Base):
 
         if not isinstance(dsp, Dispatcher):
             kw = dsp
-            dsp = Dispatcher(name=dsp_id or 'unknown')
+            dsp = Dispatcher(
+                name=dsp_id or 'unknown',
+                executor_id=self.executor_id
+            )
             dsp.add_from_lists(**kw)
 
         if not dsp_id:  # Get the dsp id.
@@ -1299,7 +1310,7 @@ class Dispatcher(Base):
     def dispatch(self, inputs=None, outputs=None, cutoff=None, inputs_dist=None,
                  wildcard=False, no_call=False, shrink=False,
                  rm_unused_nds=False, select_output_kw=None, _wait_in=None,
-                 stopper=None):
+                 stopper=None, executors=None):
         """
         Evaluates the minimum workflow and data outputs of the dispatcher
         model from given inputs.
@@ -1440,7 +1451,7 @@ class Dispatcher(Base):
         )
 
         # Dispatch.
-        sol.run(stopper=stopper)
+        sol.run(stopper=stopper, executors=executors)
 
         if select_output_kw:
             return selector(dictionary=sol, **select_output_kw)

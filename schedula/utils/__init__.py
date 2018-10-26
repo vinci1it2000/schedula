@@ -36,6 +36,7 @@ Sub-Modules:
     :toctree: utils/
 
     alg
+    asy
     base
     cst
     des
@@ -47,6 +48,7 @@ Sub-Modules:
     sol
     web
 """
+from .asy import PoolExecutor
 
 from .cst import EMPTY, START, NONE, SINK, SELF, END, PLOT
 

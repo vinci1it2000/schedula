@@ -19,6 +19,7 @@ from .alg import add_edge_fun, remove_edge_fun, get_full_pipe, _sort_sk_wait_in
 from .cst import START, NONE, PLOT
 from .dsp import SubDispatch, stlp, parent_func, NoSub
 from .exc import DispatcherError, DispatcherAbort, SkipNode
+from .asy import async_thread, async_result, async_process
 from .base import Base
 
 log = logging.getLogger(__name__)
@@ -188,7 +189,17 @@ class Solution(Base, collections.OrderedDict):
             return not set(p.dmap[k]).difference(p.dist)
         return False
 
-    def run(self, stopper=None):
+    def result(self, timeout=None):
+        for s in self.sub_sol.values():
+            for k, v in s.items():
+                s[k] = async_result(v, timeout)
+
+            for d in s.workflow.edges.values():
+                if 'value' in d:
+                    d['value'] = async_result(d['value'], timeout)
+        return self
+
+    def run(self, stopper=None, executors=None):
         # Initialized and terminated dispatcher sets.
         dsp_closed, dsp_init, cached_ids = set(), {self.index}, {}
 
@@ -202,7 +213,9 @@ class Solution(Base, collections.OrderedDict):
         dsp_init_add, pipe_append = dsp_init.add, pipe.append
         dsp_closed_add = dsp_closed.add
         fringe, check_cutoff = self.fringe, self.check_cutoff
-        ctx = {'no_call': self.no_call, 'stopper': stopper}
+        ctx = {
+            'no_call': self.no_call, 'stopper': stopper, 'executors': executors
+        }
 
         def _dsp_closed_add(s):
             dsp_closed_add(s.index)
@@ -519,23 +532,35 @@ class Solution(Base, collections.OrderedDict):
             return self._set_function_node_output(node_id, node_attr, no_call,
                                                   next_nds, **kw)
 
-    def _evaluate_function(self, args, node_id, node_attr, attr, stopper=None):
+    def _evaluate_function(self, args, node_id, node_attr, attr, stopper=None,
+                           executors=None):
         if 'started' not in attr:
             attr['started'] = time.time()
 
         func = node_attr['function']
         pfunc = parent_func(func)
         if isinstance(pfunc, SubDispatch) and not isinstance(pfunc, NoSub):
-            res = func(*args, _sol_output=attr, _sol=(node_id, self),
-                       _stopper=stopper)
+            try:
+                res = func(*args, _stopper=stopper, _executors=executors)
+                attr['solution'] = sol = pfunc.solution
+                sol.parent = node_id, self
+            except DispatcherError as ex:
+                attr['solution'] = sol = pfunc.solution
+                sol.parent = node_id, self
+                raise ex
         else:
-            res = func(*args)
+            res = async_process(
+                func, *args,
+                skip=isinstance(pfunc, SubDispatch),
+                executor=executors and executors.get(self.dsp.executor_id)
+            )
+
         return res
 
-    def _evaluate_node(self, args, node_id, node_attr, skip_func=False, **kw):
+    def _evaluate_node(self, args, node_attr, node_id, skip_func=False, **kw):
+        # noinspection PyUnresolvedReferences
+        attr = self.workflow.node[node_id]
         try:
-            # noinspection PyUnresolvedReferences
-            attr = self.workflow.node[node_id]
             if skip_func:
                 value = args[0]
             else:
@@ -608,7 +633,7 @@ class Solution(Base, collections.OrderedDict):
                 sf, args = True, tuple(args[0].values())
             try:
                 # Final estimation of the node and node status.
-                value = self._evaluate_node(args, node_id, node_attr, sf, **kw)
+                value = async_thread(self, args, node_attr, node_id, sf, **kw)
             except SkipNode:
                 return False
 
@@ -653,7 +678,8 @@ class Solution(Base, collections.OrderedDict):
 
         return True  # Return that the output have been evaluated correctly.
 
-    def _apply_filters(self, res, node_id, node_attr, attr, stopper=None):
+    def _apply_filters(self, res, node_id, node_attr, attr, stopper=None,
+                       executors=None):
         filters = []
         # Apply filters to results.
         for f in node_attr.get('filters', ()):
@@ -663,12 +689,20 @@ class Solution(Base, collections.OrderedDict):
                 filters.append(res)
             pfunc = parent_func(f)
             if isinstance(pfunc, SubDispatch) and not isinstance(pfunc, NoSub):
-                out = {}
-                res = f(res, _sol_output=out, _sol=(node_id, self),
-                        _stopper=stopper)
-                filters.append(out['solution'])
+                try:
+                    res = f(res, _stopper=stopper, _executors=executors)
+                    pfunc.solution.parent = node_id, self
+                    filters.append(pfunc.solution)
+                except DispatcherError as ex:
+                    pfunc.solution.parent = node_id, self
+                    filters.append(pfunc.solution)
+                    raise ex
             else:
-                res = f(res)
+                res = async_process(
+                    f, res,
+                    skip=isinstance(pfunc, SubDispatch),
+                    executor=executors and executors.get(self.dsp.executor_id)
+                )
                 filters.append(res)
 
         if filters:
@@ -720,7 +754,7 @@ class Solution(Base, collections.OrderedDict):
         args = [v for v in args if v is not NONE]
 
         try:
-            res = self._evaluate_node(args, node_id, node_attr, **kw)
+            res = async_thread(self, args, node_attr, node_id, **kw)
             # noinspection PyUnresolvedReferences
             self.workflow.node[node_id]['results'] = res
         except SkipNode:
@@ -883,8 +917,7 @@ class Solution(Base, collections.OrderedDict):
 
         self._visited.add(node_id)  # Update visited nodes.
 
-        if not self._set_node_output(node_id, no_call,
-                                     **kw):  # Set node output.
+        if not self._set_node_output(node_id, no_call, **kw):  # Set node output.
             # Some error occurs or inputs are not in the function domain.
             return True
 
