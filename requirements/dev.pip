@@ -1,0 +1,13 @@
+## Pip-dependencies for developing the project.
+#   Install them with::
+#
+#       pip install -r dev.pip
+
+-r exe.pip
+
+## Pure python libs from Setup + Build + Dev + Test requirements.
+setuptools-git >= 0.3
+wheel
+sphinx == 1.4.8
+nose
+ddt
