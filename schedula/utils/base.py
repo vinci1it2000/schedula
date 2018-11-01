@@ -306,34 +306,33 @@ class Base(object):
         .. dispatcher:: o
            :opt: graph_attr={'ratio': '1'}, depth=-1
 
-            >>> import schedula  as dsp
-            >>> import schedula.utils as dsp_utl
-            >>> s_d = dsp.Dispatcher(name='Sub-dispatcher')
+            >>> import schedula as sh
+            >>> sub_dsp = sh.Dispatcher(name='Sub-dispatcher')
             >>> def fun(a, b):
             ...     return a + b
             ...
-            >>> s_d.add_function('a + b', fun, ['a', 'b'], ['c'])
+            >>> sub_dsp.add_function('a + b', fun, ['a', 'b'], ['c'])
             'a + b'
-            >>> dispatch = dsp_utl.SubDispatch(s_d, ['c'], output_type='dict')
-            >>> d = dsp.Dispatcher(name='Dispatcher')
-            >>> d.add_function('Sub-dispatcher', dispatch, ['a'], ['b'])
+            >>> dispatch = sh.SubDispatch(sub_dsp, ['c'], output_type='dict')
+            >>> dsp = sh.Dispatcher(name='Dispatcher')
+            >>> dsp.add_function('Sub-dispatcher', dispatch, ['a'], ['b'])
             'Sub-dispatcher'
 
-            >>> o = d.dispatch(inputs={'a': {'a': 3, 'b': 1}})
+            >>> o = dsp.dispatch(inputs={'a': {'a': 3, 'b': 1}})
             ...
 
         Get the sub node output::
 
-            >>> d.get_node('Sub-dispatcher', 'c')
+            >>> dsp.get_node('Sub-dispatcher', 'c')
             (4, ('Sub-dispatcher', 'c'))
-            >>> d.get_node('Sub-dispatcher', 'c', node_attr='type')
+            >>> dsp.get_node('Sub-dispatcher', 'c', node_attr='type')
             ('data', ('Sub-dispatcher', 'c'))
 
         .. dispatcher:: sub_dsp
            :opt: workflow=True, graph_attr={'ratio': '1'}
            :code:
 
-            >>> sub_dsp, sub_dsp_id = d.get_node('Sub-dispatcher')
+            >>> sub_dsp, sub_dsp_id = dsp.get_node('Sub-dispatcher')
         """
         kw = {}
 

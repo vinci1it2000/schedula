@@ -48,24 +48,3 @@ Sub-Modules:
     sol
     web
 """
-from .asy import PoolExecutor
-
-from .cst import EMPTY, START, NONE, SINK, SELF, END, PLOT
-
-from .dsp import (
-    stlp, combine_dicts, bypass, summation, map_dict, map_list, selector,
-    replicate_value, add_args, stack_nested_keys, get_nested_dicts, inf,
-    are_in_nested_dicts, combine_nested_dicts, SubDispatch, parent_func,
-    SubDispatchFunction, SubDispatchPipe, DispatchPipe, kk_dict, add_function
-)
-
-from .exc import DispatcherError, DispatcherAbort
-
-from .gen import counter, Token, pairwise
-
-from .io import (
-    save_dispatcher, load_dispatcher, save_default_values, load_default_values,
-    save_map, load_map
-)
-
-__author__ = 'Vincenzo Arcidiacono'

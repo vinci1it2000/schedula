@@ -22,24 +22,75 @@ Modules:
     ~utils
     ~ext
 """
-from .dispatcher import Dispatcher
+import sys
 
-from .utils import (
-    PoolExecutor,
+_all = {
+    'Dispatcher': 'dispatcher',
+    'PoolExecutor': 'utils.asy',
+    'EMPTY': 'utils.cst',
+    'START': 'utils.cst',
+    'NONE': 'utils.cst',
+    'SINK': 'utils.cst',
+    'SELF': 'utils.cst',
+    'END': 'utils.cst',
+    'PLOT': 'utils.cst',
+    'stlp': 'utils.dsp',
+    'combine_dicts': 'utils.dsp',
+    'bypass': 'utils.dsp',
+    'summation': 'utils.dsp',
+    'map_dict': 'utils.dsp',
+    'map_list': 'utils.dsp',
+    'selector': 'utils.dsp',
+    'replicate_value': 'utils.dsp',
+    'add_args': 'utils.dsp',
+    'stack_nested_keys': 'utils.dsp',
+    'get_nested_dicts': 'utils.dsp',
+    'inf': 'utils.dsp',
+    'are_in_nested_dicts': 'utils.dsp',
+    'SubDispatchFunction': 'utils.dsp',
+    'combine_nested_dicts': 'utils.dsp',
+    'SubDispatch': 'utils.dsp',
+    'parent_func': 'utils.dsp',
+    'SubDispatchPipe': 'utils.dsp',
+    'DispatchPipe': 'utils.dsp',
+    'kk_dict': 'utils.dsp',
+    'add_function': 'utils.dsp',
+    'DispatcherError': 'utils.exc',
+    'DispatcherAbort': 'utils.exc',
+    'counter': 'utils.gen',
+    'Token': 'utils.gen',
+    'pairwise': 'utils.gen',
+    'save_dispatcher': 'utils.io',
+    'load_dispatcher': 'utils.io',
+    'save_default_values': 'utils.io',
+    'load_default_values': 'utils.io',
+    'save_map': 'utils.io',
+    'load_map': 'utils.io'
+}
 
-    EMPTY, START, NONE, SINK, SELF, END, PLOT,
+__all__ = tuple(_all)
 
-    stlp, combine_dicts, bypass, summation, map_dict, map_list, selector,
-    replicate_value, add_args, stack_nested_keys, get_nested_dicts, inf,
-    are_in_nested_dicts, combine_nested_dicts, SubDispatch, parent_func,
-    SubDispatchFunction, SubDispatchPipe, DispatchPipe, kk_dict, add_function,
 
-    DispatcherError, DispatcherAbort,
+def __dir__():
+    return __all__ + ('__doc__', '__author__')
 
-    counter, Token, pairwise,
 
-    save_dispatcher, load_dispatcher, save_default_values, load_default_values,
-    save_map, load_map
-)
+def __getattr__(name):
+    if name in _all:
+        exec('from .%s import %s' % (_all[name], name))
+        return eval(name)
+    raise AttributeError("module %s has no attribute %s" % (__name__, name))
+
 
 __author__ = 'Vincenzo Arcidiacono'
+
+if sys.version_info[:2] < (3, 7):
+    expressions = {}
+    for n, mod in _all.items():
+        if mod in expressions:
+            expressions[mod] += ', %s' % n
+        else:
+            expressions[mod] = n
+
+    for e in expressions.items():
+        exec('from .%s import %s' % e)

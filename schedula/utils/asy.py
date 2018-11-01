@@ -147,7 +147,6 @@ class PoolExecutor:
         >>> (time.time() - start) < 2
         True
         >>> executor.shutdown()
-
     """
     def __init__(self, thread_executor, process_executor=None):
         """
