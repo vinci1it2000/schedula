@@ -9,7 +9,6 @@
 """
 It contains functions to dispatch asynchronously.
 """
-from concurrent.futures import Future
 
 
 def async_process(func, *args, skip=False, executor=None):
@@ -91,6 +90,7 @@ def async_thread(sol, args, node_attr, *a, executors=None, **kw):
     if node_attr['type'] == 'data' and (
             node_attr['wait_inputs'] or 'function' in node_attr):
         futures = args[0].values()
+    from concurrent.futures import Future
     futures = {v for v in futures if isinstance(v, Future)}
 
     def _submit():
@@ -148,6 +148,7 @@ class PoolExecutor:
         True
         >>> executor.shutdown()
     """
+
     def __init__(self, thread_executor, process_executor=None):
         """
         :param thread_executor:
@@ -180,6 +181,7 @@ class PoolExecutor:
 class AsyncList(list):
     def __init__(self, *, future=None, n=1):
         super(AsyncList, self).__init__()
+        from concurrent.futures import Future
         self.extend(Future() for _ in range(n))
         future.add_done_callback(self)
 
@@ -207,4 +209,5 @@ def async_result(obj, timeout=None):
         Object result.
     :rtype: object
     """
+    from concurrent.futures import Future
     return obj.result(timeout) if isinstance(obj, Future) else obj

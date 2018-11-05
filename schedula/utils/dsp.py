@@ -10,7 +10,6 @@
 It provides tools to create models with the :func:`~schedula.Dispatcher`.
 """
 import collections
-import inspect
 import copy as _copy
 import functools
 import itertools
@@ -444,6 +443,7 @@ class add_args(object):
 
 
 def _get_signature(func, n=1):
+    import inspect
     sig = inspect.signature(func)  # Get function signature.
 
     def ept_par():  # Return none signature parameter.
@@ -1219,6 +1219,7 @@ class DFun(object):
         return cp
 
     def inspect_inputs(self):
+        import inspect
         fun_params = inspect.signature(self.fun).parameters
         assert not any(p.kind for p in fun_params.values()
                        if p.kind != inspect.Parameter.POSITIONAL_OR_KEYWORD), (
@@ -1265,6 +1266,7 @@ class DFun(object):
 
 
 def _get_parameters(func, include_kwargs=False):
+    import inspect
     var = (inspect._VAR_POSITIONAL, inspect._VAR_KEYWORD)
 
     if include_kwargs:
@@ -1325,6 +1327,7 @@ def add_function(dsp, inputs_kwargs=False, inputs_defaults=False, **kw):
         ... def func(a, b, c, d=0):
         ...     return (a + b) - c + d
     """
+    import inspect
 
     def decorator(f):
         par = {}

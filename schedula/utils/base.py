@@ -11,7 +11,6 @@ It provides a base class to for dispatcher objects.
 """
 
 import copy
-import tempfile
 from .cst import NONE
 
 
@@ -102,6 +101,7 @@ class Base(object):
         webmap.add_items(obj, workflow=False, depth=depth, **options)
 
         if sites is not None:
+            import tempfile
             directory = directory or tempfile.mkdtemp()
             sites.add(webmap.site(directory, view=run))
 
@@ -255,6 +255,7 @@ class Base(object):
         sitemap = SiteMap()
         sitemap.add_items(self, workflow=workflow, depth=depth, **options)
         if view:
+            import tempfile
             directory = directory or tempfile.mkdtemp()
             if sites is None:
                 sitemap.render(directory=directory, view=True, index=index)
