@@ -85,5 +85,4 @@ def __getattr__(name):
 __author__ = 'Vincenzo Arcidiacono'
 
 if sys.version_info[:2] < (3, 7):
-    for k in _all:
-        __getattr__(k)
+    exec(';'.join('from %s import %s' % v[::-1] for v in _all.items()))
