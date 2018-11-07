@@ -71,7 +71,11 @@ To install schedula and all extras, do:
 
     $ pip install schedula[all]
 
+.. note:: ``plot`` extra requires to install Graphviz (`download page`_). Make
+   sure that the directory containing the ``dot`` executable is on your systems'
+   path.
 
+.. _download page: https://www.graphviz.org/download/
 .. _end-quick:
 
 Why may I use schedula?
@@ -95,7 +99,7 @@ to model an entire vehicle_.
 
 .. |co2mpas| replace:: CO\ :sub:`2`\ MPAS
 .. _application: https://github.com/JRCSTU/CO2MPAS-TA
-.. _vehicle : https://co2mpas.io/explanation.html#execution-model
+.. _vehicle: https://co2mpas.io/explanation.html#execution-model
 
 
 Very simple example
