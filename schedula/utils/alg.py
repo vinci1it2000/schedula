@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 #
-# Copyright 2014-2017 European Commission (JRC);
+# Copyright 2015-2018, Vincenzo Arcidiacono;
 # Licensed under the EUPL (the 'Licence');
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
@@ -15,7 +15,7 @@ from .cst import EMPTY, NONE
 from .dsp import SubDispatch, bypass, selector, map_dict, stlp, parent_func
 import collections
 
-__author__ = 'Vincenzo Arcidiacono'
+__author__ = 'Vincenzo Arcidiacono <vinci1it2000@gmail.com>'
 
 
 # modified from NetworkX library

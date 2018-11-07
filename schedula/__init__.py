@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 #
-# Copyright 2014-2017 European Commission (JRC);
+# Copyright 2015-2018, Vincenzo Arcidiacono;
 # Licensed under the EUPL (the 'Licence');
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
@@ -23,6 +23,7 @@ Modules:
     ~ext
 """
 import sys
+from ._version import *
 
 _all = {
     'Dispatcher': '.dispatcher',
@@ -72,7 +73,9 @@ __all__ = tuple(_all)
 
 
 def __dir__():
-    return __all__ + ('__doc__', '__author__')
+    return __all__ + (
+    '__doc__', '__author__', '__updated__', '__title__', '__version__',
+    '__license__', '__copyright__')
 
 
 def __getattr__(name):
@@ -81,8 +84,6 @@ def __getattr__(name):
         return getattr(importlib.import_module(_all[name], __name__), name)
     raise AttributeError("module %s has no attribute %s" % (__name__, name))
 
-
-__author__ = 'Vincenzo Arcidiacono'
 
 if sys.version_info[:2] < (3, 7):
     globals().update({k: __getattr__(k) for k in _all})
