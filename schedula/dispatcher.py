@@ -131,7 +131,7 @@ class Dispatcher(Base):
     """
 
     def __init__(self, dmap=None, name='', default_values=None, raises=False,
-                 description='', executor_id=None):
+                 description='', executor=None):
         """
         Initializes the dispatcher.
 
@@ -157,9 +157,18 @@ class Dispatcher(Base):
             The dispatcher's description.
         :type description: str, optional
 
-        :param executor_id:
-            A pool executor id to dispatch asynchronously.
-        :type executor_id: str, optional
+        :param executor:
+            A pool executor id to dispatch asynchronously or in parallel.
+
+            There are three default Pool executors to dispatch asynchronously or
+            in parallel:
+
+            - `async`: execute all functions asynchronously in the same process,
+            - `parallel`: execute all functions except SubDispatch in parallel,
+            - `parallel-dispatch`: execute all functions including SubDispatch
+              in parallel.
+
+        :type executor: str, optional
         """
 
         from networkx import DiGraph
@@ -186,7 +195,7 @@ class Dispatcher(Base):
         self.raises = raises
 
         #: Pool executor to dispatch asynchronously.
-        self.executor_id = executor_id
+        self.executor = executor
 
         from .utils.sol import Solution
         #: Last dispatch solution.
@@ -198,7 +207,7 @@ class Dispatcher(Base):
     def copy_structure(self, **kwargs):
         _map = {
             'description': '__doc__', 'name': 'name',
-            'raises': 'raises', 'executor_id': 'executor_id'
+            'raises': 'raises', 'executor': 'executor'
         }
         base = {k: getattr(self, v) for k, v in _map.items()}
         obj = self.__class__(**combine_dicts(kwargs, base=base))
@@ -207,7 +216,8 @@ class Dispatcher(Base):
 
     def add_data(self, data_id=None, default_value=EMPTY, initial_dist=0.0,
                  wait_inputs=False, wildcard=None, function=None, callback=None,
-                 remote_links=None, description=None, filters=None, **kwargs):
+                 remote_links=None, description=None, filters=None,
+                 await_result=None, **kwargs):
         """
         Add a single data node to the dispatcher.
 
@@ -262,6 +272,13 @@ class Dispatcher(Base):
             A list of functions that are invoked after the invocation of the
             main function.
         :type filters: list[function], optional
+
+        :param await_result:
+            If True the Dispatcher waits data results before assigning them to
+            the solution. If a number is defined this is used as `timeout` for
+            `Future.result` method [default: False]. Note this is used when
+            asynchronous or parallel execution is enable.
+        :type await_result: bool|int|float, optional
 
         :param kwargs:
             Set additional node attributes using key=value.
@@ -344,6 +361,9 @@ class Dispatcher(Base):
         if function is not None:  # Add function as node attribute.
             attr_dict['function'] = function
 
+        if await_result is not None:  # Add await_result as node attribute.
+            attr_dict['await_result'] = await_result
+
         if callback is not None:  # Add callback as node attribute.
             attr_dict['callback'] = callback
 
@@ -383,7 +403,8 @@ class Dispatcher(Base):
     def add_function(self, function_id=None, function=None, inputs=None,
                      outputs=None, input_domain=None, weight=None,
                      inp_weight=None, out_weight=None, description=None,
-                     filters=None, **kwargs):
+                     filters=None, await_domain=None, await_result=None,
+                     **kwargs):
         """
         Add a single function node to dispatcher.
 
@@ -436,6 +457,20 @@ class Dispatcher(Base):
             A list of functions that are invoked after the invocation of the
             main function.
         :type filters: list[function], optional
+
+        :param await_domain:
+            If True the Dispatcher waits all input results before executing the
+            `input_domain` function. If a number is defined this is used as
+            `timeout` for `Future.result` method [default: True]. Note this is
+            used when asynchronous or parallel execution is enable.
+        :type await_domain: bool|int|float, optional
+
+        :param await_result:
+            If True the Dispatcher waits output results before assigning them to
+            the workflow. If a number is defined this is used as `timeout` for
+            `Future.result` method [default: False]. Note this is used when
+            asynchronous or parallel execution is enable.
+        :type await_result: bool|int|float, optional
 
         :param kwargs:
             Set additional node attributes using key=value.
@@ -508,6 +543,12 @@ class Dispatcher(Base):
         if input_domain:  # Add domain as node attribute.
             attr_dict['input_domain'] = input_domain
 
+        if await_domain is not None:  # Add await_domain as node attribute.
+            attr_dict['await_domain'] = await_domain
+
+        if await_result is not None:  # Add await_result as node attribute.
+            attr_dict['await_result'] = await_result
+
         if description is not None:  # Add description as node attribute.
             attr_dict['description'] = description
 
@@ -545,7 +586,8 @@ class Dispatcher(Base):
 
     def add_dispatcher(self, dsp, inputs, outputs, dsp_id=None,
                        input_domain=None, weight=None, inp_weight=None,
-                       description=None, include_defaults=False, **kwargs):
+                       description=None, include_defaults=False,
+                       await_domain=None, **kwargs):
         """
         Add a single sub-dispatcher node to dispatcher.
 
@@ -601,6 +643,13 @@ class Dispatcher(Base):
             current dispatcher.
         :type include_defaults: bool, optional
 
+        :param await_domain:
+            If True the Dispatcher waits all input results before executing the
+            `input_domain` function. If a number is defined this is used as
+            `timeout` for `Future.result` method [default: True]. Note this is
+            used when asynchronous or parallel execution is enable.
+        :type await_domain: bool|int|float, optional
+
         :param kwargs:
             Set additional node attributes using key=value.
         :type kwargs: keyword arguments, optional
@@ -645,11 +694,11 @@ class Dispatcher(Base):
             'Sub-Dispatcher with domain'
         """
 
-        if not isinstance(dsp, Dispatcher):
+        if not isinstance(dsp, self.__class__):
             kw = dsp
-            dsp = Dispatcher(
+            dsp = self.__class__(
                 name=dsp_id or 'unknown',
-                executor_id=self.executor_id
+                executor=self.executor
             )
             dsp.add_from_lists(**kw)
 
@@ -678,7 +727,8 @@ class Dispatcher(Base):
         dsp_id = self.add_function(
             dsp_id, dsp, sorted(_iter_list_nodes(inputs)), sorted(parents),
             input_domain, weight, _weight_from, type='dispatcher',
-            description=description, wait_inputs=False, **kwargs
+            description=description, wait_inputs=False,
+            await_domain=await_domain, **kwargs
         )
 
         # Set proper inputs.
@@ -690,11 +740,12 @@ class Dispatcher(Base):
         remote_link = [dsp_id, self]  # Define the remote link.
 
         # Unlink node reference.
-        for k in children.union(_iter_list_nodes(outputs)).intersection(dsp.nodes):
+        lnodes = tuple(_iter_list_nodes(outputs))
+        for k in children.union(lnodes).intersection(dsp.nodes):
             dsp.nodes[k] = dsp.nodes[k].copy()
 
         # Set remote link.
-        for it, is_parent in [(children, True), (_iter_list_nodes(outputs), False)]:
+        for it, is_parent in [(children, True), (lnodes, False)]:
             for k in it:
                 dsp.set_data_remote_link(k, remote_link, is_parent=is_parent)
 
@@ -1310,7 +1361,7 @@ class Dispatcher(Base):
     def dispatch(self, inputs=None, outputs=None, cutoff=None, inputs_dist=None,
                  wildcard=False, no_call=False, shrink=False,
                  rm_unused_nds=False, select_output_kw=None, _wait_in=None,
-                 stopper=None, executors=None):
+                 stopper=None, executor=False, sol_name=()):
         """
         Evaluates the minimum workflow and data outputs of the dispatcher
         model from given inputs.
@@ -1364,6 +1415,14 @@ class Dispatcher(Base):
         :param stopper:
             A semaphore to abort the dispatching.
         :type stopper: multiprocessing.Event, optional
+
+        :param executor:
+            A pool executor id to dispatch asynchronously or in parallel.
+        :type executor: str, optional
+
+        :param sol_name:
+            Solution name.
+        :type sol_name: tuple[str], optional
 
         :return:
             Dictionary of estimated data node outputs.
@@ -1447,11 +1506,11 @@ class Dispatcher(Base):
         # Initialize.
         self.solution = sol = self.solution.__class__(
             dsp, inputs, outputs, wildcard, cutoff, inputs_dist, no_call,
-            rm_unused_nds, _wait_in
+            rm_unused_nds, _wait_in, full_name=sol_name
         )
 
         # Dispatch.
-        sol.run(stopper=stopper, executors=executors)
+        sol.run(stopper=stopper, executor=executor)
 
         if select_output_kw:
             return selector(dictionary=sol, **select_output_kw)

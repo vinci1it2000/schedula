@@ -59,11 +59,12 @@ Install extras
 Some additional functionality is enabled installing the following extras:
 
 - plot: enables the plot of the Dispatcher model and workflow
-  (see :func:`~schedula.Dispatcher.plot`).
+  (see :func:`~schedula.utils.base.Base.plot`).
 - web: enables to build a dispatcher Flask app (see
-  :func:`~schedula.Dispatcher.web`).
+  :func:`~schedula.utils.base.Base.web`).
 - sphinx: enables the sphinx extension directives (i.e., autosummary and
   dispatcher).
+- parallel: enables the parallel execution of Dispatcher model.
 
 To install schedula and all extras, do:
 
@@ -88,14 +89,16 @@ think and code all possible combinations of inputs and outputs from a model.
 
 Solution
 --------
-Schedula allows to write a simple model (:func:`~schedula.Dispatcher`) with
-just the basic functions, then the :func:`~schedula.Dispatcher` will select and
-execute the proper functions for the given inputs and the requested outputs.
+Schedula allows to write a simple model
+(:class:`~schedula.dispatcher.Dispatcher`) with just the basic functions, then
+the :class:`~schedula.dispatcher.Dispatcher` will select and execute the proper
+functions for the given inputs and the requested outputs.
 Moreover, schedula provides a flexible framework for structuring code. It
-allows to extract sub-models from a bigger one.
+allows to extract sub-models from a bigger one and to run your model
+asynchronously or in parallel without extra coding.
 
 .. note:: A successful application_ is |co2mpas|, where schedula has been used
-to model an entire vehicle_.
+   to model an entire vehicle_.
 
 .. |co2mpas| replace:: CO\ :sub:`2`\ MPAS
 .. _application: https://github.com/JRCSTU/CO2MPAS-TA
@@ -106,7 +109,8 @@ Very simple example
 ===================
 Let's assume that we have to extract some filesystem attributes and we do not
 know which inputs the user will provide. The code below shows how to create a
-:func:`~schedula.Dispatcher` adding the functions that define your system.
+:class:`~schedula.dispatcher.Dispatcher` adding the functions that define your
+system.
 Note that with this simple system the maximum number of inputs combinations is
 31 (:math:`(2^n - 1)`, where *n* is the number of data).
 
@@ -114,9 +118,9 @@ Note that with this simple system the maximum number of inputs combinations is
    :opt: graph_attr={'ratio': '1'}
    :code:
 
-    >>> import schedula
+    >>> import schedula as sh
     >>> import os.path as osp
-    >>> dsp = schedula.Dispatcher()
+    >>> dsp = sh.Dispatcher()
     >>> dsp.add_data(data_id='dirname', default_value='.', initial_dist=2)
     'dirname'
     >>> dsp.add_function(function=osp.split, inputs=['path'],
@@ -136,18 +140,19 @@ Note that with this simple system the maximum number of inputs combinations is
    You can explore the diagram by clicking on it.
 
 .. note::
-   For more details how to created a :func:`~schedula.Dispatcher` see:
-   :func:`~schedula.Dispatcher.add_data`,
-   :func:`~schedula.Dispatcher.add_function`,
-   :func:`~schedula.Dispatcher.add_dispatcher`,
-   :func:`~schedula.utils.dsp.SubDispatch`,
-   :func:`~schedula.utils.dsp.SubDispatchFunction`,
-   :func:`~schedula.utils.dsp.SubDispatchPipe`, and
-   :func:`~schedula.utils.dsp.DFun`.
+   For more details how to created a :class:`~schedula.dispatcher.Dispatcher`
+   see: :func:`~schedula.dispatcher.Dispatcher.add_data`,
+   :func:`~schedula.dispatcher.Dispatcher.add_function`,
+   :func:`~schedula.dispatcher.Dispatcher.add_dispatcher`,
+   :class:`~schedula.utils.dsp.SubDispatch`,
+   :class:`~schedula.utils.dsp.SubDispatchFunction`,
+   :class:`~schedula.utils.dsp.SubDispatchPipe`,
+   :class:`~schedula.utils.dsp.DispatchPipe`, and
+   :class:`~schedula.utils.dsp.DFun`.
 
 The next step to calculate the outputs would be just to run the
-:func:`~schedula.Dispatcher.dispatch` method. You can invoke it with just the
-inputs, so it will calculate all reachable outputs:
+:func:`~schedula.dispatcher.Dispatcher.dispatch` method. You can invoke it with
+just the inputs, so it will calculate all reachable outputs:
 
 .. dispatcher:: o
    :opt: graph_attr={'ratio': '1'}
@@ -188,66 +193,136 @@ functions. Thus, with a normal scheduler you have to code all possible
 implementations, so :math:`(2^n - 1)^2` functions (IMPOSSIBLE!!!).
 
 Schedula will simplify your life. You just create a
-:func:`~schedula.Dispatcher`, that contains all functions that link your data:
+:class:`~schedula.dispatcher.Dispatcher`, that contains all functions that link
+your data:
 
 .. dispatcher:: dsp
    :opt: graph_attr={'ratio': '1'}, engine='neato',
          body={'splines': 'curves', 'style': 'filled'}
    :code:
 
-    >>> import schedula
-    >>> dsp = schedula.Dispatcher()
-    >>> plus, minus = lambda x: x + 1, lambda x: x - 1
-    >>> n = j = 6
-    >>> for i in range(1, n + 1):
-    ...     func = plus if i < (n / 2 + 1) else minus
-    ...     f = dsp.add_function('f%d' % i, func, ['v%d' % j], ['v%d' % i])
-    ...     j = i
+    >>> import schedula as sh
+    >>> dsp = sh.Dispatcher()
+    >>> increment = lambda x: x + 1
+    >>> for k, (i, j) in enumerate(sh.pairwise([1, 2, 3, 4, 5, 6, 1])):
+    ...     dsp.add_function('f%d' % k, increment, ['v%d' % i], ['v%d' % j])
+    '...'
 
 Then it will handle all possible combination of inputs and outputs
-(:math:`(2^n - 1)^2`) just invoking the :func:`~schedula.Dispatcher.dispatch`
-method, as follows:
+(:math:`(2^n - 1)^2`) just invoking the
+:func:`~schedula.dispatcher.Dispatcher.dispatch` method, as follows:
 
 .. dispatcher:: out
    :code:
 
     >>> out = dsp.dispatch(inputs={'v1': 0, 'v4': 1}, outputs=['v2', 'v6'])
     >>> out
-    Solution([('v1', 0), ('v4', 1), ('v2', 1), ('v5', 0), ('v6', -1)])
+    Solution([('v1', 0), ('v4', 1), ('v2', 1), ('v5', 2), ('v6', 3)])
 
 Sub-system extraction
 ---------------------
 .. testsetup::
-    >>> import schedula
-    >>> dsp = schedula.Dispatcher()
-    >>> plus, minus = lambda x: x + 1, lambda x: x - 1
-    >>> n = j = 6
-    >>> for i in range(1, n + 1):
-    ...     func = plus if i < (n / 2 + 1) else minus
-    ...     f = dsp.add_function('f%d' % i, func, ['v%d' % j], ['v%d' % i])
-    ...     j = i
+    >>> import schedula as sh
+    >>> dsp = sh.Dispatcher()
+    >>> increment = lambda x: x + 1
+    >>> for k, (i, j) in enumerate(sh.pairwise([1, 2, 3, 4, 5, 6, 1])):
+    ...     dsp.add_function('f%d' % k, increment, ['v%d' % i], ['v%d' % j])
+    '...'
 
 Schedula allows to extract sub-models from a model. This could be done with the
-:func:`~schedula.Dispatcher.shrink_dsp` method, as follows:
+:func:`~schedula.dispatcher.Dispatcher.shrink_dsp` method, as follows:
 
 .. dispatcher:: sub_dsp
    :code:
 
     >>> sub_dsp = dsp.shrink_dsp(('v1', 'v3', 'v5'), ('v2', 'v4', 'v6'))
 
-.. note::
-   For more details how to extract a sub-model see:
-   :func:`~schedula.Dispatcher.get_sub_dsp`,
-   :func:`~schedula.Dispatcher.get_sub_dsp_from_workflow`,
-   :func:`~schedula.utils.dsp.SubDispatch`,
-   :func:`~schedula.utils.dsp.SubDispatchFunction`, and
-   :func:`~schedula.utils.dsp.SubDispatchPipe`.
+.. note:: For more details how to extract a sub-model see:
+   :func:`~schedula.dispatcher.Dispatcher.get_sub_dsp`,
+   :func:`~schedula.dispatcher.Dispatcher.get_sub_dsp_from_workflow`,
+   :class:`~schedula.utils.dsp.SubDispatch`,
+   :class:`~schedula.utils.dsp.SubDispatchFunction`,
+   :class:`~schedula.utils.dsp.DispatchPipe`, and
+   :class:`~schedula.utils.dsp.SubDispatchPipe`.
 
+Iterated function
+-----------------
+Schedula allows to build an iterated function, i.e. the input is recalculated.
+This could be done easily with the :class:`~schedula.utils.dsp.DispatchPipe`,
+as follows::
+
+    >>> func = sh.DispatchPipe(dsp, 'func', ('v1', 'v4'), ('v1', 'v4'))
+    >>> x = [[1, 4]]
+    >>> for i in range(6):
+    ...     x.append(func(*x[-1]))
+    >>> x
+    [[1, 4], [7, 4], [7, 10], [13, 10], [13, 16], [19, 16], [19, 22]]
+
+
+Asynchronous and Parallel dispatching
+=====================================
+When there are heavy calculations which takes a significant amount of time, you
+want to run your model asynchronously or in parallel. Generally, this is
+difficult to achieve, because it requires an higher level of abstraction and a
+deeper knowledge of python programming and the Global Interpreter Lock (GIL).
+Schedula will simplify again your life. It has three default executors to
+dispatch asynchronously or in parallel:
+
+    - `async`: execute all functions asynchronously in the same process,
+    - `parallel`: execute all functions in parallel excluding
+      :class:`~schedula.utils.dsp.SubDispatch` functions,
+    - `parallel-dispatch`: execute all functions in parallel including
+      :class:`~schedula.utils.dsp.SubDispatch`.
+
+.. note:: Running functions asynchronously or in parallel has a cost. Schedula
+    will spend time creating / deleting new threads / processes.
+
+The code below shows an example of a time consuming code, that with the
+concurrent execution it requires at least 6 seconds to run. Note that the `slow`
+function return the process id.
+
+.. dispatcher:: dsp
+    :code:
+
+    >>> import os
+    >>> import time
+    >>> import schedula as sh
+    >>> dsp = sh.Dispatcher()
+    >>> def slow():
+    ...     time.sleep(1)
+    ...     return os.getpid()
+    >>> for o in 'abcdef':
+    ...     dsp.add_function(function=slow, outputs=[o])
+    '...'
+
+while using the `async` executor, it lasts a bit more then 1 second::
+
+    >>> start = time.time()
+    >>> sol = dsp(executor='async').result()  # Asynchronous execution.
+    >>> (time.time() - start) < 2  # Faster then concurrent execution.
+    True
+
+all functions have been executed asynchronously, but in the same process::
+
+    >>> pid = os.getpid()  # Current process id.
+    >>> {sol[k] for k in 'abcdef'} == {pid}  # Single process id.
+    True
+
+if we use the `parallel` executor all functions are executed in different
+processes::
+
+    >>> sol = dsp(executor='parallel').result()  # Parallel execution.
+    >>> pids = {sol[k] for k in 'abcdef'}  # Process ids returned by `slow`.
+    >>> len(pids) == 6  # Each function returns a different process id.
+    True
+    >>> pid not in pids  # The current process id is not in the returned pids.
+    True
+    >>> sorted(sh.shutdown_executors())
+    ['async', 'parallel']
 
 Next moves
 ==========
-Things yet to do include a mechanism to allow the execution of functions in
-parallel.
+Things yet to do: utility to transform a dispatcher in a command line tool.
 
 .. _end-intro:
 .. _start-badges:

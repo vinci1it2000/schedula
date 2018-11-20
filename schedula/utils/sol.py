@@ -17,9 +17,9 @@ import logging
 import time
 from .alg import add_edge_fun, remove_edge_fun, get_full_pipe, _sort_sk_wait_in
 from .cst import START, NONE, PLOT
-from .dsp import SubDispatch, stlp, parent_func, NoSub
+from .dsp import stlp
 from .exc import DispatcherError, DispatcherAbort, SkipNode
-from .asy import async_thread, async_result, async_process
+from .asy import async_thread, await_result, async_process
 from .base import Base
 
 log = logging.getLogger(__name__)
@@ -33,7 +33,7 @@ class Solution(Base, collections.OrderedDict):
     def __init__(self, dsp=None, inputs=None, outputs=None, wildcard=False,
                  cutoff=None, inputs_dist=None, no_call=False,
                  rm_unused_nds=False, wait_in=None, no_domain=False,
-                 _empty=False, index=(-1,)):
+                 _empty=False, index=(-1,), full_name=()):
 
         super(Solution, self).__init__()
         self.index = index
@@ -43,7 +43,7 @@ class Solution(Base, collections.OrderedDict):
         self.cutoff = cutoff
         self._wait_in = wait_in or {}
         self.outputs = set(outputs or ())
-        self.parent = None
+        self.full_name = full_name
         self._pipe = []
 
         from .. import Dispatcher
@@ -152,7 +152,6 @@ class Solution(Base, collections.OrderedDict):
 
     def _init_workflow(self, inputs=None, input_value=None, inputs_dist=None,
                        initial_dist=0.0, clean=True):
-
         # Clean previous outputs.
         if clean:
             self._clean_set()
@@ -189,17 +188,32 @@ class Solution(Base, collections.OrderedDict):
             return not set(p.dmap[k]).difference(p.dist)
         return False
 
-    def result(self, timeout=None):
+    def result(self, timeout=None, exceptions=None):
+        exceptions = {} if exceptions is None else exceptions
+
+        def _set_result(d, k, fut):
+            try:
+                d[k] = await_result(fut, timeout)
+            except SkipNode as e:
+                exceptions[fut] = e.ex
+                del d[k]
+
         for s in self.sub_sol.values():
-            for k, v in s.items():
-                s[k] = async_result(v, timeout)
+            for k, v in list(s.items()):
+                _set_result(s, k, v)
+
+            for d in s.workflow.nodes.values():
+                if 'results' in d:
+                    _set_result(d, 'results', d['results'])
 
             for d in s.workflow.edges.values():
                 if 'value' in d:
-                    d['value'] = async_result(d['value'], timeout)
+                    _set_result(d, 'value', d['value'])
+        if exceptions:
+            raise list(exceptions.values())[0]
         return self
 
-    def run(self, stopper=None, executors=None):
+    def run(self, stopper=None, executor=False):
         # Initialized and terminated dispatcher sets.
         dsp_closed, dsp_init, cached_ids = set(), {self.index}, {}
 
@@ -214,7 +228,7 @@ class Solution(Base, collections.OrderedDict):
         dsp_closed_add = dsp_closed.add
         fringe, check_cutoff = self.fringe, self.check_cutoff
         ctx = {
-            'no_call': self.no_call, 'stopper': stopper, 'executors': executors
+            'no_call': self.no_call, 'stopper': stopper, 'executor': executor
         }
 
         def _dsp_closed_add(s):
@@ -277,7 +291,7 @@ class Solution(Base, collections.OrderedDict):
         sol = self.__class__(
             self.dsp, self.inputs, self.outputs, False, self.cutoff,
             self.inputs_dist, self.no_call, self.rm_unused_nds, self._wait_in,
-            self.no_domain, True, self.index
+            self.no_domain, True, self.index, self.full_name
         )
         sol._clean_set()
         it = ['_wildcards', 'inputs', 'inputs_dist']
@@ -290,29 +304,6 @@ class Solution(Base, collections.OrderedDict):
         y = super(Solution, self).__deepcopy__(memo)
         y._update_methods()
         return y
-
-    @property
-    def full_name(self):
-        """
-        Returns the full node id.
-
-        :return:
-            Full node id.
-        :rtype: tuple[str]
-        """
-
-        sub_sol = self.sub_sol
-
-        def _get_id(path):
-            p, i = path[:-1], path[-1:]
-            if p:
-                for k, v in sub_sol[p].nodes.items():
-                    if v['index'] == i:
-                        return _get_id(p) + (k,)
-            s = sub_sol[path]
-            return (s.parent and (s.parent[1].full_name + s.parent[:1])) or ()
-
-        return _get_id(self.index)
 
     def _add_out_dsp_inputs(self):
         # Nodes that are out of the dispatcher nodes.
@@ -533,29 +524,32 @@ class Solution(Base, collections.OrderedDict):
                                                   next_nds, **kw)
 
     def _evaluate_function(self, args, node_id, node_attr, attr, stopper=None,
-                           executors=None):
+                           executor=False):
         if 'started' not in attr:
             attr['started'] = time.time()
 
-        func = node_attr['function']
-        pfunc = parent_func(func)
-        if isinstance(pfunc, SubDispatch) and not isinstance(pfunc, NoSub):
-            try:
-                res = func(*args, _stopper=stopper, _executors=executors)
-                attr['solution'] = sol = pfunc.solution
-                sol.parent = node_id, self
-            except DispatcherError as ex:
-                attr['solution'] = sol = pfunc.solution
-                sol.parent = node_id, self
-                raise ex
-        else:
-            res = async_process(
-                func, *args,
-                skip=isinstance(pfunc, SubDispatch),
-                executor=executors and executors.get(self.dsp.executor_id)
-            )
+        def _callback(is_sol, sol):
+            if is_sol:
+                attr['solution'] = sol
+
+        res = async_process(
+            [node_attr['function']], *args, stopper=stopper, executor=executor,
+            sol=self, callback=_callback, sol_name=self.full_name + (node_id,)
+        )
 
         return res
+
+    def _check_function_domain(self, args, node_attr, node_id):
+        # noinspection PyUnresolvedReferences
+        attr = self.workflow.node[node_id]
+        if not self.no_domain and 'input_domain' in node_attr:
+            if node_attr.get('await_domain', True):
+                args = map(await_result, args)
+            args = [v for v in args if v is not NONE]
+            # noinspection PyCallingNonCallable
+            attr['solution_domain'] = node_attr['input_domain'](*args)
+            if not attr['solution_domain']:
+                raise SkipNode
 
     def _evaluate_node(self, args, node_attr, node_id, skip_func=False, **kw):
         # noinspection PyUnresolvedReferences
@@ -564,11 +558,7 @@ class Solution(Base, collections.OrderedDict):
             if skip_func:
                 value = args[0]
             else:
-                if not self.no_domain and 'input_domain' in node_attr:
-                    # noinspection PyCallingNonCallable
-                    attr['solution_domain'] = node_attr['input_domain'](*args)
-                    if not attr['solution_domain']:
-                        raise SkipNode
+                args = [v for v in args if v is not NONE]
                 value = self._evaluate_function(args, node_id, node_attr, attr,
                                                 **kw)
             value = self._apply_filters(value, node_id, node_attr, attr, **kw)
@@ -590,12 +580,11 @@ class Solution(Base, collections.OrderedDict):
             raise ex
         except Exception as ex:
             if 'started' in attr:
-                dt = time.time() - attr['started']
-                attr['duration'] = dt
+                attr['duration'] = time.time() - attr['started']
             # Some error occurs.
             msg = "Failed DISPATCHING '%s' due to:\n  %r"
             self._warning(msg, node_id, ex)
-            raise SkipNode
+            raise SkipNode(ex=ex)
 
     def _set_data_node_output(self, node_id, node_attr, no_call, next_nds=None,
                               **kw):
@@ -679,34 +668,21 @@ class Solution(Base, collections.OrderedDict):
         return True  # Return that the output have been evaluated correctly.
 
     def _apply_filters(self, res, node_id, node_attr, attr, stopper=None,
-                       executors=None):
-        filters = []
-        # Apply filters to results.
-        for f in node_attr.get('filters', ()):
-            if not filters:
-                if 'started' not in attr:
-                    attr['started'] = time.time()
-                filters.append(res)
-            pfunc = parent_func(f)
-            if isinstance(pfunc, SubDispatch) and not isinstance(pfunc, NoSub):
-                try:
-                    res = f(res, _stopper=stopper, _executors=executors)
-                    pfunc.solution.parent = node_id, self
-                    filters.append(pfunc.solution)
-                except DispatcherError as ex:
-                    pfunc.solution.parent = node_id, self
-                    filters.append(pfunc.solution)
-                    raise ex
-            else:
-                res = async_process(
-                    f, res,
-                    skip=isinstance(pfunc, SubDispatch),
-                    executor=executors and executors.get(self.dsp.executor_id)
-                )
-                filters.append(res)
+                       executor=False):
+        filters, funcs = [res], node_attr.get('filters', ())
 
-        if filters:
+        if funcs:
+            if 'started' not in attr:
+                attr['started'] = time.time()
             attr['solution_filters'] = filters
+
+            def _callback(is_sol, sol):
+                filters.append(sol)
+
+            res = async_process(
+                funcs, res, stopper=stopper, executor=executor, sol=self,
+                callback=_callback, sol_name=self.full_name + (node_id,)
+            )
 
         return res
 
@@ -751,9 +727,9 @@ class Solution(Base, collections.OrderedDict):
 
         args = self._wf_pred[node_id]  # List of the function's arguments.
         args = [args[k]['value'] for k in node_attr['inputs']]
-        args = [v for v in args if v is not NONE]
 
         try:
+            self._check_function_domain(args, node_attr, node_id)
             res = async_thread(self, args, node_attr, node_id, **kw)
             # noinspection PyUnresolvedReferences
             self.workflow.node[node_id]['results'] = res
@@ -917,7 +893,7 @@ class Solution(Base, collections.OrderedDict):
 
         self._visited.add(node_id)  # Update visited nodes.
 
-        if not self._set_node_output(node_id, no_call, **kw):  # Set node output.
+        if not self._set_node_output(node_id, no_call, **kw):  # Set output.
             # Some error occurs or inputs are not in the function domain.
             return True
 
@@ -1023,7 +999,8 @@ class Solution(Base, collections.OrderedDict):
 
             wf_remove_node(n)  # Remove unused node.
 
-    def _init_sub_dsp(self, dsp, fringe, outputs, no_call, initial_dist, index):
+    def _init_sub_dsp(self, dsp, fringe, outputs, no_call, initial_dist, index,
+                      full_name):
         """
         Initialize the dispatcher as sub-dispatcher and update the fringe.
 
@@ -1043,7 +1020,8 @@ class Solution(Base, collections.OrderedDict):
         # Initialize as sub-dispatcher.
         sol = self.__class__(
             dsp, {}, outputs, False, None, None, no_call, False,
-            wait_in=self._wait_in.get(dsp, None), index=self.index + index
+            wait_in=self._wait_in.get(dsp, None), index=self.index + index,
+            full_name=full_name
         )
 
         sol.sub_sol = self.sub_sol
@@ -1096,6 +1074,21 @@ class Solution(Base, collections.OrderedDict):
                                 # See node.
                                 sol._see_node(n_id, fringe, dist, w_wait_in=2)
 
+    def _check_sub_dsp_domain(self, dsp_id, node, pred, kw):
+        if 'input_domain' in node and not (self.no_domain or self.no_call):
+            # noinspection PyBroadException
+            try:
+                kwargs = {k: v['value'] for k, v in pred.items()}
+                if node.get('await_domain', True):
+                    kwargs = {k: await_result(v) for k, v in kwargs.items()}
+                kw['solution_domain'] = s = node['input_domain'](kwargs)
+                return s
+            except Exception as ex:
+                # Some error occurs.
+                msg = "Failed SUB-DSP DOMAIN '%s' due to:\n  %r"
+                self._warning(msg, dsp_id, ex)
+                return False  # Some error occurs.
+
     def _set_sub_dsp_node_input(self, node_id, dsp_id, fringe, check_cutoff,
                                 no_call, initial_dist):
         """
@@ -1145,22 +1138,16 @@ class Solution(Base, collections.OrderedDict):
 
         if dsp_id not in distances:
             kw = {}
-            if 'input_domain' in node and not (self.no_domain or self.no_call):
-                # noinspection PyBroadException
-                try:
-                    kwargs = {k: v['value'] for k, v in pred.items()}
-                    kw['solution_domain'] = s = node['input_domain'](kwargs)
-                    if not s:
-                        return False  # Args are not respecting the domain.
-                    else:
-                        iv_nodes = pred  # Args respect the domain.
-                except Exception:
-                    return False  # Some error occurs.
+            dom = self._check_sub_dsp_domain(dsp_id, node, pred, kw)
+            if dom is True:
+                iv_nodes = pred  # Args respect the domain.
+            elif dom is False:
+                return False
 
             # Initialize the sub-dispatcher.
             sub_sol[self.index + node['index']] = sol = self._init_sub_dsp(
                 dsp, fringe, node['outputs'], no_call, initial_dist,
-                node['index']
+                node['index'], self.full_name + (dsp_id,)
             )
             self.workflow.add_node(dsp_id, solution=sol, **kw)
 

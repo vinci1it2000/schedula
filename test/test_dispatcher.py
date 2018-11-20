@@ -5,11 +5,13 @@
 # Licensed under the EUPL (the 'Licence');
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
-
+import os
 import doctest
 import timeit
 import unittest
 import schedula as sh
+
+EXTRAS = os.environ.get('EXTRAS', 'all')
 
 
 def _setup_dsp():
@@ -520,28 +522,25 @@ class TestPerformance(unittest.TestCase):
         print(msg % ('DispatchPipe.__call__', '', t, (t0 - t) / t0 * 100))
 
         t = sum(timeit.repeat(
-            "fun(5, 6, _executors=executors)",
+            "fun(5, 6, _executor='async')",
             'from %s import _setup_dsp;'
             'from schedula.utils.dsp import DispatchPipe;'
-            'from schedula.utils.asy import PoolExecutor;'
-            'from concurrent.futures import ThreadPoolExecutor;'
             'dsp = _setup_dsp();'
-            'executors = {None: PoolExecutor(ThreadPoolExecutor(1))};'
             "[v.pop('input_domain', 0) for v in dsp.function_nodes.values()];"
             'fun = DispatchPipe(dsp, "f", ["a", "b"], ["c", "d", "e"])'
             % __name__,
             repeat=repeat, number=number)) / repeat
         print(
-            msg % ('DispatchPipe.__call__ thread', '', t, (t0 - t) / t0 * 100))
+            msg % ('DispatchPipe.__call__ async', '', t, (t0 - t) / t0 * 100))
+        sh.shutdown_executors()
 
 
-class TestAsync(unittest.TestCase):
+@unittest.skipIf(EXTRAS not in ('all', 'parallel'), 'Not for extra %s.' % EXTRAS)
+class TestAsyncParallel(unittest.TestCase):
     def setUp(self):
+        import os
         import time
         from multiprocessing import Value, Lock
-
-        self.dsp = dsp = sh.Dispatcher()
-        self.sub_dsp = sub_dsp = sh.Dispatcher()
 
         def reset_counter():
             global counter
@@ -565,7 +564,7 @@ class TestAsync(unittest.TestCase):
             global counter
             start = counter.increment()
             time.sleep(x / 10)
-            return (counter.increment(), start), None
+            return (counter.increment(), start, os.getpid()), None
 
         def filter(x):
             time.sleep(1 / 10)
@@ -576,52 +575,262 @@ class TestAsync(unittest.TestCase):
             counter.increment()
             time.sleep(1 / 30)
 
+        sub_dsp = sh.Dispatcher()
         sub_dsp.add_function(
             function=sleep, inputs=['a'], outputs=['d', sh.SINK],
             filters=[filter]
         )
+
+        self.dsp = dsp = sh.Dispatcher()
         dsp.add_data('d', callback=callback)
-        dsp.add_dispatcher(sub_dsp, inputs=['a'], outputs=['d'])
-        self.func = func = sh.SubDispatchFunction(sub_dsp, 'func', ['a'], ['d'])
+        dsp.add_dispatcher(sub_dsp.copy(), inputs=['a'], outputs=['d'])
+        func = sh.SubDispatchFunction(sub_dsp, 'func', ['a'], ['d'])
         dsp.add_function(function=func, inputs=['b'], outputs=['e'], weight=1)
         dsp.add_function(function=sleep, inputs=['b', 'd', 'e'],
                          outputs=['f', sh.SINK])
 
+        # ----------------------------------------------------------------------
+
+        self.dsp1 = dsp = sh.Dispatcher()
+
+        def sleep(x, *a):
+            time.sleep(x / 10)
+            return [os.getpid()]
+
+        def filter(x):
+            time.sleep(1 / 10)
+            return x + [os.getpid()]
+
+        def callback(x):
+            time.sleep(1 / 30)
+            x.append(os.getpid())
+
+        def error(err, *args):
+            if err:
+                raise ValueError
+
+        sub_dsp = sh.Dispatcher()
+        sub_dsp.add_function(
+            function=sleep, inputs=['a'], outputs=['d'], filters=[filter]
+        )
+        dsp.add_data('d', callback=callback)
+        dsp.add_dispatcher(sub_dsp.copy(), inputs=['a'], outputs=['d'])
+        func = sh.SubDispatchFunction(sub_dsp, 'func', ['a'], ['d'])
+        dsp.add_function(function=func, inputs=['b'], outputs=['e'], weight=1)
+        dsp.add_function(function=sleep, inputs=['b', 'd', 'e'], outputs=['f'])
+        dsp.add_function(function=error, inputs=['err', 'f'], outputs=['g'])
+
+        # ----------------------------------------------------------------------
+        def sleep(x, *a):
+            time.sleep(x)
+            return os.getpid()
+
+        from concurrent.futures import Future
+
+        def input_domain(wait, *args):
+            if sh.await_result(wait):
+                list(map(sh.await_result, args))
+                return True
+            return any(isinstance(v, Future) and not v.done() for v in args) \
+                   or all(not isinstance(v, Future)for v in args)
+
+        self.dsp2 = dsp = sh.Dispatcher()
+        dsp.add_function(function=time.time, outputs=['start'])
+        executors = ('parallel-dispatch', 'parallel', 'async', None)
+        for i, executor in enumerate(executors):
+            d = sh.Dispatcher(name=executor or 'base', executor=executor)
+            for o in 'bc':
+                d.add_function(function=sleep, inputs=['a'], outputs=[o])
+            d.add_function(function=os.getpid, outputs=['d'])
+            d.add_function(
+                function=sh.add_args(lambda x: time.time() - x, n=3),
+                inputs=['wait_domain', 'b', 'c', 'start'],
+                outputs=['e'],
+                input_domain=input_domain,
+                await_domain=False
+            )
+
+            dsp.add_dispatcher(
+                dsp=d,
+                inputs=('a', 'start', 'wait_domain'),
+                outputs={k: '%s-%s' % (d.name, k) for k in 'bcde'},
+                inp_weight=dict.fromkeys(('a', 'start', 'wait_domain'), i * 100)
+            )
+
+        # ----------------------------------------------------------------------
+        def func(x):
+            time.sleep(x)
+            return os.getpid(), sh.NONE
+
+        self.dsp3 = dsp = sh.Dispatcher()
+        dsp.add_function(function=os.getpid, outputs=['pid'])
+        executors = ('parallel-dispatch', 'parallel', 'async', None)
+        for i, executor in enumerate(executors):
+            d = sh.Dispatcher(name=executor or 'base', executor=executor)
+            d.add_function(
+                function=func, inputs=['a'], outputs=['d', 'e'],
+                await_result=True
+            )
+            d.add_function(
+                function=func, inputs=['b'], outputs=['f', 'g'], await_result=0
+            )
+            d.add_function(function=func, inputs=['c'], outputs=['h', 'i'])
+
+            dsp.add_dispatcher(
+                dsp=d,
+                inputs=('a', 'b', 'c'),
+                outputs={k: '%s-%s' % (d.name, k) for k in 'defghi'},
+                inp_weight=dict.fromkeys('abc', i * 100)
+            )
 
     def test_dispatch(self):
-        from concurrent.futures import ThreadPoolExecutor
-        exe = sh.PoolExecutor(ThreadPoolExecutor(3), ThreadPoolExecutor(3))
+        from concurrent.futures import ThreadPoolExecutor as Pool, Future
+        from schedula.utils.asy import EXECUTORS
+        from multiprocessing import Event
+        def custom_executor():
+            return sh.PoolExecutor(Pool(3), Pool(3))
+        sh.register_executor(None, custom_executor)
+        stopper = Event()
         self.reset_counter()
-        sol = self.dsp({'a': 3, 'b': 1}, executors={None: exe})
-        from concurrent.futures import Future
+        sol = self.dsp({'a': 3, 'b': 1}, executor=True, stopper=stopper)
         self.assertTrue(all(isinstance(v, Future) for v in sol.values()))
         sol.result()
+        import os
+        pid = os.getpid()
         self.assertEqual(
-            sol, {'a': 3, 'b': 1, 'd': (3, 0), 'e': (2, 1), 'f': (6, 5),
-                  sh.SINK: {'sleep': None}}
+            sol, {'a': 3, 'b': 1, 'd': (3, 0, pid), 'e': (2, 1, pid),
+                  'f': (6, 5, pid), sh.SINK: {'sleep': None}}
         )
-        self.assertEqual(sol.sub_sol[(-1, 1)], {'a': 3, 'd': (3, 0)})
-        exe.shutdown()
+        self.assertEqual(sol.sub_sol[(-1, 1)], {'a': 3, 'd': (3, 0, pid)})
+        EXECUTORS.pop(None)
+        sh.shutdown_executors()
 
     def test_dispatch_pipe(self):
         import time
-        from concurrent.futures import ThreadPoolExecutor
-        executor = sh.PoolExecutor(ThreadPoolExecutor(3), ThreadPoolExecutor(3))
+        import os
+        pid = os.getpid()
+        from concurrent.futures import ThreadPoolExecutor as Pool
+        from schedula.utils.asy import _EXECUTORS
+        from multiprocessing import Event
+
+        _EXECUTORS['parallel'] = sh.PoolExecutor(Pool(3), Pool(3))
+        stopper = Event()
         self.reset_counter()
         func = sh.DispatchPipe(self.dsp, '', ['a', 'b'], ['d', 'e', 'f'])
         dt0 = time.time()
-        res = func(2, 1, _executors={None: executor})
+        res = func(2, 1, _executor='parallel', _stopper=stopper)
         dt0 = time.time() - dt0
-        self.assertEqual([(3, 0), (2, 1), (6, 5)], res)
-
+        self.assertEqual([(3, 0, pid), (2, 1, pid), (6, 5, pid)], res)
         self.reset_counter()
         func = sh.DispatchPipe(self.dsp, '', ['a', 'b'], ['d', 'e', 'f'])
         dt1 = time.time()
         res = func(2, 1)
         dt1 = time.time() - dt1
-        self.assertEqual([(1, 0), (3, 2), (6, 5)], res)
+        self.assertEqual([(1, 0, pid), (3, 2, pid), (6, 5, pid)], res)
         self.assertGreater(dt1, dt0)
-        executor.shutdown()
+        sh.shutdown_executor('parallel')
+        self.reset_counter()
+        res = func(2, 1, _executor='parallel')
+        self.assertEqual(3, len(set(v[-1] for v in res)))
+
+    def test_parallel_dispatch(self):
+        from concurrent.futures import Future
+        from multiprocessing import Event
+        stopper = Event()
+        sol = self.dsp1(
+            {'a': 1, 'b': 1}, executor='parallel-dispatch', stopper=stopper
+        )
+        self.assertTrue(all(isinstance(v, Future) for v in sol.values()))
+        sol.result()
+        pids = set(sol['d'] + sol['e'] + sol['f'])
+        self.assertEqual(len(pids), 6)
+        self.assertIn((-1, 1), sol.sub_sol)
+        sh.shutdown_executors()
+
+    def test_errors(self):
+        from concurrent.futures import Future
+        from multiprocessing import Event
+        from schedula.utils.exc import ExecutorShutdown
+
+        kw = dict(inputs={'a': 1, 'err': True, 'b': 1}, stopper=Event())
+        for executor in ('async', 'parallel', 'parallel-dispatch'):
+            sol = self.dsp1(executor=executor, **kw)
+            self.assertTrue(all(isinstance(v, Future) for v in sol.values()))
+            sh.shutdown_executors()
+            with self.assertRaises(ValueError):
+                sol.result()
+
+        for executor in ('async', 'parallel', 'parallel-dispatch'):
+            sol = self.dsp1(executor=executor, **kw)
+            self.assertTrue(all(isinstance(v, Future) for v in sol.values()))
+            sh.shutdown_executors(False)
+            with self.assertRaises(ExecutorShutdown):
+                sol.result()
+
+    def test_multiple(self):
+        import time
+        import math
+        t = 0.2
+        sol = self.dsp2({'a': t, 'wait_domain': False}, executor=True).result()
+        self.assertLess(time.time() - sol['start'], t * 5)
+        from schedula.utils.asy import _EXECUTORS
+        self.assertEqual(len(_EXECUTORS), 3)
+        pids = {v for k, v in sol.items() if k.split('-')[-1] in 'bcd'}
+        self.assertEqual(len(pids), 7)
+        t0 = {k[:-2]: v for k, v in sol.items() if k.endswith('-e')}
+        self.assertEqual(*map(math.floor, (t * 5, sum(t0.values()))))
+        sol = self.dsp2({'a': t, 'wait_domain': True}, executor=True).result()
+        t1 = {k[:-2]: v for k, v in sol.items() if k.endswith('-e')}
+        self.assertLess(max(t0.values()), max(t1.values()))
+        self.assertEqual(*map(math.floor, (max(t1.values()), sum(t0.values()))))
+        keys = 'parallel-dispatch', 'parallel', 'async', 'base'
+        for i, j in sh.pairwise(sh.selector(keys, t1, output_type='list')):
+            self.assertLess(i, j)
+        self.assertEqual(
+            {'async', 'parallel', 'parallel-dispatch'},
+            set(sh.shutdown_executors())
+        )
+
+    def test_await_result(self):
+        sol = self.dsp3({'a': 0, 'b': 0.1, 'c': 0}, executor=True).result()
+        from schedula.utils.asy import _EXECUTORS
+        self.assertEqual(len(_EXECUTORS), 3)
+        pids = {v for k, v in sol.items() if k.split('-')[-1] in 'defghi'}
+        self.assertEqual(len(pids - {sh.NONE}), 5)
+        import itertools
+        executors = 'async', 'parallel', 'parallel-dispatch'
+        pids = {'pid'}.union(
+            map('base-{}'.format, 'dhf'),
+            map('-'.join, itertools.product(executors, 'dh'))
+        )
+        nones = set(map('{}-i'.format, executors))
+        self.assertEqual(set(sol), {'a', 'b', 'c'}.union(pids, nones))
+        for k in pids:
+            self.assertIsInstance(sol[k], int)
+        for k in nones:
+            self.assertEqual(sol[k], sh.NONE)
+        self.assertEqual(
+            {'async', 'parallel', 'parallel-dispatch'},
+            set(sh.shutdown_executors())
+        )
+
+    def test_shutdown_executors(self):
+        self.dsp2(inputs={'a': 1}, executor=True)
+        res = sh.shutdown_executors(False)
+        self.assertEqual(set(res), {'async', 'parallel', 'parallel-dispatch'})
+        from concurrent.futures import Future
+        from multiprocessing import Process
+        from threading import Thread
+        from schedula.utils.exc import ExecutorShutdown
+        for r in res.values():
+            self.assertIsInstance(r['executor'], sh.PoolExecutor)
+            for k, v in r['tasks'].items():
+                Task = Process if k == 'process' else Thread
+                for fut, task in v.items():
+                    self.assertIsInstance(fut, Future)
+                    with self.assertRaises(ExecutorShutdown):
+                        fut.result()
+                    task and self.assertIsInstance(task, Task)
 
 
 class TestDispatch(unittest.TestCase):
@@ -651,7 +860,7 @@ class TestDispatch(unittest.TestCase):
             return c + 3, c - 3
 
         def dom(kw):
-            return kw['e'] + kw['d'] > 29
+            return 'e' in kw and 'd' in kw and kw['e'] + kw['d'] > 29
 
         sub_dsp.add_function(function=fun, inputs=['c'], outputs=['d', 'e'])
 

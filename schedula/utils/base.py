@@ -45,7 +45,7 @@ class Base(object):
         :type directory: str, optional
 
         :param sites:
-            A set of :func:`~schedula.utils.drw.Site` to maintain alive the
+            A set of :class:`~schedula.utils.drw.Site` to maintain alive the
             backend server.
         :type sites: set[~schedula.utils.drw.Site], optional
 
@@ -86,8 +86,8 @@ class Base(object):
             True
 
         .. note::
-           When :func:`~schedula.utils.drw.Site` is garbage collected the server
-           is shutdown automatically.
+           When :class:`~schedula.utils.drw.Site` is garbage collected the
+           server is shutdown automatically.
         """
 
         options = {'node_data': node_data, 'node_function': node_function}
@@ -189,7 +189,7 @@ class Base(object):
         :type directory: str, optional
 
         :param sites:
-            A set of :func:`~schedula.utils.drw.Site` to maintain alive the
+            A set of :class:`~schedula.utils.drw.Site` to maintain alive the
             backend server.
         :type sites: set[~schedula.utils.drw.Site], optional
 

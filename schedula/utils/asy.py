@@ -7,49 +7,198 @@
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
 """
-It contains functions to dispatch asynchronously.
+It contains functions to dispatch asynchronously and  in parallel.
 """
 
 
-def async_process(func, *args, skip=False, executor=None):
+def _async_executor():
+    return PoolExecutor(ThreadExecutor())
+
+
+def _parallel_executor():
+    return PoolExecutor(ThreadExecutor(), ProcessExecutor())
+
+
+def _parallel_dispatch_executor():
+    return PoolExecutor(ThreadExecutor(), ProcessExecutor(), True)
+
+
+_EXECUTORS = {}
+EXECUTORS = {
+    'async': _async_executor,
+    'parallel': _parallel_executor,
+    'parallel-dispatch': _parallel_dispatch_executor
+}
+
+
+def _executor_name(name, dsp):
+    if name is True:
+        name = dsp.executor
+    return name
+
+
+def _get_executor(name):
+    if name is not False:
+        if name not in _EXECUTORS and name in EXECUTORS:
+            _EXECUTORS[name] = EXECUTORS[name]()
+        return _EXECUTORS.get(name)
+
+
+def register_executor(name, init):
+    """
+    Register a new executor type.
+
+    :param name:
+        Executor name.
+    :type name: str
+
+    :param init:
+        Function to initialize the executor.
+    :type init: callable
+    """
+    EXECUTORS[name] = init
+
+
+def shutdown_executor(name, wait=True):
+    """
+    Clean-up the resources associated with the Executor.
+
+    :param name:
+        Executor name.
+    :type name: str
+
+    :param wait:
+        If True then shutdown will not return until all running futures have
+        finished executing and the resources used by the executor have been
+        reclaimed.
+    :type wait: bool
+
+    :return:
+        Shutdown pool executor.
+    :rtype: dict[concurrent.futures.Future,threading.Thread|multiprocess.Process]
+    """
+    return _EXECUTORS.pop(name).shutdown(wait)
+
+
+def shutdown_executors(wait=True):
+    """
+    Clean-up the resources of all initialized executors.
+
+    :param wait:
+        If True then shutdown will not return until all running futures have
+        finished executing and the resources used by the executors have been
+        reclaimed.
+    :type wait: bool
+
+    :return:
+        Shutdown pool executor.
+    :rtype: dict[str,dict]
+    """
+    return {k: shutdown_executor(k, wait) for k in list(_EXECUTORS.keys())}
+
+
+def _process_funcs(name, funcs, executor, *args, stopper=None, sol_name=None,
+                   **kw):
+    from .exc import DispatcherError
+    from .dsp import parent_func, SubDispatch, NoSub
+    res, e = [], _get_executor(name)
+    for fn in funcs:
+        pfunc, r = parent_func(fn), {}
+        if isinstance(pfunc, SubDispatch):
+            try:
+                r['res'] = fn(*args, **kw, _stopper=stopper, _executor=executor,
+                              _sol_name=sol_name)
+            except DispatcherError as ex:
+                if isinstance(pfunc, NoSub):
+                    raise ex
+                r['err'] = ex
+            r['sol'] = pfunc.solution
+        else:
+            r['res'] = e.process(fn, *args, **kw) if e else fn(*args, **kw)
+        res.append(r)
+        if 'err' in r:
+            break
+        args, kw = (r['res'],), {}
+    return res
+
+
+def async_process(funcs, *args, executor=False, sol=None, callback=None, **kw):
     """
     Execute `func(*args)` in an asynchronous parallel process.
 
-    :param func:
-        Function to be executed.
-    :type func: callable
+    :param funcs:
+        Functions to be executed.
+    :type funcs: list[callable]
 
     :param args:
-        Arguments to be passed to function call.
+        Arguments to be passed to first function call.
     :type args: tuple
-
-    :param skip:
-        If `True` skip parallel processing.
-    :type skip: bool
 
     :param executor:
         Pool executor to run the function.
-    :type executor: schedula.utils.asy.PoolExecutor
+    :type executor: str | bool
+
+    :param sol:
+        Parent solution.
+    :type sol: schedula.utils.sol.Solution
+
+    :param callback:
+        Callback function to be called after all function execution.
+    :type callback: callable
+
+    :param kw:
+        Keywords to be passed to first function call.
+    :type kw: dict
 
     :return:
-        Function result.
+        Functions result.
     :rtype: object
     """
-    if skip or not executor:
-        return func(*args)
-    return executor.process(func, *args)
+    name = _executor_name(executor, sol.dsp)
+    e = _get_executor(name)
+    res = (e and e.process_funcs or _process_funcs)(
+        name, funcs, executor, *args, **kw
+    )
+
+    for r in res:
+        callback and callback('sol' in r, r.get('sol', r.get('res')))
+        if 'err' in r:
+            raise r['err']
+
+    return res[-1]['res']
 
 
 def _async_eval(sol, args, node_attr, *a, **kw):
-    if node_attr['type'] == 'data' and (
-            node_attr['wait_inputs'] or 'function' in node_attr):
-        args = {k: async_result(v) for k, v in args[0].items()},
+    try:
+        if node_attr['type'] == 'data' and (
+                node_attr['wait_inputs'] or 'function' in node_attr):
+            args = {k: await_result(v) for k, v in args[0].items()},
+        else:
+            args = tuple(map(await_result, args))
+    except BaseException as ex:
+        raise ex
     else:
-        args = tuple(map(async_result, args))
-    return sol._evaluate_node(args, node_attr, *a, **kw)
+        return sol._evaluate_node(args, node_attr, *a, **kw)
 
 
-def async_thread(sol, args, node_attr, *a, executors=None, **kw):
+def _await_result(result, timeout, sol, node_id):
+    from .exc import SkipNode
+    try:
+        return await_result(result, None if timeout is True else timeout)
+    except (KeyboardInterrupt, SkipNode) as ex:
+        raise ex
+    except Exception as ex:
+        attr = sol.workflow.node[node_id]
+        if 'started' in attr:
+            import time
+            attr['duration'] = time.time() - attr['started']
+        # Some error occurs.
+        msg = "Failed DISPATCHING '%s' due to:\n  %r"
+        sol._warning(msg, node_id, ex)
+        raise SkipNode(ex=ex)
+
+
+def async_thread(sol, args, node_attr, node_id, *a, **kw):
     """
     Execute `sol._evaluate_node` in an asynchronous thread.
 
@@ -65,26 +214,21 @@ def async_thread(sol, args, node_attr, *a, executors=None, **kw):
         Dictionary of node attributes.
     :type node_attr: dict
 
-    :param executors:
-        PoolExecutors for asynchronous processing.
-    :type executors: dict[str,schedula.utils.asy.PoolExecutor]
-
     :param a:
         Extra args to invoke `sol._evaluate_node`.
     :type a: tuple
 
-    :param kwargs:
+    :param kw:
         Extra kwargs to invoke `sol._evaluate_node`.
-    :type kwargs: dict
+    :type kw: dict
 
     :return:
         Function result.
-    :rtype: concurrent.futures.Future | AsyncList
+    :rtype: concurrent.futures.Future | _AsyncList
     """
-    executor = executors and executors.get(sol.dsp.executor_id)
-    kw['executors'] = executors
+    executor = _get_executor(_executor_name(kw.get('executor', False), sol.dsp))
     if not executor:
-        return sol._evaluate_node(args, node_attr, *a, **kw)
+        return sol._evaluate_node(args, node_attr, node_id, *a, **kw)
 
     futures = args
     if node_attr['type'] == 'data' and (
@@ -94,13 +238,18 @@ def async_thread(sol, args, node_attr, *a, executors=None, **kw):
     futures = {v for v in futures if isinstance(v, Future)}
 
     def _submit():
-        return executor.thread(_async_eval, sol, args, node_attr, *a, **kw)
+        return executor.thread(
+            _async_eval, sol, args, node_attr, node_id, *a, **kw
+        )
 
     if futures:  # Chain results.
         result = Future()
 
         def _set_res(fut):
-            result.set_result(fut.result())
+            try:
+                result.set_result(fut.result())
+            except BaseException as ex:
+                result.set_exception(ex)
 
         def _submit_task(fut=None):
             futures and futures.remove(fut)
@@ -111,76 +260,123 @@ def async_thread(sol, args, node_attr, *a, executors=None, **kw):
     else:
         result = _submit()
 
+    timeout = node_attr.get('await_result', False)
+    if timeout is not False:
+        return _await_result(result, timeout, sol, node_id)
+
     n = len(node_attr.get('outputs', []))
-    return AsyncList(future=result, n=n) if n > 1 else result
+    return _AsyncList(future=result, n=n) if n > 1 else result
 
 
-def _run_process(data):
-    import dill
-    fn, args, kwargs = dill.loads(data)
-    return dill.dumps(fn(*args, **kwargs))
+class ProcessExecutor:
+    """Multi Process Executor"""
+    def __init__(self):
+        self.tasks = {}
+
+    def _set_future(self, fut, res):
+        self.tasks.pop(fut)
+        if 'err' in res:
+            fut.set_exception(res['err'])
+        else:
+            fut.set_result(res['res'])
+        return fut
+
+    @staticmethod
+    def _target(send, func, args, kwargs):
+        try:
+            send({'res': func(*args, **kwargs)})
+        except BaseException as ex:
+            send({'err': ex})
+
+    def shutdown(self, wait=True):
+        from .exc import ExecutorShutdown
+        tasks = dict(self.tasks)
+        for fut, task in tasks.items():
+            if wait:
+                try:
+                    fut.result()
+                except Exception:
+                    pass
+            elif not fut.done():
+                fut.set_exception(ExecutorShutdown)
+            hasattr(task, 'terminate') and task.terminate()
+        return tasks
+
+    def submit(self, func, *args, **kwargs):
+        # noinspection PyUnresolvedReferences
+        from multiprocess import Process, Pipe
+        from concurrent.futures import Future
+        fut, (c0, c1) = Future(), Pipe(False)
+        task = Process(target=self._target, args=(c1.send, func, args, kwargs))
+        self.tasks[fut] = task
+        task.start()
+        return self._set_future(fut, c0.recv())
+
+
+class ThreadExecutor(ProcessExecutor):
+    """Multi Thread Executor"""
+    def submit(self, func, *args, **kwargs):
+        from threading import Thread
+        from concurrent.futures import Future
+        fut, send = Future(), lambda res: self._set_future(fut, res)
+        task = Thread(target=self._target, args=(send, func, args, kwargs))
+        self.tasks[fut], task.daemon = task, True
+        task.start()
+        return fut
 
 
 class PoolExecutor:
-    """
-    General PoolExecutor to dispatch asynchronously and in parallel.
-
-    **Example**:
-
-    .. dispatcher:: dsp
-        :code:
-
-        >>> import time
-        >>> import schedula as sh
-        >>> from concurrent.futures import ThreadPoolExecutor
-        >>> dsp = sh.Dispatcher(executor_id='async')
-        >>> for o in 'bcdef':
-        ...     dsp.add_function(function=time.sleep, inputs=['a'], outputs=[o])
-        'sleep'
-        'sleep<0>'
-        'sleep<1>'
-        'sleep<2>'
-        'sleep<3>'
-        >>> executor = sh.PoolExecutor(ThreadPoolExecutor(5))
-        >>> start = time.time()
-        >>> sol = dsp({'a': 1}, executors={'async': executor})
-        >>> (time.time() - start) < 2
-        True
-        >>> executor.shutdown()
-    """
-
-    def __init__(self, thread_executor, process_executor=None):
+    """General PoolExecutor to dispatch asynchronously and in parallel."""
+    def __init__(self, thread_executor, process_executor=None, parallel=False):
         """
         :param thread_executor:
             Thread pool executor to dispatch asynchronously.
-        :type thread_executor: concurrent.futures.ThreadPoolExecutor
+        :type thread_executor: ThreadExecutor | ThreadPoolExecutor
 
         :param process_executor:
             Process pool executor to execute in parallel the functions calls.
-        :type process_executor: concurrent.futures.ProcessPoolExecutor
+        :type process_executor: ProcessExecutor | ProcessPoolExecutor
+
+        :param parallel:
+            Run `_process_funcs` in parallel.
+        :type parallel: bool
         """
         self._thread = thread_executor
         self._process = process_executor
+        self._parallel = parallel
 
     def thread(self, *args, **kwargs):
         return self._thread.submit(*args, **kwargs)
 
+    def process_funcs(self, name, funcs, *args, **kw):
+        from .dsp import parent_func, SubDispatch, NoSub
+        not_sub = self._process and not any(map(
+            lambda x: isinstance(x, SubDispatch) and not isinstance(x, NoSub),
+            map(parent_func, funcs)
+        ))
+        if not_sub or self._parallel:
+            return self.process(_process_funcs, False, funcs, *args, **kw)
+        return _process_funcs(name, funcs, *args, **kw)
+
     def process(self, fn, *args, **kwargs):
         if self._process:
-            import dill
-            data = fn, args, kwargs
-            fut = self._process.submit(_run_process, dill.dumps(data))
-            return dill.loads(fut.result())
+            fut = self._process.submit(fn, *args, **kwargs)
+            return fut.result()
         return fn(*args, **kwargs)
 
     def shutdown(self, wait=True):
-        self._process and self._process.shutdown(wait)
-        self._thread.shutdown(wait)
+        return {
+            'executor': self,
+            'tasks': {
+                'process': self._process and self._process.shutdown(wait) or {},
+                'thread': self._thread.shutdown(wait)
+            }
+        }
 
 
-class AsyncList(list):
+class _AsyncList(list):
     def __init__(self, *, future=None, n=1):
-        super(AsyncList, self).__init__()
+        super(_AsyncList, self).__init__()
         from concurrent.futures import Future
         self.extend(Future() for _ in range(n))
         future.add_done_callback(self)
@@ -192,12 +388,12 @@ class AsyncList(list):
         return future
 
 
-def async_result(obj, timeout=None):
+def await_result(obj, timeout=None):
     """
     Return the result of a `Future` object.
 
     :param obj:
-        Object.
+        Value object.
     :type obj: concurrent.futures.Future | object
 
     :param timeout:
@@ -206,8 +402,16 @@ def async_result(obj, timeout=None):
     :type timeout: int
 
     :return:
-        Object result.
+        Result.
     :rtype: object
+
+    Example::
+
+        >>> from concurrent.futures import Future
+        >>> fut = Future()
+        >>> fut.set_result(3)
+        >>> await_result(fut), await_result(4)
+        (3, 4)
     """
     from concurrent.futures import Future
     return obj.result(timeout) if isinstance(obj, Future) else obj

@@ -79,6 +79,7 @@ if __name__ == '__main__':
         'web': ['regex', 'flask'],
         'plot': ['graphviz', 'regex', 'flask', 'Pygments', 'lxml', 'bs4',
                  'jinja2', 'docutils'],
+        'parallel': ['multiprocess'],
     }
     extras['sphinx'] = ['sphinx'] + extras['plot']
     extras['all'] = sorted(functools.reduce(set.union, extras.values(), set()))

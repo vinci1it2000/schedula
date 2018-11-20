@@ -7,7 +7,8 @@
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
 """
-It provides tools to create models with the :func:`~schedula.Dispatcher`.
+It provides tools to create models with the
+:class:`~schedula.dispatcher.Dispatcher`.
 """
 import collections
 import copy as _copy
@@ -591,17 +592,19 @@ def combine_nested_dicts(*nested_dicts, depth=-1, base=None):
 
 class SubDispatch(Base):
     """
-    It dispatches a given :func:`~schedula.Dispatcher` like a function.
+    It dispatches a given :class:`~schedula.dispatcher.Dispatcher` like a
+    function.
 
     This function takes a sequence of dictionaries as input that will be
     combined before the dispatching.
 
     :return:
         A function that executes the dispatch of the given
-        :func:`~schedula.Dispatcher`.
+        :class:`~schedula.dispatcher.Dispatcher`.
     :rtype: callable
 
-    .. seealso:: :func:`~schedula.Dispatcher.dispatch`, :func:`combine_dicts`
+    .. seealso:: :func:`~schedula.dispatcher.Dispatcher.dispatch`,
+       :func:`combine_dicts`
 
     Example:
 
@@ -708,7 +711,7 @@ class SubDispatch(Base):
         self.solution = dsp.solution.__class__(dsp)
 
     def __call__(self, *input_dicts, copy_input_dicts=False, _stopper=None,
-                 _executors=None):
+                 _executor=None, _sol_name=()):
 
         # Combine input dictionaries.
         i = combine_dicts(*input_dicts, copy=copy_input_dicts)
@@ -717,7 +720,7 @@ class SubDispatch(Base):
         self.solution = self.dsp.dispatch(
             i, self.outputs, self.cutoff, self.inputs_dist, self.wildcard,
             self.no_call, self.shrink, self.rm_unused_nds,
-            stopper=_stopper, executors=_executors
+            stopper=_stopper, executor=_executor, sol_name=_sol_name
         )
 
         return self._return(self.solution)
@@ -748,7 +751,7 @@ class SubDispatch(Base):
 
 class SubDispatchFunction(SubDispatch):
     """
-    It converts a :func:`~schedula.Dispatcher` into a function.
+    It converts a :class:`~schedula.dispatcher.Dispatcher` into a function.
 
     This function takes a sequence of arguments or a key values as input of the
     dispatch.
@@ -757,8 +760,8 @@ class SubDispatchFunction(SubDispatch):
         A function that executes the dispatch of the given `dsp`.
     :rtype: callable
 
-    .. seealso:: :func:`~schedula.Dispatcher.dispatch`,
-       :func:`~schedula.Dispatcher.shrink_dsp`
+    .. seealso:: :func:`~schedula.dispatcher.Dispatcher.dispatch`,
+       :func:`~schedula.dispatcher.Dispatcher.shrink_dsp`
 
     **Example**:
 
@@ -906,10 +909,11 @@ class SubDispatchFunction(SubDispatch):
             raise TypeError(msg % (self.dsp.name, n, p, m))
         return inputs
 
-    def __call__(self, *args, _stopper=None, _executors=None, **kw):
+    def __call__(self, *args, _stopper=None, _executor=False, _sol_name=(),
+                 **kw):
         # Namespace shortcuts.
         self.solution = sol = self._sol.copy_structure()
-
+        self.solution.full_name = _sol_name
         # Update inputs.
         input_values = self.parse_inputs(self.dsp.data_nodes, *args, **kw)
 
@@ -921,7 +925,7 @@ class SubDispatchFunction(SubDispatch):
         sol._init_workflow(input_values, i_val, self.inputs_dist, False)
 
         # Dispatch outputs.
-        sol.run(stopper=_stopper, executors=_executors)
+        sol.run(stopper=_stopper, executor=_executor)
 
         # Return outputs sorted.
         return self._return(sol)
@@ -929,7 +933,7 @@ class SubDispatchFunction(SubDispatch):
 
 class SubDispatchPipe(SubDispatchFunction):
     """
-    It converts a :func:`~schedula.Dispatcher` into a function.
+    It converts a :class:`~schedula.dispatcher.Dispatcher` into a function.
 
     This function takes a sequence of arguments as input of the dispatch.
 
@@ -937,8 +941,8 @@ class SubDispatchPipe(SubDispatchFunction):
         A function that executes the pipe of the given `dsp`.
     :rtype: callable
 
-    .. seealso:: :func:`~schedula.Dispatcher.dispatch`,
-       :func:`~schedula.Dispatcher.shrink_dsp`
+    .. seealso:: :func:`~schedula.dispatcher.Dispatcher.dispatch`,
+       :func:`~schedula.dispatcher.Dispatcher.shrink_dsp`
 
     **Example**:
 
@@ -1040,11 +1044,12 @@ class SubDispatchPipe(SubDispatchFunction):
 
         self.pipe = [_make_tks(*v['task'][-1]) for v in self._sol.pipe.values()]
 
-    def _init_new_solution(self):
+    def _init_new_solution(self, full_name):
         key_map, sub_sol = {}, {}
         for k, s in self._sol.sub_sol.items():
             ns = s.copy_structure(dist=1)
             ns.sub_sol = sub_sol
+            ns.full_name = full_name + s.full_name
             key_map[s] = ns
             sub_sol[ns.index] = ns
         return key_map[self._sol], lambda x: key_map[x]
@@ -1057,8 +1062,9 @@ class SubDispatchPipe(SubDispatchFunction):
     def _callback_pipe_failure(self):
         pass
 
-    def __call__(self, *args, _stopper=None, _executors=None, **kw):
-        self.solution, key_map = self._init_new_solution()
+    def __call__(self, *args, _stopper=None, _executor=False, _sol_name=(),
+                 **kw):
+        self.solution, key_map = self._init_new_solution(_sol_name)
         self._init_workflows(self.parse_inputs(self.inputs, *args, **kw))
 
         for v, s, nxt_nds, nxt_dsp in self.pipe:
@@ -1069,7 +1075,7 @@ class SubDispatchPipe(SubDispatchFunction):
 
             if not s._set_node_output(
                     v, False, next_nds=nxt_nds, stopper=_stopper,
-                    executors=_executors):
+                    executor=_executor):
                 self._callback_pipe_failure()
                 break
 
@@ -1087,7 +1093,7 @@ class NoSub:
 
 class DispatchPipe(NoSub, SubDispatchPipe):
     """
-    It converts a :func:`~schedula.Dispatcher` into a function.
+    It converts a :class:`~schedula.dispatcher.Dispatcher` into a function.
 
     This function takes a sequence of arguments as input of the dispatch.
 
@@ -1099,8 +1105,8 @@ class DispatchPipe(NoSub, SubDispatchPipe):
     .. note::
         This wrapper is not thread safe, because it overwrite the solution.
 
-    .. seealso:: :func:`~schedula.Dispatcher.dispatch`,
-       :func:`~schedula.Dispatcher.shrink_dsp`
+    .. seealso:: :func:`~schedula.dispatcher.Dispatcher.dispatch`,
+       :func:`~schedula.dispatcher.Dispatcher.shrink_dsp`
 
     **Example**:
 
@@ -1143,8 +1149,7 @@ class DispatchPipe(NoSub, SubDispatchPipe):
         >>> fun(1, 0)
         0
     """
-
-    def _init_new_solution(self):
+    def _init_new_solution(self, _sol_name):
         return self._sol, lambda x: x
 
     def _init_workflows(self, inputs):
@@ -1301,7 +1306,7 @@ def add_function(dsp, inputs_kwargs=False, inputs_defaults=False, **kw):
     :type inputs_defaults: bool
     
     :param kw:
-        See :func:~`schedula.Dispatcher.add_function`.
+        See :func:~`schedula.dispatcher.Dispatcher.add_function`.
     :type kw: dict
 
     :return:

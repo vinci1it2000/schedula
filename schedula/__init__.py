@@ -28,6 +28,12 @@ from ._version import *
 _all = {
     'Dispatcher': '.dispatcher',
     'PoolExecutor': '.utils.asy',
+    'ProcessExecutor': '.utils.asy',
+    'ThreadExecutor': '.utils.asy',
+    'register_executor': '.utils.asy',
+    'shutdown_executor': '.utils.asy',
+    'shutdown_executors': '.utils.asy',
+    'await_result': '.utils.asy',
     'EMPTY': '.utils.cst',
     'START': '.utils.cst',
     'NONE': '.utils.cst',
@@ -74,8 +80,9 @@ __all__ = tuple(_all)
 
 def __dir__():
     return __all__ + (
-    '__doc__', '__author__', '__updated__', '__title__', '__version__',
-    '__license__', '__copyright__')
+        '__doc__', '__author__', '__updated__', '__title__', '__version__',
+        '__license__', '__copyright__'
+    )
 
 
 def __getattr__(name):

@@ -28,4 +28,10 @@ class DispatcherAbort(DispatcherError):
 
 
 class SkipNode(Exception):
+    def __init__(self, *args, ex=None, **kwargs):
+        super(SkipNode, self).__init__(*args, **kwargs)
+        self.ex = ex
+
+
+class ExecutorShutdown(Exception):
     pass
