@@ -785,7 +785,7 @@ class SubDispatchFunction(SubDispatch):
         >>> fun = SubDispatchFunction(dsp, 'myF', ['a', 'b'], ['a'])
         >>> fun.__name__
         'myF'
-        >>> fun(2, 1)
+        >>> fun(b=1, a=2)
         0.0
 
     .. dispatcher:: fun
@@ -887,8 +887,11 @@ class SubDispatchFunction(SubDispatch):
         if i:
             msg = "%s() got an unexpected keyword argument '%s'"
             raise TypeError(msg % (self.dsp.name, i))
-
-        inputs = combine_dicts(self.solution.inputs, inputs, kwargs)
+        dfl = self.dsp.default_values
+        inputs = combine_dicts(
+            inputs, kwargs,
+            base={k: dfl[k]['value'] for k in self.inputs if k in dfl}
+        )
 
         m = [k for k in self.inputs if k not in inputs]
         if m:
@@ -908,7 +911,7 @@ class SubDispatchFunction(SubDispatch):
         self.solution = sol = self._sol.copy_structure()
 
         # Update inputs.
-        input_values = self.parse_inputs(self.dsp.nodes, *args, **kw)
+        input_values = self.parse_inputs(self.dsp.data_nodes, *args, **kw)
 
         # Define the function to populate the workflow.
         def i_val(k):
