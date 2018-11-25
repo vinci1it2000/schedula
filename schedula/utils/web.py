@@ -66,7 +66,7 @@ class WebMap(SiteMap):
         app = basic_app(root_path, **kwargs)
         context = self.rules(depth=depth, index=False)
         for (node, extra), filepath in context.items():
-            func = functools.partial(func_handler, node.obj)
+            func = functools.partial(_func_handler, node.obj)
             app.add_url_rule('/%s' % filepath, filepath, func, methods=['POST'])
 
         if context:
@@ -80,7 +80,7 @@ class WebMap(SiteMap):
         raise NotImplementedError()
 
 
-def func_handler(func):
+def _func_handler(func):
     from flask import request, jsonify
     data = request.get_json(force=True)
     data['return'] = func(*data.get('args', ()), **data.get('kwargs', {}))

@@ -7,9 +7,7 @@
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
 """
-It contains a comprehensive list of all modules and classes within dispatcher.
-
-Docstrings should provide sufficient understanding for any individual function.
+It provides a solution class for dispatch result.
 """
 import collections
 import heapq
@@ -27,6 +25,7 @@ log = logging.getLogger(__name__)
 
 # noinspection PyTypeChecker
 class Solution(Base, collections.OrderedDict):
+    """Solution class for dispatch result."""
     def __hash__(self):
         return id(self)
 
@@ -188,14 +187,26 @@ class Solution(Base, collections.OrderedDict):
             return not set(p.dmap[k]).difference(p.dist)
         return False
 
-    def result(self, timeout=None, exceptions=None):
-        exceptions = {} if exceptions is None else exceptions
+    def result(self, timeout=None):
+        """
+        Set all asynchronous results.
+
+        :param timeout:
+            The number of seconds to wait for the result if the futures aren't
+            done. If None, then there is no limit on the wait time.
+        :type timeout: float
+
+        :return:
+            Update Solution.
+        :rtype: Solution
+        """
+        exceptions = []
 
         def _set_result(d, k, fut):
             try:
                 d[k] = await_result(fut, timeout)
             except SkipNode as e:
-                exceptions[fut] = e.ex
+                exceptions.append((fut, e.ex))
                 del d[k]
 
         for s in self.sub_sol.values():
@@ -210,10 +221,10 @@ class Solution(Base, collections.OrderedDict):
                 if 'value' in d:
                     _set_result(d, 'value', d['value'])
         if exceptions:
-            raise list(exceptions.values())[0]
+            raise exceptions[0][-1]
         return self
 
-    def run(self, stopper=None, executor=False):
+    def _run(self, stopper=None, executor=False):
         # Initialized and terminated dispatcher sets.
         dsp_closed, dsp_init, cached_ids = set(), {self.index}, {}
 
@@ -276,6 +287,34 @@ class Solution(Base, collections.OrderedDict):
 
     def get_sub_dsp_from_workflow(self, sources, reverse=False,
                                   add_missing=False, check_inputs=True):
+        """
+        Returns the sub-dispatcher induced by the workflow from sources.
+
+        The induced sub-dispatcher of the dsp contains the reachable nodes and
+        edges evaluated with breadth-first-search on the workflow graph from
+        source nodes.
+
+        :param sources:
+           Source nodes for the breadth-first-search.
+           A container of nodes which will be iterated through once.
+        :type sources: list[str], iterable
+
+        :param reverse:
+           If True the workflow graph is assumed as reversed.
+        :type reverse: bool, optional
+
+        :param add_missing:
+           If True, missing function' inputs are added to the sub-dispatcher.
+        :type add_missing: bool, optional
+
+        :param check_inputs:
+           If True the missing function' inputs are not checked.
+        :type check_inputs: bool, optional
+
+        :return:
+           A sub-dispatcher.
+        :rtype: schedula.dispatcher.Dispatcher
+        """
         sub_dsp = self.dsp.get_sub_dsp_from_workflow(
             sources, self.workflow, reverse=reverse, add_missing=add_missing,
             check_inputs=check_inputs
@@ -285,9 +324,10 @@ class Solution(Base, collections.OrderedDict):
 
     @property
     def pipe(self):
+        """Returns the full pipe of a dispatch run."""
         return get_full_pipe(self)
 
-    def copy_structure(self, **kwargs):
+    def _copy_structure(self, **kwargs):
         sol = self.__class__(
             self.dsp, self.inputs, self.outputs, False, self.cutoff,
             self.inputs_dist, self.no_call, self.rm_unused_nds, self._wait_in,

@@ -1510,7 +1510,7 @@ class Dispatcher(Base):
         )
 
         # Dispatch.
-        sol.run(stopper=stopper, executor=executor)
+        sol._run(stopper=stopper, executor=executor)
 
         if select_output_kw:
             return selector(dictionary=sol, **select_output_kw)

@@ -7,7 +7,7 @@
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
 """
-It provides a base class to for dispatcher objects.
+It provides a base class for dispatcher objects.
 """
 
 import copy
@@ -15,6 +15,7 @@ from .cst import NONE
 
 
 class Base(object):
+    """Base class for dispatcher objects."""
     def __deepcopy__(self, memo):
         cls = self.__class__
         memo[id(self)] = result = cls.__new__(cls)

@@ -363,6 +363,22 @@ def replicate_value(value, n=2, copy=True):
 
 
 def parent_func(func, input_id=None):
+    """
+    Return the parent function of a wrapped function (wrapped with
+    :class:`functools.partial` and :class:`add_args`).
+
+    :param func:
+        Wrapped function.
+    :type func: callable
+
+    :param input_id:
+        Index of the first input of the wrapped function.
+    :type input_id: int
+
+    :return:
+        Parent function.
+    :rtype: callable
+    """
     if isinstance(func, functools.partial):
         if input_id is not None:
             # noinspection PyTypeChecker
@@ -912,7 +928,7 @@ class SubDispatchFunction(SubDispatch):
     def __call__(self, *args, _stopper=None, _executor=False, _sol_name=(),
                  **kw):
         # Namespace shortcuts.
-        self.solution = sol = self._sol.copy_structure()
+        self.solution = sol = self._sol._copy_structure()
         self.solution.full_name = _sol_name
         # Update inputs.
         input_values = self.parse_inputs(self.dsp.data_nodes, *args, **kw)
@@ -925,7 +941,7 @@ class SubDispatchFunction(SubDispatch):
         sol._init_workflow(input_values, i_val, self.inputs_dist, False)
 
         # Dispatch outputs.
-        sol.run(stopper=_stopper, executor=_executor)
+        sol._run(stopper=_stopper, executor=_executor)
 
         # Return outputs sorted.
         return self._return(sol)
@@ -1020,7 +1036,7 @@ class SubDispatchPipe(SubDispatchFunction):
             dsp, inputs, outputs, wildcard, cutoff, inputs_dist, True, True,
             no_domain=no_domain
         )
-        sol.run()
+        sol._run()
         from .alg import _union_workflow, _convert_bfs
         bfs = _union_workflow(sol)
         o, bfs = outputs or sol, _convert_bfs(bfs)
@@ -1032,7 +1048,7 @@ class SubDispatchPipe(SubDispatchFunction):
         )
         self._sol.no_call = True
         self._sol._init_workflow()
-        self._sol.run()
+        self._sol._run()
         self._sol.no_call = False
 
         def _make_tks(v, s):
@@ -1047,7 +1063,7 @@ class SubDispatchPipe(SubDispatchFunction):
     def _init_new_solution(self, full_name):
         key_map, sub_sol = {}, {}
         for k, s in self._sol.sub_sol.items():
-            ns = s.copy_structure(dist=1)
+            ns = s._copy_structure(dist=1)
             ns.sub_sol = sub_sol
             ns.full_name = full_name + s.full_name
             key_map[s] = ns
@@ -1356,6 +1372,7 @@ def add_function(dsp, inputs_kwargs=False, inputs_defaults=False, **kw):
 
 
 class inf(collections.namedtuple('_inf', ['inf', 'num'])):
+    """Class to model infinite numbers for workflow distance."""
     _methods = {
         'add': {'func': lambda x, y: x + y, 'dfl': 0},
         'sub': {'func': lambda x, y: x - y, 'dfl': 0},
