@@ -51,6 +51,20 @@ class Token(str):
         >>> s.capitalize()
         'String'
     """
+    def __init__(self, *args):
+        import inspect
+        f = inspect.currentframe()
+        self.module_name = f and f.f_back and f.f_back.f_globals.get('__name__')
+        del f
+
+    def __reduce__(self):
+        if self.module_name:
+            import importlib
+            mdl = importlib.import_module(self.module_name)
+            for name, obj in mdl.__dict__.items():
+                if obj is self:
+                    return getattr, (mdl, name)
+        return super(Token, self).__reduce__()
 
     def __repr__(self):
         return self
