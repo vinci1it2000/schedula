@@ -106,8 +106,8 @@ def _process_funcs(name, funcs, executor, *args, stopper=None, sol_name=None,
         pfunc, r = parent_func(fn), {}
         if isinstance(pfunc, SubDispatch):
             try:
-                r['res'] = fn(*args, **kw, _stopper=stopper, _executor=executor,
-                              _sol_name=sol_name)
+                r['res'] = fn(*args, _stopper=stopper, _executor=executor,
+                              _sol_name=sol_name, **kw)
             except DispatcherError as ex:
                 if isinstance(pfunc, NoSub):
                     raise ex
@@ -252,7 +252,10 @@ def async_thread(sol, args, node_attr, node_id, *a, **kw):
                 result.set_exception(ex)
 
         def _submit_task(fut=None):
-            futures and futures.remove(fut)
+            try:
+                futures and futures.remove(fut)
+            except KeyError:
+                pass
             not futures and _submit().add_done_callback(_set_res)
 
         for f in list(futures):
@@ -268,10 +271,13 @@ def async_thread(sol, args, node_attr, node_id, *a, **kw):
     return _AsyncList(future=result, n=n) if n > 1 else result
 
 
-class ProcessExecutor:
-    """Multi Process Executor"""
+class Executor:
+    """Base Executor"""
     def __init__(self):
         self.tasks = {}
+
+    def __reduce__(self):
+        return self.__class__, ()
 
     def _set_future(self, fut, res):
         self.tasks.pop(fut)
@@ -299,9 +305,18 @@ class ProcessExecutor:
                     pass
             elif not fut.done():
                 fut.set_exception(ExecutorShutdown)
-            hasattr(task, 'terminate') and task.terminate()
+            try:
+                task.terminate()
+            except AttributeError:
+                pass
         return tasks
 
+    def submit(self, func, *args, **kwargs):
+        raise NotImplemented
+
+
+class ProcessExecutor(Executor):
+    """Multi Process Executor"""
     def submit(self, func, *args, **kwargs):
         # noinspection PyUnresolvedReferences
         from multiprocess import Process, Pipe
@@ -313,7 +328,7 @@ class ProcessExecutor:
         return self._set_future(fut, c0.recv())
 
 
-class ThreadExecutor(ProcessExecutor):
+class ThreadExecutor(Executor):
     """Multi Thread Executor"""
     def submit(self, func, *args, **kwargs):
         from threading import Thread
@@ -327,7 +342,7 @@ class ThreadExecutor(ProcessExecutor):
 
 class PoolExecutor:
     """General PoolExecutor to dispatch asynchronously and in parallel."""
-    def __init__(self, thread_executor, process_executor=None, parallel=False):
+    def __init__(self, thread_executor, process_executor=None, parallel=None):
         """
         :param thread_executor:
             Thread pool executor to dispatch asynchronously.
@@ -354,7 +369,7 @@ class PoolExecutor:
             lambda x: isinstance(x, SubDispatch) and not isinstance(x, NoSub),
             map(parent_func, funcs)
         ))
-        if not_sub or self._parallel:
+        if self._parallel is not False and not_sub or self._parallel:
             return self.process(_process_funcs, False, funcs, *args, **kw)
         return _process_funcs(name, funcs, *args, **kw)
 

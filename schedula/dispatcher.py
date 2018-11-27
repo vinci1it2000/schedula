@@ -164,9 +164,10 @@ class Dispatcher(Base):
             in parallel:
 
             - `async`: execute all functions asynchronously in the same process,
-            - `parallel`: execute all functions except SubDispatch in parallel,
-            - `parallel-dispatch`: execute all functions including SubDispatch
-              in parallel.
+            - `parallel`: execute all functions in parallel excluding
+              :class:`~schedula.utils.dsp.SubDispatch` functions,
+            - `parallel-dispatch`: execute all functions in parallel including
+              :class:`~schedula.utils.dsp.SubDispatch`.
 
         :type executor: str, optional
         """
