@@ -618,7 +618,9 @@ class TestAsyncParallel(unittest.TestCase):
         func = sh.SubDispatchFunction(sub_dsp, 'func', ['a'], ['d'])
         dsp.add_function(function=func, inputs=['b'], outputs=['e'], weight=1)
         dsp.add_function(function=sleep, inputs=['b', 'd', 'e'], outputs=['f'])
-        dsp.add_function(function=error, inputs=['err', 'f'], outputs=['g'])
+        dsp.add_function(
+            function=error, inputs=['err', 'f'], outputs=['g', 'h']
+        )
 
         # ----------------------------------------------------------------------
         def sleep(x, *a):

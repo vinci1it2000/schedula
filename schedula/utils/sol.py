@@ -17,7 +17,7 @@ from .alg import add_edge_fun, remove_edge_fun, get_full_pipe, _sort_sk_wait_in
 from .cst import START, NONE, PLOT
 from .dsp import stlp
 from .exc import DispatcherError, DispatcherAbort, SkipNode
-from .asy import async_thread, await_result, async_process
+from .asy import async_thread, await_result, async_process, AsyncList
 from .base import Base
 
 log = logging.getLogger(__name__)

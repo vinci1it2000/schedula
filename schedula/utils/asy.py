@@ -224,7 +224,7 @@ def async_thread(sol, args, node_attr, node_id, *a, **kw):
 
     :return:
         Function result.
-    :rtype: concurrent.futures.Future | _AsyncList
+    :rtype: concurrent.futures.Future | AsyncList
     """
     executor = _get_executor(_executor_name(kw.get('executor', False), sol.dsp))
     if not executor:
@@ -268,7 +268,7 @@ def async_thread(sol, args, node_attr, node_id, *a, **kw):
         return _await_result(result, timeout, sol, node_id)
 
     n = len(node_attr.get('outputs', []))
-    return _AsyncList(future=result, n=n) if n > 1 else result
+    return AsyncList(future=result, n=n) if n > 1 else result
 
 
 class Executor:
@@ -389,17 +389,24 @@ class PoolExecutor:
         }
 
 
-class _AsyncList(list):
+class AsyncList(list):
     def __init__(self, *, future=None, n=1):
-        super(_AsyncList, self).__init__()
+        super(AsyncList, self).__init__()
         from concurrent.futures import Future
         self.extend(Future() for _ in range(n))
         future.add_done_callback(self)
 
     def __call__(self, future):
-        res = tuple(future.result())
-        for i, f in enumerate(self):
-            f.set_result(res[i])
+        try:
+            res = tuple(future.result())
+            assert len(self) <= len(res)
+        except BaseException as ex:
+            for fut in self:
+                fut.set_exception(ex)
+        else:
+            for fut, value in zip(self, res):
+                fut.set_result(value)
+
         return future
 
 
