@@ -286,11 +286,10 @@ function return the process id.
 .. dispatcher:: dsp
     :code:
 
-    >>> import os
-    >>> import time
     >>> import schedula as sh
     >>> dsp = sh.Dispatcher()
     >>> def slow():
+    ...     import os, time
     ...     time.sleep(1)
     ...     return os.getpid()
     >>> for o in 'abcdef':
@@ -299,6 +298,7 @@ function return the process id.
 
 while using the `async` executor, it lasts a bit more then 1 second::
 
+    >>> import time
     >>> start = time.time()
     >>> sol = dsp(executor='async').result()  # Asynchronous execution.
     >>> (time.time() - start) < 2  # Faster then concurrent execution.
@@ -306,6 +306,7 @@ while using the `async` executor, it lasts a bit more then 1 second::
 
 all functions have been executed asynchronously, but in the same process::
 
+    >>> import os
     >>> pid = os.getpid()  # Current process id.
     >>> {sol[k] for k in 'abcdef'} == {pid}  # Single process id.
     True

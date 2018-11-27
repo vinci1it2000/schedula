@@ -13,6 +13,7 @@ import unittest
 EXTRAS = os.environ.get('EXTRAS', 'all')
 
 
+@unittest.skipIf(os.name == 'nt', 'Not for os %s.' % os.name)
 @unittest.skipIf(EXTRAS not in ('all',), 'Not for extra %s.' % EXTRAS)
 class TestDoctest(unittest.TestCase):
     def runTest(self):

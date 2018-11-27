@@ -560,19 +560,26 @@ class TestAsyncParallel(unittest.TestCase):
 
         counter = Counter()
 
+        def _counter_increment():
+            try:
+                global counter
+                return counter.increment()
+            except NameError as ex:
+                if os.name != 'nt':
+                    raise ex
+
         def sleep(x, *a):
             global counter
-            start = counter.increment()
+            start = _counter_increment()
             time.sleep(x / 10)
-            return (counter.increment(), start, os.getpid()), None
+            return (_counter_increment(), start, os.getpid()), None
 
         def filter(x):
             time.sleep(1 / 10)
             return x
 
         def callback(x):
-            global counter
-            counter.increment()
+            _counter_increment()
             time.sleep(1 / 30)
 
         sub_dsp = sh.Dispatcher()
@@ -693,8 +700,10 @@ class TestAsyncParallel(unittest.TestCase):
         from concurrent.futures import ThreadPoolExecutor as Pool, Future
         from schedula.utils.asy import EXECUTORS
         from multiprocess import Event
+
         def custom_executor():
             return sh.PoolExecutor(Pool(3), Pool(3))
+
         sh.register_executor(None, custom_executor)
         stopper = Event()
         self.reset_counter()
@@ -738,6 +747,7 @@ class TestAsyncParallel(unittest.TestCase):
         self.reset_counter()
         res = func(2, 1, _executor='parallel')
         self.assertEqual(3, len(set(v[-1] for v in res)))
+        sh.shutdown_executor('parallel')
 
     def test_parallel_dispatch(self):
         from concurrent.futures import Future
@@ -775,28 +785,35 @@ class TestAsyncParallel(unittest.TestCase):
                 sol.result()
 
     def test_multiple(self):
-        import time
-        import math
-        t = 0.2
+        import time, os
+        t, n = os.name == 'nt' and 2 or 0.1, len(self.dsp2.sub_dsp_nodes)
+        p = min(os.cpu_count() or 1, 3)
+
         sol = self.dsp2({'a': t, 'wait_domain': False}, executor=True).result()
-        self.assertLess(time.time() - sol['start'], t * 5)
+        self.assertLess(time.time() - sol['start'], t * n * 2)
+
         from schedula.utils.asy import _EXECUTORS
-        self.assertEqual(len(_EXECUTORS), 4)
+        self.assertEqual(len(_EXECUTORS), n - 1)
+
         pids = {v for k, v in sol.items() if k.split('-')[-1] in 'bcd'}
-        self.assertGreaterEqual(len(pids), 8)
+        self.assertTrue(1 <= len(pids) - (3 * (n - 3) + 1) <= p)
+
         t0 = {k[:-2]: v for k, v in sol.items() if k.endswith('-e')}
-        self.assertEqual(*map(math.floor, (t * 5, sum(t0.values()))))
+        self.assertAlmostEqual(
+            t * (1 * (n - 2) + 2 + (3 - p)),
+            t * sum(v // t for v in t0.values()), delta=1
+        )
+
         sol = self.dsp2({'a': t, 'wait_domain': True}, executor=True).result()
         t1 = {k[:-2]: v for k, v in sol.items() if k.endswith('-e')}
         self.assertLess(max(t0.values()), max(t1.values()))
-        self.assertEqual(*map(math.floor, (max(t1.values()), sum(t0.values()))))
+        self.assertLess(max(t1.values()), sum(t0.values()))
+
         keys = 'parallel-dispatch', 'parallel-pool', 'parallel', 'async', 'base'
         for i, j in sh.pairwise(sh.selector(keys, t1, output_type='list')):
             self.assertLess(i, j)
-        self.assertEqual(
-            {'async', 'parallel', 'parallel-pool', 'parallel-dispatch'},
-            set(sh.shutdown_executors())
-        )
+
+        self.assertEqual(set(keys[:-1]), set(sh.shutdown_executors()))
 
     def test_await_result(self):
         sol = self.dsp3({'a': 0, 'b': 0.1, 'c': 0}, executor=True).result()
