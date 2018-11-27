@@ -200,26 +200,37 @@ class Solution(Base, collections.OrderedDict):
             Update Solution.
         :rtype: Solution
         """
-        exceptions = []
+        it, exceptions, future_lists  = [], [], []
+        from concurrent.futures import Future, wait as wait_fut
 
-        def _set_result(d, k, fut):
-            try:
-                d[k] = await_result(fut, timeout)
-            except SkipNode as e:
-                exceptions.append((fut, e.ex))
-                del d[k]
+        def update(fut, data, key):
+            if isinstance(fut, Future):
+                it.append((fut, data, key))
+            elif isinstance(fut, AsyncList) and fut not in future_lists:
+                future_lists.append(fut)
+                it.extend([(v, fut, i) for i, v in enumerate(fut)][::-1])
 
         for s in self.sub_sol.values():
             for k, v in list(s.items()):
-                _set_result(s, k, v)
+                update(v, s, k)
 
             for d in s.workflow.nodes.values():
                 if 'results' in d:
-                    _set_result(d, 'results', d['results'])
+                    update(d['results'], d, 'results')
 
             for d in s.workflow.edges.values():
                 if 'value' in d:
-                    _set_result(d, 'value', d['value'])
+                    update(d['value'], d, 'value')
+
+        wait_fut({v[0] for v in it}, timeout)
+
+        for fut, d, k in it:
+            try:
+                d[k] = await_result(fut, 0)
+            except SkipNode as e:
+                exceptions.append((fut, d, k, e.ex))
+                del d[k]
+
         if exceptions:
             raise exceptions[0][-1]
         return self

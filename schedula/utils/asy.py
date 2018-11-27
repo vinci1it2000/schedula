@@ -252,10 +252,7 @@ def async_thread(sol, args, node_attr, node_id, *a, **kw):
                 result.set_exception(ex)
 
         def _submit_task(fut=None):
-            try:
-                futures and futures.remove(fut)
-            except KeyError:
-                pass
+            futures.discard(fut)
             not futures and _submit().add_done_callback(_set_res)
 
         for f in list(futures):
@@ -296,15 +293,13 @@ class Executor:
 
     def shutdown(self, wait=True):
         from .exc import ExecutorShutdown
+        from concurrent.futures import wait as wait_fut
         tasks = dict(self.tasks)
+        if wait:
+            wait_fut(tasks)
+
         for fut, task in tasks.items():
-            if wait:
-                try:
-                    fut.result()
-                except Exception:
-                    pass
-            elif not fut.done():
-                fut.set_exception(ExecutorShutdown)
+            not fut.done() and fut.set_exception(ExecutorShutdown)
             try:
                 task.terminate()
             except AttributeError:
