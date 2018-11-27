@@ -638,7 +638,9 @@ class TestAsyncParallel(unittest.TestCase):
 
         self.dsp2 = dsp = sh.Dispatcher()
         dsp.add_function(function=time.time, outputs=['start'])
-        executors = ('parallel-dispatch', 'parallel', 'async', None)
+        executors = (
+            'parallel-dispatch', 'parallel-pool', 'parallel', 'async', None
+        )
         for i, executor in enumerate(executors):
             d = sh.Dispatcher(name=executor or 'base', executor=executor)
             for o in 'bc':
@@ -666,7 +668,9 @@ class TestAsyncParallel(unittest.TestCase):
 
         self.dsp3 = dsp = sh.Dispatcher()
         dsp.add_function(function=os.getpid, outputs=['pid'])
-        executors = ('parallel-dispatch', 'parallel', 'async', None)
+        executors = (
+            'parallel-dispatch', 'parallel-pool', 'parallel', 'async', None
+        )
         for i, executor in enumerate(executors):
             d = sh.Dispatcher(name=executor or 'base', executor=executor)
             d.add_function(
@@ -755,14 +759,15 @@ class TestAsyncParallel(unittest.TestCase):
         from schedula.utils.exc import ExecutorShutdown
 
         kw = dict(inputs={'a': 1, 'err': True, 'b': 1}, stopper=Event())
-        for executor in ('async', 'parallel', 'parallel-dispatch'):
+        executors = ('async', 'parallel', 'parallel-pool', 'parallel-dispatch')
+        for executor in executors:
             sol = self.dsp1(executor=executor, **kw)
             self.assertTrue(all(isinstance(v, Future) for v in sol.values()))
             sh.shutdown_executors()
             with self.assertRaises(ValueError):
                 sol.result()
 
-        for executor in ('async', 'parallel', 'parallel-dispatch'):
+        for executor in executors:
             sol = self.dsp1(executor=executor, **kw)
             self.assertTrue(all(isinstance(v, Future) for v in sol.values()))
             sh.shutdown_executors(False)
@@ -776,31 +781,31 @@ class TestAsyncParallel(unittest.TestCase):
         sol = self.dsp2({'a': t, 'wait_domain': False}, executor=True).result()
         self.assertLess(time.time() - sol['start'], t * 5)
         from schedula.utils.asy import _EXECUTORS
-        self.assertEqual(len(_EXECUTORS), 3)
+        self.assertEqual(len(_EXECUTORS), 4)
         pids = {v for k, v in sol.items() if k.split('-')[-1] in 'bcd'}
-        self.assertEqual(len(pids), 7)
+        self.assertGreaterEqual(len(pids), 8)
         t0 = {k[:-2]: v for k, v in sol.items() if k.endswith('-e')}
         self.assertEqual(*map(math.floor, (t * 5, sum(t0.values()))))
         sol = self.dsp2({'a': t, 'wait_domain': True}, executor=True).result()
         t1 = {k[:-2]: v for k, v in sol.items() if k.endswith('-e')}
         self.assertLess(max(t0.values()), max(t1.values()))
         self.assertEqual(*map(math.floor, (max(t1.values()), sum(t0.values()))))
-        keys = 'parallel-dispatch', 'parallel', 'async', 'base'
+        keys = 'parallel-dispatch', 'parallel-pool', 'parallel', 'async', 'base'
         for i, j in sh.pairwise(sh.selector(keys, t1, output_type='list')):
             self.assertLess(i, j)
         self.assertEqual(
-            {'async', 'parallel', 'parallel-dispatch'},
+            {'async', 'parallel', 'parallel-pool', 'parallel-dispatch'},
             set(sh.shutdown_executors())
         )
 
     def test_await_result(self):
         sol = self.dsp3({'a': 0, 'b': 0.1, 'c': 0}, executor=True).result()
         from schedula.utils.asy import _EXECUTORS
-        self.assertEqual(len(_EXECUTORS), 3)
+        self.assertEqual(len(_EXECUTORS), 4)
         pids = {v for k, v in sol.items() if k.split('-')[-1] in 'defghi'}
-        self.assertEqual(len(pids - {sh.NONE}), 5)
+        self.assertGreaterEqual(len(pids - {sh.NONE}), 6)
         import itertools
-        executors = 'async', 'parallel', 'parallel-dispatch'
+        executors = 'async', 'parallel', 'parallel-pool', 'parallel-dispatch'
         pids = {'pid'}.union(
             map('base-{}'.format, 'dhf'),
             map('-'.join, itertools.product(executors, 'dh'))
@@ -812,14 +817,17 @@ class TestAsyncParallel(unittest.TestCase):
         for k in nones:
             self.assertEqual(sol[k], sh.NONE)
         self.assertEqual(
-            {'async', 'parallel', 'parallel-dispatch'},
+            {'async', 'parallel', 'parallel-pool', 'parallel-dispatch'},
             set(sh.shutdown_executors())
         )
 
     def test_shutdown_executors(self):
         self.dsp2(inputs={'a': 1}, executor=True)
         res = sh.shutdown_executors(False)
-        self.assertEqual(set(res), {'async', 'parallel', 'parallel-dispatch'})
+        self.assertEqual(
+            set(res),
+            {'async', 'parallel', 'parallel-pool', 'parallel-dispatch'}
+        )
         from concurrent.futures import Future
         from multiprocess import Process
         from threading import Thread

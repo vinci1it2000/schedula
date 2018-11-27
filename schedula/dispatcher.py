@@ -160,12 +160,14 @@ class Dispatcher(Base):
         :param executor:
             A pool executor id to dispatch asynchronously or in parallel.
 
-            There are three default Pool executors to dispatch asynchronously or
+            There are four default Pool executors to dispatch asynchronously or
             in parallel:
 
             - `async`: execute all functions asynchronously in the same process,
             - `parallel`: execute all functions in parallel excluding
               :class:`~schedula.utils.dsp.SubDispatch` functions,
+            - `parallel-pool`: execute all functions in parallel using a process
+              pool excluding :class:`~schedula.utils.dsp.SubDispatch` functions,
             - `parallel-dispatch`: execute all functions in parallel including
               :class:`~schedula.utils.dsp.SubDispatch`.
 

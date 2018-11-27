@@ -19,6 +19,10 @@ def _parallel_executor():
     return PoolExecutor(ThreadExecutor(), ProcessExecutor())
 
 
+def _parallel_pool_executor():
+    return PoolExecutor(ThreadExecutor(), ProcessPoolExecutor(), False)
+
+
 def _parallel_dispatch_executor():
     return PoolExecutor(ThreadExecutor(), ProcessExecutor(), True)
 
@@ -27,6 +31,7 @@ _EXECUTORS = {}
 EXECUTORS = {
     'async': _async_executor,
     'parallel': _parallel_executor,
+    'parallel-pool': _parallel_pool_executor,
     'parallel-dispatch': _parallel_dispatch_executor
 }
 
@@ -333,6 +338,29 @@ class ThreadExecutor(Executor):
         self.tasks[fut], task.daemon = task, True
         task.start()
         return fut
+
+
+class ProcessPoolExecutor(Executor):
+    """Process Pool Executor"""
+    def __init__(self):
+        super(ProcessPoolExecutor, self).__init__()
+        import os
+        from multiprocess import Pool
+        self.pool = Pool(os.cpu_count() or 1)
+
+    def submit(self, func, *args, **kwargs):
+        from concurrent.futures import Future
+        fut = Future()
+        self.tasks[fut] = self.pool.apply_async(
+            func, args, kwargs, fut.set_result, fut.set_exception
+        )
+        fut.add_done_callback(self.tasks.pop)
+        return fut
+
+    def shutdown(self, wait=True):
+        super(ProcessPoolExecutor, self).shutdown(wait)
+        self.pool.terminate()
+        self.pool.join()
 
 
 class PoolExecutor:

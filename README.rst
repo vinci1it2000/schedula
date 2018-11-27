@@ -265,12 +265,14 @@ When there are heavy calculations which takes a significant amount of time, you
 want to run your model asynchronously or in parallel. Generally, this is
 difficult to achieve, because it requires an higher level of abstraction and a
 deeper knowledge of python programming and the Global Interpreter Lock (GIL).
-Schedula will simplify again your life. It has three default executors to
+Schedula will simplify again your life. It has four default executors to
 dispatch asynchronously or in parallel:
 
     - `async`: execute all functions asynchronously in the same process,
     - `parallel`: execute all functions in parallel excluding
       :class:`~schedula.utils.dsp.SubDispatch` functions,
+    - `parallel-pool`: execute all functions in parallel using a process pool
+      excluding :class:`~schedula.utils.dsp.SubDispatch` functions,
     - `parallel-dispatch`: execute all functions in parallel including
       :class:`~schedula.utils.dsp.SubDispatch`.
 
