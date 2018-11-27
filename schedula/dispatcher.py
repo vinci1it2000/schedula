@@ -1415,7 +1415,7 @@ class Dispatcher(Base):
 
         :param stopper:
             A semaphore to abort the dispatching.
-        :type stopper: multiprocessing.Event, optional
+        :type stopper: multiprocess.Event, optional
 
         :param executor:
             A pool executor id to dispatch asynchronously or in parallel.

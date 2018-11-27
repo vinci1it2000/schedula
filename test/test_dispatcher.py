@@ -540,7 +540,7 @@ class TestAsyncParallel(unittest.TestCase):
     def setUp(self):
         import os
         import time
-        from multiprocessing import Value, Lock
+        from multiprocess import Value, Lock
 
         def reset_counter():
             global counter
@@ -688,7 +688,7 @@ class TestAsyncParallel(unittest.TestCase):
     def test_dispatch(self):
         from concurrent.futures import ThreadPoolExecutor as Pool, Future
         from schedula.utils.asy import EXECUTORS
-        from multiprocessing import Event
+        from multiprocess import Event
         def custom_executor():
             return sh.PoolExecutor(Pool(3), Pool(3))
         sh.register_executor(None, custom_executor)
@@ -713,7 +713,7 @@ class TestAsyncParallel(unittest.TestCase):
         pid = os.getpid()
         from concurrent.futures import ThreadPoolExecutor as Pool
         from schedula.utils.asy import _EXECUTORS
-        from multiprocessing import Event
+        from multiprocess import Event
 
         _EXECUTORS['parallel'] = sh.PoolExecutor(Pool(3), Pool(3))
         stopper = Event()
@@ -737,7 +737,7 @@ class TestAsyncParallel(unittest.TestCase):
 
     def test_parallel_dispatch(self):
         from concurrent.futures import Future
-        from multiprocessing import Event
+        from multiprocess import Event
         stopper = Event()
         sol = self.dsp1(
             {'a': 1, 'b': 1}, executor='parallel-dispatch', stopper=stopper
@@ -751,7 +751,7 @@ class TestAsyncParallel(unittest.TestCase):
 
     def test_errors(self):
         from concurrent.futures import Future
-        from multiprocessing import Event
+        from multiprocess import Event
         from schedula.utils.exc import ExecutorShutdown
 
         kw = dict(inputs={'a': 1, 'err': True, 'b': 1}, stopper=Event())
@@ -821,7 +821,7 @@ class TestAsyncParallel(unittest.TestCase):
         res = sh.shutdown_executors(False)
         self.assertEqual(set(res), {'async', 'parallel', 'parallel-dispatch'})
         from concurrent.futures import Future
-        from multiprocessing import Process
+        from multiprocess import Process
         from threading import Thread
         from schedula.utils.exc import ExecutorShutdown
         for r in res.values():
