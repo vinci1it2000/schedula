@@ -14,7 +14,6 @@ import collections
 import copy as _copy
 import functools
 import itertools
-import types
 import math
 from .base import Base
 from .exc import DispatcherError, DispatcherAbort
@@ -431,15 +430,15 @@ class add_args(object):
         for i in range(2):
             # noinspection PyBroadException
             try:
-                self._set_doc(func, n)
+                self.__name__ = func.__name__
+                self.__doc__ = func.__doc__
                 break
             except Exception:
                 func = parent_func(func)
 
-    def _set_doc(self, func, n):
-        self.__name__ = func.__name__
-        self.__doc__ = func.__doc__
-        self.__signature__ = _get_signature(func, n)
+    @property
+    def __signature__(self):
+        return _get_signature(self.func, self.n)
 
     def __call__(self, *args, **kwargs):
         res = self.func(*args[self.n:], **kwargs)
@@ -470,7 +469,7 @@ def _get_signature(func, n=1):
     # Update signature parameters.
     par = itertools.chain(*([p() for p in itertools.repeat(ept_par, n)],
                             sig.parameters.items()))
-    sig._parameters = types.MappingProxyType(collections.OrderedDict(par))
+    sig._parameters = sig._parameters.__class__(collections.OrderedDict(par))
 
     return sig
 
