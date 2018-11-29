@@ -802,8 +802,6 @@ class TestAsyncParallel(unittest.TestCase):
                 sol.result()
             self.assertEqual(set(sol), {'b', 'a', 'err'})
 
-
-
     def test_multiple(self):
         import time, os
         t, n = os.name == 'nt' and 2 or 0.1, len(self.dsp2.sub_dsp_nodes)
@@ -898,6 +896,12 @@ class TestDispatch(unittest.TestCase):
         self.dsp_raises = sh.Dispatcher(raises=True)
         from math import log
         self.dsp_raises.add_function(function=log, inputs=['a'], outputs=['b'])
+        self.dsp_raises_1 = sh.Dispatcher(
+            raises=lambda ex: not isinstance(ex, ValueError)
+        )
+        self.dsp_raises_1.add_function(
+            function=log, inputs=['a'], outputs=['b']
+        )
 
         sub_dsp = sh.Dispatcher(name='sub_dispatcher')
         sub_dsp.add_data('a', 1)
@@ -1388,8 +1392,14 @@ class TestDispatch(unittest.TestCase):
                           wildcard=True, shrink=True)
 
     def test_raises(self):
-        dsp = self.dsp_raises
-        self.assertRaises(sh.DispatcherError, dsp, inputs={'a': 0})
+        inputs = {'a': 0}
+        self.assertRaises(sh.DispatcherError, self.dsp_raises, inputs)
+        sol = self.dsp_raises_1(inputs)
+        self.assertEqual(sol, inputs)
+        self.assertEqual(set(sol._errors), {'log'})
+        s = "Failed DISPATCHING 'log' due to:\n  ValueError('math domain error'"
+        self.assertTrue(sol._errors['log'] in (s + ",)", s + ")"))
+        self.assertRaises(sh.DispatcherError, self.dsp_raises_1, {'a': ''})
 
     def test_input_dists(self):
         dsp = self.dsp_cutoff
