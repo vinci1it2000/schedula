@@ -620,10 +620,17 @@ class TestAsyncParallel(unittest.TestCase):
         sub_dsp.add_function(
             function=sleep, inputs=['a'], outputs=['d'], filters=[filter]
         )
+        sub_dsp.add_function(
+            function=error, inputs=['err'], outputs=['d'], filters=[filter]
+        )
         dsp.add_data('d', callback=callback)
         dsp.add_dispatcher(sub_dsp.copy(), inputs=['a'], outputs=['d'])
-        func = sh.SubDispatchFunction(sub_dsp, 'func', ['a'], ['d'])
+        func = sh.SubDispatchFunction(sub_dsp.copy(), 'func', ['a'], ['d'])
         dsp.add_function(function=func, inputs=['b'], outputs=['e'], weight=1)
+        func_pipe = sh.DispatchPipe(sub_dsp, 'func_pipe', ['err'], ['d'])
+        dsp.add_function(
+            function=func_pipe, inputs=['err'], outputs=['i'], weight=10
+        )
         dsp.add_function(function=sleep, inputs=['b', 'd', 'e'], outputs=['f'])
         dsp.add_function(
             function=error, inputs=['err', 'f'], outputs=['g', 'h']
@@ -768,21 +775,34 @@ class TestAsyncParallel(unittest.TestCase):
         from multiprocess import Event
         from schedula.utils.exc import ExecutorShutdown
 
-        kw = dict(inputs={'a': 1, 'err': True, 'b': 1}, stopper=Event())
+        kw = {'inputs': {'a': 1, 'err': True, 'b': 1}}
         executors = ('async', 'parallel', 'parallel-pool', 'parallel-dispatch')
         for executor in executors:
-            sol = self.dsp1(executor=executor, **kw)
+            sol = self.dsp1(executor=executor, stopper=Event(), **kw)
             self.assertTrue(all(isinstance(v, Future) for v in sol.values()))
             sh.shutdown_executors()
             with self.assertRaises(ValueError):
                 sol.result()
+            self.assertEqual(set(sol), {'d', 'b', 'a', 'f', 'err', 'e'})
 
         for executor in executors:
-            sol = self.dsp1(executor=executor, **kw)
+            sol = self.dsp1(executor=executor, stopper=Event(), **kw)
             self.assertTrue(all(isinstance(v, Future) for v in sol.values()))
             sh.shutdown_executors(False)
             with self.assertRaises(ExecutorShutdown):
                 sol.result()
+            self.assertEqual(set(sol), {'b', 'a', 'err'})
+
+        for executor in executors:
+            stopper = Event()
+            sol = self.dsp1(executor=executor, stopper=stopper, **kw)
+            stopper.set()
+            self.assertTrue(all(isinstance(v, Future) for v in sol.values()))
+            with self.assertRaises(sh.DispatcherAbort):
+                sol.result()
+            self.assertEqual(set(sol), {'b', 'a', 'err'})
+
+
 
     def test_multiple(self):
         import time, os
@@ -1362,14 +1382,14 @@ class TestDispatch(unittest.TestCase):
         self.assertEqual(o.workflow.adj, w)
 
         dsp = self.dsp_wildcard_2
-        self.assertRaises(ValueError, dsp.dispatch, {'a': 5, 'b': 6},
-                          ['a', 'b'], wildcard=True)
-        self.assertRaises(ValueError, dsp.dispatch, {'a': 5, 'b': 6},
-                          ['a', 'b'], wildcard=True, shrink=True)
+        self.assertRaises(sh.DispatcherError, dsp, {'a': 5, 'b': 6}, ['a', 'b'],
+                          wildcard=True)
+        self.assertRaises(sh.DispatcherError, dsp, {'a': 5, 'b': 6}, ['a', 'b'],
+                          wildcard=True, shrink=True)
 
     def test_raises(self):
         dsp = self.dsp_raises
-        self.assertRaises(ValueError, dsp.dispatch, inputs={'a': 0})
+        self.assertRaises(sh.DispatcherError, dsp, inputs={'a': 0})
 
     def test_input_dists(self):
         dsp = self.dsp_cutoff

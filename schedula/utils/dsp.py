@@ -433,7 +433,7 @@ class add_args(object):
                 self.__name__ = func.__name__
                 self.__doc__ = func.__doc__
                 break
-            except Exception:
+            except AttributeError:
                 func = parent_func(func)
 
     @property
@@ -447,15 +447,6 @@ class add_args(object):
             self.callback(res, *args, **kwargs)
 
         return res
-
-    def __deepcopy__(self, memo):
-        # noinspection PyArgumentList,PyArgumentList
-        cls = add_args(
-            func=_copy.deepcopy(self.func, memo),
-            n=self.n,
-            callback=_copy.deepcopy(self.callback, memo)
-        )
-        return cls
 
 
 def _get_signature(func, n=1):
@@ -1085,9 +1076,6 @@ class SubDispatchPipe(SubDispatchFunction):
         for v, s, nxt_nds, nxt_dsp in self.pipe:
             s = key_map(s)
 
-            if _stopper and _stopper.is_set():
-                raise DispatcherAbort("Stop requested.", sol=self.solution)
-
             if not s._set_node_output(
                     v, False, next_nds=nxt_nds, stopper=_stopper,
                     executor=_executor):
@@ -1171,6 +1159,14 @@ class DispatchPipe(NoSub, SubDispatchPipe):
         for s in self.solution.sub_sol.values():
             s._visited.clear()
         return super(DispatchPipe, self)._init_workflows(inputs)
+
+    def _return(self, solution):
+        # noinspection PyBroadException
+        try:
+            solution.result()
+        except Exception:
+            self._callback_pipe_failure()
+        return super(DispatchPipe, self)._return(solution)
 
     def _callback_pipe_failure(self):
         raise DispatcherError("The pipe is not respected.", sol=self.solution)
@@ -1281,8 +1277,6 @@ class DFun(object):
         for uf in dfuns:
             try:
                 uf.addme(dsp)
-            except KeyboardInterrupt as ex:
-                raise ex
             except Exception as ex:
                 raise ValueError("Failed adding dfun %s due to: %s: %s"
                                  % (uf, type(ex).__name__, ex)) from ex

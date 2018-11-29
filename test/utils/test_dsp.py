@@ -256,7 +256,7 @@ class TestSubDispatchFunction(unittest.TestCase):
 
         # noinspection PyCallingNonCallable
         self.assertEqual(fun(2, 1), 1)
-        self.assertRaises(ValueError, fun, 3, -1)
+        self.assertRaises(sh.DispatcherError, fun, 3, -1)
 
         fun = sh.SubDispatchFunction(self.dsp_2, 'F', ['b', 'a', 'e', 'h'], ['c', 'd'])
         # noinspection PyCallingNonCallable
@@ -319,7 +319,7 @@ class TestSubDispatchPipe(unittest.TestCase):
 
         # noinspection PyCallingNonCallable
         self.assertEqual(fun(2, 1), 1)
-        self.assertRaises(ValueError, fun, 3, -1)
+        self.assertRaises(sh.DispatcherError, fun, 3, -1)
         self.assertRaises(sh.DispatcherError, fun, 3, None)
 
         fun = sh.SubDispatchPipe(self.dsp_2, 'F', ['b', 'a'], ['c', 'd'])
@@ -382,7 +382,7 @@ class TestDispatchPipe(unittest.TestCase):
 
         # noinspection PyCallingNonCallable
         self.assertEqual(fun(2, 1), 1)
-        self.assertRaises(ValueError, fun, 3, -1)
+        self.assertRaises(sh.DispatcherError, fun, 3, -1)
         self.assertRaises(sh.DispatcherError, fun, 3, None)
 
         fun = sh.DispatchPipe(self.dsp_2, 'F', ['b', 'a'], ['c', 'd'])

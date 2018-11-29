@@ -104,10 +104,12 @@ def shutdown_executors(wait=True):
 
 def _process_funcs(name, funcs, executor, *args, stopper=None, sol_name=None,
                    **kw):
-    from .exc import DispatcherError
+    from .exc import DispatcherError, DispatcherAbort
     from .dsp import parent_func, SubDispatch, NoSub
     res, e = [], _get_executor(name)
     for fn in funcs:
+        if stopper and stopper.is_set():
+            raise DispatcherAbort
         pfunc, r = parent_func(fn), {}
         if isinstance(pfunc, SubDispatch):
             try:
@@ -190,8 +192,6 @@ def _await_result(result, timeout, sol, node_id):
     from .exc import SkipNode
     try:
         return await_result(result, None if timeout is True else timeout)
-    except (KeyboardInterrupt, SkipNode) as ex:
-        raise ex
     except Exception as ex:
         attr = sol.workflow.node[node_id]
         if 'started' in attr:
@@ -218,6 +218,10 @@ def async_thread(sol, args, node_attr, node_id, *a, **kw):
     :param node_attr:
         Dictionary of node attributes.
     :type node_attr: dict
+
+    :param node_id:
+        Data or function node id.
+    :type node_id: str
 
     :param a:
         Extra args to invoke `sol._evaluate_node`.

@@ -16,7 +16,7 @@ import time
 from .alg import add_edge_fun, remove_edge_fun, get_full_pipe, _sort_sk_wait_in
 from .cst import START, NONE, PLOT
 from .dsp import stlp
-from .exc import DispatcherError, DispatcherAbort, SkipNode
+from .exc import DispatcherError, DispatcherAbort, SkipNode, ExecutorShutdown
 from .asy import async_thread, await_result, async_process, AsyncList
 from .base import Base
 
@@ -208,7 +208,9 @@ class Solution(Base, collections.OrderedDict):
                 it.append((fut, data, key))
             elif isinstance(fut, AsyncList) and fut not in future_lists:
                 future_lists.append(fut)
-                it.extend([(v, fut, i) for i, v in enumerate(fut)][::-1])
+                it.extend([(v, fut, i)
+                           for i, v in enumerate(fut)
+                           if isinstance(v, Future)][::-1])
 
         for s in self.sub_sol.values():
             for k, v in list(s.items()):
@@ -229,6 +231,9 @@ class Solution(Base, collections.OrderedDict):
                 d[k] = await_result(fut, 0)
             except SkipNode as e:
                 exceptions.append((fut, d, k, e.ex))
+                del d[k]
+            except (Exception, ExecutorShutdown, DispatcherAbort) as ex:
+                exceptions.append((fut, d, k, ex))
                 del d[k]
 
         if exceptions:
@@ -263,9 +268,6 @@ class Solution(Base, collections.OrderedDict):
         while fringe:
             # Visit the closest available node.
             n = (d, _, (v, sol)) = heapq.heappop(fringe)
-
-            if stopper and stopper.is_set():
-                raise DispatcherAbort("Stop requested.", sol=self)
 
             # Skip terminated sub-dispatcher or visited nodes.
             if sol.index in dsp_closed or (v is not START and v in sol.dist):
@@ -620,15 +622,11 @@ class Solution(Base, collections.OrderedDict):
                 try:
                     # noinspection PyCallingNonCallable
                     node_attr['callback'](value)
-                except KeyboardInterrupt as ex:
-                    raise ex
                 except Exception as ex:
                     msg = "Failed CALLBACK '%s' due to:\n  %s"
                     self._warning(msg, node_id, ex)
 
             return value
-        except (KeyboardInterrupt, SkipNode) as ex:
-            raise ex
         except Exception as ex:
             if 'started' in attr:
                 attr['duration'] = time.time() - attr['started']
@@ -1226,15 +1224,16 @@ class Solution(Base, collections.OrderedDict):
            when an error occur, otherwise it logs a warning.
         """
 
-        if (self.raises and isinstance(ex, DispatcherError)) or \
-                isinstance(ex, DispatcherAbort):
+        raises = self.raises(ex) if callable(self.raises) else self.raises
+
+        if raises and isinstance(ex, DispatcherError):
             ex.update(self)
             raise ex
 
         self._errors[node_id] = msg % ((node_id, ex) + args)
         node_id = '/'.join(self.full_name + (node_id,))
 
-        if self.raises:
+        if raises:
             raise DispatcherError(msg, node_id, ex, *args, sol=self, **kwargs)
         else:
             kwargs['exc_info'] = kwargs.get('exc_info', 1)

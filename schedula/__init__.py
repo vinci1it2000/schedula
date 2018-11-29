@@ -64,6 +64,8 @@ _all = {
     'add_function': '.utils.dsp',
     'DispatcherError': '.utils.exc',
     'DispatcherAbort': '.utils.exc',
+    'ExecutorShutdown': '.utils.exc',
+    'SkipNode': '.utils.exc',
     'counter': '.utils.gen',
     'Token': '.utils.gen',
     'pairwise': '.utils.gen',

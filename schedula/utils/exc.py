@@ -11,7 +11,7 @@
 __author__ = 'Vincenzo Arcidiacono <vinci1it2000@gmail.com>'
 
 
-class DispatcherError(ValueError):
+class DispatcherError(Exception):
     def __init__(self, *args, sol=None, **kwargs):
         super(DispatcherError, self).__init__(*args, **kwargs)
         self.plot = None
@@ -23,15 +23,15 @@ class DispatcherError(ValueError):
         self.plot = self.sol.plot if sol is not None else None
 
 
-class DispatcherAbort(DispatcherError):
+class DispatcherAbort(BaseException):
     pass
 
 
-class SkipNode(Exception):
+class SkipNode(BaseException):
     def __init__(self, *args, ex=None, **kwargs):
         super(SkipNode, self).__init__(*args, **kwargs)
         self.ex = ex
 
 
-class ExecutorShutdown(Exception):
+class ExecutorShutdown(BaseException):
     pass
