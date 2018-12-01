@@ -952,7 +952,7 @@ class Dispatcher(Base):
                     rl = node.get('remote_links', [])
 
                     # Remove remote links.
-                    for v in [v for v in rl if rl[1] == type]:
+                    for v in [v for v in rl if v[1] == type]:
                         rl.remove(v)
 
                     # Remove remote link attribute.
