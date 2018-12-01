@@ -102,6 +102,10 @@ def kk_dict(*kk, **adict):
         Traceback (most recent call last):
          ...
         ValueError: keyword argument repeated
+        >>> sorted(kk_dict('a', {'b': 'd'}, **{'b': 'c'}).items())
+        Traceback (most recent call last):
+         ...
+        ValueError: keyword argument repeated
     """
 
     for k in kk:
@@ -413,14 +417,17 @@ class add_args(object):
 
     Example::
 
-        >>> def original_func(a, b):
+        >>> import inspect
+        >>> def original_func(a, b, *args, c=0):
         ...     '''Doc'''
-        ...     return a + b
+        ...     return a + b + c
         >>> func = add_args(original_func, n=2)
         >>> func.__name__, func.__doc__
         ('original_func', 'Doc')
-        >>> func(1, 2, 3, 4)
-        7
+        >>> func(1, 2, 3, 4, c=5)
+        12
+        >>> str(inspect.signature(func))
+        '(none, none, a, b, *args, c=0)'
     """
 
     def __init__(self, func, n=1, callback=None):
@@ -1342,6 +1349,16 @@ def add_function(dsp, inputs_kwargs=False, inputs_defaults=False, **kw):
         >>> dsp = sh.Dispatcher(name='Dispatcher')
         >>> @sh.add_function(dsp, True, True, outputs=['e'])
         ... def func(a, b, c, d=0):
+        ...     return (a + b) - c + d
+
+    .. dispatcher:: dsp
+       :opt: graph_attr={'ratio': '1'}
+       :code:
+
+        >>> import schedula as sh
+        >>> dsp = sh.Dispatcher(name='Dispatcher')
+        >>> @sh.add_function(dsp, True, True, outputs=['e'])
+        ... def func(a, b, c, *args, d=0):
         ...     return (a + b) - c + d
     """
     import inspect

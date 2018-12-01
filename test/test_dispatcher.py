@@ -196,30 +196,31 @@ class TestCreateDispatcher(unittest.TestCase):
         self.assertRaises(ValueError, dsp.add_function, 'f', outputs=[fun_id])
 
     def test_add_dispatcher(self):
-        sub_dsp = self.sub_dsp
+        sub_dsp = self.sub_dsp.copy()
 
         dsp = sh.Dispatcher()
 
         dsp.add_function(function=max, inputs=['a', 'b'], outputs=['c'])
 
+        self.assertNotIn(sh.SINK, sub_dsp.nodes)
         dsp_id = dsp.add_dispatcher(sub_dsp,
                                     inputs={('d', 'd1'): ('a', 'b'), 'e': 'b'},
-                                    outputs=('e', {'c': ('d', 'd1')}))
-
+                                    outputs=('e', {'c': ('d', 'd1')}, sh.SINK))
+        self.assertIn(sh.SINK, sub_dsp.nodes)
         self.assertEqual(dsp_id, 'sub_dispatcher')
         dsp.nodes[dsp_id].pop('function')
         res = {
             'index': (4,),
             'type': 'dispatcher',
             'inputs': {'e': 'b', ('d', 'd1'): ('a', 'b')},
-            'outputs': {'c': ('d', 'd1'), 'e': 'e'},
+            'outputs': {'c': ('d', 'd1'), 'e': 'e', sh.SINK: sh.SINK},
             'wait_inputs': False,
         }
         self.assertEqual(dsp.nodes[dsp_id], res)
 
         sub_dsp.name = ''
         dsp_id = dsp.add_dispatcher(sub_dsp,
-                                    inputs={'d': 'a', 'e': 'b'},
+                                    inputs={'d': 'c', 'e': 'b'},
                                     outputs={'c': 'd', 'e': 'e'})
 
         self.assertEqual(dsp_id, 'unknown')
@@ -240,6 +241,23 @@ class TestCreateDispatcher(unittest.TestCase):
 
         res = {'value': 1, 'initial_dist': 0.0}
         self.assertEqual(dsp.default_values['d'], res)
+
+        self.assertEqual(
+            sub_dsp.nodes['a']['remote_links'],
+            [[[k, dsp], 'parent']
+             for k in ('sub_dispatcher', 'unknown<0>', 'sub_dsp')]
+        )
+        sub_dsp.set_data_remote_link('a')
+        self.assertNotIn('remote_links', sub_dsp.nodes['a'])
+        sub_dsp.set_data_remote_link('c', is_parent=False)
+        self.assertEqual(
+            sub_dsp.nodes['c']['remote_links'],
+            [[[k, dsp], 'parent']
+             for k in ('unknown',)]
+        )
+        sub_dsp.set_data_remote_link('c')
+        self.assertNotIn('remote_links', sub_dsp.nodes['c'])
+        self.assertRaises(ValueError, sub_dsp.set_data_remote_link, 'sub_dsp')
 
     def test_load_from_lists(self):
         dsp = sh.Dispatcher()
@@ -895,12 +913,19 @@ class TestDispatch(unittest.TestCase):
 
         self.dsp_raises = sh.Dispatcher(raises=True)
         from math import log
-        self.dsp_raises.add_function(function=log, inputs=['a'], outputs=['b'])
+        sub_dsp = sh.Dispatcher(raises=True)
+        sub_dsp.add_function(function=log, inputs=['a'], outputs=['b'])
+        func = sh.SubDispatchFunction(sub_dsp, 'func', ['a'], ['b'])
+        self.dsp_raises.add_function(function=func, inputs=['a'], outputs=['b'])
         self.dsp_raises_1 = sh.Dispatcher(
-            raises=lambda ex: not isinstance(ex, ValueError)
+            raises=lambda ex: not isinstance(ex, (ValueError, KeyError))
         )
         self.dsp_raises_1.add_function(
             function=log, inputs=['a'], outputs=['b']
+        )
+
+        self.dsp_raises_1.add_dispatcher(
+            sub_dsp.copy(), ('a',), ('b',), 'sub', input_domain=lambda k: k['b']
         )
 
         sub_dsp = sh.Dispatcher(name='sub_dispatcher')
@@ -1393,12 +1418,23 @@ class TestDispatch(unittest.TestCase):
 
     def test_raises(self):
         inputs = {'a': 0}
-        self.assertRaises(sh.DispatcherError, self.dsp_raises, inputs)
+        try:
+            self.dsp_raises(inputs)
+        except sh.DispatcherError as ex:
+            self.assertIs(ex.sol, self.dsp_raises.solution)
+
         sol = self.dsp_raises_1(inputs)
         self.assertEqual(sol, inputs)
-        self.assertEqual(set(sol._errors), {'log'})
-        s = "Failed DISPATCHING 'log' due to:\n  ValueError('math domain error'"
-        self.assertTrue(sol._errors['log'] in (s + ",)", s + ")"))
+        self.assertEqual(set(sol._errors), {'log', 'sub'})
+        self.assertRegex(
+            sol._errors['log'],
+            "Failed DISPATCHING 'log' due to:\n"
+            "  ValueError\('math domain error',?\)"
+        )
+        self.assertRegex(
+            sol._errors['sub'],
+            "Failed SUB-DSP DOMAIN 'sub' due to:\n  KeyError\('b',?\)"
+        )
         self.assertRaises(sh.DispatcherError, self.dsp_raises_1, {'a': ''})
 
     def test_input_dists(self):

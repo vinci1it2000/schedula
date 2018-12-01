@@ -373,7 +373,7 @@ class PoolExecutor:
         """
         :param thread_executor:
             Thread pool executor to dispatch asynchronously.
-        :type thread_executor: ThreadExecutor | ThreadPoolExecutor
+        :type thread_executor: ThreadExecutor
 
         :param process_executor:
             Process pool executor to execute in parallel the functions calls.
