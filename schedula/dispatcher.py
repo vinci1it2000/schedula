@@ -221,8 +221,7 @@ class Dispatcher(Base):
 
     def add_data(self, data_id=None, default_value=EMPTY, initial_dist=0.0,
                  wait_inputs=False, wildcard=None, function=None, callback=None,
-                 remote_links=None, description=None, filters=None,
-                 await_result=None, **kwargs):
+                 description=None, filters=None, await_result=None, **kwargs):
         """
         Add a single data node to the dispatcher.
 
@@ -264,10 +263,6 @@ class Dispatcher(Base):
             This can be any function that takes only one argument that is the
             data node estimation output. It does not return anything.
         :type callback: callable, optional
-
-        :param remote_links:
-            List of parent or child dispatcher nodes e.g., [[dsp_id, dsp], ...].
-        :type remote_links: list[[str, Dispatcher]], optional
 
         :param description:
             Data node's description.
@@ -374,9 +369,6 @@ class Dispatcher(Base):
 
         if wildcard is not None:  # Add wildcard as node attribute.
             attr_dict['wildcard'] = wildcard
-
-        if remote_links is not None:  # Add remote links.
-            attr_dict['remote_links'] = remote_links
 
         if description is not None:  # Add description as node attribute.
             attr_dict['description'] = description
@@ -742,17 +734,9 @@ class Dispatcher(Base):
         # Set proper outputs.
         self.nodes[dsp_id]['outputs'] = outputs
 
-        remote_link = [dsp_id, self]  # Define the remote link.
-
-        # Unlink node reference.
-        lnodes = tuple(_iter_list_nodes(outputs))
-        for k in children.union(lnodes).intersection(dsp.nodes):
-            dsp.nodes[k] = dsp.nodes[k].copy()
-
-        # Set remote link.
-        for it, is_parent in [(children, True), (lnodes, False)]:
-            for k in it:
-                dsp.set_data_remote_link(k, remote_link, is_parent=is_parent)
+        if SINK not in dsp.nodes and \
+                SINK in children.union(_iter_list_nodes(outputs)):
+            dsp.add_data(SINK)  # Add sink node.
 
         # Import default values from sub-dispatcher.
         if include_defaults:
@@ -914,57 +898,6 @@ class Dispatcher(Base):
                         'value': value,
                         'initial_dist': initial_dist
                     }
-                return
-        except KeyError:
-            pass
-        raise ValueError('Input error: %s is not a data node' % data_id)
-
-    def set_data_remote_link(self, data_id, remote_link=EMPTY, is_parent=True):
-        """
-        Set a remote link of a data node in the dispatcher.
-
-        :param data_id:
-            Data node id.
-        :type data_id: str
-
-        :param remote_link:
-            Parent or child dispatcher and its node id (id, dsp).
-        :type remote_link: [str, Dispatcher], optional
-
-        :param is_parent:
-            If True the link is inflow (parent), otherwise is outflow (child).
-        :type is_parent: bool
-        """
-
-        nodes = self.nodes  # Namespace shortcut.
-
-        if remote_link != EMPTY and data_id is SINK and data_id not in nodes:
-            self.add_data(SINK)  # Add sink node.
-
-        try:
-            if self.dmap.nodes[data_id]['type'] == 'data':  # Is data node?
-
-                type = ['child', 'parent'][is_parent]  # Remote link type.
-
-                if remote_link == EMPTY:
-                    # Namespace shortcuts.
-                    node = nodes.get(data_id, {})
-                    rl = node.get('remote_links', [])
-
-                    # Remove remote links.
-                    for v in [v for v in rl if v[1] == type]:
-                        rl.remove(v)
-
-                    # Remove remote link attribute.
-                    if not rl:
-                        node.pop('remote_links', None)
-                else:
-                    node = nodes[data_id]  # Namespace shortcuts.
-
-                    rl = node['remote_links'] = node.get('remote_links', [])
-                    if [remote_link, type] not in rl:  # Add remote link.
-                        rl.append([remote_link, type])
-
                 return
         except KeyError:
             pass
@@ -1288,24 +1221,19 @@ class Dispatcher(Base):
                 nbrs[child] = pred[child][parent] = dmap_nbrs[child]
 
         if _update_links:
-            from .utils.alg import _children, _update_remote_links, remove_links
+            from .utils.alg import _children, _update_io_attr_sub_dsp
             succ, pred = sub_dsp.dmap.succ, sub_dsp.dmap.pred
             for k, a in sub_dsp.sub_dsp_nodes.items():
                 nodes[k] = a = a.copy()
-                o = {i: selector(stlp(j), succ[k], allow_miss=True)
-                     for i, j in a['outputs'].items()}
+                o = succ[k]
+                o = {k for k, v in a['outputs'].items()
+                     if any(i in o for i in stlp(v))}
 
-                a['outputs'] = o = {i: bypass(*j) for i, j in o.items() if j}
-                a['inputs'] = selector(pred[k], a['inputs'], allow_miss=True)
-                inp = _children(a['inputs'])
-                o = set(o).union(inp)
+                inp = _children(selector(pred[k], a['inputs'], allow_miss=True))
                 a['function'] = a['function'].get_sub_dsp_from_workflow(
-                    o, a['function'].dmap, True, inp, wildcard=True
+                    set(o).union(inp), a['function'].dmap, True, inp, wildcard=1
                 )
-
-            _update_remote_links(sub_dsp, self)  # Update remote links.
-
-            remove_links(sub_dsp)  # Remove unused links.
+                _update_io_attr_sub_dsp(a['function'], a, o, pred[k])
 
         return sub_dsp  # Return the sub-dispatcher map.
 
@@ -1667,7 +1595,7 @@ class Dispatcher(Base):
 
         return dsp  # Return the shrink sub dispatcher.
 
-    def _get_dsp_from_bfs(self, outputs, bfs_graphs=None, _update_links=True):
+    def _get_dsp_from_bfs(self, outputs, bfs_graphs=None):
         """
         Returns the sub-dispatcher induced by the workflow from outputs.
 
@@ -1693,9 +1621,9 @@ class Dispatcher(Base):
 
         # Namespace shortcuts.
         in_e, out_e = dsp.dmap.in_edges, dsp.dmap.out_edges
-        succ, nodes = dsp.dmap.succ, dsp.nodes
+        succ, nodes, pred = dsp.dmap.succ, dsp.nodes, dsp.dmap.pred
         rm_edges = dsp.dmap.remove_edges_from
-        from .utils.alg import _children
+        from .utils.alg import _children, _update_io_attr_sub_dsp
 
         for n in dsp.sub_dsp_nodes:
             a = nodes[n] = nodes[n].copy()
@@ -1708,20 +1636,13 @@ class Dispatcher(Base):
             if 'input_domain' in a:
                 o = o.union(set(_children(a['inputs'])))
 
-            d = a['function'] = a['function']._get_dsp_from_bfs(o, bfs, False)
-            from .utils.alg import _update_io_attr_sub_dsp
-            _update_io_attr_sub_dsp(d, a)
+            d = a['function'] = a['function']._get_dsp_from_bfs(o, bfs)
+            _update_io_attr_sub_dsp(d, a, o, pred[n])
 
             # Update sub-dispatcher edges.
             o = set(out_e(n)) - {(n, u) for u in _children(a['outputs'])}
             i = set(in_e(n)) - {(u, n) for u in a['inputs']}
             rm_edges(i.union(o))  # Remove unreachable nodes.
-
-        if _update_links:
-            from .utils.alg import _update_remote_links, remove_links
-            _update_remote_links(dsp, self)  # Update remote links.
-
-            remove_links(dsp)  # Remove unused links.
 
         return dsp
 

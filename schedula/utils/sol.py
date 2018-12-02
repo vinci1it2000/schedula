@@ -200,7 +200,7 @@ class Solution(Base, collections.OrderedDict):
             Update Solution.
         :rtype: Solution
         """
-        it, exceptions, future_lists  = [], [], []
+        it, exceptions, future_lists = [], [], []
         from concurrent.futures import Future, wait as wait_fut
 
         def update(fut, data, key):
@@ -208,9 +208,9 @@ class Solution(Base, collections.OrderedDict):
                 it.append((fut, data, key))
             elif isinstance(fut, AsyncList) and fut not in future_lists:
                 future_lists.append(fut)
-                it.extend([(v, fut, i)
-                           for i, v in enumerate(fut)
-                           if isinstance(v, Future)][::-1])
+                it.extend([(j, fut, i)
+                           for i, j in enumerate(fut)
+                           if isinstance(j, Future)][::-1])
 
         for s in self.sub_sol.values():
             for k, v in list(s.items()):
@@ -226,14 +226,14 @@ class Solution(Base, collections.OrderedDict):
 
         wait_fut({v[0] for v in it}, timeout)
 
-        for fut, d, k in it:
+        for f, d, k in it:
             try:
-                d[k] = await_result(fut, 0)
+                d[k] = await_result(f, 0)
             except SkipNode as e:
-                exceptions.append((fut, d, k, e.ex))
+                exceptions.append((f, d, k, e.ex))
                 del d[k]
             except (Exception, ExecutorShutdown, DispatcherAbort) as ex:
-                exceptions.append((fut, d, k, ex))
+                exceptions.append((f, d, k, ex))
                 del d[k]
 
         if exceptions:
@@ -725,6 +725,7 @@ class Solution(Base, collections.OrderedDict):
                 attr['started'] = time.time()
             attr['solution_filters'] = filters
 
+            # noinspection PyUnusedLocal
             def _callback(is_sol, sol):
                 filters.append(sol)
 
@@ -1102,26 +1103,24 @@ class Solution(Base, collections.OrderedDict):
             A function to check if the remote dispatcher is ok.
         :type check_dsp: (Dispatcher) -> bool
         """
+        # Namespace shortcut.
+        node, p_id, c_i = self.nodes[node_id], self.index[:-1], self.index[-1:]
 
-        node = self.nodes[node_id]  # Namespace shortcut.
-
-        if node['type'] == 'data' and 'remote_links' in node:
-            value = self[node_id]  # Get data output.
-
-            for (dsp_id, dsp), type in node['remote_links']:
-                if 'child' == type and check_dsp(self.index[:-1]):
-                    # Get node id of remote sub-dispatcher.
-                    sol = self.sub_sol[self.index[:-1]]
-                    for n_id in stlp(dsp.nodes[dsp_id]['outputs'][node_id]):
-                        b = n_id in sol._visited  # Node has been visited.
-
-                        # Input do not coincide with the output.
-                        if not (b or sol.workflow.has_edge(n_id, dsp_id)):
+        if node['type'] == 'data' and p_id and check_dsp(p_id):
+            sol = self.sub_sol[self.index[:-1]]  # Get parent solution.
+            for dsp_id, n in sol.dsp.nodes.items():
+                if n['index'] == c_i and node_id in n.get('outputs', {}):
+                    value = self[node_id]  # Get data output.
+                    for n_id in stlp(n['outputs'][node_id]):
+                        # Node has been visited or inp do not coincide with out.
+                        if not (n_id in sol._visited or
+                                sol.workflow.has_edge(n_id, dsp_id)):
                             # Donate the result to the child.
                             sol._wf_add_edge(dsp_id, n_id, value=value)
                             if fringe is not None:
                                 # See node.
                                 sol._see_node(n_id, fringe, dist, w_wait_in=2)
+                    break
 
     def _check_sub_dsp_domain(self, dsp_id, node, pred, kw):
         if 'input_domain' in node and not (self.no_domain or self.no_call):

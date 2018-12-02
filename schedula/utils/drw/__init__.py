@@ -385,20 +385,27 @@ class FolderNode(object):
             pass
 
     def _remote_links(self):
-        attr, item = self.attr, self.folder.item
-        for i, ((dsp_id, dsp), tag) in enumerate(attr.get('remote_links', [])):
-            tag = {'child': 'outputs', 'parent': 'inputs'}[tag]
-            dsp_attr, nid = dsp.nodes[dsp_id], self.node_id
-            if tag == 'inputs':
-                n = tuple(k for k, v in dsp_attr[tag].items() if nid in stlp(v))
-            else:
-                n = stlp(dsp_attr[tag][nid])
+        if not self.folder.parent:
+            return
+        dsp_id, dsp = self.folder.name, self.folder.parent.dsp
+        node = dsp.nodes[dsp_id]
+        if node['type'] == 'dispatcher':
+            i, nid = 0, self.node_id
+            for k, tag in (('inputs', 'parent'), ('outputs', 'child')):
+                d = node.get(k, {})
+                if tag == 'parent':
+                    n = tuple(k for k, v in d.items() if nid in stlp(v))
+                else:
+                    n = stlp(d.get(nid, ()))
 
-            if len(n) == 1:
-                n = n[0]
+                if not n:
+                    continue
+                elif len(n) == 1:
+                    n = n[0]
 
-            n = 'parent_ref("({})", attr)'.format(n)
-            yield 'remote %s %d' % (tag, i), '{{%s}}' % n
+                n = 'parent_ref("({})", attr)'.format(n)
+                yield 'remote %s %d' % (tag, i), '{{%s}}' % n
+                i += 1
 
     def _output(self):
         if self.node_id not in (START, SINK, SELF, END):
@@ -600,10 +607,11 @@ class SiteFolder(object):
     ext = 'html'
 
     def __init__(self, item, dsp, graph, obj, name='', workflow=False,
-                 digraph=None, **options):
+                 digraph=None, parent=None, **options):
         self.item, self.dsp, self.graph, self.obj = item, dsp, graph, obj
         self._name = name
         self.workflow = workflow
+        self.parent = parent
         self.id = str(self.counter())
         self.options = options
         nodes = collections.OrderedDict(self._nodes)
@@ -984,7 +992,7 @@ class SiteMap(collections.OrderedDict):
             for k, filename in update_filenames(node, filenames):
                 yield k, rule + filename
 
-    def _add_obj(self, obj, workflow=False, **options):
+    def _add_obj(self, obj, workflow=False, folder=None, **options):
         item = parent_func(obj)
         if workflow:
             item = self.get_sol_from(item)
@@ -994,19 +1002,23 @@ class SiteMap(collections.OrderedDict):
             graph = dsp.dmap
 
         folder = self.site_folder(
-            item, dsp, graph, obj, workflow=workflow, **options
+            item, dsp, graph, obj, workflow=workflow, parent=folder, **options
         )
         folder.sitemap = smap = self[folder] = self.__class__()
         return smap, folder
 
-    def add_items(self, item, workflow=False, depth=-1, **options):
+    def add_items(self, item, workflow=False, depth=-1, folder=None, **options):
         opt = selector(self.options, self.__dict__, allow_miss=True)
         opt = combine_dicts(options, base=opt)
-        smap, folder = self._add_obj(item, workflow=workflow, **opt)
+        smap, folder = self._add_obj(
+            item, workflow=workflow, folder=folder, **opt
+        )
         if depth > 0:
             depth -= 1
         site_node, append = self.site_node, smap._nodes.append
-        add_items = functools.partial(smap.add_items, workflow=workflow, **opt)
+        add_items = functools.partial(
+            smap.add_items, workflow=workflow, folder=folder, **opt
+        )
         for node in itertools.chain(folder.nodes, folder.edges):
             links, node_id = node._links, node.node_id
             only_site_node = depth == 0 or node.type == 'data'

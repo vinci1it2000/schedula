@@ -199,88 +199,6 @@ def _add_edge_dmap_fun(graph, edges_weights=None):
     return add_edge  # Returns the function.
 
 
-def _get_parent_nodes(dsp, sub_dsp_id, inputs=True):
-    if inputs:
-        key_map, d = dsp.nodes[sub_dsp_id]['inputs'], dsp.dmap.pred[sub_dsp_id]
-    else:
-        key_map = _invert_node_map(dsp.nodes[sub_dsp_id]['outputs'])
-        d = dsp.dmap.succ[sub_dsp_id]
-
-    return list(_iter_list_nodes(map_dict(key_map, d)))
-
-
-def _invert_node_map(_map):
-    r = {}
-    for i, v in _map.items():
-        for j in stlp(v):
-            if j in r:
-                r[j] = stlp(r[j]) + (i,)
-            else:
-                r[j] = i
-    return r
-
-
-def remove_links(dsp):
-    for k, a in dsp.data_nodes.items():
-        links = []
-        for (n, d), t in a.pop('remote_links', []):
-            if t == 'parent' and k in _get_parent_nodes(d, n, inputs=True):
-                links.append([[n, d], t])
-            elif t == 'child' and k in _get_parent_nodes(d, n, inputs=False):
-                links.append([[n, d], t])
-        if links:
-            a['remote_links'] = links
-
-    for n, a in dsp.sub_dsp_nodes.items():
-        remove_links(a['function'])
-        nodes = a['function'].nodes
-        i = a['inputs']
-        for k, v in list(i.items()):
-            j = tuple(
-                i for i in stlp(v) if _has_remote(nodes[i], type='parent'))
-            if j:
-                i[k] = j
-            else:
-                i.pop(k)
-
-        a['outputs'] = {k: v for k, v in a['outputs'].items() if
-                        _has_remote(nodes[k], type='child')}
-
-
-def _has_remote(node, type=('child', 'parent')):
-    return any(v[1] in stlp(type) for v in node.get('remote_links', []))
-
-
-def replace_remote_link(dsp, nodes_bunch, link_map):
-    """
-    Replaces or removes remote links.
-
-    :param dsp:
-        A dispatcher with remote links.
-    :type dsp: schedula.Dispatcher
-
-    :param nodes_bunch:
-        A container of nodes which will be iterated through once.
-    :type nodes_bunch: iterable
-
-    :param link_map:
-        A dictionary that maps the link keys ({old link: new link}
-    :type link_map: dict
-    """
-    nodes = dsp.nodes
-    for k in nodes_bunch:  # Update remote links.
-        node = nodes[k] = nodes[k].copy()
-        links = []
-        # Define new remote links.
-        for (n, d), t in node.pop('remote_links', []):
-            d = link_map.get(d, None)
-
-            if d:
-                links.append([[n, d], t])
-        if links:
-            node['remote_links'] = links
-
-
 def _iter_list_nodes(l):
     for v in l:
         if isinstance(v, str):
@@ -291,12 +209,6 @@ def _iter_list_nodes(l):
 
 
 def _children(inputs):
-    """
-
-    :param inputs:
-    :return:
-    """
-
     return set(_iter_list_nodes(inputs.values()))
 
 
@@ -328,64 +240,7 @@ def _get_node(nodes, node_id, fuzzy=True):
         raise ex
 
 
-def _update_remote_links(new_dsp, old_dsp):
-    """
-    Update the remote links (parent/child) in the new_dsp .
-
-    :param new_dsp:
-        New Dispatcher.
-    :type new_dsp: schedula.Dispatcher
-
-    :param old_dsp:
-        Old Dispatcher.
-    :type old_dsp: schedula.Dispatcher
-    """
-
-    _map = _map_remote_links(new_dsp, old_dsp)
-
-    def _update(dsp):
-        nodes = dsp.nodes
-        for k, n in dsp.sub_dsp_nodes.items():
-            n = nodes[k] = n.copy()
-            dsp = n['function']
-
-            n = set(_children(n['inputs'])).union(set(n['outputs']))
-
-            # Update remote links.
-            replace_remote_link(dsp, n.intersection(dsp.nodes), _map)
-
-            _update(dsp)
-
-    _update(new_dsp)
-
-
-def _map_remote_links(new_dsp, old_dsp):
-    """
-    Returns a map with old_dsp and new_dsp to update remote links.
-
-    :param new_dsp:
-        Old Dispatcher.
-    :type new_dsp: schedula.Dispatcher
-
-    :param old_dsp:
-        Old Dispatcher.
-    :type old_dsp: schedula.Dispatcher
-
-    :return:
-        A map with old_dsp and new_dsp.
-    :rtype: dict[schedula.Dispatcher, schedula.Dispatcher]
-    """
-
-    ref, nodes = {old_dsp: new_dsp}, old_dsp.nodes  # Namespace shortcuts.
-
-    for k, n in new_dsp.sub_dsp_nodes.items():
-        s, o = n['function'], nodes[k]['function']
-        ref.update(_map_remote_links(s, o))
-
-    return ref
-
-
-def _update_io_attr_sub_dsp(dsp, attr):
+def _update_io_attr_sub_dsp(dsp, attr, outputs, inputs):
     """
     Updates input and output of sub-dispatcher node attributes.
 
@@ -399,17 +254,13 @@ def _update_io_attr_sub_dsp(dsp, attr):
     """
 
     # Namespace shortcuts.
-    nodes, o, i = dsp.nodes, attr['outputs'], {}
+    nds, out, inp = dsp.nodes, attr['outputs'], attr['inputs']
 
-    attr['outputs'] = selector(set(o).intersection(nodes), o)
+    attr['outputs'] = selector(set(outputs).intersection(nds, out), out)
 
-    for k, v in attr['inputs'].items():
-        j = tuple(j for j in stlp(v) if j in nodes)
-
-        if j:
-            i[k] = bypass(*j)
-
-    attr['inputs'] = i
+    i = {k: tuple(j for j in stlp(v) if j in nds)
+         for k, v in selector(set(inputs).intersection(inp), inp).items()}
+    attr['inputs'] = {k: bypass(*v) for k, v in i.items() if v}
 
 
 def get_sub_node(dsp, path, node_attr='auto', solution=NONE, _level=0,

@@ -242,23 +242,6 @@ class TestCreateDispatcher(unittest.TestCase):
         res = {'value': 1, 'initial_dist': 0.0}
         self.assertEqual(dsp.default_values['d'], res)
 
-        self.assertEqual(
-            sub_dsp.nodes['a']['remote_links'],
-            [[[k, dsp], 'parent']
-             for k in ('sub_dispatcher', 'unknown<0>', 'sub_dsp')]
-        )
-        sub_dsp.set_data_remote_link('a')
-        self.assertNotIn('remote_links', sub_dsp.nodes['a'])
-        sub_dsp.set_data_remote_link('c', is_parent=False)
-        self.assertEqual(
-            sub_dsp.nodes['c']['remote_links'],
-            [[[k, dsp], 'parent']
-             for k in ('unknown',)]
-        )
-        sub_dsp.set_data_remote_link('c')
-        self.assertNotIn('remote_links', sub_dsp.nodes['c'])
-        self.assertRaises(ValueError, sub_dsp.set_data_remote_link, 'sub_dsp')
-
     def test_load_from_lists(self):
         dsp = sh.Dispatcher()
         self.assertEqual(dsp.add_from_lists(), ([], [], []))
@@ -398,21 +381,26 @@ class TestSubDMap(unittest.TestCase):
                 'wait_inputs': True
             }
         }
-        dfl = {'value': 3, 'initial_dist': 0.0}
-        self.assertEqual(sub_dmap.dmap.nodes, res)
-        self.assertEqual(sub_dmap.default_values['b'], dfl)
+        w = {('b', 'max'): {}, ('max', 'c'): {}, ('a', 'max'): {}}
+        dfl = {'b': {'value': 3, 'initial_dist': 0.0}}
+        self.assertEqual(dict(sub_dmap.dmap.nodes), res)
+        self.assertEqual(dict(sub_dmap.dmap.edges()), w)
+        self.assertEqual(sub_dmap.default_values, dfl)
 
         sub_dmap = dsp.get_sub_dsp(['a', 'c', 'max', 'max<0>'])
-        self.assertEqual(sub_dmap.dmap.nodes, {})
+        self.assertEqual(dict(sub_dmap.dmap.nodes), {})
+        self.assertEqual(dict(sub_dmap.dmap.edges()), {})
 
         sub_dmap = dsp.get_sub_dsp(['a', 'b', 'c', 'max', 'e'])
 
-        self.assertEqual(sub_dmap.dmap.nodes, res)
-        self.assertEqual(sub_dmap.default_values['b'], dfl)
+        self.assertEqual(dict(sub_dmap.dmap.nodes), res)
+        self.assertEqual(dict(sub_dmap.dmap.edges()), w)
+        self.assertEqual(sub_dmap.default_values, dfl)
 
         edges_bunch = [('max', 'c')]
         sub_dmap = dsp.get_sub_dsp(['a', 'b', 'c', 'max'], edges_bunch)
-        self.assertEqual(sub_dmap.dmap.nodes, {})
+        self.assertEqual(dict(sub_dmap.dmap.nodes), {})
+        self.assertEqual(dict(sub_dmap.dmap.edges()), {})
 
     def test_get_sub_dmap_from_workflow(self):
         sol = self.sol
@@ -440,20 +428,27 @@ class TestSubDMap(unittest.TestCase):
             },
             'b': {'index': (0,), 'type': 'data', 'wait_inputs': True}
         }
-        self.assertEqual(sub_dmap.dmap.nodes, res)
+        w = {('a', 'max'): {}, ('a', 'min'): {}, ('b', 'max'): {},
+             ('max', 'c'): {}, ('c', 'min'): {}, ('min', 'd'): {}}
+        self.assertEqual(dict(sub_dmap.dmap.nodes), res)
+        self.assertEqual(dict(sub_dmap.dmap.edges()), w)
 
         sub_dmap = sol.get_sub_dsp_from_workflow(['d'], reverse=True)
         self.assertEqual(sub_dmap.dmap.nodes, res)
+        self.assertEqual(dict(sub_dmap.dmap.edges()), w)
 
         sub_dmap = sol.get_sub_dsp_from_workflow(['c'], reverse=True)
         res.pop('min')
         res.pop('d')
+        w = {('max', 'c'): {}, ('a', 'max'): {}, ('b', 'max'): {}}
         self.assertEqual(sub_dmap.dmap.nodes, res)
+        self.assertEqual(dict(sub_dmap.dmap.edges()), w)
 
         sub_dmap = sol.get_sub_dsp_from_workflow(['c', 'e'], reverse=True)
         self.assertEqual(sub_dmap.dmap.nodes, res)
-        dfl = {'value': 3, 'initial_dist': 0.0}
-        self.assertEqual(sub_dmap.default_values['b'], dfl)
+        self.assertEqual(dict(sub_dmap.dmap.edges()), w)
+        dfl = {'b': {'value': 3, 'initial_dist': 0.0}}
+        self.assertEqual(sub_dmap.default_values, dfl)
 
         sub_dmap = sol.get_sub_dsp_from_workflow(['c'], add_missing=True)
         res = {
@@ -474,10 +469,18 @@ class TestSubDMap(unittest.TestCase):
 
         dsp = self.dsp1
         sub_dmap = dsp.get_sub_dsp_from_workflow(['B'], dsp.dmap, reverse=True)
-        res = {'B', 'C', 'sdsp'}
-        edge = {'B': {}, 'sdsp': {'B': {}}, 'C': {'sdsp': {'weight': 0.0}}}
-        self.assertEqual(set(sub_dmap.dmap.nodes), res)
-        self.assertEqual(sub_dmap.dmap.adj, edge)
+        sdsp = sub_dmap.dmap.nodes['sdsp']['function']
+        r = {'B': {'type': 'data', 'wait_inputs': False, 'index': (3,)},
+             'sdsp': {'type': 'dispatcher', 'inputs': {'C': 'c'},
+                      'outputs': {'b': 'B'}, 'function': sdsp,
+                      'wait_inputs': False, 'index': (1,)},
+             'C': {'type': 'data', 'wait_inputs': False, 'index': (0,)}}
+        w = {('sdsp', 'B'): {}, ('C', 'sdsp'): {'weight': 0.0}}
+        sr = {'b', 'c'}
+        self.assertEqual(dict(sub_dmap.dmap.nodes), r)
+        self.assertEqual(dict(sub_dmap.dmap.edges()), w)
+        self.assertEqual(set(sdsp.dmap.nodes), sr)
+        self.assertEqual(dict(sdsp.dmap.edges()), {})
         self.assertEqual(sub_dmap(), {'C': 1, 'B': 2})
 
 
@@ -1776,173 +1779,309 @@ class TestShrinkDispatcher(unittest.TestCase):
     def test_shrink_with_inputs_outputs(self):
         dsp = self.dsp_1
         shrink_dsp = dsp.shrink_dsp(['a', 'b', 'd'], ['c', 'a', 'f'])
-        r = ['a', 'b', 'c', 'd', 'e', 'f', 'h', 'h<0>', 'h<1>', 'h<3>']
-        w = [('a', 'h'), ('a', 'h<3>'), ('b', 'h'), ('b', 'h<0>'),
-             ('b', 'h<3>'), ('d', 'h<0>'), ('d', 'h<1>'), ('e', 'h<1>'),
-             ('h', 'c'), ('h<0>', 'e'), ('h<1>', 'f'), ('h<3>', 'a')]
-        self.assertEqual(sorted(shrink_dsp.dmap.nodes), r)
-        self.assertEqual(sorted(shrink_dsp.dmap.edges()), w)
+        r = {
+            'c': {'type': 'data', 'wait_inputs': False, 'index': (3,)},
+            'a': {'type': 'data', 'wait_inputs': False, 'index': (1,)},
+            'f': {'type': 'data', 'wait_inputs': False, 'index': (8,)},
+            'h': {'type': 'function', 'inputs': ['a', 'b'], 'outputs': ['c'],
+                  'function': None, 'wait_inputs': True, 'index': (0,)},
+            'h<3>': {'type': 'function', 'inputs': ['a', 'b'], 'outputs': ['a'],
+                     'function': None, 'wait_inputs': True, 'index': (11,)},
+            'h<1>': {'type': 'function', 'inputs': ['d', 'e'],
+                     'outputs': ['c', 'f'],
+                     'function': None, 'wait_inputs': True, 'index': (7,)},
+            'b': {'type': 'data', 'wait_inputs': False, 'index': (2,)},
+            'd': {'type': 'data', 'wait_inputs': False, 'index': (5,)},
+            'e': {'type': 'data', 'wait_inputs': False, 'index': (6,)},
+            'h<0>': {'type': 'function', 'inputs': ['b', 'd'], 'outputs': ['e'],
+                     'function': None, 'wait_inputs': True, 'index': (4,)}
+        }
+        w = {('a', 'h'): {}, ('a', 'h<3>'): {}, ('h', 'c'): {},
+             ('h<3>', 'a'): {}, ('h<1>', 'f'): {}, ('b', 'h'): {},
+             ('b', 'h<3>'): {}, ('b', 'h<0>'): {}, ('d', 'h<1>'): {},
+             ('d', 'h<0>'): {}, ('e', 'h<1>'): {}, ('h<0>', 'e'): {}}
+        self.assertEqual(dict(shrink_dsp.dmap.nodes), r)
+        self.assertEqual(dict(shrink_dsp.dmap.edges()), w)
 
         shrink_dsp = dsp.shrink_dsp(['a', 'b'], ['e'])
-        self.assertEqual(sorted(shrink_dsp.dmap.nodes), [])
-        self.assertEqual(sorted(shrink_dsp.dmap.edges()), [])
+        self.assertEqual(dict(shrink_dsp.dmap.nodes), {})
+        self.assertEqual(dict(shrink_dsp.dmap.edges()), {})
 
         shrink_dsp = dsp.shrink_dsp([], [])
-        self.assertEqual(sorted(shrink_dsp.dmap.nodes), [])
-        self.assertEqual(sorted(shrink_dsp.dmap.edges()), [])
+        self.assertEqual(dict(shrink_dsp.dmap.nodes), {})
+        self.assertEqual(dict(shrink_dsp.dmap.edges()), {})
 
         dsp = self.dsp_2
         shrink_dsp = dsp.shrink_dsp(['a'], ['b'])
-        r = ['a', 'b', 'h']
-        w = [('a', 'h'), ('h', 'b')]
-        self.assertEqual(sorted(shrink_dsp.dmap.nodes), r)
-        self.assertEqual(sorted(shrink_dsp.dmap.edges()), w)
+        r = {'b': {'type': 'data', 'wait_inputs': False, 'index': (2,)},
+             'h': {'type': 'function', 'inputs': ['a'], 'outputs': ['b'],
+                   'function': None, 'wait_inputs': True, 'index': (0,)},
+             'a': {'type': 'data', 'wait_inputs': False, 'index': (1,)}}
+        w = {('h', 'b'): {}, ('a', 'h'): {}}
+        self.assertEqual(dict(shrink_dsp.dmap.nodes), r)
+        self.assertEqual(dict(shrink_dsp.dmap.edges()), w)
 
         dsp = self.dsp_of_dsp
         shrink_dsp = dsp.shrink_dsp(['a', 'b'], ['d', 'e', 'f', 'g'])
         sub_dsp = shrink_dsp.nodes['sub_dsp']['function']
-        r = ['a', 'b', 'd', 'e', 'f', 'g', 'h', 'h<0>', 'sub_dsp']
-        w = [('a', 'h'), ('a', 'sub_dsp'), ('b', 'h<0>'), ('b', 'sub_dsp'),
-             ('h', 'f'), ('h<0>', 'e'), ('sub_dsp', 'd'), ('sub_dsp', 'e'),
-             ('sub_dsp', 'g')]
-        sw = [('a', 'h'), ('a', 'h<2>'), ('b', 'h'), ('c', 'h<0>'),
-              ('c', 'h<2>'), ('h', 'c'), ('h<0>', 'd'), ('h<0>', 'e'),
-              ('h<2>', 'g')]
-        self.assertEqual(sorted(shrink_dsp.dmap.nodes), r)
-        self.assertEqual(sorted(shrink_dsp.dmap.edges()), w)
-        self.assertEqual(sorted(sub_dsp.dmap.edges()), sw)
+        r = {'d': {'type': 'data', 'wait_inputs': False, 'index': (3,)},
+             'e': {'type': 'data', 'wait_inputs': False, 'index': (4,)},
+             'f': {'type': 'data', 'wait_inputs': False, 'index': (5,)},
+             'g': {'type': 'data', 'wait_inputs': False, 'index': (6,)},
+             'sub_dsp': {'type': 'dispatcher', 'inputs': {'a': 'a', 'b': 'b'},
+                         'outputs': {'e': 'e', 'd': 'd', 'g': 'g'},
+                         'function': sub_dsp, 'wait_inputs': False,
+                         'index': (0,)},
+             'h<0>': {'type': 'function', 'inputs': ['b'], 'outputs': ['e'],
+                      'function': None, 'wait_inputs': True, 'index': (8,),
+                      'input_domain': bool},
+             'h': {'type': 'function', 'inputs': ['a'], 'outputs': ['f'],
+                   'function': None, 'wait_inputs': True, 'index': (7,)},
+             'a': {'type': 'data', 'wait_inputs': False, 'index': (1,)},
+             'b': {'type': 'data', 'wait_inputs': False, 'index': (2,)}}
+        w = {('sub_dsp', 'd'): {}, ('sub_dsp', 'e'): {}, ('sub_dsp', 'g'): {},
+             ('h<0>', 'e'): {}, ('h', 'f'): {},
+             ('a', 'sub_dsp'): {'weight': 0.0}, ('a', 'h'): {},
+             ('b', 'sub_dsp'): {'weight': 0.0}, ('b', 'h<0>'): {}}
+        sr = ['a', 'b', 'c', 'd', 'e', 'g', 'h', 'h<0>', 'h<2>']
+        sw = {('h<0>', 'e'): {}, ('h<0>', 'd'): {}, ('h<2>', 'g'): {},
+              ('c', 'h<0>'): {}, ('c', 'h<2>'): {}, ('a', 'h<2>'): {},
+              ('a', 'h'): {}, ('h', 'c'): {}, ('b', 'h'): {}}
+        self.assertEqual(dict(shrink_dsp.dmap.nodes), r)
+        self.assertEqual(dict(shrink_dsp.dmap.edges()), w)
+        self.assertEqual(sorted(sub_dsp.dmap.nodes), sr)
+        self.assertEqual(dict(sub_dsp.dmap.edges()), sw)
 
         shrink_dsp = dsp.shrink_dsp(['a', 'b'], ['d', 'e', 'f', 'g', 'a'])
-        self.assertEqual(sorted(shrink_dsp.dmap.nodes), r)
-        self.assertEqual(sorted(shrink_dsp.dmap.edges()), w)
-        self.assertEqual(sorted(sub_dsp.dmap.edges()), sw)
+        sub_dsp = shrink_dsp.nodes['sub_dsp']['function']
+        r['sub_dsp']['function'] = sub_dsp
+        self.assertEqual(dict(shrink_dsp.dmap.nodes), r)
+        self.assertEqual(dict(shrink_dsp.dmap.edges()), w)
+        self.assertEqual(sorted(sub_dsp.dmap.nodes), sr)
+        self.assertEqual(dict(sub_dsp.dmap.edges()), sw)
 
     def test_shrink_with_outputs(self):
         dsp = self.dsp_1
         shrink_dsp = dsp.shrink_dsp(outputs=['g'])
-        r = ['b', 'd', 'e', 'f', 'g', 'h<0>', 'h<1>', 'h<2>']
-        w = [('b', 'h<0>'), ('d', 'h<0>'), ('d', 'h<1>'), ('d', 'h<2>'),
-             ('e', 'h<1>'), ('f', 'h<2>'), ('h<0>', 'e'), ('h<1>', 'f'),
-             ('h<2>', 'g')]
-        self.assertEqual(sorted(shrink_dsp.dmap.nodes), r)
-        self.assertEqual(sorted(shrink_dsp.dmap.edges()), w)
+        r = {'g': {'type': 'data', 'wait_inputs': False, 'index': (10,)},
+             'h<2>': {'type': 'function', 'inputs': ['d', 'f'],
+                      'outputs': ['g'], 'function': None, 'wait_inputs': True,
+                      'index': (9,)},
+             'd': {'type': 'data', 'wait_inputs': False, 'index': (5,)},
+             'f': {'type': 'data', 'wait_inputs': False, 'index': (8,)},
+             'h<1>': {'type': 'function', 'inputs': ['d', 'e'],
+                      'outputs': ['c', 'f'], 'function': None,
+                      'wait_inputs': True, 'index': (7,)},
+             'e': {'type': 'data', 'wait_inputs': False, 'index': (6,)},
+             'h<0>': {'type': 'function', 'inputs': ['b', 'd'],
+                      'outputs': ['e'], 'function': None, 'wait_inputs': True,
+                      'index': (4,)},
+             'b': {'type': 'data', 'wait_inputs': False, 'index': (2,)}}
+        w = {('h<2>', 'g'): {}, ('d', 'h<2>'): {}, ('d', 'h<1>'): {},
+             ('d', 'h<0>'): {}, ('f', 'h<2>'): {}, ('h<1>', 'f'): {},
+             ('e', 'h<1>'): {}, ('h<0>', 'e'): {}, ('b', 'h<0>'): {}}
+        self.assertEqual(dict(shrink_dsp.dmap.nodes), r)
+        self.assertEqual(dict(shrink_dsp.dmap.edges()), w)
 
         dsp = self.dsp_of_dsp
         shrink_dsp = dsp.shrink_dsp(outputs=['f', 'g'])
         sub_dsp = shrink_dsp.nodes['sub_dsp']['function']
-        rl = ['sub_dsp', shrink_dsp]
-        r = ['a', 'b', 'd', 'f', 'g', 'h', 'sub_dsp']
-        w = [('a', 'h'), ('a', 'sub_dsp'), ('b', 'sub_dsp'), ('d', 'sub_dsp'),
-             ('h', 'f'), ('sub_dsp', 'a'), ('sub_dsp', 'd'), ('sub_dsp', 'f'),
-             ('sub_dsp', 'g')]
-        sn = {
-            'a': {'wait_inputs': False,
-                  'remote_links': [[rl, 'parent'], [rl, 'child']],
-                  'type': 'data'},
-            'b': {'wait_inputs': False, 'remote_links': [[rl, 'parent']],
-                  'type': 'data'},
-            'c': {'wait_inputs': False, 'type': 'data'},
-            'd': {'wait_inputs': False,
-                  'remote_links': [[rl, 'parent'], [rl, 'child']],
-                  'type': 'data'},
-            'e': {'wait_inputs': False, 'type': 'data'},
-            'f': {'wait_inputs': False, 'remote_links': [[rl, 'child']],
-                  'type': 'data'},
-            'g': {'wait_inputs': False, 'remote_links': [[rl, 'child']],
-                  'type': 'data'},
-            'h': {
-                'type': 'function',
-                'inputs': ['a', 'b'],
-                'outputs': ['c'],
-                'function': None,
-                'wait_inputs': True
-            },
-            'h<0>': {
-                'type': 'function',
-                'inputs': ['c'],
-                'outputs': ['d', 'e'],
-                'function': None,
-                'wait_inputs': True
-            },
-            'h<1>': {
-                'type': 'function',
-                'inputs': ['c', 'e'],
-                'outputs': ['f'],
-                'function': None,
-                'wait_inputs': True
-            },
-            'h<2>': {
-                'type': 'function',
-                'inputs': ['c', 'a'],
-                'outputs': ['g'],
-                'function': None,
-                'wait_inputs': True
-            }
-        }
-        sw = [('a', 'h'), ('a', 'h<2>'), ('b', 'h'), ('c', 'h<0>'),
-              ('c', 'h<1>'), ('c', 'h<2>'), ('e', 'h<1>'), ('h', 'c'),
-              ('h<0>', 'd'), ('h<0>', 'e'), ('h<1>', 'f'), ('h<2>', 'g')]
+        r = {'f': {'type': 'data', 'wait_inputs': False, 'index': (5,)},
+             'g': {'type': 'data', 'wait_inputs': False, 'index': (6,)},
+             'h': {'type': 'function', 'inputs': ['a'], 'outputs': ['f'],
+                   'function': None, 'wait_inputs': True, 'index': (7,)},
+             'sub_dsp': {'type': 'dispatcher',
+                         'inputs': {'a': 'a', 'b': 'b', 'd': 'd'},
+                         'outputs': {'g': 'g', 'd': 'd', 'f': 'f', 'a': 'a'},
+                         'function': sub_dsp, 'wait_inputs': False,
+                         'index': (0,)},
+             'a': {'type': 'data', 'wait_inputs': False, 'index': (1,)},
+             'b': {'type': 'data', 'wait_inputs': False, 'index': (2,)},
+             'd': {'type': 'data', 'wait_inputs': False, 'index': (3,)}}
+        w = {('h', 'f'): {}, ('sub_dsp', 'f'): {}, ('sub_dsp', 'g'): {},
+             ('sub_dsp', 'a'): {}, ('sub_dsp', 'd'): {}, ('a', 'h'): {},
+             ('a', 'sub_dsp'): {'weight': 0.0},
+             ('b', 'sub_dsp'): {'weight': 0.0},
+             ('d', 'sub_dsp'): {'weight': 0.0}}
+        sn = {'h<0>', 'e', 'b', 'g', 'd', 'f', 'c', 'h<1>', 'h<2>', 'h', 'a'}
+        sw = {('a', 'h<2>'): {}, ('a', 'h'): {}, ('h<0>', 'd'): {},
+              ('h<0>', 'e'): {}, ('h<1>', 'f'): {}, ('h<2>', 'g'): {},
+              ('c', 'h<0>'): {}, ('c', 'h<1>'): {}, ('c', 'h<2>'): {},
+              ('e', 'h<1>'): {}, ('h', 'c'): {}, ('b', 'h'): {}}
 
-        self.assertEqual(sorted(shrink_dsp.dmap.nodes), r)
-        self.assertEqual(sorted(shrink_dsp.dmap.edges()), w)
+        self.assertEqual(dict(shrink_dsp.dmap.nodes), r)
+        self.assertEqual(dict(shrink_dsp.dmap.edges()), w)
         self.assertEqual(set(sub_dsp.dmap.nodes), set(sn))
-        self.assertEqual(sorted(sub_dsp.dmap.edges()), sw)
+        self.assertEqual(dict(sub_dsp.dmap.edges()), sw)
 
     def test_shrink_with_inputs(self):
         dsp = self.dsp_1
         shrink_dsp = dsp.shrink_dsp(inputs=['d', 'e'])
-        r = ['c', 'd', 'e', 'f', 'g', 'h<1>', 'h<2>']
-        w = [('d', 'h<1>'), ('d', 'h<2>'), ('e', 'h<1>'), ('f', 'h<2>'),
-             ('h<1>', 'c'), ('h<1>', 'f'), ('h<2>', 'g')]
-        self.assertEqual(sorted(shrink_dsp.dmap.nodes), r)
-        self.assertEqual(sorted(shrink_dsp.dmap.edges()), w)
+        r = {
+            'd': {'type': 'data', 'wait_inputs': False, 'index': (5,)},
+            'e': {'type': 'data', 'wait_inputs': False, 'index': (6,)},
+            'c': {'type': 'data', 'wait_inputs': False, 'index': (3,)},
+            'f': {'type': 'data', 'wait_inputs': False, 'index': (8,)},
+            'g': {'type': 'data', 'wait_inputs': False, 'index': (10,)},
+            'h<1>': {
+                'type': 'function',
+                'inputs': ['d', 'e'],
+                'outputs': ['c', 'f'],
+                'function': None,
+                'wait_inputs': True,
+                'index': (7,)
+            },
+            'h<2>': {
+                'type': 'function',
+                'inputs': ['d', 'f'],
+                'outputs': ['g'],
+                'function': None,
+                'wait_inputs': True,
+                'index': (9,)
+            }
+        }
+        w = {
+            ('d', 'h<1>'): {},
+            ('d', 'h<2>'): {},
+            ('e', 'h<1>'): {},
+            ('f', 'h<2>'): {},
+            ('h<1>', 'c'): {},
+            ('h<1>', 'f'): {},
+            ('h<2>', 'g'): {}
+        }
+        self.assertEqual(dict(shrink_dsp.dmap.nodes), r)
+        self.assertEqual(dict(shrink_dsp.dmap.edges()), w)
 
         dsp = self.dsp_of_dsp
         shrink_dsp = dsp.shrink_dsp(inputs=['a', 'b'])
         sub_dsp = shrink_dsp.nodes['sub_dsp']['function']
-        r = ['a', 'b', 'd', 'e', 'f', 'g', 'h', 'h<0>', 'sub_dsp']
-        w = [('a', 'h'), ('a', 'sub_dsp'), ('b', 'h<0>'), ('b', 'sub_dsp'),
-             ('h', 'f'), ('h<0>', 'e'), ('sub_dsp', 'd'), ('sub_dsp', 'e'),
-             ('sub_dsp', 'g')]
-        sw = [('a', 'h'), ('a', 'h<2>'), ('b', 'h'), ('c', 'h<0>'),
-              ('c', 'h<2>'), ('h', 'c'), ('h<0>', 'd'), ('h<0>', 'e'),
-              ('h<2>', 'g')]
-        self.assertEqual(sorted(shrink_dsp.dmap.nodes), r)
-        self.assertEqual(sorted(shrink_dsp.dmap.edges()), w)
-        self.assertEqual(sorted(sub_dsp.dmap.edges()), sw)
+        r = {
+            'a': {'type': 'data', 'wait_inputs': False, 'index': (1,)},
+            'b': {'type': 'data', 'wait_inputs': False, 'index': (2,)},
+            'e': {'type': 'data', 'wait_inputs': False, 'index': (4,)},
+            'f': {'type': 'data', 'wait_inputs': False, 'index': (5,)},
+            'd': {'type': 'data', 'wait_inputs': False, 'index': (3,)},
+            'g': {'type': 'data', 'wait_inputs': False, 'index': (6,)},
+            'h<0>': {
+                'type': 'function',
+                'inputs': ['b'],
+                'outputs': ['e'],
+                'function': None,
+                'wait_inputs': True,
+                'index': (8,),
+                'input_domain': bool
+            },
+            'sub_dsp': {
+                'type': 'dispatcher',
+                'inputs': {'a': 'a', 'b': 'b'},
+                'outputs': {'e': 'e', 'd': 'd', 'g': 'g'},
+                'function': sub_dsp,
+                'wait_inputs': False,
+                'index': (0,)
+            },
+            'h': {
+                'type': 'function',
+                'inputs': ['a'],
+                'outputs': ['f'],
+                'function': None,
+                'wait_inputs': True,
+                'index': (7,)
+            }
+        }
+        w = {
+            ('a', 'sub_dsp'): {'weight': 0.0},
+            ('a', 'h'): {},
+            ('b', 'h<0>'): {},
+            ('b', 'sub_dsp'): {'weight': 0.0},
+            ('h<0>', 'e'): {},
+            ('sub_dsp', 'e'): {},
+            ('sub_dsp', 'd'): {},
+            ('sub_dsp', 'g'): {},
+            ('h', 'f'): {}
+        }
+        sr = {'c', 'h', 'b', 'g', 'a', 'd', 'e', 'h<2>', 'h<0>'}
+        sw = {
+            ('h<0>', 'e'): {},
+            ('h<0>', 'd'): {},
+            ('h<2>', 'g'): {},
+            ('c', 'h<0>'): {},
+            ('c', 'h<2>'): {},
+            ('a', 'h<2>'): {},
+            ('a', 'h'): {},
+            ('h', 'c'): {},
+            ('b', 'h'): {}
+        }
+        self.assertEqual(dict(shrink_dsp.dmap.nodes), r)
+        self.assertEqual(dict(shrink_dsp.dmap.edges()), w)
+        self.assertEqual(set(sub_dsp.dmap.nodes), sr)
+        self.assertEqual(dict(sub_dsp.dmap.edges()), sw)
 
     def test_shrink_with_domains(self):
         dsp = self.dsp_3
         shrink_dsp = dsp.shrink_dsp(['a', 'b', 'c', 'e', 'f'])
-        r = ['a', 'b', 'c', 'e', 'f', 'g', 'h', 'h<0>', 'h<2>', 'h<3>', 'h<5>',
-             'i', 'l']
-        w = [('a', 'h'), ('b', 'h'), ('b', 'h<0>'), ('c', 'h<0>'),
-             ('e', 'h<2>'), ('f', 'h<2>'), ('g', 'h<3>'), ('h', 'g'),
-             ('h<0>', 'g'), ('h<2>', 'g'), ('h<3>', 'i'), ('h<5>', 'l'),
-             ('i', 'h<5>')]
-        self.assertEqual(sorted(shrink_dsp.dmap.nodes), r)
-        self.assertEqual(sorted(shrink_dsp.dmap.edges()), w)
+        r = {'a': {'type': 'data', 'wait_inputs': False, 'index': (1,)},
+             'b': {'type': 'data', 'wait_inputs': False, 'index': (2,)},
+             'c': {'type': 'data', 'wait_inputs': False, 'index': (5,)},
+             'e': {'type': 'data', 'wait_inputs': False, 'index': (9,)},
+             'f': {'type': 'data', 'wait_inputs': False, 'index': (10,)},
+             'g': {'type': 'data', 'wait_inputs': False, 'index': (3,)},
+             'i': {'type': 'data', 'wait_inputs': True, 'index': (16,)},
+             'l': {'type': 'data', 'wait_inputs': False, 'index': (15,)},
+             'h': {'type': 'function', 'inputs': ['a', 'b'], 'outputs': ['g'],
+                   'function': None, 'wait_inputs': True, 'index': (0,),
+                   'input_domain': bool},
+             'h<0>': {'type': 'function', 'inputs': ['b', 'c'],
+                      'outputs': ['g'], 'function': None, 'wait_inputs': True,
+                      'index': (4,), 'input_domain': bool},
+             'h<2>': {'type': 'function', 'inputs': ['e', 'f'],
+                      'outputs': ['g'], 'function': None, 'wait_inputs': True,
+                      'index': (8,), 'input_domain': bool},
+             'h<3>': {'type': 'function', 'inputs': ['g'], 'outputs': ['i'],
+                      'function': None, 'wait_inputs': True, 'index': (11,)},
+             'h<5>': {'type': 'function', 'inputs': ['i'], 'outputs': ['l'],
+                      'function': None, 'wait_inputs': True, 'index': (14,)}}
+        w = {('a', 'h'): {}, ('b', 'h'): {}, ('b', 'h<0>'): {},
+             ('c', 'h<0>'): {}, ('e', 'h<2>'): {}, ('f', 'h<2>'): {},
+             ('g', 'h<3>'): {}, ('i', 'h<5>'): {}, ('h', 'g'): {},
+             ('h<0>', 'g'): {}, ('h<2>', 'g'): {}, ('h<3>', 'i'): {},
+             ('h<5>', 'l'): {}}
+        self.assertEqual(dict(shrink_dsp.dmap.nodes), r)
+        self.assertEqual(dict(shrink_dsp.dmap.edges()), w)
 
     def test_shrink_sub_dsp(self):
         dsp = self.dsp_of_dsp_1
 
         shrink_dsp = dsp.shrink_dsp(['a', 'b'])
         sub_dsp = shrink_dsp.nodes['sub_dsp']['function']
-        r = ['a', 'b', 'c', 'd', 'h', 'sub_dsp']
-        w = [('a', 'sub_dsp'), ('b', 'sub_dsp'), ('c', 'h'), ('h', 'd'),
-             ('sub_dsp', 'b'), ('sub_dsp', 'c')]
-        sw = [('a', 'h'), ('b', 'h'), ('h', 'c')]
-        self.assertEqual(sorted(shrink_dsp.dmap.nodes), r)
-        self.assertEqual(sorted(shrink_dsp.dmap.edges()), w)
-        self.assertEqual(sorted(sub_dsp.dmap.edges()), sw)
+        r = {'a': {'type': 'data', 'wait_inputs': False, 'index': (4,)},
+             'b': {'type': 'data', 'wait_inputs': False, 'index': (5,)},
+             'c': {'type': 'data', 'wait_inputs': False, 'index': (1,)},
+             'd': {'type': 'data', 'wait_inputs': False, 'index': (2,)},
+             'sub_dsp': {'type': 'dispatcher', 'inputs': {'a': 'a', 'b': 'b'},
+                         'outputs': {'c': 'c', 'a': 'b'}, 'function': sub_dsp,
+                         'wait_inputs': False, 'index': (3,)},
+             'h': {'type': 'function', 'inputs': ['c'], 'outputs': ['d'],
+                   'function': None, 'wait_inputs': True, 'index': (0,)}}
+        w = {('a', 'sub_dsp'): {'weight': 0.0},
+             ('b', 'sub_dsp'): {'weight': 0.0}, ('c', 'h'): {},
+             ('sub_dsp', 'b'): {}, ('sub_dsp', 'c'): {}, ('h', 'd'): {}}
+        sr = {'c', 'a', 'h', 'b', 'd', 'sub_dsp'}
+        sw = {('a', 'h'): {}, ('h', 'c'): {}, ('b', 'h'): {}}
+        self.assertEqual(dict(shrink_dsp.dmap.nodes), r)
+        self.assertEqual(dict(shrink_dsp.dmap.edges()), w)
+        self.assertEqual(set(shrink_dsp.dmap.nodes), sr)
+        self.assertEqual(dict(sub_dsp.dmap.edges()), sw)
 
         shrink_dsp = dsp.shrink_dsp(['a', 'b'], inputs_dist={'a': 20})
         sub_dsp = shrink_dsp.nodes['sub_dsp']['function']
-        w = [('a', 'sub_dsp'), ('b', 'sub_dsp'), ('c', 'h'), ('h', 'd'),
-             ('sub_dsp', 'c')]
-        self.assertEqual(sorted(shrink_dsp.dmap.nodes), r)
-        self.assertEqual(sorted(shrink_dsp.dmap.edges()), w)
-        self.assertEqual(sorted(sub_dsp.dmap.edges()), sw)
+        r['sub_dsp']['function'] = sub_dsp
+        r['sub_dsp']['outputs'] = {'c': 'c'}
+        w = {('b', 'sub_dsp'): {'weight': 0.0}, ('sub_dsp', 'c'): {},
+             ('a', 'sub_dsp'): {'weight': 0.0}, ('c', 'h'): {}, ('h', 'd'): {}}
+        self.assertEqual(dict(shrink_dsp.dmap.nodes), r)
+        self.assertEqual(dict(shrink_dsp.dmap.edges()), w)
+        self.assertEqual(set(shrink_dsp.dmap.nodes), sr)
+        self.assertEqual(dict(sub_dsp.dmap.edges()), sw)
 
 
 class TestPipe(unittest.TestCase):
@@ -1982,16 +2121,11 @@ class TestPipe(unittest.TestCase):
         sp = ['a', 'b', 'max', 'c', 'dict']
         self.assertEqual(p, list(pipe.keys()))
         self.assertEqual(sp, list(n['sub_pipe'].keys()))
-        e = 'Failed DISPATCHING \'SubDispatchFunction\' due to:\n  ' \
-            'DispatcherError("\\n  Unreachable output-targets: {\'d\'}\\n  ' \
-            'Available outputs: [\'a\', \'b\', \'c\']")'
-        er = n['error']
-        if er.endswith(',)'):  # python 3.7.
-            er = er[:-2] + ')'
-        self.assertEqual(e, er)
-        e = 'Failed DISPATCHING \'dict\' due to:\n  ' \
-            'TypeError("\'int\' object is not iterable")'
-        er = n['sub_pipe']['dict']['error']
-        if er.endswith(',)'):  # python 3.7.
-            er = er[:-2] + ')'
-        self.assertEqual(e, er)
+        e = "Failed DISPATCHING 'SubDispatchFunction' due to:\\n" \
+            "  DispatcherError\(\"\\\\n" \
+            "  Unreachable output-targets: {'d'}\\\\n" \
+            "  Available outputs: \['a', 'b', 'c'\]\",?\)"
+        self.assertRegex(n['error'], e)
+        e = "Failed DISPATCHING \'dict\' due to:\\n  " \
+            "TypeError\(\"'int' object is not iterable\",?\)"
+        self.assertRegex(n['sub_pipe']['dict']['error'], e)
