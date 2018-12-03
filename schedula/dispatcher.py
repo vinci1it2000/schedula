@@ -294,8 +294,8 @@ class Dispatcher(Base):
             Data node id.
         :rtype: str
 
-        .. seealso:: :func:`add_function`,  :func:`add_dispatcher`,
-           :func:`add_from_lists`
+        .. seealso:: :func:`add_func`, :func:`add_function`,
+           :func:`add_dispatcher`, :func:`add_from_lists`
 
         **--------------------------------------------------------------------**
 
@@ -483,7 +483,7 @@ class Dispatcher(Base):
             Function node id.
         :rtype: str
 
-        .. seealso:: :func:`add_data`, :func:`add_dispatcher`,
+        .. seealso:: :func:`add_data`, :func:`add_func`, :func:`add_dispatcher`,
            :func:`add_from_lists`
 
         **--------------------------------------------------------------------**
@@ -587,6 +587,141 @@ class Dispatcher(Base):
 
         return fun_id  # Return function node id.
 
+    def add_func(self, function, outputs=None, weight=None, inputs_kwargs=False,
+                 inputs_defaults=False, filters=None, input_domain=None,
+                 await_domain=None, await_result=None, inp_weight=None,
+                 out_weight=None, description=None, inputs=None,
+                 function_id=None, **kwargs):
+        """
+        Add a single function node to dispatcher.
+
+        :param inputs_kwargs:
+            Do you want to include kwargs as inputs?
+        :type inputs_kwargs: bool
+
+        :param inputs_defaults:
+            Do you want to set default values?
+        :type inputs_defaults: bool
+
+        :param function_id:
+            Function node id.
+            If None will be assigned as <fun.__name__>.
+        :type function_id: str, optional
+
+        :param function:
+            Data node estimation function.
+        :type function: callable, optional
+
+        :param inputs:
+            Ordered arguments (i.e., data node ids) needed by the function.
+            If None it will take parameters names from function signature.
+        :type inputs: list, optional
+
+        :param outputs:
+            Ordered results (i.e., data node ids) returned by the function.
+        :type outputs: list, optional
+
+        :param input_domain:
+            A function that checks if input values satisfy the function domain.
+            This can be any function that takes the same inputs of the function
+            and returns True if input values satisfy the domain, otherwise
+            False. In this case the dispatch algorithm doesn't pass on the node.
+        :type input_domain: callable, optional
+
+        :param weight:
+            Node weight. It is a weight coefficient that is used by the dispatch
+            algorithm to estimate the minimum workflow.
+        :type weight: float, int, optional
+
+        :param inp_weight:
+            Edge weights from data nodes to the function node.
+            It is a dictionary (key=data node id) with the weight coefficients
+            used by the dispatch algorithm to estimate the minimum workflow.
+        :type inp_weight: dict[str, float | int], optional
+
+        :param out_weight:
+            Edge weights from the function node to data nodes.
+            It is a dictionary (key=data node id) with the weight coefficients
+            used by the dispatch algorithm to estimate the minimum workflow.
+        :type out_weight: dict[str, float | int], optional
+
+        :param description:
+            Function node's description.
+        :type description: str, optional
+
+        :param filters:
+            A list of functions that are invoked after the invocation of the
+            main function.
+        :type filters: list[function], optional
+
+        :param await_domain:
+            If True the Dispatcher waits all input results before executing the
+            `input_domain` function. If a number is defined this is used as
+            `timeout` for `Future.result` method [default: True]. Note this is
+            used when asynchronous or parallel execution is enable.
+        :type await_domain: bool|int|float, optional
+
+        :param await_result:
+            If True the Dispatcher waits output results before assigning them to
+            the workflow. If a number is defined this is used as `timeout` for
+            `Future.result` method [default: False]. Note this is used when
+            asynchronous or parallel execution is enable.
+        :type await_result: bool|int|float, optional
+
+        :param kwargs:
+            Set additional node attributes using key=value.
+        :type kwargs: keyword arguments, optional
+
+        :return:
+            Function node id.
+        :rtype: str
+
+        .. seealso:: :func:`add_func`, :func:`add_function`,
+           :func:`add_dispatcher`, :func:`add_from_lists`
+
+        **--------------------------------------------------------------------**
+
+        **Example**:
+
+        .. dispatcher:: dsp
+           :opt: graph_attr={'ratio': '1'}
+           :code:
+
+            >>> import schedula as sh
+            >>> dsp = sh.Dispatcher(name='Dispatcher')
+            >>> def f(a, b, c, d=0):
+            ...     return (a + b) - c + d
+            >>> dsp.add_func(f, outputs=['e'])
+            'f'
+            >>> dsp.add_func(f, ['e'], inputs_kwargs=True, inputs_defaults=True)
+            'f<0>'
+            >>> def g(a, b, c, *args, d=0):
+            ...     return (a + b) - c + d
+            >>> dsp.add_func(g, ['h'], inputs_kwargs=True, inputs_defaults=True)
+            'g'
+        """
+        from .utils.dsp import _get_parameters
+        par = {}
+        if inputs is None or inputs_defaults:
+            par = _get_parameters(function, inputs_kwargs)
+            inputs = inputs or tuple(par)
+
+        function_id = self.add_function(
+            weight=weight, filters=filters, outputs=outputs, function=function,
+            input_domain=input_domain, await_domain=await_domain, inputs=inputs,
+            description=description, out_weight=out_weight,
+            inp_weight=inp_weight, await_result=await_result,
+            function_id=function_id, **kwargs
+        )
+
+        if inputs_defaults:
+            import inspect
+            for k, v in zip(inputs, par.values()):
+                if v._default is not inspect._empty:
+                    self.set_default_value(k, v._default)
+
+        return function_id
+
     def add_dispatcher(self, dsp, inputs, outputs, dsp_id=None,
                        input_domain=None, weight=None, inp_weight=None,
                        description=None, include_defaults=False,
@@ -661,7 +796,7 @@ class Dispatcher(Base):
             Sub-dispatcher node id.
         :rtype: str
 
-        .. seealso:: :func:`add_data`, :func:`add_function`,
+        .. seealso:: :func:`add_data`, :func:`add_func`, :func:`add_function`,
            :func:`add_from_lists`
 
         **--------------------------------------------------------------------**
@@ -789,7 +924,7 @@ class Dispatcher(Base):
             - Sub-dispatcher node ids.
         :rtype: (list[str], list[str], list[str])
 
-        .. seealso:: :func:`add_data`, :func:`add_function`,
+        .. seealso:: :func:`add_data`, :func:`add_func`, :func:`add_function`,
            :func:`add_dispatcher`
 
         **--------------------------------------------------------------------**

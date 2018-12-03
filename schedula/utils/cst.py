@@ -33,6 +33,7 @@ NONE = Token('none')
 #: Sink node of the dispatcher that collects all unused outputs.
 #:
 #: .. seealso:: :func:`~schedula.dispatcher.Dispatcher.add_data`,
+#:    :func:`~schedula.dispatcher.Dispatcher.add_func`,
 #:    :func:`~schedula.dispatcher.Dispatcher.add_function`,
 #:    :func:`~schedula.dispatcher.Dispatcher.add_dispatcher`
 SINK = Token('sink')
@@ -49,6 +50,7 @@ SELF = Token('self')
 #: Plot node, it is a node that plot the dispatcher solution.
 #: .. note:: you can pass the `kwargs` of :class:`~schedula.utils.drw._DspPlot`
 #: .. seealso:: :func:`~schedula.dispatcher.Dispatcher.add_data`,
+#: :func:`~schedula.dispatcher.Dispatcher.add_func`,
 #: :func:`~schedula.dispatcher.Dispatcher.add_function`,
 #: :func:`~schedula.dispatcher.Dispatcher.add_dispatcher`
 PLOT = Token('plot')

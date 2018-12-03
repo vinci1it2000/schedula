@@ -900,6 +900,19 @@ class SubDispatchFunction(SubDispatch):
         elif len(outputs) == 1:
             self.output_type = 'values'
 
+    @property
+    def __signature__(self):
+        import inspect
+        dfl, parameters = self.dsp.default_values, []
+        for name in self.inputs:
+            parameter = inspect.Parameter(name, inspect._POSITIONAL_OR_KEYWORD)
+            if name in dfl:
+                parameter._default = dfl[name]['value']
+            parameters.append(parameter)
+        if not isinstance(self, SubDispatchPipe):
+            parameters.append(inspect.Parameter('kwargs', inspect._VAR_KEYWORD))
+        return inspect.Signature(parameters)
+
     def parse_inputs(self, valid_keyword, *args, **kwargs):
         inputs = map_list(self.inputs, *args)
         # Check multiple values for the same argument.
@@ -1337,6 +1350,8 @@ def add_function(dsp, inputs_kwargs=False, inputs_defaults=False, **kw):
     :return:
         Decorator.
     :rtype: callable
+
+    **------------------------------------------------------------------------**
     
     **Example**:
     
@@ -1347,44 +1362,19 @@ def add_function(dsp, inputs_kwargs=False, inputs_defaults=False, **kw):
         >>> import schedula as sh
         >>> dsp = sh.Dispatcher(name='Dispatcher')
         >>> @sh.add_function(dsp, outputs=['e'])
-        ... def func(a, b, c, d=0):
+        ... @sh.add_function(dsp, True, True, outputs=['e'])
+        ... def f(a, b, c, d=0):
         ...     return (a + b) - c + d
-        
-    .. dispatcher:: dsp
-       :opt: graph_attr={'ratio': '1'}
-       :code:
-       
-        >>> import schedula as sh
-        >>> dsp = sh.Dispatcher(name='Dispatcher')
         >>> @sh.add_function(dsp, True, True, outputs=['e'])
-        ... def func(a, b, c, d=0):
-        ...     return (a + b) - c + d
-
-    .. dispatcher:: dsp
-       :opt: graph_attr={'ratio': '1'}
-       :code:
-
-        >>> import schedula as sh
-        >>> dsp = sh.Dispatcher(name='Dispatcher')
-        >>> @sh.add_function(dsp, True, True, outputs=['e'])
-        ... def func(a, b, c, *args, d=0):
+        ... def g(a, b, c, *args, d=0):
         ...     return (a + b) - c + d
     """
-    import inspect
 
     def decorator(f):
-        par = {}
-        if 'inputs' not in kw or inputs_defaults:
-            par = _get_parameters(f, inputs_kwargs)
-
-        kw['inputs'] = kw.get('inputs', tuple(par))
-
-        dsp.add_function(function=f, **kw)
-
-        if inputs_defaults:
-            for k, v in zip(kw['inputs'], par.values()):
-                if v._default is not inspect._empty:
-                    dsp.set_default_value(k, v._default)
+        dsp.add_func(
+            f, inputs_kwargs=inputs_kwargs, inputs_defaults=inputs_defaults,
+            **kw
+        )
         return f
 
     return decorator

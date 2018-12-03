@@ -142,6 +142,7 @@ Note that with this simple system the maximum number of inputs combinations is
 .. note::
    For more details how to created a :class:`~schedula.dispatcher.Dispatcher`
    see: :func:`~schedula.dispatcher.Dispatcher.add_data`,
+   :func:`~schedula.dispatcher.Dispatcher.add_func`,
    :func:`~schedula.dispatcher.Dispatcher.add_function`,
    :func:`~schedula.dispatcher.Dispatcher.add_dispatcher`,
    :class:`~schedula.utils.dsp.SubDispatch`,
