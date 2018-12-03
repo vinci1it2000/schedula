@@ -517,6 +517,8 @@ class Dispatcher(Base):
             ...                  outputs=['e'], input_domain=my_domain)
             'my_log'
         """
+        from .utils.blue import _init
+        function = _init(function)
 
         if inputs is None:  # Set a dummy input.
             if START not in self.nodes:
@@ -700,7 +702,10 @@ class Dispatcher(Base):
             >>> dsp.add_func(g, ['h'], inputs_kwargs=True, inputs_defaults=True)
             'g'
         """
+        from .utils.blue import _init
         from .utils.dsp import _get_parameters
+        function = _init(function)
+
         par = {}
         if inputs is None or inputs_defaults:
             par = _get_parameters(function, inputs_kwargs)
@@ -831,6 +836,8 @@ class Dispatcher(Base):
             ...                    input_domain=my_domain)
             'Sub-Dispatcher with domain'
         """
+        from .utils.blue import _init
+        dsp = _init(dsp)
 
         if not isinstance(dsp, self.__class__):
             kw = dsp
@@ -1431,6 +1438,45 @@ class Dispatcher(Base):
         """
         import copy
         return copy.deepcopy(self)  # Return the copy of the Dispatcher.
+
+    def blue(self, memo=None):
+        memo = {} if memo is None else memo
+        if self in memo:
+            return memo[self]
+        from .utils.dsp import map_list
+        from .utils.blue import BlueDispatcher, _parent_blue
+        memo[self] = blue = BlueDispatcher(
+            executor=self.executor, name=self.name, raises=self.raises,
+            description=self.__doc__
+        )
+        dfl = self.default_values
+        key_map_data = ['data_id', {'value': 'default_value'}]
+        pred, succ = self.dmap.pred, self.dmap.succ
+
+        def _set_weight(k, r, d):
+            d = {i: j['weight'] for i, j in d.items() if 'weight' in j}
+            if d:
+                r[k] = d
+
+        for k, v in sorted(self.nodes.items(), key=lambda x: x[1]['index']):
+            v = v.copy()
+            t = v.pop('type')
+            del v['index']
+            if t == 'data':
+                method = 'add_data'
+                combine_dicts(map_list(key_map_data, k, dfl.get(k, {})), base=v)
+            elif t in ('function', 'dispatcher'):
+                method = 'add_%s' % t
+                if t == 'dispatcher':
+                    t = 'dsp'
+                v['%s_id' % t] = k
+                del v['wait_inputs']
+                _set_weight('inp_weight', v, pred[k])
+                _set_weight('out_weight', v, succ[k])
+                if 'function' in v:
+                    v[t] = _parent_blue(v.pop('function'))
+            blue.deferred.append((method, v))
+        return blue
 
     def dispatch(self, inputs=None, outputs=None, cutoff=None, inputs_dist=None,
                  wildcard=False, no_call=False, shrink=False,

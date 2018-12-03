@@ -38,6 +38,7 @@ Sub-Modules:
     alg
     asy
     base
+    blue
     cst
     des
     drw

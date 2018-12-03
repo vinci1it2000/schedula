@@ -27,6 +27,7 @@ from ._version import *
 
 _all = {
     'Dispatcher': '.dispatcher',
+    'BlueDispatcher': '.utils.blue',
     'PoolExecutor': '.utils.asy',
     'ProcessExecutor': '.utils.asy',
     'ThreadExecutor': '.utils.asy',

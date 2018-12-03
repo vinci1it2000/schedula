@@ -659,6 +659,12 @@ class SubDispatch(Base):
         True
 
     """
+    def __new__(cls, *args, **kwargs):
+        from .blue import Blueprint
+        if args and isinstance(args[0], Blueprint):
+            return Blueprint(args[0], *args[1:], **kwargs).set_cls(cls)
+        return Base.__new__(cls)
+
     def __getstate__(self):
         state = self.__dict__.copy()
         state['solution'] = state['solution'].__class__(state['dsp'])
@@ -731,6 +737,18 @@ class SubDispatch(Base):
         self.name = self.__name__ = dsp.name
         self.__doc__ = dsp.__doc__
         self.solution = dsp.solution.__class__(dsp)
+
+    def blue(self, memo=None):
+        memo = {} if memo is None else memo
+        if self not in memo:
+            import inspect
+            from .blue import Blueprint, _parent_blue
+            keys = tuple(inspect.signature(self.__init__).parameters)
+            memo[self] = Blueprint(**{
+                k: _parent_blue(v, memo)
+                for k, v in self.__dict__.items() if k in keys
+            }).set_cls(self.__class__)
+        return memo[self]
 
     def __call__(self, *input_dicts, copy_input_dicts=False, _stopper=None,
                  _executor=None, _sol_name=()):
@@ -881,7 +899,8 @@ class SubDispatchFunction(SubDispatch):
 
         # Set internal proprieties
         self.inputs = inputs
-        dsp.name = function_id  # Set dsp name equal to function id.
+        # Set dsp name equal to function id.
+        self.function_id = dsp.name = function_id
         no_call = False
         self._sol = sol = dsp.solution.__class__(
             dsp, dict.fromkeys(inputs, None), outputs, wildcard, None,
@@ -1069,7 +1088,9 @@ class SubDispatchPipe(SubDispatchFunction):
         self._sol._init_workflow()
         self._sol._run()
         self._sol.no_call = False
+        self.pipe = self._set_pipe()
 
+    def _set_pipe(self):
         def _make_tks(v, s):
             nxt_nds = s.workflow[v]
             nxt_dsp = [n for n in nxt_nds if s.nodes[n]['type'] == 'dispatcher']
@@ -1077,7 +1098,7 @@ class SubDispatchPipe(SubDispatchFunction):
                        for n in nxt_dsp]
             return v, s, nxt_nds, nxt_dsp
 
-        self.pipe = [_make_tks(*v['task'][-1]) for v in self._sol.pipe.values()]
+        return [_make_tks(*v['task'][-1]) for v in self._sol.pipe.values()]
 
     def _init_new_solution(self, full_name):
         key_map, sub_sol = {}, {}
@@ -1181,6 +1202,21 @@ class DispatchPipe(NoSub, SubDispatchPipe):
         >>> fun(1, 0)
         0
     """
+    def __getstate__(self):
+        state = super(DispatchPipe, self).__getstate__()
+        del state['_sol'], state['pipe']
+        return state
+
+    def __setstate__(self, d):
+        super(DispatchPipe, self).__setstate__(d)
+        self._sol = _copy.deepcopy(self.__sol)
+        self.pipe = self._set_pipe()
+
+    def _set_pipe(self):
+        if not hasattr(self, '__sol'):
+            self.__sol = _copy.deepcopy(self._sol)
+        return super(DispatchPipe, self)._set_pipe()
+
     def _init_new_solution(self, _sol_name):
         return self._sol, lambda x: x
 
@@ -1199,116 +1235,6 @@ class DispatchPipe(NoSub, SubDispatchPipe):
 
     def _callback_pipe_failure(self):
         raise DispatcherError("The pipe is not respected.", sol=self.solution)
-
-
-class DFun(object):
-    """
-     A 3-tuple ``(out, fun, **kwds)``, used to prepare a list of calls to
-     :meth:`Dispatcher.add_function()`.
-
-     The workhorse is the :meth:`addme()` which delegates to
-     :meth:`Dispatcher.add_function()`:
-
-       - ``out``: a scalar string or a string-list that, sent as `output` arg,
-       - ``fun``: a callable, sent as `function` args,
-       - ``kwds``: any keywords of :meth:`Dispatcher.add_function()`.
-       - Specifically for the 'inputs' argument, if present in `kwds`, use them
-         (a scalar-string or string-list type, possibly empty), else inspect
-         function; in any case wrap the result in a tuple (if not already a
-         list-type).
-
-         .. note::
-            Inspection works only for regular args, no ``*args, **kwds``
-            supported, and they will fail late, on :meth:`addme()`, if no
-            `input` or `inp` defined.
-
-    **Example**:
-
-    .. dispatcher:: dsp
-       :opt: graph_attr={'ratio': '1'}
-       :code:
-
-        >>> dfuns = [
-        ...     DFun('res', lambda num: num * 2),
-        ...     DFun('res2', lambda num, num2: num + num2, weight=30),
-        ...     DFun(out=['nargs', 'res22'],
-        ...          fun=lambda *args: (len(args), args),
-        ...          inputs=('res', 'res1')
-        ...     )]
-        >>> dfuns
-        [DFun('res', <function <lambda> at 0x...>, ),
-         DFun('res2', <function <lambda> at 0x...>, weight=30),
-         DFun(['nargs', 'res22'], <function <lambda> at 0x...>,
-              inputs=('res', 'res1'))]
-        >>> from schedula import Dispatcher
-        >>> dsp = Dispatcher()
-        >>> DFun.add_dfuns(dfuns, dsp)
-
-    """
-
-    def __init__(self, out, fun, inputs=None, **kwds):
-        self.out = out
-        self.fun = fun
-        if inputs is not None:
-            kwds['inputs'] = inputs
-        self.kwds = kwds
-        assert 'outputs' not in kwds and 'function' not in kwds, self
-
-    def __repr__(self, *args, **kwargs):
-        kwds = selector(set(self.kwds) - {'fun', 'out'}, self.kwds)
-        return 'DFun(%r, %r, %s)' % (
-            self.out,
-            self.fun,
-            ', '.join('%s=%s' % (k, v) for k, v in kwds.items()))
-
-    def copy(self):
-        cp = DFun(**vars(self))
-        cp.kwds = dict(self.kwds)
-        return cp
-
-    def inspect_inputs(self):
-        import inspect
-        fun_params = inspect.signature(self.fun).parameters
-        assert not any(p.kind for p in fun_params.values()
-                       if p.kind != inspect.Parameter.POSITIONAL_OR_KEYWORD), (
-            "Found '*args or **kwds on function!", self)
-        return tuple(fun_params.keys())
-
-    def addme(self, dsp):
-        kwds = self.kwds
-        out = self.out
-        fun = self.fun
-
-        if not isinstance(out, (tuple, list)):
-            out = (out,)
-        else:
-            pass
-
-        inp = kwds.pop('inputs', None)
-        if inp is None:
-            inp = self.inspect_inputs()
-
-        if not isinstance(inp, (tuple, list)):
-            inp = (inp,)
-        else:
-            pass
-
-        if 'description' not in kwds:
-            kwds['function_id'] = '%s%s --> %s' % (fun.__name__, inp, out)
-
-        return dsp.add_function(inputs=inp,
-                                outputs=out,
-                                function=fun,
-                                **kwds)
-
-    @classmethod
-    def add_dfuns(cls, dfuns, dsp):
-        for uf in dfuns:
-            try:
-                uf.addme(dsp)
-            except Exception as ex:
-                raise ValueError("Failed adding dfun %s due to: %s: %s"
-                                 % (uf, type(ex).__name__, ex)) from ex
 
 
 def _get_parameters(func, include_kwargs=False):

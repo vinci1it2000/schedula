@@ -447,7 +447,7 @@ def get_full_pipe(sol, base=()):
     :rtype: DspPipe
     """
 
-    pipe = DspPipe()
+    pipe, i = DspPipe(), len(base)
 
     for p in sol._pipe:
         n, s = p[-1]
@@ -459,10 +459,9 @@ def get_full_pipe(sol, base=()):
 
         node_id = s.full_name + (n,)
 
-        if base != node_id[:len(base)]:
-            raise ValueError('%s != %s' % (node_id[:len(base)], base))
+        assert base == node_id[:i], '%s != %s' % (node_id[:i], base)
 
-        n_id = node_id[len(base):]
+        n_id = node_id[i:]
 
         n, path = d.get_node(n, node_attr=None)
         if n['type'] == 'function' and 'function' in n:

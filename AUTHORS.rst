@@ -1,2 +1,1 @@
 - Vincenzo Arcidiacono <vincenzo.arcidiacono@ext.jrc.ec.europa.eu>
-- Kostis Anagnostopoulos <konstantinos.anagnostopoulos@ext.jrc.ec.europa.eu>
