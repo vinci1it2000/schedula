@@ -659,6 +659,15 @@ class SubDispatch(Base):
         True
 
     """
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        state['solution'] = state['solution'].__class__(state['dsp'])
+        del state['__name__']
+        return state
+
+    def __setstate__(self, d):
+        self.__dict__ = d
+        self.__name__ = self.name
 
     def __init__(self, dsp, outputs=None, cutoff=None, inputs_dist=None,
                  wildcard=False, no_call=False, shrink=False,

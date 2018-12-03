@@ -637,20 +637,32 @@ class TestAsyncParallel(unittest.TestCase):
             if err:
                 raise ValueError
 
+        sub_sub_dsp = sh.Dispatcher()
+        sub_sub_dsp.add_function(
+            function=sleep, inputs=['a'], outputs=['pid']
+        )
+
         sub_dsp = sh.Dispatcher()
         sub_dsp.add_function(
             function=sleep, inputs=['a'], outputs=['d'], filters=[filter]
         )
         sub_dsp.add_function(
+            function=sh.SubDispatchFunction(
+                sub_sub_dsp, 'func', ['a'], ['pid']),
+            inputs=['a'],
+            outputs=['pid']
+        )
+        sub_dsp.add_function(
             function=error, inputs=['err'], outputs=['d'], filters=[filter]
         )
+
         dsp.add_data('d', callback=callback)
         dsp.add_dispatcher(sub_dsp.copy(), inputs=['a'], outputs=['d'])
-        func = sh.SubDispatchFunction(sub_dsp.copy(), 'func', ['a'], ['d'])
+        func = sh.SubDispatchFunction(sub_dsp.copy(), 'func', ['a'], ['d', 'pid'])
         dsp.add_function(function=func, inputs=['b'], outputs=['e'], weight=1)
-        func_pipe = sh.DispatchPipe(sub_dsp, 'func_pipe', ['err'], ['d'])
+        func_pipe = sh.DispatchPipe(sub_dsp, 'func_pipe', ['err', 'a'], ['d', 'pid'])
         dsp.add_function(
-            function=func_pipe, inputs=['err'], outputs=['i'], weight=10
+            function=func_pipe, inputs=['err', 'a'], outputs=['i'], weight=10
         )
         dsp.add_function(function=sleep, inputs=['b', 'd', 'e'], outputs=['f'])
         dsp.add_function(
@@ -786,8 +798,8 @@ class TestAsyncParallel(unittest.TestCase):
         )
         self.assertTrue(all(isinstance(v, Future) for v in sol.values()))
         sol.result()
-        pids = set(sol['d'] + sol['e'] + sol['f'])
-        self.assertEqual(len(pids), 6)
+        pids = set(sol['d'] + sol['e'][0] + sol['e'][1] + sol['f'])
+        self.assertEqual(len(pids), 7)
         self.assertIn((-1, 1), sol.sub_sol)
         sh.shutdown_executors()
 

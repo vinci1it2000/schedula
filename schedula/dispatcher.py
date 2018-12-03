@@ -130,6 +130,12 @@ class Dispatcher(Base):
         Solution([('a', 0), ('b', 1), ('c', 1), ('d', 2.0)])
     """
 
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        state['solution'] = state['solution'].__class__(self)
+        return state
+
+
     def __init__(self, dmap=None, name='', default_values=None, raises=False,
                  description='', executor=None):
         """
