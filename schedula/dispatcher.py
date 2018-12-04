@@ -199,9 +199,6 @@ class Dispatcher(Base):
         #: specified as inputs in the ArciDispatch algorithm.
         self.default_values = default_values or {}
 
-        #: Weight tag.
-        self.weight = 'weight'
-
         #: If True the dispatcher interrupt the dispatch when an error occur.
         self.raises = raises
 
@@ -221,9 +218,7 @@ class Dispatcher(Base):
             'raises': 'raises', 'executor': 'executor'
         }
         base = {k: getattr(self, v) for k, v in _map.items()}
-        obj = self.__class__(**combine_dicts(kwargs, base=base))
-        obj.weight = self.weight
-        return obj
+        return self.__class__(**combine_dicts(kwargs, base=base))
 
     def add_data(self, data_id=None, default_value=EMPTY, initial_dist=0.0,
                  wait_inputs=False, wildcard=None, function=None, callback=None,
@@ -1851,10 +1846,7 @@ class Dispatcher(Base):
             Edge length.
         :rtype: float, int
         """
-
-        weight = self.weight  # Namespace shortcut.
-
-        return edge.get(weight, 1) + node_out.get(weight, 0)  # Return length.
+        return edge.get('weight', 1) + node_out.get('weight', 0)  # Length.
 
     def _get_wait_in(self, flag=True, all_domain=True):
         """

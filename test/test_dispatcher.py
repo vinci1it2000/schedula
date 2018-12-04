@@ -1359,7 +1359,10 @@ class TestDispatch(unittest.TestCase):
         self.assertEqual(set(o.workflow.node), r)
         self.assertEqual(o.workflow.adj, w)
 
-        dsp.weight = None
+        for it in (dsp.dmap.edges().values(), dsp.nodes.values()):
+            for v in it:
+                v.pop('weight', None)
+
         o = dsp.dispatch({'a': 5, 'b': 6}, cutoff=2)
         r = {'a', 'b', 'c', 'd', 'log(b - a)', 'max', 'min', sh.START, 'x - 4'}
         w = {
@@ -1480,7 +1483,9 @@ class TestDispatch(unittest.TestCase):
         self.assertEqual(set(o.workflow.node), r)
         self.assertEqual(o.workflow.adj, w)
 
-        dsp.weight = None
+        for it in (dsp.dmap.edges().values(), dsp.nodes.values()):
+            for v in it:
+                v.pop('weight', None)
         o = dsp.dispatch({'a': 5, 'b': 6}, cutoff=2,
                          inputs_dist={'b': 1})
         r = {'a', 'b', 'd', 'log(b - a)', 'max', 'min', sh.START, 'x - 4'}

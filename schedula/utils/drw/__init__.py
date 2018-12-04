@@ -436,7 +436,7 @@ class FolderNode(object):
 
     def _weight(self):
         try:
-            yield 'weight', self.attr[self.folder.dsp.weight]
+            yield 'weight', self.attr['weight']
         except (AttributeError, KeyError):
             pass
 
