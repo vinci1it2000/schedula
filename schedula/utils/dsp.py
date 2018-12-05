@@ -1248,17 +1248,10 @@ class DispatchPipe(NoSub, SubDispatchPipe):
         raise DispatcherError("The pipe is not respected.", sol=self.solution)
 
 
-def _get_parameters(func, include_kwargs=False):
-    import inspect
-    var = (inspect._VAR_POSITIONAL, inspect._VAR_KEYWORD)
-
-    if include_kwargs:
-        var += inspect._KEYWORD_ONLY,
-
+def _get_par_args(func, exl_kw=False):
     par = collections.OrderedDict()
-    sig = _get_signature(func, 0)
-    for k, v in sig._parameters.items():
-        if v._kind in var:
+    for k, v in _get_signature(func, 0)._parameters.items():
+        if v.kind >= v.VAR_POSITIONAL or (exl_kw and v.default is not v.empty):
             break
         par[k] = v
     return par
@@ -1292,19 +1285,23 @@ def add_function(dsp, inputs_kwargs=False, inputs_defaults=False, **kw):
     
     **Example**:
     
-    .. dispatcher:: dsp
+    .. dispatcher:: sol
        :opt: graph_attr={'ratio': '1'}
        :code:
 
         >>> import schedula as sh
         >>> dsp = sh.Dispatcher(name='Dispatcher')
         >>> @sh.add_function(dsp, outputs=['e'])
-        ... @sh.add_function(dsp, True, True, outputs=['e'])
-        ... def f(a, b, c, d=0):
+        ... @sh.add_function(dsp, False, True, outputs=['i'], inputs='ecah')
+        ... @sh.add_function(dsp, True, outputs=['l'])
+        ... def f(a, b, c, d=1):
         ...     return (a + b) - c + d
-        >>> @sh.add_function(dsp, True, True, outputs=['e'])
-        ... def g(a, b, c, *args, d=0):
-        ...     return (a + b) - c + d
+        >>> @sh.add_function(dsp, True, outputs=['d'])
+        ... def g(e, i, *args, d=0):
+        ...     return e + i + d
+        >>> sol = dsp({'a': 1, 'b': 2, 'c': 3}); sol
+        Solution([('a', 1), ('b', 2), ('c', 3), ('h', 1), ('e', 1), ('i', 4),
+                  ('d', 5), ('l', 5)])
     """
 
     def decorator(f):

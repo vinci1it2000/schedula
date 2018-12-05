@@ -720,6 +720,7 @@ class TestAsyncParallel(unittest.TestCase):
         )
         for i, executor in enumerate(executors):
             d = sh.Dispatcher(name=executor or 'base', executor=executor)
+            d.add_data('a', await_result=True)
             d.add_function(
                 function=func, inputs=['a'], outputs=['d', 'e'],
                 await_result=True

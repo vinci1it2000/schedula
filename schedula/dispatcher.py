@@ -584,11 +584,11 @@ class Dispatcher(Base):
 
         return fun_id  # Return function node id.
 
-    def add_func(self, function, outputs=None, weight=None, inputs_kwargs=False,
-                 inputs_defaults=False, filters=None, input_domain=None,
-                 await_domain=None, await_result=None, inp_weight=None,
-                 out_weight=None, description=None, inputs=None,
-                 function_id=None, **kwargs):
+    def add_func(self, function, outputs=None, weight=None,
+                 inputs_defaults=False, inputs_kwargs=False, filters=None,
+                 input_domain=None, await_domain=None, await_result=None,
+                 inp_weight=None, out_weight=None, description=None,
+                 inputs=None, function_id=None, **kwargs):
         """
         Add a single function node to dispatcher.
 
@@ -680,31 +680,34 @@ class Dispatcher(Base):
 
         **Example**:
 
-        .. dispatcher:: dsp
+        .. dispatcher:: sol
            :opt: graph_attr={'ratio': '1'}
            :code:
 
             >>> import schedula as sh
             >>> dsp = sh.Dispatcher(name='Dispatcher')
-            >>> def f(a, b, c, d=0):
-            ...     return (a + b) - c + d
-            >>> dsp.add_func(f, outputs=['e'])
+            >>> def f(a, b, c, d=3, m=5):
+            ...     return (a + b) - c + d - m
+            >>> dsp.add_func(f, outputs=['d'])
             'f'
-            >>> dsp.add_func(f, ['e'], inputs_kwargs=True, inputs_defaults=True)
+            >>> dsp.add_func(f, ['m'], inputs_defaults=True, inputs='beal')
             'f<0>'
+            >>> dsp.add_func(f, ['i'], inputs_kwargs=True)
+            'f<1>'
             >>> def g(a, b, c, *args, d=0):
-            ...     return (a + b) - c + d
-            >>> dsp.add_func(g, ['h'], inputs_kwargs=True, inputs_defaults=True)
+            ...     return (a + b) * c + d
+            >>> dsp.add_func(g, ['e'], inputs_defaults=True)
             'g'
+            >>> sol = dsp({'a': 1, 'b': 3, 'c': 0}); sol
+            Solution([('a', 1), ('b', 3), ('c', 0), ('l', 3), ('d', 2),
+                      ('e', 0), ('m', 0), ('i', 6)])
         """
         from .utils.blue import _init
-        from .utils.dsp import _get_parameters
+        from .utils.dsp import _get_par_args
         function = _init(function)
 
-        par = {}
-        if inputs is None or inputs_defaults:
-            par = _get_parameters(function, inputs_kwargs)
-            inputs = inputs or tuple(par)
+        if inputs is None:
+            inputs = inputs or tuple(_get_par_args(function, not inputs_kwargs))
 
         function_id = self.add_function(
             weight=weight, filters=filters, outputs=outputs, function=function,
@@ -715,9 +718,8 @@ class Dispatcher(Base):
         )
 
         if inputs_defaults:
-            import inspect
-            for k, v in zip(inputs, par.values()):
-                if v._default is not inspect._empty:
+            for k, v in zip(inputs, _get_par_args(function, False).values()):
+                if v.default is not v.empty:
                     self.set_default_value(k, v._default)
 
         return function_id
