@@ -19,7 +19,7 @@ def _call_kw(loc, skip=('self', 'kwargs')):
 
 
 def _init(obj, memo=None):
-    return obj.new(memo=memo) if isinstance(obj, Blueprint) else obj
+    return obj.register(memo=memo) if isinstance(obj, Blueprint) else obj
 
 
 def _safe_call(fn, *args, memo=None, **kwargs):
@@ -42,11 +42,33 @@ class Blueprint:
         d, keys = self.__dict__, ('args', 'kwargs', 'deferred', 'cls')
         return {k: d[k] for k in keys if k in d}
 
-    def set_cls(self, cls):
+    def _set_cls(self, cls):
         self.cls = cls
         return self
 
-    def new(self, obj=None, memo=None):
+    def register(self, obj=None, memo=None):
+        """Creates a :class:`Blueprint.cls` and calls each deferred operation.
+
+        :param obj:
+            The initialized object with which to call all deferred operations.
+        :type obj: object
+
+        :param memo:
+            A dictionary to cache registered Blueprints.
+        :type memo: dict[Blueprint,object]
+
+        :return:
+            The initialized object.
+        :rtype: Blueprint.cls | Blueprint
+
+        **--------------------------------------------------------------------**
+
+        Example::
+
+            >>> blue = BlueDispatcher().add_func(len, ['lenght'])
+            >>> blue.register()
+            <schedula.dispatcher.Dispatcher object at ...>
+        """
         if memo and self in memo:
             return memo[self]
         elif obj is None:
@@ -60,14 +82,44 @@ class Blueprint:
 
         return obj
 
+    def extend(self, *blues):
+        """
+        Extends deferred operations calling each operation of given Blueprints.
+
+        :param blues:
+            Blueprints to extend deferred operations.
+        :type blues: Blueprint
+
+        :return:
+            Self.
+        :rtype: Blueprint
+
+        **--------------------------------------------------------------------**
+
+        Example::
+
+            >>> blue = BlueDispatcher()
+            >>> blue.extend(
+            ...     BlueDispatcher().add_func(len, ['lenght']),
+            ...     BlueDispatcher().add_func(callable, ['is_callable'])
+            ... )
+            <schedula.utils.blue.BlueDispatcher object at ...>
+        """
+        for blue in blues:
+            for method, kwargs in blue.deferred:
+                getattr(self, method)(**kwargs)
+        return self
+
     def __call__(self, *args, **kwargs):
-        return self.new()(*args, **kwargs)
+        """Calls the registered Blueprint."""
+        return self.register()(*args, **kwargs)
 
 
 def _parent_blue(func, memo=None):
     from .dsp import add_args, SubDispatch
     from ..dispatcher import Dispatcher
     from functools import partial
+    memo = {} if memo is None else memo
     if isinstance(func, partial):
         return func.__class__(
             *(_parent_blue(v, memo) for v in (func.func,) + func.args),
@@ -97,39 +149,45 @@ class BlueDispatcher(Blueprint):
 
     Add data/function/dispatcher nodes to the dispatcher map as usual::
     
-        >>> blue.add_data(data_id='a', default_value=1)
-        ...
-        >>> @sh.add_function(blue, inputs_defaults=True, outputs=['c'])
+        >>> blue.add_data(data_id='a', default_value=3)
+        <schedula.utils.blue.BlueDispatcher object at ...>
+        >>> @sh.add_function(blue, True, True, outputs=['c'])
         ... def diff_function(a, b=2):
         ...     return b - a
         ...
         >>> blue.add_function(function=max, inputs=['c', 'd'], outputs=['e'])
-        ...  
+        <schedula.utils.blue.BlueDispatcher object at ...>
         >>> from math import log
         >>> sub_blue = sh.BlueDispatcher(name='Sub-Dispatcher')
-        >>> sub_blue.add_data(data_id='a', default_value=2)
-        >>> sub_blue.add_function(function=log, inputs=['a'], outputs=['b'])
-        ...
+        >>> sub_blue.add_data(data_id='a', default_value=2).add_function(
+        ...    function=log, inputs=['a'], outputs=['b']
+        ... )
+        <schedula.utils.blue.BlueDispatcher object at ...>
         >>> blue.add_dispatcher(sub_blue, ('a',), {'b': 'f'})
+        <schedula.utils.blue.BlueDispatcher object at ...>
 
     You can set the default values as usual::
 
         >>> blue.set_default_value(data_id='c', value=1, initial_dist=6)
+        <schedula.utils.blue.BlueDispatcher object at ...>
 
     You can also create a `Blueprint` out of `SubDispatchFunction` and add it to
     the `Dispatcher` as follow::
     
         >>> func = sh.SubDispatchFunction(sub_blue, 'func', ['a'], ['b'])
-        >>> blue.add_func(func, outputs=['d'])
-        >>> blue.add_func(func, inputs=['c'], outputs=['g'])
-        
+        >>> blue.add_from_lists(fun_list=[
+        ...    dict(function=func, inputs=['a'], outputs=['d']),
+        ...    dict(function=func, inputs=['c'], outputs=['g']),
+        ... ])
+        <schedula.utils.blue.BlueDispatcher object at ...>
+
     Finally you can create the dispatcher object using the method `new`:
     
     .. dispatcher:: dsp
        :opt: graph_attr={'ratio': '1'}
        :code:
 
-        >>> dsp = blue.new(memo={}); dsp
+        >>> dsp = blue.register(memo={}); dsp
         <schedula.dispatcher.Dispatcher object at ...>
 
     Or dispatch, calling the Blueprint object:
@@ -138,7 +196,7 @@ class BlueDispatcher(Blueprint):
        :opt: graph_attr={'ratio': '1'}
        :code:
 
-        >>> sol = blue(); sol
+        >>> sol = blue({'a': 1}); sol
         Solution([('a', 1), ('b', 2), ('c', 1), ('d', 0.0),
                   ('f', 0.0), ('e', 1), ('g', 0.0)])
     """
@@ -210,9 +268,14 @@ class BlueDispatcher(Blueprint):
         :param kwargs:
             Set additional node attributes using key=value.
         :type kwargs: keyword arguments, optional
+
+        :return:
+            Self.
+        :rtype: BlueDispatcher
         """
         kwargs.update(_call_kw(locals()))
         self.deferred.append(('add_data', kwargs))
+        return self
 
     def add_function(self, function_id=None, function=None, inputs=None,
                      outputs=None, input_domain=None, weight=None,
@@ -292,6 +355,7 @@ class BlueDispatcher(Blueprint):
         """
         kwargs.update(_call_kw(locals()))
         self.deferred.append(('add_function', kwargs))
+        return self
 
     def add_func(self, function, outputs=None, weight=None, inputs_kwargs=False,
                  inputs_defaults=False, filters=None, input_domain=None,
@@ -379,11 +443,12 @@ class BlueDispatcher(Blueprint):
         :type kwargs: keyword arguments, optional
 
         :return:
-            Function node id.
-        :rtype: str
+            Self.
+        :rtype: BlueDispatcher
         """
         kwargs.update(_call_kw(locals()))
         self.deferred.append(('add_func', kwargs))
+        return self
 
     def add_dispatcher(self, dsp, inputs, outputs, dsp_id=None,
                        input_domain=None, weight=None, inp_weight=None,
@@ -454,9 +519,14 @@ class BlueDispatcher(Blueprint):
         :param kwargs:
             Set additional node attributes using key=value.
         :type kwargs: keyword arguments, optional
+
+        :return:
+            Self.
+        :rtype: BlueDispatcher
         """
         kwargs.update(_call_kw(locals()))
         self.deferred.append(('add_dispatcher', kwargs))
+        return self
 
     def add_from_lists(self, data_list=None, fun_list=None, dsp_list=None):
         """
@@ -473,8 +543,13 @@ class BlueDispatcher(Blueprint):
         :param dsp_list:
             It is a list of sub-dispatcher node kwargs to be loaded.
         :type dsp_list: list[dict], optional
+
+        :return:
+            Self.
+        :rtype: BlueDispatcher
         """
         self.deferred.append(('add_from_lists', _call_kw(locals())))
+        return self
 
     def set_default_value(self, data_id, value=EMPTY, initial_dist=0.0):
         """
@@ -495,27 +570,9 @@ class BlueDispatcher(Blueprint):
             default value is used.
         :type initial_dist: float, int, optional
 
-        **--------------------------------------------------------------------**
-
-        **Example**:
-
-        A dispatcher with a data node named `a`::
-
-            >>> dsp = Dispatcher(name='Dispatcher')
-            ...
-            >>> dsp.add_data(data_id='a')
-            'a'
-
-        Add a default value to `a` node::
-
-            >>> dsp.set_default_value('a', value='value of the data')
-            >>> list(sorted(dsp.default_values['a'].items()))
-            [('initial_dist', 0.0), ('value', 'value of the data')]
-
-        Remove the default value of `a` node::
-
-            >>> dsp.set_default_value('a', value=EMPTY)
-            >>> dsp.default_values
-            {}
+        :return:
+            Self.
+        :rtype: BlueDispatcher
         """
         self.deferred.append(('set_default_value', _call_kw(locals())))
+        return self

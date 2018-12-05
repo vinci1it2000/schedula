@@ -1435,6 +1435,17 @@ class Dispatcher(Base):
         return copy.deepcopy(self)  # Return the copy of the Dispatcher.
 
     def blue(self, memo=None):
+        """
+        Constructs a BlueDispatcher out of the current object.
+
+        :param memo:
+            A dictionary to cache Blueprints.
+        :type memo: dict[object,schedula.utils.blue.Blueprint]
+
+        :return:
+            A BlueDispatcher of the current object.
+        :rtype: schedula.utils.blue.BlueDispatcher
+        """
         memo = {} if memo is None else memo
         if self in memo:
             return memo[self]
@@ -1469,7 +1480,7 @@ class Dispatcher(Base):
                 _set_weight('inp_weight', v, pred[k])
                 _set_weight('out_weight', v, succ[k])
                 if 'function' in v:
-                    v[t] = _parent_blue(v.pop('function'))
+                    v[t] = _parent_blue(v.pop('function'), memo)
             blue.deferred.append((method, v))
         return blue
 

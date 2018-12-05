@@ -662,7 +662,7 @@ class SubDispatch(Base):
     def __new__(cls, *args, **kwargs):
         from .blue import Blueprint
         if args and isinstance(args[0], Blueprint):
-            return Blueprint(args[0], *args[1:], **kwargs).set_cls(cls)
+            return Blueprint(args[0], *args[1:], **kwargs)._set_cls(cls)
         return Base.__new__(cls)
 
     def __getstate__(self):
@@ -739,6 +739,17 @@ class SubDispatch(Base):
         self.solution = dsp.solution.__class__(dsp)
 
     def blue(self, memo=None):
+        """
+        Constructs a Blueprint out of the current object.
+
+        :param memo:
+            A dictionary to cache Blueprints.
+        :type memo: dict[object,schedula.utils.blue.Blueprint]
+
+        :return:
+            A Blueprint of the current object.
+        :rtype: schedula.utils.blue.Blueprint
+        """
         memo = {} if memo is None else memo
         if self not in memo:
             import inspect
@@ -747,7 +758,7 @@ class SubDispatch(Base):
             memo[self] = Blueprint(**{
                 k: _parent_blue(v, memo)
                 for k, v in self.__dict__.items() if k in keys
-            }).set_cls(self.__class__)
+            })._set_cls(self.__class__)
         return memo[self]
 
     def __call__(self, *input_dicts, copy_input_dicts=False, _stopper=None,

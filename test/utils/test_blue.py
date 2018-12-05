@@ -47,12 +47,13 @@ class TestBlueDispatcher(unittest.TestCase):
         ss_dsp.add_function('fun', fun, ['a', 'e'], ['b', 'c', 'd'])
         ss_dsp_func = sh.DispatchPipe(
             ss_dsp, 'func', ['e', 'a'], ['c', 'd', 'b'])
-        sub_disfun = functools.partial(ss_dsp_func, 5)
+        sub_disfun = sh.add_args(functools.partial(ss_dsp_func, 5))
 
         s_dsp = sh.Dispatcher()
         s_dsp.add_data('a', 1)
+        s_dsp.add_data('d', 4)
         s_dsp.add_function(
-            'sub_dispatch', sub_disfun, ['a'], ['b', 'c', sh.SINK]
+            'sub_dispatch', sub_disfun, ['d', 'a'], ['b', 'c', sh.SINK]
         )
 
         dispatch = sh.SubDispatch(s_dsp, ['b', 'c', 'a'], output_type='list')
