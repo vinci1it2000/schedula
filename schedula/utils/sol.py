@@ -57,14 +57,14 @@ class Solution(Base, collections.OrderedDict):
             # Initialize workflow params.
             self._init_workflow()
 
-    def _input_value(self):
+    def _input_value(self, inputs=None):
         # Define a function that return the input value of a given data node.
         if self.no_call:
             # noinspection PyUnusedLocal
             def input_value(k):
                 return {}
         else:
-            inputs = self.inputs
+            inputs = self.inputs if inputs is None else inputs
 
             def input_value(k):
                 return {'value': inputs[k]}
@@ -163,9 +163,13 @@ class Solution(Base, collections.OrderedDict):
         # Add the starting node to the workflow graph.
         self.workflow.add_node(START, type='start')
 
-        inputs_dist = inputs_dist or self.inputs_dist or {}  # Update inp dist.
-        inputs = inputs or self.inputs
-        input_value = input_value or self._input_value()
+        if inputs_dist is None:  # Update inp dist.
+            inputs_dist = self.inputs_dist or {}
+
+        if inputs is None:
+            inputs = self.inputs
+
+        input_value = input_value or self._input_value(inputs)
 
         # Add initial values to fringe and seen.
         it = ((inputs_dist.get(v, 0.0) + initial_dist, v) for v in inputs)
@@ -1124,12 +1128,11 @@ class Solution(Base, collections.OrderedDict):
 
     def _check_sub_dsp_domain(self, dsp_id, node, pred, kw):
         if 'input_domain' in node and not (self.no_domain or self.no_call):
-            # noinspection PyBroadException
             try:
-                kwargs = {k: v['value'] for k, v in pred.items()}
+                adict = {k: v['value'] for k, v in pred.items()}
                 if node.get('await_domain', True):
-                    kwargs = {k: await_result(v) for k, v in kwargs.items()}
-                kw['solution_domain'] = s = node['input_domain'](kwargs)
+                    adict = {k: await_result(v) for k, v in adict.items()}
+                kw['solution_domain'] = s = node['input_domain'](adict) or False
                 return s
             except Exception as ex:
                 # Some error occurs.

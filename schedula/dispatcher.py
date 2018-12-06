@@ -707,7 +707,7 @@ class Dispatcher(Base):
         function = _init(function)
 
         if inputs is None:
-            inputs = inputs or tuple(_get_par_args(function, not inputs_kwargs))
+            inputs = tuple(_get_par_args(function, not inputs_kwargs)) or None
 
         function_id = self.add_function(
             weight=weight, filters=filters, outputs=outputs, function=function,

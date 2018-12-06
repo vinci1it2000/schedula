@@ -219,7 +219,7 @@ class TestSubDispatcher(unittest.TestCase):
         dsp.add_function('dispatch_list', dispatch_val, ['d'], ['h'])
         self.dsp = dsp
 
-    def test_sub_dsp(self):
+    def test_function(self):
         from schedula.utils.sol import Solution
 
         o = self.dsp.dispatch(inputs={'d': {'a': 3}})
@@ -247,10 +247,29 @@ class TestSubDispatchFunction(unittest.TestCase):
         dsp.add_function(
             function=f, inputs=['a', 'b', 'e', 'h'], outputs=['c', sh.SINK]
         )
-        dsp.add_function(function=f, inputs=['c', 'b'], outputs=[sh.SINK, 'd'])
+        dsp.add_data('i', 0, 10)
+        dsp.add_data('c', 100, 120)
+        dsp.add_function(
+            function=f, inputs=['c', 'b', 'i'], outputs=[sh.SINK, 'd']
+        )
         self.dsp_2 = dsp
 
-    def test_sub_dispatch_function(self):
+        dsp = sh.Dispatcher()
+
+        def f(a=0):
+            return a
+
+        dsp.add_func(f, outputs=['c'], weight=1)
+        dsp.add_func(f, inputs_kwargs=True, outputs=['d'], inputs_defaults=True)
+
+        def g(x, y=0):
+            return x + y
+
+        dsp.add_func(g, outputs=['z'], inputs_kwargs=True, inputs_defaults=True)
+
+        self.dsp_3 = dsp
+
+    def test_function(self):
         fun = sh.SubDispatchFunction(self.dsp_1, 'F', ['a', 'b'], ['a'])
         self.assertEqual(fun.__name__, 'F')
 
@@ -258,22 +277,48 @@ class TestSubDispatchFunction(unittest.TestCase):
         self.assertEqual(fun(2, 1), 1)
         self.assertRaises(sh.DispatcherError, fun, 3, -1)
 
-        fun = sh.SubDispatchFunction(self.dsp_2, 'F', ['b', 'a', 'e', 'h'], ['c', 'd'])
+        fun = sh.SubDispatchFunction(
+            self.dsp_2, 'F', ['b', 'a', 'e', 'h'], ['c', 'd']
+        )
         # noinspection PyCallingNonCallable
         self.assertEqual(fun(1, 2, 0, 0), [3, 2])
         self.assertEqual(fun(b=1, a=2, e=0, h=0), [3, 2])
         self.assertEqual(fun(1, 2, 0), [4, 3])
         self.assertEqual(fun(1, 2, e=0), [4, 3])
         self.assertEqual(fun(1, 2, 0, c=3), [3, 2])
+        self.assertEqual(fun(1, 2, 0, i=3), [4, 6])
 
         self.assertRaises(
             ValueError, sh.SubDispatchFunction, self.dsp_2, 'F', ['a', 'c'],
             ['d']
         )
 
+        self.assertRaises(TypeError, fun, 2, 1, 2, 5, 6)
         self.assertRaises(TypeError, fun, 2, 1, a=2, b=2)
         self.assertRaises(TypeError, fun, 2, 1, g=0)
         self.assertRaises(TypeError, fun)
+
+        fun = sh.SubDispatchFunction(self.dsp_3, outputs=['d'])
+        self.assertEqual(fun(), 0)
+        self.assertEqual(fun(a=4), 4)
+        self.assertEqual(fun(d=5), 5)
+        self.assertEqual(fun(a=3, d=7), 7)
+        self.assertRaises(TypeError, fun, 2)
+        self.assertRaises(TypeError, fun, c=2)
+
+        fun = sh.SubDispatchFunction(self.dsp_3, outputs=['c'])
+        self.assertEqual(fun(), 0)
+        self.assertEqual(fun(c=5), 5)
+        self.assertRaises(TypeError, fun, 2)
+        self.assertRaises(TypeError, fun, a=2)
+        self.assertRaises(TypeError, fun, a=2, c=7)
+        self.assertRaises(TypeError, fun, d=2)
+
+        fun = sh.SubDispatchFunction(self.dsp_3, inputs='yx', outputs=['z'])
+        self.assertEqual(fun(x=3), 3)
+        self.assertRaises(TypeError, fun, 2)
+        self.assertRaises(TypeError, fun, y=4)
+        self.assertRaises(TypeError, fun, a=2)
 
 
 class TestSubDispatchPipe(unittest.TestCase):
@@ -313,7 +358,38 @@ class TestSubDispatchPipe(unittest.TestCase):
                            outputs={'c': 'd'})
         self.dsp_4 = dsp
 
-    def test_sub_dispatch_function(self):
+        dsp = sh.Dispatcher()
+
+        def f(a, b, c=0, f=0):
+            return a + b + c + f, a - b + c + f
+
+        dsp.add_data('h', 1)
+        dsp.add_function(
+            function=f, inputs=['a', 'b', 'e', 'h'], outputs=['c', sh.SINK]
+        )
+        dsp.add_data('i', 0, 10)
+        dsp.add_data('c', 100, 120)
+        dsp.add_function(
+            function=f, inputs=['c', 'b', 'i'], outputs=[sh.SINK, 'd']
+        )
+        self.dsp_5 = dsp
+
+        dsp = sh.Dispatcher()
+
+        def f(a=0):
+            return a
+
+        dsp.add_func(f, outputs=['c'])
+        dsp.add_func(f, inputs_kwargs=True, outputs=['d'], inputs_defaults=True)
+
+        def g(x, y=0):
+            return x + y
+
+        dsp.add_func(g, outputs=['z'], inputs_kwargs=True, inputs_defaults=True)
+
+        self.dsp_6 = dsp
+
+    def test_function(self):
         fun = sh.SubDispatchPipe(self.dsp_1, 'F', ['a', 'b'], ['a'])
         self.assertEqual(fun.__name__, 'F')
 
@@ -337,6 +413,48 @@ class TestSubDispatchPipe(unittest.TestCase):
         fun = sh.SubDispatchPipe(self.dsp_4, 'F', ['b', 'a'], ['c', 'd'])
         # noinspection PyCallingNonCallable
         self.assertEqual(fun(5, 20), [25, 20])
+
+        fun = sh.SubDispatchPipe(
+            self.dsp_5, 'F', ['b', 'a', 'e', 'h'], ['c', 'd']
+        )
+        # noinspection PyCallingNonCallable
+        self.assertEqual(fun(1, 2, 0, 0), [3, 2])
+        self.assertEqual(fun(b=1, a=2, e=0, h=0), [3, 2])
+        self.assertEqual(fun(1, 2, 0), [4, 3])
+        self.assertEqual(fun(1, 2, e=0), [4, 3])
+
+        self.assertRaises(
+            ValueError, sh.SubDispatchPipe, self.dsp_5, 'F', ['a', 'c'], ['d']
+        )
+
+        self.assertRaises(TypeError, fun, 2, 1, 2, 5, 6)
+        self.assertRaises(TypeError, fun, 2, 1, a=2, b=2)
+        self.assertRaises(TypeError, fun, 2, 1, g=0)
+        self.assertRaises(TypeError, fun, 1, 2, 0, c=3)
+        self.assertRaises(TypeError, fun, 1, 2, 0, i=3)
+        self.assertRaises(TypeError, fun)
+
+        fun = sh.SubDispatchPipe(self.dsp_6, outputs=['d'])
+        self.assertEqual(fun(), 0)
+        self.assertRaises(TypeError, fun, a=4)
+        self.assertRaises(TypeError, fun, d=5)
+        self.assertRaises(TypeError, fun, a=3, d=5)
+        self.assertRaises(TypeError, fun, 2)
+        self.assertRaises(TypeError, fun, c=2)
+
+        fun = sh.SubDispatchPipe(self.dsp_6, outputs=['c'])
+        self.assertEqual(fun(), 0)
+        self.assertRaises(TypeError, fun, 2)
+        self.assertRaises(TypeError, fun, a=2)
+        self.assertRaises(TypeError, fun, c=5)
+        self.assertRaises(TypeError, fun, a=2, c=7)
+        self.assertRaises(TypeError, fun, d=2)
+
+        fun = sh.SubDispatchPipe(self.dsp_6, inputs='yx', outputs=['z'])
+        self.assertEqual(fun(x=3), 3)
+        self.assertRaises(TypeError, fun, 2)
+        self.assertRaises(TypeError, fun, y=4)
+        self.assertRaises(TypeError, fun, a=2)
 
 
 class TestDispatchPipe(unittest.TestCase):
@@ -376,7 +494,37 @@ class TestDispatchPipe(unittest.TestCase):
                            outputs={'c': 'd'})
         self.dsp_4 = dsp
 
-    def test_sub_dispatch_function(self):
+        dsp = sh.Dispatcher()
+
+        def f(a, b, c=0, f=0):
+            return a + b + c + f, a - b + c + f
+
+        dsp.add_data('h', 1)
+        dsp.add_function(
+            function=f, inputs=['a', 'b', 'e', 'h'], outputs=['c', sh.SINK]
+        )
+        dsp.add_data('i', 0, 10)
+        dsp.add_data('c', 100, 120)
+        dsp.add_function(
+            function=f, inputs=['c', 'b', 'i'], outputs=[sh.SINK, 'd']
+        )
+        self.dsp_5 = dsp
+
+        dsp = sh.Dispatcher()
+
+        def f(a=0):
+            return a
+
+        dsp.add_func(f, outputs=['c'])
+        dsp.add_func(f, inputs_kwargs=True, outputs=['d'], inputs_defaults=True)
+
+        def g(x, y=0):
+            return x + y
+
+        dsp.add_func(g, outputs=['z'], inputs_kwargs=True, inputs_defaults=True)
+        self.dsp_6 = dsp
+
+    def test_function(self):
         fun = sh.DispatchPipe(self.dsp_1, 'F', ['a', 'b'], ['a'])
         self.assertEqual(fun.__name__, 'F')
 
@@ -400,3 +548,45 @@ class TestDispatchPipe(unittest.TestCase):
         fun = sh.DispatchPipe(self.dsp_4, 'F', ['b', 'a'], ['c', 'd'])
         # noinspection PyCallingNonCallable
         self.assertEqual(fun(5, 20), [25, 20])
+
+        fun = sh.DispatchPipe(
+            self.dsp_5, 'F', ['b', 'a', 'e', 'h'], ['c', 'd']
+        )
+        # noinspection PyCallingNonCallable
+        self.assertEqual(fun(1, 2, 0, 0), [3, 2])
+        self.assertEqual(fun(b=1, a=2, e=0, h=0), [3, 2])
+        self.assertEqual(fun(1, 2, 0), [4, 3])
+        self.assertEqual(fun(1, 2, e=0), [4, 3])
+
+        self.assertRaises(
+            ValueError, sh.DispatchPipe, self.dsp_5, 'F', ['a', 'c'], ['d']
+        )
+
+        self.assertRaises(TypeError, fun, 2, 1, 2, 5, 6)
+        self.assertRaises(TypeError, fun, 2, 1, a=2, b=2)
+        self.assertRaises(TypeError, fun, 2, 1, g=0)
+        self.assertRaises(TypeError, fun, 1, 2, 0, c=3)
+        self.assertRaises(TypeError, fun, 1, 2, 0, i=3)
+        self.assertRaises(TypeError, fun)
+
+        fun = sh.DispatchPipe(self.dsp_6, outputs=['d'])
+        self.assertEqual(fun(), 0)
+        self.assertRaises(TypeError, fun, a=4)
+        self.assertRaises(TypeError, fun, d=5)
+        self.assertRaises(TypeError, fun, a=3, d=5)
+        self.assertRaises(TypeError, fun, 2)
+        self.assertRaises(TypeError, fun, c=2)
+
+        fun = sh.DispatchPipe(self.dsp_6, outputs=['c'])
+        self.assertEqual(fun(), 0)
+        self.assertRaises(TypeError, fun, 2)
+        self.assertRaises(TypeError, fun, a=2)
+        self.assertRaises(TypeError, fun, c=5)
+        self.assertRaises(TypeError, fun, a=2, c=7)
+        self.assertRaises(TypeError, fun, d=2)
+
+        fun = sh.DispatchPipe(self.dsp_6, inputs='yx', outputs=['z'])
+        self.assertEqual(fun(x=3), 3)
+        self.assertRaises(TypeError, fun, 2)
+        self.assertRaises(TypeError, fun, y=4)
+        self.assertRaises(TypeError, fun, a=2)

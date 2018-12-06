@@ -861,9 +861,10 @@ class SubDispatchFunction(SubDispatch):
           Unreachable output-targets: ...
           Available outputs: ...
     """
+    var_keyword = 'kw'
 
-    def __init__(self, dsp, function_id, inputs, outputs=None, cutoff=None,
-                 inputs_dist=None, shrink=True, wildcard=True):
+    def __init__(self, dsp, function_id=None, inputs=None, outputs=None,
+                 cutoff=None, inputs_dist=None, shrink=True, wildcard=True):
         """
         Initializes the Sub-dispatch Function.
 
@@ -873,11 +874,11 @@ class SubDispatchFunction(SubDispatch):
 
         :param function_id:
             Function name.
-        :type function_id: str
+        :type function_id: str, optional
 
         :param inputs:
             Input data nodes.
-        :type inputs: list[str], iterable
+        :type inputs: list[str], iterable, optional
 
         :param outputs:
             Ending data nodes.
@@ -911,16 +912,16 @@ class SubDispatchFunction(SubDispatch):
         # Set internal proprieties
         self.inputs = inputs
         # Set dsp name equal to function id.
-        self.function_id = dsp.name = function_id
+        self.function_id = dsp.name = function_id or dsp.name or 'fun'
         no_call = False
-        self._sol = sol = dsp.solution.__class__(
-            dsp, dict.fromkeys(inputs, None), outputs, wildcard, None,
+        self._sol = dsp.solution.__class__(
+            dsp, dict.fromkeys(inputs or (), None), outputs, wildcard, None,
             inputs_dist, no_call, False
         )
 
         # Initialize as sub dispatch.
         super(SubDispatchFunction, self).__init__(
-            dsp, outputs, cutoff, sol.inputs_dist, wildcard, no_call,
+            dsp, outputs, cutoff, inputs_dist, wildcard, no_call,
             True, True, 'list'
         )
 
@@ -933,61 +934,39 @@ class SubDispatchFunction(SubDispatch):
     @property
     def __signature__(self):
         import inspect
-        dfl, parameters = self.dsp.default_values, []
-        for name in self.inputs:
-            parameter = inspect.Parameter(name, inspect._POSITIONAL_OR_KEYWORD)
+        dfl, p = self.dsp.default_values, []
+        for name in self.inputs or ():
+            par = inspect.Parameter(name, inspect._POSITIONAL_OR_KEYWORD)
             if name in dfl:
-                parameter._default = dfl[name]['value']
-            parameters.append(parameter)
-        if not isinstance(self, SubDispatchPipe):
-            parameters.append(inspect.Parameter('kwargs', inspect._VAR_KEYWORD))
-        return inspect.Signature(parameters)
-
-    def parse_inputs(self, valid_keyword, *args, **kwargs):
-        inputs = map_list(self.inputs, *args)
-        # Check multiple values for the same argument.
-        i = next((i for i in kwargs if i in inputs), None)
-        if i:
-            msg = "%s() got multiple values for argument '%s'"
-            raise TypeError(msg % (self.dsp.name, i))
-
-        i = next((i for i in sorted(kwargs) if i not in valid_keyword), None)
-        if i:
-            msg = "%s() got an unexpected keyword argument '%s'"
-            raise TypeError(msg % (self.dsp.name, i))
-        dfl = self.dsp.default_values
-        inputs = combine_dicts(
-            inputs, kwargs,
-            base={k: dfl[k]['value'] for k in self.inputs if k in dfl}
-        )
-
-        m = [k for k in self.inputs if k not in inputs]
-        if m:
-            n, p, m, s = len(m), '', list(map("'{}'".format, m)), ' '
-            if n > 1:
-                p = 's'
-                m[-1] = 'and ' + m[-1]
-                if n > 2:
-                    s = ', '
-            m = s.join(m)
-            msg = "%s() missing %d required positional argument%s: %s"
-            raise TypeError(msg % (self.dsp.name, n, p, m))
-        return inputs
+                par._default = dfl[name]['value']
+            p.append(par)
+        if self.var_keyword:
+            p.append(inspect.Parameter(self.var_keyword, inspect._VAR_KEYWORD))
+        return inspect.Signature(p, __validate_parameters__=False)
 
     def __call__(self, *args, _stopper=None, _executor=False, _sol_name=(),
                  **kw):
         # Namespace shortcuts.
         self.solution = sol = self._sol._copy_structure()
-        self.solution.full_name = _sol_name
-        # Update inputs.
-        input_values = self.parse_inputs(self.dsp.data_nodes, *args, **kw)
+        self.solution.full_name, dfl = _sol_name, self.dsp.default_values
 
-        # Define the function to populate the workflow.
-        def i_val(k):
-            return {'value': input_values[k]}
+        # Parse inputs.
+        ba = self.__signature__.bind(*args, **kw)
+        ba.apply_defaults()
+        inp, extra = ba.arguments, ba.arguments.pop(self.var_keyword, {})
+        i = set(extra) - set(self.dsp.data_nodes)
+        if i:
+            msg = "%s() got an unexpected keyword argument '%s'"
+            raise TypeError(msg % (self.function_id, min(i)))
+        inp.update(extra)
+
+        inputs_dist = combine_dicts(
+            sol.inputs_dist, dict.fromkeys(inp, 0), self.inputs_dist or {}
+        )
+        inp.update({k: dfl[k]['value'] for k in set(dfl) - set(inp)})
 
         # Initialize.
-        sol._init_workflow(input_values, i_val, self.inputs_dist, False)
+        sol._init_workflow(inp, inputs_dist=inputs_dist, clean=False)
 
         # Dispatch outputs.
         sol._run(stopper=_stopper, executor=_executor)
@@ -1050,9 +1029,10 @@ class SubDispatchPipe(SubDispatchFunction):
         >>> fun(1, 0)
         0
     """
+    var_keyword = None
 
-    def __init__(self, dsp, function_id, inputs, outputs=None, cutoff=None,
-                 inputs_dist=None, no_domain=True, wildcard=True):
+    def __init__(self, dsp, function_id=None, inputs=None, outputs=None,
+                 cutoff=None, inputs_dist=None, no_domain=True, wildcard=True):
         """
         Initializes the Sub-dispatch Function.
 
@@ -1132,7 +1112,9 @@ class SubDispatchPipe(SubDispatchFunction):
     def __call__(self, *args, _stopper=None, _executor=False, _sol_name=(),
                  **kw):
         self.solution, key_map = self._init_new_solution(_sol_name)
-        self._init_workflows(self.parse_inputs(self.inputs, *args, **kw))
+        ba = self.__signature__.bind(*args, **kw)
+        ba.apply_defaults()
+        self._init_workflows(ba.arguments)
 
         for v, s, nxt_nds, nxt_dsp in self.pipe:
             s = key_map(s)
