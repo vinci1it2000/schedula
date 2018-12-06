@@ -604,7 +604,7 @@ class Solution(Base, collections.OrderedDict):
                 args = map(await_result, args)
             args = [v for v in args if v is not NONE]
             # noinspection PyCallingNonCallable
-            attr['solution_domain'] = node_attr['input_domain'](*args)
+            attr['solution_domain'] = bool(node_attr['input_domain'](*args))
             if not attr['solution_domain']:
                 raise SkipNode
 
@@ -1132,13 +1132,12 @@ class Solution(Base, collections.OrderedDict):
                 adict = {k: v['value'] for k, v in pred.items()}
                 if node.get('await_domain', True):
                     adict = {k: await_result(v) for k, v in adict.items()}
-                kw['solution_domain'] = s = node['input_domain'](adict) or False
+                kw['solution_domain'] = s = bool(node['input_domain'](adict))
                 return s
-            except Exception as ex:
-                # Some error occurs.
+            except Exception as ex:  # Some error occurs.
                 msg = "Failed SUB-DSP DOMAIN '%s' due to:\n  %r"
                 self._warning(msg, dsp_id, ex)
-                return False  # Some error occurs.
+                return False
 
     def _set_sub_dsp_node_input(self, node_id, dsp_id, fringe, check_cutoff,
                                 no_call, initial_dist):
