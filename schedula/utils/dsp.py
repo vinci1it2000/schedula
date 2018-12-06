@@ -936,7 +936,8 @@ class SubDispatchFunction(SubDispatch):
         import inspect
         dfl, p = self.dsp.default_values, []
         for name in self.inputs or ():
-            par = inspect.Parameter(name, inspect._POSITIONAL_OR_KEYWORD)
+            par = inspect.Parameter('par', inspect._POSITIONAL_OR_KEYWORD)
+            par._name = name
             if name in dfl:
                 par._default = dfl[name]['value']
             p.append(par)

@@ -247,10 +247,10 @@ class TestSubDispatchFunction(unittest.TestCase):
         dsp.add_function(
             function=f, inputs=['a', 'b', 'e', 'h'], outputs=['c', sh.SINK]
         )
-        dsp.add_data('i', 0, 10)
+        dsp.add_data('!i', 0, 10)
         dsp.add_data('c', 100, 120)
         dsp.add_function(
-            function=f, inputs=['c', 'b', 'i'], outputs=[sh.SINK, 'd']
+            function=f, inputs=['c', 'b', '!i'], outputs=[sh.SINK, 'd']
         )
         self.dsp_2 = dsp
 
@@ -286,7 +286,7 @@ class TestSubDispatchFunction(unittest.TestCase):
         self.assertEqual(fun(1, 2, 0), [4, 3])
         self.assertEqual(fun(1, 2, e=0), [4, 3])
         self.assertEqual(fun(1, 2, 0, c=3), [3, 2])
-        self.assertEqual(fun(1, 2, 0, i=3), [4, 6])
+        self.assertEqual(fun(1, 2, 0, **{'!i':3}), [4, 6])
 
         self.assertRaises(
             ValueError, sh.SubDispatchFunction, self.dsp_2, 'F', ['a', 'c'],
