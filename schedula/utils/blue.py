@@ -112,7 +112,7 @@ class Blueprint:
 
     def __call__(self, *args, **kwargs):
         """Calls the registered Blueprint."""
-        return self.register()(*args, **kwargs)
+        return self.register(memo={})(*args, **kwargs)
 
 
 def _parent_blue(func, memo=None):
