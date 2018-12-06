@@ -861,16 +861,14 @@ class Dispatcher(Base):
         _weight_from = dict.fromkeys(inputs.keys(), 0.0)
         _weight_from.update(inp_weight or {})
 
-        from .utils.alg import _children, _iter_list_nodes
-        # Get children and parents nodes.
-        children, parents = _children(inputs), _children(outputs)
+        from .utils.alg import _nodes
 
         # Return dispatcher node id.
         dsp_id = self.add_function(
-            dsp_id, dsp, sorted(_iter_list_nodes(inputs)), sorted(parents),
-            input_domain, weight, _weight_from, type='dispatcher',
-            description=description, wait_inputs=False,
-            await_domain=await_domain, **kwargs
+            dsp_id, dsp, sorted(_nodes(inputs)),
+            sorted(_nodes(outputs.values())), input_domain, weight,
+            _weight_from, type='dispatcher', description=description,
+            wait_inputs=False, await_domain=await_domain, **kwargs
         )
 
         # Set proper inputs.
@@ -880,7 +878,7 @@ class Dispatcher(Base):
         self.nodes[dsp_id]['outputs'] = outputs
 
         if SINK not in dsp.nodes and \
-                SINK in children.union(_iter_list_nodes(outputs)):
+                SINK in _nodes(inputs.values()).union(_nodes(outputs)):
             dsp.add_data(SINK)  # Add sink node.
 
         # Import default values from sub-dispatcher.
@@ -1366,20 +1364,20 @@ class Dispatcher(Base):
                 nbrs[child] = pred[child][parent] = dmap_nbrs[child]
 
         if _update_links:
-            from .utils.alg import _children, _update_io_attr_sub_dsp
+            from .utils.alg import _update_io, _get_sub_out, _get_sub_inp
             succ, pred = sub_dsp.dmap.succ, sub_dsp.dmap.pred
             for k, a in sub_dsp.sub_dsp_nodes.items():
                 nodes[k] = a = a.copy()
-                o = succ[k]
-                o = {k for k, v in a['outputs'].items()
-                     if any(i in o for i in stlp(v))}
 
-                inp = _children(selector(pred[k], a['inputs'], allow_miss=True))
+                inp, out = _get_sub_inp(a, pred[k]), _get_sub_out(a, succ[k])
+
                 a['function'] = a['function'].get_sub_dsp_from_workflow(
-                    set(o).union(inp), a['function'].dmap, True, inp, wildcard=1
+                    sources=out.union(inp), graph=a['function'].dmap,
+                    reverse=True, blockers=inp, wildcard=True
                 )
-                _update_io_attr_sub_dsp(a['function'], a, o, pred[k])
 
+                i, o = _update_io(a, pred[k], succ[k])  # Unreachable nodes.
+                assert not i and not o
         return sub_dsp  # Return the sub-dispatcher map.
 
     @property
@@ -1811,33 +1809,28 @@ class Dispatcher(Base):
         bfs = bfs_graphs[NONE] if bfs_graphs is not None else self.dmap
 
         # Get sub dispatcher breadth-first-search graph.
-        dsp = self.get_sub_dsp_from_workflow(outputs, bfs, True,
-                                             _update_links=False)
+        dsp = self.get_sub_dsp_from_workflow(
+            sources=outputs, graph=bfs, reverse=True, _update_links=False
+        )
 
         # Namespace shortcuts.
         in_e, out_e = dsp.dmap.in_edges, dsp.dmap.out_edges
         succ, nodes, pred = dsp.dmap.succ, dsp.nodes, dsp.dmap.pred
-        rm_edges = dsp.dmap.remove_edges_from
-        from .utils.alg import _children, _update_io_attr_sub_dsp
+        rm_edges, nds = dsp.dmap.remove_edges_from, dsp.data_nodes
+        from .utils.alg import _nodes, _get_sub_out, _update_io
 
         for n in dsp.sub_dsp_nodes:
             a = nodes[n] = nodes[n].copy()
             bfs = bfs_graphs[n] if bfs_graphs is not None else None
 
-            o = succ[n]
-            o = {k for k, v in a['outputs'].items()
-                 if any(i in o for i in stlp(v))}
-
+            out = _get_sub_out(a, succ[n])
             if 'input_domain' in a:
-                o = o.union(set(_children(a['inputs'])))
+                out.update(_nodes(a['inputs'].values()))
 
-            d = a['function'] = a['function']._get_dsp_from_bfs(o, bfs)
-            _update_io_attr_sub_dsp(d, a, o, pred[n])
+            a['function'] = a['function']._get_dsp_from_bfs(out, bfs)
 
-            # Update sub-dispatcher edges.
-            o = set(out_e(n)) - {(n, u) for u in _children(a['outputs'])}
-            i = set(in_e(n)) - {(u, n) for u in a['inputs']}
-            rm_edges(i.union(o))  # Remove unreachable nodes.
+            i, o = _update_io(a, pred[n], succ[n]) # Unreachable nodes.
+            rm_edges({(u, n) for u in i}.union(((n, u) for u in o)))
 
         return dsp
 

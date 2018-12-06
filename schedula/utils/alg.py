@@ -12,7 +12,7 @@ It contains basic algorithms, numerical tricks, and data processing tasks.
 
 from .gen import counter
 from .cst import EMPTY, NONE
-from .dsp import SubDispatch, bypass, selector, map_dict, stlp, parent_func
+from .dsp import SubDispatch, bypass, selector, stlp, parent_func
 import collections
 
 __author__ = 'Vincenzo Arcidiacono <vinci1it2000@gmail.com>'
@@ -199,19 +199,6 @@ def _add_edge_dmap_fun(graph, edges_weights=None):
     return add_edge  # Returns the function.
 
 
-def _iter_list_nodes(l):
-    for v in l:
-        if isinstance(v, str):
-            yield v
-        else:
-            for j in v:
-                yield j
-
-
-def _children(inputs):
-    return set(_iter_list_nodes(inputs.values()))
-
-
 def _get_node(nodes, node_id, fuzzy=True):
     """
     Returns a dispatcher node that match the given node id.
@@ -240,27 +227,32 @@ def _get_node(nodes, node_id, fuzzy=True):
         raise ex
 
 
-def _update_io_attr_sub_dsp(dsp, attr, outputs, inputs):
-    """
-    Updates input and output of sub-dispatcher node attributes.
+def _nodes(alist):
+    return set(sum(map(stlp, alist), ()))
 
-    :param dsp:
-        A dispatcher.
-    :type dsp: schedula.Dispatcher
 
-    :param attr:
-        Sub-dispatcher node attributes.
-    :type attr: dict
-    """
+def _get_sub_inp(attr, pred):
+    inp = attr['inputs']
+    return set(sum(map(stlp, (v for k, v in inp.items() if k in pred)), ()))
 
-    # Namespace shortcuts.
-    nds, out, inp = dsp.nodes, attr['outputs'], attr['inputs']
+def _get_sub_out(attr, succ):
+    out = attr['outputs']
+    return {k for k, v in out.items() if any(i in succ for i in stlp(v))}
 
-    attr['outputs'] = selector(set(outputs).intersection(nds, out), out)
 
-    i = {k: tuple(j for j in stlp(v) if j in nds)
-         for k, v in selector(set(inputs).intersection(inp), inp).items()}
-    attr['inputs'] = {k: bypass(*v) for k, v in i.items() if v}
+def _update_io(a, pred, succ, parent=True):
+    inp_k, out_k = ['inputs', 'outputs'][::int(parent) * 2 - 1]
+
+    a[inp_k] = selector(set(a[inp_k]).intersection(pred), a[inp_k])
+
+    o = {k: tuple(j for j in stlp(v) if j in succ)
+         for k, v in a[out_k].items()}
+    a[out_k] = {k: bypass(*v) for k, v in o.items() if v}
+
+    if parent:
+        nds = set(a['function'].data_nodes)
+        _update_io(a, nds, nds, parent=False)
+        return set(pred) - set(a[inp_k]), set(succ) - _nodes(a[out_k].values())
 
 
 def get_sub_node(dsp, path, node_attr='auto', solution=NONE, _level=0,
