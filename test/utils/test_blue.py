@@ -71,6 +71,7 @@ class TestBlueDispatcher(unittest.TestCase):
 
     def test_blue_io(self):
         import dill
+        s0 = self.dsp()
         pre_dsp = dill.dumps(self.dsp)
         blue = self.dsp.blue()
         self.assertEqual(pre_dsp, dill.dumps(self.dsp))
@@ -82,6 +83,7 @@ class TestBlueDispatcher(unittest.TestCase):
         post = dill.dumps(blue), dill.dumps(self.dsp)
         self.assertEqual(pre, post)
         self.assertEqual(s, sol)
+        self.assertEqual(s0, sol)
         self.assertLess(*map(len, post))
         self.assertLess(len(post[1]), len(dill.dumps(s)))
         blue, dsp = list(map(dill.loads, post))

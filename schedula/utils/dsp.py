@@ -1076,11 +1076,14 @@ class SubDispatchPipe(SubDispatchFunction):
             dsp, function_id, inputs, outputs=outputs, cutoff=cutoff,
             inputs_dist=inputs_dist, shrink=False, wildcard=wildcard
         )
+        self._reset_sol()
+        self.pipe = self._set_pipe()
+
+    def _reset_sol(self):
         self._sol.no_call = True
         self._sol._init_workflow()
         self._sol._run()
         self._sol.no_call = False
-        self.pipe = self._set_pipe()
 
     def _set_pipe(self):
         def _make_tks(v, s):
@@ -1197,19 +1200,15 @@ class DispatchPipe(NoSub, SubDispatchPipe):
         0
     """
     def __getstate__(self):
+        self._init_workflows(dict.fromkeys(self._sol.inputs))
+        self._reset_sol()
         state = super(DispatchPipe, self).__getstate__()
-        del state['_sol'], state['pipe']
+        del state['pipe']
         return state
 
     def __setstate__(self, d):
         super(DispatchPipe, self).__setstate__(d)
-        self._sol = _copy.deepcopy(self.__sol)
         self.pipe = self._set_pipe()
-
-    def _set_pipe(self):
-        if not hasattr(self, '__sol'):
-            self.__sol = _copy.deepcopy(self._sol)
-        return super(DispatchPipe, self)._set_pipe()
 
     def _init_new_solution(self, _sol_name):
         return self._sol, lambda x: x
