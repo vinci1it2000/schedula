@@ -2,6 +2,68 @@ Changelog
 =========
 
 
+v0.3.0 (2018-12-08)
+-------------------
+
+Feat
+~~~~
+- (blue, dispatcher): Add method `extend` to extend Dispatcher or
+  Blueprint with Dispatchers or Blueprints.
+
+- (blue, dsp): Add `BlueDispatcher` class + remove `DFun` util.
+
+- (core): Remove `weight` attribute from `Dispatcher` struc.
+
+- (dispatcher): Add method `add_func` to `Dispatcher`.
+
+- (core): Remove `remote_links` attribute from dispatcher data nodes.
+
+- (core): Implement callable raise option in `Dispatcher`.
+
+- (core): Add feature to dispatch asynchronously and in parallel.
+
+- (setup): Add python 3.7.
+
+- (dsp): Use the same `dsp.solution` class in `SubDispatch` functions.
+
+
+Fix
+~~~
+- (dsp): Do not copy solution when call `DispatchPipe`, but reset
+  solution when copying the obj.
+
+- (alg): Correct and clean `get_sub_dsp_from_workflow` algorithm.
+
+- (sol): Ensure `bool` output from `input_domain` call.
+
+- (dsp): Parse arg and kw using `SubDispatchFunction.__signature__`.
+
+- (core): Do not support python 3.4.
+
+- (asy): Do not dill the Dispatcher solution.
+
+- (dispatcher): Correct bug in removing remote links.
+
+- (core): Simplify and correct Exception handling.
+
+- (dsp): Postpone `__signature__` evaluation in `add_args`.
+
+- (gen): Make Token constant when pickled.
+
+- (sol): Move callback invocation in `_evaluate_node`.
+
+- (core) :gh:`11`: Lazy import of modules.
+
+- (sphinx): Remove warnings.
+
+- (dsp): Add missing `code` option in `add_function` decorator.
+
+
+Other
+~~~~~
+- Refact: Update documentation.
+
+
 v0.2.8 (2018-10-09)
 -------------------
 
