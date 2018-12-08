@@ -55,7 +55,7 @@ class Blueprint:
 
         :param memo:
             A dictionary to cache registered Blueprints.
-        :type memo: dict[Blueprint,object]
+        :type memo: dict[Blueprint,T]
 
         :return:
             The initialized object.
@@ -65,7 +65,8 @@ class Blueprint:
 
         Example::
 
-            >>> blue = BlueDispatcher().add_func(len, ['lenght'])
+            >>> import schedula as sh
+            >>> blue = sh.BlueDispatcher().add_func(len, ['lenght'])
             >>> blue.register()
             <schedula.dispatcher.Dispatcher object at ...>
         """
@@ -82,13 +83,17 @@ class Blueprint:
 
         return obj
 
-    def extend(self, *blues):
+    def extend(self, *blues, memo=None):
         """
         Extends deferred operations calling each operation of given Blueprints.
 
         :param blues:
-            Blueprints to extend deferred operations.
-        :type blues: Blueprint
+            Blueprints or Dispatchers to extend deferred operations.
+        :type blues: Blueprint | schedula.dispatcher.Dispatcher
+
+        :param memo:
+            A dictionary to cache Blueprints.
+        :type memo: dict[T,Blueprint]
 
         :return:
             Self.
@@ -98,14 +103,18 @@ class Blueprint:
 
         Example::
 
-            >>> blue = BlueDispatcher()
+            >>> import schedula as sh
+            >>> blue = sh.BlueDispatcher()
             >>> blue.extend(
-            ...     BlueDispatcher().add_func(len, ['lenght']),
+            ...     BlueDispatcher().add_func(len, ['length']),
             ...     BlueDispatcher().add_func(callable, ['is_callable'])
             ... )
             <schedula.utils.blue.BlueDispatcher object at ...>
         """
+        memo = {} if memo is None else memo
         for blue in blues:
+            if isinstance(blue, Dispatcher):
+                blue = blue.blue(memo=memo)
             for method, kwargs in blue.deferred:
                 getattr(self, method)(**kwargs)
         return self

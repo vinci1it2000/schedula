@@ -744,7 +744,7 @@ class SubDispatch(Base):
 
         :param memo:
             A dictionary to cache Blueprints.
-        :type memo: dict[object,schedula.utils.blue.Blueprint]
+        :type memo: dict[T,schedula.utils.blue.Blueprint]
 
         :return:
             A Blueprint of the current object.

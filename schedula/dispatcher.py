@@ -1440,7 +1440,7 @@ class Dispatcher(Base):
 
         :param memo:
             A dictionary to cache Blueprints.
-        :type memo: dict[object,schedula.utils.blue.Blueprint]
+        :type memo: dict[T,schedula.utils.blue.Blueprint]
 
         :return:
             A BlueDispatcher of the current object.
@@ -1483,6 +1483,40 @@ class Dispatcher(Base):
                     v[t] = _parent_blue(v.pop('function'), memo)
             blue.deferred.append((method, v))
         return blue
+
+    def extend(self, *blues, memo=None):
+        """
+        Extends Dispatcher calling each deferred operation of given Blueprints.
+
+        :param blues:
+            Blueprints or Dispatchers to extend deferred operations.
+        :type blues: Blueprint | schedula.dispatcher.Dispatcher
+
+        :param memo:
+            A dictionary to cache Blueprints and Dispatchers.
+        :type memo: dict[T,schedula.utils.blue.Blueprint|Dispatcher]
+
+        :return:
+            Self.
+        :rtype: Dispatcher
+
+        **--------------------------------------------------------------------**
+
+        **Example**:
+
+        .. dispatcher:: dsp
+           :opt: graph_attr={'ratio': '1'}
+           :code:
+
+            >>> import schedula as sh
+            >>> dsp = sh.Dispatcher()
+            >>> dsp.add_func(callable, ['is_callable'])
+            'callable'
+            >>> blue = sh.BlueDispatcher().add_func(len, ['length'])
+            >>> dsp = sh.Dispatcher().extend(dsp, blue)
+        """
+        from .utils.blue import BlueDispatcher as Blue
+        return Blue().extend(*blues, memo=memo).register(self, memo=memo)
 
     def dispatch(self, inputs=None, outputs=None, cutoff=None, inputs_dist=None,
                  wildcard=False, no_call=False, shrink=False,
