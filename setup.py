@@ -40,7 +40,8 @@ def get_long_description(cleanup=True):
     exclude_patterns = os.listdir(mydir or '.')
     exclude_patterns.remove('pypi.rst')
 
-    app = Sphinx(abspath(mydir), './doc/', outdir, outdir + '/.doctree', 'rst',
+    app = Sphinx(abspath(mydir), osp.join(mydir, 'doc/'), outdir,
+                 outdir + '/.doctree', 'rst',
                  confoverrides={
                      'exclude_patterns': exclude_patterns,
                      'master_doc': 'pypi',
@@ -49,7 +50,10 @@ def get_long_description(cleanup=True):
                  }, status=None, warning=None)
 
     app.build(filenames=[osp.join(app.srcdir, 'pypi.rst')])
-    res = open(outdir + '/pypi.rst').read()
+
+    with open(outdir + '/pypi.rst') as file:
+        res = file.read()
+
     if cleanup:
         shutil.rmtree(outdir)
     return res
@@ -83,6 +87,11 @@ if __name__ == '__main__':
     }
     extras['sphinx'] = ['sphinx'] + extras['plot']
     extras['all'] = sorted(functools.reduce(set.union, extras.values(), set()))
+    extras['dev'] = extras['all'] + [
+        'wheel', 'sphinx', 'gitchangelog', 'mako', 'sphinx_rtd_theme',
+        'setuptools>=36.0.1', 'sphinxcontrib-restbuilder', 'nose', 'coveralls',
+        'requests'
+    ]
 
     setup(
         name=name,

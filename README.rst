@@ -72,9 +72,9 @@ To install schedula and all extras, do:
 
     $ pip install schedula[all]
 
-.. note:: ``plot`` extra requires to install Graphviz (`download page`_). Make
-   sure that the directory containing the ``dot`` executable is on your systems'
-   path.
+.. note:: ``plot`` extra requires **Graphviz**. Make sure that the directory
+   containing the ``dot`` executable is on your systems' path. If you have not
+   you can install it from its `download page`_.
 
 .. _download page: https://www.graphviz.org/download/
 .. _end-quick:
