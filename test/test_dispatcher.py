@@ -658,9 +658,13 @@ class TestAsyncParallel(unittest.TestCase):
 
         dsp.add_data('d', callback=callback)
         dsp.add_dispatcher(sub_dsp.copy(), inputs=['a'], outputs=['d'])
-        func = sh.SubDispatchFunction(sub_dsp.copy(), 'func', ['a'], ['d', 'pid'])
+        func = sh.SubDispatchFunction(
+            sub_dsp.copy(), 'func', ['a'], ['d', 'pid']
+        )
         dsp.add_function(function=func, inputs=['b'], outputs=['e'], weight=1)
-        func_pipe = sh.DispatchPipe(sub_dsp, 'func_pipe', ['err', 'a'], ['d', 'pid'])
+        func_pipe = sh.DispatchPipe(
+            sub_dsp, 'func_pipe', ['err', 'a'], ['d', 'pid']
+        )
         dsp.add_function(
             function=func_pipe, inputs=['err', 'a'], outputs=['i'], weight=10
         )
@@ -808,8 +812,9 @@ class TestAsyncParallel(unittest.TestCase):
         from concurrent.futures import Future
         from multiprocess import Event
         from schedula.utils.exc import ExecutorShutdown
-
-        kw = {'inputs': {'a': 1, 'err': True, 'b': 1}}
+        import os
+        t = os.name == 'nt' and 10 or 1
+        kw = {'inputs': {'a': t, 'err': True, 'b': t}}
         executors = ('async', 'parallel', 'parallel-pool', 'parallel-dispatch')
         for executor in executors:
             sol = self.dsp1(executor=executor, stopper=Event(), **kw)
