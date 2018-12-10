@@ -590,3 +590,8 @@ class TestDispatchPipe(unittest.TestCase):
         self.assertRaises(TypeError, fun, 2)
         self.assertRaises(TypeError, fun, y=4)
         self.assertRaises(TypeError, fun, a=2)
+
+        fun = sh.DispatchPipe(self.dsp_6, inputs='x', outputs=['z'])
+        self.assertEqual(fun(x=3), 3)
+        fun.__setstate__(fun.__getstate__())
+        self.assertEqual(fun(x=3), 3)

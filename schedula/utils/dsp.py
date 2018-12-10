@@ -1200,7 +1200,7 @@ class DispatchPipe(NoSub, SubDispatchPipe):
         0
     """
     def __getstate__(self):
-        self._init_workflows(dict.fromkeys(self._sol.inputs))
+        self._init_workflows(dict.fromkeys(self.inputs or ()))
         self._reset_sol()
         state = super(DispatchPipe, self).__getstate__()
         del state['pipe']
