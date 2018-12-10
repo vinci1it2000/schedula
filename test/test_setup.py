@@ -27,5 +27,5 @@ class TestSetup(unittest.TestCase):
 
     def test_project_version(self):
         ver = read_project_version()
-        from schedula._version import __version__
+        from schedula import __version__
         self.assertEqual(ver, __version__)
