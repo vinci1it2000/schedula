@@ -7,11 +7,11 @@
 
 
 #: Authoritative project's PEP 440 version.
-__version__ = version = "0.3.0"  # Also update README.rst
+__version__ = version = "0.3.1"  # Also update README.rst
 
 # Please UPDATE TIMESTAMP WHEN BUMPING VERSIONS AND BEFORE RELEASE.
 #: Release date.
-__updated__ = "2018-12-08 11:00:00"
+__updated__ = "2018-12-10 15:00:00"
 
 __title__ = 'schedula'
 
