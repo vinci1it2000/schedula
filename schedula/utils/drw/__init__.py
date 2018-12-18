@@ -347,7 +347,7 @@ class FolderNode(object):
             )[0]
         except (AttributeError, KeyError):
             tooltip = None
-        yield 'tooltip', tooltip or self.title
+        yield 'tooltip', '"%s"' % (tooltip or self.title).replace('"', "'")
 
     def _wait_inputs(self):
         attr = self.attr
