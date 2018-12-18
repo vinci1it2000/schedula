@@ -47,7 +47,8 @@ class Blueprint:
         return self
 
     def register(self, obj=None, memo=None):
-        """Creates a :class:`Blueprint.cls` and calls each deferred operation.
+        """
+        Creates a :class:`Blueprint.cls` and calls each deferred operation.
 
         :param obj:
             The initialized object with which to call all deferred operations.
@@ -71,8 +72,10 @@ class Blueprint:
             <schedula.dispatcher.Dispatcher object at ...>
         """
         if memo and self in memo:
-            return memo[self]
-        elif obj is None:
+            obj = memo[self]
+            if obj is not None:
+                return obj
+        if obj is None:
             obj = _safe_call(self.cls, *self.args, memo=memo, **self.kwargs)
 
         for method, kwargs in self.deferred:
