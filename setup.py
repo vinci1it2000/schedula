@@ -111,9 +111,12 @@ if __name__ == '__main__':
                     'functions, satisfying data dependencies.',
         long_description=long_description,
         keywords=[
-            "python", "utility", "library", "data", "processing",
+            "dataflow", "concurrent", "concurrency", "scheduling", "dispatch",
+            "processflow", "flow",
+            "functional programming", "dataflow programming", "framework",
+            "data", "processing",
             "calculation", "dependencies", "resolution", "scientific",
-            "engineering", "dispatch", "scheduling", "simulink", "graphviz",
+            "engineering", "parallel", "asynchronous", "async",
         ],
         classifiers=[
             "Programming Language :: Python",
