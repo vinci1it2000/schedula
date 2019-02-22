@@ -23,6 +23,7 @@ Modules:
     ~ext
 """
 import sys
+import functools
 from ._version import *
 
 _all = {
@@ -81,6 +82,7 @@ _all = {
 __all__ = tuple(_all)
 
 
+@functools.lru_cache(None)
 def __dir__():
     return __all__ + (
         '__doc__', '__author__', '__updated__', '__title__', '__version__',
@@ -91,7 +93,9 @@ def __dir__():
 def __getattr__(name):
     if name in _all:
         import importlib
-        return getattr(importlib.import_module(_all[name], __name__), name)
+        obj = getattr(importlib.import_module(_all[name], __name__), name)
+        globals()[name] = obj
+        return obj
     raise AttributeError("module %s has no attribute %s" % (__name__, name))
 
 
