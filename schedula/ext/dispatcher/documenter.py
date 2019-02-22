@@ -26,7 +26,6 @@ except ImportError:  # sphinx<1.7.1
 
 logger = logging.getLogger(__name__)
 
-
 # ------------------------------------------------------------------------------
 # Doctest handling
 # ------------------------------------------------------------------------------
@@ -189,6 +188,9 @@ def _data(lines, dsp):
         lines.append('')
 
 
+dsp_classes = sh.Dispatcher, sh.SubDispatch, sh.BlueDispatcher
+
+
 def _functions(lines, dsp, node_type='function'):
     if isinstance(dsp, sh.SubDispatch):
         dsp = dsp.dsp
@@ -199,7 +201,7 @@ def _functions(lines, dsp, node_type='function'):
 
         if 'function' in node_attr:
             func = sh.parent_func(node_attr['function'])
-            c = isinstance(func, (sh.Dispatcher, sh.SubDispatch))
+            c = isinstance(func, dsp_classes)
             return c if node_type == 'dispatcher' else not c
         return node_attr['type'] == node_type
 
@@ -273,7 +275,7 @@ class DispatcherDocumenter(DataDocumenter):
         b = super(DispatcherDocumenter, cls).can_document_member(
             member, *args, **kwargs
         )
-        return b and isinstance(member, (sh.Dispatcher, sh.SubDispatch))
+        return b and isinstance(member, dsp_classes)
 
     def add_directive_header(self, sig):
         if not self.code:
@@ -294,7 +296,10 @@ class DispatcherDocumenter(DataDocumenter):
             return True
         self.is_doctest = False
         self.code = None
-        return DataDocumenter.import_object(self)
+        res = DataDocumenter.import_object(self)
+        if res and isinstance(self.object, sh.BlueDispatcher):
+            self.object = self.object.register()
+        return res
 
     def format_signature(self):
         return ''
