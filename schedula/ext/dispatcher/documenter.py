@@ -192,7 +192,7 @@ def _data(lines, dsp):
         lines.append('')
 
 
-dsp_classes = sh.Dispatcher, sh.SubDispatch, sh.BlueDispatcher
+dsp_classes = sh.Dispatcher, sh.SubDispatch, sh.Blueprint
 
 
 def _functions(lines, dsp, node_type='function'):
@@ -273,16 +273,14 @@ class DispatcherDocumenter(DataDocumenter):
     }
     code = None
     is_doctest = False
+    blue_cache = {}
 
     def get_real_modname(self):
         return self.modname
 
     @classmethod
     def can_document_member(cls, member, *args, **kwargs):
-        b = super(DispatcherDocumenter, cls).can_document_member(
-            member, *args, **kwargs
-        )
-        return b and isinstance(member, dsp_classes)
+        return isinstance(member, dsp_classes)
 
     def add_directive_header(self, sig):
         if not self.code:
@@ -304,8 +302,8 @@ class DispatcherDocumenter(DataDocumenter):
         self.is_doctest = False
         self.code = None
         res = DataDocumenter.import_object(self)
-        if res and isinstance(self.object, sh.BlueDispatcher):
-            self.object = self.object.register()
+        if res and isinstance(self.object, sh.Blueprint):
+            self.object = self.object.register(memo=self.blue_cache)
         return res
 
     def format_signature(self):
