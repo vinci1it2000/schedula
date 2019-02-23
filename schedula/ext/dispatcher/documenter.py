@@ -183,7 +183,11 @@ def _data(lines, dsp):
 
             link = ':obj:`%s <%s>`' % (_node_name(str(k)), link)
             str_format = u'   "%s", "%s"'
-            lines.append(str_format % (link, get_summary(des.split('\n'))))
+
+            lines.append(str_format % (
+                link.replace('"', "'"),
+                get_summary(des.split('\n')).replace('"', '""')
+            ))
 
         lines.append('')
 
@@ -212,7 +216,10 @@ def _functions(lines, dsp, node_type='function'):
 
         for k, v in fun:
             des, full_name = dsp.search_node_description(k)
-            lines.append(u'   ":func:`%s <%s>`", "%s"' % (k, full_name, des))
+            lines.append(u'   ":func:`%s <%s>`", "%s"' % (
+                k.replace('"', '""'), full_name.replace('"', '""'),
+                des.replace('"', '""')
+            ))
         lines.append('')
 
 
