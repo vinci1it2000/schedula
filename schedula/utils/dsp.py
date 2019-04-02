@@ -659,10 +659,10 @@ class SubDispatch(Base):
         True
 
     """
-    def __new__(cls, *args, **kwargs):
+    def __new__(cls, dsp=None, *args, **kwargs):
         from .blue import Blueprint
-        if args and isinstance(args[0], Blueprint):
-            return Blueprint(args[0], *args[1:], **kwargs)._set_cls(cls)
+        if isinstance(dsp, Blueprint):
+            return Blueprint(dsp, *args, **kwargs)._set_cls(cls)
         return Base.__new__(cls)
 
     def __getstate__(self):
