@@ -80,7 +80,7 @@ def shutdown_executor(name, wait=True):
 
     :return:
         Shutdown pool executor.
-    :rtype: dict[concurrent.futures.Future,threading.Thread|multiprocess.Process]
+    :rtype:dict[concurrent.futures.Future,threading.Thread|multiprocess.Process]
     """
     return _EXECUTORS.pop(name).shutdown(wait)
 

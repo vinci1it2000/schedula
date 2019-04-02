@@ -16,7 +16,7 @@ import functools
 import itertools
 import math
 from .base import Base
-from .exc import DispatcherError, DispatcherAbort
+from .exc import DispatcherError
 from .gen import Token
 
 __author__ = 'Vincenzo Arcidiacono <vinci1it2000@gmail.com>'
@@ -1321,6 +1321,7 @@ class inf(collections.namedtuple('_inf', ['inf', 'num'])):
     for k in ('ge', 'gt', 'eq', 'le', 'lt', 'ne'):
         _methods[k] = {'func': getattr(tuple, '__%s__' % k), 'dfl': 0, 'log': 1}
 
+    # noinspection PyMethodParameters
     def _wrap(k, d):
         f = d['func']
         if d.get('log'):

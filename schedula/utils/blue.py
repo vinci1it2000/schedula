@@ -129,7 +129,6 @@ class Blueprint:
 
 def _parent_blue(func, memo=None):
     from .dsp import add_args, SubDispatch
-    from ..dispatcher import Dispatcher
     from functools import partial
     memo = {} if memo is None else memo
     if isinstance(func, partial):

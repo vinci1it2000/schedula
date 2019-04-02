@@ -14,7 +14,7 @@ import copy
 from .cst import NONE
 
 
-class Base(object):
+class Base:
     """Base class for dispatcher objects."""
     def __deepcopy__(self, memo):
         cls = self.__class__

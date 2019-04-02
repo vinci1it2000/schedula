@@ -24,6 +24,7 @@ Modules:
 """
 import sys
 import functools
+# noinspection PyUnresolvedReferences
 from ._version import *
 
 _all = {

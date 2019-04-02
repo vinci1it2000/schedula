@@ -29,6 +29,7 @@ class DispatcherAbort(BaseException):
 
 class SkipNode(BaseException):
     def __init__(self, *args, ex=None, **kwargs):
+        # noinspection PyArgumentList
         super(SkipNode, self).__init__(*args, **kwargs)
         self.ex = ex
 

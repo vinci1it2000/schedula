@@ -18,7 +18,8 @@ EXTRAS = os.environ.get('EXTRAS', 'all')
 class TestDoctest(unittest.TestCase):
     def runTest(self):
         failure_count, test_count = doctest.testfile(
-            '../README.rst', optionflags=doctest.NORMALIZE_WHITESPACE | doctest.ELLIPSIS
+            '../README.rst',
+            optionflags=doctest.NORMALIZE_WHITESPACE | doctest.ELLIPSIS
         )
         self.assertGreater(test_count, 0, (failure_count, test_count))
         self.assertEqual(failure_count, 0, (failure_count, test_count))

@@ -11,7 +11,7 @@ It provides Dispatcher class.
 
 from .utils.cst import EMPTY, START, NONE, SINK, SELF, PLOT
 from .utils.dsp import (
-    bypass, combine_dicts, selector, stlp, parent_func, kk_dict
+    bypass, combine_dicts, selector, parent_func, kk_dict
 )
 from .utils.gen import counter
 from .utils.base import Base
@@ -134,7 +134,6 @@ class Dispatcher(Base):
         state = self.__dict__.copy()
         state['solution'] = state['solution'].__class__(self)
         return state
-
 
     def __init__(self, dmap=None, name='', default_values=None, raises=False,
                  description='', executor=None):
@@ -1459,10 +1458,10 @@ class Dispatcher(Base):
         key_map_data = ['data_id', {'value': 'default_value'}]
         pred, succ = self.dmap.pred, self.dmap.succ
 
-        def _set_weight(k, r, d):
+        def _set_weight(n, r, d):
             d = {i: j['weight'] for i, j in d.items() if 'weight' in j}
             if d:
-                r[k] = d
+                r[n] = d
 
         for k, v in sorted(self.nodes.items(), key=lambda x: x[1]['index']):
             v = v.copy()
@@ -1848,7 +1847,6 @@ class Dispatcher(Base):
         )
 
         # Namespace shortcuts.
-        in_e, out_e = dsp.dmap.in_edges, dsp.dmap.out_edges
         succ, nodes, pred = dsp.dmap.succ, dsp.nodes, dsp.dmap.pred
         rm_edges, nds = dsp.dmap.remove_edges_from, dsp.data_nodes
         from .utils.alg import _nodes, _get_sub_out, _update_io
@@ -1863,7 +1861,7 @@ class Dispatcher(Base):
 
             a['function'] = a['function']._get_dsp_from_bfs(out, bfs)
 
-            i, o = _update_io(a, pred[n], succ[n]) # Unreachable nodes.
+            i, o = _update_io(a, pred[n], succ[n])  # Unreachable nodes.
             rm_edges({(u, n) for u in i}.union(((n, u) for u in o)))
 
         return dsp

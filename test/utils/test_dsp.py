@@ -61,7 +61,7 @@ class TestDispatcherUtils(unittest.TestCase):
         self.assertEqual(2 ** sh.inf(2, 3), sh.inf(4, 8))
         self.assertEqual(sh.inf(3, 2) ** sh.inf(2, 0), sh.inf(9, 1))
         self.assertEqual(sh.inf(2, 2) / 2, sh.inf(1, 1))
-        self.assertEqual(2 / sh.inf(2, 2) , sh.inf(1, 1))
+        self.assertEqual(2 / sh.inf(2, 2), sh.inf(1, 1))
         self.assertEqual(sh.inf(2, 2) / sh.inf(2, 1), sh.inf(1, 2))
         self.assertEqual(3 // sh.inf(2.1, 4.1), sh.inf(1, 0))
         self.assertEqual(sh.inf(2.1, 4.1) // 3, sh.inf(0, 1))
@@ -74,7 +74,7 @@ class TestDispatcherUtils(unittest.TestCase):
         self.assertEqual(+sh.inf(-1, 2), sh.inf(-1, 2))
         self.assertEqual(abs(sh.inf(-1, 2)), sh.inf(1, 2))
         self.assertEqual(round(sh.inf(1.22, 2.62)), sh.inf(1, 3))
-        self.assertEqual(round(sh.inf(1.22, 2.67),1), sh.inf(1.2, 2.7))
+        self.assertEqual(round(sh.inf(1.22, 2.67), 1), sh.inf(1.2, 2.7))
         self.assertEqual(math.trunc(sh.inf(1.2, 2.6)), sh.inf(1, 2))
         self.assertEqual(math.ceil(sh.inf(1.2, 2.6)), sh.inf(2, 3))
         self.assertEqual(math.floor(sh.inf(1.2, 2.6)), sh.inf(1, 2))
@@ -177,11 +177,11 @@ class TestDispatcherUtils(unittest.TestCase):
         self.assertEqual(output, result)
 
     def test_add_args_parent_func(self):
-        class original_func():
+        class original_func:
             __name__ = 'original_func'
 
             def __call__(self, a, b, *c, d=0, e=0):
-                '''Doc'''
+                """Doc"""
                 return list((a, b) + c)
 
         fo = original_func()
@@ -189,8 +189,10 @@ class TestDispatcherUtils(unittest.TestCase):
         self.assertEqual(func.__name__, 'original_func')
         self.assertEqual(func.__doc__, None)
         self.assertEqual(func((1, 2, 3), 2, 4), [1, 2, 4])
-        func = sh.add_args(functools.partial(functools.partial(func, 1), 1, 2), 2,
-                        callback=lambda res, *args, **kwargs: res.pop())
+        func = sh.add_args(
+            functools.partial(functools.partial(func, 1), 1, 2), 2,
+            callback=lambda res, *args, **kwargs: res.pop()
+        )
         self.assertEqual(func.__name__, 'original_func')
         self.assertEqual(func.__doc__, None)
         self.assertEqual(func((1, 2, 3), 6, 5, 7), [1, 2, 2, 5])
@@ -286,7 +288,7 @@ class TestSubDispatchFunction(unittest.TestCase):
         self.assertEqual(fun(1, 2, 0), [4, 3])
         self.assertEqual(fun(1, 2, e=0), [4, 3])
         self.assertEqual(fun(1, 2, 0, c=3), [3, 2])
-        self.assertEqual(fun(1, 2, 0, **{'!i':3}), [4, 6])
+        self.assertEqual(fun(1, 2, 0, **{'!i': 3}), [4, 6])
 
         self.assertRaises(
             ValueError, sh.SubDispatchFunction, self.dsp_2, 'F', ['a', 'c'],

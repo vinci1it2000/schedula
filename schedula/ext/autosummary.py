@@ -24,7 +24,10 @@ from sphinx.ext.autosummary.generate import (
 )
 
 logger = logging.getLogger(__name__)
-warnings.filterwarnings('ignore', category=DeprecationWarning, module='docutils')
+warnings.filterwarnings(
+    'ignore', category=DeprecationWarning, module='docutils'
+)
+
 
 def get_members(app, obj, typ, include_public=(), imported=False):
     items = []

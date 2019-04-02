@@ -187,7 +187,7 @@ def search_node_description(node_id, node_attr, dsp, what='description'):
     elif func:
         des = func.__doc__ or ''
         if not des:
-            from .. import Dispatcher
+            from ..dispatcher import Dispatcher
             if isinstance(func, Dispatcher):
                 des = func.name
             elif isinstance(func, SubDispatch):

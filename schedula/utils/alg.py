@@ -235,6 +235,7 @@ def _get_sub_inp(attr, pred):
     inp = attr['inputs']
     return set(sum(map(stlp, (v for k, v in inp.items() if k in pred)), ()))
 
+
 def _get_sub_out(attr, succ):
     out = attr['outputs']
     return {k for k, v in out.items() if any(i in succ for i in stlp(v))}

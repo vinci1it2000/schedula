@@ -494,7 +494,8 @@ class TestPerformance(unittest.TestCase):
             "[v.pop('input_domain', 0) "
             "for v in dsp.function_nodes.values()]" % __name__,
             repeat=repeat, number=number)) / repeat
-        msg = '\nMean performance of %s with%s functions made in %f ms/call.\n' \
+        msg = '\n' \
+              'Mean performance of %s with%s functions made in %f ms/call.\n' \
               'It is %.2f%% faster than Dispatcher.dispatch with functions.\n'
         print(msg % ('Dispatcher.dispatch', '', t0, (t0 - t0) / t0 * 100))
 
@@ -842,7 +843,8 @@ class TestAsyncParallel(unittest.TestCase):
             self.assertEqual(set(sol), {'b', 'a', 'err'})
 
     def test_multiple(self):
-        import time, os
+        import os
+        import time
         t, n = os.name == 'nt' and 2 or 0.1, len(self.dsp2.sub_dsp_nodes)
         p = min(os.cpu_count() or 1, 3)
 
@@ -2113,7 +2115,9 @@ class TestPipe(unittest.TestCase):
 
         dsp.add_function('max', max, ['a', 'b'], ['c'])
         dsp.add_function('dict', dict, ['c'], ['d'])
-        f = sh.SubDispatchFunction(dsp, 'SubDispatchFunction', ['a', 'b'], ['d'])
+        f = sh.SubDispatchFunction(
+            dsp, 'SubDispatchFunction', ['a', 'b'], ['d']
+        )
         sub_dsp = sh.Dispatcher()
 
         sub_dsp.add_function('SubDispatchFunction', f, ['A', 'B'], ['D'])

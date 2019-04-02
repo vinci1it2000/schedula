@@ -51,6 +51,8 @@ class Token(str):
         >>> s.capitalize()
         'String'
     """
+
+    # noinspection PyMissingConstructor
     def __init__(self, *args):
         import inspect
         f = inspect.currentframe()

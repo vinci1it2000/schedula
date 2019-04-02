@@ -70,7 +70,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'schedula'
-copyright = '2015-2018, Vincenzo Arcidiacono'
+copyright = '2015-2019, Vincenzo Arcidiacono'
 author = 'Vincenzo Arcidiacono'
 
 # The version info for the project you're documenting, acts as replacement for

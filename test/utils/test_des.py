@@ -37,7 +37,6 @@ class TestDispatcherDes(unittest.TestCase):
             """
             return a
 
-
         ss_dsp.add_function(
             function=sh.add_args(fun), inputs=['a', 'b', 'c', 'd'],
             outputs=['e'],
@@ -76,7 +75,7 @@ class TestDispatcherDes(unittest.TestCase):
         s_dsp.add_function('5', inputs=['i'], outputs=['n'])
         s_dsp.add_function('6', fun1)
         s_dsp.add_function('7', sh.bypass, inputs=['p'],
-                           input_domain=sh.add_args(lambda p:None))
+                           input_domain=sh.add_args(lambda p: None))
         s_dsp.add_data('i', description='max.')
 
         self.dsp = dsp = sh.Dispatcher()
@@ -120,7 +119,9 @@ class TestDispatcherDes(unittest.TestCase):
         self.assertEqual(d.get_node(*'12f', **kw)[0], '')
         self.assertEqual(d.get_node(*'12g', **kw)[0], '')
         self.assertEqual(d.get_node(*'12h', **kw)[0], '')
-        self.assertEqual(d.get_node('1','2','fun', **kw)[0], 'Fun description.')
+        self.assertEqual(d.get_node(
+            '1', '2', 'fun', **kw
+        )[0], 'Fun description.')
         self.assertEqual(d.get_node(*'16', **kw)[0], '')
         self.assertEqual(d.get_node(*'1p', **kw)[0], '')
 

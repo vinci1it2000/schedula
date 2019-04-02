@@ -1038,7 +1038,7 @@ class SiteMap(collections.OrderedDict):
     @staticmethod
     def get_dsp_from(item):
         from ..sol import Solution
-        from ... import Dispatcher
+        from ...dispatcher import Dispatcher
         if isinstance(item, (Solution, SubDispatch)):
             return item.dsp
         elif isinstance(item, Dispatcher):
@@ -1048,7 +1048,7 @@ class SiteMap(collections.OrderedDict):
     @staticmethod
     def get_sol_from(item):
         from ..sol import Solution
-        from ... import Dispatcher
+        from ...dispatcher import Dispatcher
         if isinstance(item, (Dispatcher, SubDispatch)):
             return item.solution
         elif isinstance(item, Solution):
