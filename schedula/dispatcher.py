@@ -1376,7 +1376,8 @@ class Dispatcher(Base):
                 )
 
                 i, o = _update_io(a, pred[k], succ[k])  # Unreachable nodes.
-                assert not i and not o
+                msg = 'Sub-dsp {} missing: inp {}, out {}'
+                assert not i and not o, msg.format(k, i, o)
         return sub_dsp  # Return the sub-dispatcher map.
 
     @property
