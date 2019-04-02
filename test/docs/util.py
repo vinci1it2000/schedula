@@ -115,8 +115,11 @@ class TestApp(Sphinx):
         )
 
     def cleanup(self, doctrees=False):
-        from sphinx.ext.autodoc import AutoDirective
-        AutoDirective._registry.clear()
+        try:
+            from sphinx.ext.autodoc import AutoDirective
+            AutoDirective._registry.clear()
+        except ImportError:  # sphinx >= 2.0
+            pass
         sys.path[:] = self._saved_path
         sys.modules.pop('autodoc_fodder', None)
 
