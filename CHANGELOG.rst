@@ -2,6 +2,54 @@ Changelog
 =========
 
 
+v0.3.3 (2019-04-02)
+-------------------
+
+Feat
+~~~~
+- (dispatcher): Improve error message.
+
+
+Fix
+~~~
+- (doc): Correct bug for sphinx AutoDirective.
+
+- (dsp): Add dsp as kwargs for a new Blueprint.
+
+- (doc): Update PEP and copyright.
+
+
+v0.3.2 (2019-02-23)
+-------------------
+
+Feat
+~~~~
+- (core): Add stub file.
+
+- (sphinx): Add Blueprint in Dispatcher documenter.
+
+- (sphinx): Add BlueDispatcher in documenter.
+
+- (doc): Add examples.
+
+- (blue): Customizable memo registration of blueprints.
+
+
+Fix
+~~~
+- (sphinx): Correct bug when `"` is in csv-table directive.
+
+- (core): Set module attribute when `__getattr__` is invoked.
+
+- (doc): Correct utils description.
+
+- (setup): Improve keywords.
+
+- (drw): Correct tooltip string format.
+
+- (version): Correct import.
+
+
 v0.3.1 (2018-12-10)
 -------------------
 
