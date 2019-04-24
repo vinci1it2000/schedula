@@ -22,6 +22,7 @@ Modules:
     ~utils
     ~ext
 """
+import os
 import sys
 import functools
 # noinspection PyUnresolvedReferences
@@ -101,5 +102,36 @@ def __getattr__(name):
     raise AttributeError("module %s has no attribute %s" % (__name__, name))
 
 
-if sys.version_info[:2] < (3, 7):
-    globals().update({k: __getattr__(k) for k in _all})
+if sys.version_info[:2] < (3, 7) or os.environ.get('IMPORT_ALL') == 'True':
+    # noinspection PyUnresolvedReferences
+    from .dispatcher import Dispatcher
+    # noinspection PyUnresolvedReferences
+    from .utils.asy import (
+        PoolExecutor, ProcessExecutor, ThreadExecutor, await_result,
+        register_executor, shutdown_executor, shutdown_executors
+    )
+    # noinspection PyUnresolvedReferences
+    from .utils.blue import BlueDispatcher, Blueprint
+    # noinspection PyUnresolvedReferences
+    from .utils.cst import EMPTY, END, NONE, PLOT, SELF, SINK, START
+    # noinspection PyUnresolvedReferences
+    from .utils.dsp import (
+        DispatchPipe, SubDispatch, SubDispatchFunction, SubDispatchPipe,
+        add_args,
+        add_function, are_in_nested_dicts, bypass, combine_dicts,
+        combine_nested_dicts, get_nested_dicts, inf, kk_dict, map_dict,
+        map_list,
+        parent_func, replicate_value, selector, stack_nested_keys, stlp,
+        summation
+    )
+    # noinspection PyUnresolvedReferences
+    from .utils.exc import (
+        DispatcherAbort, DispatcherError, ExecutorShutdown, SkipNode
+    )
+    # noinspection PyUnresolvedReferences
+    from .utils.gen import Token, counter, pairwise
+    # noinspection PyUnresolvedReferences
+    from .utils.io import (
+        load_default_values, load_dispatcher, load_map, save_default_values,
+        save_dispatcher, save_map
+    )
