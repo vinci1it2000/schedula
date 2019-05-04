@@ -81,7 +81,7 @@ if __name__ == '__main__':
 
     extras = {
         'web': ['regex', 'flask'],
-        'plot': ['graphviz', 'regex', 'flask', 'Pygments', 'lxml', 'bs4',
+        'plot': ['graphviz', 'regex', 'flask', 'Pygments', 'lxml', 'beautifulsoup4',
                  'jinja2', 'docutils'],
         'parallel': ['multiprocess'],
     }
