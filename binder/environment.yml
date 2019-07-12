@@ -1,4 +1,4 @@
-name: formulas
+name: schedula
 channels:
   - conda-forge
   - defaults
@@ -10,10 +10,13 @@ dependencies:
   - lxml
   - multiprocess
   - networkx
+  - pandas
+  - numpy >=1.15
+  - openpyxl
+  - scipy
   - pip
   - python >=3.7,<3.8.0a0
   - python-graphviz
   - regex
+  - plotly
   - tornado<6
-  - pip:
-    - schedula >=0.3.1
