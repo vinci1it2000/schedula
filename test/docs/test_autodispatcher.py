@@ -39,6 +39,8 @@ def _setup(**kw):
         member_order='alphabetic',
         exclude_members=set(),
     )
+    settings = Struct(tab_width=8)
+    document = Struct(settings=settings)
     from docutils.statemachine import ViewList
     directive = Struct(
         env=app.builder.env,
@@ -46,6 +48,7 @@ def _setup(**kw):
         result=ViewList(),
         warn=warnfunc,
         filename_set=set(),
+        state=Struct(document=document),
         **kw
     )
 
