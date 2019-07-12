@@ -101,20 +101,21 @@ def kk_dict(*kk, **adict):
         >>> sorted(kk_dict('a', 'b', **{'b': 'c'}).items())
         Traceback (most recent call last):
          ...
-        ValueError: keyword argument repeated
-        >>> sorted(kk_dict('a', {'b': 'd'}, **{'b': 'c'}).items())
+        ValueError: keyword argument repeated (b)
+        >>> sorted(kk_dict({'a': 0, 'b': 1}, **{'b': 2, 'a': 3}).items())
         Traceback (most recent call last):
          ...
-        ValueError: keyword argument repeated
+        ValueError: keyword argument repeated (a, b)
     """
 
     for k in kk:
         if isinstance(k, dict):
             if not set(k).isdisjoint(adict):
-                raise ValueError('keyword argument repeated')
+                k = ', '.join(sorted(set(k).intersection(adict)))
+                raise ValueError('keyword argument repeated ({})'.format(k))
             adict.update(k)
         elif k in adict:
-            raise ValueError('keyword argument repeated')
+            raise ValueError('keyword argument repeated ({})'.format(k))
         else:
             adict[k] = k
 
