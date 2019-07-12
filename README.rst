@@ -4,7 +4,7 @@
 schedula: An intelligent function scheduler
 ###########################################
 |pypi_ver| |travis_status| |appveyor_status| |cover_status| |docs_status|
-|dependencies| |github_issues| |python_ver| |proj_license|
+|dependencies| |github_issues| |python_ver| |proj_license| |binder|
 
 :release:       0.3.3
 :date:          2019-04-02 21:00:00
@@ -368,4 +368,8 @@ Things yet to do: utility to transform a dispatcher in a command line tool.
 .. |dependencies| image:: https://img.shields.io/requires/github/vinci1it2000/schedula.svg?
     :target: https://requires.io/github/vinci1it2000/schedula/requirements/?branch=master
     :alt: Dependencies up-to-date?
+
+.. |binder| image:: https://mybinder.org/badge_logo.svg
+    :target: https://mybinder.org/v2/gh/vinci1it2000/schedula/master?filepath=examples
+    :alt: Live Demo
 .. _end-badges:
