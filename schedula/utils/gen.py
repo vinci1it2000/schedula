@@ -33,26 +33,8 @@ def counter(start=0, step=1):
     return itertools.count(start, step).__next__
 
 
-class Token(str):
-    """
-    It constructs a unique constant that behaves like a string.
-
-    Example::
-
-        >>> s = Token('string')
-        >>> s
-        string
-        >>> s == 'string'
-        False
-        >>> s == Token('string')
-        False
-        >>> {s: 1, Token('string'): 1}
-        {string: 1, string: 1}
-        >>> s.capitalize()
-        'String'
-    """
-
-    # noinspection PyMissingConstructor
+class _Token:
+    # noinspection PyUnusedLocal
     def __init__(self, *args):
         import inspect
         f = inspect.currentframe()
@@ -66,7 +48,7 @@ class Token(str):
             for name, obj in mdl.__dict__.items():
                 if obj is self:
                     return getattr, (mdl, name)
-        return super(Token, self).__reduce__()
+        return super(_Token, self).__reduce__()
 
     def __repr__(self):
         return self
@@ -86,6 +68,26 @@ class Token(str):
     # noinspection PyUnusedLocal
     def __deepcopy__(self, memo):
         return self
+
+
+class Token(_Token, str):
+    """
+    It constructs a unique constant that behaves like a string.
+
+    Example::
+
+        >>> s = Token('string')
+        >>> s
+        string
+        >>> s == 'string'
+        False
+        >>> s == Token('string')
+        False
+        >>> {s: 1, Token('string'): 1}
+        {string: 1, string: 1}
+        >>> s.capitalize()
+        'String'
+    """
 
 
 def pairwise(iterable):
