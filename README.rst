@@ -370,6 +370,6 @@ Things yet to do: utility to transform a dispatcher in a command line tool.
     :alt: Dependencies up-to-date?
 
 .. |binder| image:: https://mybinder.org/badge_logo.svg
-    :target: https://mybinder.org/v2/gh/vinci1it2000/schedula/master?filepath=examples
+    :target: https://mybinder.org/v2/gh/vinci1it2000/schedula/master?urlpath=lab/tree/examples
     :alt: Live Demo
 .. _end-badges:
