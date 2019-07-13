@@ -1,2 +1,3 @@
 #!/usr/bin/env bash
 python -m pip install -e . --ignore-installed --no-dependencies
+jupyter serverextension enable --sys-prefix jupyter_server_proxy

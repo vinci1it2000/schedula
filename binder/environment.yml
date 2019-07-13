@@ -21,3 +21,5 @@ dependencies:
   - regex
   - plotly
   - tornado<6
+  - pip:
+      - jupyter-server-proxy
