@@ -2,9 +2,6 @@
 Defines the utility functions to plot the time series.
 """
 
-import plotly.offline as py
-import plotly.graph_objs as go
-
 
 def define_plot_data(data, x_name, *y_names):
     """
@@ -28,25 +25,10 @@ def define_plot_data(data, x_name, *y_names):
     """
     it = []
     for k in y_names:
-        it.append({
-            'x': data[x_name],
-            'y': data[k],
-            'name': k
-        })
+        it.append(dict(
+            x=data[x_name],
+            y=data[k],
+            name=k,
+            mode='lines'
+        ))
     return it
-
-
-def plot_lines(it):
-    """
-    Plotting lines.
-
-    :param it:
-        Data to plot where key value is the name of the series.
-    :type it: list[dict]
-
-    :return:
-        The plot.
-    :rtype: plotly.plotly.iplot
-    """
-    data = [go.Scatter(mode='lines', **d) for d in it]
-    return py.iplot(data, filename='scatter-mode')
