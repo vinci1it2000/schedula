@@ -573,10 +573,10 @@ class FolderNode(object):
                     rows.append(tr)
 
         def get_link():
-            for k, f in funcs:
-                if k == '*':
-                    for link_id in f():
-                        return link_id[0]
+            for _k, f in funcs:
+                if _k == '*':
+                    for _link_id in f():
+                        return _link_id[0]
 
         if any(k[0] == '-' or (rows and k[0] == '?') for k in funcs):
             link_id = get_link()
@@ -849,9 +849,15 @@ def before_request():
         assert request.method == method
 
 
+_repr_html = '''
+<iframe width="100%" height="500" id="{id}" src="http://{host}:{port}/">
+</iframe>
+'''
+
+
 class Site:
     def __init__(self, sitemap, host='localhost', port=0, delay=0.1, until=30,
-                 **kwargs):
+                 run_options=None, **kwargs):
         self.sitemap = sitemap
         self.kwargs = kwargs
         self.host = host
@@ -859,6 +865,8 @@ class Site:
         self.shutdown = lambda: False
         self.delay = delay
         self.until = until
+        self._html = os.environ.get("SCHEDULA_SITE_REPR_HTML", _repr_html)
+        self.run_options = {} if run_options is None else run_options
 
     def __repr__(self):
         s = "%s(%s, " % (self.__class__.__name__, self.sitemap)
@@ -878,9 +886,13 @@ class Site:
         return kw
 
     def _repr_html_(self):
-        from IPython.display import IFrame
-        self.run(host='localhost', port=0)
-        return IFrame(self.url, width='100%', height=500)._repr_html_()
+        from IPython.display import HTML
+        if not self.is_running:
+            self.run()
+        kw = combine_dicts(os.environ, dict(
+            id=id(self), host=self.host, port=self.port
+        ))
+        return HTML(self._html.format(**kw))._repr_html_()
 
     @property
     def url(self):
@@ -901,6 +913,7 @@ class Site:
 
     def run(self, **options):
         self.shutdown()
+        options = combine_dicts(self.run_options, options)
         import threading
         threading.Thread(
             target=run_server,
@@ -910,20 +923,28 @@ class Site:
         self.wait_server()
         return self
 
+    @property
+    def is_running(self):
+        running = False
+        if self.port:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            try:  # Tries to connect to the host.
+                sock.connect((self.host, self.port))
+                running = True
+            except ConnectionRefusedError:
+                pass
+            finally:
+                sock.close()
+        return running
+
     def wait_server(self, elapsed=0):
-        if elapsed > self.until:
-            msg = 'After %.3fs the server %s is down!' % (elapsed, self.url)
-            raise ConnectionRefusedError(msg)
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        try:
-            sock.connect((self.host, self.port))  # tries to connect to the host
-            sock.close()  # closes socket
-            log.debug('After %.3fs the server %s is up!', elapsed, self.url)
-        except ConnectionRefusedError:  # if failed to connect
-            import time
+        import time
+        end = time.time() + self.until
+        while not self.is_running:
             time.sleep(self.delay)
-            sock.close()  # closes socket
-            self.wait_server(int(elapsed + self.delay))
+            if time.time() > end:
+                msg = 'After %.3fs the server %s is down!' % (elapsed, self.url)
+                raise ConnectionRefusedError(msg)
 
 
 class SiteMap(collections.OrderedDict):

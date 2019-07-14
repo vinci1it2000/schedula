@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+SCHEDULA_SITE_REPR_HTML="
+<iframe width='100%' height='500' id='{id}'></iframe>
+<script>document.getElementById('{id}').src='https://' +
+window.location.hostname + '{JUPYTERHUB_SERVICE_PREFIX}proxy/{port}/'</script>
+"
+export SCHEDULA_SITE_REPR_HTML=$SCHEDULA_SITE_REPR_HTML
+exec "$@"
