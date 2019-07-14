@@ -2,6 +2,44 @@ Changelog
 =========
 
 
+v0.3.4 (2019-07-15)
+-------------------
+
+Feat
+~~~~
+- (binder): Add `@jupyterlab/plotly-extension`.
+
+- (binder): Customize `Site._repr_html_` with env
+  `SCHEDULA_SITE_REPR_HTML`.
+
+- (binder): Add `jupyter-server-proxy`.
+
+- (doc): Add binder examples.
+
+- (gen): Create super-class of `Token`.
+
+- (dsp): Improve error message.
+
+
+Fix
+~~~
+- (binder): Simplify `processing_chain` example.
+
+- (setup): Exclude `binder` and `examples` folders as packages.
+
+- (doc): Correct binder data.
+
+- (doc): Update examples for binder.
+
+- (doc): Add missing requirements binder.
+
+- (test): Add `state` to fake directive.
+
+- (import): Remove stub file to enable autocomplete.
+
+- Update to canonical pypi name of beautifulsoup4.
+
+
 v0.3.3 (2019-04-02)
 -------------------
 
