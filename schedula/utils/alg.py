@@ -96,11 +96,11 @@ def get_unused_node_id(graph, initial_guess='unknown', _format='{}<%d>'):
     has_node = graph.has_node  # Namespace shortcut for speed.
 
     n = counter()  # Counter.
-    node_id_format = _format.format(initial_guess)  # Node id format.
+    id_fmt = _format.format(initial_guess.replace('%', '%%'))  # Node id format.
 
     node_id = initial_guess  # Initial guess.
     while has_node(node_id):  # Check if node id is used.
-        node_id = node_id_format % n()  # Guess.
+        node_id = id_fmt % n()  # Guess.
 
     return node_id  # Returns an unused node id.
 
