@@ -230,7 +230,7 @@ class TestSubDispatcher(unittest.TestCase):
         self.assertEqual(o['f'], {'c': 2})
         self.assertSequenceEqual(o['g'], (3, 2))
         self.assertEqual(o['h'], [2])
-        self.assertIsInstance(w.node['dispatch']['solution'], Solution)
+        self.assertIsInstance(w.nodes['dispatch']['solution'], Solution)
 
 
 class TestSubDispatchFunction(unittest.TestCase):

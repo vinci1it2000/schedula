@@ -653,7 +653,7 @@ class SubDispatch(Base):
        :opt: graph_attr={'ratio': '1'}, depth=-1
        :code:
 
-        >>> sol = o.workflow.node['Sub-dispatch']['solution']
+        >>> sol = o.workflow.nodes['Sub-dispatch']['solution']
         >>> sol
         Solution([('a', 3), ('b', 4), ('c', 2)])
         >>> sol == o['e']

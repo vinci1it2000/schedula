@@ -67,7 +67,7 @@ class TestDispatcherWeb(unittest.TestCase):
             s, k = sol.get_node(*n, node_attr='sol')
             k = k[-1]
             try:
-                v = s.workflow.node[k]
+                v = s.workflow.nodes[k]
             except KeyError:
                 continue
             if 'results' not in v:
@@ -88,7 +88,7 @@ class TestDispatcherWeb(unittest.TestCase):
             s, k = sol.get_node(*n, node_attr='sol')
             k = k[-1]
             try:
-                v = s.workflow.node[k]
+                v = s.workflow.nodes[k]
             except KeyError:
                 continue
             if 'results' not in v:

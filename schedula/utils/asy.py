@@ -193,7 +193,7 @@ def _await_result(result, timeout, sol, node_id):
     try:
         return await_result(result, None if timeout is True else timeout)
     except Exception as ex:
-        attr = sol.workflow.node[node_id]
+        attr = sol.workflow.nodes[node_id]
         if 'started' in attr:
             import time
             attr['duration'] = time.time() - attr['started']

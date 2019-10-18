@@ -598,7 +598,7 @@ class Solution(Base, collections.OrderedDict):
 
     def _check_function_domain(self, args, node_attr, node_id):
         # noinspection PyUnresolvedReferences
-        attr = self.workflow.node[node_id]
+        attr = self.workflow.nodes[node_id]
         if not self.no_domain and 'input_domain' in node_attr:
             if node_attr.get('await_domain', True):
                 args = map(await_result, args)
@@ -610,7 +610,7 @@ class Solution(Base, collections.OrderedDict):
 
     def _evaluate_node(self, args, node_attr, node_id, skip_func=False, **kw):
         # noinspection PyUnresolvedReferences
-        attr = self.workflow.node[node_id]
+        attr = self.workflow.nodes[node_id]
         try:
             if skip_func:
                 value = args[0]
@@ -786,7 +786,7 @@ class Solution(Base, collections.OrderedDict):
             self._check_function_domain(args, node_attr, node_id)
             res = async_thread(self, args, node_attr, node_id, **kw)
             # noinspection PyUnresolvedReferences
-            self.workflow.node[node_id]['results'] = res
+            self.workflow.nodes[node_id]['results'] = res
         except SkipNode:
             return False
 

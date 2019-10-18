@@ -1059,12 +1059,12 @@ class TestDispatch(unittest.TestCase):
             sh.START: {'a': {'value': 5}, 'b': {'value': 6}}
         }
         self.assertEqual(o, {'a': 5, 'b': 6, 'c': 0, 'd': 0, 'e': 2, 'f': 9})
-        self.assertEqual(set(o.workflow.node), r)
+        self.assertEqual(set(o.workflow.nodes), r)
         self.assertEqual(o.workflow.adj, w)
 
         o = dsp.dispatch({'a': 5, 'b': 6, 'f': 9}, shrink=True)
         self.assertEqual(o, {'a': 5, 'b': 6, 'c': 0, 'd': 0, 'e': 2, 'f': 9})
-        self.assertEqual(set(o.workflow.node), r)
+        self.assertEqual(set(o.workflow.nodes), r)
         self.assertEqual(o.workflow.adj, w)
 
         o = dsp.dispatch({'a': 5, 'b': 3})
@@ -1083,12 +1083,12 @@ class TestDispatch(unittest.TestCase):
             'x - 4': {'d': {'value': 1}}
         }
         self.assertEqual(o, {'a': 5, 'b': 3, 'c': 3, 'd': 1, 'e': 1})
-        self.assertEqual(set(o.workflow.node), r)
+        self.assertEqual(set(o.workflow.nodes), r)
         self.assertEqual(o.workflow.adj, w)
 
         o = dsp.dispatch({'a': 5, 'b': 3}, shrink=True)
         self.assertEqual(o, {'a': 5, 'b': 3, 'c': 3, 'd': 1, 'e': 1})
-        self.assertEqual(set(o.workflow.node), r)
+        self.assertEqual(set(o.workflow.nodes), r)
         self.assertEqual(o.workflow.adj, w)
 
     def test_no_call(self):
@@ -1108,12 +1108,12 @@ class TestDispatch(unittest.TestCase):
             sh.START: {'a': {}, 'b': {}}
         }
         self.assertEqual(o, dict.fromkeys(['a', 'b', 'c', 'd', 'e'], sh.NONE))
-        self.assertEqual(set(o.workflow.node), r)
+        self.assertEqual(set(o.workflow.nodes), r)
         self.assertEqual(o.workflow.adj, w)
 
         o = dsp.dispatch(['a', 'b'], no_call=True, shrink=True)
         self.assertEqual(o, dict.fromkeys(['a', 'b', 'c', 'd', 'e'], sh.NONE))
-        self.assertEqual(set(o.workflow.node), r)
+        self.assertEqual(set(o.workflow.nodes), r)
         self.assertEqual(o.workflow.adj, w)
 
     def test_with_outputs(self):
@@ -1134,7 +1134,7 @@ class TestDispatch(unittest.TestCase):
             'x - 4': {},
         }
         self.assertEqual(o, {'a': 5, 'b': 6, 'c': 0, 'd': 0})
-        self.assertEqual(set(o.workflow.node), r)
+        self.assertEqual(set(o.workflow.nodes), r)
         self.assertEqual(o.workflow.adj, w)
 
         o = dsp.dispatch({'a': 5, 'b': 6}, ['d'], shrink=True)
@@ -1143,7 +1143,7 @@ class TestDispatch(unittest.TestCase):
         w = {k[0]: dict(v for v in k[1].items() if v[0] not in n)
              for k in w.items() if k[0] not in n}
         self.assertEqual(o, {'a': 5, 'b': 6, 'c': 0, 'd': 0})
-        self.assertEqual(set(o.workflow.node), r)
+        self.assertEqual(set(o.workflow.nodes), r)
         self.assertEqual(o.workflow.adj, w)
 
         o = dsp.dispatch({'a': 5, 'b': 6}, ['d'], rm_unused_nds=True)
@@ -1152,7 +1152,7 @@ class TestDispatch(unittest.TestCase):
         w = {k[0]: dict(v for v in k[1].items() if v[0] not in n)
              for k in w.items() if k[0] not in n}
         self.assertEqual(o, {'a': 5, 'b': 6, 'c': 0, 'd': 0})
-        self.assertEqual(set(o.workflow.node), r)
+        self.assertEqual(set(o.workflow.nodes), r)
         self.assertEqual(o.workflow.adj, w)
 
         dsp = self.dsp_of_dsp_1
@@ -1174,14 +1174,14 @@ class TestDispatch(unittest.TestCase):
             'sub_dsp': {},
         }
         self.assertEqual(o, {'a': 3, 'b': 5, 'c': 5, 'd': 10, 'e': 15})
-        self.assertEqual(set(o.workflow.node), r)
+        self.assertEqual(set(o.workflow.nodes), r)
         self.assertEqual(o.workflow.adj, w)
 
         o = dsp.dispatch(
             inputs={'a': 3, 'b': 5, 'd': 10, 'e': 15},
             shrink=True)
         self.assertEqual(o, {'a': 3, 'b': 5, 'c': 5, 'd': 10, 'e': 15})
-        self.assertEqual(set(o.workflow.node), r)
+        self.assertEqual(set(o.workflow.nodes), r)
         self.assertEqual(o.workflow.adj, w)
 
         o = dsp.dispatch(inputs={'a': 3, 'b': 5, 'd': 10, 'e': 20})
@@ -1192,7 +1192,7 @@ class TestDispatch(unittest.TestCase):
         w['sub_dsp'] = {'f': {'value': 7}}
         w[sh.START]['e'] = {'value': 20}
         self.assertEqual(o, {'a': 3, 'b': 5, 'c': 5, 'd': 10, 'e': 20, 'f': 7})
-        self.assertEqual(set(o.workflow.node), r)
+        self.assertEqual(set(o.workflow.nodes), r)
         self.assertEqual(o.workflow.adj, w)
 
         dsp = self.dsp_of_dsp_2
@@ -1241,22 +1241,22 @@ class TestDispatch(unittest.TestCase):
             sh.START: {'a': {'value': 10}},
         }
         self.assertEqual(o, {'a': 3, 'b': 5, 'c': 5, 'd': 10, 'e': 20, 'f': 4})
-        self.assertEqual(set(o.workflow.node), r)
+        self.assertEqual(set(o.workflow.nodes), r)
         self.assertEqual(o.workflow.adj, w)
-        sd_wf = o.workflow.node['sub_dsp']['solution'].workflow
+        sd_wf = o.workflow.nodes['sub_dsp']['solution'].workflow
         self.assertEqual(sd_wf.adj, sw)
-        ssd_wf = sd_wf.node['sub_sub_dsp']['solution'].workflow
+        ssd_wf = sd_wf.nodes['sub_sub_dsp']['solution'].workflow
         self.assertEqual(ssd_wf.adj, ssw)
 
         o = dsp.dispatch(inputs={'a': 3, 'b': 5, 'd': 10, 'e': 20})
         sw['e'] = {}
         sw['fun']['e'] = {'value': 10}
         self.assertEqual(o, {'a': 3, 'b': 5, 'c': 5, 'd': 10, 'e': 20, 'f': 4})
-        self.assertEqual(set(o.workflow.node), r)
+        self.assertEqual(set(o.workflow.nodes), r)
         self.assertEqual(o.workflow.adj, w)
-        sd_wf = o.workflow.node['sub_dsp']['solution'].workflow
+        sd_wf = o.workflow.nodes['sub_dsp']['solution'].workflow
         self.assertEqual(sd_wf.adj, sw)
-        ssd_wf = sd_wf.node['sub_sub_dsp']['solution'].workflow
+        ssd_wf = sd_wf.nodes['sub_sub_dsp']['solution'].workflow
         self.assertEqual(ssd_wf.adj, ssw)
 
         dsp = self.dsp_of_dsp_3
@@ -1269,22 +1269,22 @@ class TestDispatch(unittest.TestCase):
         w['min'] = {}
 
         self.assertEqual(o, {'a': 3, 'b': 5, 'c': 5, 'd': 10, 'e': 20, 'f': 4})
-        self.assertEqual(set(o.workflow.node), r)
+        self.assertEqual(set(o.workflow.nodes), r)
         self.assertEqual(o.workflow.adj, w)
-        sd_wf = o.workflow.node['sub_dsp']['solution'].workflow
+        sd_wf = o.workflow.nodes['sub_dsp']['solution'].workflow
         self.assertEqual(sd_wf.adj, sw)
-        ssd_wf = sd_wf.node['sub_sub_dsp']['solution'].workflow
+        ssd_wf = sd_wf.nodes['sub_sub_dsp']['solution'].workflow
         self.assertEqual(ssd_wf.adj, ssw)
 
         o = dsp.dispatch(inputs={'a': 3, 'b': 5, 'd': 10, 'e': 20})
         sw['e'] = {}
         sw['fun']['e'] = {'value': 10}
         self.assertEqual(o, {'a': 3, 'b': 5, 'c': 5, 'd': 10, 'e': 20, 'f': 4})
-        self.assertEqual(set(o.workflow.node), r)
+        self.assertEqual(set(o.workflow.nodes), r)
         self.assertEqual(o.workflow.adj, w)
-        sd_wf = o.workflow.node['sub_dsp']['solution'].workflow
+        sd_wf = o.workflow.nodes['sub_dsp']['solution'].workflow
         self.assertEqual(sd_wf.adj, sw)
-        ssd_wf = sd_wf.node['sub_sub_dsp']['solution'].workflow
+        ssd_wf = sd_wf.nodes['sub_sub_dsp']['solution'].workflow
         self.assertEqual(ssd_wf.adj, ssw)
 
         dsp = self.dsp_of_dsp_4
@@ -1305,12 +1305,12 @@ class TestDispatch(unittest.TestCase):
             },
         }
         self.assertEqual(o, {'a': 6, 'b': 5, 'c': 2, 'd': 2, 'f': 2, 'g': -3})
-        self.assertEqual(set(o.workflow.node), r)
+        self.assertEqual(set(o.workflow.nodes), r)
         self.assertEqual(o.workflow.adj, w)
 
         o = dsp.dispatch(inputs={'a': 6, 'b': 5}, shrink=True)
         self.assertEqual(o, {'a': 6, 'b': 5, 'c': 2, 'd': 2, 'f': 2, 'g': -3})
-        self.assertEqual(set(o.workflow.node), r)
+        self.assertEqual(set(o.workflow.nodes), r)
         self.assertEqual(o.workflow.adj, w)
 
         dsp = self.dsp_of_dsp_5
@@ -1332,12 +1332,12 @@ class TestDispatch(unittest.TestCase):
             },
         }
         self.assertEqual(o, {'a': 6, 'b': 5, 'c': 6, 'd': 6, 'f': 6, 'g': -3})
-        self.assertEqual(set(o.workflow.node), r)
+        self.assertEqual(set(o.workflow.nodes), r)
         self.assertEqual(o.workflow.adj, w)
 
         o = dsp.dispatch(inputs={'a': 6, 'b': 5}, shrink=True)
         self.assertEqual(o, {'a': 6, 'b': 5, 'c': 6, 'd': 6, 'f': 6, 'g': -3})
-        self.assertEqual(set(o.workflow.node), r)
+        self.assertEqual(set(o.workflow.nodes), r)
         self.assertEqual(o.workflow.adj, w)
 
     def test_cutoff(self):
@@ -1355,7 +1355,7 @@ class TestDispatch(unittest.TestCase):
             sh.START: {'a': {'value': 5}, 'b': {'value': 6}}
         }
         self.assertEqual(o, {'a': 5, 'b': 6, 'c': 0})
-        self.assertEqual(set(o.workflow.node), r)
+        self.assertEqual(set(o.workflow.nodes), r)
         self.assertEqual(o.workflow.adj, w)
 
         o = dsp.dispatch({'a': 5, 'b': 6}, cutoff=2, shrink=True)
@@ -1364,7 +1364,7 @@ class TestDispatch(unittest.TestCase):
         w = {k[0]: dict(v for v in k[1].items() if v[0] not in n)
              for k in w.items() if k[0] not in n}
         self.assertEqual(o, {'a': 5, 'b': 6, 'c': 0})
-        self.assertEqual(set(o.workflow.node), r)
+        self.assertEqual(set(o.workflow.nodes), r)
         self.assertEqual(o.workflow.adj, w)
 
         for it in (dsp.dmap.edges().values(), dsp.nodes.values()):
@@ -1386,7 +1386,7 @@ class TestDispatch(unittest.TestCase):
             sh.START: {'a': {'value': 5}, 'b': {'value': 6}}
         }
         self.assertEqual(o, {'a': 5, 'b': 6, 'c': 0, 'd': 1})
-        self.assertEqual(set(o.workflow.node), r)
+        self.assertEqual(set(o.workflow.nodes), r)
         self.assertEqual(o.workflow.adj, w)
 
         o = dsp.dispatch({'a': 5, 'b': 6}, cutoff=2, shrink=True)
@@ -1395,7 +1395,7 @@ class TestDispatch(unittest.TestCase):
         w = {k[0]: dict(v for v in k[1].items() if v[0] not in n)
              for k in w.items() if k[0] not in n}
         self.assertEqual(o, {'a': 5, 'b': 6, 'c': 0, 'd': 1})
-        self.assertEqual(set(o.workflow.node), r)
+        self.assertEqual(set(o.workflow.nodes), r)
         self.assertEqual(o.workflow.adj, w)
 
     def test_wildcard(self):
@@ -1417,23 +1417,23 @@ class TestDispatch(unittest.TestCase):
         }
         self.assertEqual(o, {'b': 1, 'c': 0, 'd': 0, 'e': 2})
         self.assertEqual(o.workflow.adj, w)
-        self.assertEqual(set(o.workflow.node), r)
+        self.assertEqual(set(o.workflow.nodes), r)
 
         o = dsp.dispatch({'a': 5, 'b': 6}, ['a', 'b'], wildcard=True,
                          shrink=True)
         self.assertEqual(o, {'b': 1, 'c': 0, 'd': 0, 'e': 2})
         self.assertEqual(o.workflow.adj, w)
-        self.assertEqual(set(o.workflow.node), r)
+        self.assertEqual(set(o.workflow.nodes), r)
 
         dsp = self.dsp_wildcard_1
 
         o = dsp.dispatch({'a': 5, 'b': 6}, ['a', 'b'], wildcard=True)
-        self.assertEqual(set(o.workflow.node), r)
+        self.assertEqual(set(o.workflow.nodes), r)
         self.assertEqual(o.workflow.adj, w)
 
         o = dsp.dispatch({'a': 5, 'b': 6}, ['a', 'b'], wildcard=True,
                          shrink=True)
-        self.assertEqual(set(o.workflow.node), r)
+        self.assertEqual(set(o.workflow.nodes), r)
         self.assertEqual(o.workflow.adj, w)
 
         dsp = self.dsp_wildcard_2
@@ -1478,7 +1478,7 @@ class TestDispatch(unittest.TestCase):
             sh.START: {'a': {'value': 5}, 'b': {'value': 6}}
         }
         self.assertEqual(o, {'a': 5, 'b': 6})
-        self.assertEqual(set(o.workflow.node), r)
+        self.assertEqual(set(o.workflow.nodes), r)
         self.assertEqual(o.workflow.adj, w)
 
         o = dsp.dispatch({'a': 5, 'b': 6}, cutoff=2, shrink=True,
@@ -1488,7 +1488,7 @@ class TestDispatch(unittest.TestCase):
         w = {k[0]: dict(v for v in k[1].items() if v[0] not in n)
              for k in w.items() if k[0] not in n}
         self.assertEqual(o, {'a': 5, 'b': 6})
-        self.assertEqual(set(o.workflow.node), r)
+        self.assertEqual(set(o.workflow.nodes), r)
         self.assertEqual(o.workflow.adj, w)
 
         for it in (dsp.dmap.edges().values(), dsp.nodes.values()):
@@ -1509,7 +1509,7 @@ class TestDispatch(unittest.TestCase):
             sh.START: {'a': {'value': 5}, 'b': {'value': 6}}
         }
         self.assertEqual(o, {'a': 5, 'b': 6, 'd': 1})
-        self.assertEqual(set(o.workflow.node), r)
+        self.assertEqual(set(o.workflow.nodes), r)
         self.assertEqual(o.workflow.adj, w)
 
         o = dsp.dispatch({'a': 5, 'b': 6}, cutoff=2, shrink=True,
@@ -1519,7 +1519,7 @@ class TestDispatch(unittest.TestCase):
         w = {k[0]: dict(v for v in k[1].items() if v[0] not in n)
              for k in w.items() if k[0] not in n}
         self.assertEqual(o, {'a': 5, 'b': 6, 'd': 1})
-        self.assertEqual(set(o.workflow.node), r)
+        self.assertEqual(set(o.workflow.nodes), r)
         self.assertEqual(o.workflow.adj, w)
 
         dsp = self.dsp
@@ -1542,26 +1542,26 @@ class TestDispatch(unittest.TestCase):
         }
         self.assertEqual(o, {'b': 1, 'c': 6, 'd': 5, 'e': 2})
         self.assertEqual(o.workflow.adj, w)
-        self.assertEqual(set(o.workflow.node), r)
+        self.assertEqual(set(o.workflow.nodes), r)
 
         o = dsp.dispatch({'a': 5, 'b': 6, 'd': 0}, ['a', 'b', 'd'],
                          wildcard=True, shrink=True,
                          inputs_dist={'a': 1})
         self.assertEqual(o, {'b': 1, 'c': 6, 'd': 5, 'e': 2})
         self.assertEqual(o.workflow.adj, w)
-        self.assertEqual(set(o.workflow.node), r)
+        self.assertEqual(set(o.workflow.nodes), r)
 
         dsp = self.dsp_wildcard_1
 
         o = dsp.dispatch({'a': 5, 'b': 6, 'd': 0}, ['a', 'b', 'd'],
                          wildcard=True, inputs_dist={'a': 2})
-        self.assertEqual(set(o.workflow.node), r)
+        self.assertEqual(set(o.workflow.nodes), r)
         self.assertEqual(o.workflow.adj, w)
 
         o = dsp.dispatch({'a': 5, 'b': 6, 'd': 0}, ['a', 'b', 'd'],
                          wildcard=True, shrink=True,
                          inputs_dist={'a': 2})
-        self.assertEqual(set(o.workflow.node), r)
+        self.assertEqual(set(o.workflow.nodes), r)
         self.assertEqual(o.workflow.adj, w)
 
         dsp = self.dsp_dfl_input_dist

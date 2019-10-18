@@ -159,8 +159,8 @@ class TestDispatcherGetSubNode(unittest.TestCase):
 
     def test_full_name(self):
         sol = self.sol
-        v = sol.workflow.node['dispatch']['solution']
-        v = v.workflow.node['sub_dispatch']['solution'].full_name
+        v = sol.workflow.nodes['dispatch']['solution']
+        v = v.workflow.nodes['sub_dispatch']['solution'].full_name
         self.assertEqual(v, ('dispatch', 'sub_dispatch'))
 
         v = sol.full_name

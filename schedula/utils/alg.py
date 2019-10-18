@@ -374,7 +374,7 @@ def get_sub_node(dsp, path, node_attr='auto', solution=NONE, _level=0,
         try:
             if node['type'] in ('function', 'dispatcher'):
                 try:
-                    solution = solution.workflow.node[node_id]['solution']
+                    solution = solution.workflow.nodes[node_id]['solution']
                 except (KeyError, AttributeError):
                     solution = EMPTY
                 dsp = parent_func(node['function'])  # Get parent function.
@@ -459,7 +459,7 @@ def get_full_pipe(sol, base=()):
         n, path = d.get_node(n, node_attr=None)
         if n['type'] == 'function' and 'function' in n:
             try:
-                sub_sol = s.workflow.node[path[-1]]['solution']
+                sub_sol = s.workflow.nodes[path[-1]]['solution']
                 sp = get_full_pipe(sub_sol, base=node_id)
                 if sp:
                     p['sub_pipe'] = sp
@@ -490,7 +490,7 @@ def _sort_sk_wait_in(sol):
         # Nodes to be visited.
         wi = {k for k, v in s._wait_in.items() if v is True}
 
-        n_d = (set(s.workflow.node.keys()) - s._visited) - w
+        n_d = (set(s.workflow.nodes.keys()) - s._visited) - w
 
         n_d = n_d.union(s._visited.intersection(wi))
         wi = n_d.intersection(wi)
