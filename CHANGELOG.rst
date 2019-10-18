@@ -2,6 +2,22 @@ Changelog
 =========
 
 
+v0.3.5 (2019-10-18)
+-------------------
+
+Fix
+~~~
+- (setup) :gh:`17`: Update version networkx.
+
+- (setup) :gh:`13`: Build universal wheel.
+
+- (alg) :gh:`15`: Escape % in node id.
+
+- (setup) :gh:`14`: Update tests requirements.
+
+- (setup): Add env `ENABLE_SETUP_LONG_DESCRIPTION`.
+
+
 v0.3.4 (2019-07-15)
 -------------------
 
