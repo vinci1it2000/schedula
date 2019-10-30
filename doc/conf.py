@@ -15,9 +15,7 @@
 
 import sys
 import os
-import shlex
 from os.path import abspath, join, dirname
-from schedula._version import __version__
 
 on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 
@@ -39,6 +37,7 @@ sys.path.append(abspath(join(dirname(__file__), '_ext')))
 extensions = [
     'sphinx.ext.doctest',
     'sphinx.ext.intersphinx',
+    'sphinx.ext.extlinks',
     'sphinx.ext.todo',
     'sphinx.ext.coverage',
     'sphinx.ext.mathjax',
@@ -72,12 +71,17 @@ master_doc = 'index'
 project = 'schedula'
 copyright = '2015-2019, Vincenzo Arcidiacono'
 author = 'Vincenzo Arcidiacono'
-
+extlinks = {
+    'gh': ('https://github.com/vinci1it2000/{}/issues/%s'.format(project), '#'),
+}
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
 # built documents.
 #
 # The short X.Y version.
+
+from schedula._version import __version__
+
 version = '.'.join(__version__.split('.')[:-1])
 # The full version, including alpha/beta/rc tags.
 release = __version__
