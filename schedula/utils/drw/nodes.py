@@ -20,6 +20,13 @@ class _DspPlot(gviz.Digraph):
         super(_DspPlot, self).__init__(*args, **kwargs)
         self.sitemap = sitemap
 
+    def _view(self, filepath, format, quiet=False):
+        try:
+            super(_DspPlot, self)._view(filepath, format, quiet)
+        except TypeError:  # graphviz <= 0.8.4.
+            # noinspection PyArgumentList
+            super(_DspPlot, self)._view(filepath, format)
+
     @property
     def filepath(self):
         from . import uncpath
