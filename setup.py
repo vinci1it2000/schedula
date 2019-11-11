@@ -102,7 +102,7 @@ if __name__ == '__main__':
         packages=find_packages(exclude=[
             'test', 'test.*',
             'doc', 'doc.*',
-            'appveyor', 'requirements', 'binder', 'examples'
+            'requirements', 'binder', 'examples'
         ]),
         url=url,
         project_urls=project_urls,

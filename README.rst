@@ -3,8 +3,8 @@
 ###########################################
 schedula: An intelligent function scheduler
 ###########################################
-|pypi_ver| |travis_status| |appveyor_status| |cover_status| |docs_status|
-|dependencies| |github_issues| |python_ver| |proj_license| |binder|
+|pypi_ver| |travis_status| |cover_status| |docs_status| |dependencies|
+|github_issues| |python_ver| |proj_license| |binder|
 
 :release:       0.3.6
 :date:          2019-10-18 11:00:00
@@ -334,11 +334,6 @@ Things yet to do: utility to transform a dispatcher in a command line tool.
     :alt: Travis build status
     :scale: 100%
     :target: https://travis-ci.org/vinci1it2000/schedula
-
-.. |appveyor_status| image:: https://ci.appveyor.com/api/projects/status/i3bmqdc92u1bskg5/branch/master?svg=true
-    :alt: Appveyor build status
-    :scale: 100%
-    :target: https://ci.appveyor.com/project/vinci1it2000/schedula
 
 .. |cover_status| image:: https://coveralls.io/repos/github/vinci1it2000/schedula/badge.svg?branch=master
     :target: https://coveralls.io/github/vinci1it2000/schedula?branch=master
