@@ -403,7 +403,7 @@ class FolderNode(object):
                 elif len(n) == 1:
                     n = n[0]
 
-                n = 'parent_ref("({})", attr)'.format(n)
+                n = 'parent_ref("({0})", attr, "{0}")'.format(n)
                 yield 'remote %s %d' % (tag, i), '{{%s}}' % n
                 i += 1
 
@@ -515,14 +515,20 @@ class FolderNode(object):
                 except AttributeError:
                     yield k, functools.partial(self.yield_attr, v)
 
-    def parent_ref(self, context, text, attr=None):
+    def parent_ref(self, context, text, attr=None, node_id=None):
         attr = attr or {}
         try:
             dirname = osp.dirname(context[(self.folder, None)])
-            rule = next(f for (n, e), f in context.items()
-                        if e is None and dirname == osp.splitext(f)[0])
+            node, rule = next((n, f) for (n, e), f in context.items()
+                              if e is None and dirname == osp.splitext(f)[0])
             attr, href = attr.copy(), osp.relpath(rule, dirname)
-            attr['href'] = urlparse.unquote('./%s' % href.replace('\\', '/'))
+            if node_id is not None:
+                node_id = next(
+                    '#%s' % n.id for n in node.nodes if n.node_id == node_id
+                )
+            attr['href'] = urlparse.unquote('./%s%s' % (
+                href.replace('\\', '/'), node_id or ''
+            ))
         except StopIteration:
             pass
 
@@ -742,7 +748,7 @@ class SiteFolder(object):
         id_map = {}
         for node in self.nodes:
             id_map[node.node_id] = node.id
-            dot.node(node.id, **node.dot(context))
+            dot.node(node.id, id=node.id, **node.dot(context))
 
         for edge in self.edges:
             dot.edge(*edge.attr['dot_ids'], **edge.dot(context))
