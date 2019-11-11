@@ -62,7 +62,7 @@ class WebMap(SiteMap):
 
     def app(self, root_path=None, depth=-1, **kwargs):
         kwargs.pop('index', None)
-        root_path = osp.abspath(root_path or tempfile.mktemp())
+        root_path = osp.abspath(root_path or tempfile.mkdtemp())
         app = basic_app(root_path, **kwargs)
         context = self.rules(depth=depth, index=False)
         for (node, extra), filepath in context.items():

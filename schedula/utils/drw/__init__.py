@@ -147,7 +147,7 @@ def site_view(app, node, context, generated_files, rendered, header=_header):
     if not osp.isfile(osp.join(static_folder, filepath)):
         files = cached_view(node, static_folder, context, rendered, header)
         generated_files.extend(files.values())
-    return app.send_static_file(filepath.replace('\\', '/'))
+    return app.send_static_file(filepath)
 
 
 def render_output(out, pformat):
@@ -758,20 +758,16 @@ class SiteFolder(object):
         dot = self.dot(context=context)
         dot.format = self.digraph['format']
         try:
-            # noinspection PyArgumentList
-            fpath = dot.render(
-                filename=tempfile.mktemp(dir=osp.dirname(filepath)),
-                directory=None,
-                cleanup=True
-            )
-
-            filepath = uncpath(filepath)
-            if osp.isfile(filepath):
-                os.remove(filepath)
-            os.rename(fpath, filepath)
+            fpath = dot.render(directory=tempfile.mkdtemp(), cleanup=True)
         except Exception as ex:
             log.error('dot could not render %s due to:\n %r', filepath, ex)
             return {}
+        filepath = uncpath(filepath)
+        if osp.isfile(filepath):
+            os.remove(filepath)
+        else:
+            os.makedirs(osp.dirname(filepath), exist_ok=True)
+        os.rename(fpath, filepath)
 
         add_header(filepath, header)
         return {(self.view_id, None): filepath}
@@ -925,6 +921,7 @@ class Site:
             target=run_server,
             args=(self.app(), self.get_port(**options))
         ).start()
+        # noinspection PyArgumentList
         self.shutdown = weakref.finalize(self, self.shutdown_site, self.url)
         self.wait_server()
         return self
@@ -1083,7 +1080,7 @@ class SiteMap(collections.OrderedDict):
         raise ValueError('Type %s not supported.' % type(item).__name__)
 
     def app(self, root_path=None, depth=-1, index=True, header=_header, **kw):
-        root_path = osp.abspath(root_path or tempfile.mktemp())
+        root_path = osp.abspath(root_path or tempfile.mkdtemp())
         generated_files, rendered = [], {}
         cleanup = functools.partial(_cleanup, generated_files, rendered)
         app = basic_app(root_path, cleanup=cleanup, **kw)

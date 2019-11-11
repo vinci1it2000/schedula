@@ -10,7 +10,6 @@
 It provides docutils nodes to plot dispatcher map and workflow.
 """
 import html
-import os.path as osp
 import graphviz as gviz
 from docutils import nodes as _nodes
 
@@ -26,11 +25,6 @@ class _DspPlot(gviz.Digraph):
         except TypeError:  # graphviz <= 0.8.4.
             # noinspection PyArgumentList
             super(_DspPlot, self)._view(filepath, format)
-
-    @property
-    def filepath(self):
-        from . import uncpath
-        return uncpath(osp.join(self.directory, self.filename))
 
 
 class _Table(_nodes.General, _nodes.Element):
