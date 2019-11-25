@@ -660,6 +660,7 @@ class SubDispatch(Base):
         True
 
     """
+
     def __new__(cls, dsp=None, *args, **kwargs):
         from .blue import Blueprint
         if isinstance(dsp, Blueprint):
@@ -780,6 +781,7 @@ class SubDispatch(Base):
     def _return(self, solution):
         outs = self.outputs
         solution.result()
+        solution.parent = self
 
         # Set output.
         if self.output_type != 'all':
@@ -1087,14 +1089,15 @@ class SubDispatchPipe(SubDispatchFunction):
         self._sol.no_call = False
 
     def _set_pipe(self):
-        def _make_tks(v, s):
+        def _make_tks(task):
+            v, s = task[-1]
             nxt_nds = s.workflow[v]
             nxt_dsp = [n for n in nxt_nds if s.nodes[n]['type'] == 'dispatcher']
             nxt_dsp = [(n, s._edge_length(s.dmap[v][n], s.nodes[n]))
                        for n in nxt_dsp]
-            return v, s, nxt_nds, nxt_dsp
+            return (task[0], task[1], (v, s)), nxt_nds, nxt_dsp
 
-        return [_make_tks(*v['task'][-1]) for v in self._sol.pipe.values()]
+        return [_make_tks(v['task']) for v in self._sol.pipe.values()]
 
     def _init_new_solution(self, full_name):
         key_map, sub_sol = {}, {}
@@ -1114,15 +1117,21 @@ class SubDispatchPipe(SubDispatchFunction):
     def _callback_pipe_failure(self):
         pass
 
+    def _pipe_append(self):
+        return self.solution._pipe.append
+
     def __call__(self, *args, _stopper=None, _executor=False, _sol_name=(),
                  **kw):
         self.solution, key_map = self._init_new_solution(_sol_name)
+        pipe_append = self._pipe_append()
         ba = self.__signature__.bind(*args, **kw)
         ba.apply_defaults()
         self._init_workflows(ba.arguments)
 
-        for v, s, nxt_nds, nxt_dsp in self.pipe:
+        for x, nxt_nds, nxt_dsp in self.pipe:
+            v, s = x[-1]
             s = key_map(s)
+            pipe_append(x[:2] + ((v, s),))
 
             if not s._set_node_output(
                     v, False, next_nds=nxt_nds, stopper=_stopper,
@@ -1200,6 +1209,7 @@ class DispatchPipe(NoSub, SubDispatchPipe):
         >>> fun(1, 0)
         0
     """
+
     def __getstate__(self):
         self._init_workflows(dict.fromkeys(self.inputs or ()))
         self._reset_sol()
@@ -1210,6 +1220,9 @@ class DispatchPipe(NoSub, SubDispatchPipe):
     def __setstate__(self, d):
         super(DispatchPipe, self).__setstate__(d)
         self.pipe = self._set_pipe()
+
+    def _pipe_append(self):
+        return lambda *args: None
 
     def _init_new_solution(self, _sol_name):
         return self._sol, lambda x: x

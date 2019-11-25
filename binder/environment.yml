@@ -3,11 +3,9 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - beautifulsoup4
   - docutils
   - flask
   - jupyterlab >=0.35.5,<0.36
-  - lxml
   - multiprocess
   - networkx
   - pandas

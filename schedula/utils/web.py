@@ -60,10 +60,10 @@ class WebMap(SiteMap):
     def _repr_svg_(self):
         raise NotImplementedError()
 
-    def app(self, root_path=None, depth=-1, **kwargs):
+    def app(self, root_path=None, depth=-1, mute=False, **kwargs):
         kwargs.pop('index', None)
         root_path = osp.abspath(root_path or tempfile.mkdtemp())
-        app = basic_app(root_path, **kwargs)
+        app = basic_app(root_path, mute=mute, **kwargs)
         context = self.rules(depth=depth, index=False)
         for (node, extra), filepath in context.items():
             func = functools.partial(_func_handler, node.obj)

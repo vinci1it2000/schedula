@@ -43,12 +43,17 @@ class TestDispatcherDraw(unittest.TestCase):
             ss_dsp, 'SubDispatchPipe', ['a'], ['b', c]
         )
 
+        spipe = sh.DispatchPipe(
+            ss_dsp, 'DispatchPipe', ['a'], [c]
+        )
+
         sdsp = sh.SubDispatch(ss_dsp, ['b', c], output_type='list')
 
         s_dsp = sh.Dispatcher()
         s_dsp.add_function(None, sdspfunc, ['a'], ['b', 'c'], weight=2)
         s_dsp.add_function(None, sdsppipe, ['a'], ['b', 'c'],
                            out_weight={'c': 5})
+        s_dsp.add_function(None, spipe, ['a'], ['b'], weight=2)
         s_dsp.add_function('SubDispatch', sdsp, ['d'], ['e', 'f'])
 
         dsp = sh.Dispatcher()

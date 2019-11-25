@@ -1,216 +1,391 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
 <html lang="en-GB">
 <head>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/meyer-reset/2.0/reset.min.css">
-    <style type="text/css">
-        body {
-          margin: 30px;
-          font-family: sans-serif;
-        }
-
-        #fontSizeWrapper { font-size: 16px; }
-
-        #fontSize {
-        width: 100px;
-        font-size: 1em;
-        }
-
-        /* ---------------------
-        Tree core styles
-        */
-        .tree { margin: 1em; }
-
-        .tree input {
-        position: absolute;
-        clip: rect(0, 0, 0, 0);
-        }
-
-        .tree input ~ ul { display: none; }
-
-        .tree input:checked ~ ul { display: block; }
-
-        /* ---------------------
-        Tree rows
-        */
-        .tree li {
-        line-height: 1;
-        position: relative;
-        padding: 0 0 1em 1em;
-        }
-
-        .tree ul li { padding: 1em 0 0 1em; }
-
-        .tree > li:last-child { padding-bottom: 0; }
-
-        /* ---------------------
-        Tree labels
-        */
-        .tree_icon {
-        position: relative;
-        display: inline-block;
-        background: #fff;
-        }
-
-        label.tree_icon { cursor: pointer; }
-
-        label.tree_icon:hover { color: #666; }
-
-        /* ---------------------
-        Tree expanded icon
-        */
-        label.tree_icon:before {
-        background: #000;
-        color: #fff;
-        position: relative;
-        z-index: 1;
-        float: left;
-        margin: 0 1em 0 -2em;
-        width: 1em;
-        height: 1em;
-        border-radius: 1em;
-        content: '+';
-        text-align: center;
-        line-height: .9em;
-        }
-
-        :checked ~ label.tree_icon:before { content: '-'; }
-
-        /* ---------------------
-        Tree branches
-        */
-        .tree li:before {
-        position: absolute;
-        top: 0;
-        bottom: 0;
-        left: -.5em;
-        display: block;
-        width: 0;
-        border-left: 1px solid #777;
-        content: "";
-        }
-
-        .tree_icon:after {
-        position: absolute;
-        top: 0;
-        left: -1.5em;
-        display: block;
-        height: 0.5em;
-        width: 1em;
-        border-bottom: 1px solid #777;
-        border-left: 1px solid #777;
-        border-radius: 0 0 0 .3em;
-        content: '';
-        }
-
-        label.tree_icon:after { border-bottom: 0; }
-
-        :checked ~ label.tree_icon:after {
-        border-radius: 0 .3em 0 0;
-        border-top: 1px solid #777;
-        border-right: 1px solid #777;
-        border-bottom: 0;
-        border-left: 0;
-        bottom: -.3em;
-        top: 0.5em;
-        height: auto;
-        }
-
-        .tree li:last-child:before {
-        height: 1em;
-        bottom: auto;
-        }
-
-        .tree > li:last-child:before { display: none; }
-
-        .tree_label {
-        position: relative;
-        display: inline-block;
-        background: #fff;
-        line-height: 1.2em;
-        height: 0.5em;
-        }
-  </style>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prefixfree/1.0.7/prefixfree.min.js"></script>
-    <script src='http://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js'></script>
-    <script type="text/javascript">
-        function isNumber(n) {
-            return !isNaN(parseFloat(n)) && isFinite(n);
-        }
-
-        function setFontSize(el) {
-            var fontSize = el.val();
-
-            if ( isNumber(fontSize) && fontSize >= 0.5 ) {
-              $('body').css({ fontSize: fontSize + 'em' });
-            } else if ( fontSize ) {
-              el.val('1');
-              $('body').css({ fontSize: '1em' });
-            }
-        }
-
-        $(function() {
-
-          $('#fontSize')
-            .bind('change', function(){ setFontSize($(this)); })
-            .bind('keyup', function(e){
-              if (e.keyCode === 27) {
-                $(this).val('1');
-                $('body').css({ fontSize: '1em' });
-              } else {
-                setFontSize($(this));
-              }
-            });
-
-          $(window)
-            .bind('keyup', function(e){
-              if (e.keyCode === 27) {
-                $('#fontSize').val('1');
-                $('body').css({ fontSize: '1em' });
-              }
-            });
-
-        });
-    </script>
+    <!-- Required Stylesheets -->
+    <link href="{{folder|safe}}/css/bootstrap.min.css" rel="stylesheet">
+    <link href="{{folder|safe}}/css/index.css" rel="stylesheet">
+    <link href="{{folder|safe}}/css/icon.css" rel="stylesheet">
+    <!-- Required Javascript -->
+    <script src="{{folder|safe}}/js/jquery-3.4.1.min.js"></script>
+    <script src="{{folder|safe}}/js/bootstrap.min.js"></script>
+    <script src="{{folder|safe}}/js/bootstrap-treeview.min.js"></script>
+    <script src="{{folder|safe}}/js/jquery.fullscreen.min.js"></script>
+    <script src="{{folder|safe}}/js/d3-scale.v3.min.js"></script>
+    <script src="{{folder|safe}}/js/sunburst-chart.min.js"></script>
+    <meta charset="UTF-8">
 </head>
 <body>
-<div id="fontSizeWrapper">
-  <label for="fontSize">Font size</label>
-  <input type="range" value="1" id="fontSize" step="0.5" min="0.5" max="5" />
-</div>
-{% macro input(sitemap, context) -%}
-{%- for item, next_sitemap in sitemap.items() %}
-<li>
-    {% if next_sitemap and next_sitemap.nodes %}
-    <input type="checkbox" id="{{ item.id }}" />
-    <label class="tree_icon" for="{{ item.id }}"></label>
-    <a class="tree_label" href="{{ context[(item, None)] }}">
-        {{ item.title|e }}
-    </a>
-    <ul>
-        {{ input(next_sitemap, context) }}
-    </ul>
-    {% else %}
-    <span class="tree_icon">
-        <a class="tree_label" href="{{ context[(item, None)] }}">
-            {{ item.title|e }}
-        </a>
-    </span>
-    {% endif %}
-</li>
-{%- endfor %}
-{%- for item in sitemap.nodes %}
-<li>
-    <span class="tree_icon">
-        <a class="tree_label" href="{{ context[(item, None)] }}">
-            {{ item.title|e }}
-        </a>
-    </span>
-</li>
-{%- endfor %}
-{%- endmacro %}
+<div id="dsp"></div>
+<script type="text/javascript">
+    function getURLParam(name) {
+        let results = new RegExp('[\?&]' + name + '=([^&#]*)').exec(window.location.href);
+        if (results == null) {
+            return null;
+        } else {
+            return decodeURI(results[1]) || 0;
+        }
+    }
 
-<ul class="tree">
-    {{ input(sitemap, context) }}
-</ul>
+    function setURLParam(key, value) {
+        let uri = window.location.href,
+            re = new RegExp("([?&])" + key + "=.*?(&|$)", "i"),
+            separator = uri.indexOf('?') !== -1 ? "&" : "?";
+        if (uri.match(re)) {
+            return uri.replace(re, '$1' + key + "=" + encodeURI(value) + '$2');
+        } else {
+            return uri + separator + key + "=" + encodeURI(value);
+        }
+    }
+
+    let _a = document.createElement('a');
+
+    function qualifyURL(url) {
+        _a.href = url;
+        return _a.cloneNode(false).href;
+    }
+
+    let dsp_UID = 0;
+
+    function Dispatcher (data, icicle) {
+        let self = {};
+            self.id = '{{pid|safe}}' + dsp_UID;
+            dsp_UID++;
+        self.data = data,
+            setIframe = function (src) {
+                if (src)
+                    self.iframe.attr('src', src);
+            },
+            search = function (e) {
+                e.preventDefault();
+                self.searchOutput.empty();
+                let text = self.inputSearch.val().toLowerCase(),
+                    nodes = self.tree.treeview('getNodes'),
+                    results = text ? nodes.filter(function (n) {
+                        return $('<div/>').html(n.text.toLowerCase()).text().indexOf(text) !== -1
+                    }) : [], output = $('<ul class="list-group"/>');
+
+                self.searchOutput.append($(
+                    '<p>' + results.length + ' matches found</p>'
+                ));
+
+                $.each(results, function (index, result) {
+                    let n = result, stack = [result.text];
+                    while (n.parentId !== undefined) {
+                        n = nodes[n.parentId];
+                        stack.push(n.text);
+                    }
+                    stack.reverse();
+                    let row = $('<li class="list-group-item node-result" title="' + stack.join(' → ') + '"><span class="' + result.icon + '"></span>' + result.text + ' </li>');
+                    output.append(row);
+                    row.on('click', function () {
+                        setIframe(result.url);
+                        self.tabTree.tab('show')
+                    })
+                });
+                self.searchOutput.append(output);
+                self.tabOutput.tab('show')
+            },
+            setBreadcrumb = function (url) {
+
+                let href = qualifyURL(url);
+                if (!self._breadcrumbs)
+                    setBreadcrumbs();
+                self.breadcrumb.empty();
+                let bc = [], el, nodeId, node;
+                $.each(self._breadcrumbs, function (k, v) {
+                    if (!v.skipSearch && qualifyURL(v.url) === href) {
+                        nodeId = k;
+                        node = v;
+                    }
+                });
+                do {
+                    bc.push(node);
+                    node = self._breadcrumbs[node.parent]
+                }
+                while (node);
+                bc.reverse();
+                bc.forEach(function (d) {
+                    el = $('<li class="breadcrumb-item"/>').append(d.text);
+                    el.on('click', function (e) {
+                        e.preventDefault();
+                        setIframe(d.url);
+                    });
+                    self.breadcrumb.append(el)
+                });
+                if (el)
+                    el.addClass('active');
+                nodeId = parseInt(nodeId);
+                let nodes = self.tree.treeview('getNodes');
+                nodes.forEach(function (n) {
+                    n.state.selected = n.nodeId === nodeId;
+                    if (n.state.selected) {
+                        while (n.parentId !== undefined) {
+                            n = nodes[n.parentId];
+                            n.state.expanded = true
+                        }
+                    }
+                });
+                self.tree.treeview('render');
+            };
+
+        function setBreadcrumbs() {
+            self._breadcrumbs = {};
+            let nodes = self.tree.treeview('getNodes');
+            self._breadcrumbs[-1] = {
+                text: 'Main',
+                url: nodes[0].url,
+                skipSearch: true
+            };
+            self._breadcrumbs[-2] = {
+                text: 'legend',
+                url: '{{folder|safe}}/html/legend.html',
+                parent: -1
+            };
+            nodes.forEach(function (d) {
+                self._breadcrumbs[d.nodeId] = {
+                    text: d.text,
+                    url: d.url,
+                    parent: d.parentId === undefined ? -1 : d.parentId
+                }
+            });
+        }
+
+        self.inputSearch = $(
+            '<input type="search" style="height: 38px;" class="form-control" placeholder="Type to search..." aria-label="Search"/>'
+        );
+        self.inputSearch.on('search', search);
+
+        self.btnClose = $('<button class="navbar-toggler px-1" title="Close menu"/>').append($('<i class="sh-ico sh-ico-left"/>'));
+        self.btnClose.on('click', function (e) {
+            e.preventDefault();
+            self.sidebar.toggleClass('active');
+            self.separator.toggleClass('active');
+            self.btnMenu.toggleClass('active');
+            self.content.toggleClass('active');
+        });
+
+        self.tree = $('<div id="tree' + self.id + '" class="treeview tab-pane fade show active flex-fill overflow-auto" role="tabpanel" aria-labelledby="tree' + self.id + '-tab"/>').treeview({
+            data: self.data,
+            expandIcon: "sh-ico sh-ico-plus",
+            collapseIcon: "sh-ico sh-ico-minus",
+            levels: 1,
+            onNodeSelected: function (event, data) {
+                setIframe(data.url);
+            }
+        });
+        self.btnSearch = $('<button class="btn btn-default" type="submit"><i class="sh-ico sh-ico-search"></i></button>');
+        self.btnSearch.on('click', search);
+        self.searchOutput = $('<div id="results' + self.id + '" class="treeview tab-pane fade flex-fill overflow-auto" role="tabpanel" aria-labelledby="results' + self.id + '-tab"/>');
+        self.searchOutput.append($('<p>0 matches found</p>'));
+        self.tabTree = $('<a class="nav-link active" data-toggle="tab" role="tab" aria-controls="tree' + self.id + '" aria-selected="true" href="#tree' + self.id + '">Tree</a>');
+        self.tabOutput = $('<a class="nav-link" data-toggle="tab" role="tab" aria-controls="results' + self.id + '" aria-selected="false" href="#results' + self.id + '">Results</a>');
+        self.sidebar = $('<div class="vertical-nav bg-dark sh-sidebar d-flex my-1 ml-1 flex-column"/>').append($('<div/>').append($('<div class="pl-3 pr-0 input-group sh-navbar" style="display: inline-flex;width: calc(100% - 40px);"/>').append(self.inputSearch).append($('<div class="input-group-btn"/>').append(self.btnSearch))).append(self.btnClose));
+        self.sidebar.append(
+            $('<div/>').append($('<ul class="nav nav-tabs nav-fill" role="tablist"/>').append(
+                $('<li class="nav-item"/>').append(self.tabTree)).append(
+                $('<li class="nav-item"/>').append(self.tabOutput)))).append(
+            $('<div class="tab-content flex-fill d-flex overflow-auto"/>').append(self.tree).append(self.searchOutput)
+        );
+        self.btnMenu = $('<button class="navbar-toggler mx-1 sh-btn-menu" title="Menu"/>').append($('<i class="sh-ico sh-ico-menu"/>'));
+        self.btnMenu.on('click', function (e) {
+            e.preventDefault();
+            self.sidebar.toggleClass('active');
+            self.separator.toggleClass('active');
+            self.btnMenu.toggleClass('active');
+            self.content.toggleClass('active');
+        });
+
+        self.btnBack = $('<button class="navbar-toggler mx-1" title="Back" disabled/>').append($('<i class="sh-ico sh-ico-backward"/>'));
+        self.btnBack.on('click', function (e) {
+            e.preventDefault();
+            if (self.history.i > 0) {
+                self.history.i--;
+                setIframe(self.history.list[self.history.i])
+            }
+        });
+
+        self.btnForward = $('<button class="navbar-toggler mx-1" title="Forward" disabled/>').append($('<i class="sh-ico sh-ico-forward"/>'));
+        self.btnForward.on('click', function (e) {
+            e.preventDefault();
+            if (self.history.i + 1 < self.history.list.length) {
+                self.history.i++;
+                setIframe(self.history.list[self.history.i])
+            }
+        });
+
+        self.btnFullscreen = $('<button class="navbar-toggler mx-1" title="Enter/Exit Full Screen"/>').append($('<i class="sh-ico sh-ico-expand"/>'));
+
+        if ($.fullscreen.isNativelySupported()) {
+            self.btnFullscreen.on('click', function (e) {
+                e.preventDefault();
+                if ($.fullscreen.isFullScreen()) {
+                    $.fullscreen.exit();
+                } else {
+                    self.div.fullscreen();
+                }
+                self.btnFullscreen.children('i').toggleClass('sh-ico-compress');
+                self.btnFullscreen.children('i').toggleClass('sh-ico-expand');
+            });
+        } else {
+            self.btnFullscreen.hide()
+        }
+
+        self.workflow = $('<div class="modal" tabindex="-1" role="dialog">').append(
+            $('<div class="modal-dialog modal-full d-flex flex-row" role="document"/>').append(
+                $('<div class="modal-content flex-fill bg-dark">').append(
+                    $('<div class="modal-header">').append(
+                        $('<h5 class="modal-title">').append(
+                            'Execution Time'
+                        )
+                    ).append(
+                        $('<button type="button" class="close" data-dismiss="modal" aria-label="Close" title="Close">').append(
+                            $('<span aria-hidden="true" style="color: #BBBBBB">&times;</span>')
+                        )
+                    )
+                ).append(
+                    $('<div class="modal-body d-flex p-1 bg-light">').append(
+                        $('<div id="modal" class="flex-fill"/>')
+                    )
+                )
+            )
+        );
+        self.workflow.on('shown.bs.modal', function () {
+            if (!self.icicle)
+                self.icicle = defIcicle('modal', icicle, self.div);
+        });
+
+        self.btnWorkflow = $('<button class="navbar-toggler mx-1" title="Show Execution Time"/>').append($('<i class="sh-ico sh-ico-clock"/>'));
+        self.btnWorkflow.on('click', function (e) {
+            e.preventDefault();
+            self.workflow.modal('show')
+        });
+        if ($.isEmptyObject(icicle))
+            self.btnWorkflow.hide();
+        self.history = {i: -1, list: []};
+
+        window.addEventListener('message', function (event) {
+            if (event.data.id === self.id) {
+                if (event.data.action === 'url') {
+                    let hist = self.history, href = event.data.url;
+                    if (hist.list[hist.i] !== href) {
+                        hist.i++;
+                        hist.list = hist.list.slice(0, hist.i);
+                        hist.list.push(href);
+                        self.btnForward.prop('disabled', false);
+                        setBreadcrumb(href);
+                    }
+                    if (hist.i > 0) {
+                        self.btnBack.prop('disabled', false);
+                    } else {
+                        self.btnBack.prop('disabled', true);
+                    }
+                    if (hist.i + 1 < hist.list.length) {
+                        self.btnForward.prop('disabled', false);
+                    } else {
+                        self.btnForward.prop('disabled', true);
+                    }
+                    if (getURLParam("url") !== href) {
+                        window.history.replaceState({}, "", setURLParam("url", href));
+                    }
+                }
+            }
+        });
+        self.btnInfo = $('<button class="navbar-toggler mx-1" title="Graph Legend"/>').append($('<i class="sh-ico sh-ico-info"/>'));
+        self.btnInfo.on('click', function (e) {
+            e.preventDefault();
+            setIframe('{{folder|safe}}/html/legend.html');
+        });
+        self.breadcrumb = $('<ul class="breadcrumb"/>');
+        self.iframe = $('<iframe frameBorder="0" class="h-100 w-100 flex-grow" allowfullscreen/>');
+        self.iframe.on('load', function (e) {
+            e.preventDefault();
+            self.iframe.get(0).contentWindow.postMessage({
+                id: self.id,
+                action: 'id'
+            }, '*');
+        });
+
+        setIframe(getURLParam("url") || self.data[0].url);
+        self.content = $('<div class="page-content m-1 d-flex flex-column h-100 sh-content"/>').append($('<nav class="navbar navbar-dark bg-dark sh-navbar"/>').append($('<form class="form-inline m-0"/>').append(self.btnMenu).append(self.btnFullscreen).append(self.btnBack).append(self.btnForward).append(self.btnWorkflow).append(self.btnInfo))).append($('<nav/>').append(self.breadcrumb)).append(self.iframe);
+        self.separator = $('<div class="sh-separator"/>');
+        let m_pos;
+        self.separator.on("mousedown", function (e) {
+            e.preventDefault();
+            m_pos = e.x;
+            document.addEventListener("mousemove", resize);
+            self.iframe.css("pointer-events", "none");
+
+            document.addEventListener("mouseup", function (e) {
+                e.preventDefault();
+                self.iframe.css("pointer-events", "");
+                document.removeEventListener("mousemove", resize);
+            });
+        });
+        function resize(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            self.sidebar.width(self.sidebar.width() + e.x - m_pos);
+            m_pos = e.x;
+        }
+
+        self.div = $('<div style="width: 100%;height: 100vh" class="sh-page"/>').append(self.sidebar).append(self.separator).append(self.content).append(self.workflow);
+        return self
+    }
+
+    let nodeTypes = [
+        'data', 'function', 'dispatcher', 'subdispatch', 'subdispatchfunction',
+        'subdispatchpipe', 'dispatchpipe'
+    ];
+
+    function addTreeIcons(nodes) {
+        nodes.forEach(function (d) {
+            if (nodeTypes.indexOf(d.type) !== -1)
+                d['icon'] = 'sh-ico sh-tree-ico sh-ico-' + d.type;
+
+            if (d.nodes)
+                addTreeIcons(d.nodes)
+        });
+        return nodes;
+    }
+
+    function getNodeStack(d) {
+        const stack = [];
+        let curNode = d;
+        while (curNode) {
+            stack.unshift(curNode);
+            curNode = curNode.parent;
+        }
+        return stack;
+    }
+
+    function defIcicle(id, json, parent) {
+        let el = document.getElementById(id);
+        var color = d3.scaleOrdinal(["#a6cee3", "#1f78b4", "#b2df8a", "#33a02c", "#fb9a99", "#e31a1c", "#fdbf6f", "#ff7f00", "#cab2d6", "#6a3d9a", "#ffff99", "#b15928"]);
+        return Sunburst()
+            .width(el.clientWidth)
+            .height(el.clientHeight)
+            .data(json)
+            .color(function(d, parent) {return color(parent ? parent.data.name : null)})
+            .minSliceAngle(.4)
+            .maxLevels(3)
+            .showLabels(true)
+            .tooltipTitle(function (d, node) {
+                $(this.tooltip.nodes()[0]).appendTo(parent);
+                let stack = getNodeStack(node);
+                return $('<div/>').text(stack
+                    .slice(stack.length > 1 ? 1 : 0)
+                    .map(function(d){return d.data.name})
+                    .join(' → ')).html()
+            })
+            .tooltipContent(function(d, node){return 'Time: <i>'+d.duration+'</i> s'})
+            (el)
+    }
+
+    $(function () {
+        let data = addTreeIcons({{tree|tojson|safe}}),
+            icicle={{icicle|tojson|safe}};
+        $('#dsp').append(Dispatcher(data, icicle).div);
+    });
+
+</script>
 </body>
 </html>

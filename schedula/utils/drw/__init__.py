@@ -23,10 +23,12 @@ Sub-Modules:
 import os
 import glob
 import copy
+import html
 import regex
 import socket
 import pprint
 import string
+import shutil
 import inspect
 import weakref
 import logging
@@ -41,7 +43,7 @@ import urllib.parse as urlparse
 
 from ..cst import START, SINK, END, EMPTY, SELF, NONE, PLOT
 from ..dsp import SubDispatch, combine_dicts, map_dict, combine_nested_dicts, \
-    selector, stlp, parent_func
+    selector, stlp, parent_func, get_nested_dicts, NoSub
 from ..gen import counter
 
 __author__ = 'Vincenzo Arcidiacono <vinci1it2000@gmail.com>'
@@ -115,37 +117,18 @@ def update_filenames(node, filenames):
         filename = valid_filename(node, filenames)
         yield (node, None), (filename,)
         filenames.append(filename)
-        for file in node.extra_files:
+        base = osp.splitext(filename)[0]
+        for _, file in node.extra_files:
             filename, ext = osp.splitext(file)
             filename = valid_filename(filename, filenames, ext=ext[1:])
-            yield (node, file), (filename,)
-            filenames.append(filename)
+            yield (node, file), (osp.join(base, filename),)
+            filenames.append(osp.split(filename)[0].split('.')[0])
 
 
-_header = """
-    <div>
-        <input type="button" VALUE="Back"
-               onClick="window.history.back()">
-        <input type="button" VALUE="Forward"
-               onClick="window.history.forward()">
-    </div>
-"""
-
-
-def add_header(filepath, header):
-    if header and osp.splitext(filepath)[1][1:] == 'html':
-        from bs4 import BeautifulSoup
-        with open(filepath, 'r') as file:
-            soup = BeautifulSoup(header, 'lxml')
-            soup.html.body.append(BeautifulSoup(file, "lxml"))
-        with open(filepath, 'wb') as file:
-            file.write(soup.prettify("utf-8"))
-
-
-def site_view(app, node, context, generated_files, rendered, header=_header):
-    static_folder, filepath = app.static_folder, context[(node, None)]
+def site_view(app, node, context, generated_files, rendered, extra=None):
+    static_folder, filepath = app.static_folder, context[(node, extra)]
     if not osp.isfile(osp.join(static_folder, filepath)):
-        files = cached_view(node, static_folder, context, rendered, header)
+        files = cached_view(node, static_folder, context, rendered)
         generated_files.extend(files.values())
     return app.send_static_file(filepath)
 
@@ -168,17 +151,18 @@ def render_output(out, pformat):
     return pformat(out)
 
 
-class SiteNode(object):
+class SiteNode:
     counter = counter()
     ext = 'html'
     pprint = pprint.PrettyPrinter(compact=True, width=200)
 
-    def __init__(self, folder, node_id, item, obj):
+    def __init__(self, folder, node_id, item, obj, dsp_node_id):
         self.folder = folder
         self.node_id = node_id
         self.item = item
         self.obj = obj
         self.id = str(self.counter())
+        self.dsp_node_id = dsp_node_id
         self.extra_files = []
 
     @property
@@ -212,18 +196,26 @@ class SiteNode(object):
         from pygments.lexers import Python3Lexer
         from pygments.formatters import HtmlFormatter
         code = render_output(self.item, self.pprint.pformat)
-        return highlight(code, Python3Lexer(), HtmlFormatter(noclasses=True))
+        formatter = HtmlFormatter(noclasses=True)
+        formatter.style.background_color = 'transparent'
+        return _format_output(highlight(code, Python3Lexer(), formatter))
 
-    def view(self, filepath, *args, header=_header, **kwargs):
-        filepath = uncpath(filepath)
-        os.makedirs(osp.dirname(filepath), exist_ok=True)
-        with open(filepath, 'w') as f:
+    def view(self, filepath, *args, **kwargs):
+        fpath = uncpath(filepath)
+        os.makedirs(osp.dirname(fpath), exist_ok=True)
+        with open(fpath, 'w') as f:
             f.write(self.render(*args, **kwargs))
-        add_header(filepath, header)
-        return {(self.view_id, None): filepath}
+        rend = {(self.view_id, None): fpath}
+        directory = osp.splitext(filepath)[0]
+        for src, fn in self.extra_files:
+            dst = uncpath(osp.join(directory, fn))
+            os.makedirs(osp.dirname(dst), exist_ok=True)
+            shutil.copy(src() if callable(src) else src, dst)
+            rend[(self.view_id, src)] = dst
+        return rend
 
 
-class FolderNode(object):
+class FolderNode:
     counter = counter()
 
     node_styles = _upt_styles({
@@ -231,7 +223,8 @@ class FolderNode(object):
             START: {'shape': 'egg', 'fillcolor': 'red', 'label': 'start'},
             SELF: {'shape': 'egg', 'fillcolor': 'gold', 'label': 'self'},
             PLOT: {'shape': 'egg', 'fillcolor': 'gold', 'label': 'plot'},
-            END: {'shape': 'egg', 'fillcolor': 'blue', 'label': 'end'},
+            END: {'shape': 'egg', 'fillcolor': 'blue', 'fontcolor': 'white',
+                  'label': 'end'},
             EMPTY: {'shape': 'egg', 'fillcolor': 'gray', 'label': 'empty'},
             SINK: {'shape': 'egg', 'fillcolor': 'black', 'fontcolor': 'white',
                    'label': 'sink'},
@@ -245,6 +238,8 @@ class FolderNode(object):
                                         'fillcolor': 'yellowgreen'},
                 'subdispatchpipe': {'shape': 'note', 'style': 'filled',
                                     'fillcolor': 'greenyellow'},
+                'dispatchpipe': {'shape': 'note', 'style': 'filled',
+                                 'fillcolor': 'chartreuse'},
                 'dispatcher': {'shape': 'note', 'style': 'filled',
                                'fillcolor': 'springgreen'},
                 'edge': {None: None}
@@ -257,6 +252,7 @@ class FolderNode(object):
                 'subdispatch': {'fillcolor': 'orange'},
                 'subdispatchfunction': {'fillcolor': 'orange'},
                 'subdispatchpipe': {'fillcolor': 'orange'},
+                'dispatchpipe': {'fillcolor': 'orange'},
                 'dispatcher': {'fillcolor': 'orange'},
             }
         },
@@ -267,21 +263,23 @@ class FolderNode(object):
                 'subdispatch': {'fillcolor': 'red'},
                 'subdispatchfunction': {'fillcolor': 'red'},
                 'subdispatchpipe': {'fillcolor': 'red'},
+                'dispatchpipe': {'fillcolor': 'red'},
                 'dispatcher': {'fillcolor': 'red'},
             }
         }
     })
 
     node_data = (
-        '-', '.tooltip', '!default_values', 'wait_inputs', '+function|solution',
-        'weight', 'remote_links', '+filters|solution_filters', 'distance',
-        '!error', '*output'
+        '-', '.tooltip', '!default_values', 'wait_inputs', 'await_result',
+        '+function|solution', 'weight', 'remote_links',
+        '+filters|solution_filters', 'distance', '!error', '*output'
     )
 
     node_function = (
-        '-', '.tooltip', '+input_domain|solution_domain', 'weight',
-        '+filters|solution_filters', 'missing_inputs_outputs', 'distance',
-        'started', 'duration', '!error', '*function|solution'
+        '-', '.tooltip', 'await_domain', 'await_result',
+        '+input_domain|solution_domain', 'weight', '+filters|solution_filters',
+        'missing_inputs_outputs', 'distance', 'started', 'duration', '!error',
+        '*function|solution'
     )
 
     edge_data = ('?', 'inp_id', 'out_id', 'weight')
@@ -295,7 +293,7 @@ class FolderNode(object):
         '.': ('dot',),  # dot attr.
         '*': ('link',)  # title link.
     }
-    re_node = regex.compile(r"^([.*+!]?)(\w+)(?>\|(\w+))?$")
+    re_node = regex.compile(r"^([.*+!]?)([\w ]+)(?>\|([\w ]+))?$")
     max_lines = 5
     max_width = 200
     pprint = pprint.PrettyPrinter(compact=True, width=200)
@@ -353,7 +351,7 @@ class FolderNode(object):
         attr = self.attr
         try:
             if attr['type'] == 'data' and attr['wait_inputs']:
-                yield 'wait_inputs', True
+                yield 'wait_inputs', attr['wait_inputs']
         except KeyError:
             pass
 
@@ -403,7 +401,7 @@ class FolderNode(object):
                 elif len(n) == 1:
                     n = n[0]
 
-                n = 'parent_ref("({0})", attr, "{0}")'.format(n)
+                n = 'parent_ref("{}", attr)'.format(n)
                 yield 'remote %s %d' % (tag, i), '{{%s}}' % n
                 i += 1
 
@@ -417,14 +415,21 @@ class FolderNode(object):
 
     def _started(self):
         try:
-            started = datetime.datetime.fromtimestamp(self.attr['started'])
-            yield 'started', started.isoformat()
+            if isinstance(self.attr['started'], str):
+                yield 'started', self.attr['started']
+            else:
+                started = datetime.datetime.fromtimestamp(self.attr['started'])
+                yield 'started', started.isoformat()
         except KeyError:
             pass
 
     def _duration(self):
+        k = 'duration'
         try:
-            yield 'duration', datetime.timedelta(seconds=self.attr['duration'])
+            if isinstance(self.attr[k], str):
+                yield k, self.attr[k]
+            else:
+                yield k, datetime.timedelta(seconds=self.attr[k])
         except KeyError:
             pass
 
@@ -432,7 +437,7 @@ class FolderNode(object):
         try:
             yield 'distance', self.folder.item.dist[self.node_id]
         except (AttributeError, KeyError):
-            pass
+            yield from self.yield_attr('distance')
 
     def _weight(self):
         try:
@@ -472,8 +477,7 @@ class FolderNode(object):
             if self.type in ('dispatcher', 'function'):
                 ntype = 'function',
                 try:
-                    func = parent_func(attr['function'])
-                    ntype = (type(func).__name__.lower(),) + ntype
+                    ntype = (_get_type(attr['function']),) + ntype
                 except (KeyError, AttributeError):
                     pass
             elif self.type == 'edge':
@@ -515,20 +519,21 @@ class FolderNode(object):
                 except AttributeError:
                     yield k, functools.partial(self.yield_attr, v)
 
-    def parent_ref(self, context, text, attr=None, node_id=None):
-        attr = attr or {}
+    def parent_ref(self, context, node_id, attr=None):
+        attr, text = attr or {}, '(%s)' % node_id
         try:
             dirname = osp.dirname(context[(self.folder, None)])
             node, rule = next((n, f) for (n, e), f in context.items()
                               if e is None and dirname == osp.splitext(f)[0])
             attr, href = attr.copy(), osp.relpath(rule, dirname)
-            if node_id is not None:
-                node_id = next(
-                    '#%s' % n.id for n in node.nodes if n.node_id == node_id
-                )
-            attr['href'] = urlparse.unquote('./%s%s' % (
+            node_id = next(
+                '?id=%d' % n.attr['index'][-1]
+                for n in node.nodes
+                if n.node_id == node_id
+            )
+            attr['href'] = html.escape(urlparse.unquote('./%s%s' % (
                 href.replace('\\', '/'), node_id or ''
-            ))
+            )))
         except StopIteration:
             pass
 
@@ -552,6 +557,7 @@ class FolderNode(object):
             context = {}
         dot = self.style()
         if 'label' in dot:
+            dot.update(self.attr.get('graphviz', {}))
             return dot
         from .nodes import _Tr, _Td
         key, val = dict(ALIGN="RIGHT", BORDER=1), dict(ALIGN="LEFT", BORDER=1)
@@ -575,7 +581,6 @@ class FolderNode(object):
                             tr += eval(s)
                         else:  # It is not a valid jinja2 format.
                             tr.add(j, **val)
-
                     rows.append(tr)
 
         def get_link():
@@ -594,17 +599,36 @@ class FolderNode(object):
 
         if rows:
             k = 'xlabel' if self.type == 'edge' else 'label'
+            k = self.attr.get('label_type', k)
             from .nodes import _Table
             dot[k] = '<%s>' % _Table(BORDER=0, CELLSPACING=0).adds(rows)
-
+        dot.update(self.attr.get('graphviz', {}))
         return {k: str(v) for k, v in dot.items()}
 
 
-class SiteFolder(object):
+def _format_output(obj):
+    import pkg_resources
+    from jinja2 import PackageLoader
+    pkg_dir = pkg_resources.resource_filename(__name__, '')
+    fpath = osp.join(pkg_dir, 'templates', 'render.html')
+    with open(fpath) as template:
+        return jinja2_format(
+            template.read(), {'obj': obj}, loader=PackageLoader(__name__)
+        )
+
+
+def _format_kw_digraph(*dicts, base=None):
+    kw = combine_nested_dicts(*dicts, base=base)
+    if 'body' in kw:
+        kw['body'] = ['%s = %s' % (k, v) for k, v in sorted(kw['body'].items())]
+    return kw
+
+
+class SiteFolder:
     counter = SiteNode.counter
     digraph = {
         'node_attr': {'style': 'filled'},
-        'graph_attr': {},
+        'graph_attr': {'bgcolor': 'transparent'},
         'edge_attr': {},
         'body': {'splines': 'ortho', 'style': 'filled'},
         'format': 'svg'
@@ -738,26 +762,47 @@ class SiteFolder(object):
 
     def dot(self, context=None):
         context = context or {}
-        kw = combine_nested_dicts(self.digraph, {
-            'name': self.label_name,
-            'body': {'label': '<%s>' % self.label_name}
-        })
-        kw['body'] = ['%s = %s' % (k, v) for k, v in sorted(kw['body'].items())]
+
+        kw = _format_kw_digraph(self.digraph, base=dict(
+            name=self.label_name,
+            body={'label': '<%s>' % self.label_name}
+        ))
         from .nodes import _DspPlot
         dot = _DspPlot(self.sitemap, **kw)
-        id_map = {}
+        id_map, clr = {}, {}
         for node in self.nodes:
-            id_map[node.node_id] = node.id
-            dot.node(node.id, id=node.id, **node.dot(context))
+            i = id_map[node.node_id] = node.id
+            dot.node(i, id=str(node.attr['index'][-1]), **node.dot(context))
+            clusters = node.attr.get('clusters', ())
+            if isinstance(clusters, (str, dict)):
+                clusters = clusters,
+            for c in clusters:
+                if isinstance(c, dict):
+                    j = c['body']['label']
+                    combine_nested_dicts(c, base=get_nested_dicts(clr, j, 'kw'))
+                    if j and j[0] == '<' and j[-1] == '>':
+                        j = j[1:-1]
+                else:
+                    j = c
+                get_nested_dicts(clr, j, 'nodes', default=list).append(i)
 
         for edge in self.edges:
             dot.edge(*edge.attr['dot_ids'], **edge.dot(context))
+
+        for i, (cluster, d) in enumerate(clr.items()):
+            kw = _format_kw_digraph(d.get('kw', {}), base=dict(
+                name='cluster_%d' % i, body={'label': '<%s>' % cluster}
+            ))
+            with dot.subgraph(**kw) as g:
+                for node in d['nodes']:
+                    g.node(node)
         return dot
 
-    def view(self, filepath, context=None, header=_header):
+    def view(self, filepath, context=None):
         dot = self.dot(context=context)
         dot.format = self.digraph['format']
         try:
+            # noinspection PyArgumentList
             fpath = dot.render(directory=tempfile.mkdtemp(), cleanup=True)
         except Exception as ex:
             log.error('dot could not render %s due to:\n %r', filepath, ex)
@@ -767,38 +812,372 @@ class SiteFolder(object):
             os.remove(filepath)
         else:
             os.makedirs(osp.dirname(filepath), exist_ok=True)
-        os.rename(fpath, filepath)
-
-        add_header(filepath, header)
+        with open(fpath) as src, open(filepath, 'w') as dst:
+            dst.write(_format_output(src.read()))
+        os.remove(fpath)
         return {(self.view_id, None): filepath}
+
+
+def _get_type(obj):
+    from ..sol import Solution
+    obj = isinstance(obj, Solution) and obj.parent or obj
+    return type(parent_func(obj)).__name__.lower()
+
+
+sort_tree_map = {v: k for k, v in enumerate((
+    'data', 'function', 'dispatchpipe', 'subdispatchpipe',
+    'subdispatchfunction', 'subdispatch', 'dispatcher'
+), 1)}
+
+
+def _folder2tree(folder, smap, context, type):
+    extra, extra_dsp = {}, {item.name: (item, v) for item, v in smap.items()}
+    for item in smap.nodes:
+        get_nested_dicts(extra, item.dsp_node_id, default=list).append(item)
+    url = context[(folder, None)]
+    nodes = [
+        dict(text='-%s' % type, url=url, type=type)
+    ]
+    url = '{}?id=%d'.format(url)
+    for node_id, attr in folder.dsp.nodes.items():
+        if not folder.graph.has_node(node_id):
+            continue
+        type = attr['type']
+        if type == 'function' and attr.get('function'):
+            type = _get_type(attr['function'])
+        n = dict(
+            text=html.escape(node_id),
+            url=url % attr['index'][-1],
+            type=type
+        )
+        nodes.append(n)
+        if node_id in extra_dsp:
+            n['nodes'] = _folder2tree(*extra_dsp[node_id], context, type)
+        else:
+            i = len(node_id)
+            n['nodes'] = [dict(
+                text=html.escape(item.title[i:] or '-function'),
+                url=context[(item, None)],
+                type=_get_type(item.item)
+            ) for item in extra.get(node_id, [])]
+        if not n['nodes']:
+            n.pop('nodes')
+    return nodes[:1] + list(sorted(
+        nodes[1:], key=lambda x: sort_tree_map.get(x['type'], 0), reverse=True
+    ))
+
+
+def _pipe2icicle(pipe):
+    for k, v in pipe.items():
+        child, (i, s) = dict(name=' → '.join(stlp(k))), v['task'][2]
+        value, t = 0, s.workflow.nodes.get(i, {}).get('duration')
+        if 'sub_pipe' in v:
+            child['children'] = children = list(_pipe2icicle(v['sub_pipe']))
+            dt = sum((v['duration'] for v in children), 0)
+            if t is None:
+                t = dt
+            else:
+                value = t - dt
+        else:
+            value = t or 0
+        child['duration'] = t or 0
+        child['value'] = value
+        yield child
+
+
+def _sitemap2icicle(sitemap):
+    cdn = []
+    for folder in sitemap:
+        try:
+            pipe = folder.item.pipe
+        except AttributeError:
+            continue
+        c = list(_pipe2icicle(pipe))
+        cdn.append(dict(
+            name=folder.name, children=c, value=0,
+            duration=sum((v['duration'] for v in c), 0)
+        ))
+    if not cdn:
+        return {}
+    return dict(
+        name='main', duration=sum((v['duration'] for v in cdn), 0), children=cdn
+    )
+
+
+def _sitemap2tree(sitemap, context):
+    tree = []
+    for folder, smap in sitemap.items():
+        type = _get_type(folder.item)
+        tree.append(dict(
+            text=html.escape(folder.name),
+            url=context[(folder, None)],
+            type=type,
+            nodes=_folder2tree(folder, smap, context, type)[1:]
+        ))
+    return tree
+
+
+def _add_explanation(dsp, node_id, description, **kw):
+    dsp.dmap.add_edge(node_id, dsp.add_data(graphviz=dict(
+        label=description, shape='plaintext', style='', fillcolor=''
+    ), **kw), graphviz={'style': 'dashed'})
+    return node_id
 
 
 class SiteIndex(SiteNode):
     ext = 'html'
 
     def __init__(self, sitemap, node_id='index'):
-        super(SiteIndex, self).__init__(None, node_id, self, None)
+        super(SiteIndex, self).__init__(None, node_id, self, None, object())
         self.sitemap = sitemap
         import pkg_resources
         dfl_folder = osp.join(
-            pkg_resources.resource_filename(__name__, ''), 'static'
+            pkg_resources.resource_filename(__name__, ''), 'index'
         )
-        for default_file in glob.glob(dfl_folder + '/*'):
-            self.extra_files.append(osp.relpath(default_file, dfl_folder))
+        for default_file in glob.glob(osp.join(dfl_folder, '**/*')):
+            if osp.isfile(default_file):
+                self.extra_files.append(
+                    (default_file, osp.relpath(default_file, dfl_folder))
+                )
+        self.extra_files.append((self.legend, 'html/legend.html'))
+
+    @staticmethod
+    def legend():
+        import schedula as sh
+        dsp = sh.Dispatcher(name='legend')
+        _add_explanation(dsp, dsp.add_data(
+            clusters='Data',
+            data_id='<data_id>(Data)',
+            default_value='Default value.',
+            initial_dist='Initial distance from `START` node.',
+            wait_inputs='Wait all data estimations? `<bool>`',
+            function='Process data function `data = f({"<node name>": data})`.',
+            callback='Callback function `f(data)`.',
+            await_result='Wait async for function result? `<bool>`',
+            distance='Distance from `START` node.',
+            started='Execution started time.',
+            duration='Time elapsed to execute all functions '
+                     'that belong to the node.',
+            **{'remote parent x': 'Link to a node of the parent dispatcher.',
+               'remote child x': 'Link to a node ot a child dispatcher.',
+               'filter x': 'Filter function x used in the loop '
+                           '`for f in filters: data = f(data)`.',
+               'input_filter 0': 'Result of the function.',
+               'output_filter x': 'Result of filters[x](`input_filter x` | '
+                                  '`output_filter x-1`).'}
+        ), clusters='Data', description=(
+            'Data node. The current one is a\n'
+            'sample showing the main attributes.'
+        ))
+        _add_explanation(
+            dsp, dsp.add_data(sh.EMPTY, clusters='Special Nodes'),
+            'Empty dispatcher/workflow.', clusters='Special Nodes'
+        )
+        _add_explanation(
+            dsp, dsp.add_data(sh.START, clusters='Special Nodes'),
+            'Starting node. It identifies'
+            '\nthe initial inputs.', clusters='Special Nodes'
+        )
+        _add_explanation(
+            dsp, dsp.add_data(sh.END, clusters='Special Nodes'),
+            'Ending node of SubDispatcherFunction.\n'
+            'It collects the function\'s outputs.', clusters='Special Nodes'
+        )
+        _add_explanation(
+            dsp, dsp.add_data(sh.SINK, clusters='Special Nodes'),
+            'Sink node. It collects \n'
+            'all unused outputs.', clusters='Special Nodes'
+        )
+        _add_explanation(
+            dsp, dsp.add_data(sh.SELF, clusters='Special Nodes'),
+            'Self node of the plotted dispatcher.\n'
+            'It represents the dispatcher as data node.',
+            clusters='Special Nodes'
+        )
+        _add_explanation(
+            dsp, dsp.add_data(sh.PLOT, clusters='Special Nodes'),
+            'Plot node. When invoked, it\n'
+            'plots the dispatcher solution.', clusters='Special Nodes'
+        )
+
+        fun_kw = dict(inputs=[], outputs=[], clusters='Functions')
+
+        class subdispatch:
+            pass
+
+        class subdispatchfunction:
+            pass
+
+        class subdispatchpipe:
+            pass
+
+        class dispatchpipe:
+            pass
+
+        _add_explanation(dsp, dsp.add_function(
+            function_id='<function_id>(Function)',
+            input_domain='Domain function `f(*inputs)`.',
+            solution_domain='Domain function result.',
+            weight='Distance weight coeff.',
+            await_domain='Wait async for domain result? `<bool>`',
+            await_result='Wait async for function result? `<bool>`',
+            distance='Distance from `START` node.',
+            started='Execution started time.',
+            duration='Time elapsed to execute the function.',
+            **fun_kw,
+            **{'filter x': 'Filter function x used in the loop '
+                           '`for f in filters: output = f(output)`.',
+               'input_filter 0': 'Result of the function.',
+               'output_filter x': 'Result of filters[x](`input_filter x` | '
+                                  '`output_filter x-1`).'}
+        ), clusters='Functions', description=(
+            'Function node. The current one is a\n'
+            'sample showing the main attributes.'
+        ))
+
+        _add_explanation(dsp, dsp.add_function(
+            function_id='<function_id>(SubDispatch)',
+            function=subdispatch(), **fun_kw
+        ), clusters='Functions', description=(
+            'SubDispatch node. It wraps\n'
+            'a given Dispatcher into a function.\n'
+            'Inputs are dictionaries {<node_id>: <value>}.'
+        ))
+        _add_explanation(dsp, dsp.add_function(
+            function_id='<function_id>(SubDispatchFunction)',
+            function=subdispatchfunction(), **fun_kw
+        ), clusters='Functions', description=(
+            'SubDispatchFunction node. It wraps and shrink\n'
+            'a given Dispatcher into a function.\n'
+            'Hence, it behaves like a function.'
+        ))
+        _add_explanation(dsp, dsp.add_function(
+            function_id='<function_id>(SubDispatchPipe)',
+            function=subdispatchpipe(), **fun_kw
+        ), clusters='Functions', description=(
+            'SubDispatchPipe node. It wraps and compiles\n'
+            'a given Dispatcher into a function.\n'
+            'Hence, it behaves like a function.'
+        ))
+        _add_explanation(dsp, dsp.add_function(
+            function_id='<function_id>(DispatchPipe)',
+            function=dispatchpipe(), **fun_kw
+        ), clusters='Functions', description=(
+            'DispatchPipe node. It behaves like a\n'
+            'SubDispatchPipe node, but it overwrites\n'
+            'its solution.'
+        ))
+
+        _add_explanation(dsp, dsp.add_function(
+            function_id='<node_id>(Error)',
+            clusters='Warnings and Errors', inputs=[], outputs=[],
+            error='Error message.'
+        ), clusters='Warnings and Errors', description=(
+            'Node that raised an error during its execution.'
+        ))
+        d = dsp.nodes[_add_explanation(dsp, dsp.add_function(
+            function_id='<node_id>(Warning)',
+            clusters='Warnings and Errors', inputs=[], outputs=[]
+        ), clusters='Warnings and Errors', description=(
+            'Node that did not return all inputs/outputs.'
+        ))]
+        d['outputs'].append('missing outputs')
+        d['inputs'].append('missing inputs')
+
+        _add_explanation(dsp, dsp.add_dispatcher(
+            clusters='Sub-dispatcher',
+            dsp={},
+            inputs={},
+            outputs={},
+            dsp_id='<dispatcher_id>(Dispatcher)',
+            input_domain='Domain function `f(**inputs)`.',
+            solution_domain='Domain function result.',
+            weight='Distance weight coeff.',
+            await_domain='Wait async for domain result? `<bool>`',
+            distance='Distance from `START` node.',
+        ), clusters='Sub-dispatcher', description=(
+            'Sub-dispatcher node. It connects a given\n'
+            'dispatcher to the current one. The current\n'
+            'node one is a sample showing the main attributes.'
+        ))
+
+        dsp.add_data('<from>', clusters='Edges', graphviz=dict(style='invis'))
+        dsp.add_function(
+            function_id='<to>',
+            clusters='Edges',
+            inputs=['<from>'],
+            outputs=[],
+            inp_weight={'<from>': 'Edge distance.'},
+            graphviz=dict(style='invis')
+        )
+        dsp.dmap.get_edge_data('<from>', '<to>').update(dict(
+            label_type='label',
+            inp_id='Index of input args.',
+            out_id='Index of output list.',
+            graphviz={
+                'xlabel': 'This is an edge sample showing the main attributes.'
+            }
+        ))
+        return dsp.plot(
+            view=False,
+            name='legend',
+            body={'label': '""'},
+            graph_attr={'rankdir': 'LR', 'id': 'graph'},
+            node_data=(
+                '-', 'default_values', 'wait_inputs',
+                'await_result', 'distance', 'function', 'solution', 'weight',
+                'remote_links', 'filter x', 'input_filter 0', 'output_filter x',
+                'error', '*output', 'remote parent x', 'remote child x',
+            ),
+            node_function=(
+                '-', 'await_domain', 'await_result', 'input_domain',
+                'solution_domain', 'weight', 'filter x', 'input_filter 0',
+                'output_filter x', 'error', 'missing_inputs_outputs',
+                'distance', 'started', 'duration',
+            )
+        ).render(view=False, index=False, directory=tempfile.mkdtemp())
 
     def render(self, context, *args, **kwargs):
+        import threading
         import pkg_resources
         from jinja2 import PackageLoader
         pkg_dir = pkg_resources.resource_filename(__name__, '')
-        fpath = osp.join(pkg_dir, 'templates', self.filename)
-        with open(fpath) as myfile:
-            return jinja2_format(myfile.read(), {'sitemap': self.sitemap,
-                                                 'context': context},
-                                 loader=PackageLoader(__name__))
+        fpath = osp.join(pkg_dir, 'templates', 'index.html')
+
+        with open(fpath) as template:
+            return jinja2_format(
+                template.read(),
+                {'tree': _sitemap2tree(self.sitemap, context),
+                 'icicle': _sitemap2icicle(self.sitemap),
+                 'pid': threading.get_ident(),
+                 'folder': self._filename},
+                loader=PackageLoader(__name__)
+            )
 
 
 def run_server(app, options):
+    import threading
+    MUTE_REQUESTS[threading.get_ident()] = getattr(app, 'mute', False)
     app.run(**options)
+
+
+MUTE_REQUESTS = {}
+logging.getLogger('werkzeug').addFilter(
+    lambda r: not MUTE_REQUESTS.pop(r.thread, False)
+)
+
+
+def before_request(mute):
+    import flask
+    import threading
+    from flask import request
+    MUTE_REQUESTS[threading.get_ident()] = mute
+    method = request.form.get('_method', '').upper()
+    if method:
+        request.environ['REQUEST_METHOD'] = method
+        ctx = flask._request_ctx_stack.top
+        ctx.url_adapter.default_method = method
+        assert request.method == method
 
 
 def _cleanup(files=None, rendered=None):
@@ -827,10 +1206,11 @@ def _shutdown_server():
     return 'Server shutting down...'
 
 
-def basic_app(root_path, cleanup=None, shutdown=None, **kwargs):
+def basic_app(root_path, cleanup=None, shutdown=None, mute=True, **kwargs):
     import flask
     app = flask.Flask(root_path, root_path=root_path, **kwargs)
-    app.before_request(before_request)
+    app.before_request(functools.partial(before_request, mute))
+    app.mute = mute
 
     cleanup, rule = (cleanup or _cleanup), '/cleanup'
     app.add_url_rule(rule, rule[1:], cleanup, methods=['DELETE'])
@@ -840,19 +1220,9 @@ def basic_app(root_path, cleanup=None, shutdown=None, **kwargs):
     return app
 
 
-def before_request():
-    import flask
-    from flask import request
-    method = request.form.get('_method', '').upper()
-    if method:
-        request.environ['REQUEST_METHOD'] = method
-        ctx = flask._request_ctx_stack.top
-        ctx.url_adapter.default_method = method
-        assert request.method == method
-
-
 _repr_html = '''
-<iframe width="100%" height="500" id="{id}" src="http://{host}:{port}/">
+<style> .sh-box {{ width: 100%; height: 500px }} </style>
+<iframe id="{id}" class="sh-box" src="http://{host}:{port}/" allowfullscreen>
 </iframe>
 '''
 
@@ -915,15 +1285,24 @@ class Site:
 
     def run(self, **options):
         self.shutdown()
-        options = combine_dicts(self.run_options, options)
         import threading
-        threading.Thread(
-            target=run_server,
-            args=(self.app(), self.get_port(**options))
-        ).start()
-        # noinspection PyArgumentList
-        self.shutdown = weakref.finalize(self, self.shutdown_site, self.url)
-        self.wait_server()
+        options = combine_dicts(self.run_options, options)
+        memo = os.environ.get("WERKZEUG_RUN_MAIN")
+        try:
+            os.environ["WERKZEUG_RUN_MAIN"] = "true"
+            threading.Thread(
+                target=run_server,
+                args=(self.app(), self.get_port(**options))
+            ).start()
+            # noinspection PyArgumentList
+            self.shutdown = weakref.finalize(self, self.shutdown_site, self.url)
+            self.wait_server()
+        finally:
+            if memo is None:
+                os.environ.pop("WERKZEUG_RUN_MAIN")
+            else:
+                os.environ["WERKZEUG_RUN_MAIN"] = memo
+
         return self
 
     @property
@@ -969,22 +1348,18 @@ class SiteMap(collections.OrderedDict):
         self._nodes = []
         self.foldername = ''
         self.index = self.site_index(self)
+        self.filenames = []
+        list(update_filenames(self.index, self.filenames))
 
     def __setitem__(self, key, value, *args, **kwargs):
-        filenames = self.index_filenames()
-        filenames += [v.foldername for k, v in self.items() if k is not key]
-        value.foldername = valid_filename(key, filenames, ext='')
+        value.foldername = valid_filename(key, self.filenames, ext='')
+        self.filenames.append(value.foldername)
         # noinspection PyArgumentList
         super(SiteMap, self).__setitem__(key, value, *args, **kwargs)
 
     def _repr_svg_(self):
         dot = list(self)[-1].dot()
         return dot.pipe(format='svg').decode(dot._encoding)
-
-    def index_filenames(self):
-        filenames = []
-        list(update_filenames(self.index, filenames))
-        return filenames
 
     @property
     def nodes(self):
@@ -1018,6 +1393,7 @@ class SiteMap(collections.OrderedDict):
 
     def _add_obj(self, obj, workflow=False, folder=None, **options):
         item = parent_func(obj)
+        workflow &= not isinstance(item, NoSub)
         if workflow:
             item = self.get_sol_from(item)
             dsp, graph = item.dsp, item.workflow
@@ -1053,7 +1429,7 @@ class SiteMap(collections.OrderedDict):
                     link = add_items(item, depth=depth, name=node_id)
                 except ValueError:  # item is not a dsp object.
                     i = ''.join((node_id, k and '-' or '', k))
-                    link = site_node(folder, i, item, item)
+                    link = site_node(folder, i, item, item, node_id)
                     append(link)
                 links[k] = link
 
@@ -1079,15 +1455,15 @@ class SiteMap(collections.OrderedDict):
             return item
         raise ValueError('Type %s not supported.' % type(item).__name__)
 
-    def app(self, root_path=None, depth=-1, index=True, header=_header, **kw):
+    def app(self, root_path=None, depth=-1, index=True, mute=True, **kw):
         root_path = osp.abspath(root_path or tempfile.mkdtemp())
         generated_files, rendered = [], {}
         cleanup = functools.partial(_cleanup, generated_files, rendered)
-        app = basic_app(root_path, cleanup=cleanup, **kw)
+        app = basic_app(root_path, cleanup=cleanup, mute=mute, **kw)
         context = self.rules(depth=depth, index=index)
         for (node, extra), filepath in context.items():
             func = functools.partial(
-                site_view, app, node, context, generated_files, rendered, header
+                site_view, app, node, context, generated_files, rendered, extra
             )
             app.add_url_rule('/%s' % filepath, filepath, func)
 
@@ -1106,12 +1482,11 @@ class SiteMap(collections.OrderedDict):
 
         return site
 
-    def render(self, depth=-1, directory='static', view=False, index=True,
-               header=_header):
+    def render(self, depth=-1, directory='static', view=False, index=True):
         context, rendered = self.rules(depth=depth, index=index), {}
         for node, extra in context:
             if not extra:
-                cached_view(node, directory, context, rendered, header)
+                cached_view(node, directory, context, rendered)
 
         fpath = osp.join(directory, next(iter(context.values()), ''))
         if view:
@@ -1120,7 +1495,7 @@ class SiteMap(collections.OrderedDict):
         return fpath
 
 
-def cached_view(node, directory, context, rendered, header):
+def cached_view(node, directory, context, rendered):
     n_id = node.view_id
     rend = {k: v for k, v in rendered.items() if k[0] == n_id}
     cnt = {(n_id, e): f for (n, e), f in context.items() if n == node}
@@ -1136,8 +1511,7 @@ def cached_view(node, directory, context, rendered, header):
             rend[k] = fpath
     else:
         rend = node.view(
-            osp.join(directory, context[(node, None)]),
-            context=context, header=header
+            osp.join(directory, context[(node, None)]), context=context
         )
         rendered.update(rend)
     return rend

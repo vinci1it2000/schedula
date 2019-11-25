@@ -149,20 +149,28 @@ def _plot(lines, dsp, dot_view_opt, documenter):
     else:
         dspdir = osp.join(env.srcdir, env.config.dispatchers_out_dir)
     fpath = '%s.gv' % osp.join(dspdir, fname)
+    index = dot_view_opt.get('index', False)
     if not osp.isfile(fpath):
         smap = dsp.plot(**dot_view_opt)
         folder = next(iter(smap))
         folder._name = folder.sitemap.foldername = fname
-        dot = folder.dot(smap.rules(index=False))
-        dot.sitemap.render(directory=dspdir, index=False)
+        dot = folder.dot(smap.rules(index=index))
+        if index:
+            smap.index.node_id = '%s-index' % fname
+            smap.render(directory=dspdir, index=True)
+        else:
+            dot.sitemap.render(directory=dspdir, index=False)
         dot.save(fpath, '')
 
     dsource = osp.dirname(osp.join(env.srcdir, env.docname))
     p = osp.relpath(fpath, dsource).replace('\\', '/')
-
-    lines.extend(['.. dsp:: %s' % p,
-                  '   :graphviz_dot: %s' % dot_view_opt.get('engine', 'dot'),
-                  ''])
+    engine = dot_view_opt.get('engine', 'dot')
+    lines.extend([
+        '.. dsp:: %s' % p,
+        '   :graphviz_dot: %s' % engine,
+        '   :index:' if index else '',
+        ''
+    ])
 
 
 def _table_heather(lines, title, dsp_name):

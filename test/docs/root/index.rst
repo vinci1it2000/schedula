@@ -17,7 +17,7 @@
 2:
 
 .. dispatcher:: o
-   :opt: graph_attr={'ratio': '1'}
+   :opt: graph_attr={'ratio': '1'}, index=True
    :code:
 
     >>> inputs = {'path': 'schedula/_version.py'}

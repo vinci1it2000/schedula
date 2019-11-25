@@ -44,6 +44,7 @@ class Solution(Base, collections.OrderedDict):
         self.outputs = set(outputs or ())
         self.full_name = full_name
         self._pipe = []
+        self.parent = dsp
 
         from ..dispatcher import Dispatcher
         self._set_dsp_features(dsp or Dispatcher())

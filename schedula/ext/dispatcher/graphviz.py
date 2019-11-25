@@ -8,7 +8,7 @@ from docutils import nodes
 # noinspection PyPep8Naming
 import xml.etree.ElementTree as etree
 from docutils.parsers.rst import directives
-
+from sphinx.ext.autodoc import bool_option
 from sphinx.ext.graphviz import (
     Graphviz, render_dot_html, latex_visit_graphviz,
     texinfo_visit_graphviz, text_visit_graphviz, man_visit_graphviz
@@ -35,9 +35,11 @@ class Dispatcher(Graphviz):
     img_opt = {
         'height': directives.length_or_unitless,
         'width': directives.length_or_percentage_or_unitless,
-
     }
-    option_spec = {'graphviz_dot': directives.unchanged}  # sphinx==1.3.5
+    option_spec = {
+        'graphviz_dot': directives.unchanged,  # sphinx==1.3.5
+        'index': bool_option
+    }
     sh.combine_dicts(img_opt, Graphviz.option_spec, base=option_spec)
 
     def run(self):
@@ -47,6 +49,8 @@ class Dispatcher(Graphviz):
         node['img_opt'] = sh.selector(
             self.img_opt, self.options, allow_miss=True
         )
+        node['index'] = self.options.get('index', False)
+
         if self.arguments:
             env = self.state.document.settings.env
             argument = search_image_for_language(self.arguments[0], env)
@@ -69,9 +73,7 @@ def get_graphviz_fn(visitor, code, options, format, prefix='dipsatcher'):
     fname = '%s-%s.%s' % (prefix, hashlib.sha1(hashkey).hexdigest(), format)
     relfn = posixpath.join(visitor.builder.imgpath, fname)
     outfn = osp.join(visitor.builder.outdir, visitor.builder.imagedir, fname)
-    if osp.isfile(outfn):
-        return relfn, outfn
-    return None, None
+    return relfn, outfn
 
 
 def copy_files(node, outfn):
@@ -80,6 +82,11 @@ def copy_files(node, outfn):
         outd = osp.join(osp.dirname(outfn), osp.split(dirpath)[-1])
         if not osp.isdir(outd):
             shutil.copytree(dirpath, outd)
+        if node['index']:
+            shutil.copytree('%s-index' % dirpath, '%s-index' % outd)
+            shutil.copy('%s.html' % dirpath, '%s.html' % outd)
+            shutil.copy('%s-index.html' % dirpath, '%s-index.html' % outd)
+        return outd
 
 
 class img(nodes.General, nodes.Element):
@@ -88,37 +95,46 @@ class img(nodes.General, nodes.Element):
 
 def html_visit_dispatcher(self, node):
     warn_for_deprecated_option(self, node)
-    i = len(self.body)
     prefix = 'dispatcher'
-
-    try:
-        render_dot_html(self, node, node['code'], node['options'], prefix)
-    except nodes.SkipNode:
-        n = self.body[i:]
-        if n:
-            format = self.builder.config.graphviz_output_format
-            fname, outfn = get_graphviz_fn(
-                self, node['code'], node['options'], format, prefix
-            )
-            if fname is not None:
-                copy_files(node, outfn)
-                root = etree.fromstring('<div>%s</div>' % ''.join(n))
-                imgs = {c: p
-                        for p in root.iter()
-                        for c in p.findall('img')
-                        if c.attrib.get('src') == fname}
-                for c, p in imgs.items():
-                    c.attrib.update(node.get('img_opt', {}))
-                    j = list(p).index(c)
-                    p.remove(c)
-                    a = etree.Element('a', href=fname)
-                    p.insert(j, a)
-                    a.append(c)
-                del self.body[-len(n):]
-                for c in root:
-                    self.body.append(etree.tostring(c, 'unicode'))
-
-        raise nodes.SkipNode
+    format = self.builder.config.graphviz_output_format
+    fname, outfn = get_graphviz_fn(
+        self, node['code'], node['options'], format, prefix
+    )
+    if node['index']:
+        fname = copy_files(node, outfn)
+        attr = sh.combine_dicts(node.get('img_opt', {}), base=dict(
+            src=posixpath.join(
+                self.builder.imgpath, '%s-index.html' % osp.basename(fname)
+            ), width='100%', height='500px'
+        ))
+        self.body.append('<iframe %s allowfullscreen></iframe>' % ' '.join(
+            '%s="%s"' % v for v in attr.items()
+        ))
+    else:
+        i = len(self.body)
+        try:
+            render_dot_html(self, node, node['code'], node['options'], prefix)
+        except nodes.SkipNode:
+            n = self.body[i:]
+            if n:
+                if osp.isfile(outfn):
+                    copy_files(node, outfn)
+                    root = etree.fromstring('<div>%s</div>' % ''.join(n))
+                    imgs = {c: p
+                            for p in root.iter()
+                            for c in p.findall('img')
+                            if c.attrib.get('src') == fname}
+                    for c, p in imgs.items():
+                        c.attrib.update(node.get('img_opt', {}))
+                        j = list(p).index(c)
+                        p.remove(c)
+                        a = etree.Element('a', href=fname)
+                        p.insert(j, a)
+                        a.append(c)
+                    del self.body[-len(n):]
+                    for c in root:
+                        self.body.append(etree.tostring(c, 'unicode'))
+    raise nodes.SkipNode
 
 
 def setup(app):

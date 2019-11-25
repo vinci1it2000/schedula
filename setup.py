@@ -83,9 +83,8 @@ if __name__ == '__main__':
 
     extras = {
         'web': ['regex', 'flask'],
-        'plot': ['graphviz', 'regex', 'flask', 'Pygments', 'lxml',
-                 'beautifulsoup4', 'jinja2', 'docutils'],
-        'parallel': ['multiprocess']
+        'parallel': ['multiprocess'],
+        'plot': ['graphviz', 'regex', 'flask', 'Pygments', 'jinja2', 'docutils']
     }
     extras['sphinx'] = ['sphinx'] + extras['plot']
     # noinspection PyTypeChecker

@@ -15,7 +15,7 @@ from docutils import nodes as _nodes
 
 
 class _DspPlot(gviz.Digraph):
-    def __init__(self, sitemap, *args, **kwargs):
+    def __init__(self, sitemap=None, *args, **kwargs):
         super(_DspPlot, self).__init__(*args, **kwargs)
         self.sitemap = sitemap
 
