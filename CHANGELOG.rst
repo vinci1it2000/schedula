@@ -2,6 +2,31 @@ Changelog
 =========
 
 
+v0.3.7 (2019-12-06)
+-------------------
+
+Feat
+~~~~
+- (drw): Update the `index` GUI of the plot.
+
+- (appveyor): Drop `appveyor` in favor of `travis`.
+
+- (travis): Update travis configuration file.
+
+- (plot): Add node link and id in graph plot.
+
+
+Fix
+~~~
+- (drw): Render dot in temp folder.
+
+- (plot): Add `quiet` arg to `_view` method.
+
+- (doc): Correct missing gh links.
+
+- (core) :gh:`17`: Correct deprecated Graph attribute.
+
+
 v0.3.6 (2019-10-18)
 -------------------
 
