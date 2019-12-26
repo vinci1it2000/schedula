@@ -155,10 +155,10 @@ class Dispatcher(Base):
 
         :param raises:
             If True the dispatcher interrupt the dispatch when an error occur,
-            otherwise it logs a warning. If a callable is given it will be
-            executed passing the exception to decide to raise or not the
-            exception.
-        :type raises: bool|callable, optional
+            otherwise if raises != '' it logs a warning. If a callable is given
+            it will be executed passing the exception to decide to raise or not
+            the exception.
+        :type raises: bool|callable|str, optional
 
         :param description:
             The dispatcher's description.

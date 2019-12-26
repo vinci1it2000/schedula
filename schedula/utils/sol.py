@@ -1223,7 +1223,7 @@ class Solution(Base, collections.OrderedDict):
         Handles the error messages.
 
         .. note:: If `self.raises` is True the dispatcher interrupt the dispatch
-           when an error occur, otherwise it logs a warning.
+           when an error occur, otherwise if `raises != ''` it logs a warning.
         """
 
         raises = self.raises(ex) if callable(self.raises) else self.raises
@@ -1237,6 +1237,6 @@ class Solution(Base, collections.OrderedDict):
 
         if raises:
             raise DispatcherError(msg, node_id, ex, *args, sol=self, **kwargs)
-        else:
+        elif raises != '':
             kwargs['exc_info'] = kwargs.get('exc_info', 1)
             log.error(msg, node_id, ex, *args, **kwargs)
