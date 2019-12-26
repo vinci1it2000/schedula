@@ -81,7 +81,14 @@ class WebMap(SiteMap):
 
 
 def _func_handler(func):
+    from .dsp import selector
     from flask import request, jsonify
-    data = request.get_json(force=True)
-    data['return'] = func(*data.get('args', ()), **data.get('kwargs', {}))
-    return jsonify(data)
+    data = {}
+    try:
+        inp = data['input'] = request.get_json(force=True)
+        data['return'] = func(*inp.get('args', ()), **inp.get('kwargs', {}))
+    except Exception as ex:
+        data['error'] = str(ex)
+    keys = request.args.get('data', 'return,error').split(',')
+    keys = [v.strip(' ') for v in keys]
+    return jsonify(selector(keys, data, allow_miss=True))
