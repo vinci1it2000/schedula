@@ -7,15 +7,16 @@
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
 """
-Dispatcher directive.
+Dispatcher documenter.
 """
 import re
+import glob
 import hashlib
 import inspect
 import logging
 import os.path as osp
 import schedula as sh
-from . import graphviz as dir_graph
+from docutils.parsers.rst import directives
 from sphinx.ext.autodoc import DataDocumenter, bool_option
 from doctest import DocTestParser, DocTestRunner, NORMALIZE_WHITESPACE, ELLIPSIS
 
@@ -130,7 +131,7 @@ def _code(lines, documenter):
         lines.append('')
 
 
-def _plot(lines, dsp, dot_view_opt, documenter):
+def _plot(lines, dsp, dot_view_opt, documenter, dsp_opt):
     code_content = _import_docstring_code_content(documenter)
     hashkey = str(sorted(dot_view_opt.items())) + '\n'
     if code_content:
@@ -148,29 +149,28 @@ def _plot(lines, dsp, dot_view_opt, documenter):
         dspdir = env.config.dispatchers_out_dir
     else:
         dspdir = osp.join(env.srcdir, env.config.dispatchers_out_dir)
-    fpath = '%s.gv' % osp.join(dspdir, fname)
+    dspdir = osp.join(dspdir, fname)
     index = dot_view_opt.get('index', False)
-    if not osp.isfile(fpath):
+    if osp.isdir(dspdir):
+        fpath = glob.glob(osp.join(dspdir, '*.gv'))[0]
+    else:
         smap = dsp.plot(**dot_view_opt)
         folder = next(iter(smap))
-        folder._name = folder.sitemap.foldername = fname
+        fpath = osp.join(dspdir, '%s.gv' % folder.sitemap.foldername)
         dot = folder.dot(smap.rules(index=index))
-        if index:
-            smap.index.node_id = '%s-index' % fname
-            smap.render(directory=dspdir, index=True)
-        else:
-            dot.sitemap.render(directory=dspdir, index=False)
+        smap.render(directory=dspdir, index=index)
         dot.save(fpath, '')
 
     dsource = osp.dirname(osp.join(env.srcdir, env.docname))
     p = osp.relpath(fpath, dsource).replace('\\', '/')
-    engine = dot_view_opt.get('engine', 'dot')
-    lines.extend([
-        '.. dsp:: %s' % p,
-        '   :graphviz_dot: %s' % engine,
-        '   :index:' if index else '',
-        ''
-    ])
+    dsp_opt = dsp_opt.copy()
+    dsp_opt['graphviz_dot'] = dot_view_opt.get('engine', 'dot')
+    if index:
+        dsp_opt['index'] = ''
+
+    lines.append('.. dsp:: %s' % p)
+    lines.extend('   :{}: {}'.format(k, v) for k, v in dsp_opt.items())
+    lines.append('')
 
 
 def _table_heather(lines, title, dsp_name):
@@ -264,11 +264,10 @@ class DispatcherDocumenter(DataDocumenter):
     """
     Specialized Documenter subclass for dispatchers.
     """
-
+    content_indent = ''
     objtype = 'dispatcher'
     directivetype = 'data'
     option_spec = dict(DataDocumenter.option_spec)
-    option_spec.update(dir_graph.Dispatcher.option_spec)
     option_spec.update({
         'description': bool_option,
         'opt': _dsp2dot_option,
@@ -276,6 +275,8 @@ class DispatcherDocumenter(DataDocumenter):
         'data': bool_option,
         'func': bool_option,
         'dsp': bool_option,
+        'height': directives.length_or_unitless,
+        'width': directives.length_or_percentage_or_unitless,
     })
     default_opt = {
         'depth': 0,
@@ -337,7 +338,10 @@ class DispatcherDocumenter(DataDocumenter):
         if not opt or opt.des:
             _description(lines, dsp, self)
 
-        _plot(lines, dsp, dot_view_opt, self)
+        _plot(lines, dsp, dot_view_opt, self, {
+            k: getattr(opt, k) for k in ('height', 'width')
+            if getattr(opt, k) is not None
+        })
 
         if not opt or opt.data:
             _data(lines, dsp)

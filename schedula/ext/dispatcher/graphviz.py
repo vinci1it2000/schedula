@@ -1,17 +1,27 @@
+#!/usr/bin/env python
+# -*- coding: UTF-8 -*-
+#
+# Copyright 2015-2019, Vincenzo Arcidiacono;
+# Licensed under the EUPL (the 'Licence');
+# You may not use this work except in compliance with the Licence.
+# You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
+"""
+Dispatcher directive.
+"""
+
+import glob
 import sphinx
 import shutil
-import hashlib
 import posixpath
 import os.path as osp
 import schedula as sh
 from docutils import nodes
 # noinspection PyPep8Naming
-import xml.etree.ElementTree as etree
 from docutils.parsers.rst import directives
 from sphinx.ext.autodoc import bool_option
 from sphinx.ext.graphviz import (
-    Graphviz, render_dot_html, latex_visit_graphviz,
-    texinfo_visit_graphviz, text_visit_graphviz, man_visit_graphviz
+    Graphviz, latex_visit_graphviz, texinfo_visit_graphviz, text_visit_graphviz,
+    man_visit_graphviz
 )
 
 try:
@@ -32,6 +42,7 @@ class dsp(nodes.General, nodes.Inline, nodes.Element):
 
 
 class Dispatcher(Graphviz):
+    required_arguments = 1
     img_opt = {
         'height': directives.length_or_unitless,
         'width': directives.length_or_percentage_or_unitless,
@@ -50,43 +61,11 @@ class Dispatcher(Graphviz):
             self.img_opt, self.options, allow_miss=True
         )
         node['index'] = self.options.get('index', False)
-
-        if self.arguments:
-            env = self.state.document.settings.env
-            argument = search_image_for_language(self.arguments[0], env)
-            dirpath = osp.splitext(env.relfn2path(argument)[1])[0]
-            node['dirpath'] = dirpath if osp.isdir(dirpath) else None
-        else:
-            node['dirpath'] = None
+        env = self.state.document.settings.env
+        argument = search_image_for_language(self.arguments[0], env)
+        dirpath = osp.dirname(env.relfn2path(argument)[1])
+        node['dirpath'] = dirpath if osp.isdir(dirpath) else None
         return [node]
-
-
-def get_graphviz_fn(visitor, code, options, format, prefix='dipsatcher'):
-    try:
-        graphviz_dot = options.get(
-            'graphviz_dot', visitor.builder.config.graphviz_dot
-        )
-    except AttributeError:  # sphinx==1.3.5
-        graphviz_dot = visitor.builder.config.graphviz_dot
-    hashkey = (code + str(options) + str(graphviz_dot) +
-               str(visitor.builder.config.graphviz_dot_args)).encode('utf-8')
-    fname = '%s-%s.%s' % (prefix, hashlib.sha1(hashkey).hexdigest(), format)
-    relfn = posixpath.join(visitor.builder.imgpath, fname)
-    outfn = osp.join(visitor.builder.outdir, visitor.builder.imagedir, fname)
-    return relfn, outfn
-
-
-def copy_files(node, outfn):
-    dirpath = node['dirpath']
-    if dirpath:
-        outd = osp.join(osp.dirname(outfn), osp.split(dirpath)[-1])
-        if not osp.isdir(outd):
-            shutil.copytree(dirpath, outd)
-        if node['index']:
-            shutil.copytree('%s-index' % dirpath, '%s-index' % outd)
-            shutil.copy('%s.html' % dirpath, '%s.html' % outd)
-            shutil.copy('%s-index.html' % dirpath, '%s-index.html' % outd)
-        return outd
 
 
 class img(nodes.General, nodes.Element):
@@ -94,46 +73,23 @@ class img(nodes.General, nodes.Element):
 
 
 def html_visit_dispatcher(self, node):
-    warn_for_deprecated_option(self, node)
-    prefix = 'dispatcher'
-    format = self.builder.config.graphviz_output_format
-    fname, outfn = get_graphviz_fn(
-        self, node['code'], node['options'], format, prefix
-    )
+    dirpath = node['dirpath']
+    dname = osp.basename(dirpath)
+    outd = posixpath.join(self.builder.outdir, self.builder.imagedir, dname)
+    if not osp.isdir(outd):
+        shutil.copytree(dirpath, outd)
     if node['index']:
-        fname = copy_files(node, outfn)
-        attr = sh.combine_dicts(node.get('img_opt', {}), base=dict(
-            src=posixpath.join(
-                self.builder.imgpath, '%s-index.html' % osp.basename(fname)
-            ), width='100%', height='500px'
-        ))
-        self.body.append('<iframe %s allowfullscreen></iframe>' % ' '.join(
-            '%s="%s"' % v for v in attr.items()
-        ))
+        fname = 'index.html'
     else:
-        i = len(self.body)
-        try:
-            render_dot_html(self, node, node['code'], node['options'], prefix)
-        except nodes.SkipNode:
-            n = self.body[i:]
-            if n:
-                if osp.isfile(outfn):
-                    copy_files(node, outfn)
-                    root = etree.fromstring('<div>%s</div>' % ''.join(n))
-                    imgs = {c: p
-                            for p in root.iter()
-                            for c in p.findall('img')
-                            if c.attrib.get('src') == fname}
-                    for c, p in imgs.items():
-                        c.attrib.update(node.get('img_opt', {}))
-                        j = list(p).index(c)
-                        p.remove(c)
-                        a = etree.Element('a', href=fname)
-                        p.insert(j, a)
-                        a.append(c)
-                    del self.body[-len(n):]
-                    for c in root:
-                        self.body.append(etree.tostring(c, 'unicode'))
+        fname = osp.basename(glob.glob(osp.join(outd, '*.gv'))[0])
+        fname = '%s.html?controls=true' % osp.splitext(fname)[0]
+    attr = sh.combine_dicts(node.get('img_opt', {}), base=dict(
+        src=posixpath.join(self.builder.imgpath, dname, fname),
+        width='100%', height='500px', frameborder='0'
+    ))
+    self.body.append('<iframe %s allowfullscreen></iframe>' % ' '.join(
+        '%s="%s"' % v for v in attr.items()
+    ))
     raise nodes.SkipNode
 
 
