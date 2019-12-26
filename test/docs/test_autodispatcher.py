@@ -24,6 +24,8 @@ def _setup(**kw):
         func=True,
         code=True,
         dsp=True,
+        height=None,
+        width=None,
         inherited_members=False,
         undoc_members=False,
         private_members=False,
@@ -172,23 +174,22 @@ class TestDispatcherDirective(unittest.TestCase):
             assert_equal_items(self, items)
 
         res = ['', '',
-               '    >>> from schedula import Dispatcher',
-               "    >>> s = Dispatcher(name='Dispatcher')",
-               "    >>> f = s.add_function('fun', lambda x: 0, ['a'], ['b'])",
-               '   ', '   ', '   ',
-               '   .. dsp:: _build/_dispatchers/dispatcher-e6fae1119c5ef15c4426de01b7ad758f98e88d54.gv',
-               '      :graphviz_dot: dot',
-               '   ',
-               '   ',
-               "   .. csv-table:: **Dispatcher's data**",
-               '   ',
-               '      ":obj:`a <>`", ""',
-               '      ":obj:`b <>`", ""',
-               '   ',
-               "   .. csv-table:: **Dispatcher's functions**",
-               '   ',
-               '      ":func:`fun <None.<lambda>>`", ""',
-               '   ']
+               ' >>> from schedula import Dispatcher',
+               " >>> s = Dispatcher(name='Dispatcher')",
+               " >>> f = s.add_function('fun', lambda x: 0, ['a'], ['b'])",
+               '', '', '',
+               '.. dsp:: _build/_dispatchers/dispatcher-e6fae1119c5ef15c4426de01b7ad758f98e88d54/Dispatcher.gv',
+               '   :graphviz_dot: dot',
+               '',
+               ".. csv-table:: **Dispatcher's data**",
+               '',
+               '   ":obj:`a <>`", ""',
+               '   ":obj:`b <>`", ""',
+               '',
+               ".. csv-table:: **Dispatcher's functions**",
+               '',
+               '   ":func:`fun <None.<lambda>>`", ""',
+               '']
         assert_result(self, res, 's', more_content=content)
 
     def test_generate(self):
@@ -210,42 +211,41 @@ class TestDispatcherDirective(unittest.TestCase):
             '   :module: %s' % __name__,
             '   :annotation:  = Pippo',
             '',
-            '   Docstring 1',
-            '   ',
-            '   good',
-            '   ',
-            '   .. dsp:: _build/_dispatchers/dispatcher-73e25d64a2d3385b1a6fde2e07406deab3171ab2.gv',
-            '      :graphviz_dot: dot',
-            '   ',
-            '   ',
-            "   .. csv-table:: **Pippo's data**",
-            '   ',
-            '      ":obj:`a <>`", "Description of a"',
-            '      ":obj:`b <>`", "Nice e."',
-            '      ":obj:`c <>`", "Nice f."',
-            '      ":obj:`d <>`", "Other args."',
-            '      ":obj:`e <>`", "Nice arg."',
-            '      ":obj:`sink <>`", "Sink node of the dispatcher that '
+            'Docstring 1',
+            '',
+            'good',
+            '',
+            '.. dsp:: _build/_dispatchers/dispatcher-73e25d64a2d3385b1a6fde2e07406deab3171ab2/Pippo.gv',
+            '   :graphviz_dot: dot',
+            '',
+            ".. csv-table:: **Pippo's data**",
+            '',
+            '   ":obj:`a <>`", "Description of a"',
+            '   ":obj:`b <>`", "Nice e."',
+            '   ":obj:`c <>`", "Nice f."',
+            '   ":obj:`d <>`", "Other args."',
+            '   ":obj:`e <>`", "Nice arg."',
+            '   ":obj:`sink <>`", "Sink node of the dispatcher that '
             'collects all unused outputs."',
-            '      ":obj:`start <>`", "Starting node that identifies '
+            '   ":obj:`start <>`", "Starting node that identifies '
             'initial inputs of the workflow."',
-            '   ',
-            "   .. csv-table:: **Pippo's functions**",
-            '   ',
-            '      ":func:`fun1 <>`", "Fun1"',
-            '      ":func:`fun2 <%s.fun2>`", "Fun2"' % __name__,
-            '      ":func:`fun3 <%s.fun2>`", "Fun3"' % __name__,
-            '   ']
+            '',
+            ".. csv-table:: **Pippo's functions**",
+            '',
+            '   ":func:`fun1 <>`", "Fun1"',
+            '   ":func:`fun2 <%s.fun2>`", "Fun2"' % __name__,
+            '   ":func:`fun3 <%s.fun2>`", "Fun3"' % __name__,
+            '']
         assert_result(self, res, 'dsp')
 
         res[1] = '.. py:data:: dsp_1'
-        res[5] = '   Docstring 2'
-        res[9] = '   .. dsp:: _build/_dispatchers/dispatcher-c4cdb95f7c323136c07b06e9cc9e97c054e65cd3.gv'
+        res[5] = 'Docstring 2'
+        res[9] = '.. dsp:: _build/_dispatchers/dispatcher-c4cdb95f7c323136c07b06e9cc9e97c054e65cd3/Pippo.gv'
         assert_result(self, res, 'dsp_1')
 
         res[1] = '.. py:data:: dsp_2'
-        res[5] = '   Docstring 3'
-        res[9] = '   .. dsp:: _build/_dispatchers/dispatcher-626650ebb81b12cfd2764e7dde8087e834a31bd1.gv'
+        res[5] = 'Docstring 3'
+        res[9] = '.. dsp:: _build/_dispatchers/dispatcher-626650ebb81b12cfd2764e7dde8087e834a31bd1/Pippo.gv'
         assert_result(self, res, 'dsp_2')
 
     def test_build(self):

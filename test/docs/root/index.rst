@@ -44,7 +44,7 @@
 
 .. dispatcher:: dsp
    :opt: graph_attr={'ratio': '1'}, engine='neato',
-         body={'splines': 'curves', 'style': 'filled'}
+         body={'splines': 'curved', 'style': 'filled'}
    :code:
 
     >>> import schedula
@@ -94,7 +94,7 @@
 
 .. dispatcher:: dsp
    :opt: graph_attr={'ratio': '1'}, engine='neato',
-         body={'splines': 'curves', 'style': 'filled'}
+         body={'splines': 'curved', 'style': 'filled'}
    :code:
    :height: 240
    :width: 320
