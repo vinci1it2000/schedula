@@ -140,5 +140,6 @@ imperial.add_func(thou2leagues, outputs=['lea'])
 if __name__ == '__main__':
     # To plot the imperial model.
     imperial.register().plot(
-        graph_attr={'ratio': '0.5'}, engine='neato', body={'style': 'filled'}
+        graph_attr={'ratio': '0.5'}, engine='neato', body={'style': 'filled'},
+        index=True
     )

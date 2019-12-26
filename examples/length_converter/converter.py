@@ -18,5 +18,6 @@ converter.add_function(
 
 if __name__ == '__main__':
     converter.register().plot(
-        graph_attr={'ratio': '0.5'}, engine='neato', body={'style': 'filled'}
+        graph_attr={'ratio': '0.5'}, engine='neato', body={'style': 'filled'},
+        index=True
     )

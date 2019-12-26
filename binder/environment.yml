@@ -19,5 +19,7 @@ dependencies:
   - regex
   - plotly
   - tornado<6
+  - cryptography
+  - requests
   - pip:
       - jupyter-server-proxy

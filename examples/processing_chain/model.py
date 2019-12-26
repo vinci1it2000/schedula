@@ -24,4 +24,4 @@ model.add_function(
 )
 
 if __name__ == '__main__':
-    model.register().plot()
+    model.register().plot(index=True)

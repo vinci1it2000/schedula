@@ -66,4 +66,4 @@ def save_outputs(outputs, output_fpath):
 
 
 if __name__ == '__main__':
-    process.register().plot()
+    process.register().plot(index=True)

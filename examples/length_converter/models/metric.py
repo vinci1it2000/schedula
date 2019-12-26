@@ -91,5 +91,6 @@ metric.add_func(mm2km, outputs=['km'])
 if __name__ == '__main__':
     # To plot the metric model.
     metric.register().plot(
-        graph_attr={'ratio': '0.5'}, engine='neato', body={'style': 'filled'}
+        graph_attr={'ratio': '0.5'}, engine='neato', body={'style': 'filled'},
+        index=True
     )
