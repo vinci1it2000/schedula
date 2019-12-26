@@ -67,7 +67,7 @@ class Blueprint:
         Example::
 
             >>> import schedula as sh
-            >>> blue = sh.BlueDispatcher().add_func(len, ['lenght'])
+            >>> blue = sh.BlueDispatcher().add_func(len, ['length'])
             >>> blue.register()
             <schedula.dispatcher.Dispatcher object at ...>
         """

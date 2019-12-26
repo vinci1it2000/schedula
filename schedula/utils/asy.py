@@ -80,7 +80,7 @@ def shutdown_executor(name, wait=True):
 
     :return:
         Shutdown pool executor.
-    :rtype:dict[concurrent.futures.Future,threading.Thread|multiprocess.Process]
+    :rtype: dict[concurrent.futures.Future,threading.Thread|multiprocess.Process]
     """
     return _EXECUTORS.pop(name).shutdown(wait)
 
@@ -417,6 +417,7 @@ class PoolExecutor:
 
 
 class AsyncList(list):
+    "List of asynchronous results."
     def __init__(self, *, future=None, n=1):
         super(AsyncList, self).__init__()
         from concurrent.futures import Future

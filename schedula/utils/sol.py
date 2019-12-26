@@ -26,6 +26,7 @@ log = logging.getLogger(__name__)
 # noinspection PyTypeChecker
 class Solution(Base, collections.OrderedDict):
     """Solution class for dispatch result."""
+
     def __hash__(self):
         return id(self)
 

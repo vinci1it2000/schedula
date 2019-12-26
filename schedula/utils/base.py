@@ -87,7 +87,7 @@ class Base:
             True
 
         .. note::
-           When :class:`~schedula.utils.drw.Site` is garbage collected the
+           When :class:`~schedula.utils.drw.Site` is garbage collected, the
            server is shutdown automatically.
         """
 

@@ -1367,4 +1367,4 @@ class inf(collections.namedtuple('_inf', ['inf', 'num'])):
 
     for k in _methods:
         exec('__{0}__ = _wrap("__{0}__", _methods["{0}"])'.format(k))
-    del _wrap, _methods
+    del _wrap, _methods, k

@@ -4,20 +4,24 @@
    contain the root `toctree` directive.
 
 .. include:: ../README.rst
-    :start-after: .. _start-quick:
-    :end-before: .. _end-quick:
+    :start-after: .. _start-intro:
+    :end-before: .. _end-intro:
 
 .. include:: ../README.rst
     :start-after: .. _start-badges:
     :end-before: .. _end-badges:
 
 .. toctree::
-    :maxdepth: 4
+    :maxdepth: 1
     :numbered:
     :caption: Table of Contents
     :name: mastertoc
 
-    doc
+    about
+    install
+    tutorial
+    async
+    contrib
     api
     change
 

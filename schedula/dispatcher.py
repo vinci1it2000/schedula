@@ -212,6 +212,17 @@ class Dispatcher(Base):
         self.counter = counter()
 
     def copy_structure(self, **kwargs):
+        """
+        Returns a copy of the Dispatcher structure.
+
+        :param kwargs:
+            Additional parameters to initialize the new class.
+        :type kwargs: dict
+
+        :return:
+            A copy of the Dispatcher structure.
+        :rtype: Dispatcher
+        """
         _map = {
             'description': '__doc__', 'name': 'name',
             'raises': 'raises', 'executor': 'executor'
@@ -1419,7 +1430,7 @@ class Dispatcher(Base):
 
     def copy(self):
         """
-        Returns a copy of the Dispatcher.
+        Returns a deepcopy of the Dispatcher.
 
         :return:
             A copy of the Dispatcher.
