@@ -147,8 +147,6 @@ if __name__ == '__main__':
         test_suite='nose.collector',
         tests_require=['nose>=1.0', 'requests'],
         package_data={
-            'schedula.utils.drw': [
-                'templates/*'
-            ]
+            'schedula.utils.drw': ['templates/*', 'index/js/*', 'index/css/*']
         },
     )
