@@ -350,8 +350,3 @@ class Base:
 
         # Returns the node.
         return get_sub_node(dsp, node_ids, node_attr=node_attr, **kw)
-
-    def search_node_description(self, node_id, what='description'):
-        dsp = getattr(self, 'dsp', self)
-        from .des import search_node_description
-        return search_node_description(node_id, dsp.nodes[node_id], dsp, what)

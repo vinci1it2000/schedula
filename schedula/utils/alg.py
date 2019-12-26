@@ -256,6 +256,12 @@ def _update_io(a, pred, succ, parent=True):
         return set(pred) - set(a[inp_k]), set(succ) - _nodes(a[out_k].values())
 
 
+def _search_node_description(dsp, node_id, what='description'):
+    dsp = getattr(dsp, 'dsp', dsp)
+    from .des import search_node_description
+    return search_node_description(node_id, dsp.nodes[node_id], dsp, what)
+
+
 def get_sub_node(dsp, path, node_attr='auto', solution=NONE, _level=0,
                  _dsp_name=NONE):
     """
@@ -401,10 +407,10 @@ def get_sub_node(dsp, path, node_attr='auto', solution=NONE, _level=0,
         elif node_attr == 'output' and node['type'] == 'data':
             data = sol[node_id]
         elif node_attr == 'description':  # Search and return node description.
-            data = dsp.search_node_description(node_id)[0]
+            data = _search_node_description(dsp, node_id)[0]
         elif node_attr == 'value_type' and node['type'] == 'data':
             # Search and return data node value's type.
-            data = dsp.search_node_description(node_id, node_attr)[0]
+            data = _search_node_description(dsp, node_id, node_attr)[0]
         elif node_attr == 'default_value':
             data = dsp.default_values[node_id]
         elif node_attr == 'dsp':

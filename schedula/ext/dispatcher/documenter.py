@@ -186,8 +186,9 @@ def _data(lines, dsp):
     if data:
         _table_heather(lines, 'data', dsp.name)
         from schedula.utils.des import get_summary
+        from schedula.utils.alg import _search_node_description
         for k, v in data:
-            des, link = dsp.search_node_description(k)
+            des, link = _search_node_description(dsp, k)
 
             link = ':obj:`%s <%s>`' % (_node_name(str(k)), link)
             str_format = u'   "%s", "%s"'
@@ -220,10 +221,11 @@ def _functions(lines, dsp, node_type='function'):
     fun = [v for v in sorted(dsp.nodes.items()) if check_fun(v[1])]
 
     if fun:
+        from schedula.utils.alg import _search_node_description
         _table_heather(lines, '%ss' % node_type, dsp.name)
 
         for k, v in fun:
-            des, full_name = dsp.search_node_description(k)
+            des, full_name = _search_node_description(dsp, k)
             lines.append(u'   ":func:`%s <%s>`", "%s"' % (
                 k.replace('"', '""'), full_name.replace('"', '""'),
                 des.replace('"', '""')
