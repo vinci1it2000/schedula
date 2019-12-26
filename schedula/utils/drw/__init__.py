@@ -282,7 +282,7 @@ class FolderNode:
         '*function|solution'
     )
 
-    edge_data = ('?', 'inp_id', 'out_id', 'weight')
+    edge_data = '?', '+wildcard', 'inp_id', 'out_id', 'weight'
 
     node_map = {
         '-': (),  # Add title.
@@ -309,7 +309,7 @@ class FolderNode:
 
     @property
     def title(self):
-        return self.node_id
+        return self.attr.get('title', self.node_id)
 
     @property
     def type(self):
@@ -457,6 +457,11 @@ class FolderNode:
                         yield 'M_%s' % i, v
         except (AttributeError, KeyError):
             pass
+
+    def _wildcard(self):
+        if 'wildcard' in self.attr:
+            if self.folder.workflow and 'value' in self.attr:
+                yield 'wildcard', self.attr['value']
 
     def style(self):
         attr = self.attr
@@ -676,7 +681,7 @@ class SiteFolder:
         try:
             from ..sol import Solution
             if isinstance(self.item, Solution):
-                return self.item.dsp.inputs or ()
+                return self.item.parent.inputs or ()
             return self.item.inputs or ()
         except AttributeError:
             return ()
@@ -684,11 +689,14 @@ class SiteFolder:
     @property
     def outputs(self):
         item = self.item
-        if isinstance(item, SubDispatch) and item.output_type != 'all':
-            try:
+        from ..sol import Solution
+        try:
+            if isinstance(item, Solution):
+                item = item.parent
+            if isinstance(item, SubDispatch) and item.output_type != 'all':
                 return item.outputs or ()
-            except AttributeError:
-                pass
+        except AttributeError:
+            pass
         return ()
 
     @property
@@ -737,6 +745,13 @@ class SiteFolder:
 
     def _edges(self, nodes):
         edges = {(u, v): a for (u, v), a in self.graph.edges.items() if u != v}
+        from ..sol import Solution
+        from ..dsp import SubDispatchFunction
+        wildcards = ()
+        if isinstance(self.item, Solution):
+            wildcards = self.item._wildcards
+        elif isinstance(self.item, SubDispatchFunction):
+            wildcards = self.item._sol._wildcards
 
         for i, v in enumerate(self.inputs):
             if v != START and v in nodes:
@@ -747,6 +762,15 @@ class SiteFolder:
             if u != END and u in nodes:
                 n = (u, END)
                 edges[n] = combine_dicts(edges.get(n, {}), {'out_id': i})
+
+        for w in [v for u, v in edges if u is START and v in wildcards]:
+            a = combine_dicts(edges.pop((START, w)), dict(
+                label_type='label', wildcard=w, title=w
+            ))
+            a1 = selector(('value',), a, allow_miss=True)
+            for u, v in list(edges):
+                if u == w and v != END:
+                    edges[(START, v)] = combine_dicts(a, edges.pop((u, v)), a1)
 
         d_nodes = self.dsp.nodes
         for (u, v), a in edges.items():
@@ -1420,7 +1444,7 @@ class SiteMap(collections.OrderedDict):
             smap.add_items, workflow=workflow, folder=folder, **opt
         )
         for node in itertools.chain(folder.nodes, folder.edges):
-            links, node_id = node._links, node.node_id
+            links, node_id, node_title = node._links, node.node_id, node.title
             only_site_node = depth == 0 or node.type == 'data'
             for k, item in node.items():
                 try:
@@ -1428,7 +1452,7 @@ class SiteMap(collections.OrderedDict):
                         raise ValueError
                     link = add_items(item, depth=depth, name=node_id)
                 except ValueError:  # item is not a dsp object.
-                    i = ''.join((node_id, k and '-' or '', k))
+                    i = ''.join((node_title, k and '-' or '', k))
                     link = site_node(folder, i, item, item, node_id)
                     append(link)
                 links[k] = link
