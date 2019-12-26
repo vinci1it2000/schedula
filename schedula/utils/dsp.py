@@ -1089,9 +1089,13 @@ class SubDispatchPipe(SubDispatchFunction):
         self._sol.no_call = False
 
     def _set_pipe(self):
+        from .cst import START
         def _make_tks(task):
             v, s = task[-1]
-            nxt_nds = s.workflow[v]
+            if v is START:
+                nxt_nds = s.dsp.dmap[v]
+            else:
+                nxt_nds = s.workflow[v]
             nxt_dsp = [n for n in nxt_nds if s.nodes[n]['type'] == 'dispatcher']
             nxt_dsp = [(n, s._edge_length(s.dmap[v][n], s.nodes[n]))
                        for n in nxt_dsp]
@@ -1242,6 +1246,11 @@ class DispatchPipe(NoSub, SubDispatchPipe):
 
     def _callback_pipe_failure(self):
         raise DispatcherError("The pipe is not respected.", sol=self.solution)
+
+    def plot(self, workflow=None, *args, **kwargs):
+        if workflow:
+            return self.solution.plot(*args, **kwargs)
+        return super(DispatchPipe, self).plot(workflow, *args, **kwargs)
 
 
 def _get_par_args(func, exl_kw=False):
