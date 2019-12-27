@@ -2,6 +2,34 @@ Changelog
 =========
 
 
+v1.0.0 (2020-01-02)
+-------------------
+
+Feat
+~~~~
+- (doc): Add code of conduct.
+
+- (examples): Add new example + formatting.
+
+- (sol): New `raises` option, if raises='' no warning logs.
+
+- (web): Add query param `data` to include/exclude data into the server
+  JSON response.
+
+- (sphinx): Update dispatcher documenter and directive.
+
+- (drw): Add wildcard rendering.
+
+
+Fix
+~~~
+- (test): Update test cases.
+
+- (dsp): Correct pipe extraction for wildcards.
+
+- (setup): Add missing `drw` files.
+
+
 v0.3.7 (2019-12-06)
 -------------------
 
