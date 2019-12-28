@@ -142,7 +142,7 @@ if __name__ == '__main__':
         install_requires=['networkx>=2.0.0', 'dill!=0.2.7'],
         extras_require=extras,
         test_suite='nose.collector',
-        tests_require=['nose>=1.0', 'requests'],
+        tests_require=['nose>=1.0', 'requests', 'cryptography'],
         package_data={
             'schedula.utils.drw': ['templates/*', 'index/js/*', 'index/css/*']
         },
