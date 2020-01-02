@@ -69,7 +69,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'schedula'
-copyright = '2015-2019, Vincenzo Arcidiacono'
+copyright = '2015-2020, Vincenzo Arcidiacono'
 author = 'Vincenzo Arcidiacono'
 extlinks = {
     'gh': ('https://github.com/vinci1it2000/{}/issues/%s'.format(project), '#'),
