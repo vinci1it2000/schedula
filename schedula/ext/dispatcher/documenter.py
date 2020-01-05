@@ -5,7 +5,6 @@
 # Licensed under the EUPL (the 'Licence');
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
-
 """
 Dispatcher documenter.
 """
@@ -384,6 +383,7 @@ def add_autodocumenter(app, cls):
 
 
 def setup(app):
+    """Setup `dispatcher` Sphinx extension module. """
     app.setup_extension('sphinx.ext.autodoc')
     add_autodocumenter(app, DispatcherDocumenter)
     app.add_directive('dispatcher', DispatcherDirective)

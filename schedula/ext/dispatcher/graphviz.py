@@ -94,6 +94,7 @@ def html_visit_dispatcher(self, node):
 
 
 def setup(app):
+    """Setup `dsp` Sphinx extension module. """
     app.setup_extension('sphinx.ext.graphviz')  # To set all defaults.
     app.add_node(
         dsp,
