@@ -686,7 +686,7 @@ class TestAsyncParallel(unittest.TestCase):
                 list(map(sh.await_result, args))
                 return True
             return any(isinstance(v, Future) and not v.done() for v in args) \
-                   or all(not isinstance(v, Future)for v in args)
+                   or all(not isinstance(v, Future) for v in args)
 
         self.dsp2 = dsp = sh.Dispatcher()
         dsp.add_function(function=time.time, outputs=['start'])
@@ -845,8 +845,8 @@ class TestAsyncParallel(unittest.TestCase):
     def test_multiple(self):
         import os
         import time
-        t, n = os.name == 'nt' and 2 or 0.1, len(self.dsp2.sub_dsp_nodes)
-        p = min(os.cpu_count() or 1, 3)
+        t, n = os.name == 'nt' and 2 or .1, len(self.dsp2.sub_dsp_nodes)
+        p = os.cpu_count() or 1
 
         sol = self.dsp2({'a': t, 'wait_domain': False}, executor=True).result()
         self.assertLess(time.time() - sol['start'], t * n * 2)
@@ -855,13 +855,10 @@ class TestAsyncParallel(unittest.TestCase):
         self.assertEqual(len(_EXECUTORS), n - 1)
 
         pids = {v for k, v in sol.items() if k.split('-')[-1] in 'bcd'}
-        self.assertTrue(1 <= len(pids) - (3 * (n - 3) + 1) <= p)
+        self.assertEqual(len(pids), 3 * (n - 3) + 1 + min(p, 3))
 
         t0 = {k[:-2]: v for k, v in sol.items() if k.endswith('-e')}
-        self.assertAlmostEqual(
-            t * (1 * (n - 2) + 2 + (3 - p)),
-            t * sum(v // t for v in t0.values()), delta=1
-        )
+        self.assertEqual(n + 3 - min(p, 2), sum(v // t for v in t0.values()))
 
         sol = self.dsp2({'a': t, 'wait_domain': True}, executor=True).result()
         t1 = {k[:-2]: v for k, v in sol.items() if k.endswith('-e')}
