@@ -44,8 +44,9 @@ def _executor_name(name, dsp):
     return name
 
 
-def _get_executor(name):
-    if name is not False:
+# noinspection PyUnusedLocal
+def _get_executor(name, stopper=None, **kwargs):
+    if name is not False or not (stopper and stopper.is_set()):
         if name not in _EXECUTORS and name in EXECUTORS:
             _EXECUTORS[name] = EXECUTORS[name]()
         return _EXECUTORS.get(name)
@@ -108,7 +109,7 @@ def _process_funcs(name, funcs, executor, *args, stopper=None, sol_name=None,
                    **kw):
     from .exc import DispatcherError, DispatcherAbort
     from .dsp import parent_func, SubDispatch, NoSub
-    res, e = [], _get_executor(name)
+    res, e = [], _get_executor(name, stopper)
     for fn in funcs:
         if stopper and stopper.is_set():
             raise DispatcherAbort
@@ -164,7 +165,7 @@ def async_process(funcs, *args, executor=False, sol=None, callback=None, **kw):
     :rtype: object
     """
     name = _executor_name(executor, sol.dsp)
-    e = _get_executor(name)
+    e = _get_executor(name, **kw)
     res = (e and e.process_funcs or _process_funcs)(
         name, funcs, executor, *args, **kw
     )
@@ -237,7 +238,9 @@ def async_thread(sol, args, node_attr, node_id, *a, **kw):
         Function result.
     :rtype: concurrent.futures.Future | AsyncList
     """
-    executor = _get_executor(_executor_name(kw.get('executor', False), sol.dsp))
+    executor = _get_executor(
+        _executor_name(kw.get('executor', False), sol.dsp), **kw
+    )
     if not executor:
         return sol._evaluate_node(args, node_attr, node_id, *a, **kw)
 

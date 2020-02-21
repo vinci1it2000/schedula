@@ -810,12 +810,11 @@ class TestAsyncParallel(unittest.TestCase):
         sh.shutdown_executors()
 
     def test_errors(self):
-        from concurrent.futures import Future
-        from multiprocess import Event
-        from schedula.utils.exc import ExecutorShutdown
         import os
-        t = os.name == 'nt' and 10 or 1
-        kw = {'inputs': {'a': t, 'err': True, 'b': t}}
+        from multiprocess import Event
+        from concurrent.futures import Future
+        from schedula.utils.exc import ExecutorShutdown
+        kw = {'inputs': {'a': 1, 'err': True, 'b': 1}}
         executors = ('async', 'parallel', 'parallel-pool', 'parallel-dispatch')
         for executor in executors:
             sol = self.dsp1(executor=executor, stopper=Event(), **kw)
@@ -825,6 +824,7 @@ class TestAsyncParallel(unittest.TestCase):
                 sol.result()
             self.assertEqual(set(sol), {'d', 'b', 'a', 'f', 'err', 'e'})
 
+        kw['inputs']['a'] = kw['inputs']['b'] = os.name == 'nt' and 10 or 1
         for executor in executors:
             sol = self.dsp1(executor=executor, stopper=Event(), **kw)
             self.assertTrue(all(isinstance(v, Future) for v in sol.values()))
@@ -841,6 +841,7 @@ class TestAsyncParallel(unittest.TestCase):
             with self.assertRaises(sh.DispatcherAbort):
                 sol.result()
             self.assertEqual(set(sol), {'b', 'a', 'err'})
+        sh.shutdown_executors()
 
     def test_multiple(self):
         import os
