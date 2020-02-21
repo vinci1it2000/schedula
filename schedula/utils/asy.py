@@ -15,12 +15,14 @@ def _async_executor():
     return PoolExecutor(ThreadExecutor())
 
 
-def _parallel_executor():
-    return PoolExecutor(ThreadExecutor(), ProcessExecutor())
+def _parallel_executor(*args, **kwargs):
+    return PoolExecutor(ThreadExecutor(), ProcessExecutor(*args, **kwargs))
 
 
-def _parallel_pool_executor():
-    return PoolExecutor(ThreadExecutor(), ProcessPoolExecutor(), False)
+def _parallel_pool_executor(*args, **kwargs):
+    return PoolExecutor(
+        ThreadExecutor(), ProcessPoolExecutor(*args, **kwargs), False
+    )
 
 
 def _parallel_dispatch_executor():
@@ -80,7 +82,7 @@ def shutdown_executor(name, wait=True):
 
     :return:
         Shutdown pool executor.
-    :rtype: dict[concurrent.futures.Future,threading.Thread|multiprocess.Process]
+    :rtype: dict[concurrent.futures.Future,Thread|Process]
     """
     return _EXECUTORS.pop(name).shutdown(wait)
 
@@ -279,6 +281,7 @@ def async_thread(sol, args, node_attr, node_id, *a, **kw):
 
 class Executor:
     """Base Executor"""
+
     def __init__(self):
         self.tasks = {}
 
@@ -321,19 +324,28 @@ class Executor:
 
 class ProcessExecutor(Executor):
     """Multi Process Executor"""
+
+    def __init__(self, mp_context=None):
+        super(ProcessExecutor, self).__init__()
+        if not mp_context:
+            from multiprocess import get_context
+            mp_context = get_context()
+        self._ctx = mp_context
+
     def submit(self, func, *args, **kwargs):
         # noinspection PyUnresolvedReferences
-        from multiprocess import Process, Pipe
         from concurrent.futures import Future
-        fut, (c0, c1) = Future(), Pipe(False)
-        task = Process(target=self._target, args=(c1.send, func, args, kwargs))
-        self.tasks[fut] = task
+        fut, (c0, c1) = Future(), self._ctx.Pipe(duplex=False)
+        self.tasks[fut] = task = self._ctx.Process(
+            target=self._target, args=(c1.send, func, args, kwargs)
+        )
         task.start()
         return self._set_future(fut, c0.recv())
 
 
 class ThreadExecutor(Executor):
     """Multi Thread Executor"""
+
     def submit(self, func, *args, **kwargs):
         from threading import Thread
         from concurrent.futures import Future
@@ -346,11 +358,16 @@ class ThreadExecutor(Executor):
 
 class ProcessPoolExecutor(Executor):
     """Process Pool Executor"""
-    def __init__(self):
+
+    def __init__(self, max_workers=None, mp_context=None, initializer=None,
+                 initargs=()):
         super(ProcessPoolExecutor, self).__init__()
-        import os
-        from multiprocess import Pool
-        self.pool = Pool(os.cpu_count() or 1)
+        if not mp_context:
+            from multiprocess import get_context
+            mp_context = get_context()
+        self.pool = mp_context.Pool(
+            processes=max_workers, initializer=initializer, initargs=initargs,
+        )
 
     def submit(self, func, *args, **kwargs):
         from concurrent.futures import Future
@@ -369,6 +386,7 @@ class ProcessPoolExecutor(Executor):
 
 class PoolExecutor:
     """General PoolExecutor to dispatch asynchronously and in parallel."""
+
     def __init__(self, thread_executor, process_executor=None, parallel=None):
         """
         :param thread_executor:
@@ -417,7 +435,8 @@ class PoolExecutor:
 
 
 class AsyncList(list):
-    "List of asynchronous results."
+    """List of asynchronous results."""
+
     def __init__(self, *, future=None, n=1):
         super(AsyncList, self).__init__()
         from concurrent.futures import Future

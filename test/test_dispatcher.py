@@ -845,8 +845,9 @@ class TestAsyncParallel(unittest.TestCase):
     def test_multiple(self):
         import os
         import time
-        t, n = os.name == 'nt' and 2 or .1, len(self.dsp2.sub_dsp_nodes)
-        p = os.cpu_count() or 1
+        from schedula.utils.asy import _EXECUTORS, _parallel_pool_executor
+        t, n, p = os.name == 'nt' and 2 or .1, len(self.dsp2.sub_dsp_nodes), 1
+        _EXECUTORS['parallel-pool'] = _parallel_pool_executor(p)
 
         sol = self.dsp2({'a': t, 'wait_domain': False}, executor=True).result()
         self.assertLess(time.time() - sol['start'], t * n * 2)
@@ -855,7 +856,7 @@ class TestAsyncParallel(unittest.TestCase):
         self.assertEqual(len(_EXECUTORS), n - 1)
 
         pids = {v for k, v in sol.items() if k.split('-')[-1] in 'bcd'}
-        self.assertEqual(len(pids), 3 * (n - 3) + 1 + min(p, 3))
+        self.assertIn((len(pids) - 1 - 3 * (n - 3)) - 1, set(range(min(p, 3))))
 
         t0 = {k[:-2]: v for k, v in sol.items() if k.endswith('-e')}
         self.assertEqual(n + 3 - min(p, 2), sum(v // t for v in t0.values()))
