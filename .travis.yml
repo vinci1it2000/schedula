@@ -70,7 +70,7 @@ install:
 
 # command to run tests
 script:
-  - coverage run --source=schedula setup.py nosetests -w test
+  - coverage run --source=schedula setup.py nosetests
 
 after_success:
   - if [[ $TRAVIS_PYTHON_VERSION == '3.7' && $EXTRAS == 'all' && $TRAVIS_OS_NAME == 'linux' ]]; then coveralls; fi
