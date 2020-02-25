@@ -206,29 +206,33 @@ class Solution(Base, collections.OrderedDict):
             Update Solution.
         :rtype: Solution
         """
-        it, exceptions, future_lists = [], [], []
         from concurrent.futures import Future, wait as wait_fut
+        it, exceptions = [], collections.OrderedDict()
 
-        def update(fut, data, key):
+        def _update(fut, data, key):
             if isinstance(fut, Future):
                 it.append((fut, data, key))
-            elif isinstance(fut, AsyncList) and fut not in future_lists:
-                future_lists.append(fut)
-                it.extend([(j, fut, i)
-                           for i, j in enumerate(fut)
+            elif isinstance(fut, AsyncList):
+                it.extend([(j, fut, i) for i, j in enumerate(fut)
                            if isinstance(j, Future)][::-1])
 
-        for s in self.sub_sol.values():
-            for k, v in list(s.items()):
-                update(v, s, k)
+        def _update_pipe(pipe):
+            for p in pipe.values():
+                n, s = p['task'][-1]
+                if n in s:
+                    _update(s[n], s, n)
+                'sub_pipe' in p and _update_pipe(p['sub_pipe'])
 
-            for d in s.workflow.nodes.values():
-                if 'results' in d:
-                    update(d['results'], d, 'results')
+        _update_pipe(self.pipe)
 
-            for d in s.workflow.edges.values():
-                if 'value' in d:
-                    update(d['value'], d, 'value')
+        for sol in self.sub_sol.values():
+            for attr in sol.workflow.nodes.values():
+                if 'results' in attr:
+                    _update(attr['results'], attr, 'results')
+
+            for attr in sol.workflow.edges.values():
+                if 'value' in attr:
+                    _update(attr['value'], attr, 'value')
 
         wait_fut({v[0] for v in it}, timeout)
 
@@ -236,14 +240,14 @@ class Solution(Base, collections.OrderedDict):
             try:
                 d[k] = await_result(f, 0)
             except SkipNode as e:
-                exceptions.append((f, d, k, e.ex))
+                exceptions[f] = e.ex
                 del d[k]
             except (Exception, ExecutorShutdown, DispatcherAbort) as ex:
-                exceptions.append((f, d, k, ex))
+                exceptions[f] = ex
                 del d[k]
 
         if exceptions:
-            raise exceptions[0][-1]
+            raise next(iter(exceptions.values()))
         return self
 
     def _run(self, stopper=None, executor=False):
