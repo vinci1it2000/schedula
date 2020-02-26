@@ -1,3 +1,4 @@
+import weakref
 import threading
 from concurrent.futures import Future, wait as _wait_fut
 from ..exc import ExecutorShutdown, DispatcherError, DispatcherAbort
@@ -35,6 +36,7 @@ class Executor:
 
     def __init__(self):
         self.tasks = {}
+        weakref.finalize(self, self.shutdown, False)
 
     def __reduce__(self):
         return self.__class__, ()
@@ -128,12 +130,19 @@ class ProcessPoolExecutor(Executor):
         self._ctx = mp_context
         self._initializer = initializer
         self._initargs = initargs
-        self.pool = self._ctx.Pool(
-            processes=self._max_workers, initializer=self._initializer,
-            initargs=self._initargs,
-        )
+        self.lock = self._ctx.Lock()
+        self.pool = None
+
+    def _init(self):
+        with self.lock:
+            if self.pool is None:
+                self.pool = self._ctx.Pool(
+                    processes=self._max_workers, initializer=self._initializer,
+                    initargs=self._initargs,
+                )
 
     def submit(self, func, *args, **kwargs):
+        self._init()
         fut = Future()
         self.tasks[fut] = self.pool.apply_async(
             func, args, kwargs, fut.set_result, fut.set_exception
@@ -143,8 +152,9 @@ class ProcessPoolExecutor(Executor):
 
     def shutdown(self, wait=True):
         super(ProcessPoolExecutor, self).shutdown(wait)
-        self.pool.terminate()
-        self.pool.join()
+        if self.pool:
+            self.pool.terminate()
+            self.pool.join()
 
 
 class PoolExecutor:
@@ -167,9 +177,14 @@ class PoolExecutor:
         self._thread = thread_executor
         self._process = process_executor
         self._parallel = parallel
+        self._running = True
 
     def thread(self, *args, **kwargs):
-        return self._thread.submit(*args, **kwargs)
+        if self._running:
+            return self._thread.submit(*args, **kwargs)
+        fut = Future()
+        fut.set_exception(ExecutorShutdown)
+        return fut
 
     def process_funcs(self, name, funcs, *args, **kw):
         not_sub = self._process and not any(map(
@@ -181,16 +196,20 @@ class PoolExecutor:
         return _process_funcs(name, funcs, *args, **kw)
 
     def process(self, fn, *args, **kwargs):
-        if self._process:
-            fut = self._process.submit(fn, *args, **kwargs)
-            return fut.result()
-        return fn(*args, **kwargs)
+        if self._running:
+            if self._process:
+                fut = self._process.submit(fn, *args, **kwargs)
+                return fut.result()
+            return fn(*args, **kwargs)
+        raise ExecutorShutdown
 
     def shutdown(self, wait=True):
-        return {
+        tasks = {
             'executor': self,
             'tasks': {
                 'process': self._process and self._process.shutdown(wait) or {},
                 'thread': self._thread.shutdown(wait)
             }
         }
+        self._running, self._process, self._thread = False, None, None
+        return tasks
