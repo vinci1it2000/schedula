@@ -32,9 +32,9 @@ _all = {
     'Dispatcher': '.dispatcher',
     'BlueDispatcher': '.utils.blue',
     'Blueprint': '.utils.blue',
-    'PoolExecutor': '.utils.asy',
-    'ProcessExecutor': '.utils.asy',
-    'ThreadExecutor': '.utils.asy',
+    'PoolExecutor': '.utils.asy.executors',
+    'ProcessExecutor': '.utils.asy.executors',
+    'ThreadExecutor': '.utils.asy.executors',
     'register_executor': '.utils.asy',
     'shutdown_executor': '.utils.asy',
     'shutdown_executors': '.utils.asy',
@@ -107,8 +107,10 @@ if sys.version_info[:2] < (3, 7) or os.environ.get('IMPORT_ALL') == 'True':
     from .dispatcher import Dispatcher
     # noinspection PyUnresolvedReferences
     from .utils.asy import (
-        PoolExecutor, ProcessExecutor, ThreadExecutor, await_result,
-        register_executor, shutdown_executor, shutdown_executors
+        await_result, register_executor, shutdown_executor, shutdown_executors
+    )
+    from .utils.asy.executors import (
+        PoolExecutor, ProcessExecutor, ThreadExecutor
     )
     # noinspection PyUnresolvedReferences
     from .utils.blue import BlueDispatcher, Blueprint

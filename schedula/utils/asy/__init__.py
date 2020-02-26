@@ -7,25 +7,29 @@
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
 """
-It contains functions to dispatch asynchronously and  in parallel.
+It contains functions to dispatch asynchronously and in parallel.
 """
 
 
 def _async_executor():
+    from .executors import PoolExecutor, ThreadExecutor
     return PoolExecutor(ThreadExecutor())
 
 
 def _parallel_executor(*args, **kwargs):
+    from .executors import PoolExecutor, ThreadExecutor, ProcessExecutor
     return PoolExecutor(ThreadExecutor(), ProcessExecutor(*args, **kwargs))
 
 
 def _parallel_pool_executor(*args, **kwargs):
+    from .executors import PoolExecutor, ThreadExecutor, ProcessPoolExecutor
     return PoolExecutor(
         ThreadExecutor(), ProcessPoolExecutor(*args, **kwargs), False
     )
 
 
 def _parallel_dispatch_executor():
+    from .executors import PoolExecutor, ThreadExecutor, ProcessExecutor
     return PoolExecutor(ThreadExecutor(), ProcessExecutor(), True)
 
 
@@ -105,33 +109,6 @@ def shutdown_executors(wait=True):
     return {k: shutdown_executor(k, wait) for k in list(_EXECUTORS.keys())}
 
 
-def _process_funcs(name, funcs, executor, *args, stopper=None, sol_name=None,
-                   **kw):
-    from .exc import DispatcherError, DispatcherAbort
-    from .dsp import parent_func, SubDispatch, NoSub
-    res, e = [], _get_executor(name, stopper)
-    for fn in funcs:
-        if stopper and stopper.is_set():
-            raise DispatcherAbort
-        pfunc, r = parent_func(fn), {}
-        if isinstance(pfunc, SubDispatch):
-            try:
-                r['res'] = fn(*args, _stopper=stopper, _executor=executor,
-                              _sol_name=sol_name, **kw)
-            except DispatcherError as ex:
-                if isinstance(pfunc, NoSub):
-                    raise ex
-                r['err'] = ex
-            r['sol'] = pfunc.solution
-        else:
-            r['res'] = e.process(fn, *args, **kw) if e else fn(*args, **kw)
-        res.append(r)
-        if 'err' in r:
-            break
-        args, kw = (r['res'],), {}
-    return res
-
-
 def async_process(funcs, *args, executor=False, sol=None, callback=None, **kw):
     """
     Execute `func(*args)` in an asynchronous parallel process.
@@ -164,6 +141,7 @@ def async_process(funcs, *args, executor=False, sol=None, callback=None, **kw):
         Functions result.
     :rtype: object
     """
+    from .executors import _process_funcs
     name = _executor_name(executor, sol.dsp)
     e = _get_executor(name, **kw)
     res = (e and e.process_funcs or _process_funcs)(
@@ -192,7 +170,7 @@ def _async_eval(sol, args, node_attr, *a, **kw):
 
 
 def _await_result(result, timeout, sol, node_id):
-    from .exc import SkipNode
+    from ..exc import SkipNode
     try:
         return await_result(result, None if timeout is True else timeout)
     except Exception as ex:
@@ -238,9 +216,8 @@ def async_thread(sol, args, node_attr, node_id, *a, **kw):
         Function result.
     :rtype: concurrent.futures.Future | AsyncList
     """
-    executor = _get_executor(
-        _executor_name(kw.get('executor', False), sol.dsp), **kw
-    )
+    name =  _executor_name(kw.get('executor', False), sol.dsp)
+    executor = _get_executor(name, **kw)
     if not executor:
         return sol._evaluate_node(args, node_attr, node_id, *a, **kw)
 
@@ -252,7 +229,7 @@ def async_thread(sol, args, node_attr, node_id, *a, **kw):
     futures = {v for v in futures if isinstance(v, Future)}
 
     def _submit():
-        return executor.thread(
+        return _get_executor(name, **kw).thread(
             _async_eval, sol, args, node_attr, node_id, *a, **kw
         )
 
@@ -280,161 +257,6 @@ def async_thread(sol, args, node_attr, node_id, *a, **kw):
 
     n = len(node_attr.get('outputs', []))
     return AsyncList(future=result, n=n) if n > 1 else result
-
-
-class Executor:
-    """Base Executor"""
-
-    def __init__(self):
-        self.tasks = {}
-
-    def __reduce__(self):
-        return self.__class__, ()
-
-    def _set_future(self, fut, res):
-        self.tasks.pop(fut)
-        if 'err' in res:
-            fut.set_exception(res['err'])
-        else:
-            fut.set_result(res['res'])
-        return fut
-
-    @staticmethod
-    def _target(send, func, args, kwargs):
-        try:
-            send({'res': func(*args, **kwargs)})
-        except BaseException as ex:
-            send({'err': ex})
-
-    def shutdown(self, wait=True):
-        from .exc import ExecutorShutdown
-        from concurrent.futures import wait as wait_fut
-        tasks = dict(self.tasks)
-        if wait:
-            wait_fut(tasks)
-
-        for fut, task in tasks.items():
-            not fut.done() and fut.set_exception(ExecutorShutdown)
-            try:
-                task.terminate()
-            except AttributeError:
-                pass
-        return tasks
-
-    def submit(self, func, *args, **kwargs):
-        raise NotImplemented
-
-
-class ProcessExecutor(Executor):
-    """Multi Process Executor"""
-
-    def __init__(self, mp_context=None):
-        super(ProcessExecutor, self).__init__()
-        if not mp_context:
-            from multiprocess import get_context
-            mp_context = get_context()
-        self._ctx = mp_context
-
-    def submit(self, func, *args, **kwargs):
-        # noinspection PyUnresolvedReferences
-        from concurrent.futures import Future
-        fut, (c0, c1) = Future(), self._ctx.Pipe(duplex=False)
-        self.tasks[fut] = task = self._ctx.Process(
-            target=self._target, args=(c1.send, func, args, kwargs)
-        )
-        task.start()
-        return self._set_future(fut, c0.recv())
-
-
-class ThreadExecutor(Executor):
-    """Multi Thread Executor"""
-
-    def submit(self, func, *args, **kwargs):
-        from threading import Thread
-        from concurrent.futures import Future
-        fut, send = Future(), lambda res: self._set_future(fut, res)
-        task = Thread(target=self._target, args=(send, func, args, kwargs))
-        self.tasks[fut], task.daemon = task, True
-        task.start()
-        return fut
-
-
-class ProcessPoolExecutor(Executor):
-    """Process Pool Executor"""
-
-    def __init__(self, max_workers=None, mp_context=None, initializer=None,
-                 initargs=()):
-        super(ProcessPoolExecutor, self).__init__()
-        if not mp_context:
-            from multiprocess import get_context
-            mp_context = get_context()
-        self.pool = mp_context.Pool(
-            processes=max_workers, initializer=initializer, initargs=initargs,
-        )
-
-    def submit(self, func, *args, **kwargs):
-        from concurrent.futures import Future
-        fut = Future()
-        self.tasks[fut] = self.pool.apply_async(
-            func, args, kwargs, fut.set_result, fut.set_exception
-        )
-        fut.add_done_callback(self.tasks.pop)
-        return fut
-
-    def shutdown(self, wait=True):
-        super(ProcessPoolExecutor, self).shutdown(wait)
-        self.pool.terminate()
-        self.pool.join()
-
-
-class PoolExecutor:
-    """General PoolExecutor to dispatch asynchronously and in parallel."""
-
-    def __init__(self, thread_executor, process_executor=None, parallel=None):
-        """
-        :param thread_executor:
-            Thread pool executor to dispatch asynchronously.
-        :type thread_executor: ThreadExecutor
-
-        :param process_executor:
-            Process pool executor to execute in parallel the functions calls.
-        :type process_executor: ProcessExecutor | ProcessPoolExecutor
-
-        :param parallel:
-            Run `_process_funcs` in parallel.
-        :type parallel: bool
-        """
-        self._thread = thread_executor
-        self._process = process_executor
-        self._parallel = parallel
-
-    def thread(self, *args, **kwargs):
-        return self._thread.submit(*args, **kwargs)
-
-    def process_funcs(self, name, funcs, *args, **kw):
-        from .dsp import parent_func, SubDispatch, NoSub
-        not_sub = self._process and not any(map(
-            lambda x: isinstance(x, SubDispatch) and not isinstance(x, NoSub),
-            map(parent_func, funcs)
-        ))
-        if self._parallel is not False and not_sub or self._parallel:
-            return self.process(_process_funcs, False, funcs, *args, **kw)
-        return _process_funcs(name, funcs, *args, **kw)
-
-    def process(self, fn, *args, **kwargs):
-        if self._process:
-            fut = self._process.submit(fn, *args, **kwargs)
-            return fut.result()
-        return fn(*args, **kwargs)
-
-    def shutdown(self, wait=True):
-        return {
-            'executor': self,
-            'tasks': {
-                'process': self._process and self._process.shutdown(wait) or {},
-                'thread': self._thread.shutdown(wait)
-            }
-        }
 
 
 class AsyncList(list):
