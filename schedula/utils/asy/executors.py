@@ -1,9 +1,25 @@
 import weakref
 import threading
+import functools
 from concurrent.futures import Future, wait as _wait_fut
+from concurrent.futures._base import Error
 from ..exc import ExecutorShutdown, DispatcherError, DispatcherAbort
 from ..dsp import parent_func, SubDispatch, NoSub
 from . import _get_executor
+
+
+def _safe_set_result(fut, value):
+    try:
+        not fut.done() and fut.set_result(value)
+    except Error:
+        pass
+
+
+def _safe_set_exception(fut, value):
+    try:
+        not fut.done() and fut.set_exception(value)
+    except Error:
+        pass
 
 
 def _process_funcs(
@@ -44,9 +60,9 @@ class Executor:
     def _set_future(self, fut, res):
         self.tasks.pop(fut)
         if 'err' in res:
-            fut.set_exception(res['err'])
+            _safe_set_exception(fut, res['err'])
         else:
-            fut.set_result(res['res'])
+            _safe_set_result(fut, res['res'])
         return fut
 
     @staticmethod
@@ -63,7 +79,7 @@ class Executor:
             _wait_fut(tasks)
 
         for fut, task in tasks.items():
-            not fut.done() and fut.set_exception(ExecutorShutdown)
+            _safe_set_exception(fut, ExecutorShutdown)
             try:
                 task.terminate()
             except AttributeError:
@@ -144,8 +160,10 @@ class ProcessPoolExecutor(Executor):
     def submit(self, func, *args, **kwargs):
         self._init()
         fut = Future()
+        callback = functools.partial(_safe_set_result, fut)
+        error_callback = functools.partial(_safe_set_exception, fut)
         self.tasks[fut] = self.pool.apply_async(
-            func, args, kwargs, fut.set_result, fut.set_exception
+            func, args, kwargs, callback, error_callback
         )
         fut.add_done_callback(self.tasks.pop)
         return fut

@@ -235,12 +235,13 @@ def async_thread(sol, args, node_attr, node_id, *a, **kw):
 
     if futures:  # Chain results.
         result = Future()
-
+        from .executors import _safe_set_exception, _safe_set_result
         def _set_res(fut):
             try:
-                result.set_result(fut.result())
+                v = fut.result()
+                _safe_set_result(result, v)
             except BaseException as ex:
-                result.set_exception(ex)
+                _safe_set_exception(result, ex)
 
         def _submit_task(fut=None):
             futures.discard(fut)
@@ -269,15 +270,16 @@ class AsyncList(list):
         future.add_done_callback(self)
 
     def __call__(self, future):
+        from .executors import _safe_set_result, _safe_set_exception
         try:
             res = tuple(future.result())
             assert len(self) <= len(res)
         except BaseException as ex:
             for fut in self:
-                fut.set_exception(ex)
+                _safe_set_exception(fut, ex)
         else:
             for fut, value in zip(self, res):
-                fut.set_result(value)
+                _safe_set_result(fut, value)
 
         return future
 
