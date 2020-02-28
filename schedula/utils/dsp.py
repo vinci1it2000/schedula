@@ -1229,6 +1229,8 @@ class DispatchPipe(NoSub, SubDispatchPipe):
         return lambda *args: None
 
     def _init_new_solution(self, _sol_name):
+        from .asy import EXECUTORS
+        EXECUTORS.set_active(id(self._sol))
         return self._sol, lambda x: x
 
     def _init_workflows(self, inputs):

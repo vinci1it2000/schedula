@@ -5,7 +5,7 @@ from concurrent.futures import Future, wait as _wait_fut
 from concurrent.futures._base import Error
 from ..exc import ExecutorShutdown, DispatcherError, DispatcherAbort
 from ..dsp import parent_func, SubDispatch, NoSub
-from . import _get_executor
+from . import EXECUTORS
 
 
 def _safe_set_result(fut, value):
@@ -23,8 +23,8 @@ def _safe_set_exception(fut, value):
 
 
 def _process_funcs(
-        name, funcs, executor, *args, stopper=None, sol_name=None, **kw):
-    res, e = [], _get_executor(name, stopper)
+        exe_id, funcs, executor, *args, stopper=None, sol_name=None, **kw):
+    res = []
     for fn in funcs:
         if stopper and stopper.is_set():
             raise DispatcherAbort
@@ -39,6 +39,7 @@ def _process_funcs(
                 r['err'] = ex
             r['sol'] = pfunc.solution
         else:
+            e = EXECUTORS.get_executor(exe_id)
             r['res'] = e.process(fn, *args, **kw) if e else fn(*args, **kw)
         res.append(r)
         if 'err' in r:
@@ -77,7 +78,6 @@ class Executor:
         if wait:
             # noinspection PyCallingNonCallable
             _wait_fut(tasks)
-
         for fut, task in tasks.items():
             _safe_set_exception(fut, ExecutorShutdown)
             try:
@@ -99,6 +99,7 @@ class ProcessExecutor(Executor):
     def __init__(self, mp_context=None):
         super(ProcessExecutor, self).__init__()
         if not mp_context:
+            # noinspection PyUnresolvedReferences
             from multiprocess import get_context
             mp_context = get_context()
         self._ctx = mp_context
@@ -139,6 +140,7 @@ class ProcessPoolExecutor(Executor):
                  initargs=()):
         super(ProcessPoolExecutor, self).__init__()
         if not mp_context:
+            # noinspection PyUnresolvedReferences
             from multiprocess import get_context
             mp_context = get_context()
 
@@ -204,14 +206,15 @@ class PoolExecutor:
         fut.set_exception(ExecutorShutdown)
         return fut
 
-    def process_funcs(self, name, funcs, *args, **kw):
+    def process_funcs(self, exe_id, funcs, *args, **kw):
         not_sub = self._process and not any(map(
             lambda x: isinstance(x, SubDispatch) and not isinstance(x, NoSub),
             map(parent_func, funcs)
         ))
         if self._parallel is not False and not_sub or self._parallel:
-            return self.process(_process_funcs, False, funcs, *args, **kw)
-        return _process_funcs(name, funcs, *args, **kw)
+            exe_id = (False,) + exe_id[1:]
+            return self.process(_process_funcs, exe_id, funcs, *args, **kw)
+        return _process_funcs(exe_id, funcs, *args, **kw)
 
     def process(self, fn, *args, **kwargs):
         if self._running:

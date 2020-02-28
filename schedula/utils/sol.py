@@ -9,16 +9,20 @@
 """
 It provides a solution class for dispatch result.
 """
-import collections
+import time
 import heapq
 import logging
-import time
-from .alg import add_edge_fun, remove_edge_fun, get_full_pipe, _sort_sk_wait_in
-from .cst import START, NONE, PLOT
+import weakref
+import collections
 from .dsp import stlp
-from .exc import DispatcherError, DispatcherAbort, SkipNode, ExecutorShutdown
-from .asy import async_thread, await_result, async_process, AsyncList
 from .base import Base
+from .cst import START, NONE, PLOT
+from .exc import DispatcherError, DispatcherAbort, SkipNode, ExecutorShutdown
+from .alg import add_edge_fun, remove_edge_fun, get_full_pipe, _sort_sk_wait_in
+from .asy import (
+    async_thread, await_result, async_process, AsyncList, shutdown_executor,
+    EXECUTORS
+)
 
 log = logging.getLogger(__name__)
 
@@ -34,7 +38,6 @@ class Solution(Base, collections.OrderedDict):
                  cutoff=None, inputs_dist=None, no_call=False,
                  rm_unused_nds=False, wait_in=None, no_domain=False,
                  _empty=False, index=(-1,), full_name=()):
-
         super(Solution, self).__init__()
         self.index = index
         self.rm_unused_nds = rm_unused_nds
@@ -47,6 +50,7 @@ class Solution(Base, collections.OrderedDict):
         self._pipe = []
         self.parent = dsp
 
+        weakref.finalize(self, EXECUTORS.pop_active, id(self))
         from ..dispatcher import Dispatcher
         self._set_dsp_features(dsp or Dispatcher())
 
@@ -235,7 +239,7 @@ class Solution(Base, collections.OrderedDict):
                     _update(attr['value'], attr, 'value')
 
         wait_fut({v[0] for v in it}, timeout)
-
+        shutdown_executor(sol_id=id(self), wait=False)
         for f, d, k in it:
             try:
                 d[k] = await_result(f, 0)

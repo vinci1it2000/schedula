@@ -8,7 +8,21 @@
 
 """
 It contains functions to dispatch asynchronously and in parallel.
+
+Sub-Modules:
+
+.. currentmodule:: schedula.utils.asy
+
+.. autosummary::
+    :nosignatures:
+    :toctree: asy/
+
+    executors
+    factory
 """
+import atexit
+from ..cst import EMPTY
+from .factory import ExecutorFactory
 
 
 def _async_executor():
@@ -33,27 +47,12 @@ def _parallel_dispatch_executor():
     return PoolExecutor(ThreadExecutor(), ProcessExecutor(), True)
 
 
-_EXECUTORS = {}
-EXECUTORS = {
+EXECUTORS = ExecutorFactory({
     'async': _async_executor,
     'parallel': _parallel_executor,
     'parallel-pool': _parallel_pool_executor,
     'parallel-dispatch': _parallel_dispatch_executor
-}
-
-
-def _executor_name(name, dsp):
-    if name is True:
-        name = dsp.executor
-    return name
-
-
-# noinspection PyUnusedLocal
-def _get_executor(name, stopper=None, **kwargs):
-    if name is not False or not (stopper and stopper.is_set()):
-        if name not in _EXECUTORS and name in EXECUTORS:
-            _EXECUTORS[name] = EXECUTORS[name]()
-        return _EXECUTORS.get(name)
+})
 
 
 def register_executor(name, init):
@@ -71,13 +70,17 @@ def register_executor(name, init):
     EXECUTORS[name] = init
 
 
-def shutdown_executor(name, wait=True):
+def shutdown_executor(name=EMPTY, sol_id=EMPTY, wait=True):
     """
     Clean-up the resources associated with the Executor.
 
     :param name:
         Executor name.
     :type name: str
+
+    :param sol_id:
+        Solution id.
+    :type sol_id: int
 
     :param wait:
         If True then shutdown will not return until all running futures have
@@ -89,7 +92,7 @@ def shutdown_executor(name, wait=True):
         Shutdown pool executor.
     :rtype: dict[concurrent.futures.Future,Thread|Process]
     """
-    return _EXECUTORS.pop(name).shutdown(wait)
+    return EXECUTORS.shutdown_executor(name, sol_id, wait)
 
 
 def shutdown_executors(wait=True):
@@ -106,7 +109,7 @@ def shutdown_executors(wait=True):
         Shutdown pool executor.
     :rtype: dict[str,dict]
     """
-    return {k: shutdown_executor(k, wait) for k in list(_EXECUTORS.keys())}
+    return shutdown_executor(wait=wait)
 
 
 def async_process(funcs, *args, executor=False, sol=None, callback=None, **kw):
@@ -142,10 +145,10 @@ def async_process(funcs, *args, executor=False, sol=None, callback=None, **kw):
     :rtype: object
     """
     from .executors import _process_funcs
-    name = _executor_name(executor, sol.dsp)
-    e = _get_executor(name, **kw)
-    res = (e and e.process_funcs or _process_funcs)(
-        name, funcs, executor, *args, **kw
+    exe_id = EXECUTORS.executor_id(executor, sol)
+    exe = EXECUTORS.get_executor(exe_id)
+    res = (exe and exe.process_funcs or _process_funcs)(
+        exe_id, funcs, executor, *args, **kw
     )
 
     for r in res:
@@ -216,8 +219,9 @@ def async_thread(sol, args, node_attr, node_id, *a, **kw):
         Function result.
     :rtype: concurrent.futures.Future | AsyncList
     """
-    name =  _executor_name(kw.get('executor', False), sol.dsp)
-    executor = _get_executor(name, **kw)
+    name = kw.get('executor', False)
+    exe_id = EXECUTORS.executor_id(name, sol)
+    executor = EXECUTORS.get_executor(exe_id)
     if not executor:
         return sol._evaluate_node(args, node_attr, node_id, *a, **kw)
 
@@ -229,23 +233,24 @@ def async_thread(sol, args, node_attr, node_id, *a, **kw):
     futures = {v for v in futures if isinstance(v, Future)}
 
     def _submit():
-        return _get_executor(name, **kw).thread(
+        return EXECUTORS.get_executor(exe_id).thread(
             _async_eval, sol, args, node_attr, node_id, *a, **kw
         )
 
     if futures:  # Chain results.
         result = Future()
         from .executors import _safe_set_exception, _safe_set_result
+
         def _set_res(fut):
             try:
-                v = fut.result()
-                _safe_set_result(result, v)
+                _safe_set_result(result, fut.result())
             except BaseException as ex:
                 _safe_set_exception(result, ex)
 
         def _submit_task(fut=None):
             futures.discard(fut)
-            not futures and _submit().add_done_callback(_set_res)
+            if not (futures or result.done()):
+                _submit().add_done_callback(_set_res)
 
         for f in list(futures):
             f.add_done_callback(_submit_task)
@@ -311,3 +316,6 @@ def await_result(obj, timeout=None):
     """
     from concurrent.futures import Future
     return obj.result(timeout) if isinstance(obj, Future) else obj
+
+
+atexit.register(shutdown_executors, wait=False)
