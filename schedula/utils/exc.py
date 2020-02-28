@@ -12,7 +12,14 @@ __author__ = 'Vincenzo Arcidiacono <vinci1it2000@gmail.com>'
 
 
 class DispatcherError(Exception):
+
+    def __reduce__(self):
+        fn, args, state = super(DispatcherError, self).__reduce__()
+        state = {k: v for k, v in state.items() if k not in ('sol', 'plot')}
+        return fn, args, state
+
     def __init__(self, *args, sol=None, **kwargs):
+        # noinspection PyArgumentList
         super(DispatcherError, self).__init__(*args, **kwargs)
         self.plot = None
         self.sol = None

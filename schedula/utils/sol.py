@@ -14,15 +14,12 @@ import heapq
 import logging
 import weakref
 import collections
-from .dsp import stlp
 from .base import Base
 from .cst import START, NONE, PLOT
+from .dsp import stlp, get_nested_dicts
 from .exc import DispatcherError, DispatcherAbort, SkipNode, ExecutorShutdown
 from .alg import add_edge_fun, remove_edge_fun, get_full_pipe, _sort_sk_wait_in
-from .asy import (
-    async_thread, await_result, async_process, AsyncList, shutdown_executor,
-    EXECUTORS
-)
+from .asy import async_thread, await_result, async_process, AsyncList, EXECUTORS
 
 log = logging.getLogger(__name__)
 
@@ -211,25 +208,25 @@ class Solution(Base, collections.OrderedDict):
         :rtype: Solution
         """
         from concurrent.futures import Future, wait as wait_fut
-        it, exceptions = [], collections.OrderedDict()
+        futs, ex = collections.OrderedDict(), False
 
         def _update(fut, data, key):
             if isinstance(fut, Future):
-                it.append((fut, data, key))
+                get_nested_dicts(futs, fut, default=list).append((data, key))
             elif isinstance(fut, AsyncList):
-                it.extend([(j, fut, i) for i, j in enumerate(fut)
-                           if isinstance(j, Future)][::-1])
+                for i, j in enumerate(fut):
+                    if isinstance(j, Future):
+                        get_nested_dicts(futs, j, default=list).append((fut, i))
 
-        def _update_pipe(pipe):
-            for p in pipe.values():
-                n, s = p['task'][-1]
-                if n in s:
-                    _update(s[n], s, n)
-                'sub_pipe' in p and _update_pipe(p['sub_pipe'])
-
-        _update_pipe(self.pipe)
+        for p in self._pipe:
+            n, s = p[-1]
+            if n in s:
+                _update(s[n], s, n)
 
         for sol in self.sub_sol.values():
+            for k, f in sol.items():
+                _update(f, sol, k)
+
             for attr in sol.workflow.nodes.values():
                 if 'results' in attr:
                     _update(attr['results'], attr, 'results')
@@ -238,20 +235,22 @@ class Solution(Base, collections.OrderedDict):
                 if 'value' in attr:
                     _update(attr['value'], attr, 'value')
 
-        wait_fut({v[0] for v in it}, timeout)
-        shutdown_executor(sol_id=id(self), wait=False)
-        for f, d, k in it:
+        wait_fut(futs, timeout)
+        EXECUTORS.set_active(id(self), False)
+        exceptions = Exception, ExecutorShutdown, DispatcherAbort, SkipNode
+        for f, it in futs.items():
             try:
-                d[k] = await_result(f, 0)
-            except SkipNode as e:
-                exceptions[f] = e.ex
-                del d[k]
-            except (Exception, ExecutorShutdown, DispatcherAbort) as ex:
-                exceptions[f] = ex
-                del d[k]
-
-        if exceptions:
-            raise next(iter(exceptions.values()))
+                r = await_result(f, 0)
+                for d, k in it:
+                    d[k] = r
+            except exceptions as e:
+                for d, k in it:
+                    if k in d:
+                        del d[k]
+                if not ex:
+                    ex = isinstance(e, SkipNode) and e.ex or e
+        if ex:
+            raise ex
         return self
 
     def _run(self, stopper=None, executor=False):
