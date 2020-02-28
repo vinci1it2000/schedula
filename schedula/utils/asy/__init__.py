@@ -221,6 +221,7 @@ def async_thread(sol, args, node_attr, node_id, *a, **kw):
     """
     name = kw.get('executor', False)
     exe_id = EXECUTORS.executor_id(name, sol)
+    sid = exe_id[-1]
     executor = EXECUTORS.get_executor(exe_id)
     if not executor:
         return sol._evaluate_node(args, node_attr, node_id, *a, **kw)
@@ -234,11 +235,11 @@ def async_thread(sol, args, node_attr, node_id, *a, **kw):
 
     def _submit():
         return EXECUTORS.get_executor(exe_id).thread(
-            _async_eval, sol, args, node_attr, node_id, *a, **kw
+            sid, _async_eval, sol, args, node_attr, node_id, *a, **kw
         )
 
     if futures:  # Chain results.
-        result = Future()
+        result = executor.add_future(sid, Future())
         from .executors import _safe_set_exception, _safe_set_result
 
         def _set_res(fut):
@@ -262,7 +263,13 @@ def async_thread(sol, args, node_attr, node_id, *a, **kw):
         return _await_result(result, timeout, sol, node_id)
 
     n = len(node_attr.get('outputs', []))
-    return AsyncList(future=result, n=n) if n > 1 else result
+
+    if n > 1:
+        result_list = AsyncList(future=result, n=n)
+        for r in result_list:
+            executor.add_future(sid, r)
+        return result_list
+    return result
 
 
 class AsyncList(list):

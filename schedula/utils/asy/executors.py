@@ -1,11 +1,23 @@
+#!/usr/bin/env python
+# -*- coding: UTF-8 -*-
+#
+# Copyright 2015-2020, Vincenzo Arcidiacono;
+# Licensed under the EUPL (the 'Licence');
+# You may not use this work except in compliance with the Licence.
+# You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
+
+"""
+It defines the executors classes.
+"""
 import weakref
 import threading
 import functools
-from concurrent.futures import Future, wait as _wait_fut
-from concurrent.futures._base import Error
-from ..exc import ExecutorShutdown, DispatcherError, DispatcherAbort
-from ..dsp import parent_func, SubDispatch, NoSub
 from . import EXECUTORS
+from ..cst import EMPTY
+from concurrent.futures._base import Error
+from concurrent.futures import Future, wait as _wait_fut
+from ..dsp import parent_func, SubDispatch, NoSub, get_nested_dicts
+from ..exc import ExecutorShutdown, DispatcherError, DispatcherAbort
 
 
 def _safe_set_result(fut, value):
@@ -24,7 +36,7 @@ def _safe_set_exception(fut, value):
 
 def _process_funcs(
         exe_id, funcs, executor, *args, stopper=None, sol_name=None, **kw):
-    res = []
+    res, sid = [], exe_id[-1]
     for fn in funcs:
         if stopper and stopper.is_set():
             raise DispatcherAbort
@@ -40,7 +52,7 @@ def _process_funcs(
             r['sol'] = pfunc.solution
         else:
             e = EXECUTORS.get_executor(exe_id)
-            r['res'] = e.process(fn, *args, **kw) if e else fn(*args, **kw)
+            r['res'] = e.process(sid, fn, *args, **kw) if e else fn(*args, **kw)
         res.append(r)
         if 'err' in r:
             break
@@ -172,9 +184,10 @@ class ProcessPoolExecutor(Executor):
 
     def shutdown(self, wait=True):
         super(ProcessPoolExecutor, self).shutdown(wait)
-        if self.pool:
-            self.pool.terminate()
-            self.pool.join()
+        with self.lock:
+            if self.pool:
+                self.pool.terminate()
+                self.pool.join()
 
 
 class PoolExecutor:
@@ -197,11 +210,27 @@ class PoolExecutor:
         self._thread = thread_executor
         self._process = process_executor
         self._parallel = parallel
-        self._running = True
+        self._running = bool(thread_executor)
+        self.futures = {}
+        weakref.finalize(self, self.shutdown, False)
 
-    def thread(self, *args, **kwargs):
+    def __reduce__(self):
+        return self.__class__, (self._thread, self._process, self._parallel)
+
+    def add_future(self, sol_id, fut):
+        get_nested_dicts(self.futures, fut, default=set).add(sol_id)
+        fut.add_done_callback(self.futures.pop)
+        return fut
+
+    def get_futures(self, sol_id=EMPTY):
+        if sol_id is EMPTY:
+            return self.futures
+        else:
+            return {k for k, v in self.futures.items() if sol_id in v}
+
+    def thread(self, sol_id, *args, **kwargs):
         if self._running:
-            return self._thread.submit(*args, **kwargs)
+            return self.add_future(sol_id, self._thread.submit(*args, **kwargs))
         fut = Future()
         fut.set_exception(ExecutorShutdown)
         return fut
@@ -212,25 +241,33 @@ class PoolExecutor:
             map(parent_func, funcs)
         ))
         if self._parallel is not False and not_sub or self._parallel:
-            exe_id = (False,) + exe_id[1:]
-            return self.process(_process_funcs, exe_id, funcs, *args, **kw)
+            sid = exe_id[-1]
+            exe_id = False, sid
+            return self.process(sid, _process_funcs, exe_id, funcs, *args, **kw)
         return _process_funcs(exe_id, funcs, *args, **kw)
 
-    def process(self, fn, *args, **kwargs):
+    def process(self, sol_id, fn, *args, **kwargs):
         if self._running:
             if self._process:
                 fut = self._process.submit(fn, *args, **kwargs)
-                return fut.result()
+                return self.add_future(sol_id, fut).result()
             return fn(*args, **kwargs)
         raise ExecutorShutdown
 
+    def wait(self, timeout=None):
+        _wait_fut(self.futures, timeout)
+
     def shutdown(self, wait=True):
-        tasks = {
-            'executor': self,
-            'tasks': {
-                'process': self._process and self._process.shutdown(wait) or {},
-                'thread': self._thread.shutdown(wait)
-            }
-        }
-        self._running, self._process, self._thread = False, None, None
-        return tasks
+        if self._running:
+            wait and self.wait()
+            self._running = False
+            tasks = dict(
+                executor=self,
+                tasks=dict(
+                    process=self._process and self._process.shutdown(0) or {},
+                    thread=self._thread.shutdown(0)
+                )
+            )
+            self.futures = {}
+            self._process = self._thread = None
+            return tasks
