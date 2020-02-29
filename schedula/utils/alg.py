@@ -10,10 +10,10 @@
 It contains basic algorithms, numerical tricks, and data processing tasks.
 """
 
+import collections
 from .gen import counter
 from .cst import EMPTY, NONE
-from .dsp import SubDispatch, bypass, selector, stlp, parent_func
-import collections
+from .dsp import SubDispatch, bypass, selector, stlp, parent_func, NoSub
 
 __author__ = 'Vincenzo Arcidiacono <vinci1it2000@gmail.com>'
 
@@ -466,6 +466,8 @@ def get_full_pipe(sol, base=()):
         if n['type'] == 'function' and 'function' in n:
             try:
                 sub_sol = s.workflow.nodes[path[-1]]['solution']
+                if isinstance(parent_func(n['function']), NoSub):
+                    node_id = ()
                 sp = get_full_pipe(sub_sol, base=node_id)
                 if sp:
                     p['sub_pipe'] = sp
