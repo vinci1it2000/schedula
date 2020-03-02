@@ -45,6 +45,7 @@ Sub-Modules:
     dsp
     exc
     gen
+    graph
     io
     sol
     web

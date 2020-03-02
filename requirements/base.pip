@@ -1,4 +1,2 @@
-networkx>=2.0.0
-
 # io
 dill!=0.2.7

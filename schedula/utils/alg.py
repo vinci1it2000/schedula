@@ -26,7 +26,7 @@ def add_edge_fun(graph):
 
     :param graph:
         A directed graph.
-    :type graph: networkx.classes.digraph.DiGraph
+    :type graph: schedula.utils.graph.DiGraph
 
     :return:
         A function that adds an edge to the `graph`.
@@ -34,7 +34,7 @@ def add_edge_fun(graph):
     """
 
     # Namespace shortcut for speed.
-    succ, pred, node = graph._succ, graph._pred, graph._node
+    succ, pred, node = graph.succ, graph.pred, graph.nodes
 
     def add_edge(u, v, **attr):
         if v not in succ:  # Add nodes.
@@ -53,7 +53,7 @@ def remove_edge_fun(graph):
 
     :param graph:
         A directed graph.
-    :type graph: networkx.classes.digraph.DiGraph
+    :type graph: schedula.utils.graph.DiGraph
 
     :return:
         A function that remove an edge from the `graph`.
@@ -62,11 +62,10 @@ def remove_edge_fun(graph):
 
     # Namespace shortcut for speed.
     rm_edge, rm_node = graph.remove_edge, graph.remove_node
-    from networkx import is_isolate
-
+    succ, pred = graph.succ, graph.pred
     def remove_edge(u, v):
         rm_edge(u, v)  # Remove the edge.
-        if is_isolate(graph, v):  # Check if v is isolate.
+        if not (succ[v] or pred[v]):  # Check if v is isolate.
             rm_node(v)  # Remove the isolate out node.
 
     return remove_edge  # Returns the function.
@@ -78,7 +77,7 @@ def get_unused_node_id(graph, initial_guess='unknown', _format='{}<%d>'):
 
     :param graph:
         A directed graph.
-    :type graph: networkx.classes.digraph.DiGraph
+    :type graph: schedula.utils.graph.DiGraph
 
     :param initial_guess:
         Initial node id guess.
@@ -93,13 +92,13 @@ def get_unused_node_id(graph, initial_guess='unknown', _format='{}<%d>'):
     :rtype: str
     """
 
-    has_node = graph.has_node  # Namespace shortcut for speed.
+    nodes = graph.nodes  # Namespace shortcut for speed.
 
     n = counter()  # Counter.
     id_fmt = _format.format(initial_guess.replace('%', '%%'))  # Node id format.
 
     node_id = initial_guess  # Initial guess.
-    while has_node(node_id):  # Check if node id is used.
+    while node_id in nodes:  # Check if node id is used.
         node_id = id_fmt % n()  # Guess.
 
     return node_id  # Returns an unused node id.
@@ -172,7 +171,7 @@ def _add_edge_dmap_fun(graph, edges_weights=None):
 
     :param graph:
         A directed graph.
-    :type graph: networkx.classes.digraph.DiGraph
+    :type graph: schedula.utils.graph.DiGraph
 
     :param edges_weights:
         Edge weights.
@@ -516,7 +515,7 @@ def _union_workflow(sol, node_id=None, bfs=None):
     else:
         j = bfs or {NONE: set()}
 
-    j[NONE].update(sol.workflow.edges())
+    j[NONE].update(sol.workflow.edges)
 
     for n, a in sol.dsp.sub_dsp_nodes.items():
         if 'function' in a:
@@ -527,7 +526,7 @@ def _union_workflow(sol, node_id=None, bfs=None):
 
 
 def _convert_bfs(bfs):
-    from networkx import DiGraph
+    from .graph import DiGraph
     g = DiGraph()
     g.add_edges_from(bfs[NONE])
     bfs[NONE] = g

@@ -67,7 +67,9 @@ class TestReadWrite(unittest.TestCase):
         sh.load_map(dsp, self.tmp)
 
         self.assertEqual(
-            dsp.dmap.degree(self.fun_id), self.dsp.dmap.degree(self.fun_id)
+            len(dsp.dmap.succ[self.fun_id]) + len(dsp.dmap.pred[self.fun_id]),
+            len(self.dsp.dmap.succ[self.fun_id]) +
+            len(self.dsp.dmap.pred[self.fun_id])
         )
         self.assertEqual(dsp.dmap.nodes[self.fun_id]['function'](1), 2)
         self.assertEqual(dsp.dispatch()['b'], 6)

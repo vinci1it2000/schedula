@@ -139,7 +139,7 @@ if __name__ == '__main__':
             "Topic :: Software Development :: Libraries :: Python Modules",
             "Topic :: Utilities",
         ],
-        install_requires=['networkx>=2.0.0', 'dill!=0.2.7'],
+        install_requires=['dill!=0.2.7'],
         extras_require=extras,
         test_suite='nose.collector',
         tests_require=['nose>=1.0', 'requests', 'cryptography'],

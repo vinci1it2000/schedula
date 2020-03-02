@@ -385,23 +385,23 @@ class TestSubDMap(unittest.TestCase):
         w = {('b', 'max'): {}, ('max', 'c'): {}, ('a', 'max'): {}}
         dfl = {'b': {'value': 3, 'initial_dist': 0.0}}
         self.assertEqual(dict(sub_dmap.dmap.nodes), res)
-        self.assertEqual(dict(sub_dmap.dmap.edges()), w)
+        self.assertEqual(dict(sub_dmap.dmap.edges), w)
         self.assertEqual(sub_dmap.default_values, dfl)
 
         sub_dmap = dsp.get_sub_dsp(['a', 'c', 'max', 'max<0>'])
         self.assertEqual(dict(sub_dmap.dmap.nodes), {})
-        self.assertEqual(dict(sub_dmap.dmap.edges()), {})
+        self.assertEqual(dict(sub_dmap.dmap.edges), {})
 
         sub_dmap = dsp.get_sub_dsp(['a', 'b', 'c', 'max', 'e'])
 
         self.assertEqual(dict(sub_dmap.dmap.nodes), res)
-        self.assertEqual(dict(sub_dmap.dmap.edges()), w)
+        self.assertEqual(dict(sub_dmap.dmap.edges), w)
         self.assertEqual(sub_dmap.default_values, dfl)
 
         edges_bunch = [('max', 'c')]
         sub_dmap = dsp.get_sub_dsp(['a', 'b', 'c', 'max'], edges_bunch)
         self.assertEqual(dict(sub_dmap.dmap.nodes), {})
-        self.assertEqual(dict(sub_dmap.dmap.edges()), {})
+        self.assertEqual(dict(sub_dmap.dmap.edges), {})
 
     def test_get_sub_dmap_from_workflow(self):
         sol = self.sol
@@ -432,22 +432,22 @@ class TestSubDMap(unittest.TestCase):
         w = {('a', 'max'): {}, ('a', 'min'): {}, ('b', 'max'): {},
              ('max', 'c'): {}, ('c', 'min'): {}, ('min', 'd'): {}}
         self.assertEqual(dict(sub_dmap.dmap.nodes), res)
-        self.assertEqual(dict(sub_dmap.dmap.edges()), w)
+        self.assertEqual(dict(sub_dmap.dmap.edges), w)
 
         sub_dmap = sol.get_sub_dsp_from_workflow(['d'], reverse=True)
         self.assertEqual(sub_dmap.dmap.nodes, res)
-        self.assertEqual(dict(sub_dmap.dmap.edges()), w)
+        self.assertEqual(dict(sub_dmap.dmap.edges), w)
 
         sub_dmap = sol.get_sub_dsp_from_workflow(['c'], reverse=True)
         res.pop('min')
         res.pop('d')
         w = {('max', 'c'): {}, ('a', 'max'): {}, ('b', 'max'): {}}
         self.assertEqual(sub_dmap.dmap.nodes, res)
-        self.assertEqual(dict(sub_dmap.dmap.edges()), w)
+        self.assertEqual(dict(sub_dmap.dmap.edges), w)
 
         sub_dmap = sol.get_sub_dsp_from_workflow(['c', 'e'], reverse=True)
         self.assertEqual(sub_dmap.dmap.nodes, res)
-        self.assertEqual(dict(sub_dmap.dmap.edges()), w)
+        self.assertEqual(dict(sub_dmap.dmap.edges), w)
         dfl = {'b': {'value': 3, 'initial_dist': 0.0}}
         self.assertEqual(sub_dmap.default_values, dfl)
 
@@ -479,9 +479,9 @@ class TestSubDMap(unittest.TestCase):
         w = {('sdsp', 'B'): {}, ('C', 'sdsp'): {'weight': 0.0}}
         sr = {'b', 'c'}
         self.assertEqual(dict(sub_dmap.dmap.nodes), r)
-        self.assertEqual(dict(sub_dmap.dmap.edges()), w)
+        self.assertEqual(dict(sub_dmap.dmap.edges), w)
         self.assertEqual(set(sdsp.dmap.nodes), sr)
-        self.assertEqual(dict(sdsp.dmap.edges()), {})
+        self.assertEqual(dict(sdsp.dmap.edges), {})
         self.assertEqual(sub_dmap(), {'C': 1, 'B': 2})
 
 
@@ -1352,7 +1352,7 @@ class TestDispatch(unittest.TestCase):
         }
         self.assertEqual(o, {'a': 5, 'b': 6, 'c': 0})
         self.assertEqual(set(o.workflow.nodes), r)
-        self.assertEqual(o.workflow.adj, w)
+        self.assertEqual(o.workflow.succ, w)
 
         o = dsp.dispatch({'a': 5, 'b': 6}, cutoff=2, shrink=True)
         n = {'max', 'min'}
@@ -1361,9 +1361,9 @@ class TestDispatch(unittest.TestCase):
              for k in w.items() if k[0] not in n}
         self.assertEqual(o, {'a': 5, 'b': 6, 'c': 0})
         self.assertEqual(set(o.workflow.nodes), r)
-        self.assertEqual(o.workflow.adj, w)
+        self.assertEqual(o.workflow.succ, w)
 
-        for it in (dsp.dmap.edges().values(), dsp.nodes.values()):
+        for it in (dsp.dmap.edges.values(), dsp.nodes.values()):
             for v in it:
                 v.pop('weight', None)
 
@@ -1383,7 +1383,7 @@ class TestDispatch(unittest.TestCase):
         }
         self.assertEqual(o, {'a': 5, 'b': 6, 'c': 0, 'd': 1})
         self.assertEqual(set(o.workflow.nodes), r)
-        self.assertEqual(o.workflow.adj, w)
+        self.assertEqual(o.workflow.succ, w)
 
         o = dsp.dispatch({'a': 5, 'b': 6}, cutoff=2, shrink=True)
         n = {'max', 'min'}
@@ -1487,7 +1487,7 @@ class TestDispatch(unittest.TestCase):
         self.assertEqual(set(o.workflow.nodes), r)
         self.assertEqual(o.workflow.adj, w)
 
-        for it in (dsp.dmap.edges().values(), dsp.nodes.values()):
+        for it in (dsp.dmap.edges.values(), dsp.nodes.values()):
             for v in it:
                 v.pop('weight', None)
         o = dsp.dispatch({'a': 5, 'b': 6}, cutoff=2,
@@ -1825,15 +1825,15 @@ class TestShrinkDispatcher(unittest.TestCase):
              ('b', 'h<3>'): {}, ('b', 'h<0>'): {}, ('d', 'h<1>'): {},
              ('d', 'h<0>'): {}, ('e', 'h<1>'): {}, ('h<0>', 'e'): {}}
         self.assertEqual(dict(shrink_dsp.dmap.nodes), r)
-        self.assertEqual(dict(shrink_dsp.dmap.edges()), w)
+        self.assertEqual(dict(shrink_dsp.dmap.edges), w)
 
         shrink_dsp = dsp.shrink_dsp(['a', 'b'], ['e'])
         self.assertEqual(dict(shrink_dsp.dmap.nodes), {})
-        self.assertEqual(dict(shrink_dsp.dmap.edges()), {})
+        self.assertEqual(dict(shrink_dsp.dmap.edges), {})
 
         shrink_dsp = dsp.shrink_dsp([], [])
         self.assertEqual(dict(shrink_dsp.dmap.nodes), {})
-        self.assertEqual(dict(shrink_dsp.dmap.edges()), {})
+        self.assertEqual(dict(shrink_dsp.dmap.edges), {})
 
         dsp = self.dsp_2
         shrink_dsp = dsp.shrink_dsp(['a'], ['b'])
@@ -1843,7 +1843,7 @@ class TestShrinkDispatcher(unittest.TestCase):
              'a': {'type': 'data', 'wait_inputs': False, 'index': (1,)}}
         w = {('h', 'b'): {}, ('a', 'h'): {}}
         self.assertEqual(dict(shrink_dsp.dmap.nodes), r)
-        self.assertEqual(dict(shrink_dsp.dmap.edges()), w)
+        self.assertEqual(dict(shrink_dsp.dmap.edges), w)
 
         dsp = self.dsp_of_dsp
         shrink_dsp = dsp.shrink_dsp(['a', 'b'], ['d', 'e', 'f', 'g'])
@@ -1872,17 +1872,17 @@ class TestShrinkDispatcher(unittest.TestCase):
               ('c', 'h<0>'): {}, ('c', 'h<2>'): {}, ('a', 'h<2>'): {},
               ('a', 'h'): {}, ('h', 'c'): {}, ('b', 'h'): {}}
         self.assertEqual(dict(shrink_dsp.dmap.nodes), r)
-        self.assertEqual(dict(shrink_dsp.dmap.edges()), w)
+        self.assertEqual(dict(shrink_dsp.dmap.edges), w)
         self.assertEqual(sorted(sub_dsp.dmap.nodes), sr)
-        self.assertEqual(dict(sub_dsp.dmap.edges()), sw)
+        self.assertEqual(dict(sub_dsp.dmap.edges), sw)
 
         shrink_dsp = dsp.shrink_dsp(['a', 'b'], ['d', 'e', 'f', 'g', 'a'])
         sub_dsp = shrink_dsp.nodes['sub_dsp']['function']
         r['sub_dsp']['function'] = sub_dsp
         self.assertEqual(dict(shrink_dsp.dmap.nodes), r)
-        self.assertEqual(dict(shrink_dsp.dmap.edges()), w)
+        self.assertEqual(dict(shrink_dsp.dmap.edges), w)
         self.assertEqual(sorted(sub_dsp.dmap.nodes), sr)
-        self.assertEqual(dict(sub_dsp.dmap.edges()), sw)
+        self.assertEqual(dict(sub_dsp.dmap.edges), sw)
 
     def test_shrink_with_outputs(self):
         dsp = self.dsp_1
@@ -1905,7 +1905,7 @@ class TestShrinkDispatcher(unittest.TestCase):
              ('d', 'h<0>'): {}, ('f', 'h<2>'): {}, ('h<1>', 'f'): {},
              ('e', 'h<1>'): {}, ('h<0>', 'e'): {}, ('b', 'h<0>'): {}}
         self.assertEqual(dict(shrink_dsp.dmap.nodes), r)
-        self.assertEqual(dict(shrink_dsp.dmap.edges()), w)
+        self.assertEqual(dict(shrink_dsp.dmap.edges), w)
 
         dsp = self.dsp_of_dsp
         shrink_dsp = dsp.shrink_dsp(outputs=['f', 'g'])
@@ -1934,9 +1934,9 @@ class TestShrinkDispatcher(unittest.TestCase):
               ('e', 'h<1>'): {}, ('h', 'c'): {}, ('b', 'h'): {}}
 
         self.assertEqual(dict(shrink_dsp.dmap.nodes), r)
-        self.assertEqual(dict(shrink_dsp.dmap.edges()), w)
+        self.assertEqual(dict(shrink_dsp.dmap.edges), w)
         self.assertEqual(set(sub_dsp.dmap.nodes), set(sn))
-        self.assertEqual(dict(sub_dsp.dmap.edges()), sw)
+        self.assertEqual(dict(sub_dsp.dmap.edges), sw)
 
     def test_shrink_with_inputs(self):
         dsp = self.dsp_1
@@ -1974,7 +1974,7 @@ class TestShrinkDispatcher(unittest.TestCase):
             ('h<2>', 'g'): {}
         }
         self.assertEqual(dict(shrink_dsp.dmap.nodes), r)
-        self.assertEqual(dict(shrink_dsp.dmap.edges()), w)
+        self.assertEqual(dict(shrink_dsp.dmap.edges), w)
 
         dsp = self.dsp_of_dsp
         shrink_dsp = dsp.shrink_dsp(inputs=['a', 'b'])
@@ -2036,9 +2036,9 @@ class TestShrinkDispatcher(unittest.TestCase):
             ('b', 'h'): {}
         }
         self.assertEqual(dict(shrink_dsp.dmap.nodes), r)
-        self.assertEqual(dict(shrink_dsp.dmap.edges()), w)
+        self.assertEqual(dict(shrink_dsp.dmap.edges), w)
         self.assertEqual(set(sub_dsp.dmap.nodes), sr)
-        self.assertEqual(dict(sub_dsp.dmap.edges()), sw)
+        self.assertEqual(dict(sub_dsp.dmap.edges), sw)
 
     def test_shrink_with_domains(self):
         dsp = self.dsp_3
@@ -2070,7 +2070,7 @@ class TestShrinkDispatcher(unittest.TestCase):
              ('h<0>', 'g'): {}, ('h<2>', 'g'): {}, ('h<3>', 'i'): {},
              ('h<5>', 'l'): {}}
         self.assertEqual(dict(shrink_dsp.dmap.nodes), r)
-        self.assertEqual(dict(shrink_dsp.dmap.edges()), w)
+        self.assertEqual(dict(shrink_dsp.dmap.edges), w)
 
     def test_shrink_sub_dsp(self):
         dsp = self.dsp_of_dsp_1
@@ -2092,9 +2092,9 @@ class TestShrinkDispatcher(unittest.TestCase):
         sr = {'c', 'a', 'h', 'b', 'd', 'sub_dsp'}
         sw = {('a', 'h'): {}, ('h', 'c'): {}, ('b', 'h'): {}}
         self.assertEqual(dict(shrink_dsp.dmap.nodes), r)
-        self.assertEqual(dict(shrink_dsp.dmap.edges()), w)
+        self.assertEqual(dict(shrink_dsp.dmap.edges), w)
         self.assertEqual(set(shrink_dsp.dmap.nodes), sr)
-        self.assertEqual(dict(sub_dsp.dmap.edges()), sw)
+        self.assertEqual(dict(sub_dsp.dmap.edges), sw)
 
         shrink_dsp = dsp.shrink_dsp(['a', 'b'], inputs_dist={'a': 20})
         sub_dsp = shrink_dsp.nodes['sub_dsp']['function']
@@ -2104,9 +2104,9 @@ class TestShrinkDispatcher(unittest.TestCase):
         w = {('b', 'sub_dsp'): {'weight': 0.0}, ('sub_dsp', 'c'): {},
              ('a', 'sub_dsp'): {'weight': 0.0}, ('c', 'h'): {}, ('h', 'd'): {}}
         self.assertEqual(dict(shrink_dsp.dmap.nodes), r)
-        self.assertEqual(dict(shrink_dsp.dmap.edges()), w)
+        self.assertEqual(dict(shrink_dsp.dmap.edges), w)
         self.assertEqual(set(shrink_dsp.dmap.nodes), sr)
-        self.assertEqual(dict(sub_dsp.dmap.edges()), sw)
+        self.assertEqual(dict(sub_dsp.dmap.edges), sw)
 
 
 class TestPipe(unittest.TestCase):

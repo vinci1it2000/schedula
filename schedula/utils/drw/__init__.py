@@ -327,7 +327,7 @@ class FolderNode:
     def render_size(self, out):
         lines = render_output(out, self.pprint.pformat).splitlines(True)
         n, w = self.max_lines, self.max_width
-        return len(lines) <= n and not any(len(l) > w for l in lines)
+        return len(lines) <= n and not any(len(v) > w for v in lines)
 
     def items(self):
         check = self.render_size
@@ -714,19 +714,16 @@ class SiteFolder:
 
     @property
     def _nodes(self):
-        from networkx import is_isolate
-        nodes, item, graph = self.dsp.nodes, self.item, self.graph
         try:
-            errors = item._errors
+            errors = self.item._errors
         except AttributeError:
             errors = {}
-
-        def nodes_filter(x):
-            i, v = x
-            return i in nodes and (i is not SINK or not is_isolate(graph, SINK))
-
-        gnode = graph.nodes
-        it = dict(filter(nodes_filter, gnode.items()))
+        nodes, graph = self.dsp.nodes, self.graph
+        gnode, succ, pred = graph.nodes, graph.succ, graph.pred
+        it = {
+            i: v for i, v in gnode.items()
+            if i in nodes and (i is not SINK or succ[SINK] or pred[SINK])
+        }
         if not nodes or not (graph.edges or self.inputs or self.outputs):
             it[EMPTY] = {'index': (EMPTY,)}
 
@@ -864,7 +861,7 @@ def _folder2tree(folder, smap, context, type):
     ]
     url = '{}?id=%d'.format(url)
     for node_id, attr in folder.dsp.nodes.items():
-        if not folder.graph.has_node(node_id):
+        if not node_id in folder.graph.nodes:
             continue
         type = attr['type']
         if type == 'function' and attr.get('function'):
@@ -1134,7 +1131,7 @@ class SiteIndex(SiteNode):
             inp_weight={'<from>': 'Edge distance.'},
             graphviz=dict(style='invis')
         )
-        dsp.dmap.get_edge_data('<from>', '<to>').update(dict(
+        dsp.dmap['<from>']['<to>'].update(dict(
             label_type='label',
             inp_id='Index of input args.',
             out_id='Index of output list.',

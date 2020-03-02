@@ -142,7 +142,7 @@ class Dispatcher(Base):
 
         :param dmap:
             A directed graph that stores data & functions parameters.
-        :type dmap: networkx.DiGraph, optional
+        :type dmap: schedula.utils.graph.DiGraph, optional
 
         :param name:
             The dispatcher's name.
@@ -181,7 +181,7 @@ class Dispatcher(Base):
         :type executor: str, optional
         """
 
-        from networkx import DiGraph
+        from .utils.graph import DiGraph
         #: The directed graph that stores data & functions parameters.
         self.dmap = dmap or DiGraph()
 
@@ -192,7 +192,7 @@ class Dispatcher(Base):
         self.__doc__ = description
 
         #: The function and data nodes of the dispatcher.
-        self.nodes = self.dmap._node
+        self.nodes = self.dmap.nodes
 
         #: Data node default values. These will be used as input if it is not
         #: specified as inputs in the ArciDispatch algorithm.
@@ -389,14 +389,14 @@ class Dispatcher(Base):
 
         attr_dict.update(kwargs)  # Additional attributes.
 
-        has_node = self.dmap.has_node  # Namespace shortcut for speed.
+        nodes = self.dmap.nodes  # Namespace shortcut for speed.
 
         if data_id is None:  # Search for an unused node id.
             from .utils.alg import get_unused_node_id
             data_id = get_unused_node_id(self.dmap)  # Get an unused node id.
 
         # Check if the node id exists as function.
-        elif has_node(data_id) and self.dmap.nodes[data_id]['type'] != 'data':
+        elif data_id in nodes and nodes[data_id]['type'] != 'data':
             raise ValueError('Invalid data id: '
                              'override function {}'.format(data_id))
 
@@ -1119,11 +1119,11 @@ class Dispatcher(Base):
 
         # Define an empty dispatcher.
         sub_dsp = self.copy_structure(
-            dmap=self.dmap.subgraph(nodes_bunch).copy()
+            dmap=self.dmap.subgraph(nodes_bunch)
         )
 
         # Namespace shortcuts for speed.
-        nodes, dmap_out_degree = sub_dsp.nodes, sub_dsp.dmap.out_degree
+        nodes, succ = sub_dsp.nodes, sub_dsp.dmap.succ
         dmap_dv, dmap_rm_edge = self.default_values, sub_dsp.dmap.remove_edge
         dmap_rm_node = sub_dsp.dmap.remove_node
 
@@ -1140,16 +1140,15 @@ class Dispatcher(Base):
                 dmap_rm_edge(*e)  # Remove edge.
 
         # Remove function node with no outputs.
-        for u in [u for u, n in sub_dsp.dmap.nodes.items()
-                  if n['type'] == 'function']:
+        sub_dsp.dmap.remove_nodes_from([
+            u for u, n in sub_dsp.dmap.nodes.items()
+            if n['type'] == 'function' and not succ[u]  # No outputs.
+        ])
 
-            # noinspection PyCallingNonCallable
-            if not dmap_out_degree(u):  # No outputs.
-                dmap_rm_node(u)  # Remove function node.
-
-        from networkx import isolates
         # Remove isolate nodes from sub-graph.
-        sub_dsp.dmap.remove_nodes_from(list(isolates(sub_dsp.dmap)))
+        sub_dsp.dmap.remove_nodes_from([
+            u for u, v in sub_dsp.dmap.pred.items() if not (v or succ[u])
+        ])
 
         # Set default values.
         sub_dsp.default_values = {k: dmap_dv[k] for k in dmap_dv if k in nodes}
@@ -1174,7 +1173,7 @@ class Dispatcher(Base):
 
         :param graph:
             A directed graph where evaluate the breadth-first-search.
-        :type graph: networkx.DiGraph, optional
+        :type graph: schedula.utils.graph.DiGraph, optional
 
         :param reverse:
             If True the workflow graph is assumed as reversed.
@@ -1267,13 +1266,13 @@ class Dispatcher(Base):
         family = {}
 
         # Namespace shortcuts for speed.
-        nodes, dmap_nodes = sub_dsp.dmap._node, self.dmap.nodes
+        nodes, dmap_nodes = sub_dsp.dmap.nodes, self.dmap.nodes
         dlt_val, dsp_dlt_val = sub_dsp.default_values, self.default_values
 
         if not reverse:
             # Namespace shortcuts for speed.
-            neighbors, dmap_succ = graph.neighbors, self.dmap.succ
-            succ, pred = sub_dsp.dmap._succ, sub_dsp.dmap._pred
+            neighbors, dmap_succ = graph.succ, self.dmap.succ
+            succ, pred = sub_dsp.dmap.succ, sub_dsp.dmap.pred
 
             # noinspection PyUnusedLocal
             def _check_node_inputs(c, p):
@@ -1315,8 +1314,8 @@ class Dispatcher(Base):
 
         else:
             # Namespace shortcuts for speed.
-            neighbors, dmap_succ = graph.predecessors, self.dmap.pred
-            pred, succ = sub_dsp.dmap._succ, sub_dsp.dmap._pred
+            neighbors, dmap_succ = graph.pred, self.dmap.pred
+            pred, succ = sub_dsp.dmap.succ, sub_dsp.dmap.pred
 
             def _check_node_inputs(c, p):
                 if c == START:
@@ -1345,7 +1344,7 @@ class Dispatcher(Base):
 
             if add2family:
                 # Append a new parent to the family.
-                family[n] = () if block and n in blockers else neighbors(n)
+                family[n] = () if block and n in blockers else neighbors[n]
 
                 queue.append(n)
 
@@ -1844,7 +1843,7 @@ class Dispatcher(Base):
         :param bfs_graphs:
             A dictionary with directed graphs where evaluate the
             breadth-first-search.
-        :type bfs_graphs: dict[str | Token, networkx.DiGraph | dict], optional
+        :type bfs_graphs: dict[str | Token, schedula.utils.graph.DiGraph | dict]
 
         :return:
             A sub-dispatcher

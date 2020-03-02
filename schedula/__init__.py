@@ -25,7 +25,6 @@ Modules:
 import os
 import sys
 import functools
-# noinspection PyUnresolvedReferences
 from ._version import *
 
 _all = {
@@ -75,6 +74,7 @@ _all = {
     'counter': '.utils.gen',
     'Token': '.utils.gen',
     'pairwise': '.utils.gen',
+    'DiGraph': '.utils.graph',
     'save_dispatcher': '.utils.io',
     'load_dispatcher': '.utils.io',
     'save_default_values': '.utils.io',
@@ -104,20 +104,15 @@ def __getattr__(name):
 
 
 if sys.version_info[:2] < (3, 7) or os.environ.get('IMPORT_ALL') == 'True':
-    # noinspection PyUnresolvedReferences
     from .dispatcher import Dispatcher
-    # noinspection PyUnresolvedReferences
     from .utils.asy import (
         await_result, register_executor, shutdown_executor, shutdown_executors
     )
     from .utils.asy.executors import (
         PoolExecutor, ProcessExecutor, ThreadExecutor, ProcessPoolExecutor
     )
-    # noinspection PyUnresolvedReferences
     from .utils.blue import BlueDispatcher, Blueprint
-    # noinspection PyUnresolvedReferences
     from .utils.cst import EMPTY, END, NONE, PLOT, SELF, SINK, START
-    # noinspection PyUnresolvedReferences
     from .utils.dsp import (
         DispatchPipe, SubDispatch, SubDispatchFunction, SubDispatchPipe,
         add_args,
@@ -127,13 +122,11 @@ if sys.version_info[:2] < (3, 7) or os.environ.get('IMPORT_ALL') == 'True':
         parent_func, replicate_value, selector, stack_nested_keys, stlp,
         summation
     )
-    # noinspection PyUnresolvedReferences
     from .utils.exc import (
         DispatcherAbort, DispatcherError, ExecutorShutdown, SkipNode
     )
-    # noinspection PyUnresolvedReferences
     from .utils.gen import Token, counter, pairwise
-    # noinspection PyUnresolvedReferences
+    from .utils.graph import DiGraph
     from .utils.io import (
         load_default_values, load_dispatcher, load_map, save_default_values,
         save_dispatcher, save_map

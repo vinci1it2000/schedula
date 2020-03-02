@@ -92,7 +92,7 @@ def _search_doc_in_func(dsp, node_id, where_succ=True, node_type='function',
     if node_type == 'function':
         if not where_succ:
             def check(n):
-                if dsp.dmap.out_degree(n) == 1:
+                if len(dsp.dmap.succ[n]) == 1:
                     return True
                 func = parent_func(dsp.nodes[n].get('function', None))
                 return isinstance(func, SubDispatch)

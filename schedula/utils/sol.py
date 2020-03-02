@@ -141,7 +141,7 @@ class Solution(Base, collections.OrderedDict):
 
     def _clean_set(self):
         self.clear()
-        from networkx import DiGraph
+        from .graph import DiGraph
         self.workflow = DiGraph()
         self._visited = set()
         self._wf_pred = self.workflow.pred
@@ -531,13 +531,13 @@ class Solution(Base, collections.OrderedDict):
         # Check if node has multiple estimations and it is not waiting inputs.
         if len(estimations) > 1 and not self._wait_in.get(node_id, wait_in):
             # Namespace shortcuts.
-            dist, edg_length, adj = self.dist, self._edge_length, self.dmap.adj
+            dist, edg_length, succ = self.dist, self._edge_length, self.dmap.succ
 
             est = []  # Estimations' heap.
 
             for k, v in estimations.items():  # Calculate length.
                 if k is not START:
-                    d = dist[k] + edg_length(adj[k][node_id], node_attr)
+                    d = dist[k] + edg_length(succ[k][node_id], node_attr)
                     heapq.heappush(est, (d, k, v))
 
             # The estimation with minimum distance from the starting node.
@@ -731,12 +731,12 @@ class Solution(Base, collections.OrderedDict):
 
     def _apply_filters(self, res, node_id, node_attr, attr, stopper=None,
                        executor=False):
-        filters, funcs = [res], node_attr.get('filters', ())
+        funcs = node_attr.get('filters')
 
         if funcs:
             if 'started' not in attr:
                 attr['started'] = time.time()
-            attr['solution_filters'] = filters
+            attr['solution_filters'] = filters = [res]
 
             # noinspection PyUnusedLocal
             def _callback(is_sol, sol):
