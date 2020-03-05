@@ -2,6 +2,46 @@ Changelog
 =========
 
 
+v1.1.0 (2020-03-05)
+-------------------
+
+Feat
+~~~~
+- (core): Drop `networkx` dependency.
+
+- (core): Add `ProcessPoolExecutor`.
+
+- (asy): Add `ExecutorFactory` class.
+
+- (asy): Split `asy` module.
+
+- (core): Add support for python 3.8 and drop python 3.5.
+
+- (asy): Check if `stopper` is set when getting executor.
+
+- (asy): Add `mp_context` option in `ProcessExecutor` and
+  `ProcessPoolExecutor`.
+
+
+Fix
+~~~
+- (alg): Correct pipe generation when `NoSub` found.
+
+- (asy): Remove un-useful and dangerous states before serialization.
+
+- (asy): Ensure wait of all executor futures.
+
+- (asy): Correct bug when future is set.
+
+- (asy): Correct init and shutdown of executors.
+
+- (sol): Correct raise exception order in `sol.result`.
+
+- (travis): Correct tests collector.
+
+- (test): Correct test for multiple async.
+
+
 v1.0.0 (2020-01-02)
 -------------------
 
