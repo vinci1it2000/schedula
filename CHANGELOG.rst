@@ -2,6 +2,18 @@ Changelog
 =========
 
 
+v1.1.1 (2020-03-12)
+-------------------
+
+Feat
+~~~~
+- (github): Add issue templates.
+
+- (exc): Add base exception to `DispatcherError`.
+
+- (build): Update build script.
+
+
 v1.1.0 (2020-03-05)
 -------------------
 
