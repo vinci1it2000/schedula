@@ -531,7 +531,8 @@ class Solution(Base, collections.OrderedDict):
         # Check if node has multiple estimations and it is not waiting inputs.
         if len(estimations) > 1 and not self._wait_in.get(node_id, wait_in):
             # Namespace shortcuts.
-            dist, edg_length, succ = self.dist, self._edge_length, self.dmap.succ
+            dist, edg_length = self.dist, self._edge_length
+            succ = self.dmap.succ
 
             est = []  # Estimations' heap.
 
@@ -1244,7 +1245,9 @@ class Solution(Base, collections.OrderedDict):
         node_id = '/'.join(self.full_name + (node_id,))
 
         if raises:
-            raise DispatcherError(msg, node_id, ex, *args, sol=self, **kwargs)
+            raise DispatcherError(
+                msg, node_id, ex, *args, sol=self, ex=ex, **kwargs
+            )
         elif raises != '':
             kwargs['exc_info'] = kwargs.get('exc_info', 1)
             log.error(msg, node_id, ex, *args, **kwargs)
