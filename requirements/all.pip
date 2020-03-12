@@ -3,3 +3,4 @@
 -r web.pip
 -r sphinx.pip
 -r parallel.pip
+-r io.pip

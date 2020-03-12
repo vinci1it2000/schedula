@@ -9,6 +9,7 @@ dependencies:
   - multiprocess
   - pandas
   - numpy >=1.15
+  - dill !=0.2.7
   - openpyxl
   - scipy
   - xlrd

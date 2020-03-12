@@ -82,6 +82,7 @@ if __name__ == '__main__':
             print('LONG DESCRIPTION ERROR:\n %r', ex)
 
     extras = {
+        'io': ['dill!=0.2.7'],
         'web': ['regex', 'flask'],
         'parallel': ['multiprocess'],
         'plot': ['graphviz', 'regex', 'flask', 'Pygments', 'jinja2', 'docutils']
@@ -139,7 +140,7 @@ if __name__ == '__main__':
             "Topic :: Software Development :: Libraries :: Python Modules",
             "Topic :: Utilities",
         ],
-        install_requires=['dill!=0.2.7'],
+        install_requires=[],
         extras_require=extras,
         test_suite='nose.collector',
         tests_require=['nose>=1.0', 'requests', 'cryptography'],

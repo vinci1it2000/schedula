@@ -9,6 +9,7 @@ python:
 
 env:
   - EXTRAS=base
+  - EXTRAS=io
   - EXTRAS=web
   - EXTRAS=plot
   - EXTRAS=sphinx

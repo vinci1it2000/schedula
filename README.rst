@@ -135,6 +135,7 @@ Install extras
 --------------
 Some additional functionality is enabled installing the following extras:
 
+- ``io``: enables to read/write functions (see : ).
 - ``plot``: enables the plot of the Dispatcher model and workflow
   (see :func:`~schedula.utils.base.Base.plot`).
 - ``web``: enables to build a dispatcher Flask app (see
