@@ -1107,6 +1107,7 @@ class SubDispatchPipe(SubDispatchFunction):
         key_map, sub_sol = {}, {}
         for k, s in self._sol.sub_sol.items():
             ns = s._copy_structure(dist=1)
+            ns.fringe = None
             ns.sub_sol = sub_sol
             ns.full_name = full_name + s.full_name
             key_map[s] = ns

@@ -308,7 +308,7 @@ class Solution(Base, collections.OrderedDict):
 
         if self.rm_unused_nds:  # Remove unused func and sub-dsp nodes.
             self._remove_unused_nodes()
-
+        self.fringe = None
         return self  # Data outputs.
 
     def get_sub_dsp_from_workflow(self, sources, reverse=False,
@@ -890,7 +890,8 @@ class Solution(Base, collections.OrderedDict):
                     continue  # Pass the node.
 
                 seen[w] = vw_dist  # Update distance.
-
+                if fringe is None:  # SubDispatchPipe.
+                    continue
                 vd = (True, w, self.index + node['index'])  # Virtual distance.
 
                 heapq.heappush(fringe, (vw_dist, vd, (w, self)))  # Add 2 heapq.
@@ -903,8 +904,8 @@ class Solution(Base, collections.OrderedDict):
             wf_remove_edge(START, data_id)  # Remove workflow edge.
         elif not check_wait_in(wait_in, data_id):  # Check inputs.
             seen[data_id] = initial_dist  # Update distance.
-
-            vd = (wait_in, data_id, self.index + index)  # Virtual distance.
+            if fringe is not None:  # SubDispatchPipe.
+                vd = wait_in, str(data_id), self.index + index  # Virtual dist.
 
             # Add node to heapq.
             heapq.heappush(fringe, (initial_dist, vd, (data_id, self)))
@@ -1027,14 +1028,14 @@ class Solution(Base, collections.OrderedDict):
                                       'negative weights?', sol=self)
         elif node_id not in seen or dist < seen[node_id]:  # Check min dist.
             seen[node_id] = dist  # Update dist.
+            if fringe is not None:  # SubDispatchPipe.
+                index = self.nodes[node_id]['index']  # Node index.
 
-            index = self.nodes[node_id]['index']  # Node index.
+                # Virtual distance.
+                vd = w_wait_in + int(wait_in), str(node_id), self.index + index
 
-            # Virtual distance.
-            vd = (w_wait_in + int(wait_in), node_id, self.index + index)
-
-            # Add to heapq.
-            heapq.heappush(fringe, (dist, vd, (node_id, self)))
+                # Add to heapq.
+                heapq.heappush(fringe, (dist, vd, (node_id, self)))
 
             return True  # The node is visible.
         return False  # The node is not visible.
@@ -1090,7 +1091,7 @@ class Solution(Base, collections.OrderedDict):
 
         sol.sub_sol = self.sub_sol
 
-        for f in sol.fringe:  # Update the fringe.
+        for f in sol.fringe or ():  # Update the fringe.
             item = (initial_dist + f[0], (2,) + f[1][1:], f[-1])
             heapq.heappush(fringe, item)
 
