@@ -88,28 +88,3 @@ class Token(_Token, str):
         >>> s.capitalize()
         'String'
     """
-
-
-def pairwise(iterable):
-    """
-    A sequence of overlapping sub-sequences.
-
-    :param iterable:
-        An iterable object.
-    :type iterable: iterable
-
-    :return:
-        A zip object.
-    :rtype: zip
-
-    Example::
-
-        >>> list(pairwise([1, 2, 3, 4, 5]))
-        [(1, 2), (2, 3), (3, 4), (4, 5)]
-    """
-
-    a, b = itertools.tee(iterable)
-
-    next(b, None)
-
-    return zip(a, b)

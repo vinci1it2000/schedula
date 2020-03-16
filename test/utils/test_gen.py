@@ -40,8 +40,3 @@ class TestUtils(unittest.TestCase):
 
         b = a
         self.assertEqual({a: 1, 1: 3}, {b: 1, 1: 3})
-
-    def test_pairwise(self):
-        self.assertEqual(list(sh.pairwise([1, 2, 3])), [(1, 2), (2, 3)])
-        sh.pairwise([1, 2, 3, 4])
-        self.assertEqual(list(sh.pairwise([1])), [])

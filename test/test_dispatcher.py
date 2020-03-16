@@ -862,7 +862,8 @@ class TestAsyncParallel(unittest.TestCase):
         self.assertLess(max(t1.values()), sum(t0.values()))
 
         keys = 'parallel-dispatch', 'parallel-pool', 'parallel', 'async', 'base'
-        for i, j in sh.pairwise(sh.selector(keys, t1, output_type='list')):
+        it = sh.selector(keys, t1, output_type='list')
+        for i, j in zip(it[:-1], it[1:]):
             self.assertLess(i, j)
 
         self.assertEqual(set(keys[:-1]), set(sh.shutdown_executors()))

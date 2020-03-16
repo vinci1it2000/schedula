@@ -73,7 +73,6 @@ _all = {
     'SkipNode': '.utils.exc',
     'counter': '.utils.gen',
     'Token': '.utils.gen',
-    'pairwise': '.utils.gen',
     'DiGraph': '.utils.graph',
     'save_dispatcher': '.utils.io',
     'load_dispatcher': '.utils.io',
@@ -125,7 +124,7 @@ if sys.version_info[:2] < (3, 7) or os.environ.get('IMPORT_ALL') == 'True':
     from .utils.exc import (
         DispatcherAbort, DispatcherError, ExecutorShutdown, SkipNode
     )
-    from .utils.gen import Token, counter, pairwise
+    from .utils.gen import Token, counter
     from .utils.graph import DiGraph
     from .utils.io import (
         load_default_values, load_dispatcher, load_map, save_default_values,
