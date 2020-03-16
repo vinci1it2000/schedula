@@ -21,8 +21,7 @@ mydir = osp.dirname(__file__)
 ##
 def read_project_version():
     fglobals = {}
-    with io.open(osp.join(
-            mydir, name, '_version.py'), encoding='UTF-8') as fd:
+    with io.open(osp.join(mydir, name, '_version.py'), encoding='UTF-8') as fd:
         exec(fd.read(), fglobals)  # To read __version__
     return fglobals['__version__']
 
@@ -100,9 +99,11 @@ if __name__ == '__main__':
         name=name,
         version=proj_ver,
         packages=find_packages(exclude=[
-            'test', 'test.*',
             'doc', 'doc.*',
-            'requirements', 'binder', 'examples'
+            'tests', 'tests.*',
+            'examples', 'examples.*',
+            'micropython', 'micropython.*',
+            'requirements', 'binder', 'bin'
         ]),
         url=url,
         project_urls=project_urls,

@@ -8,10 +8,8 @@
 import os
 import time
 import timeit
-import doctest
 import unittest
 import itertools
-import functools
 import schedula as sh
 from math import log, pow
 
@@ -62,8 +60,10 @@ def _setup_dsp():
     return dsp
 
 
+@unittest.skipIf(EXTRAS not in ('all',), 'Not for extra %s.' % EXTRAS)
 class TestDoctest(unittest.TestCase):
     def runTest(self):
+        import doctest
         import schedula.dispatcher as dsp
 
         failure_count, test_count = doctest.testmod(
@@ -75,14 +75,14 @@ class TestDoctest(unittest.TestCase):
 
 class TestCreateDispatcher(unittest.TestCase):
     def setUp(self):
-        sub_dsp = sh.Dispatcher(name='sub_dispatcher')
+        sub_dsp = sh.BlueDispatcher(name='sub_dispatcher')
         sub_dsp.add_data('a', 1)
-        sub_dsp.add_function(function=min, inputs=['a', 'b'], outputs=['c'])
+        sub_dsp.add_function('min', min, ['a', 'b'], ['c'])
 
         def fun(c):
             return c + 3, c - 3
 
-        sub_dsp.add_function(function=fun, inputs=['c'], outputs=['d', 'e'])
+        sub_dsp.add_function('fun', fun, inputs=['c'], outputs=['d', 'e'])
         self.sub_dsp = sub_dsp
 
     def test_add_data(self):
@@ -121,7 +121,7 @@ class TestCreateDispatcher(unittest.TestCase):
                                   outputs=['c', 'd'])
 
         self.assertEqual(fun_id, 'my_function')
-        partial_fun = functools.partial(my_function)
+        partial_fun = sh.partial(my_function)
         fun_id = dsp.add_function(function=partial_fun,
                                   inputs=['a', 'b'],
                                   outputs=['c', 'd'])
@@ -197,17 +197,17 @@ class TestCreateDispatcher(unittest.TestCase):
         self.assertRaises(ValueError, dsp.add_function, 'f', outputs=[fun_id])
 
     def test_add_dispatcher(self):
-        sub_dsp = self.sub_dsp.copy()
+        sub_dsp = self.sub_dsp.register()
 
         dsp = sh.Dispatcher()
 
-        dsp.add_function(function=max, inputs=['a', 'b'], outputs=['c'])
+        dsp.add_function('max', max, inputs=['a', 'b'], outputs=['c'])
 
-        self.assertNotIn(sh.SINK, sub_dsp.nodes)
+        self.assertTrue(sh.SINK not in sub_dsp.nodes)
         dsp_id = dsp.add_dispatcher(sub_dsp,
                                     inputs={('d', 'd1'): ('a', 'b'), 'e': 'b'},
                                     outputs=('e', {'c': ('d', 'd1')}, sh.SINK))
-        self.assertIn(sh.SINK, sub_dsp.nodes)
+        self.assertTrue(sh.SINK in sub_dsp.nodes)
         self.assertEqual(dsp_id, 'sub_dispatcher')
         dsp.nodes[dsp_id].pop('function')
         res = {
@@ -322,14 +322,28 @@ class TestCreateDispatcher(unittest.TestCase):
         dsp.set_default_value('a', value=sh.EMPTY)
         self.assertFalse('a' in dsp.default_values)
 
-        self.assertRaises(ValueError, dsp.set_default_value, *('b', 3))
+        self.assertRaises(ValueError, dsp.set_default_value, 'b', 3)
 
-        fun_id = dsp.add_function(function=max, inputs=['a', 'b'])
-        self.assertRaises(ValueError, dsp.set_default_value, *(fun_id,))
+        fun_id = dsp.add_function('max', function=max, inputs=['a', 'b'])
+        self.assertRaises(ValueError, dsp.set_default_value, fun_id)
 
         dsp.set_default_value('b', value=3)
         dfl = {'value': 3, 'initial_dist': 0.0}
         self.assertEqual(dsp.default_values['b'], dfl)
+
+
+@unittest.skipIf(EXTRAS in ('micropython',), 'Not for extra %s.' % EXTRAS)
+class TestCopyDispatcher(unittest.TestCase):
+    def setUp(self):
+        sub_dsp = sh.Dispatcher(name='sub_dispatcher')
+        sub_dsp.add_data('a', 1)
+        sub_dsp.add_function('min', min, ['a', 'b'], ['c'])
+
+        def fun(c):
+            return c + 3, c - 3
+
+        sub_dsp.add_function('fun', fun, inputs=['c'], outputs=['d', 'e'])
+        self.sub_dsp = sub_dsp
 
     def test_copy(self):
         dsp = self.sub_dsp.copy()
@@ -482,7 +496,7 @@ class TestSubDMap(unittest.TestCase):
         self.assertEqual(dict(sub_dmap.dmap.edges), w)
         self.assertEqual(set(sdsp.dmap.nodes), sr)
         self.assertEqual(dict(sdsp.dmap.edges), {})
-        self.assertEqual(sub_dmap(), {'C': 1, 'B': 2})
+        self.assertEqual(dict(sub_dmap().items()), {'C': 1, 'B': 2})
 
 
 class TestPerformance(unittest.TestCase):
@@ -544,22 +558,25 @@ class TestPerformance(unittest.TestCase):
             repeat=repeat, number=number)) / repeat
         print(msg % ('DispatchPipe.__call__', '', t, (t0 - t) / t0 * 100))
 
-        t = sum(timeit.repeat(
-            "fun(5, 6, _executor='async')",
-            'from %s import _setup_dsp;'
-            'from schedula.utils.dsp import DispatchPipe;'
-            'dsp = _setup_dsp();'
-            "[v.pop('input_domain', 0) for v in dsp.function_nodes.values()];"
-            'fun = DispatchPipe(dsp, "f", ["a", "b"], ["c", "d", "e"])'
-            % __name__,
-            repeat=repeat, number=number)) / repeat
-        print(
-            msg % ('DispatchPipe.__call__ async', '', t, (t0 - t) / t0 * 100))
-        sh.shutdown_executors()
+        if EXTRAS != 'micropython':
+            t = sum(timeit.repeat(
+                "fun(5, 6, _executor='async')",
+                'from %s import _setup_dsp;'
+                'from schedula.utils.dsp import DispatchPipe;'
+                'd = _setup_dsp();'
+                "[v.pop('input_domain', 0) for v in d.function_nodes.values()];"
+                'fun = DispatchPipe(d, "f", ["a", "b"], ["c", "d", "e"])'
+                % __name__,
+                repeat=repeat, number=number)) / repeat
+            print(
+                msg % (
+                    'DispatchPipe.__call__ async', '', t, (t0 - t) / t0 * 100))
+            sh.shutdown_executors()
 
 
 # noinspection PyUnusedLocal,PyTypeChecker
-@unittest.skipIf(EXTRAS not in ('all', 'parallel'), 'Not for extra %s.' % EXTRAS)
+@unittest.skipIf(EXTRAS not in ('all', 'parallel'),
+                 'Not for extra %s.' % EXTRAS)
 class TestAsyncParallel(unittest.TestCase):
     def setUp(self):
         # noinspection PyUnresolvedReferences
@@ -933,24 +950,25 @@ class TestDispatch(unittest.TestCase):
 
         self.dsp_raises = sh.Dispatcher(raises=True)
         from math import log
-        sub_dsp = sh.Dispatcher(raises=True)
-        sub_dsp.add_function(function=log, inputs=['a'], outputs=['b'])
-        func = sh.SubDispatchFunction(sub_dsp, 'func', ['a'], ['b'])
+        sub_dsp = sh.BlueDispatcher(raises=True)
+        sub_dsp.add_function('log', function=log, inputs=['a'], outputs=['b'])
+        func = sh.SubDispatchFunction(sub_dsp.register(), 'func', ['a'], ['b'])
         self.dsp_raises.add_function(function=func, inputs=['a'], outputs=['b'])
         self.dsp_raises_1 = sh.Dispatcher(
             raises=lambda ex: not isinstance(ex, (ValueError, KeyError))
         )
         self.dsp_raises_1.add_function(
-            function=log, inputs=['a'], outputs=['b']
+            'log', function=log, inputs=['a'], outputs=['b']
         )
 
         self.dsp_raises_1.add_dispatcher(
-            sub_dsp.copy(), ('a',), ('b',), 'sub', input_domain=lambda k: k['b']
+            sub_dsp.register(), ('a',), ('b',), 'sub',
+            input_domain=lambda k: k['b']
         )
 
-        sub_dsp = sh.Dispatcher(name='sub_dispatcher')
+        sub_dsp = sh.BlueDispatcher(name='sub_dispatcher')
         sub_dsp.add_data('a', 1)
-        sub_dsp.add_function(function=min, inputs=['a', 'b'], outputs=['c'])
+        sub_dsp.add_function('min', min, inputs=['a', 'b'], outputs=['c'])
 
         def fun(c):
             return c + 3, c - 3
@@ -958,12 +976,12 @@ class TestDispatch(unittest.TestCase):
         def dom(kw):
             return 'e' in kw and 'd' in kw and kw['e'] + kw['d'] > 29
 
-        sub_dsp.add_function(function=fun, inputs=['c'], outputs=['d', 'e'])
+        sub_dsp.add_function('fun', fun, inputs=['c'], outputs=['d', 'e'])
 
         dsp = sh.Dispatcher()
         dsp.add_function('max', function=max, inputs=['a', 'b'], outputs=['c'])
         dsp.add_dispatcher(
-            sub_dsp.copy(), {'d': 'a', 'e': 'b'}, {'d': 'c', 'e': 'f'},
+            sub_dsp.register(), {'d': 'a', 'e': 'b'}, {'d': 'c', 'e': 'f'},
             dsp_id='sub_dsp',
             input_domain=dom
         )
@@ -975,7 +993,7 @@ class TestDispatch(unittest.TestCase):
         dsp = sh.Dispatcher()
         dsp.add_function('max', function=max, inputs=['a', 'b'], outputs=['c'])
         dsp.add_dispatcher(
-            sub_dsp.copy(), {'c': ('a', 'd')}, {'d': ('d', 'f'), 'e': 'g'},
+            sub_dsp.register(), {'c': ('a', 'd')}, {'d': ('d', 'f'), 'e': 'g'},
             dsp_id='sub_dsp', include_defaults=True
         )
         self.dsp_of_dsp_4 = dsp
@@ -983,7 +1001,7 @@ class TestDispatch(unittest.TestCase):
         dsp = sh.Dispatcher()
         dsp.add_function('max', function=max, inputs=['a', 'b'], outputs=['c'])
         dsp.add_dispatcher(
-            sub_dsp.copy(), {'c': ('d', 'a')}, {'d': ('d', 'f'), 'e': 'g'},
+            sub_dsp.register(), {'c': ('d', 'a')}, {'d': ('d', 'f'), 'e': 'g'},
             dsp_id='sub_dsp', include_defaults=True
         )
         self.dsp_of_dsp_5 = dsp
@@ -1007,18 +1025,18 @@ class TestDispatch(unittest.TestCase):
 
         sub_dsp.add_function('fun', fun, inputs=['d'], outputs=['e', 'f'])
 
-        dsp = sh.Dispatcher()
+        dsp = sh.BlueDispatcher()
         dsp.add_function('max', function=max, inputs=['a', 'b'], outputs=['c'])
         dsp.add_dispatcher(
             sub_dsp, {'d': 'a', 'e': 'b'}, {'e': 'c', 'f': 'f'},
             dsp_id='sub_dsp', input_domain=dom
         )
-        self.dsp_of_dsp_2 = dsp
+        self.dsp_of_dsp_2 = dsp.register()
 
-        dsp = dsp.copy()
+        dsp = dsp
         dsp.add_function('min', min, ['d', 'e'], ['f'],
                          input_domain=lambda *args: False)
-        self.dsp_of_dsp_3 = dsp
+        self.dsp_of_dsp_3 = dsp.register()
 
         dsp = sh.Dispatcher()
         dsp.add_data('c', 0, sh.inf(1, 1))
@@ -1055,12 +1073,16 @@ class TestDispatch(unittest.TestCase):
             'min': {'d': {'value': 0.0}},
             sh.START: {'a': {'value': 5}, 'b': {'value': 6}}
         }
-        self.assertEqual(o, {'a': 5, 'b': 6, 'c': 0, 'd': 0, 'e': 2, 'f': 9})
+        self.assertEqual(
+            dict(o.items()), {'a': 5, 'b': 6, 'c': 0, 'd': 0, 'e': 2, 'f': 9}
+        )
         self.assertEqual(set(o.workflow.nodes), r)
         self.assertEqual(o.workflow.adj, w)
 
         o = dsp.dispatch({'a': 5, 'b': 6, 'f': 9}, shrink=True)
-        self.assertEqual(o, {'a': 5, 'b': 6, 'c': 0, 'd': 0, 'e': 2, 'f': 9})
+        self.assertEqual(
+            dict(o.items()), {'a': 5, 'b': 6, 'c': 0, 'd': 0, 'e': 2, 'f': 9}
+        )
         self.assertEqual(set(o.workflow.nodes), r)
         self.assertEqual(o.workflow.adj, w)
 
@@ -1079,12 +1101,15 @@ class TestDispatch(unittest.TestCase):
             sh.START: {'a': {'value': 5}, 'b': {'value': 3}},
             'x - 4': {'d': {'value': 1}}
         }
-        self.assertEqual(o, {'a': 5, 'b': 3, 'c': 3, 'd': 1, 'e': 1})
+        self.assertEqual(
+            dict(o.items()), {'a': 5, 'b': 3, 'c': 3, 'd': 1, 'e': 1}
+        )
         self.assertEqual(set(o.workflow.nodes), r)
         self.assertEqual(o.workflow.adj, w)
 
         o = dsp.dispatch({'a': 5, 'b': 3}, shrink=True)
-        self.assertEqual(o, {'a': 5, 'b': 3, 'c': 3, 'd': 1, 'e': 1})
+        self.assertEqual(dict(o.items()),
+                         {'a': 5, 'b': 3, 'c': 3, 'd': 1, 'e': 1})
         self.assertEqual(set(o.workflow.nodes), r)
         self.assertEqual(o.workflow.adj, w)
 
@@ -1104,12 +1129,16 @@ class TestDispatch(unittest.TestCase):
             'min': {'d': {}},
             sh.START: {'a': {}, 'b': {}}
         }
-        self.assertEqual(o, dict.fromkeys(['a', 'b', 'c', 'd', 'e'], sh.NONE))
+        self.assertEqual(
+            dict(o.items()), dict.fromkeys(['a', 'b', 'c', 'd', 'e'], sh.NONE)
+        )
         self.assertEqual(set(o.workflow.nodes), r)
         self.assertEqual(o.workflow.adj, w)
 
         o = dsp.dispatch(['a', 'b'], no_call=True, shrink=True)
-        self.assertEqual(o, dict.fromkeys(['a', 'b', 'c', 'd', 'e'], sh.NONE))
+        self.assertEqual(
+            dict(o.items()), dict.fromkeys(['a', 'b', 'c', 'd', 'e'], sh.NONE)
+        )
         self.assertEqual(set(o.workflow.nodes), r)
         self.assertEqual(o.workflow.adj, w)
 
@@ -1130,7 +1159,7 @@ class TestDispatch(unittest.TestCase):
             sh.START: {'a': {'value': 5}, 'b': {'value': 6}},
             'x - 4': {},
         }
-        self.assertEqual(o, {'a': 5, 'b': 6, 'c': 0, 'd': 0})
+        self.assertEqual(dict(o.items()), {'a': 5, 'b': 6, 'c': 0, 'd': 0})
         self.assertEqual(set(o.workflow.nodes), r)
         self.assertEqual(o.workflow.adj, w)
 
@@ -1139,7 +1168,7 @@ class TestDispatch(unittest.TestCase):
         r -= n
         w = {k[0]: dict(v for v in k[1].items() if v[0] not in n)
              for k in w.items() if k[0] not in n}
-        self.assertEqual(o, {'a': 5, 'b': 6, 'c': 0, 'd': 0})
+        self.assertEqual(dict(o.items()), {'a': 5, 'b': 6, 'c': 0, 'd': 0})
         self.assertEqual(set(o.workflow.nodes), r)
         self.assertEqual(o.workflow.adj, w)
 
@@ -1148,7 +1177,7 @@ class TestDispatch(unittest.TestCase):
         r -= n
         w = {k[0]: dict(v for v in k[1].items() if v[0] not in n)
              for k in w.items() if k[0] not in n}
-        self.assertEqual(o, {'a': 5, 'b': 6, 'c': 0, 'd': 0})
+        self.assertEqual(dict(o.items()), {'a': 5, 'b': 6, 'c': 0, 'd': 0})
         self.assertEqual(set(o.workflow.nodes), r)
         self.assertEqual(o.workflow.adj, w)
 
@@ -1170,14 +1199,18 @@ class TestDispatch(unittest.TestCase):
             },
             'sub_dsp': {},
         }
-        self.assertEqual(o, {'a': 3, 'b': 5, 'c': 5, 'd': 10, 'e': 15})
+        self.assertEqual(
+            dict(o.items()), {'a': 3, 'b': 5, 'c': 5, 'd': 10, 'e': 15}
+        )
         self.assertEqual(set(o.workflow.nodes), r)
         self.assertEqual(o.workflow.adj, w)
 
         o = dsp.dispatch(
             inputs={'a': 3, 'b': 5, 'd': 10, 'e': 15},
             shrink=True)
-        self.assertEqual(o, {'a': 3, 'b': 5, 'c': 5, 'd': 10, 'e': 15})
+        self.assertEqual(
+            dict(o.items()), {'a': 3, 'b': 5, 'c': 5, 'd': 10, 'e': 15}
+        )
         self.assertEqual(set(o.workflow.nodes), r)
         self.assertEqual(o.workflow.adj, w)
 
@@ -1188,7 +1221,9 @@ class TestDispatch(unittest.TestCase):
         w['f'] = {}
         w['sub_dsp'] = {'f': {'value': 7}}
         w[sh.START]['e'] = {'value': 20}
-        self.assertEqual(o, {'a': 3, 'b': 5, 'c': 5, 'd': 10, 'e': 20, 'f': 7})
+        self.assertEqual(
+            dict(o.items()), {'a': 3, 'b': 5, 'c': 5, 'd': 10, 'e': 20, 'f': 7}
+        )
         self.assertEqual(set(o.workflow.nodes), r)
         self.assertEqual(o.workflow.adj, w)
 
@@ -1237,7 +1272,9 @@ class TestDispatch(unittest.TestCase):
             'min': {'d': {'value': 7}},
             sh.START: {'a': {'value': 10}},
         }
-        self.assertEqual(o, {'a': 3, 'b': 5, 'c': 5, 'd': 10, 'e': 20, 'f': 4})
+        self.assertEqual(
+            dict(o.items()), {'a': 3, 'b': 5, 'c': 5, 'd': 10, 'e': 20, 'f': 4}
+        )
         self.assertEqual(set(o.workflow.nodes), r)
         self.assertEqual(o.workflow.adj, w)
         sd_wf = o.workflow.nodes['sub_dsp']['solution'].workflow
@@ -1248,7 +1285,9 @@ class TestDispatch(unittest.TestCase):
         o = dsp.dispatch(inputs={'a': 3, 'b': 5, 'd': 10, 'e': 20})
         sw['e'] = {}
         sw['fun']['e'] = {'value': 10}
-        self.assertEqual(o, {'a': 3, 'b': 5, 'c': 5, 'd': 10, 'e': 20, 'f': 4})
+        self.assertEqual(
+            dict(o.items()), {'a': 3, 'b': 5, 'c': 5, 'd': 10, 'e': 20, 'f': 4}
+        )
         self.assertEqual(set(o.workflow.nodes), r)
         self.assertEqual(o.workflow.adj, w)
         sd_wf = o.workflow.nodes['sub_dsp']['solution'].workflow
@@ -1265,7 +1304,9 @@ class TestDispatch(unittest.TestCase):
         w['e']['min'] = {'value': 20}
         w['min'] = {}
 
-        self.assertEqual(o, {'a': 3, 'b': 5, 'c': 5, 'd': 10, 'e': 20, 'f': 4})
+        self.assertEqual(
+            dict(o.items()), {'a': 3, 'b': 5, 'c': 5, 'd': 10, 'e': 20, 'f': 4}
+        )
         self.assertEqual(set(o.workflow.nodes), r)
         self.assertEqual(o.workflow.adj, w)
         sd_wf = o.workflow.nodes['sub_dsp']['solution'].workflow
@@ -1276,7 +1317,9 @@ class TestDispatch(unittest.TestCase):
         o = dsp.dispatch(inputs={'a': 3, 'b': 5, 'd': 10, 'e': 20})
         sw['e'] = {}
         sw['fun']['e'] = {'value': 10}
-        self.assertEqual(o, {'a': 3, 'b': 5, 'c': 5, 'd': 10, 'e': 20, 'f': 4})
+        self.assertEqual(
+            dict(o.items()), {'a': 3, 'b': 5, 'c': 5, 'd': 10, 'e': 20, 'f': 4}
+        )
         self.assertEqual(set(o.workflow.nodes), r)
         self.assertEqual(o.workflow.adj, w)
         sd_wf = o.workflow.nodes['sub_dsp']['solution'].workflow
@@ -1301,12 +1344,16 @@ class TestDispatch(unittest.TestCase):
                 'g': {'value': -3}
             },
         }
-        self.assertEqual(o, {'a': 6, 'b': 5, 'c': 2, 'd': 2, 'f': 2, 'g': -3})
+        self.assertEqual(
+            dict(o.items()), {'a': 6, 'b': 5, 'c': 2, 'd': 2, 'f': 2, 'g': -3}
+        )
         self.assertEqual(set(o.workflow.nodes), r)
         self.assertEqual(o.workflow.adj, w)
 
         o = dsp.dispatch(inputs={'a': 6, 'b': 5}, shrink=True)
-        self.assertEqual(o, {'a': 6, 'b': 5, 'c': 2, 'd': 2, 'f': 2, 'g': -3})
+        self.assertEqual(
+            dict(o.items()), {'a': 6, 'b': 5, 'c': 2, 'd': 2, 'f': 2, 'g': -3}
+        )
         self.assertEqual(set(o.workflow.nodes), r)
         self.assertEqual(o.workflow.adj, w)
 
@@ -1328,12 +1375,16 @@ class TestDispatch(unittest.TestCase):
                 'g': {'value': -3}
             },
         }
-        self.assertEqual(o, {'a': 6, 'b': 5, 'c': 6, 'd': 6, 'f': 6, 'g': -3})
+        self.assertEqual(
+            dict(o.items()), {'a': 6, 'b': 5, 'c': 6, 'd': 6, 'f': 6, 'g': -3}
+        )
         self.assertEqual(set(o.workflow.nodes), r)
         self.assertEqual(o.workflow.adj, w)
 
         o = dsp.dispatch(inputs={'a': 6, 'b': 5}, shrink=True)
-        self.assertEqual(o, {'a': 6, 'b': 5, 'c': 6, 'd': 6, 'f': 6, 'g': -3})
+        self.assertEqual(
+            dict(o.items()), {'a': 6, 'b': 5, 'c': 6, 'd': 6, 'f': 6, 'g': -3}
+        )
         self.assertEqual(set(o.workflow.nodes), r)
         self.assertEqual(o.workflow.adj, w)
 
@@ -1351,7 +1402,7 @@ class TestDispatch(unittest.TestCase):
             'min': {},
             sh.START: {'a': {'value': 5}, 'b': {'value': 6}}
         }
-        self.assertEqual(o, {'a': 5, 'b': 6, 'c': 0})
+        self.assertEqual(dict(o.items()), {'a': 5, 'b': 6, 'c': 0})
         self.assertEqual(set(o.workflow.nodes), r)
         self.assertEqual(o.workflow.succ, w)
 
@@ -1360,7 +1411,7 @@ class TestDispatch(unittest.TestCase):
         r -= n
         w = {k[0]: dict(v for v in k[1].items() if v[0] not in n)
              for k in w.items() if k[0] not in n}
-        self.assertEqual(o, {'a': 5, 'b': 6, 'c': 0})
+        self.assertEqual(dict(o.items()), {'a': 5, 'b': 6, 'c': 0})
         self.assertEqual(set(o.workflow.nodes), r)
         self.assertEqual(o.workflow.succ, w)
 
@@ -1382,7 +1433,7 @@ class TestDispatch(unittest.TestCase):
             'x - 4': {'d': {'value': 1}},
             sh.START: {'a': {'value': 5}, 'b': {'value': 6}}
         }
-        self.assertEqual(o, {'a': 5, 'b': 6, 'c': 0, 'd': 1})
+        self.assertEqual(dict(o.items()), {'a': 5, 'b': 6, 'c': 0, 'd': 1})
         self.assertEqual(set(o.workflow.nodes), r)
         self.assertEqual(o.workflow.succ, w)
 
@@ -1391,7 +1442,7 @@ class TestDispatch(unittest.TestCase):
         r -= n
         w = {k[0]: dict(v for v in k[1].items() if v[0] not in n)
              for k in w.items() if k[0] not in n}
-        self.assertEqual(o, {'a': 5, 'b': 6, 'c': 0, 'd': 1})
+        self.assertEqual(dict(o.items()), {'a': 5, 'b': 6, 'c': 0, 'd': 1})
         self.assertEqual(set(o.workflow.nodes), r)
         self.assertEqual(o.workflow.adj, w)
 
@@ -1412,13 +1463,13 @@ class TestDispatch(unittest.TestCase):
             sh.START: {'a': {'value': 5}, 'b': {'value': 6}},
             'x ^ y': {'b': {'value': 1.0}}
         }
-        self.assertEqual(o, {'b': 1, 'c': 0, 'd': 0, 'e': 2})
+        self.assertEqual(dict(o.items()), {'b': 1, 'c': 0, 'd': 0, 'e': 2})
         self.assertEqual(o.workflow.adj, w)
         self.assertEqual(set(o.workflow.nodes), r)
 
         o = dsp.dispatch({'a': 5, 'b': 6}, ['a', 'b'], wildcard=True,
                          shrink=True)
-        self.assertEqual(o, {'b': 1, 'c': 0, 'd': 0, 'e': 2})
+        self.assertEqual(dict(o.items()), {'b': 1, 'c': 0, 'd': 0, 'e': 2})
         self.assertEqual(o.workflow.adj, w)
         self.assertEqual(set(o.workflow.nodes), r)
 
@@ -1444,20 +1495,15 @@ class TestDispatch(unittest.TestCase):
         try:
             self.dsp_raises(inputs)
         except sh.DispatcherError as ex:
-            self.assertIs(ex.sol, self.dsp_raises.solution)
+            self.assertTrue(ex.sol is self.dsp_raises.solution)
 
         sol = self.dsp_raises_1(inputs)
-        self.assertEqual(sol, inputs)
+        self.assertEqual(dict(sol.items()), inputs)
         self.assertEqual(set(sol._errors), {'log', 'sub'})
-        self.assertRegex(
-            sol._errors['log'],
-            "Failed DISPATCHING 'log' due to:\n"
-            "  ValueError\('math domain error',?\)"
-        )
-        self.assertRegex(
-            sol._errors['sub'],
-            "Failed SUB-DSP DOMAIN 'sub' due to:\n  KeyError\('b',?\)"
-        )
+        e = "Failed DISPATCHING 'log' due to:\n  ValueError('math domain error')"
+        self.assertEqual(e, sol._errors['log'].replace("',)", "')"))
+        e = "Failed SUB-DSP DOMAIN 'sub' due to:\n  KeyError('b')"
+        self.assertEqual(e, sol._errors['sub'].replace("',)", "')"))
         self.assertRaises(sh.DispatcherError, self.dsp_raises_1, {'a': ''})
 
     def test_input_dists(self):
@@ -1474,7 +1520,7 @@ class TestDispatch(unittest.TestCase):
             'min': {},
             sh.START: {'a': {'value': 5}, 'b': {'value': 6}}
         }
-        self.assertEqual(o, {'a': 5, 'b': 6})
+        self.assertEqual(dict(o.items()), {'a': 5, 'b': 6})
         self.assertEqual(set(o.workflow.nodes), r)
         self.assertEqual(o.workflow.adj, w)
 
@@ -1484,7 +1530,7 @@ class TestDispatch(unittest.TestCase):
         r -= n
         w = {k[0]: dict(v for v in k[1].items() if v[0] not in n)
              for k in w.items() if k[0] not in n}
-        self.assertEqual(o, {'a': 5, 'b': 6})
+        self.assertEqual(dict(o.items()), {'a': 5, 'b': 6})
         self.assertEqual(set(o.workflow.nodes), r)
         self.assertEqual(o.workflow.adj, w)
 
@@ -1505,7 +1551,7 @@ class TestDispatch(unittest.TestCase):
             'x - 4': {'d': {'value': 1}},
             sh.START: {'a': {'value': 5}, 'b': {'value': 6}}
         }
-        self.assertEqual(o, {'a': 5, 'b': 6, 'd': 1})
+        self.assertEqual(dict(o.items()), {'a': 5, 'b': 6, 'd': 1})
         self.assertEqual(set(o.workflow.nodes), r)
         self.assertEqual(o.workflow.adj, w)
 
@@ -1515,7 +1561,7 @@ class TestDispatch(unittest.TestCase):
         r -= n
         w = {k[0]: dict(v for v in k[1].items() if v[0] not in n)
              for k in w.items() if k[0] not in n}
-        self.assertEqual(o, {'a': 5, 'b': 6, 'd': 1})
+        self.assertEqual(dict(o.items()), {'a': 5, 'b': 6, 'd': 1})
         self.assertEqual(set(o.workflow.nodes), r)
         self.assertEqual(o.workflow.adj, w)
 
@@ -1537,14 +1583,14 @@ class TestDispatch(unittest.TestCase):
             sh.START: {'a': {'value': 5}, 'b': {'value': 6}, 'd': {'value': 0}},
             'x ^ y': {'b': {'value': 1.0}}
         }
-        self.assertEqual(o, {'b': 1, 'c': 6, 'd': 5, 'e': 2})
+        self.assertEqual(dict(o.items()), {'b': 1, 'c': 6, 'd': 5, 'e': 2})
         self.assertEqual(o.workflow.adj, w)
         self.assertEqual(set(o.workflow.nodes), r)
 
         o = dsp.dispatch({'a': 5, 'b': 6, 'd': 0}, ['a', 'b', 'd'],
                          wildcard=True, shrink=True,
                          inputs_dist={'a': 1})
-        self.assertEqual(o, {'b': 1, 'c': 6, 'd': 5, 'e': 2})
+        self.assertEqual(dict(o.items()), {'b': 1, 'c': 6, 'd': 5, 'e': 2})
         self.assertEqual(o.workflow.adj, w)
         self.assertEqual(set(o.workflow.nodes), r)
 
@@ -1573,7 +1619,7 @@ class TestDispatch(unittest.TestCase):
             'min': {'d': {'value': 5}},
             sh.START: {'b': {'value': 5}, 'c': {'value': 0}, 'a': {'value': 6}},
         }
-        self.assertEqual({'a': 6, 'b': 5, 'c': 6, 'd': 5}, o)
+        self.assertEqual(dict(o.items()), {'a': 6, 'b': 5, 'c': 6, 'd': 5})
         self.assertEqual(o.workflow.adj, w)
 
         o = dsp.dispatch({'a': 6, 'b': 5}, ['d'],
@@ -1588,13 +1634,13 @@ class TestDispatch(unittest.TestCase):
             sh.START: {'a': {'value': 6}, 'b': {'value': 5}, 'c': {'value': 0}},
         }
 
-        self.assertEqual({'b': 5, 'c': 0, 'd': 0}, o)
+        self.assertEqual(dict(o.items()), {'b': 5, 'c': 0, 'd': 0})
         self.assertEqual(o.workflow.adj, w)
 
     def test_filters(self):
         dsp = self.dsp_with_filters
-        self.assertEqual(dsp.dispatch(), {'a': 3, 'b': 8})
-        self.assertEqual(dsp.dispatch({'a': 1}), {'a': 4, 'b': 9})
+        self.assertEqual(dict(dsp.dispatch().items()), {'a': 3, 'b': 8})
+        self.assertEqual(dict(dsp.dispatch({'a': 1}).items()), {'a': 4, 'b': 9})
 
     def test_select_output_kw(self):
         dsp = self.dsp_select_output_kw
@@ -1610,8 +1656,8 @@ class TestBoundaryDispatch(unittest.TestCase):
         def f(*args):
             return 3, 5
 
-        self.dsp.add_function(function=f, outputs=['a', sh.SINK])
-        self.dsp.add_function(function=f, outputs=[sh.SINK, 'b'])
+        self.dsp.add_function('f', f, outputs=['a', sh.SINK])
+        self.dsp.add_function('f', f, outputs=[sh.SINK, 'b'])
 
         self.dsp_1 = sh.Dispatcher()
         self.dsp_1.add_function('A', max, inputs=['a', 'b'], outputs=['c'])
@@ -1621,49 +1667,49 @@ class TestBoundaryDispatch(unittest.TestCase):
         self.dsp_2.add_function('B', max, inputs=['a', 'b'], outputs=['c'])
         self.dsp_2.add_function('A', min, inputs=['a', 'b'], outputs=['c'])
 
-        self.dsp_3 = sh.Dispatcher()
+        dsp = sh.BlueDispatcher()
 
         def f(kwargs):
             return 1 / list(kwargs.values())[0]
 
-        self.dsp_3.add_function('A', min, inputs=['a', 'b'], outputs=['c'])
-        self.dsp_3.add_data('c', function=f, callback=f)
-
+        dsp.add_function('A', min, inputs=['a', 'b'], outputs=['c'])
+        dsp.add_data('c', function=f, callback=f)
+        self.dsp_3 = dsp.register()
         self.dsp_4 = sh.Dispatcher()
         self.dsp_4.add_dispatcher(
-            dsp=self.dsp_3.copy(),
+            dsp=dsp.register(),
             inputs={'A': 'a', 'B': 'b'},
             outputs={'c': 'c', 'a': 'd', 'b': 'e'}
         )
 
     def test_dispatch_functions_without_arguments(self):
-        dsp = self.dsp
-        self.assertEqual(dsp.dispatch(outputs=['a', 'b']), {'a': 3, 'b': 5})
+        o = self.dsp.dispatch(outputs=['a', 'b'])
+        self.assertEqual(dict(o.items()), {'a': 3, 'b': 5})
 
     def test_deterministic_dispatch(self):
         dsp = self.dsp_1
 
         o = dsp.dispatch(inputs={'a': 1, 'b': 3})
-        self.assertEqual(o, {'a': 1, 'b': 3, 'c': 3})
+        self.assertEqual(dict(o.items()), {'a': 1, 'b': 3, 'c': 3})
 
         dsp = self.dsp_2
 
         o = dsp.dispatch(inputs={'a': 1, 'b': 3})
-        self.assertEqual(o, {'a': 1, 'b': 3, 'c': 1})
+        self.assertEqual(dict(o.items()), {'a': 1, 'b': 3, 'c': 1})
 
     def test_callback(self):
         dsp = self.dsp_3
         o = dsp.dispatch(inputs={'a': 1, 'b': 5})
-        self.assertEqual(o, {'a': 1, 'b': 5, 'c': 1.0})
+        self.assertEqual(dict(o.items()), {'a': 1, 'b': 5, 'c': 1.0})
 
         o = dsp.dispatch(inputs={'a': 0, 'b': 5})
-        self.assertEqual(o, {'a': 0, 'b': 5})
+        self.assertEqual(dict(o.items()), {'a': 0, 'b': 5})
 
     def test_sub_dispatcher(self):
         i = {'A': 1, 'B': 3, 'c': 1, 'd': 1, 'e': 3}
         sol = self.dsp_4(i)
-        self.assertEqual(sol, i)
-        self.assertEqual(sol.sub_sol[(-1, 0)], {'a': 1, 'b': 3})
+        self.assertEqual(dict(sol.items()), i)
+        self.assertEqual(dict(sol.sub_sol[(-1, 0)].items()), {'a': 1, 'b': 3})
 
 
 class TestNodeOutput(unittest.TestCase):
@@ -1706,7 +1752,7 @@ class TestNodeOutput(unittest.TestCase):
             sh.START: {'a': {'value': [1, 2]}}
         }
         self.assertEqual(wf_edge, r)
-        self.assertEqual(sol, {'a': [1, 2]})
+        self.assertEqual(dict(sol.items()), {'a': [1, 2]})
 
         self.assertFalse(sol._set_node_output('max<0>', False))
         self.assertTrue(sol._set_node_output('max', False))
@@ -1714,18 +1760,18 @@ class TestNodeOutput(unittest.TestCase):
         r['max'] = {'b': {'value': 2}}
 
         self.assertEqual(wf_edge, r)
-        self.assertEqual(sol, {'a': [1, 2]})
+        self.assertEqual(dict(sol.items()), {'a': [1, 2]})
 
         self.assertFalse(sol._set_node_output('b', False))
         self.assertEqual(wf_edge, r)
-        self.assertEqual(sol, {'a': [1, 2]})
+        self.assertEqual(dict(sol.items()), {'a': [1, 2]})
 
         self.assertTrue(sol._set_node_output('max<1>', False))
         self.assertTrue(sol._set_node_output('c', False))
         r['c'] = {}
         r['max<1>'] = {'c': {'value': 2}}
         self.assertEqual(wf_edge, r)
-        self.assertEqual(sol, {'a': [1, 2], 'c': 2})
+        self.assertEqual(dict(sol.items()), {'a': [1, 2], 'c': 2})
         self.assertEqual(self.callback_obj, {2})
 
 
@@ -2149,11 +2195,15 @@ class TestPipe(unittest.TestCase):
         sp = ['a', 'b', 'max', 'c', 'dict']
         self.assertEqual(p, list(pipe.keys()))
         self.assertEqual(sp, list(n['sub_pipe'].keys()))
-        e = "Failed DISPATCHING 'SubDispatchFunction' due to:\\n" \
-            "  DispatcherError\(\"\\\\n" \
-            "  Unreachable output-targets: {'d'}\\\\n" \
-            "  Available outputs: \['a', 'b', 'c'\]\",?\)"
-        self.assertRegex(n['error'], e)
-        e = "Failed DISPATCHING \'dict\' due to:\\n  " \
-            "TypeError\(\"'int' object is not iterable\",?\)"
-        self.assertRegex(n['sub_pipe']['dict']['error'], e)
+
+        e = "Failed DISPATCHING 'SubDispatchFunction' due to:\n" \
+            "  DispatcherError(\"\\n" \
+            "  Unreachable output-targets: {'d'}\\n" \
+            "  Available outputs: ['a', 'b', 'c']\")"
+
+        self.assertEqual(e, n['error'].replace('",)', '")'))
+
+        e = "Failed DISPATCHING 'dict' due to:\n  " \
+            "TypeError(\"'int' object is not iterable\")"
+        err = n['sub_pipe']['dict']['error']
+        self.assertEqual(e, err.replace('",)', '")').replace("isn't", "is not"))

@@ -13,7 +13,7 @@ It provides tools to find data, function, and sub-dispatcher node description.
 import re
 import inspect
 import logging
-from .dsp import SubDispatch, SubDispatchFunction, bypass, replicate_value, \
+from ..dsp import SubDispatch, SubDispatchFunction, bypass, replicate_value, \
     parent_func, stlp
 
 __author__ = 'Vincenzo Arcidiacono <vinci1it2000@gmail.com>'
@@ -187,7 +187,7 @@ def search_node_description(node_id, node_attr, dsp, what='description'):
     elif func:
         des = func.__doc__ or ''
         if not des:
-            from ..dispatcher import Dispatcher
+            from ...dispatcher import Dispatcher
             if isinstance(func, Dispatcher):
                 des = func.name
             elif isinstance(func, SubDispatch):

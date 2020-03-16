@@ -13,11 +13,6 @@ from .cst import EMPTY
 from ..dispatcher import Dispatcher
 
 
-def _call_kw(loc, skip=('self', 'kwargs')):
-    return {k: v for k, v in loc.items()
-            if not (k.startswith('__') or k in skip)}
-
-
 def _init(obj, memo=None):
     return obj.register(memo=memo) if isinstance(obj, Blueprint) else obj
 
@@ -128,8 +123,7 @@ class Blueprint:
 
 
 def _parent_blue(func, memo=None):
-    from .dsp import add_args, SubDispatch
-    from functools import partial
+    from .dsp import add_args, SubDispatch, partial
     memo = {} if memo is None else memo
     if isinstance(func, partial):
         return func.__class__(
@@ -211,9 +205,14 @@ class BlueDispatcher(Blueprint):
         Solution([('a', 1), ('b', 2), ('c', 1), ('d', 0.0),
                   ('f', 0.0), ('e', 1), ('g', 0.0)])
     """
+
     def __init__(self, dmap=None, name='', default_values=None, raises=False,
                  description='', executor=None):
-        super(BlueDispatcher, self).__init__(**_call_kw(locals()))
+        kwargs = {
+            'dmap': dmap, 'name': name, 'default_values': default_values,
+            'raises': raises, 'description': description, 'executor': executor
+        }
+        super(BlueDispatcher, self).__init__(**kwargs)
 
     def add_data(self, data_id=None, default_value=EMPTY, initial_dist=0.0,
                  wait_inputs=False, wildcard=None, function=None, callback=None,
@@ -284,7 +283,12 @@ class BlueDispatcher(Blueprint):
             Self.
         :rtype: BlueDispatcher
         """
-        kwargs.update(_call_kw(locals()))
+        kwargs.update({
+            'data_id': data_id, 'filters': filters, 'wait_inputs': wait_inputs,
+            'wildcard': wildcard, 'function': function, 'callback': callback,
+            'initial_dist': initial_dist, 'default_value': default_value,
+            'description': description, 'await_result': await_result
+        })
         self.deferred.append(('add_data', kwargs))
         return self
 
@@ -364,7 +368,13 @@ class BlueDispatcher(Blueprint):
             Set additional node attributes using key=value.
         :type kwargs: keyword arguments, optional
         """
-        kwargs.update(_call_kw(locals()))
+        kwargs.update({
+            'function_id': function_id, 'inputs': inputs, 'function': function,
+            'weight': weight, 'input_domain': input_domain, 'filters': filters,
+            'await_result': await_result, 'await_domain': await_domain,
+            'out_weight': out_weight, 'description': description,
+            'outputs': outputs, 'inp_weight': inp_weight
+        })
         self.deferred.append(('add_function', kwargs))
         return self
 
@@ -457,7 +467,14 @@ class BlueDispatcher(Blueprint):
             Self.
         :rtype: BlueDispatcher
         """
-        kwargs.update(_call_kw(locals()))
+        kwargs.update({
+            'function_id': function_id, 'inputs': inputs, 'function': function,
+            'weight': weight, 'input_domain': input_domain, 'filters': filters,
+            'inputs_kwargs': inputs_kwargs, 'inputs_defaults': inputs_defaults,
+            'await_result': await_result, 'await_domain': await_domain,
+            'out_weight': out_weight, 'description': description,
+            'outputs': outputs, 'inp_weight': inp_weight
+        })
         self.deferred.append(('add_func', kwargs))
         return self
 
@@ -535,7 +552,12 @@ class BlueDispatcher(Blueprint):
             Self.
         :rtype: BlueDispatcher
         """
-        kwargs.update(_call_kw(locals()))
+        kwargs.update({
+            'include_defaults': include_defaults, 'await_domain': await_domain,
+            'weight': weight, 'input_domain': input_domain, 'dsp_id': dsp_id,
+            'description': description, 'outputs': outputs, 'inputs': inputs,
+            'inp_weight': inp_weight, 'dsp': dsp
+        })
         self.deferred.append(('add_dispatcher', kwargs))
         return self
 
@@ -559,7 +581,10 @@ class BlueDispatcher(Blueprint):
             Self.
         :rtype: BlueDispatcher
         """
-        self.deferred.append(('add_from_lists', _call_kw(locals())))
+        kwargs = {
+            'data_list': data_list, 'fun_list': fun_list, 'dsp_list': dsp_list
+        }
+        self.deferred.append(('add_from_lists', kwargs))
         return self
 
     def set_default_value(self, data_id, value=EMPTY, initial_dist=0.0):
@@ -585,5 +610,6 @@ class BlueDispatcher(Blueprint):
             Self.
         :rtype: BlueDispatcher
         """
-        self.deferred.append(('set_default_value', _call_kw(locals())))
+        kw = {'data_id': data_id, 'value': value, 'initial_dist': initial_dist}
+        self.deferred.append(('set_default_value', kw))
         return self

@@ -20,9 +20,11 @@ Sub-Modules:
     executors
     factory
 """
-import atexit
+from ..imp import Future
 from ..cst import EMPTY
 from .factory import ExecutorFactory
+from ..exc import DispatcherError, DispatcherAbort
+from ..dsp import parent_func, SubDispatch, NoSub
 
 
 def _async_executor():
@@ -112,6 +114,32 @@ def shutdown_executors(wait=True):
     return shutdown_executor(wait=wait)
 
 
+def _process_funcs(
+        exe_id, funcs, executor, *args, stopper=None, sol_name=None, **kw):
+    res, sid = [], exe_id[-1]
+    for fn in funcs:
+        if stopper and stopper.is_set():
+            raise DispatcherAbort
+        pfunc, r = parent_func(fn), {}
+        if isinstance(pfunc, SubDispatch):
+            try:
+                r['res'] = fn(*args, _stopper=stopper, _executor=executor,
+                              _sol_name=sol_name, **kw)
+            except DispatcherError as ex:
+                if isinstance(pfunc, NoSub):
+                    raise ex
+                r['err'] = ex
+            r['sol'] = pfunc.solution
+        else:
+            e = EXECUTORS.get_executor(exe_id)
+            r['res'] = e.process(sid, fn, *args, **kw) if e else fn(*args, **kw)
+        res.append(r)
+        if 'err' in r:
+            break
+        args, kw = (r['res'],), {}
+    return res
+
+
 def async_process(funcs, *args, executor=False, sol=None, callback=None, **kw):
     """
     Execute `func(*args)` in an asynchronous parallel process.
@@ -144,7 +172,6 @@ def async_process(funcs, *args, executor=False, sol=None, callback=None, **kw):
         Functions result.
     :rtype: object
     """
-    from .executors import _process_funcs
     exe_id = EXECUTORS.executor_id(executor, sol)
     exe = EXECUTORS.get_executor(exe_id)
     res = (exe and exe.process_funcs or _process_funcs)(
@@ -230,7 +257,6 @@ def async_thread(sol, args, node_attr, node_id, *a, **kw):
     if node_attr['type'] == 'data' and (
             node_attr['wait_inputs'] or 'function' in node_attr):
         futures = args[0].values()
-    from concurrent.futures import Future
     futures = {v for v in futures if isinstance(v, Future)}
 
     def _submit():
@@ -277,7 +303,6 @@ class AsyncList(list):
 
     def __init__(self, *, future=None, n=1):
         super(AsyncList, self).__init__()
-        from concurrent.futures import Future
         self.extend(Future() for _ in range(n))
         future.add_done_callback(self)
 
@@ -321,8 +346,12 @@ def await_result(obj, timeout=None):
         >>> await_result(fut), await_result(4)
         (3, 4)
     """
-    from concurrent.futures import Future
     return obj.result(timeout) if isinstance(obj, Future) else obj
 
 
-atexit.register(shutdown_executors, wait=False)
+try:
+    from atexit import atexit_register
+
+    atexit_register(shutdown_executors, wait=False)
+except ImportError:  # MicroPython.
+    pass

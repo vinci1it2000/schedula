@@ -9,9 +9,8 @@
 """
 It defines the `ExecutorFactory` class.
 """
-import weakref
-import threading
 from ..cst import EMPTY
+from ..imp import finalize, Lock
 from ..dsp import get_nested_dicts
 
 
@@ -19,8 +18,8 @@ class ExecutorFactory(dict):
     def __init__(self, *args, **kwargs):
         super(ExecutorFactory, self).__init__(*args, **kwargs)
         self._executors = {}
-        self._lock = threading.Lock()
-        weakref.finalize(self, self.shutdown_executor, wait=False)
+        self._lock = Lock()
+        finalize(self, self.shutdown_executor, wait=False)
 
     def __getstate__(self):
         it = self.__dict__.items()
@@ -29,8 +28,8 @@ class ExecutorFactory(dict):
     def __setstate__(self, state):
         self.__dict__ = state
         self._executors = {}
-        self._lock = threading.Lock()
-        weakref.finalize(self, self.shutdown_executor, wait=False)
+        self._lock = Lock()
+        finalize(self, self.shutdown_executor, wait=False)
 
     @staticmethod
     def executor_id(name, sol):

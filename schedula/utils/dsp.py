@@ -10,14 +10,16 @@
 It provides tools to create models with the
 :class:`~schedula.dispatcher.Dispatcher`.
 """
-import collections
-import copy as _copy
+import math
+import inspect
 import functools
 import itertools
-import math
+import collections
+import copy as _copy
+from .cst import START
+from .gen import Token
 from .base import Base
 from .exc import DispatcherError
-from .gen import Token
 
 __author__ = 'Vincenzo Arcidiacono <vinci1it2000@gmail.com>'
 
@@ -311,8 +313,8 @@ def selector(keys, dictionary, copy=False, output_type='dict',
 
     Example::
 
-        >>> from functools import partial
-        >>> fun = partial(selector, ['a', 'b'])
+        >>> import schedula as sh
+        >>> fun = sh.partial(selector, ['a', 'b'])
         >>> sorted(fun({'a': 1, 'b': 2, 'c': 3}).items())
         [('a', 1), ('b', 2)]
     """
@@ -357,8 +359,8 @@ def replicate_value(value, n=2, copy=True):
 
     Example::
 
-        >>> from functools import partial
-        >>> fun = partial(replicate_value, n=5)
+        >>> import schedula as sh
+        >>> fun = sh.partial(replicate_value, n=5)
         >>> fun({'a': 3})
         ({'a': 3}, {'a': 3}, {'a': 3}, {'a': 3}, {'a': 3})
     """
@@ -383,15 +385,14 @@ def parent_func(func, input_id=None):
         Parent function.
     :rtype: callable
     """
-    if isinstance(func, functools.partial):
+    if isinstance(func, add_args):
+        if input_id is not None:
+            input_id -= func.n
+        return parent_func(func.func, input_id=input_id)
+    elif isinstance(func, partial):
         if input_id is not None:
             # noinspection PyTypeChecker
             input_id += len(func.args)
-        return parent_func(func.func, input_id=input_id)
-
-    elif isinstance(func, add_args):
-        if input_id is not None:
-            input_id -= func.n
         return parent_func(func.func, input_id=input_id)
 
     if input_id is None:
@@ -400,7 +401,21 @@ def parent_func(func, input_id=None):
         return func, input_id
 
 
-class add_args(object):
+if inspect.isclass(functools.partial):
+    partial = functools.partial
+else:  # MicroPython.
+    class partial:
+        def __init__(self, func, *args, **keywords):
+            self.func = func
+            self.args = args
+            self.keywords = keywords
+
+        def __call__(self, *args, **keywords):
+            keywords = combine_dicts(self.keywords, keywords)
+            return self.func(*(self.args + args), **keywords)
+
+
+class add_args:
     """
     Adds arguments to a function (left side).
 
@@ -430,6 +445,7 @@ class add_args(object):
         >>> str(inspect.signature(func))
         '(none, none, a, b, *args, c=0)'
     """
+    __name__ = __doc__ = None
 
     def __init__(self, func, n=1, callback=None):
         self.n = n
@@ -665,7 +681,7 @@ class SubDispatch(Base):
         from .blue import Blueprint
         if isinstance(dsp, Blueprint):
             return Blueprint(dsp, *args, **kwargs)._set_cls(cls)
-        return Base.__new__(cls)
+        return super(SubDispatch, cls).__new__(cls)
 
     def __getstate__(self):
         state = self.__dict__.copy()
@@ -948,6 +964,32 @@ class SubDispatchFunction(SubDispatch):
             p.append(inspect.Parameter(self.var_keyword, inspect._VAR_KEYWORD))
         return inspect.Signature(p, __validate_parameters__=False)
 
+    def _parse_inputs(self, *args, **kw):
+        defaults, inputs = self.dsp.default_values, {}
+        for i, k in enumerate(self.inputs or ()):
+            try:
+                inputs[k] = args[i]
+                if k in kw:
+                    msg = 'multiple values for argument %r'
+                    raise TypeError(msg % k) from None
+            except IndexError:
+                if k in kw:
+                    inputs[k] = kw.pop(k)
+                elif k in defaults:
+                    inputs[k] = defaults[k]['value']
+                else:
+                    msg = 'missing a required argument: %r'
+                    raise TypeError(msg % k) from None
+        if len(inputs) < len(args):
+            raise TypeError('too many positional arguments') from None
+        if self.var_keyword:
+            inputs.update(kw)
+        elif not set(kw).issubset(inputs):
+            msg = 'got an unexpected keyword argument %r'
+            raise TypeError(msg % next(kw)) from None
+
+        return inputs
+
     def __call__(self, *args, _stopper=None, _executor=False, _sol_name=(),
                  **kw):
         # Namespace shortcuts.
@@ -955,14 +997,11 @@ class SubDispatchFunction(SubDispatch):
         self.solution.full_name, dfl = _sol_name, self.dsp.default_values
 
         # Parse inputs.
-        ba = self.__signature__.bind(*args, **kw)
-        ba.apply_defaults()
-        inp, extra = ba.arguments, ba.arguments.pop(self.var_keyword, {})
-        i = set(extra) - set(self.dsp.data_nodes)
+        inp = self._parse_inputs(*args, **kw)
+        i = set(inp) - set(self.dsp.data_nodes)
         if i:
             msg = "%s() got an unexpected keyword argument '%s'"
             raise TypeError(msg % (self.function_id, min(i)))
-        inp.update(extra)
 
         inputs_dist = combine_dicts(
             sol.inputs_dist, dict.fromkeys(inp, 0), self.inputs_dist or {}
@@ -1089,7 +1128,7 @@ class SubDispatchPipe(SubDispatchFunction):
         self._sol.no_call = False
 
     def _set_pipe(self):
-        from .cst import START
+
         def _make_tks(task):
             v, s = task[-1]
             if v is START:
@@ -1129,9 +1168,7 @@ class SubDispatchPipe(SubDispatchFunction):
                  **kw):
         self.solution, key_map = self._init_new_solution(_sol_name)
         pipe_append = self._pipe_append()
-        ba = self.__signature__.bind(*args, **kw)
-        ba.apply_defaults()
-        self._init_workflows(ba.arguments)
+        self._init_workflows(self._parse_inputs(*args, **kw))
 
         for x, nxt_nds, nxt_dsp in self.pipe:
             v, s = x[-1]
@@ -1324,50 +1361,106 @@ def add_function(dsp, inputs_kwargs=False, inputs_defaults=False, **kw):
 
 class inf(collections.namedtuple('_inf', ['inf', 'num'])):
     """Class to model infinite numbers for workflow distance."""
-    _methods = {
-        'add': {'func': lambda x, y: x + y, 'dfl': 0},
-        'sub': {'func': lambda x, y: x - y, 'dfl': 0},
-        'mul': {'func': lambda x, y: x * y},
-        'truediv': {'func': lambda x, y: x / y},
-        'pow': {'func': lambda x, y: x ** y},
-        'mod': {'func': lambda x, y: x % y},
-        'floordiv': {'func': lambda x, y: x // y},
 
-        'neg': {'func': lambda x: -x, 'self': True},
-        'pos': {'func': lambda x: +x, 'self': True},
-        'abs': {'func': lambda x: abs(x), 'self': True},
-        'round': {'func': lambda *a: round(*a), 'self': True},
-        'trunc': {'func': math.trunc, 'self': True},
-        'floor': {'func': math.floor, 'self': True},
-        'ceil': {'func': math.ceil, 'self': True},
-    }
-    for k in ('add', 'sub', 'mul', 'mod', 'pow', 'truediv', 'floordiv'):
-        _methods['r%s' % k] = combine_dicts(_methods[k], {'reverse': True})
+    @staticmethod
+    def format(val):
+        if not isinstance(val, tuple):
+            val = 0, val
+        return inf(*val)
 
-    for k in ('ge', 'gt', 'eq', 'le', 'lt', 'ne'):
-        _methods[k] = {'func': getattr(tuple, '__%s__' % k), 'dfl': 0, 'log': 1}
+    def __add__(self, other):
+        if isinstance(other, self.__class__):
+            return inf(self[0] + other[0], self[1] + other[1])
+        return inf(self[0], self[1] + other)
 
-    # noinspection PyMethodParameters
-    def _wrap(k, d):
-        f = d['func']
-        if d.get('log'):
-            def method(self, other, *a):
-                if not isinstance(other, self.__class__):
-                    other = d.get('dfl', other), other
-                return f(self, other, *a)
-        elif d.get('self'):
-            def method(self, *a):
-                return inf(*(f(x, *a) for x in self))
-        else:
-            i = -1 if d.get('reverse') else 1
+    def __sub__(self, other):
+        other = isinstance(other, self.__class__) and other or (0, other)
+        return inf(*(x - y for x, y in zip(self, other)))
 
-            def method(self, other, *a):
-                if not isinstance(other, self.__class__):
-                    other = d.get('dfl', other), other
-                return inf(*(f(x, y, *a) for x, y in zip(*(self, other)[::i])))
-        method.__name__ = k
-        return method
+    def __rsub__(self, other):
+        other = isinstance(other, self.__class__) and other or (0, other)
+        return inf(*(x - y for x, y in zip(other, self)))
 
-    for k in _methods:
-        exec('__{0}__ = _wrap("__{0}__", _methods["{0}"])'.format(k))
-    del _wrap, _methods, k
+    def __mul__(self, other):
+        other = isinstance(other, self.__class__) and other or (other, other)
+        return inf(*(x * y for x, y in zip(self, other)))
+
+    def __truediv__(self, other):
+        other = isinstance(other, self.__class__) and other or (other, other)
+        return inf(*(x / y for x, y in zip(self, other)))
+
+    def __rtruediv__(self, other):
+        other = isinstance(other, self.__class__) and other or (other, other)
+        return inf(*(x / y for x, y in zip(other, self)))
+
+    def __pow__(self, other):
+        other = isinstance(other, self.__class__) and other or (other, other)
+        return inf(*(x ** y for x, y in zip(self, other)))
+
+    def __rpow__(self, other):
+        other = isinstance(other, self.__class__) and other or (other, other)
+        return inf(*(x ** y for x, y in zip(other, self)))
+
+    def __mod__(self, other):
+        other = isinstance(other, self.__class__) and other or (other, other)
+        return inf(*(x % y for x, y in zip(self, other)))
+
+    def __rmod__(self, other):
+        other = isinstance(other, self.__class__) and other or (other, other)
+        return inf(*(x % y for x, y in zip(other, self)))
+
+    def __floordiv__(self, other):
+        other = isinstance(other, self.__class__) and other or (other, other)
+        return inf(*(x // y for x, y in zip(self, other)))
+
+    def __rfloordiv__(self, other):
+        other = isinstance(other, self.__class__) and other or (other, other)
+        return inf(*(x // y for x, y in zip(other, self)))
+
+    def __neg__(self):
+        return inf(*(-x for x in self))
+
+    def __pos__(self):
+        return inf(*(+x for x in self))
+
+    def __abs__(self):
+        return inf(*(map(abs, self)))
+
+    def __trunc__(self):
+        return inf(*(map(math.trunc, self)))
+
+    def __floor__(self):
+        return inf(*(map(math.floor, self)))
+
+    def __ceil__(self):
+        return inf(*(map(math.ceil, self)))
+
+    def __round__(self, n=None):
+        return inf(*(round(x, n) for x in self))
+
+    __radd__ = __add__
+    __rmul__ = __mul__
+
+    def __ge__(self, other):
+        other = isinstance(other, self.__class__) and tuple(other) or (0, other)
+        return tuple(self) >= other
+
+    def __gt__(self, other):
+        other = isinstance(other, self.__class__) and tuple(other) or (0, other)
+        return tuple(self) > other
+
+    def __eq__(self, other):
+        other = isinstance(other, self.__class__) and tuple(other) or (0, other)
+        return tuple(self) == other
+
+    def __le__(self, other):
+        other = isinstance(other, self.__class__) and tuple(other) or (0, other)
+        return tuple(self) <= other
+
+    def __lt__(self, other):
+        other = isinstance(other, self.__class__) and tuple(other) or (0, other)
+        return tuple(self) < other
+
+    def __ne__(self, other):
+        other = isinstance(other, self.__class__) and tuple(other) or (0, other)
+        return tuple(self) != other

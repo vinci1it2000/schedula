@@ -5,15 +5,18 @@
 # Licensed under the EUPL (the 'Licence');
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
+import os
 import math
-import doctest
 import unittest
-import functools
 import schedula as sh
 
+EXTRAS = os.environ.get('EXTRAS', 'all')
 
+
+@unittest.skipIf(EXTRAS not in ('all',), 'Not for extra %s.' % EXTRAS)
 class TestDoctest(unittest.TestCase):
     def runTest(self):
+        import doctest
         import schedula.utils.dsp as utl
         failure_count, test_count = doctest.testmod(
             utl, optionflags=doctest.NORMALIZE_WHITESPACE | doctest.ELLIPSIS)
@@ -42,8 +45,7 @@ class TestDispatcherUtils(unittest.TestCase):
         self.assertTrue(sh.inf(0, 2.1) == 2.1)
         self.assertTrue(sh.inf(1.1, 2.1) == sh.inf(1.1, 2.1))
         self.assertTrue(sh.inf(0, 2.1) != (0, 2.1))
-        self.assertTrue(3 <= sh.inf(1, 2))
-        self.assertTrue(3 >= sh.inf(0, 2))
+
         self.assertTrue(3 != sh.inf(1, 2))
         self.assertTrue(2 == sh.inf(0, 2))
         self.assertTrue((0, 2) != sh.inf(0, 2))
@@ -73,11 +75,17 @@ class TestDispatcherUtils(unittest.TestCase):
         self.assertEqual(-sh.inf(1, 2), sh.inf(-1, -2))
         self.assertEqual(+sh.inf(-1, 2), sh.inf(-1, 2))
         self.assertEqual(abs(sh.inf(-1, 2)), sh.inf(1, 2))
-        self.assertEqual(round(sh.inf(1.22, 2.62)), sh.inf(1, 3))
-        self.assertEqual(round(sh.inf(1.22, 2.67), 1), sh.inf(1.2, 2.7))
-        self.assertEqual(math.trunc(sh.inf(1.2, 2.6)), sh.inf(1, 2))
-        self.assertEqual(math.ceil(sh.inf(1.2, 2.6)), sh.inf(2, 3))
-        self.assertEqual(math.floor(sh.inf(1.2, 2.6)), sh.inf(1, 2))
+
+        if EXTRAS != 'micropython':
+            self.assertTrue(3 <= sh.inf(1, 2))
+            self.assertTrue(3 >= sh.inf(0, 2))
+            self.assertTrue(3 < sh.inf(1, 2))
+            self.assertTrue(3 > sh.inf(0, 2))
+            self.assertEqual(round(sh.inf(1.22, 2.62)), sh.inf(1, 3))
+            self.assertEqual(round(sh.inf(1.22, 2.67), 1), sh.inf(1.2, 2.7))
+            self.assertEqual(math.trunc(sh.inf(1.2, 2.6)), sh.inf(1, 2))
+            self.assertEqual(math.ceil(sh.inf(1.2, 2.6)), sh.inf(2, 3))
+            self.assertEqual(math.floor(sh.inf(1.2, 2.6)), sh.inf(1, 2))
 
     def test_summation(self):
         self.assertEqual(sh.summation(1, 3.0, 4, 2), 10.0)
@@ -91,10 +99,11 @@ class TestDispatcherUtils(unittest.TestCase):
         res = {'a': 1, 'b': args[1]['b']}
         self.assertEqual(sh.selector(*args), res)
 
-        self.assertNotEqual(sh.selector(*args, copy=True), res)
+        if EXTRAS != 'micropython':
+            self.assertNotEqual(sh.selector(*args, copy=True), res)
 
         args = (['a', 'b'], {'a': 1, 'b': 2, 'c': 3})
-        self.assertSequenceEqual(sh.selector(*args, output_type='list'), (1, 2))
+        self.assertEqual(tuple(sh.selector(*args, output_type='list')), (1, 2))
 
         args = ['a', 'd'], {'a': 1, 'b': 1}
         self.assertEqual(sh.selector(*args, allow_miss=True), {'a': 1})
@@ -105,7 +114,8 @@ class TestDispatcherUtils(unittest.TestCase):
         v = {'a': object()}
         self.assertEqual(sh.replicate_value(v, n=3, copy=False), tuple([v] * 3))
 
-        self.assertNotEqual(sh.replicate_value(v, n=3)[0], v)
+        if EXTRAS != 'micropython':
+            self.assertNotEqual(sh.replicate_value(v, n=3)[0], v)
 
     def test_map_dict(self):
         d = sh.map_dict(
@@ -185,12 +195,12 @@ class TestDispatcherUtils(unittest.TestCase):
                 return list((a, b) + c)
 
         fo = original_func()
-        func = sh.add_args(functools.partial(fo, 1, 2), 2)
+        func = sh.add_args(sh.partial(fo, 1, 2), 2)
         self.assertEqual(func.__name__, 'original_func')
         self.assertEqual(func.__doc__, None)
         self.assertEqual(func((1, 2, 3), 2, 4), [1, 2, 4])
         func = sh.add_args(
-            functools.partial(functools.partial(func, 1), 1, 2), 2,
+            sh.partial(sh.partial(func, 1), 1, 2), 2,
             callback=lambda res, *args, **kwargs: res.pop()
         )
         self.assertEqual(func.__name__, 'original_func')
@@ -218,7 +228,7 @@ class TestSubDispatcher(unittest.TestCase):
         dsp.add_function('dispatch', dispatch, ['d'], ['e'])
         dsp.add_function('dispatch_dict', dispatch_dict, ['d'], ['f'])
         dsp.add_function('dispatch_list', dispatch_list, ['d'], ['g'])
-        dsp.add_function('dispatch_list', dispatch_val, ['d'], ['h'])
+        dsp.add_function('dispatch_val', dispatch_val, ['d'], ['h'])
         self.dsp = dsp
 
     def test_function(self):
@@ -226,18 +236,19 @@ class TestSubDispatcher(unittest.TestCase):
 
         o = self.dsp.dispatch(inputs={'d': {'a': 3}})
         w = o.workflow
-        self.assertEqual(o['e'], {'a': 3, 'b': 4, 'c': 2})
-        self.assertEqual(o['f'], {'c': 2})
-        self.assertSequenceEqual(o['g'], (3, 2))
+        self.assertEqual(dict(o['e'].items()), {'a': 3, 'b': 4, 'c': 2})
+        self.assertEqual(dict(o['f'].items()), {'c': 2})
+        self.assertEqual(tuple(o['g']), (3, 2))
         self.assertEqual(o['h'], [2])
+
         self.assertIsInstance(w.nodes['dispatch']['solution'], Solution)
 
 
 class TestSubDispatchFunction(unittest.TestCase):
     def setUp(self):
         dsp = sh.Dispatcher()
-        dsp.add_function(function=max, inputs=['a', 'b'], outputs=['c'])
-        dsp.add_function(function=min, inputs=['c', 'b'], outputs=['a'],
+        dsp.add_function('max', max, inputs=['a', 'b'], outputs=['c'])
+        dsp.add_function('min', min, inputs=['c', 'b'], outputs=['a'],
                          input_domain=lambda c, b: c * b > 0)
         self.dsp_1 = dsp
 
@@ -245,14 +256,15 @@ class TestSubDispatchFunction(unittest.TestCase):
 
         def f(a, b, c=0, f=0):
             return a + b + c + f, a - b + c + f
+
         dsp.add_data('h', 1)
         dsp.add_function(
-            function=f, inputs=['a', 'b', 'e', 'h'], outputs=['c', sh.SINK]
+            'f', f, inputs=['a', 'b', 'e', 'h'], outputs=['c', sh.SINK]
         )
         dsp.add_data('!i', 0, 10)
         dsp.add_data('c', 100, 120)
         dsp.add_function(
-            function=f, inputs=['c', 'b', '!i'], outputs=[sh.SINK, 'd']
+            'f', f, inputs=['c', 'b', '!i'], outputs=[sh.SINK, 'd']
         )
         self.dsp_2 = dsp
 
@@ -261,13 +273,15 @@ class TestSubDispatchFunction(unittest.TestCase):
         def f(a=0):
             return a
 
-        dsp.add_func(f, outputs=['c'], weight=1)
-        dsp.add_func(f, inputs_kwargs=True, outputs=['d'], inputs_defaults=True)
+        dsp.add_function('f', f, outputs=['c'], weight=1)
+        dsp.add_data('a', 0)
+        dsp.add_function('f', f, ['a'], outputs=['d'])
 
         def g(x, y=0):
             return x + y
 
-        dsp.add_func(g, outputs=['z'], inputs_kwargs=True, inputs_defaults=True)
+        dsp.add_data('y', 0)
+        dsp.add_function('g', g, ['x', 'y'], outputs=['z'])
 
         self.dsp_3 = dsp
 
@@ -315,8 +329,9 @@ class TestSubDispatchFunction(unittest.TestCase):
         self.assertRaises(TypeError, fun, a=2)
         self.assertRaises(TypeError, fun, a=2, c=7)
         self.assertRaises(TypeError, fun, d=2)
-
-        fun = sh.SubDispatchFunction(self.dsp_3, inputs='yx', outputs=['z'])
+        fun = sh.SubDispatchFunction(
+            self.dsp_3, inputs=['y', 'x'], outputs=['z']
+        )
         self.assertEqual(fun(x=3), 3)
         self.assertRaises(TypeError, fun, 2)
         self.assertRaises(TypeError, fun, y=4)
@@ -325,11 +340,11 @@ class TestSubDispatchFunction(unittest.TestCase):
 
 class TestSubDispatchPipe(unittest.TestCase):
     def setUp(self):
-        dsp = sh.Dispatcher()
-        dsp.add_function(function=max, inputs=['a', 'b'], outputs=['c'])
-        dsp.add_function(function=min, inputs=['c', 'b'], outputs=['a'],
-                         input_domain=lambda c, b: c * b > 0)
-        self.dsp_1 = dsp
+        dsp_1 = sh.BlueDispatcher()
+        dsp_1.add_function('max', max, inputs=['a', 'b'], outputs=['c'])
+        dsp_1.add_function('min', min, inputs=['c', 'b'], outputs=['a'],
+                           input_domain=lambda c, b: c * b > 0)
+        self.dsp_1 = dsp_1.register()
 
         dsp = sh.Dispatcher()
 
@@ -338,15 +353,15 @@ class TestSubDispatchPipe(unittest.TestCase):
                 return a, sh.NONE
             return a + b, a - b
 
-        dsp.add_function(function=f, inputs=['a', 'b'], outputs=['c', sh.SINK])
-        dsp.add_function(function=f, inputs=['c', 'b'], outputs=[sh.SINK, 'd'])
+        dsp.add_function('f', f, inputs=['a', 'b'], outputs=['c', sh.SINK])
+        dsp.add_function('f', f, inputs=['c', 'b'], outputs=[sh.SINK, 'd'])
         self.dsp_2 = dsp
 
         dsp = sh.Dispatcher()
 
-        dsp.add_function(function=f, inputs=['a', 'b'], outputs=['c', 'd'],
+        dsp.add_function('f', f, inputs=['a', 'b'], outputs=['c', 'd'],
                          out_weight={'d': 100})
-        dsp.add_dispatcher(dsp=self.dsp_1.copy(), inputs={'a': 'a', 'b': 'b'},
+        dsp.add_dispatcher(dsp=dsp_1.register(), inputs={'a': 'a', 'b': 'b'},
                            outputs={'c': 'd'})
         self.dsp_3 = dsp
 
@@ -356,7 +371,7 @@ class TestSubDispatchPipe(unittest.TestCase):
             self.dsp_3, 'f', ['b', 'a'], ['c', 'd']),
             inputs=['b', 'a'], outputs=['c', 'd'], out_weight={'d': 100}
         )
-        dsp.add_dispatcher(dsp=self.dsp_1.copy(), inputs={'a': 'a', 'b': 'b'},
+        dsp.add_dispatcher(dsp=dsp_1.register(), inputs={'a': 'a', 'b': 'b'},
                            outputs={'c': 'd'})
         self.dsp_4 = dsp
 
@@ -367,12 +382,12 @@ class TestSubDispatchPipe(unittest.TestCase):
 
         dsp.add_data('h', 1)
         dsp.add_function(
-            function=f, inputs=['a', 'b', 'e', 'h'], outputs=['c', sh.SINK]
+            'f', f, inputs=['a', 'b', 'e', 'h'], outputs=['c', sh.SINK]
         )
         dsp.add_data('i', 0, 10)
         dsp.add_data('c', 100, 120)
         dsp.add_function(
-            function=f, inputs=['c', 'b', 'i'], outputs=[sh.SINK, 'd']
+            'f', f, inputs=['c', 'b', 'i'], outputs=[sh.SINK, 'd']
         )
         self.dsp_5 = dsp
 
@@ -381,13 +396,15 @@ class TestSubDispatchPipe(unittest.TestCase):
         def f(a=0):
             return a
 
-        dsp.add_func(f, outputs=['c'])
-        dsp.add_func(f, inputs_kwargs=True, outputs=['d'], inputs_defaults=True)
+        dsp.add_function('f', f, outputs=['c'])
+        dsp.add_data('a', 0)
+        dsp.add_function('f', f, inputs=['a'], outputs=['d'])
 
         def g(x, y=0):
             return x + y
 
-        dsp.add_func(g, outputs=['z'], inputs_kwargs=True, inputs_defaults=True)
+        dsp.add_data('y', 0)
+        dsp.add_function('g', g, inputs=['x', 'y'], outputs=['z'])
 
         self.dsp_6 = dsp
 
@@ -432,7 +449,7 @@ class TestSubDispatchPipe(unittest.TestCase):
         self.assertRaises(TypeError, fun, 2, 1, 2, 5, 6)
         self.assertRaises(TypeError, fun, 2, 1, a=2, b=2)
         self.assertRaises(TypeError, fun, 2, 1, g=0)
-        self.assertRaises(TypeError, fun, 1, 2, 0, c=3)
+        self.assertRaises(TypeError, fun, 1, 2, 0, c=3, aa=0)
         self.assertRaises(TypeError, fun, 1, 2, 0, i=3)
         self.assertRaises(TypeError, fun)
 
@@ -452,7 +469,7 @@ class TestSubDispatchPipe(unittest.TestCase):
         self.assertRaises(TypeError, fun, a=2, c=7)
         self.assertRaises(TypeError, fun, d=2)
 
-        fun = sh.SubDispatchPipe(self.dsp_6, inputs='yx', outputs=['z'])
+        fun = sh.SubDispatchPipe(self.dsp_6, inputs=['y', 'x'], outputs=['z'])
         self.assertEqual(fun(x=3), 3)
         self.assertRaises(TypeError, fun, 2)
         self.assertRaises(TypeError, fun, y=4)
@@ -461,11 +478,11 @@ class TestSubDispatchPipe(unittest.TestCase):
 
 class TestDispatchPipe(unittest.TestCase):
     def setUp(self):
-        dsp = sh.Dispatcher()
-        dsp.add_function(function=max, inputs=['a', 'b'], outputs=['c'])
-        dsp.add_function(function=min, inputs=['c', 'b'], outputs=['a'],
-                         input_domain=lambda c, b: c * b > 0)
-        self.dsp_1 = dsp
+        dsp_1 = sh.BlueDispatcher()
+        dsp_1.add_function('max', max, inputs=['a', 'b'], outputs=['c'])
+        dsp_1.add_function('min', min, inputs=['c', 'b'], outputs=['a'],
+                           input_domain=lambda c, b: c * b > 0)
+        self.dsp_1 = dsp_1.register()
 
         dsp = sh.Dispatcher()
 
@@ -474,15 +491,15 @@ class TestDispatchPipe(unittest.TestCase):
                 return a, sh.NONE
             return a + b, a - b
 
-        dsp.add_function(function=f, inputs=['a', 'b'], outputs=['c', sh.SINK])
-        dsp.add_function(function=f, inputs=['c', 'b'], outputs=[sh.SINK, 'd'])
+        dsp.add_function('f', f, inputs=['a', 'b'], outputs=['c', sh.SINK])
+        dsp.add_function('f', f, inputs=['c', 'b'], outputs=[sh.SINK, 'd'])
         self.dsp_2 = dsp
 
         dsp = sh.Dispatcher()
 
-        dsp.add_function(function=f, inputs=['a', 'b'], outputs=['c', 'd'],
+        dsp.add_function('f', f, inputs=['a', 'b'], outputs=['c', 'd'],
                          out_weight={'d': 100})
-        dsp.add_dispatcher(dsp=self.dsp_1.copy(), inputs={'a': 'a', 'b': 'b'},
+        dsp.add_dispatcher(dsp=dsp_1.register(), inputs={'a': 'a', 'b': 'b'},
                            outputs={'c': 'd'})
         self.dsp_3 = dsp
 
@@ -492,7 +509,7 @@ class TestDispatchPipe(unittest.TestCase):
             self.dsp_3, 'f', ['b', 'a'], ['c', 'd']),
             inputs=['b', 'a'], outputs=['c', 'd'], out_weight={'d': 100}
         )
-        dsp.add_dispatcher(dsp=self.dsp_1.copy(), inputs={'a': 'a', 'b': 'b'},
+        dsp.add_dispatcher(dsp=dsp_1.register(), inputs={'a': 'a', 'b': 'b'},
                            outputs={'c': 'd'})
         self.dsp_4 = dsp
 
@@ -503,13 +520,11 @@ class TestDispatchPipe(unittest.TestCase):
 
         dsp.add_data('h', 1)
         dsp.add_function(
-            function=f, inputs=['a', 'b', 'e', 'h'], outputs=['c', sh.SINK]
+            'f', f, inputs=['a', 'b', 'e', 'h'], outputs=['c', sh.SINK]
         )
         dsp.add_data('i', 0, 10)
         dsp.add_data('c', 100, 120)
-        dsp.add_function(
-            function=f, inputs=['c', 'b', 'i'], outputs=[sh.SINK, 'd']
-        )
+        dsp.add_function('f', f, inputs=['c', 'b', 'i'], outputs=[sh.SINK, 'd'])
         self.dsp_5 = dsp
 
         dsp = sh.Dispatcher()
@@ -517,13 +532,15 @@ class TestDispatchPipe(unittest.TestCase):
         def f(a=0):
             return a
 
-        dsp.add_func(f, outputs=['c'])
-        dsp.add_func(f, inputs_kwargs=True, outputs=['d'], inputs_defaults=True)
+        dsp.add_function('f', f, outputs=['c'])
+        dsp.add_data('a', 0)
+        dsp.add_function('f', f, inputs=['a'], outputs=['d'])
 
         def g(x, y=0):
             return x + y
 
-        dsp.add_func(g, outputs=['z'], inputs_kwargs=True, inputs_defaults=True)
+        dsp.add_data('y', 0)
+        dsp.add_function('g', g, inputs=['x', 'y'], outputs=['z'])
         self.dsp_6 = dsp
 
     def test_function(self):
@@ -587,13 +604,13 @@ class TestDispatchPipe(unittest.TestCase):
         self.assertRaises(TypeError, fun, a=2, c=7)
         self.assertRaises(TypeError, fun, d=2)
 
-        fun = sh.DispatchPipe(self.dsp_6, inputs='yx', outputs=['z'])
+        fun = sh.DispatchPipe(self.dsp_6, inputs=['y', 'x'], outputs=['z'])
         self.assertEqual(fun(x=3), 3)
         self.assertRaises(TypeError, fun, 2)
         self.assertRaises(TypeError, fun, y=4)
         self.assertRaises(TypeError, fun, a=2)
 
-        fun = sh.DispatchPipe(self.dsp_6, inputs='x', outputs=['z'])
+        fun = sh.DispatchPipe(self.dsp_6, inputs=['x'], outputs=['z'])
         self.assertEqual(fun(x=3), 3)
         fun.__setstate__(fun.__getstate__())
         self.assertEqual(fun(x=3), 3)

@@ -1,0 +1,8 @@
+micropython-itertools
+micropython-logging
+micropython-types
+micropython-functools
+micropython-inspect
+micropython-copy
+micropython-collections.deque
+micropython-collections

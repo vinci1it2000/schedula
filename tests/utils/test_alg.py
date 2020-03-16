@@ -5,15 +5,17 @@
 # Licensed under the EUPL (the 'Licence');
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
-
-import doctest
+import os
 import unittest
 import schedula as sh
-from functools import partial
+
+EXTRAS = os.environ.get('EXTRAS', 'all')
 
 
+@unittest.skipIf(EXTRAS not in ('all',), 'Not for extra %s.' % EXTRAS)
 class TestDoctest(unittest.TestCase):
     def runTest(self):
+        import doctest
         import schedula.utils.alg as dsp
         failure_count, test_count = doctest.testmod(
             dsp, optionflags=doctest.NORMALIZE_WHITESPACE | doctest.ELLIPSIS)
@@ -45,7 +47,7 @@ class TestDispatcherGetSubNode(unittest.TestCase):
         ss_dsp.add_function('fun', fun, ['a', 'e'], ['b', 'c', 'd'])
         ss_dsp_func = sh.SubDispatchFunction(
             ss_dsp, 'func', ['e', 'a'], ['c', 'd', 'b'])
-        sub_disfun = partial(ss_dsp_func, 5)
+        sub_disfun = sh.partial(ss_dsp_func, 5)
 
         s_dsp = sh.Dispatcher()
 
@@ -140,17 +142,19 @@ class TestDispatcherGetSubNode(unittest.TestCase):
         self.assertIsInstance(o, Solution)
         self.assertEqual(p, path[:-1])
 
-        path = 'dispatch', 'a'
-        o, p = get_sub_node(dsp, path, node_attr='description')
-        self.assertEqual(o, 'Nice a.')
-        self.assertEqual(p, path)
+        if EXTRAS != 'micropython':
+            path = 'dispatch', 'a'
+            o, p = get_sub_node(dsp, path, node_attr='description')
+            self.assertEqual(o, 'Nice a.')
+            self.assertEqual(p, path)
 
-        o, p = get_sub_node(dsp, path, node_attr='value_type')
-        self.assertEqual(o, 'float')
-        self.assertEqual(p, path)
+            o, p = get_sub_node(dsp, path, node_attr='value_type')
+            self.assertEqual(o, 'float')
+            self.assertEqual(p, path)
 
         path = ('f',)
         o, p = get_sub_node(dsp, path)
+        print('*' * 100)
         self.assertEqual(o, 'new')
         self.assertEqual(p, path)
 

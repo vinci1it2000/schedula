@@ -24,7 +24,6 @@ Modules:
 """
 import os
 import sys
-import functools
 from ._version import *
 
 _all = {
@@ -54,6 +53,7 @@ _all = {
     'map_list': '.utils.dsp',
     'selector': '.utils.dsp',
     'replicate_value': '.utils.dsp',
+    'partial': '.utils.dsp',
     'add_args': '.utils.dsp',
     'stack_nested_keys': '.utils.dsp',
     'get_nested_dicts': '.utils.dsp',
@@ -85,7 +85,6 @@ _all = {
 __all__ = tuple(_all)
 
 
-@functools.lru_cache(None)
 def __dir__():
     return __all__ + (
         '__doc__', '__author__', '__updated__', '__title__', '__version__',
@@ -114,7 +113,7 @@ if sys.version_info[:2] < (3, 7) or os.environ.get('IMPORT_ALL') == 'True':
     from .utils.cst import EMPTY, END, NONE, PLOT, SELF, SINK, START
     from .utils.dsp import (
         DispatchPipe, SubDispatch, SubDispatchFunction, SubDispatchPipe,
-        add_args,
+        add_args, partial,
         add_function, are_in_nested_dicts, bypass, combine_dicts,
         combine_nested_dicts, get_nested_dicts, inf, kk_dict, map_dict,
         map_list,
@@ -126,7 +125,10 @@ if sys.version_info[:2] < (3, 7) or os.environ.get('IMPORT_ALL') == 'True':
     )
     from .utils.gen import Token, counter
     from .utils.graph import DiGraph
-    from .utils.io import (
-        load_default_values, load_dispatcher, load_map, save_default_values,
-        save_dispatcher, save_map
-    )
+    try:
+        from .utils.io import (
+            load_default_values, load_dispatcher, load_map, save_default_values,
+            save_dispatcher, save_map
+        )
+    except ImportError:  # MicroPython.
+        pass

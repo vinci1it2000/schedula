@@ -6,16 +6,18 @@
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
-from __future__ import division, print_function, unicode_literals
-
-import schedula as sh
-import doctest
+import os
 import unittest
+import schedula as sh
 from copy import copy, deepcopy
 
+EXTRAS = os.environ.get('EXTRAS', 'all')
 
+
+@unittest.skipIf(EXTRAS not in ('all',), 'Not for extra %s.' % EXTRAS)
 class TestDoctest(unittest.TestCase):
     def runTest(self):
+        import doctest
         import schedula.utils.gen as utl
         failure_count, test_count = doctest.testmod(
             utl, optionflags=doctest.NORMALIZE_WHITESPACE | doctest.ELLIPSIS)
@@ -32,7 +34,7 @@ class TestUtils(unittest.TestCase):
         self.assertNotEqual(a, sh.Token('a'))
         self.assertEqual(a, copy(a))
         self.assertEqual(a, deepcopy(a))
-        self.assertEqual(sorted(['c', a, 'b']), [a, 'b', 'c'])
+        self.assertEqual(sorted(['c', a, 'b'], key=str), [a, 'b', 'c'])
 
         a = sh.Token(1)
         self.assertNotEqual(a, '1')

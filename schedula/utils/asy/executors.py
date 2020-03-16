@@ -9,15 +9,12 @@
 """
 It defines the executors classes.
 """
-import weakref
-import threading
 import functools
-from . import EXECUTORS
 from ..cst import EMPTY
-from concurrent.futures._base import Error
-from concurrent.futures import Future, wait as _wait_fut
+from . import _process_funcs
+from ..exc import ExecutorShutdown
+from ..imp import Future, finalize, Error
 from ..dsp import parent_func, SubDispatch, NoSub, get_nested_dicts
-from ..exc import ExecutorShutdown, DispatcherError, DispatcherAbort
 
 
 def _safe_set_result(fut, value):
@@ -34,38 +31,12 @@ def _safe_set_exception(fut, value):
         pass
 
 
-def _process_funcs(
-        exe_id, funcs, executor, *args, stopper=None, sol_name=None, **kw):
-    res, sid = [], exe_id[-1]
-    for fn in funcs:
-        if stopper and stopper.is_set():
-            raise DispatcherAbort
-        pfunc, r = parent_func(fn), {}
-        if isinstance(pfunc, SubDispatch):
-            try:
-                r['res'] = fn(*args, _stopper=stopper, _executor=executor,
-                              _sol_name=sol_name, **kw)
-            except DispatcherError as ex:
-                if isinstance(pfunc, NoSub):
-                    raise ex
-                r['err'] = ex
-            r['sol'] = pfunc.solution
-        else:
-            e = EXECUTORS.get_executor(exe_id)
-            r['res'] = e.process(sid, fn, *args, **kw) if e else fn(*args, **kw)
-        res.append(r)
-        if 'err' in r:
-            break
-        args, kw = (r['res'],), {}
-    return res
-
-
 class Executor:
     """Base Executor"""
 
     def __init__(self):
         self.tasks = {}
-        weakref.finalize(self, self.shutdown, False)
+        finalize(self, self.shutdown, False)
 
     def __reduce__(self):
         return self.__class__, ()
@@ -88,6 +59,7 @@ class Executor:
     def shutdown(self, wait=True):
         tasks = dict(self.tasks)
         if wait:
+            from concurrent.futures import wait as _wait_fut
             # noinspection PyCallingNonCallable
             _wait_fut(tasks)
         for fut, task in tasks.items():
@@ -131,6 +103,7 @@ class ThreadExecutor(Executor):
     """Multi Thread Executor"""
 
     def submit(self, func, *args, **kwargs):
+        import threading
         fut, send = Future(), lambda res: self._set_future(fut, res)
         task = threading.Thread(
             target=self._target, args=(send, func, args, kwargs)
@@ -212,7 +185,7 @@ class PoolExecutor:
         self._parallel = parallel
         self._running = bool(thread_executor)
         self.futures = {}
-        weakref.finalize(self, self.shutdown, False)
+        finalize(self, self.shutdown, False)
 
     def __reduce__(self):
         return self.__class__, (self._thread, self._process, self._parallel)
@@ -255,6 +228,7 @@ class PoolExecutor:
         raise ExecutorShutdown
 
     def wait(self, timeout=None):
+        from concurrent.futures import wait as _wait_fut
         _wait_fut(self.futures, timeout)
 
     def shutdown(self, wait=True):

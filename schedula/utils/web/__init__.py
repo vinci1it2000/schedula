@@ -14,7 +14,7 @@ import functools
 import logging
 import tempfile
 import os.path as osp
-from .drw import SiteMap, SiteFolder, FolderNode, SiteNode, basic_app
+from ..drw import SiteMap, SiteFolder, FolderNode, SiteNode, basic_app
 
 __author__ = 'Vincenzo Arcidiacono <vinci1it2000@gmail.com>'
 
@@ -81,7 +81,7 @@ class WebMap(SiteMap):
 
 
 def _func_handler(func):
-    from .dsp import selector
+    from ..dsp import selector
     from flask import request, jsonify
     data = {}
     try:

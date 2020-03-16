@@ -12,11 +12,11 @@ It provides a solution class for dispatch result.
 import time
 import heapq
 import logging
-import weakref
 import collections
 from .base import Base
 from .cst import START, NONE, PLOT
-from .dsp import stlp, get_nested_dicts
+from .imp import finalize, Future
+from .dsp import stlp, get_nested_dicts, inf
 from .exc import DispatcherError, DispatcherAbort, SkipNode, ExecutorShutdown
 from .alg import add_edge_fun, remove_edge_fun, get_full_pipe, _sort_sk_wait_in
 from .asy import async_thread, await_result, async_process, AsyncList, EXECUTORS
@@ -47,7 +47,7 @@ class Solution(Base, collections.OrderedDict):
         self._pipe = []
         self.parent = dsp
 
-        weakref.finalize(self, EXECUTORS.pop_active, id(self))
+        finalize(self, EXECUTORS.pop_active, id(self))
         from ..dispatcher import Dispatcher
         self._set_dsp_features(dsp or Dispatcher())
 
@@ -148,7 +148,9 @@ class Solution(Base, collections.OrderedDict):
         self._errors = collections.OrderedDict()
         self.sub_sol = {self.index: self}
         self.fringe = []  # Use heapq with (distance, wait, label).
-        self.dist, self.seen, self._meet = {START: -1}, {START: -1}, {START: -1}
+        self.dist = {START: inf(0, -1)}
+        self.seen = {START: inf(0, -1)}
+        self._meet = {START: inf(0, -1)}
         self._update_methods()
         self._pipe = []
 
@@ -173,10 +175,10 @@ class Solution(Base, collections.OrderedDict):
             inputs = self.inputs
 
         input_value = input_value or self._input_value(inputs)
-
+        initial_dist = inf.format(initial_dist)
         # Add initial values to fringe and seen.
         it = ((inputs_dist.get(v, 0.0) + initial_dist, v) for v in inputs)
-        for d, k in sorted(it):
+        for d, k in sorted(it, key=lambda x: (x[0], str(x[1]))):
             add_value(k, input_value(k), d)
 
         self._add_out_dsp_inputs()
@@ -207,7 +209,6 @@ class Solution(Base, collections.OrderedDict):
             Update Solution.
         :rtype: Solution
         """
-        from concurrent.futures import Future, wait as wait_fut
         futs, ex = collections.OrderedDict(), False
 
         def _update(fut, data, key):
@@ -234,8 +235,9 @@ class Solution(Base, collections.OrderedDict):
             for attr in sol.workflow.edges.values():
                 if 'value' in attr:
                     _update(attr['value'], attr, 'value')
-
-        wait_fut(futs, timeout)
+        if futs:
+            from concurrent.futures import wait as wait_fut
+            wait_fut(futs, timeout)
         EXECUTORS.set_active(id(self), False)
         exceptions = Exception, ExecutorShutdown, DispatcherAbort, SkipNode
         for f, it in futs.items():
@@ -373,7 +375,7 @@ class Solution(Base, collections.OrderedDict):
 
     def _add_out_dsp_inputs(self):
         # Nodes that are out of the dispatcher nodes.
-        o = sorted(set(self.inputs).difference(self.nodes))
+        o = sorted(set(self.inputs).difference(self.nodes), key=str)
 
         # Add nodes that are out of the dispatcher nodes.
         if self.no_call:
@@ -554,7 +556,7 @@ class Solution(Base, collections.OrderedDict):
         ll = _sort_sk_wait_in(self)
         n_d = set()
 
-        for d, k, _, w in ll:
+        for d, _, _, w, k in ll:
             if d == ll[0][0]:
                 w[k] = False
                 if w is self._wait_in:
@@ -907,8 +909,8 @@ class Solution(Base, collections.OrderedDict):
             if fringe is not None:  # SubDispatchPipe.
                 vd = wait_in, str(data_id), self.index + index  # Virtual dist.
 
-            # Add node to heapq.
-            heapq.heappush(fringe, (initial_dist, vd, (data_id, self)))
+                # Add node to heapq.
+                heapq.heappush(fringe, (initial_dist, vd, (data_id, self)))
 
             return True
         return False
@@ -1251,4 +1253,8 @@ class Solution(Base, collections.OrderedDict):
             )
         elif raises != '':
             kwargs['exc_info'] = kwargs.get('exc_info', 1)
-            log.error(msg, node_id, ex, *args, **kwargs)
+            try:
+                log.error(msg, node_id, ex, *args, **kwargs)
+            except TypeError:  # MicroPython.
+                kwargs.pop('exc_info')
+                log.error(msg, node_id, ex, *args, **kwargs)

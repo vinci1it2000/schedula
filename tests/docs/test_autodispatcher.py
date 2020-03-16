@@ -215,7 +215,7 @@ class TestDispatcherDirective(unittest.TestCase):
             '',
             'good',
             '',
-            '.. dsp:: _build/_dispatchers/dispatcher-73e25d64a2d3385b1a6fde2e07406deab3171ab2/Pippo.gv',
+            '.. dsp:: _build/_dispatchers/dispatcher-6d0703762f6e3e45bf8b773ba13e685a9973ca2d/Pippo.gv',
             '   :graphviz_dot: dot',
             '',
             ".. csv-table:: **Pippo's data**",
@@ -240,12 +240,12 @@ class TestDispatcherDirective(unittest.TestCase):
 
         res[1] = '.. py:data:: dsp_1'
         res[5] = 'Docstring 2'
-        res[9] = '.. dsp:: _build/_dispatchers/dispatcher-c4cdb95f7c323136c07b06e9cc9e97c054e65cd3/Pippo.gv'
+        res[9] = '.. dsp:: _build/_dispatchers/dispatcher-f4a8eeea5aeabee7398423c3e0d2cde1c19667f4/Pippo.gv'
         assert_result(self, res, 'dsp_1')
 
         res[1] = '.. py:data:: dsp_2'
         res[5] = 'Docstring 3'
-        res[9] = '.. dsp:: _build/_dispatchers/dispatcher-626650ebb81b12cfd2764e7dde8087e834a31bd1/Pippo.gv'
+        res[9] = '.. dsp:: _build/_dispatchers/dispatcher-18bc3d5e4a4c20576cd56e64681c4ca48528ac2e/Pippo.gv'
         assert_result(self, res, 'dsp_2')
 
     def test_build(self):

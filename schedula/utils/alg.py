@@ -13,7 +13,7 @@ It contains basic algorithms, numerical tricks, and data processing tasks.
 import collections
 from .gen import counter
 from .cst import EMPTY, NONE
-from .dsp import SubDispatch, bypass, selector, stlp, parent_func, NoSub
+from .dsp import SubDispatch, bypass, selector, stlp, parent_func, NoSub, inf
 
 __author__ = 'Vincenzo Arcidiacono <vinci1it2000@gmail.com>'
 
@@ -219,10 +219,9 @@ def _get_node(nodes, node_id, fuzzy=True):
         return node_id, nodes[node_id]  # Return dispatcher node and its id.
     except KeyError as ex:
         if fuzzy:
-            it = sorted(nodes.items())
-            n = next(((k, v) for k, v in it if node_id in k), EMPTY)
-            if n is not EMPTY:
-                return n
+            for k in sorted(nodes, key=str):
+                if node_id in k:
+                    return k, nodes[k]
         raise ex
 
 
@@ -501,8 +500,8 @@ def _sort_sk_wait_in(sol):
 
         n_d = n_d.union(s._visited.intersection(wi))
         wi = n_d.intersection(wi)
-
-        _l += [(s._meet.get(k, float('inf')), k, c(), s._wait_in) for k in wi]
+        _inf = inf(float('inf'), 0)
+        _l += [(s._meet.get(k, _inf), str(k), c(), s._wait_in, k) for k in wi]
 
         return set(n_d), _l
 

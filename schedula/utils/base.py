@@ -16,6 +16,10 @@ from .cst import NONE
 
 class Base:
     """Base class for dispatcher objects."""
+
+    def __new__(cls, *args, **kwargs):
+        return super(Base, cls).__new__(cls)
+
     def __deepcopy__(self, memo):
         cls = self.__class__
         memo[id(self)] = result = cls.__new__(cls)

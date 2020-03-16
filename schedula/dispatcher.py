@@ -8,7 +8,7 @@
 """
 It provides Dispatcher class.
 """
-
+import copy
 from .utils.cst import EMPTY, START, NONE, SINK, SELF, PLOT
 from .utils.dsp import (
     bypass, combine_dicts, selector, parent_func, kk_dict
@@ -875,8 +875,8 @@ class Dispatcher(Base):
 
         # Return dispatcher node id.
         dsp_id = self.add_function(
-            dsp_id, dsp, sorted(_nodes(inputs)),
-            sorted(_nodes(outputs.values())), input_domain, weight,
+            dsp_id, dsp, sorted(_nodes(inputs), key=str),
+            sorted(_nodes(outputs.values()), key=str), input_domain, weight,
             _weight_from, type='dispatcher', description=description,
             wait_inputs=False, await_domain=await_domain, **kwargs
         )
@@ -1361,7 +1361,7 @@ class Dispatcher(Base):
             nbrs, dmap_nbrs = succ[parent], dmap_succ[parent]
 
             # Iterate parent's children.
-            for child in sorted(family[parent]):
+            for child in sorted(family[parent], key=str):
 
                 if _check_node_inputs(child, parent):
                     continue
@@ -1441,7 +1441,6 @@ class Dispatcher(Base):
             >>> dsp is dsp.copy()
             False
         """
-        import copy
         return copy.deepcopy(self)  # Return the copy of the Dispatcher.
 
     def blue(self, memo=None):

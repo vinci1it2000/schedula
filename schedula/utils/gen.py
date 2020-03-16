@@ -34,6 +34,8 @@ def counter(start=0, step=1):
 
 
 class _Token:
+    __doc__ = None
+
     # noinspection PyUnusedLocal
     def __init__(self, *args):
         import inspect

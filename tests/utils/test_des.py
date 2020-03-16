@@ -5,11 +5,14 @@
 # Licensed under the EUPL (the 'Licence');
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
-
+import os
 import unittest
 import schedula as sh
 
+EXTRAS = os.environ.get('EXTRAS', 'all')
 
+
+@unittest.skipIf(EXTRAS not in ('all', 'base'), 'Not for extra %s.' % EXTRAS)
 class TestDispatcherDes(unittest.TestCase):
     def setUp(self):
         ss_dsp = sh.Dispatcher(name='Ciao.')
