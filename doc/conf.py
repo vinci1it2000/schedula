@@ -48,6 +48,7 @@ extensions = [
 ]
 
 autosummary_generate = True
+autosummary_skip_members = ['schedula.ext.dispatcher.graphviz.dsp']
 
 autodoc_member_order = 'bysource'
 

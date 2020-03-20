@@ -41,7 +41,7 @@ class dsp(nodes.General, nodes.Inline, nodes.Element):
     pass
 
 
-class Dispatcher(Graphviz):
+class DispatcherSphinxDirective(Graphviz):
     required_arguments = 1
     img_opt = {
         'height': directives.length_or_unitless,
@@ -54,7 +54,7 @@ class Dispatcher(Graphviz):
     sh.combine_dicts(img_opt, Graphviz.option_spec, base=option_spec)
 
     def run(self):
-        node = super(Dispatcher, self).run()[0]
+        node = super(DispatcherSphinxDirective, self).run()[0]
         # noinspection PyUnresolvedReferences
         node = dsp(node.rawsource, *node.children, **node.attributes)
         node['img_opt'] = sh.selector(
@@ -66,10 +66,6 @@ class Dispatcher(Graphviz):
         dirpath = osp.dirname(env.relfn2path(argument)[1])
         node['dirpath'] = dirpath if osp.isdir(dirpath) else None
         return [node]
-
-
-class img(nodes.General, nodes.Element):
-    tagname = 'img'
 
 
 def html_visit_dispatcher(self, node):
@@ -104,5 +100,5 @@ def setup(app):
         text=(text_visit_graphviz, None),
         man=(man_visit_graphviz, None)
     )
-    app.add_directive('dsp', Dispatcher)
+    app.add_directive('dsp', DispatcherSphinxDirective)
     return {'version': sphinx.__display_version__, 'parallel_read_safe': True}

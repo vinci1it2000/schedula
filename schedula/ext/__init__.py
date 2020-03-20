@@ -14,7 +14,7 @@ Extensions:
 
 .. autosummary::
     :nosignatures:
-    :toctree: exl/
+    :toctree: ext/
 
     autosummary
     dispatcher

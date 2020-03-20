@@ -49,8 +49,13 @@ def get_members(app, obj, typ, include_public=(), imported=False):
 
             if cond:
                 items.append(name)
-    public = [x for x in items
-              if x in include_public or not x.startswith('_')]
+    skip = set(app.config.autosummary_skip_members)
+    _n = '{}.%s'.format(obj.__name__)
+
+    public = [
+        x for x in items
+        if (x in include_public or not x.startswith('_')) and _n % x not in skip
+    ]
     return public, items
 
 
@@ -219,6 +224,7 @@ def process_generate_options(app):
 
 def setup(app):
     app.setup_extension('sphinx.ext.autosummary')
+    app.add_config_value('autosummary_skip_members', [], 'html')
 
     # replace callback process_generate_options of 'builder-inited' event.
     import sphinx.ext.autosummary as mdl
