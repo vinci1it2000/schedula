@@ -48,7 +48,6 @@ class TestDispatcherUtils(unittest.TestCase):
 
         self.assertTrue(3 != sh.inf(1, 2))
         self.assertTrue(2 == sh.inf(0, 2))
-        self.assertTrue((0, 2) != sh.inf(0, 2))
 
         self.assertEqual(sh.inf(1.1, 2.1) + 1, sh.inf(1.1, 3.1))
         self.assertEqual(1 + sh.inf(1.1, 2.1), sh.inf(1.1, 3.1))
@@ -77,6 +76,7 @@ class TestDispatcherUtils(unittest.TestCase):
         self.assertEqual(abs(sh.inf(-1, 2)), sh.inf(1, 2))
 
         if EXTRAS != 'micropython':
+            self.assertTrue((0, 2) != sh.inf(0, 2))
             self.assertTrue(3 <= sh.inf(1, 2))
             self.assertTrue(3 >= sh.inf(0, 2))
             self.assertTrue(3 < sh.inf(1, 2))

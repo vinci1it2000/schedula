@@ -5,13 +5,11 @@
 # Licensed under the EUPL (the 'Licence');
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
+import unittest
 
-if __name__ == '__main__':
-    import os
 
-    os.environ['EXTRAS'] = os.environ.get('EXTRAS', 'micropython')
-    import sys
-    import unittest
+# noinspection PyTypeChecker
+def make_test_suite():
     from .utils.test_dsp import (
         TestDispatcherUtils, TestSubDispatcher, TestSubDispatchFunction,
         TestSubDispatchPipe, TestDispatchPipe
@@ -24,7 +22,6 @@ if __name__ == '__main__':
     )
 
     suite = unittest.TestSuite()
-    # noinspection PyTypeChecker
     suite.addTest(TestCreateDispatcher)
     suite.addTest(TestUtils)
     suite.addTest(TestDispatcherGetSubNode)
@@ -40,9 +37,17 @@ if __name__ == '__main__':
     suite.addTest(TestSubDispatchFunction)
     suite.addTest(TestSubDispatchPipe)
     suite.addTest(TestDispatchPipe)
+    return suite
+
+
+if __name__ == '__main__':
+    import os
+    import sys
+
+    os.environ['EXTRAS'] = os.environ.get('EXTRAS', 'micropython')
 
     runner = unittest.TestRunner()
-    result = runner.run(suite)
+    result = runner.run(make_test_suite())
 
     # noinspection PyUnresolvedReferences
     sys.exit(result.failuresNum > 0)

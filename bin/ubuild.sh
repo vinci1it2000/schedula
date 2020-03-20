@@ -1,6 +1,7 @@
 #!/bin/sh
 cd "$(dirname "$0")" && cd ..
-rm -vrf ./build/* ./dist/* ./*.pyc ./*.tgz ./*.egg-info ./py/* MANIFEST ./mpy/*
+bash bin/clean.sh
+
 echo 'Installing requirements ...'
 bash bin/install_micropython.sh
 
