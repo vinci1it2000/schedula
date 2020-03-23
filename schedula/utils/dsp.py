@@ -1368,6 +1368,11 @@ class inf(collections.namedtuple('_inf', ['inf', 'num'])):
             val = 0, val
         return inf(*val)
 
+    def __repr__(self):
+        if self[0] == 0:
+            return str(self[1])
+        return 'inf(inf={}, num={})'.format(*self)
+
     def __add__(self, other):
         if isinstance(other, self.__class__):
             return inf(self[0] + other[0], self[1] + other[1])
