@@ -10,12 +10,12 @@
 It provides a solution class for dispatch result.
 """
 import time
-import heapq
 import logging
 import collections
 from .base import Base
-from .cst import START, NONE, PLOT
 from .imp import finalize, Future
+from .cst import START, NONE, PLOT
+from heapq import heappop, heappush
 from .dsp import stlp, get_nested_dicts, inf
 from .exc import DispatcherError, DispatcherAbort, SkipNode, ExecutorShutdown
 from .alg import add_edge_fun, remove_edge_fun, get_full_pipe, _sort_sk_wait_in
@@ -177,7 +177,7 @@ class Solution(Base, collections.OrderedDict):
         input_value = input_value or self._input_value(inputs)
         initial_dist = inf.format(initial_dist)
         # Add initial values to fringe and seen.
-        it = ((inputs_dist.get(v, 0.0) + initial_dist, v) for v in inputs)
+        it = ((initial_dist + inputs_dist.get(v, 0.0), v) for v in inputs)
         for d, k in sorted(it, key=lambda x: (x[0], str(x[1]))):
             add_value(k, input_value(k), d)
 
@@ -282,7 +282,7 @@ class Solution(Base, collections.OrderedDict):
 
         while fringe:
             # Visit the closest available node.
-            n = (d, _, (v, sol)) = heapq.heappop(fringe)
+            n = (d, _, (v, sol)) = heappop(fringe)
 
             # Skip terminated sub-dispatcher or visited nodes.
             if sol.index in dsp_closed or (v is not START and v in sol.dist):
@@ -541,7 +541,7 @@ class Solution(Base, collections.OrderedDict):
             for k, v in estimations.items():  # Calculate length.
                 if k is not START:
                     d = dist[k] + edg_length(succ[k][node_id], node_attr)
-                    heapq.heappush(est, (d, k, v))
+                    heappush(est, (d, k, v))
 
             # The estimation with minimum distance from the starting node.
             estimations = {est[0][1]: est[0][2]}
@@ -896,7 +896,7 @@ class Solution(Base, collections.OrderedDict):
                     continue
                 vd = (True, w, self.index + node['index'])  # Virtual distance.
 
-                heapq.heappush(fringe, (vw_dist, vd, (w, self)))  # Add 2 heapq.
+                heappush(fringe, (vw_dist, vd, (w, self)))  # Add 2 heapq.
 
             return True
 
@@ -910,7 +910,7 @@ class Solution(Base, collections.OrderedDict):
                 vd = wait_in, str(data_id), self.index + index  # Virtual dist.
 
                 # Add node to heapq.
-                heapq.heappush(fringe, (initial_dist, vd, (data_id, self)))
+                heappush(fringe, (initial_dist, vd, (data_id, self)))
 
             return True
         return False
@@ -1037,7 +1037,7 @@ class Solution(Base, collections.OrderedDict):
                 vd = w_wait_in + int(wait_in), str(node_id), self.index + index
 
                 # Add to heapq.
-                heapq.heappush(fringe, (dist, vd, (node_id, self)))
+                heappush(fringe, (dist, vd, (node_id, self)))
 
             return True  # The node is visible.
         return False  # The node is not visible.
@@ -1095,7 +1095,7 @@ class Solution(Base, collections.OrderedDict):
 
         for f in sol.fringe or ():  # Update the fringe.
             item = (initial_dist + f[0], (2,) + f[1][1:], f[-1])
-            heapq.heappush(fringe, item)
+            heappush(fringe, item)
 
         return sol
 
