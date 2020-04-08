@@ -9,7 +9,7 @@ import unittest
 
 
 # noinspection PyTypeChecker
-def make_test_suite():
+def _make_suite():
     from .utils.test_dsp import (
         TestDispatcherUtils, TestSubDispatcher, TestSubDispatchFunction,
         TestSubDispatchPipe, TestDispatchPipe
@@ -47,7 +47,7 @@ if __name__ == '__main__':
     os.environ['EXTRAS'] = os.environ.get('EXTRAS', 'micropython')
 
     runner = unittest.TestRunner()
-    result = runner.run(make_test_suite())
+    result = runner.run(_make_suite())
 
     # noinspection PyUnresolvedReferences
     sys.exit(result.failuresNum > 0)
