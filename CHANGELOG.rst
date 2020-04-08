@@ -2,6 +2,46 @@ Changelog
 =========
 
 
+v1.2.0 (2020-04-08)
+-------------------
+
+Feat
+~~~~
+- (dispatcher): Avoid failure when functions does not have the name.
+
+- (ubuild): Add compiled and not compiled code.
+
+- (sol): Improve speed importing functions directly for `heappop` and
+  `heappush`.
+
+- (dispatcher): Avoid failure when functions does not have the name.
+
+- (dsp): Simplify repr of inf numbers.
+
+- (micropython): Pin specific MicroPython version `v1.12`.
+
+- (micropython): Add test using `.mpy` files.
+
+- (setup): Add `MicroPython` support.
+
+- (setup): Drop `dill` dependency and add `io` extra.
+
+- (github): Add pull request templates.
+
+
+Fix
+~~~
+- (test): Skip micropython tests.
+
+- (ext): Update code for sphinx 3.0.0.
+
+- (sphinx): Remove documentation warnings.
+
+- (utils): Drop unused `pairwise` function.
+
+- (dsp): Avoid fringe increment in `SubDispatchPipe`.
+
+
 v1.1.1 (2020-03-12)
 -------------------
 
