@@ -17,6 +17,8 @@ if env EXTRA=micropython micropython/ports/unix/micropython -m tests.test_microp
   tar -xf dist/*.tar.gz -C build
   micropython/ports/unix/micropython -m upip install -p mpy -r requirements/micropython/base.pip
   cp -r build/micropython-*/schedula mpy/schedula
+  rm -rf py
+  cp -r mpy py
   for file in $(find mpy -type f -name "*.py"); do
     micropython/mpy-cross/mpy-cross "$file" -mcache-lookup-bc
     rm "$file"
