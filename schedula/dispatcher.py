@@ -570,6 +570,10 @@ class Dispatcher(Base):
             try:  # Set function name.
                 function_name = func.__name__
             except AttributeError as ex:
+                if not func:
+                    raise ValueError(
+                        'Invalid function id due to:\n{}'.format(ex)
+                    )
                 function_name = 'unknown'
         else:
             function_name = function_id
