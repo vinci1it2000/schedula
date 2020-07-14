@@ -34,7 +34,7 @@ class Solution(Base, collections.OrderedDict):
     def __init__(self, dsp=None, inputs=None, outputs=None, wildcard=False,
                  cutoff=None, inputs_dist=None, no_call=False,
                  rm_unused_nds=False, wait_in=None, no_domain=False,
-                 _empty=False, index=(-1,), full_name=()):
+                 _empty=False, index=(-1,), full_name=(), verbose=False):
         super(Solution, self).__init__()
         self.index = index
         self.rm_unused_nds = rm_unused_nds
@@ -46,6 +46,7 @@ class Solution(Base, collections.OrderedDict):
         self.full_name = full_name
         self._pipe = []
         self.parent = dsp
+        self.verbose = verbose
 
         finalize(self, EXECUTORS.pop_active, id(self))
         from ..dispatcher import Dispatcher
@@ -359,7 +360,7 @@ class Solution(Base, collections.OrderedDict):
         sol = self.__class__(
             self.dsp, self.inputs, self.outputs, False, self.cutoff,
             self.inputs_dist, self.no_call, self.rm_unused_nds, self._wait_in,
-            self.no_domain, True, self.index, self.full_name
+            self.no_domain, True, self.index, self.full_name, self.verbose
         )
         sol._clean_set()
         it = ['_wildcards', 'inputs', 'inputs_dist']
@@ -594,8 +595,7 @@ class Solution(Base, collections.OrderedDict):
 
     def _evaluate_function(self, args, node_id, node_attr, attr, stopper=None,
                            executor=False):
-        if 'started' not in attr:
-            attr['started'] = time.time()
+        self._started(attr, node_id)
 
         def _callback(is_sol, sol):
             if is_sol:
@@ -603,7 +603,8 @@ class Solution(Base, collections.OrderedDict):
 
         res = async_process(
             [node_attr['function']], *args, stopper=stopper, executor=executor,
-            sol=self, callback=_callback, sol_name=self.full_name + (node_id,)
+            sol=self, callback=_callback, sol_name=self.full_name + (node_id,),
+            verbose=self.verbose
         )
 
         return res
@@ -631,8 +632,7 @@ class Solution(Base, collections.OrderedDict):
                 value = self._evaluate_function(args, node_id, node_attr, attr,
                                                 **kw)
             value = self._apply_filters(value, node_id, node_attr, attr, **kw)
-            if 'started' in attr:
-                attr['duration'] = time.time() - attr['started']
+            self._ended(attr, node_id)
 
             if 'callback' in node_attr:  # Invoke callback func of data node.
                 try:
@@ -644,8 +644,7 @@ class Solution(Base, collections.OrderedDict):
 
             return value
         except Exception as ex:
-            if 'started' in attr:
-                attr['duration'] = time.time() - attr['started']
+            self._ended(attr, node_id)
             # Some error occurs.
             msg = "Failed DISPATCHING '%s' due to:\n  %r"
             self._warning(msg, node_id, ex)
@@ -737,8 +736,7 @@ class Solution(Base, collections.OrderedDict):
         funcs = node_attr.get('filters')
 
         if funcs:
-            if 'started' not in attr:
-                attr['started'] = time.time()
+            self._started(attr, node_id)
             attr['solution_filters'] = filters = [res]
 
             # noinspection PyUnusedLocal
@@ -751,6 +749,24 @@ class Solution(Base, collections.OrderedDict):
             )
 
         return res
+
+    def _started(self, attr, node_id):
+        if 'started' not in attr:
+            attr['started'] = time.time()
+            self._verbose(node_id, attr)
+
+    def _ended(self, attr, node_id):
+        if 'started' in attr:
+            attr['duration'] = time.time() - attr['started']
+            self._verbose(node_id, attr, end=True)
+
+    def _verbose(self, node_id, attr, end=False):
+        if self.verbose:
+            if end:
+                msg = 'Done `%s` in {:.5f} sec.'.format(attr['duration'])
+            else:
+                msg = 'Start `%s`...'
+            log.info(msg % '/'.join(self.full_name + (node_id,)))
 
     def _set_function_node_output(self, node_id, node_attr, no_call,
                                   next_nds=None, **kw):
@@ -1088,7 +1104,7 @@ class Solution(Base, collections.OrderedDict):
         sol = self.__class__(
             dsp, {}, outputs, False, None, None, no_call, False,
             wait_in=self._wait_in.get(dsp, None), index=self.index + index,
-            full_name=full_name
+            full_name=full_name, verbose=self.verbose
         )
 
         sol.sub_sol = self.sub_sol

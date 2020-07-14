@@ -1534,7 +1534,7 @@ class Dispatcher(Base):
     def dispatch(self, inputs=None, outputs=None, cutoff=None, inputs_dist=None,
                  wildcard=False, no_call=False, shrink=False,
                  rm_unused_nds=False, select_output_kw=None, _wait_in=None,
-                 stopper=None, executor=False, sol_name=()):
+                 stopper=None, executor=False, sol_name=(), verbose=False):
         """
         Evaluates the minimum workflow and data outputs of the dispatcher
         model from given inputs.
@@ -1596,6 +1596,10 @@ class Dispatcher(Base):
         :param sol_name:
             Solution name.
         :type sol_name: tuple[str], optional
+
+        :param verbose:
+            If True the dispatcher will log start and end of each function.
+        :type verbose: str, optional
 
         :return:
             Dictionary of estimated data node outputs.
@@ -1679,7 +1683,7 @@ class Dispatcher(Base):
         # Initialize.
         self.solution = sol = self.solution.__class__(
             dsp, inputs, outputs, wildcard, cutoff, inputs_dist, no_call,
-            rm_unused_nds, _wait_in, full_name=sol_name
+            rm_unused_nds, _wait_in, full_name=sol_name, verbose=verbose
         )
 
         # Dispatch.
@@ -1880,7 +1884,8 @@ class Dispatcher(Base):
 
         return dsp
 
-    def _edge_length(self, edge, node_out):
+    @staticmethod
+    def _edge_length(edge, node_out):
         """
         Returns the edge length.
 

@@ -780,7 +780,7 @@ class SubDispatch(Base):
         return memo[self]
 
     def __call__(self, *input_dicts, copy_input_dicts=False, _stopper=None,
-                 _executor=None, _sol_name=()):
+                 _executor=None, _sol_name=(), _verbose=False):
 
         # Combine input dictionaries.
         i = combine_dicts(*input_dicts, copy=copy_input_dicts)
@@ -789,7 +789,8 @@ class SubDispatch(Base):
         self.solution = self.dsp.dispatch(
             i, self.outputs, self.cutoff, self.inputs_dist, self.wildcard,
             self.no_call, self.shrink, self.rm_unused_nds,
-            stopper=_stopper, executor=_executor, sol_name=_sol_name
+            stopper=_stopper, executor=_executor, sol_name=_sol_name,
+            verbose=_verbose
         )
 
         return self._return(self.solution)
@@ -991,9 +992,10 @@ class SubDispatchFunction(SubDispatch):
         return inputs
 
     def __call__(self, *args, _stopper=None, _executor=False, _sol_name=(),
-                 **kw):
+                 _verbose=False, **kw):
         # Namespace shortcuts.
         self.solution = sol = self._sol._copy_structure()
+        sol.verbose = _verbose
         self.solution.full_name, dfl = _sol_name, self.dsp.default_values
 
         # Parse inputs.
@@ -1142,10 +1144,11 @@ class SubDispatchPipe(SubDispatchFunction):
 
         return [_make_tks(v['task']) for v in self._sol.pipe.values()]
 
-    def _init_new_solution(self, full_name):
+    def _init_new_solution(self, full_name, verbose):
         key_map, sub_sol = {}, {}
         for k, s in self._sol.sub_sol.items():
             ns = s._copy_structure(dist=1)
+            ns.verbose = verbose
             ns.fringe = None
             ns.sub_sol = sub_sol
             ns.full_name = full_name + s.full_name
@@ -1165,8 +1168,8 @@ class SubDispatchPipe(SubDispatchFunction):
         return self.solution._pipe.append
 
     def __call__(self, *args, _stopper=None, _executor=False, _sol_name=(),
-                 **kw):
-        self.solution, key_map = self._init_new_solution(_sol_name)
+                 _verbose=False, **kw):
+        self.solution, key_map = self._init_new_solution(_sol_name, _verbose)
         pipe_append = self._pipe_append()
         self._init_workflows(self._parse_inputs(*args, **kw))
 
@@ -1266,7 +1269,7 @@ class DispatchPipe(NoSub, SubDispatchPipe):
     def _pipe_append(self):
         return lambda *args: None
 
-    def _init_new_solution(self, _sol_name):
+    def _init_new_solution(self, _sol_name, verbose):
         from .asy import EXECUTORS
         EXECUTORS.set_active(id(self._sol))
         return self._sol, lambda x: x

@@ -115,7 +115,8 @@ def shutdown_executors(wait=True):
 
 
 def _process_funcs(
-        exe_id, funcs, executor, *args, stopper=None, sol_name=None, **kw):
+        exe_id, funcs, executor, *args, stopper=None, sol_name=None,
+        verbose=False, **kw):
     res, sid = [], exe_id[-1]
     for fn in funcs:
         if stopper and stopper.is_set():
@@ -124,7 +125,7 @@ def _process_funcs(
         if isinstance(pfunc, SubDispatch):
             try:
                 r['res'] = fn(*args, _stopper=stopper, _executor=executor,
-                              _sol_name=sol_name, **kw)
+                              _sol_name=sol_name, _verbose=verbose, **kw)
             except DispatcherError as ex:
                 if isinstance(pfunc, NoSub):
                     raise ex
@@ -204,10 +205,7 @@ def _await_result(result, timeout, sol, node_id):
     try:
         return await_result(result, None if timeout is True else timeout)
     except Exception as ex:
-        attr = sol.workflow.nodes[node_id]
-        if 'started' in attr:
-            import time
-            attr['duration'] = time.time() - attr['started']
+        sol._ended(sol.workflow.nodes[node_id], node_id)
         # Some error occurs.
         msg = "Failed DISPATCHING '%s' due to:\n  %r"
         sol._warning(msg, node_id, ex)
