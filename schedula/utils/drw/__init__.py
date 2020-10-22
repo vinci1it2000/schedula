@@ -234,6 +234,8 @@ class FolderNode:
                 'function': {'shape': 'box', 'fillcolor': 'springgreen'},
                 'subdispatch': {'shape': 'note', 'style': 'filled',
                                 'fillcolor': 'yellow'},
+                'mapdispatch': {'shape': 'note', 'style': 'filled',
+                                'fillcolor': 'seagreen1'},
                 'subdispatchfunction': {'shape': 'note', 'style': 'filled',
                                         'fillcolor': 'yellowgreen'},
                 'subdispatchpipe': {'shape': 'note', 'style': 'filled',
@@ -847,7 +849,7 @@ def _get_type(obj):
 
 sort_tree_map = {v: k for k, v in enumerate((
     'data', 'function', 'dispatchpipe', 'subdispatchpipe',
-    'subdispatchfunction', 'subdispatch', 'dispatcher'
+    'subdispatchfunction', 'mapdispatch', 'subdispatch', 'dispatcher'
 ), 1)}
 
 
@@ -1026,6 +1028,9 @@ class SiteIndex(SiteNode):
         class subdispatch:
             pass
 
+        class mapdispatch:
+            pass
+
         class subdispatchfunction:
             pass
 
@@ -1063,6 +1068,15 @@ class SiteIndex(SiteNode):
             'SubDispatch node. It wraps\n'
             'a given Dispatcher into a function.\n'
             'Inputs are dictionaries {<node_id>: <value>}.'
+        ))
+
+        _add_explanation(dsp, dsp.add_function(
+            function_id='<function_id>(MapDispatch)',
+            function=mapdispatch(), **fun_kw
+        ), clusters='Functions', description=(
+            'MapDispatch node. It wraps and executes iteratively\n'
+            'a given Dispatcher into a function.\n'
+            'Hence, it behaves like a `map` function.'
         ))
         _add_explanation(dsp, dsp.add_function(
             function_id='<function_id>(SubDispatchFunction)',

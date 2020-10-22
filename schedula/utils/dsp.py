@@ -820,6 +820,55 @@ class SubDispatch(Base):
         return _copy.deepcopy(self)
 
 
+class MapDispatch(SubDispatch):
+    base_class = SubDispatch
+
+    def __init__(self, dsp, *args, defaults=None, recursive_inputs=None,
+                 **kwargs):
+        self.func = self.base_class(dsp, *args, **kwargs)
+        super(MapDispatch, self).__init__(dsp, output_type='list')
+        self.recursive_inputs = recursive_inputs
+        self.defaults = defaults
+
+    @staticmethod
+    def prepare_inputs(inputs, defaults, recursive_inputs=None, outputs=None):
+        if outputs and recursive_inputs:
+            data = selector(recursive_inputs, outputs or {}, allow_miss=True)
+            if isinstance(recursive_inputs, dict):
+                data = map_dict(recursive_inputs, data)
+            inputs = combine_dicts(inputs, base=data)
+        return combine_dicts(defaults, inputs)
+
+    def make_dsp(self, defaults, inputs, recursive_inputs=None):
+        defaults = combine_dicts(self.defaults or {}, defaults or {})
+        recursive_inputs = recursive_inputs or self.recursive_inputs
+        from ..dispatcher import Dispatcher
+        self.dsp = dsp = Dispatcher()
+        func, add_f = self.func, dsp.add_function
+        pf = (defaults or recursive_inputs) and self.prepare_inputs
+        self.outputs = []
+        _inputs = {'defaults': defaults, 'recursive_inputs': recursive_inputs}
+        for k, v in enumerate(inputs):
+            i, o = 'inputs<%d>' % k, 'outputs<%d>' % k
+            _inputs[i] = v
+            if pf:
+                i, keys = 'data<%d>' % k, [i, 'defaults']
+                if recursive_inputs and self.outputs:
+                    keys += ['recursive_inputs'] + self.outputs[-1:]
+                add_f(function=pf, inputs=keys, outputs=[i])
+            add_f(function=func, inputs=[i], outputs=[o])
+            self.outputs.append(o)
+        return _inputs
+
+    # noinspection PyMethodOverriding
+    def __call__(self, inputs, defaults=None, recursive_inputs=None,
+                 _stopper=None, _executor=None, _sol_name=(), _verbose=False):
+        return super(MapDispatch, self).__call__(self.make_dsp(
+            defaults, inputs, recursive_inputs
+        ), _stopper=_stopper, _executor=_executor, _sol_name=_sol_name,
+            _verbose=_verbose)
+
+
 class SubDispatchFunction(SubDispatch):
     """
     It converts a :class:`~schedula.dispatcher.Dispatcher` into a function.
@@ -1311,7 +1360,7 @@ def add_function(dsp, inputs_kwargs=False, inputs_defaults=False, **kw):
 
     :param dsp:
         A dispatcher.
-    :type dsp: schedula.Dispatcher
+    :type dsp: schedula.Dispatcher | schedula.blue.BlueDispatcher
 
     :param inputs_kwargs:
         Do you want to include kwargs as inputs? 
@@ -1323,7 +1372,6 @@ def add_function(dsp, inputs_kwargs=False, inputs_defaults=False, **kw):
     
     :param kw:
         See :func:~`schedula.dispatcher.Dispatcher.add_function`.
-    :type kw: dict
 
     :return:
         Decorator.
