@@ -23,6 +23,12 @@ from sphinx.ext.autosummary.generate import (
     _simple_warn, _simple_info, find_autosummary_in_files
 )
 
+try:
+    from sphinx.ext.autosummary.generate import AutosummaryEntry
+except ImportError:
+    class AutosummaryEntry:
+        pass
+
 logger = logging.getLogger(__name__)
 warnings.filterwarnings(
     'ignore', category=DeprecationWarning, module='docutils'
@@ -89,7 +95,10 @@ def generate_autosummary_docs(
 
     # read
     items = find_autosummary_in_files(sources)
-
+    items = [
+        isinstance(v, AutosummaryEntry) and (v.name, v.path, v.template) or v
+        for v in items
+    ]
     # remove possible duplicates
     items = list(dict([(item, True) for item in items]).keys())
 
