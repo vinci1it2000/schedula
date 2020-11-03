@@ -6,8 +6,8 @@ schedula: A smart function scheduler for dynamic flow-based programming
 |pypi_ver| |travis_status| |cover_status| |docs_status| |dependencies|
 |github_issues| |python_ver| |proj_license| |binder|
 
-:release:       1.2.0
-:date:          2020-04-08 17:50:00
+:release:       1.2.1
+:date:          2020-11-04 12:30:00
 :repository:    https://github.com/vinci1it2000/schedula
 :pypi-repo:     https://pypi.org/project/schedula/
 :docs:          https://schedula.readthedocs.io/

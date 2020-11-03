@@ -2,6 +2,23 @@ Changelog
 =========
 
 
+v1.2.1 (2020-11-04)
+-------------------
+
+Feat
+~~~~
+- (dsp): Add `MapDispatch` class.
+
+- (core): Add execution function log.
+
+
+Fix
+~~~
+- (rtd): Correct documentation rendering in `rtd`.
+
+- (autosumary): Correct bug for `AutosummaryEntry`.
+
+
 v1.2.0 (2020-04-08)
 -------------------
 
