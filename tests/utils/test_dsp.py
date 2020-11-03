@@ -616,3 +616,95 @@ class TestDispatchPipe(unittest.TestCase):
         self.assertEqual(fun(x=3), 3)
         fun.__setstate__(fun.__getstate__())
         self.assertEqual(fun(x=3), 3)
+
+
+class TestMapDispatch(unittest.TestCase):
+    def setUp(self):
+        dsp_1 = sh.BlueDispatcher(raises='')
+        dsp_1.add_function('max', max, inputs=['a', 'b'], outputs=['c'])
+        dsp_1.add_function('min', min, inputs=['c', 'b'], outputs=['a'],
+                           input_domain=lambda c, b: c * b > 0)
+        dsp_1.add_data('a', wildcard=True)
+        self.dsp_1 = dsp_1.register()
+
+        dsp = sh.Dispatcher(raises='')
+
+        def f(a, b):
+            if b is None:
+                return a, sh.NONE
+            return a + b, a - b
+
+        dsp.add_function('f', f, inputs=['a', 'b'], outputs=['c', sh.SINK])
+        dsp.add_function('f', f, inputs=['c', 'b'], outputs=[sh.SINK, 'd'])
+        self.dsp_2 = dsp
+
+        dsp = sh.Dispatcher(raises='')
+
+        dsp.add_function('f', f, inputs=['a', 'b'], outputs=['c', 'd'],
+                         out_weight={'d': 100})
+        dsp.add_dispatcher(dsp=dsp_1.register(), inputs={'a': 'a', 'b': 'b'},
+                           outputs={'c': 'd'})
+        self.dsp_3 = dsp
+
+        dsp = sh.Dispatcher(raises='')
+
+        dsp.add_function(function=sh.SubDispatchFunction(
+            self.dsp_3, 'f', ['b', 'a'], ['c', 'd']),
+            inputs=['b', 'a'], outputs=['c', 'd'], out_weight={'d': 100}
+        )
+        dsp.add_dispatcher(dsp=dsp_1.register(), inputs={'a': 'a', 'b': 'b'},
+                           outputs={'c': 'd'})
+        self.dsp_4 = dsp
+
+        dsp = sh.Dispatcher(raises='')
+
+        def f(a, b, c=0, f=0):
+            return a + b + c + f, a - b + c + f
+
+        dsp.add_data('h', 1)
+        dsp.add_function(
+            'f', f, inputs=['a', 'b', 'e', 'h'], outputs=['c', sh.SINK]
+        )
+        dsp.add_data('i', 0, 10)
+        dsp.add_data('c', 100, 120)
+        dsp.add_function('f', f, inputs=['c', 'b', 'i'], outputs=[sh.SINK, 'd'])
+        self.dsp_5 = dsp
+
+    def test_function(self):
+        fun = sh.MapDispatch(self.dsp_1, function_id='F', constructor_kwargs={
+            'outputs': ['a'], 'wildcard': True
+        })
+        self.assertEqual(fun.__name__, 'F')
+
+        # noinspection PyCallingNonCallable
+        self.assertEqual(
+            fun([{'a': 2, 'b': 1}, {'a': 3, 'b': -1}, {'a': 3, 'b': None}]),
+            [{'b': 1, 'c': 2, 'a': 1}, {'b': -1, 'c': 3}, {'b': None}]
+        )
+
+        fun = sh.MapDispatch(self.dsp_2, constructor_kwargs={
+            'outputs': ['c', 'd'], 'output_type': 'list'
+        })
+        # noinspection PyCallingNonCallable
+        self.assertEqual(fun([{'b': 1, 'a': 2}]), [[3, 2]])
+
+        fun = sh.MapDispatch(self.dsp_3, constructor_kwargs={
+            'outputs': ['c', 'd'], 'output_type': 'list'
+        })
+        # noinspection PyCallingNonCallable
+        self.assertEqual(fun([{'b': 5, 'a': 20}]), [[25, 20]])
+
+        fun = sh.MapDispatch(self.dsp_4, constructor_kwargs={
+            'outputs': ['c', 'd'], 'output_type': 'list'
+        })
+        # noinspection PyCallingNonCallable
+        self.assertEqual(fun([{'b': 5, 'a': 20}]), [[25, 20]])
+
+        fun = sh.MapDispatch(self.dsp_5, constructor_kwargs={
+            'outputs': ['c', 'd'], 'output_type': 'list'
+        })
+        # noinspection PyCallingNonCallable
+        self.assertEqual(
+            fun([{'b': 1, 'a': 2, 'e': 0, 'h': 0}, {'b': 1, 'a': 2, 'e': 0}]),
+            [[3, 2], [4, 3]]
+        )

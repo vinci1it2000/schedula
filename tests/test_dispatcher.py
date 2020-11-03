@@ -756,13 +756,20 @@ class TestAsyncParallel(unittest.TestCase):
                 function=func, inputs=['b'], outputs=['f', 'g'], await_result=0
             )
             d.add_function(function=func, inputs=['c'], outputs=['h', 'i'])
-
             dsp.add_dispatcher(
                 dsp=d,
                 inputs=('a', 'b', 'c'),
                 outputs={k: '%s-%s' % (d.name, k) for k in 'defghi'},
                 inp_weight=dict.fromkeys('abc', i * 100)
             )
+
+        # ----------------------------------------------------------------------
+        def sleep(start, t, *a):
+            time.sleep(t)
+            return os.getpid(), time.time() - start
+
+        self.dsp4 = dsp = sh.Dispatcher()
+        dsp.add_func(sleep, outputs=['pid', 'dt'])
 
     def test_dispatch(self):
         # noinspection PyUnresolvedReferences
@@ -776,10 +783,10 @@ class TestAsyncParallel(unittest.TestCase):
         self.assertTrue(all(isinstance(v, Future) for v in sol.values()))
         sol.result()
         pid = os.getpid()
-        self.assertEqual(
-            sol, {'a': 3, 'b': 1, 'd': (3, 0, pid), 'e': (2, 1, pid),
-                  'f': (6, 5, pid), sh.SINK: {'sleep': None}}
-        )
+        self.assertEqual(sol, {
+            'a': 3, 'b': 1, 'd': (3, 0, pid), 'e': (2, 1, pid),
+            'f': (6, 5, pid), sh.SINK: {'sleep': None}
+        })
         self.assertEqual(sol.sub_sol[(-1, 1)], {'a': 3, 'd': (3, 0, pid)})
         self.assertEqual({None}, set(sh.shutdown_executors()))
 
@@ -808,6 +815,25 @@ class TestAsyncParallel(unittest.TestCase):
         self.reset_counter()
         res = func(2, 1, _executor='parallel')
         self.assertEqual(3, len(set(v[-1] for v in res)))
+        self.assertEqual({'parallel'}, set(sh.shutdown_executors()))
+
+    def test_map_dispatch(self):
+        # noinspection PyUnresolvedReferences
+        from multiprocess import Event
+        pid = os.getpid()
+        stopper = Event()
+        func = sh.MapDispatch(self.dsp4, constructor_kwargs={
+            'outputs': ['pid', 'dt'], 'output_type': 'list', 'function_id': 'F'
+        })
+        start = time.time()
+        t, n = os.name == 'nt' and 2 or .1, 6
+        res = func(
+            [{'start': start, 't': t} for _ in range(n)], _executor='parallel'
+        )
+        dt = time.time() - start
+        self.assertEqual(n, len(set(v[0] for v in res)))
+        self.assertGreater(t * 2, dt)
+        self.assertEqual(n, sum(v[1] // t for v in res))
         self.assertEqual({'parallel'}, set(sh.shutdown_executors()))
 
     def test_parallel_dispatch(self):

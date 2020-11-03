@@ -17,6 +17,7 @@ class TestDoctest(unittest.TestCase):
         import doctest
         import schedula.utils.asy as asy
         failure_count, test_count = doctest.testmod(
-            asy, optionflags=doctest.NORMALIZE_WHITESPACE | doctest.ELLIPSIS)
+            asy, optionflags=doctest.NORMALIZE_WHITESPACE | doctest.ELLIPSIS
+        )
         self.assertGreater(test_count, 0, (failure_count, test_count))
         self.assertEqual(failure_count, 0, (failure_count, test_count))

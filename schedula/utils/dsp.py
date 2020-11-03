@@ -181,7 +181,7 @@ def map_dict(key_map, *dicts, copy=False, base=None):
     Returns a dict with new key values.
 
     :param key_map:
-        A dictionary that maps the dict keys ({old key: new key}
+        A dictionary that maps the dict keys ({old key: new key}.
     :type key_map: dict
 
     :param dicts:
@@ -695,7 +695,7 @@ class SubDispatch(Base):
 
     def __init__(self, dsp, outputs=None, cutoff=None, inputs_dist=None,
                  wildcard=False, no_call=False, shrink=False,
-                 rm_unused_nds=False, output_type='all'):
+                 rm_unused_nds=False, output_type='all', function_id=None):
         """
         Initializes the Sub-dispatch.
 
@@ -741,6 +741,10 @@ class SubDispatch(Base):
                 + 'list': a list with all outputs listed in `outputs`.
                 + 'dict': a dictionary with any outputs listed in `outputs`.
         :type output_type: str, optional
+
+        :param function_id:
+            Function name.
+        :type function_id: str, optional
         """
 
         self.dsp = dsp
@@ -752,7 +756,7 @@ class SubDispatch(Base):
         self.output_type = output_type
         self.inputs_dist = inputs_dist
         self.rm_unused_nds = rm_unused_nds
-        self.name = self.__name__ = dsp.name
+        self.name = self.__name__ = function_id or dsp.name
         self.__doc__ = dsp.__doc__
         self.solution = dsp.solution.__class__(dsp)
 
@@ -821,14 +825,116 @@ class SubDispatch(Base):
 
 
 class MapDispatch(SubDispatch):
-    base_class = SubDispatch
+    """
+    It dynamically builds a :class:`~schedula.dispatcher.Dispatcher` that is
+    used to invoke recursivelly a *dispatching function* that is defined
+    by a constructor function that takes a `dsp` base model as input.
 
-    def __init__(self, dsp, *args, defaults=None, recursive_inputs=None,
-                 **kwargs):
-        self.func = self.base_class(dsp, *args, **kwargs)
-        super(MapDispatch, self).__init__(dsp, output_type='list')
-        self.recursive_inputs = recursive_inputs
+    The created function takes a list of dictionaries as input that are used to
+    invoke the mapping function and returns a list of outputs.
+
+    :return:
+        A function that executes the dispatch of the given
+        :class:`~schedula.dispatcher.Dispatcher`.
+    :rtype: callable
+
+    .. seealso:: :func:`~schedula.utils.dsp.SubDispatch`
+
+    Example:
+
+    A simple example on how to use the :func:`~schedula.utils.dsp.MapDispatch`:
+
+    .. dispatcher:: map_func
+       :opt: graph_attr={'ratio': '1'}, depth=-1, workflow=True
+       :code:
+
+        >>> from schedula import Dispatcher, MapDispatch
+        >>> dsp = Dispatcher(name='model')
+        ...
+        >>> def fun(a, b):
+        ...     return a + b, a - b
+        ...
+        >>> dsp.add_func(fun, ['c', 'd'], inputs_kwargs=True)
+        'fun'
+        >>> map_func = MapDispatch(dsp, constructor_kwargs={
+        ...     'outputs': ['c', 'd'], 'output_type': 'list'
+        ... })
+        >>> map_func([{'a': 1, 'b': 2}, {'a': 2, 'b': 2}, {'a': 3, 'b': 2}])
+        [[3, -1], [4, 0], [5, 1]]
+
+    The execution model is created dynamically according to the length of the
+    provided inputs. Moreover, the :func:`~schedula.utils.dsp.MapDispatch` has
+    the possibility to define default values, that are recursively merged with
+    the input provided to the *dispatching function* as follow:
+
+    .. dispatcher:: map_func
+       :opt: graph_attr={'ratio': '1'}, depth=-1, workflow=True
+       :code:
+
+        >>> map_func([{'a': 1}, {'a': 3, 'b': 3}], defaults={'b': 2})
+        [[3, -1], [6, 0]]
+
+    The :func:`~schedula.utils.dsp.MapDispatch` can also be used as a partial
+    reducing function, i.e., part of the outpus of the previous step are used as
+    input for the successive execution of the *dispatching function*. For
+    example:
+
+    .. dispatcher:: map_func
+       :opt: graph_attr={'ratio': '1'}, depth=-1, workflow=True
+       :code:
+
+        >>> map_func = MapDispatch(dsp, recursive_inputs={'c': 'b'})
+        >>> map_func([{'a': 1, 'b': 1}, {'a': 2}, {'a': 3}])
+        [Solution([('a', 1), ('b', 1), ('c', 2), ('d', 0)]),
+         Solution([('a', 2), ('b', 2), ('c', 4), ('d', 0)]),
+         Solution([('a', 3), ('b', 4), ('c', 7), ('d', -1)])]
+    """
+
+    def __init__(self, dsp, defaults=None, recursive_inputs=None,
+                 constructor=SubDispatch, constructor_kwargs=None,
+                 function_id=None, **kwargs):
+        """
+        Initializes the MapDispatch function.
+
+        :param dsp:
+            A dispatcher that identifies the base model.
+        :type dsp: schedula.Dispatcher
+
+        :param defaults:
+            Defaults values that are recursively merged with the input provided
+            to the *dispatching function*.
+        :type defaults: dict
+
+        :param recursive_inputs:
+            List of data node ids that are extracted from the outputs of the
+            *dispatching function* and then merged with the inputs of the its
+            successive evaluation. If a dictionary is given, this is used to
+            rename the data node ids extracted.
+        :type recursive_inputs: list | dict
+
+        :param constructor:
+            It initializes the *dispatching function*.
+        :type constructor: function | class
+
+        :param constructor_kwargs:
+            Extra keywords passed to the constructor function.
+        :type constructor_kwargs: function | class
+
+        :param function_id:
+            Function name.
+        :type function_id: str, optional
+
+        :param kwargs:
+            Keywords to initialize the execution model.
+        :type kwargs: object
+        """
+        super(MapDispatch, self).__init__(
+            dsp, function_id=function_id, output_type='list'
+        )
+        self.func = constructor(dsp, **(constructor_kwargs or {}))
+        self.kwargs = kwargs or {}
         self.defaults = defaults
+        self.recursive_inputs = recursive_inputs
 
     @staticmethod
     def prepare_inputs(inputs, defaults, recursive_inputs=None, outputs=None):
@@ -839,11 +945,11 @@ class MapDispatch(SubDispatch):
             inputs = combine_dicts(inputs, base=data)
         return combine_dicts(defaults, inputs)
 
-    def make_dsp(self, defaults, inputs, recursive_inputs=None):
+    def _init_dsp(self, defaults, inputs, recursive_inputs=None):
         defaults = combine_dicts(self.defaults or {}, defaults or {})
         recursive_inputs = recursive_inputs or self.recursive_inputs
         from ..dispatcher import Dispatcher
-        self.dsp = dsp = Dispatcher()
+        self.dsp = dsp = Dispatcher(**self.kwargs)
         func, add_f = self.func, dsp.add_function
         pf = (defaults or recursive_inputs) and self.prepare_inputs
         self.outputs = []
@@ -863,10 +969,11 @@ class MapDispatch(SubDispatch):
     # noinspection PyMethodOverriding
     def __call__(self, inputs, defaults=None, recursive_inputs=None,
                  _stopper=None, _executor=None, _sol_name=(), _verbose=False):
-        return super(MapDispatch, self).__call__(self.make_dsp(
-            defaults, inputs, recursive_inputs
-        ), _stopper=_stopper, _executor=_executor, _sol_name=_sol_name,
-            _verbose=_verbose)
+        inputs = self._init_dsp(defaults, inputs, recursive_inputs)
+        return super(MapDispatch, self).__call__(
+            inputs, _stopper=_stopper, _executor=_executor, _verbose=_verbose,
+            _sol_name=_sol_name
+        )
 
 
 class SubDispatchFunction(SubDispatch):

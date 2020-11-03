@@ -255,6 +255,7 @@ functional programming philosophy, we can reuse the previously defined functions
    :func:`~schedula.dispatcher.Dispatcher.add_function`,
    :func:`~schedula.dispatcher.Dispatcher.add_dispatcher`,
    :class:`~schedula.utils.dsp.SubDispatch`,
+   :class:`~schedula.utils.dsp.MapDispatch`,
    :class:`~schedula.utils.dsp.SubDispatchFunction`,
    :class:`~schedula.utils.dsp.SubDispatchPipe`, and
    :class:`~schedula.utils.dsp.DispatchPipe`.
@@ -356,6 +357,7 @@ sub-model without read/write of key and message functions:
    :func:`~schedula.dispatcher.Dispatcher.get_sub_dsp`,
    :func:`~schedula.dispatcher.Dispatcher.get_sub_dsp_from_workflow`,
    :class:`~schedula.utils.dsp.SubDispatch`,
+   :class:`~schedula.utils.dsp.MapDispatch`,
    :class:`~schedula.utils.dsp.SubDispatchFunction`,
    :class:`~schedula.utils.dsp.DispatchPipe`, and
    :class:`~schedula.utils.dsp.SubDispatchPipe`.
