@@ -324,7 +324,7 @@ If you want to visualize the latest workflow of the dispatcher, you can use the
 ``workflow=True``:
 
 .. dispatcher:: dsp
-   :opt: index=True, workflow=True
+   :opt: index=True, workflow=True, engine='fdp'
    :code:
 
     >>> dsp.plot(workflow=True, index=True)  # doctest: +SKIP

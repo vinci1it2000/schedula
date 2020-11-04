@@ -16,7 +16,7 @@ Modules:
 
 .. autosummary::
     :nosignatures:
-    :toctree: _build/schedula
+    :toctree: toctree/schedula
 
     ~dispatcher
     ~utils

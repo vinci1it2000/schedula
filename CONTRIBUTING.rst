@@ -1,3 +1,4 @@
+.. _start-contrib:
 Contributing to schedula
 ========================
 
@@ -57,7 +58,8 @@ Well done! Your contribution is ready to be submitted:
 - Once the *pull request* is approved and merged you can pull the changes from
   ``upstream`` to your local repo and delete your extra branch(es).
 
-
+.. _end-contrib:
+.. _start-donate:
 Donate
 ======
 
@@ -67,3 +69,5 @@ development please donate.
 .. raw:: html
 
     <script src="https://donorbox.org/widget.js" paypalExpress="false"></script><iframe src="https://donorbox.org/embed/schedula?amount=25&show_content=true" height="685px" width="100%" style="max-width:100%; min-width:100%; max-height:none!important" seamless="seamless" name="donorbox" frameborder="0" scrolling="no" allowpaymentrequest></iframe>
+
+.. _end-donate:

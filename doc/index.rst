@@ -22,6 +22,7 @@
     tutorial
     async
     contrib
+    donate
     api
     change
 
