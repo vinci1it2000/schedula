@@ -889,10 +889,11 @@ class MapDispatch(SubDispatch):
          Solution([('a', 2), ('b', 2), ('c', 4), ('d', 0)]),
          Solution([('a', 3), ('b', 4), ('c', 7), ('d', -1)])]
     """
-
     def __init__(self, dsp, defaults=None, recursive_inputs=None,
                  constructor=SubDispatch, constructor_kwargs=None,
-                 function_id=None, **kwargs):
+                 function_id=None, func_kw=lambda *args, **data: {}, 
+                 input_label='inputs<{}>', output_label='outputs<{}>',
+                 data_label='data<{}>', **kwargs):
         """
         Initializes the MapDispatch function.
 
@@ -923,6 +924,22 @@ class MapDispatch(SubDispatch):
         :param function_id:
             Function name.
         :type function_id: str, optional
+        
+        :param func_kw:
+            Extra keywords to add the *dispatching function* to execution model.
+        :type func_kw: function, optional
+        
+        :param input_label:
+            Custom label formatter for recursive inputs.
+        :type input_label: str, optional
+        
+        :param output_label:
+            Custom label formatter for recursive outputs.
+        :type output_label: str, optional
+        
+        :param data_label:
+            Custom label formatter for recursive internal data.
+        :type data_label: str, optional
 
         :param kwargs:
             Keywords to initialize the execution model.
@@ -935,6 +952,10 @@ class MapDispatch(SubDispatch):
         self.kwargs = kwargs or {}
         self.defaults = defaults
         self.recursive_inputs = recursive_inputs
+        self.input_label = input_label
+        self.output_label = output_label
+        self.data_label = data_label
+        self.func_kw = func_kw
 
     @staticmethod
     def prepare_inputs(inputs, defaults, recursive_inputs=None, outputs=None):
@@ -950,19 +971,20 @@ class MapDispatch(SubDispatch):
         recursive_inputs = recursive_inputs or self.recursive_inputs
         from ..dispatcher import Dispatcher
         self.dsp = dsp = Dispatcher(**self.kwargs)
-        func, add_f = self.func, dsp.add_function
+        func, func_kw, add_f = self.func, self.func_kw, dsp.add_function
         pf = (defaults or recursive_inputs) and self.prepare_inputs
-        self.outputs = []
+        output_f, data_f = self.output_label.format, self.data_label.format
+        self.outputs, input_f = [], self.input_label.format
         _inputs = {'defaults': defaults, 'recursive_inputs': recursive_inputs}
         for k, v in enumerate(inputs):
-            i, o = 'inputs<%d>' % k, 'outputs<%d>' % k
+            i, o = input_f(k, **v), output_f(k, **v)
             _inputs[i] = v
             if pf:
-                i, keys = 'data<%d>' % k, [i, 'defaults']
+                i, keys = data_f(k, **v), [i, 'defaults']
                 if recursive_inputs and self.outputs:
                     keys += ['recursive_inputs'] + self.outputs[-1:]
                 add_f(function=pf, inputs=keys, outputs=[i])
-            add_f(function=func, inputs=[i], outputs=[o])
+            add_f(function=func, inputs=[i], outputs=[o], **func_kw(k, **v))
             self.outputs.append(o)
         return _inputs
 
