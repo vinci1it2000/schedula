@@ -2,6 +2,14 @@ Changelog
 =========
 
 
+v1.2.2 (2020-11-30)
+-------------------
+
+Feat
+~~~~
+- (dsp): Add custom formatters for `MapDispatch` class.
+
+
 v1.2.1 (2020-11-04)
 -------------------
 
