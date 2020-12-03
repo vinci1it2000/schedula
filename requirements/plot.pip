@@ -3,6 +3,7 @@
 flask
 regex
 graphviz
+requests
 Pygments
 jinja2
 docutils

@@ -2,5 +2,4 @@
 
 nose
 coveralls
-requests
 cryptography
