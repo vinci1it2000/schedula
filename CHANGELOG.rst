@@ -2,6 +2,19 @@ Changelog
 =========
 
 
+v1.2.3 (2020-12-11)
+-------------------
+
+Feat
+~~~~
+- (drw): Add plot option to use viz.js as back-end.
+
+
+Fix
+~~~
+- (setup): Add missing requirement `requests`.
+
+
 v1.2.2 (2020-11-30)
 -------------------
 
