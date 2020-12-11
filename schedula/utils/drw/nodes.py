@@ -10,7 +10,6 @@
 It provides docutils nodes to plot dispatcher map and workflow.
 """
 import html
-import webbrowser
 import graphviz as gviz
 from docutils import nodes as _nodes
 
@@ -21,14 +20,11 @@ class _DspPlot(gviz.Digraph):
         self.sitemap = sitemap
 
     def _view(self, filepath, format, quiet=False):
-        if format == 'html':
-            webbrowser.open(filepath)
-        else:
-            try:
-                super(_DspPlot, self)._view(filepath, format, quiet)
-            except TypeError:  # graphviz <= 0.8.4.
-                # noinspection PyArgumentList
-                super(_DspPlot, self)._view(filepath, format)
+        try:
+            super(_DspPlot, self)._view(filepath, format, quiet)
+        except TypeError:  # graphviz <= 0.8.4.
+            # noinspection PyArgumentList
+            super(_DspPlot, self)._view(filepath, format)
 
 
 class _Table(_nodes.General, _nodes.Element):
