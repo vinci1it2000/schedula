@@ -116,19 +116,19 @@ def update_filenames(node, filenames):
     if node is not None:
         filename = valid_filename(node, filenames)
         yield (node, None), (filename,)
-        filenames.append(filename)
+        filenames.add(filename)
         base = osp.splitext(filename)[0]
         for _, file in node.extra_files:
             filename, ext = osp.splitext(file)
             filename = valid_filename(filename, filenames, ext=ext[1:])
             yield (node, file), (osp.join(base, filename),)
-            filenames.append(osp.split(filename)[0].split('.')[0])
+            filenames.add(osp.split(filename)[0].split('.')[0])
 
 
-def site_view(app, node, context, generated_files, rendered, extra=None):
+def site_view(app, node, context, generated_files, rendered, extra=None, viz=False):
     static_folder, filepath = app.static_folder, context[(node, extra)]
     if not osp.isfile(osp.join(static_folder, filepath)):
-        files = cached_view(node, static_folder, context, rendered)
+        files = cached_view(node, static_folder, context, rendered, viz)
         generated_files.extend(files.values())
     return app.send_static_file(filepath)
 
@@ -210,7 +210,7 @@ class SiteNode:
         for src, fn in self.extra_files:
             dst = uncpath(osp.join(directory, fn))
             os.makedirs(osp.dirname(dst), exist_ok=True)
-            shutil.copy(src() if callable(src) else src, dst)
+            shutil.copy(src(**kwargs) if callable(src) else src, dst)
             rend[(self.view_id, src)] = dst
         return rend
 
@@ -613,14 +613,15 @@ class FolderNode:
         return {k: str(v) for k, v in dot.items()}
 
 
-def _format_output(obj):
+def _format_output(obj, **kwargs):
     import pkg_resources
     from jinja2 import PackageLoader
     pkg_dir = pkg_resources.resource_filename(__name__, '')
     fpath = osp.join(pkg_dir, 'templates', 'render.html')
     with open(fpath) as template:
         return jinja2_format(
-            template.read(), {'obj': obj}, loader=PackageLoader(__name__)
+            template.read(), combine_dicts({'obj': obj}, kwargs),
+            loader=PackageLoader(__name__)
         )
 
 
@@ -821,23 +822,29 @@ class SiteFolder:
                     g.node(node)
         return dot
 
-    def view(self, filepath, context=None):
+    def view(self, filepath, context=None, viz=False):
         dot = self.dot(context=context)
         dot.format = self.digraph['format']
-        try:
-            # noinspection PyArgumentList
-            fpath = dot.render(directory=tempfile.mkdtemp(), cleanup=True)
-        except Exception as ex:
-            log.error('dot could not render %s due to:\n %r', filepath, ex)
-            return {}
         filepath = uncpath(filepath)
         if osp.isfile(filepath):
             os.remove(filepath)
         else:
             os.makedirs(osp.dirname(filepath), exist_ok=True)
-        with open(fpath) as src, open(filepath, 'w') as dst:
-            dst.write(_format_output(src.read()))
-        os.remove(fpath)
+        if viz and dot.format == 'svg':
+            out = '<viz engine="%s" digraph="%s"/>'
+            out %= dot.engine, html.escape(dot.source)
+        else:
+            try:
+                # noinspection PyArgumentList
+                fpath = dot.render(directory=tempfile.mkdtemp(), cleanup=True)
+                with open(fpath) as src:
+                    out = src.read()
+                os.remove(fpath)
+            except Exception as ex:
+                log.error('dot could not render %s due to:\n %r', filepath, ex)
+                return {}
+        with open(filepath, 'w') as dst:
+            dst.write(_format_output(out, viz=viz))
         return {(self.view_id, None): filepath}
 
 
@@ -863,7 +870,7 @@ def _folder2tree(folder, smap, context, type):
     ]
     url = '{}?id=%d'.format(url)
     for node_id, attr in folder.dsp.nodes.items():
-        if not node_id in folder.graph.nodes:
+        if node_id not in folder.graph.nodes:
             continue
         type = attr['type']
         if type == 'function' and attr.get('function'):
@@ -947,12 +954,27 @@ def _add_explanation(dsp, node_id, description, **kw):
     return node_id
 
 
-class SiteIndex(SiteNode):
+class SiteViz(SiteNode):
+    ext = 'js'
+
+    def __init__(self, sitemap, node_id='viz'):
+        super(SiteViz, self).__init__(None, node_id, self, None, object())
+        self.sitemap = sitemap
+
+    def render(self, context, *args, **kwargs):
+        import pkg_resources
+        dfl_folder = osp.join(
+            pkg_resources.resource_filename(__name__, ''), 'viz'
+        )
+        with open(osp.join(dfl_folder, 'viz.js')) as f:
+            return f.read()
+
+
+class SiteIndex(SiteViz):
     ext = 'html'
 
     def __init__(self, sitemap, node_id='index'):
-        super(SiteIndex, self).__init__(None, node_id, self, None, object())
-        self.sitemap = sitemap
+        super(SiteIndex, self).__init__(sitemap, node_id)
         import pkg_resources
         dfl_folder = osp.join(
             pkg_resources.resource_filename(__name__, ''), 'index'
@@ -965,7 +987,7 @@ class SiteIndex(SiteNode):
         self.extra_files.append((self.legend, 'html/legend.html'))
 
     @staticmethod
-    def legend():
+    def legend(viz=False, **kwargs):
         import schedula as sh
         dsp = sh.Dispatcher(name='legend')
         _add_explanation(dsp, dsp.add_data(
@@ -1170,7 +1192,7 @@ class SiteIndex(SiteNode):
                 'output_filter x', 'error', 'missing_inputs_outputs',
                 'distance', 'started', 'duration',
             )
-        ).render(view=False, index=False, directory=tempfile.mkdtemp())
+        ).render(view=False, index=False, directory=tempfile.mkdtemp(), viz=viz)
 
     def render(self, context, *args, **kwargs):
         import threading
@@ -1368,6 +1390,7 @@ class SiteMap(collections.OrderedDict):
     site_folder = SiteFolder
     site_node = SiteNode
     site_index = SiteIndex
+    site_viz = SiteViz
     _view = None
     options = {
         'digraph', 'node_styles', 'node_data', 'node_function', 'edge_data',
@@ -1382,13 +1405,11 @@ class SiteMap(collections.OrderedDict):
             self._view = _DspPlot(None)._view
         self._nodes = []
         self.foldername = ''
-        self.index = self.site_index(self)
-        self.filenames = []
-        list(update_filenames(self.index, self.filenames))
+        self.filenames = {'index', 'index.html', 'viz.js'}
 
     def __setitem__(self, key, value, *args, **kwargs):
         value.foldername = valid_filename(key, self.filenames, ext='')
-        self.filenames.append(value.foldername)
+        self.filenames.add(value.foldername)
         # noinspection PyArgumentList
         super(SiteMap, self).__setitem__(key, value, *args, **kwargs)
 
@@ -1400,11 +1421,13 @@ class SiteMap(collections.OrderedDict):
     def nodes(self):
         return sorted(self._nodes, key=lambda x: x.title)
 
-    def rules(self, depth=-1, index=True):
-        filenames, rules = [], []
+    def rules(self, depth=-1, index=True, viz_js=False):
+        filenames, rules = set(), []
         rules.extend(self._rules(depth=depth, filenames=filenames))
+        if viz_js:
+            rules.extend(list(update_filenames(self.site_viz(self), filenames))[::-1])
         if index:
-            rules.extend(list(update_filenames(self.index, filenames))[::-1])
+            rules.extend(list(update_filenames(self.site_index(self), filenames))[::-1])
         it = ((k, osp.join(*v).replace('\\', '/')) for k, v in reversed(rules))
         return collections.OrderedDict(it)
 
@@ -1412,9 +1435,9 @@ class SiteMap(collections.OrderedDict):
         if self.foldername:
             rule += self.foldername,
         if filenames is None:
-            filenames = []
+            filenames = set()
         if self.include_folders_as_filenames:
-            filenames += [v.foldername for k, v in self.items()]
+            filenames.update(v.foldername for k, v in self.items())
         if depth != 0:
             depth -= 1
             for folder, smap in self.items():
@@ -1490,15 +1513,16 @@ class SiteMap(collections.OrderedDict):
             return item
         raise ValueError('Type %s not supported.' % type(item).__name__)
 
-    def app(self, root_path=None, depth=-1, index=True, mute=True, **kw):
+    def app(self, root_path=None, depth=-1, index=True, mute=True, viz_js=False, **kw):
         root_path = osp.abspath(root_path or tempfile.mkdtemp())
         generated_files, rendered = [], {}
         cleanup = functools.partial(_cleanup, generated_files, rendered)
         app = basic_app(root_path, cleanup=cleanup, mute=mute, **kw)
-        context = self.rules(depth=depth, index=index)
+        context = self.rules(depth=depth, index=index, viz_js=viz_js)
         for (node, extra), filepath in context.items():
             func = functools.partial(
-                site_view, app, node, context, generated_files, rendered, extra
+                site_view, app, node, context, generated_files, rendered, extra,
+                viz_js
             )
             app.add_url_rule('/%s' % filepath, filepath, func)
 
@@ -1517,11 +1541,15 @@ class SiteMap(collections.OrderedDict):
 
         return site
 
-    def render(self, depth=-1, directory='static', view=False, index=True):
-        context, rendered = self.rules(depth=depth, index=index), {}
+    def render(self, depth=-1, directory='static', view=False, index=True,
+               viz=False, viz_js=False):
+        context = self.rules(depth=depth, index=index, viz_js=viz_js)
+        rendered = {}
         for node, extra in context:
             if not extra:
-                cached_view(node, directory, context, rendered)
+                cached_view(
+                    node, directory, context, rendered, viz=viz or viz_js
+                )
 
         fpath = osp.join(directory, next(iter(context.values()), ''))
         if view:
@@ -1530,7 +1558,7 @@ class SiteMap(collections.OrderedDict):
         return fpath
 
 
-def cached_view(node, directory, context, rendered):
+def cached_view(node, directory, context, rendered, viz=False):
     n_id = node.view_id
     rend = {k: v for k, v in rendered.items() if k[0] == n_id}
     cnt = {(n_id, e): f for (n, e), f in context.items() if n == node}
@@ -1546,7 +1574,7 @@ def cached_view(node, directory, context, rendered):
             rend[k] = fpath
     else:
         rend = node.view(
-            osp.join(directory, context[(node, None)]), context=context
+            osp.join(directory, context[(node, None)]), context=context, viz=viz
         )
         rendered.update(rend)
     return rend

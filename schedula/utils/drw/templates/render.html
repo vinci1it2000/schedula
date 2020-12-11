@@ -91,6 +91,8 @@
             background-image: url("data:image/svg+xml;charset=utf8,%3Csvg fill='none' height='24' stroke='%23BBBBBB' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3'/%3E%3C/svg%3E");
         }
     </style>
+    <!-- Required Javascript -->
+    {{ viz and '<script src="viz.js"></script>' }}
 </head>
 <body onload="_onload()">
 <div id="index" style="display: none; height: 100%">
@@ -250,6 +252,21 @@
                 } else if (el.getAttribute('class').indexOf('graph') !== -1) {
                     el.parentNode.setAttribute('class', el.parentNode.getAttribute('class') + " on");
                 }
+        }
+        let parser = new DOMParser();
+        for (let e of document.getElementsByTagName('viz')) {
+            let out, digraph = e.getAttribute('digraph'), options = {
+                engine: e.getAttribute('engine') || 'dot',
+                format: "svg"
+            };
+            try {
+                out = parser.parseFromString(Viz(digraph, options), "image/svg+xml").documentElement;
+            } catch (e) {
+                out = document.createElement('div')
+                out.setAttribute('class', 'viz error')
+                out.innerHTML = e.message === undefined ? "An error occurred while processing the graph input." : e.message;
+            }
+            e.appendChild(out);
         }
     }
 

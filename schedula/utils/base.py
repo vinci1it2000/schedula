@@ -116,7 +116,8 @@ class Base:
              format=NONE, engine=NONE, encoding=NONE, graph_attr=NONE,
              node_attr=NONE, edge_attr=NONE, body=NONE, node_styles=NONE,
              node_data=NONE, node_function=NONE, edge_data=NONE, max_lines=NONE,
-             max_width=NONE, directory=None, sites=None, index=False):
+             max_width=NONE, directory=None, sites=None, index=False,
+             viz=False):
         """
         Plots the Dispatcher with a graph in the DOT language with Graphviz.
 
@@ -214,6 +215,10 @@ class Base:
             Open the main page of the site?
         :type view: bool, optional
 
+        :param viz:
+            Use viz.js as back-end?
+        :type viz: bool, optional
+
         :return:
             A SiteMap.
         :rtype: schedula.utils.drw.SiteMap
@@ -263,9 +268,13 @@ class Base:
             import tempfile
             directory = directory or tempfile.mkdtemp()
             if sites is None:
-                sitemap.render(directory=directory, view=True, index=index)
+                sitemap.render(
+                    directory=directory, view=True, index=index, viz_js=viz
+                )
             else:
-                sites.add(sitemap.site(directory, view=True, index=index))
+                sites.add(sitemap.site(
+                    directory, view=True, index=index, viz_js=viz
+                ))
         return sitemap
 
     def get_node(self, *node_ids, node_attr=NONE):

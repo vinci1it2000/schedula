@@ -49,7 +49,8 @@ class DispatcherSphinxDirective(Graphviz):
     }
     option_spec = {
         'graphviz_dot': directives.unchanged,  # sphinx==1.3.5
-        'index': bool_option
+        'index': bool_option,
+        'viz': bool_option
     }
     sh.combine_dicts(img_opt, Graphviz.option_spec, base=option_spec)
 

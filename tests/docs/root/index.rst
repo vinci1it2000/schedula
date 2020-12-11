@@ -78,6 +78,7 @@
 6:
 
 .. dispatcher:: sub_dsp
+   :opt: viz=True
    :code:
 
     >>> sub_dsp = dsp.shrink_dsp(('v1', 'v3', 'v5'), ('v2', 'v4', 'v6'))
