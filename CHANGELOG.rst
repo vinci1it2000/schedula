@@ -2,6 +2,16 @@ Changelog
 =========
 
 
+v1.2.5 (2021-01-17)
+-------------------
+
+Fix
+~~~
+- (core): Update copyright.
+
+- (drw): Correct viz rendering.
+
+
 v1.2.4 (2020-12-12)
 -------------------
 
