@@ -92,7 +92,7 @@
         }
     </style>
     <!-- Required Javascript -->
-    {{ viz and '<script src="viz.js"></script>' }}
+    {{ viz and '<script src="%s"></script>' % viz or '' }}
 </head>
 <body onload="_onload()">
 <div id="index" style="display: none; height: 100%">

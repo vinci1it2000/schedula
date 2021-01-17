@@ -125,7 +125,8 @@ def update_filenames(node, filenames):
             filenames.add(osp.split(filename)[0].split('.')[0])
 
 
-def site_view(app, node, context, generated_files, rendered, extra=None, viz=False):
+def site_view(
+        app, node, context, generated_files, rendered, extra=None, viz=False):
     static_folder, filepath = app.static_folder, context[(node, extra)]
     if not osp.isfile(osp.join(static_folder, filepath)):
         files = cached_view(node, static_folder, context, rendered, viz)
@@ -844,6 +845,9 @@ class SiteFolder:
                 log.error('dot could not render %s due to:\n %r', filepath, ex)
                 return {}
         with open(filepath, 'w') as dst:
+            if viz:
+                viz = len(context[(self, None)].split(osp.sep)) - 1
+                viz = '/'.join(('..',) * viz + ('viz.js',))
             dst.write(_format_output(out, viz=viz))
         return {(self.view_id, None): filepath}
 
@@ -954,7 +958,11 @@ def _add_explanation(dsp, node_id, description, **kw):
     return node_id
 
 
-class SiteViz(SiteNode):
+class NoView:
+    pass
+
+
+class SiteViz(SiteNode, NoView):
     ext = 'js'
 
     def __init__(self, sitemap, node_id='viz'):
@@ -986,6 +994,7 @@ class SiteIndex(SiteViz):
                 )
         self.extra_files.append((self.legend, 'html/legend.html'))
 
+    # noinspection PyUnusedLocal
     @staticmethod
     def legend(viz=False, **kwargs):
         import schedula as sh
@@ -1318,6 +1327,7 @@ class Site:
         from IPython.display import HTML
         if not self.is_running:
             self.run()
+        # noinspection PyTypeChecker
         kw = combine_dicts(os.environ, dict(
             id=id(self), host=self.host, port=self.port
         ))
@@ -1424,10 +1434,9 @@ class SiteMap(collections.OrderedDict):
     def rules(self, depth=-1, index=True, viz_js=False):
         filenames, rules = set(), []
         rules.extend(self._rules(depth=depth, filenames=filenames))
-        if viz_js:
-            rules.extend(list(update_filenames(self.site_viz(self), filenames))[::-1])
-        if index:
-            rules.extend(list(update_filenames(self.site_index(self), filenames))[::-1])
+        for b, f in ((viz_js, self.site_viz), (index, self.site_index)):
+            if b:
+                rules.extend(list(update_filenames(f(self), filenames))[::-1])
         it = ((k, osp.join(*v).replace('\\', '/')) for k, v in reversed(rules))
         return collections.OrderedDict(it)
 
@@ -1513,7 +1522,8 @@ class SiteMap(collections.OrderedDict):
             return item
         raise ValueError('Type %s not supported.' % type(item).__name__)
 
-    def app(self, root_path=None, depth=-1, index=True, mute=True, viz_js=False, **kw):
+    def app(self, root_path=None, depth=-1, index=True, mute=True, viz_js=False,
+            **kw):
         root_path = osp.abspath(root_path or tempfile.mkdtemp())
         generated_files, rendered = [], {}
         cleanup = functools.partial(_cleanup, generated_files, rendered)
@@ -1550,8 +1560,10 @@ class SiteMap(collections.OrderedDict):
                 cached_view(
                     node, directory, context, rendered, viz=viz or viz_js
                 )
-
-        fpath = osp.join(directory, next(iter(context.values()), ''))
+        fpath = osp.join(directory, next((
+            v for (i, j), v in context.items()
+            if not isinstance(i, NoView) and j is None
+        ), ''))
         if view:
             # noinspection PyArgumentList
             self._view(fpath, osp.splitext(fpath)[1][1:])
