@@ -471,8 +471,7 @@ class Solution(Base, collections.OrderedDict):
         :rtype: (bool, str) -> bool
         """
 
-        wf_pred = self._wf_pred  # Namespace shortcuts.
-        pred = {k: set(v).issubset for k, v in self._pred.items()}
+        wf_pred, pred = self._wf_pred , self._pred  # Namespace shortcuts.
 
         if self._wait_in:
             we = self._wait_in.get  # Namespace shortcut.
@@ -497,13 +496,13 @@ class Solution(Base, collections.OrderedDict):
 
                 # Return true if the node inputs are satisfied.
                 if we(n_id, wait_in):
-                    return not pred[n_id](wf_pred[n_id])
+                    return not set(pred[n_id]).issubset(wf_pred[n_id])
                 return False
 
         else:
             def check_wait_input_flag(wait_in, n_id):
                 # Return true if the node inputs are satisfied.
-                return wait_in and not pred[n_id](wf_pred[n_id])
+                return wait_in and not set(pred[n_id]).issubset(wf_pred[n_id])
 
         return check_wait_input_flag  # Return the function.
 
