@@ -2,6 +2,21 @@ Changelog
 =========
 
 
+v1.2.6 (2021-02-09)
+-------------------
+
+Feat
+~~~~
+- (sol): Improve performances.
+
+
+Fix
+~~~
+- (des): Correct description error due to `MapDispatch`.
+
+- (drw): Correct `index` plotting.
+
+
 v1.2.5 (2021-01-17)
 -------------------
 
