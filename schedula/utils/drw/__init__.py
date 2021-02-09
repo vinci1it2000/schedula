@@ -978,11 +978,12 @@ class SiteViz(SiteNode, NoView):
             return f.read()
 
 
-class SiteIndex(SiteViz):
+class SiteIndex(SiteNode):
     ext = 'html'
 
     def __init__(self, sitemap, node_id='index'):
-        super(SiteIndex, self).__init__(sitemap, node_id)
+        super(SiteIndex, self).__init__(None, node_id, self, None, object())
+        self.sitemap = sitemap
         import pkg_resources
         dfl_folder = osp.join(
             pkg_resources.resource_filename(__name__, ''), 'index'
