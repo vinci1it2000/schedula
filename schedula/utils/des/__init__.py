@@ -14,7 +14,7 @@ import re
 import inspect
 import logging
 from ..dsp import SubDispatch, SubDispatchFunction, bypass, replicate_value, \
-    parent_func, stlp
+    parent_func, stlp, MapDispatch
 
 __author__ = 'Vincenzo Arcidiacono <vinci1it2000@gmail.com>'
 
@@ -113,9 +113,9 @@ def _search_doc_in_func(dsp, node_id, where_succ=True, node_type='function',
             else:
                 fun = parent_func(func_node['function'])
 
-            if isinstance(fun, SubDispatchFunction) or (
+            if  isinstance(fun, SubDispatchFunction) or (
                     isinstance(fun, SubDispatch) and not where_succ):
-                if fun.output_type == 'list':
+                if fun.output_type == 'list' and not isinstance(fun, MapDispatch):
                     sub_dsp = fun.dsp
                     n_id = getattr(fun, node_attr)[n_ix]
                     n_att = sub_dsp.nodes[n_id]
