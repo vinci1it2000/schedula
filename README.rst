@@ -135,7 +135,7 @@ Install extras
 --------------
 Some additional functionality is enabled installing the following extras:
 
-- ``io``: enables to read/write functions (see : ).
+- ``io``: enables to read/write functions.
 - ``plot``: enables the plot of the Dispatcher model and workflow
   (see :func:`~schedula.utils.base.Base.plot`).
 - ``web``: enables to build a dispatcher Flask app (see
@@ -148,7 +148,7 @@ To install **schedula** and all extras, do:
 
 .. code-block:: console
 
-    $ pip install schedula[all]
+    $ pip install 'schedula[all]'
 
 .. note:: ``plot`` extra requires **Graphviz**. Make sure that the directory
    containing the ``dot`` executable is on your systems' path. If you have not

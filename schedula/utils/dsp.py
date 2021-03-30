@@ -701,7 +701,7 @@ class SubDispatch(Base):
 
         :param dsp:
             A dispatcher that identifies the model adopted.
-        :type dsp: schedula.Dispatcher
+        :type dsp: schedula.Dispatcher | schedula.utils.blue.BlueDispatcher
 
         :param outputs:
             Ending data nodes.
@@ -899,7 +899,7 @@ class MapDispatch(SubDispatch):
 
         :param dsp:
             A dispatcher that identifies the base model.
-        :type dsp: schedula.Dispatcher
+        :type dsp: schedula.Dispatcher | schedula.utils.blue.BlueDispatcher
 
         :param defaults:
             Defaults values that are recursively merged with the input provided
@@ -1068,7 +1068,7 @@ class SubDispatchFunction(SubDispatch):
 
         :param dsp:
             A dispatcher that identifies the model adopted.
-        :type dsp: schedula.Dispatcher
+        :type dsp: schedula.Dispatcher | schedula.utils.blue.BlueDispatcher
 
         :param function_id:
             Function name.
@@ -1261,7 +1261,7 @@ class SubDispatchPipe(SubDispatchFunction):
 
         :param dsp:
             A dispatcher that identifies the model adopted.
-        :type dsp: schedula.Dispatcher
+        :type dsp: schedula.Dispatcher | schedula.utils.blue.BlueDispatcher
 
         :param function_id:
             Function name.
