@@ -11,7 +11,7 @@ import os
 import sys
 import shutil
 import os.path as osp
-from six import StringIO
+from io import StringIO
 
 EXTRAS = os.environ.get('EXTRAS', 'all')
 try:
