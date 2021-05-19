@@ -2,6 +2,25 @@ Changelog
 =========
 
 
+v1.2.7 (2021-05-19)
+-------------------
+
+Feat
+~~~~
+- (travis): Remove python 3.6 and add python 3.9 from text matrix.
+
+
+Fix
+~~~
+- (sphinx): Add missing attribute.
+
+- (sphinx): Update option parser.
+
+- (doc): Update some documentation.
+
+- (test): Correct test case missing library.
+
+
 v1.2.6 (2021-02-09)
 -------------------
 
