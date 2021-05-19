@@ -51,6 +51,7 @@ def _setup(**kw):
         warn=warnfunc,
         filename_set=set(),
         state=Struct(document=document),
+        record_dependencies=set(),
         **kw
     )
 
