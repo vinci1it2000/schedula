@@ -13,6 +13,7 @@ import glob
 import hashlib
 import inspect
 import logging
+import collections
 import os.path as osp
 import schedula as sh
 from docutils.parsers.rst import directives
@@ -246,7 +247,9 @@ def _dsp2dot_option(arg):
     # noinspection PyUnusedLocal
     def map_args(*args, **kwargs):
         from schedula.utils.base import Base
-        a = inspect.signature(Base.plot).bind(None, *args, **kwargs).arguments
+        a = collections.OrderedDict(inspect.signature(
+            Base.plot
+        ).bind(None, *args, **kwargs).arguments)
         a.popitem(last=False)
         return a
 
