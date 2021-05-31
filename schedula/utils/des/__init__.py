@@ -156,9 +156,11 @@ def _search_doc_in_func(dsp, node_id, where_succ=True, node_type='function',
             sub_dsp = dsp_node['function']
             d, ll = '', ''
             for n_id in stlp(get_id(dsp_node)):
-                d, ll = search_node_description(
-                    n_id, sub_dsp.nodes[n_id], sub_dsp, what
-                )
+                try:
+                    node_attr = sub_dsp.nodes[n_id]
+                except KeyError:
+                    continue
+                d, ll = search_node_description(n_id, node_attr, sub_dsp, what)
                 if d:
                     break
             return d, ll
