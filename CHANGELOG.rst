@@ -2,6 +2,14 @@ Changelog
 =========
 
 
+v1.2.8 (2021-05-31)
+-------------------
+
+Fix
+~~~
+- (doc): Skip KeyError when searching descriptions.
+
+
 v1.2.7 (2021-05-19)
 -------------------
 
