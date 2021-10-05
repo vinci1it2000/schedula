@@ -1,7 +1,7 @@
 File Processing Chain
 =====================
 This example shows how **functional programming** paradigm, the
-**dataflow programming** paradigm, and **schedula** can be used to:
+**dataflow programming** paradigm and **schedula** can be used to:
 
 - **read** from an excel file,
 - **process** some data with a generic model,
@@ -27,10 +27,10 @@ time-series in the ipython notebook using ``plotly`` library.
 
 Process model
 -------------
-The process model is composed by four blocks:
+The process model is composed of four blocks:
 
 1. to read the excel file,
-2. to parse the data renaming the columns names to match the model ids,
+2. to parse the data renaming the column's names to match the model ids,
 3. to compute the outputs with our computational model, and
 4. to save the outputs in a new excel file.
 

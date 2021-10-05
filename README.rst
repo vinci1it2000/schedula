@@ -499,9 +499,9 @@ processes::
 .. _end-async:
 .. _start-badges:
 
-.. |travis_status| image:: https://travis-ci.org/vinci1it2000/schedula.svg?branch=master
+.. |travis_status| image:: https://app.travis-ci.com/vinci1it2000/schedula.svg?branch=master
     :alt: Travis build status
-    :target: https://travis-ci.org/vinci1it2000/schedula
+    :target: https://app.travis-ci.com/vinci1it2000/schedula
 
 .. |cover_status| image:: https://coveralls.io/repos/github/vinci1it2000/schedula/badge.svg?branch=master
     :target: https://coveralls.io/github/vinci1it2000/schedula?branch=master
