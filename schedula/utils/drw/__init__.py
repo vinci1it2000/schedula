@@ -30,6 +30,7 @@ import pprint
 import string
 import shutil
 import inspect
+import hashlib
 import weakref
 import logging
 import datetime
@@ -59,14 +60,15 @@ def uncpath(p):
     return _UNC + osp.abspath(p)
 
 
-def _encode_file_name(s):
+def _encode_file_name(s, short_name=None):
     """
     Take a string and return a valid filename constructed from the string.
 
     Uses a whitelist approach: any characters not present in valid_chars are
     removed. Also spaces are replaced with underscores.
     """
-
+    if short_name:
+        s = hashlib.md5(s.encode()).hexdigest()[:short_name]
     valid_chars = "-_.() %s%s" % (string.ascii_letters, string.digits)
     filename = ''.join(c for c in s if c in valid_chars)
     filename = filename.replace(' ', '_')  # I don't like spaces in filenames.
@@ -157,7 +159,8 @@ class SiteNode:
     ext = 'html'
     pprint = pprint.PrettyPrinter(compact=True, width=200)
 
-    def __init__(self, folder, node_id, item, obj, dsp_node_id):
+    def __init__(
+            self, folder, node_id, item, obj, dsp_node_id, short_name=None):
         self.folder = folder
         self.node_id = node_id
         self.item = item
@@ -165,6 +168,7 @@ class SiteNode:
         self.id = str(self.counter())
         self.dsp_node_id = dsp_node_id
         self.extra_files = []
+        self.short_name = short_name
 
     @property
     def name(self):
@@ -183,7 +187,7 @@ class SiteNode:
 
     @property
     def _filename(self):
-        return _encode_file_name(self.title)
+        return _encode_file_name(self.title, self.short_name)
 
     @property
     def filename(self):
@@ -646,7 +650,7 @@ class SiteFolder:
     ext = 'html'
 
     def __init__(self, item, dsp, graph, obj, name='', workflow=False,
-                 digraph=None, parent=None, **options):
+                 digraph=None, parent=None, short_name=None, **options):
         self.item, self.dsp, self.graph, self.obj = item, dsp, graph, obj
         self._name = name
         self.workflow = workflow
@@ -658,6 +662,7 @@ class SiteFolder:
         self.edges = [e for k, e in self._edges(nodes)]
         self.sitemap = None
         self.extra_files = []
+        self.short_name = short_name
         if digraph is not None:
             self.digraph = combine_dicts(self.__class__.digraph, digraph)
 
@@ -671,7 +676,7 @@ class SiteFolder:
 
     @property
     def _filename(self):
-        return _encode_file_name(self.title)
+        return _encode_file_name(self.title, self.short_name)
 
     @property
     def filename(self):
@@ -1402,6 +1407,7 @@ class SiteMap(collections.OrderedDict):
     site_node = SiteNode
     site_index = SiteIndex
     site_viz = SiteViz
+    short_name = None
     _view = None
     options = {
         'digraph', 'node_styles', 'node_data', 'node_function', 'edge_data',
@@ -1470,7 +1476,8 @@ class SiteMap(collections.OrderedDict):
             graph = dsp.dmap
 
         folder = self.site_folder(
-            item, dsp, graph, obj, workflow=workflow, parent=folder, **options
+            item, dsp, graph, obj, workflow=workflow, parent=folder,
+            short_name=self.short_name, **options
         )
         folder.sitemap = smap = self[folder] = self.__class__()
         return smap, folder
@@ -1497,7 +1504,9 @@ class SiteMap(collections.OrderedDict):
                     link = add_items(item, depth=depth, name=node_id)
                 except ValueError:  # item is not a dsp object.
                     i = ''.join((node_title, k and '-' or '', k))
-                    link = site_node(folder, i, item, item, node_id)
+                    link = site_node(
+                        folder, i, item, item, node_id, self.short_name
+                    )
                     append(link)
                 links[k] = link
 

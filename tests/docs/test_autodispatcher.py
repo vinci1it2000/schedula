@@ -1,6 +1,7 @@
 import os
 import unittest
 import schedula as sh
+
 try:
     from .util import TestApp, Struct
 except SystemError:
@@ -39,8 +40,9 @@ def _setup(**kw):
         deprecated=False,
         members=[],
         member_order='alphabetic',
-        exclude_members=set(),
+        exclude_members=set()
     )
+    options.__dict__.update(kw.pop('options', {}))
     settings = Struct(tab_width=8)
     document = Struct(settings=settings)
     from docutils.statemachine import ViewList
@@ -161,7 +163,9 @@ class TestDispatcherDirective(unittest.TestCase):
         content._offset = content_offset
         _setup(
             arguments=['dsp'],
-            options={'opt': "graph_attr={'ratio': '1'}", 'code': True},
+            options={
+                'opt': {'graph_attr': {'ratio': '1'}, 'short_name': 6}
+            },
             content=content,
             content_offset=content_offset
         )
@@ -179,7 +183,7 @@ class TestDispatcherDirective(unittest.TestCase):
                " >>> s = Dispatcher(name='Dispatcher')",
                " >>> f = s.add_function('fun', lambda x: 0, ['a'], ['b'])",
                '', '', '',
-               '.. dsp:: _build/_dispatchers/dispatcher-e6fae1119c5ef15c4426de01b7ad758f98e88d54/Dispatcher.gv',
+               '.. dsp:: _build/_dispatchers/dispatcher-89750a9e01c5a27d4084b0b820a45643ebb587da/dbfcc2.gv',
                '   :graphviz_dot: dot',
                '',
                ".. csv-table:: **Dispatcher's data**",

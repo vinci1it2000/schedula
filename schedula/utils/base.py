@@ -117,7 +117,7 @@ class Base:
              node_attr=NONE, edge_attr=NONE, body=NONE, node_styles=NONE,
              node_data=NONE, node_function=NONE, edge_data=NONE, max_lines=NONE,
              max_width=NONE, directory=None, sites=None, index=False,
-             viz=False):
+             viz=False, short_name=None):
         """
         Plots the Dispatcher with a graph in the DOT language with Graphviz.
 
@@ -219,6 +219,10 @@ class Base:
             Use viz.js as back-end?
         :type viz: bool, optional
 
+        :param short_name:
+            Maximum length of the filename, if set name is hashed and reduced.
+        :type short_name: int, optional
+
         :return:
             A SiteMap.
         :rtype: schedula.utils.drw.SiteMap
@@ -263,6 +267,7 @@ class Base:
             workflow = workflow or False
 
         sitemap = SiteMap()
+        sitemap.short_name = short_name
         sitemap.add_items(self, workflow=workflow, depth=depth, **options)
         if view:
             import tempfile
