@@ -2,6 +2,21 @@ Changelog
 =========
 
 
+v1.2.9 (2021-10-05)
+-------------------
+
+Feat
+~~~~
+- (drw): Add option to reduce length of file names.
+
+
+Fix
+~~~
+- (setup): Correct supported python versions.
+
+- (doc): Correct typos.
+
+
 v1.2.8 (2021-05-31)
 -------------------
 
