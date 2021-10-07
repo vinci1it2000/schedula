@@ -225,54 +225,75 @@ class FolderNode:
 
     node_styles = _upt_styles({
         'info': {
-            START: {'shape': 'egg', 'fillcolor': 'red', 'label': 'start'},
-            SELF: {'shape': 'egg', 'fillcolor': 'gold', 'label': 'self'},
-            PLOT: {'shape': 'egg', 'fillcolor': 'gold', 'label': 'plot'},
-            END: {'shape': 'egg', 'fillcolor': 'blue', 'fontcolor': 'white',
-                  'label': 'end'},
-            EMPTY: {'shape': 'egg', 'fillcolor': 'gray', 'label': 'empty'},
-            SINK: {'shape': 'egg', 'fillcolor': 'black', 'fontcolor': 'white',
-                   'label': 'sink'},
+            START: {
+                'shape': 'egg', 'label': 'start', 'fillcolor': '#39bf7f',
+                'color': '#39bf7f'
+            },
+            SELF: {
+                'shape': 'egg', 'label': 'self', 'fillcolor': '#C1A4FE',
+                'color': '#C1A4FE'
+            },
+            PLOT: {
+                'shape': 'egg', 'label': 'plot', 'fillcolor': '#fcf3dd',
+                'color': '#fcf3dd'
+            },
+            END: {
+                'shape': 'egg', 'label': 'end', 'fontcolor': '#FFFFFF',
+                'fillcolor': '#084368', 'color': '#084368'
+            },
+            EMPTY: {
+                'shape': 'egg', 'label': 'empty', 'fillcolor': '#FFFFFF'
+            },
+            SINK: {
+                'shape': 'egg', 'label': 'sink', 'fontcolor': '#FFFFFF',
+                'fillcolor': '#303030', 'color': '#303030'
+            },
             NONE: {
-                'data': {'shape': 'box', 'style': 'rounded,filled',
-                         'fillcolor': 'cyan'},
-                'function': {'shape': 'box', 'fillcolor': 'springgreen'},
-                'subdispatch': {'shape': 'note', 'style': 'filled',
-                                'fillcolor': 'yellow'},
-                'mapdispatch': {'shape': 'note', 'style': 'filled',
-                                'fillcolor': 'seagreen1'},
-                'subdispatchfunction': {'shape': 'note', 'style': 'filled',
-                                        'fillcolor': 'yellowgreen'},
-                'subdispatchpipe': {'shape': 'note', 'style': 'filled',
-                                    'fillcolor': 'greenyellow'},
-                'dispatchpipe': {'shape': 'note', 'style': 'filled',
-                                 'fillcolor': 'chartreuse'},
-                'dispatcher': {'shape': 'note', 'style': 'filled',
-                               'fillcolor': 'springgreen'},
+                'data': {
+                    'shape': 'box', 'style': 'rounded,filled',
+                    'fillcolor': '#73c4fa', 'color': '#73c4fa'
+                },
+                'function': {
+                    'shape': 'box', 'fillcolor': '#eed867', 'color': '#eed867'
+                },
+                'subdispatch': {
+                    'shape': 'note', 'style': 'filled', 'fillcolor': '#ffc490',
+                    'color': '#ffc490'
+                },
+                'mapdispatch': {
+                    'shape': 'note', 'style': 'filled', 'fillcolor': '#f4bd6a',
+                    'color': '#f4bd6a'
+                },
+                'subdispatchfunction': {
+                    'shape': 'note', 'style': 'filled', 'fillcolor': '#f9d951',
+                    'color': '#f9d951'
+                },
+                'subdispatchpipe': {
+                    'shape': 'note', 'style': 'filled', 'fillcolor': '#f1cd5d',
+                    'color': '#f1cd5d'
+                },
+                'dispatchpipe': {
+                    'shape': 'note', 'style': 'filled', 'fillcolor': '#e8c268',
+                    'color': '#e8c268'
+                },
+                'dispatcher': {
+                    'shape': 'note', 'style': 'filled', 'fillcolor': '#c6c6c6',
+                    'color': '#c6c6c6'
+                },
                 'edge': {None: None}
             }
         },
         'warning': {
-            NONE: {
-                'data': {'fillcolor': 'orange'},
-                'function': {'fillcolor': 'orange'},
-                'subdispatch': {'fillcolor': 'orange'},
-                'subdispatchfunction': {'fillcolor': 'orange'},
-                'subdispatchpipe': {'fillcolor': 'orange'},
-                'dispatchpipe': {'fillcolor': 'orange'},
-                'dispatcher': {'fillcolor': 'orange'},
-            }
+            NONE: dict.fromkeys((
+                'data', 'function', 'subdispatch', 'subdispatchfunction',
+                'subdispatchpipe', 'dispatchpipe', 'mapdispatch', 'dispatcher'
+            ), {'fillcolor': '#fea22b', 'color': '#C9340A', 'penwidth': 2})
         },
         'error': {
-            NONE: {
-                'data': {'fillcolor': 'red'},
-                'function': {'fillcolor': 'red'},
-                'subdispatch': {'fillcolor': 'red'},
-                'subdispatchfunction': {'fillcolor': 'red'},
-                'subdispatchpipe': {'fillcolor': 'red'},
-                'dispatchpipe': {'fillcolor': 'red'},
-                'dispatcher': {'fillcolor': 'red'},
-            }
+            NONE: dict.fromkeys((
+                'data', 'function', 'subdispatch', 'subdispatchfunction',
+                'subdispatchpipe', 'dispatchpipe', 'mapdispatch', 'dispatcher'
+            ), {'fillcolor': '#FF3536', 'color': '#5E1F00', 'penwidth': 2})
         }
     })
 
@@ -613,7 +634,9 @@ class FolderNode:
             k = 'xlabel' if self.type == 'edge' else 'label'
             k = self.attr.get('label_type', k)
             from .nodes import _Table
-            dot[k] = '<%s>' % _Table(BORDER=0, CELLSPACING=0).adds(rows)
+            dot[k] = '<%s>' % _Table(
+                BORDER=0, CELLSPACING=0, COLOR=dot.get('fontcolor', 'black')
+            ).adds(rows)
         dot.update(self.attr.get('graphviz', {}))
         return {k: str(v) for k, v in dot.items()}
 
