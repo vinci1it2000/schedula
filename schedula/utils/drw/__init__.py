@@ -1503,6 +1503,7 @@ class SiteMap(collections.OrderedDict):
             short_name=self.short_name, **options
         )
         folder.sitemap = smap = self[folder] = self.__class__()
+        smap.short_name = self.short_name
         return smap, folder
 
     def add_items(self, item, workflow=False, depth=-1, folder=None, **options):
