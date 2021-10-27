@@ -1520,7 +1520,10 @@ class SiteMap(collections.OrderedDict):
         )
         for node in itertools.chain(folder.nodes, folder.edges):
             links, node_id, node_title = node._links, node.node_id, node.title
-            only_site_node = depth == 0 or node.type == 'data'
+            only_site_node = depth == 0 or (
+                    node.type == 'data' and not node.attr.get(
+                'force_plot', False
+            ))
             for k, item in node.items():
                 try:
                     if only_site_node:
