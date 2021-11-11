@@ -2,7 +2,7 @@
 
 flask
 regex
-graphviz
+graphviz<0.18
 requests
 Pygments
 jinja2

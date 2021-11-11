@@ -85,8 +85,8 @@ if __name__ == '__main__':
         'web': ['requests', 'regex', 'flask'],
         'parallel': ['multiprocess'],
         'plot': [
-            'requests', 'graphviz', 'regex', 'flask', 'Pygments', 'jinja2',
-            'docutils'
+            'requests', 'graphviz<0.18', 'regex', 'flask', 'Pygments',
+            'jinja2', 'docutils'
         ]
     }
     extras['sphinx'] = ['sphinx'] + extras['plot']
