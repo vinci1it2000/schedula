@@ -757,7 +757,7 @@ class SiteFolder:
             i: v for i, v in gnode.items()
             if i in nodes and (i is not SINK or succ[SINK] or pred[SINK])
         }
-        if not nodes or not (graph.edges or self.inputs or self.outputs):
+        if not nodes and not (graph.edges or self.inputs or self.outputs):
             it[EMPTY] = {'index': (EMPTY,)}
 
         if START in gnode or any(i in it for i in self.inputs):
