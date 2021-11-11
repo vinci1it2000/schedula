@@ -2,6 +2,33 @@ Changelog
 =========
 
 
+v1.2.10 (2021-11-11)
+--------------------
+
+Feat
+~~~~
+- (drw): Add custom style per node.
+
+- (drw): Make clean-up site optional.
+
+- (drw): Add `force_plot` option to data node to plot Solution results.
+
+- (drw): Update graphs colors.
+
+
+Fix
+~~~
+- (setup): Pin graphviz version <0.18.
+
+- (alg): Ensure `str` type of `node_id`.
+
+- (drw): Remove empty node if some node is available.
+
+- (drw): Add missing node type on js script.
+
+- (drw): Extend short name to sub-graphs.
+
+
 v1.2.9 (2021-10-05)
 -------------------
 
