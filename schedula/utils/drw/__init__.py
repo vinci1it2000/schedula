@@ -493,8 +493,9 @@ class FolderNode:
 
     def style(self):
         attr = self.attr
-
-        if 'error' in attr:
+        if 'style' in attr:
+            return attr['style'].copy()
+        elif 'error' in attr:
             nstyle = 'error'
         elif list(self._missing_inputs_outputs()):
             nstyle = 'warning'
