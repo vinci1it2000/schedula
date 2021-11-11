@@ -63,6 +63,7 @@ def remove_edge_fun(graph):
     # Namespace shortcut for speed.
     rm_edge, rm_node = graph.remove_edge, graph.remove_node
     succ, pred = graph.succ, graph.pred
+
     def remove_edge(u, v):
         rm_edge(u, v)  # Remove the edge.
         if not (succ[v] or pred[v]):  # Check if v is isolate.
@@ -95,9 +96,9 @@ def get_unused_node_id(graph, initial_guess='unknown', _format='{}<%d>'):
     nodes = graph.nodes  # Namespace shortcut for speed.
 
     n = counter()  # Counter.
-    id_fmt = _format.format(initial_guess.replace('%', '%%'))  # Node id format.
+    node_id = str(initial_guess)  # Initial guess.
+    id_fmt = _format.format(node_id.replace('%', '%%'))  # Node id format.
 
-    node_id = initial_guess  # Initial guess.
     while node_id in nodes:  # Check if node id is used.
         node_id = id_fmt % n()  # Guess.
 
