@@ -315,11 +315,11 @@ class FolderNode:
     node_map = {
         '-': (),  # Add title.
         '?': (),  # Optional title.
-        '': ('dot', 'table'),  # item in the table.
-        '+': ('dot', 'table'),  # link.
-        '!': ('dot', 'table'),  # if str is big add a link, otherwise table.
-        '.': ('dot',),  # dot attr.
-        '*': ('link',)  # title link.
+        '': ('dot', 'table'),  # Item in the table.
+        '+': ('dot', 'table'),  # Link.
+        '!': ('dot', 'table'),  # If str is big add a link, otherwise table.
+        '.': ('dot',),  # Dot attr.
+        '*': ('link',)  # Title link.
     }
     re_node = regex.compile(r"^([.*+!]?)([\w ]+)(?>\|([\w ]+))?$")
     max_lines = 5
@@ -1324,12 +1324,13 @@ _repr_html = '''
 
 class Site:
     def __init__(self, sitemap, host='localhost', port=0, delay=0.1, until=30,
-                 run_options=None, **kwargs):
+                 run_options=None, cleanup=True, **kwargs):
         self.sitemap = sitemap
         self.kwargs = kwargs
         self.host = host
         self.port = port
         self.shutdown = lambda: False
+        self.cleanup = cleanup
         self.delay = delay
         self.until = until
         self._html = os.environ.get("SCHEDULA_SITE_REPR_HTML", _repr_html)
@@ -1370,10 +1371,10 @@ class Site:
         return self.sitemap.app(**self.kwargs)
 
     @staticmethod
-    def shutdown_site(url):
+    def shutdown_site(url, cleanup):
         import requests
         try:
-            requests.delete('%s/cleanup' % url)
+            cleanup and requests.delete('%s/cleanup' % url)
             requests.delete('%s/shutdown' % url)
         except requests.exceptions.ConnectionError:
             return False
@@ -1391,7 +1392,9 @@ class Site:
                 args=(self.app(), self.get_port(**options))
             ).start()
             # noinspection PyArgumentList
-            self.shutdown = weakref.finalize(self, self.shutdown_site, self.url)
+            self.shutdown = weakref.finalize(
+                self, self.shutdown_site, self.url, self.cleanup
+            )
             self.wait_server()
         finally:
             if memo is None:
