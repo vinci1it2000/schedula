@@ -18,16 +18,12 @@ from sphinx.util.inspect import safe_getattr
 from jinja2.sandbox import SandboxedEnvironment
 from sphinx.jinja2glue import BuiltinTemplateLoader
 from jinja2 import FileSystemLoader, TemplateNotFound
-from sphinx.ext.autosummary import import_by_name, get_documenter
-from sphinx.ext.autosummary.generate import (
-    _simple_warn, _simple_info, find_autosummary_in_files
+from sphinx.ext.autosummary import (
+    import_by_name, get_documenter, get_rst_suffix
 )
-
-try:
-    from sphinx.ext.autosummary.generate import AutosummaryEntry
-except ImportError:
-    class AutosummaryEntry:
-        pass
+from sphinx.ext.autosummary.generate import (
+    _simple_warn, _simple_info, find_autosummary_in_files, AutosummaryEntry
+)
 
 logger = logging.getLogger(__name__)
 warnings.filterwarnings(
@@ -40,11 +36,7 @@ def get_members(app, obj, typ, include_public=(), imported=False):
     for name in dir(obj):
         try:
             obj_name = safe_getattr(obj, name)
-            try:
-                documenter = get_documenter(app, obj_name, obj)
-            except TypeError:
-                documenter = get_documenter(obj_name, obj)
-
+            documenter = get_documenter(app, obj_name, obj)
         except AttributeError:
             continue
         if documenter.objtype == typ:
@@ -133,10 +125,7 @@ def generate_autosummary_docs(
         f = open(fn, 'w')
 
         try:
-            try:
-                doc = get_documenter(app, obj, parent)
-            except TypeError:
-                doc = get_documenter(obj, parent)
+            doc = get_documenter(app, obj, parent)
 
             if template_name is not None:
                 template = template_env.get_template(template_name)
@@ -216,14 +205,11 @@ def process_generate_options(app):
     ext = tuple(app.config.source_suffix)
     genfiles = [genfile + (not genfile.endswith(ext) and ext[0] or '')
                 for genfile in genfiles]
-    try:
-        from sphinx.ext.autosummary import get_rst_suffix
-        suffix = get_rst_suffix(app)
-    except ImportError:
-        suffix = '.rst'
+
+    suffix = get_rst_suffix(app)
 
     if suffix is None:
-        logger.warning('autosummary generats .rst files internally. '
+        logger.warning('autosummary generates .rst files internally. '
                        'But your source_suffix does not contain .rst. Skipped.')
         return
     generate_autosummary_docs(genfiles, builder=app.builder,
@@ -239,19 +225,10 @@ def setup(app):
     import sphinx.ext.autosummary as mdl
     pgo = mdl.process_generate_options
     event = 'builder-inited'
-
-    try:
-        listeners = app._listeners[event]
-    except AttributeError:  # Sphinx 1.6.2
-        listeners = app.events.listeners[event]
-    if isinstance(listeners, list):  # Sphinx >= 3.0.0
-        from sphinx.events import EventListener
-        for i, event in enumerate(listeners):
-            if pgo in event:
-                listeners[i] = EventListener(*(
-                    process_generate_options if e is pgo else e for e in event
-                ))
-    else:
-        for listener_id, callback in listeners.items():
-            if callback is pgo:
-                listeners[listener_id] = process_generate_options
+    listeners = app.events.listeners[event]
+    from sphinx.events import EventListener
+    for i, event in enumerate(listeners):
+        if pgo in event:
+            listeners[i] = EventListener(*(
+                process_generate_options if e is pgo else e for e in event
+            ))

@@ -89,7 +89,7 @@ if __name__ == '__main__':
             'jinja2', 'docutils'
         ]
     }
-    extras['sphinx'] = ['sphinx'] + extras['plot']
+    extras['sphinx'] = ['sphinx>4'] + extras['plot']
     # noinspection PyTypeChecker
     extras['all'] = sorted(functools.reduce(set.union, extras.values(), set()))
     extras['dev'] = extras['all'] + [

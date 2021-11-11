@@ -23,18 +23,7 @@ from sphinx.ext.graphviz import (
     Graphviz, latex_visit_graphviz, texinfo_visit_graphviz, text_visit_graphviz,
     man_visit_graphviz
 )
-
-try:
-    from sphinx.util.i18n import search_image_for_language
-except ImportError:  # spinx==1.3.5
-    def search_image_for_language(*args):
-        return args[0]
-try:
-    from sphinx.ext.graphviz import warn_for_deprecated_option
-except ImportError:  # sphinx!=1.5.5
-    # noinspection PyUnusedLocal
-    def warn_for_deprecated_option(*args, **kwargs):
-        pass
+from sphinx.util.i18n import search_image_for_language
 
 
 class dsp(nodes.General, nodes.Inline, nodes.Element):
