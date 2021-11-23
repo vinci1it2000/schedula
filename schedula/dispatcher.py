@@ -9,7 +9,7 @@
 It provides Dispatcher class.
 """
 import copy
-from .utils.cst import EMPTY, START, NONE, SINK, SELF, PLOT
+from .utils.cst import EMPTY, START, NONE, SINK, SELF, PLOT, END
 from .utils.dsp import (
     bypass, combine_dicts, selector, parent_func, kk_dict
 )
@@ -738,10 +738,11 @@ class Dispatcher(Base):
 
         return function_id
 
-    def add_dispatcher(self, dsp, inputs, outputs, dsp_id=None,
+    def add_dispatcher(self, dsp, inputs=None, outputs=None, dsp_id=None,
                        input_domain=None, weight=None, inp_weight=None,
                        description=None, include_defaults=False,
-                       await_domain=None, **kwargs):
+                       await_domain=None, inputs_prefix='', outputs_prefix='',
+                       **kwargs):
         """
         Add a single sub-dispatcher node to dispatcher.
 
@@ -752,13 +753,15 @@ class Dispatcher(Base):
 
         :param inputs:
             Inputs mapping. Data node ids from parent dispatcher to child
-            sub-dispatcher.
+            sub-dispatcher. If `None` all child dispatcher nodes are used as
+            inputs.
         :type inputs: dict[str, str | list[str]] | tuple[str] | 
                       (str, ..., dict[str, str | list[str]])
 
         :param outputs:
             Outputs mapping. Data node ids from child sub-dispatcher to parent
-            dispatcher.
+            dispatcher. If `None` all child dispatcher nodes are used as
+            outputs.
         :type outputs: dict[str, str | list[str]] | tuple[str] | 
                        (str, ..., dict[str, str | list[str]])
 
@@ -803,6 +806,14 @@ class Dispatcher(Base):
             `timeout` for `Future.result` method [default: True]. Note this is
             used when asynchronous or parallel execution is enable.
         :type await_domain: bool|int|float, optional
+
+        :param inputs_prefix:
+            Add a prefix to parent dispatcher inputs nodes.
+        :type inputs_prefix: str
+
+        :param outputs_prefix:
+            Add a prefix to parent dispatcher outputs nodes.
+        :type outputs_prefix: str
 
         :param kwargs:
             Set additional node attributes using key=value.
@@ -864,11 +875,23 @@ class Dispatcher(Base):
         if description is None:  # Get description.
             description = dsp.__doc__ or None
 
+        if inputs is None:
+            inputs = set(dsp.data_nodes) - {START, SINK, SELF, PLOT, END}
+
+        if outputs is None:
+            outputs = set(dsp.data_nodes) - {START, SINK, SELF, PLOT, END}
+
         if not isinstance(inputs, dict):  # Create the inputs dict.
             inputs = kk_dict(*inputs)
 
         if not isinstance(outputs, dict):  # Create the outputs dict.
             outputs = kk_dict(*outputs)
+
+        if inputs_prefix:
+            inputs = {f'{inputs_prefix}{k}': v for k, v in inputs.items()}
+
+        if outputs_prefix:
+            outputs = {k: f'{outputs_prefix}{v}' for k, v in outputs.items()}
 
         # Set zero as default input distances.
         # noinspection PyTypeChecker

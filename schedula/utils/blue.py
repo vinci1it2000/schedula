@@ -478,10 +478,11 @@ class BlueDispatcher(Blueprint):
         self.deferred.append(('add_func', kwargs))
         return self
 
-    def add_dispatcher(self, dsp, inputs, outputs, dsp_id=None,
+    def add_dispatcher(self, dsp, inputs=None, outputs=None, dsp_id=None,
                        input_domain=None, weight=None, inp_weight=None,
                        description=None, include_defaults=False,
-                       await_domain=None, **kwargs):
+                       await_domain=None, inputs_prefix='', outputs_prefix='',
+                       **kwargs):
         """
         Add a single sub-dispatcher node to dispatcher.
 
@@ -492,13 +493,15 @@ class BlueDispatcher(Blueprint):
 
         :param inputs:
             Inputs mapping. Data node ids from parent dispatcher to child
-            sub-dispatcher.
+            sub-dispatcher. If `None` all child dispatcher nodes are used as
+            inputs.
         :type inputs: dict[str, str | list[str]] | tuple[str] |
                       (str, ..., dict[str, str | list[str]])
 
         :param outputs:
             Outputs mapping. Data node ids from child sub-dispatcher to parent
-            dispatcher.
+            dispatcher. If `None` all child dispatcher nodes are used as
+            outputs.
         :type outputs: dict[str, str | list[str]] | tuple[str] |
                        (str, ..., dict[str, str | list[str]])
 
@@ -544,6 +547,14 @@ class BlueDispatcher(Blueprint):
             used when asynchronous or parallel execution is enable.
         :type await_domain: bool|int|float, optional
 
+        :param inputs_prefix:
+            Add a prefix to parent dispatcher inputs nodes.
+        :type inputs_prefix: str
+
+        :param outputs_prefix:
+            Add a prefix to parent dispatcher outputs nodes.
+        :type outputs_prefix: str
+
         :param kwargs:
             Set additional node attributes using key=value.
         :type kwargs: keyword arguments, optional
@@ -556,7 +567,8 @@ class BlueDispatcher(Blueprint):
             'include_defaults': include_defaults, 'await_domain': await_domain,
             'weight': weight, 'input_domain': input_domain, 'dsp_id': dsp_id,
             'description': description, 'outputs': outputs, 'inputs': inputs,
-            'inp_weight': inp_weight, 'dsp': dsp
+            'inp_weight': inp_weight, 'dsp': dsp,
+            'inputs_prefix': inputs_prefix, 'outputs_prefix': outputs_prefix
         })
         self.deferred.append(('add_dispatcher', kwargs))
         return self

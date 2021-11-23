@@ -242,6 +242,12 @@ class TestCreateDispatcher(unittest.TestCase):
 
         res = {'value': 1, 'initial_dist': 0.0}
         self.assertEqual(dsp.default_values['d'], res)
+        dsp = sh.Dispatcher()
+        dsp.add_dispatcher(sub_dsp, inputs_prefix='in/', outputs_prefix='out/')
+        keys = {k for k in sub_dsp.data_nodes if not isinstance(k, sh.Token)}
+        res = set(map('in/{}'.format, keys))
+        res = res.union(set(map('out/{}'.format, keys)))
+        self.assertEqual(set(dsp.data_nodes), res)
 
     def test_load_from_lists(self):
         dsp = sh.Dispatcher()
