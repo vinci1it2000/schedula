@@ -347,9 +347,19 @@ def await_result(obj, timeout=None):
     return obj.result(timeout) if isinstance(obj, Future) else obj
 
 
-try:
-    from atexit import atexit_register
+def atexit_register(*args, **kwargs):
+    _register = None
+    try:
+        from atexit import register as _register
+    except ImportError:
+        pass
+    try:
+        from atexit import atexit_register as _register
+    except ImportError:  # MicroPython.
+        pass
 
-    atexit_register(shutdown_executors, wait=False)
-except ImportError:  # MicroPython.
-    pass
+    _register and _register(*args, **kwargs)
+    return _register
+
+
+atexit_register(shutdown_executors, wait=False)
