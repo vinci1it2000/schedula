@@ -3,7 +3,7 @@
 #######################################################################
 schedula: A smart function scheduler for dynamic flow-based programming
 #######################################################################
-|pypi_ver| |travis_status| |cover_status| |docs_status| |dependencies|
+|pypi_ver| |test_status| |cover_status| |docs_status| |dependencies|
 |github_issues| |python_ver| |proj_license| |binder|
 
 :release:       1.2.10
@@ -499,8 +499,8 @@ processes::
 .. _end-async:
 .. _start-badges:
 
-.. |travis_status| image:: https://app.travis-ci.com/vinci1it2000/schedula.svg?branch=master
-    :alt: Travis build status
+.. |test_status| image:: https://github.com/vinci1it2000/schedula/actions/workflows/tests.yml/badge.svg?branch=master
+    :alt: Build status
     :target: https://app.travis-ci.com/vinci1it2000/schedula
 
 .. |cover_status| image:: https://coveralls.io/repos/github/vinci1it2000/schedula/badge.svg?branch=master
