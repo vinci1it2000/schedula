@@ -45,10 +45,13 @@ import pkg_resources
 import os.path as osp
 import urllib.parse as urlparse
 from werkzeug.serving import make_server
-from jinja2 import Environment, PackageLoader
-from pygments import highlight
-from pygments.lexers import Python3Lexer
-from pygments.formatters import HtmlFormatter
+try:
+    from jinja2 import Environment, PackageLoader
+    from pygments import highlight
+    from pygments.lexers import Python3Lexer
+    from pygments.formatters import HtmlFormatter
+except ModuleNotFoundError:
+    pass
 from ..cst import START, SINK, END, EMPTY, SELF, NONE, PLOT
 from ..dsp import (
     SubDispatch, combine_dicts, map_dict, combine_nested_dicts, selector, stlp,
