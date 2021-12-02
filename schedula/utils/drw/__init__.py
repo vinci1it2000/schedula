@@ -657,7 +657,9 @@ def _format_output(obj, **kwargs):
 def _format_kw_digraph(*dicts, base=None):
     kw = combine_nested_dicts(*dicts, base=base)
     if 'body' in kw:
-        kw['body'] = ['%s = %s' % (k, v) for k, v in sorted(kw['body'].items())]
+        kw['body'] = [
+            '\t%s = %s\n' % (k, v) for k, v in sorted(kw['body'].items())
+        ]
     return kw
 
 

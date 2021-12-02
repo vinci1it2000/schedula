@@ -85,7 +85,7 @@ if __name__ == '__main__':
         'web': ['requests', 'regex', 'flask'],
         'parallel': ['multiprocess'],
         'plot': [
-            'requests', 'graphviz<0.18', 'regex', 'flask', 'Pygments',
+            'requests', 'graphviz>=0.17', 'regex', 'flask', 'Pygments',
             'jinja2', 'docutils'
         ]
     }
