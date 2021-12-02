@@ -73,7 +73,9 @@ project = 'schedula'
 copyright = '2015-2021, Vincenzo Arcidiacono'
 author = 'Vincenzo Arcidiacono'
 extlinks = {
-    'gh': ('https://github.com/vinci1it2000/{}/issues/%s'.format(project), '#'),
+    'gh': (
+        'https://github.com/vinci1it2000/{}/issues/%s'.format(project), '#%s'
+    ),
 }
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the

@@ -93,7 +93,7 @@ if __name__ == '__main__':
     # noinspection PyTypeChecker
     extras['all'] = sorted(functools.reduce(set.union, extras.values(), set()))
     extras['dev'] = extras['all'] + [
-        'wheel', 'sphinx', 'gitchangelog', 'mako', 'sphinx_rtd_theme',
+        'wheel', 'sphinx>4', 'gitchangelog', 'mako', 'sphinx_rtd_theme',
         'setuptools>=36.0.1', 'sphinxcontrib-restbuilder', 'nose', 'coveralls',
         'requests', 'readthedocs-sphinx-ext'
     ]
