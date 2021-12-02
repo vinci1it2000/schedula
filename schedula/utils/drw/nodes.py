@@ -13,18 +13,30 @@ import html
 import graphviz as gviz
 from docutils import nodes as _nodes
 
+ENGINES = ['dot', 'fdp', 'osage', 'neato', 'circo']
+ENGINES += [k for k in sorted(gviz.ENGINES) if k not in ENGINES]
+
 
 class _DspPlot(gviz.Digraph):
-    def __init__(self, sitemap=None, *args, **kwargs):
+    _format = 'svg'
+
+    def __init__(self, sitemap=None, *args, engines=None, **kwargs):
         super(_DspPlot, self).__init__(*args, **kwargs)
         self.sitemap = sitemap
+        self.engines = [self.engine] + [
+            k for k in engines or ENGINES if k != self.engine
+        ]
 
-    def _view(self, filepath, format, quiet=False):
-        try:
-            super(_DspPlot, self)._view(filepath, format, quiet)
-        except TypeError:  # graphviz <= 0.8.4.
-            # noinspection PyArgumentList
-            super(_DspPlot, self)._view(filepath, format)
+    def render(self, *args, **kwargs):
+        error = None
+        for v in self.engines:
+            self.engine = v
+            try:
+                return super(_DspPlot, self).render(*args, **kwargs)
+            except Exception as ex:
+                if error is None:
+                    error = ex
+        raise error
 
 
 class _Table(_nodes.General, _nodes.Element):

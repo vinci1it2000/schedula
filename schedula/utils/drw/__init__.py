@@ -23,6 +23,7 @@ Sub-Modules:
 import os
 import glob
 import copy
+import time
 import html
 import regex
 import socket
@@ -38,14 +39,24 @@ import platform
 import tempfile
 import functools
 import itertools
+import threading
 import collections
+import pkg_resources
 import os.path as osp
 import urllib.parse as urlparse
-
+from werkzeug.serving import make_server
+from jinja2 import Environment, PackageLoader
+from pygments import highlight
+from pygments.lexers import Python3Lexer
+from pygments.formatters import HtmlFormatter
 from ..cst import START, SINK, END, EMPTY, SELF, NONE, PLOT
-from ..dsp import SubDispatch, combine_dicts, map_dict, combine_nested_dicts, \
-    selector, stlp, parent_func, get_nested_dicts, NoSub
+from ..dsp import (
+    SubDispatch, combine_dicts, map_dict, combine_nested_dicts, selector, stlp,
+    parent_func, get_nested_dicts, NoSub
+)
 from ..gen import counter
+from ..asy import _async_executor, atexit_register, Future, _sync_executor
+from ..asy.factory import ExecutorFactory
 
 __author__ = 'Vincenzo Arcidiacono <vinci1it2000@gmail.com>'
 
@@ -54,6 +65,13 @@ log = logging.getLogger(__name__)
 PLATFORM = platform.system().lower()
 
 _UNC = u'\\\\?\\' if PLATFORM == 'windows' else ''
+
+PLOT_EXECUTORS = ExecutorFactory({
+    'sync': _sync_executor,
+    'async': _async_executor
+})
+
+atexit_register(PLOT_EXECUTORS.shutdown_executor, wait=False)
 
 
 def uncpath(p):
@@ -95,7 +113,6 @@ def autoplot_callback(res):
 
 
 def jinja2_format(source, context=None, **kw):
-    from jinja2 import Environment
     return Environment(**kw).from_string(source).render(context or {})
 
 
@@ -128,11 +145,13 @@ def update_filenames(node, filenames):
 
 
 def site_view(
-        app, node, context, generated_files, rendered, extra=None, viz=False):
+        app, node, context, generated_files, rendered, extra=None, viz=False,
+        executor='async'):
     static_folder, filepath = app.static_folder, context[(node, extra)]
     if not osp.isfile(osp.join(static_folder, filepath)):
-        files = cached_view(node, static_folder, context, rendered, viz)
-        generated_files.extend(files.values())
+        generated_files.extend((v.result() for v in cached_view(
+            node, static_folder, context, rendered, viz, executor
+        ).values()))
     return app.send_static_file(filepath)
 
 
@@ -197,9 +216,6 @@ class SiteNode:
         return self.title
 
     def render(self, *args, **kwargs):
-        from pygments import highlight
-        from pygments.lexers import Python3Lexer
-        from pygments.formatters import HtmlFormatter
         code = render_output(self.item, self.pprint.pformat)
         formatter = HtmlFormatter(noclasses=True)
         formatter.style.background_color = 'transparent'
@@ -216,7 +232,7 @@ class SiteNode:
             dst = uncpath(osp.join(directory, fn))
             os.makedirs(osp.dirname(dst), exist_ok=True)
             shutil.copy(src(**kwargs) if callable(src) else src, dst)
-            rend[(self.view_id, src)] = dst
+            rend[(self.view_id, fn)] = dst
         return rend
 
 
@@ -643,8 +659,6 @@ class FolderNode:
 
 
 def _format_output(obj, **kwargs):
-    import pkg_resources
-    from jinja2 import PackageLoader
     pkg_dir = pkg_resources.resource_filename(__name__, '')
     fpath = osp.join(pkg_dir, 'templates', 'render.html')
     with open(fpath) as template:
@@ -854,7 +868,8 @@ class SiteFolder:
                     g.node(node)
         return dot
 
-    def view(self, filepath, context=None, viz=False):
+    # noinspection PyUnusedLocal
+    def view(self, filepath, context=None, viz=False, **kwargs):
         dot = self.dot(context=context)
         dot.format = self.digraph['format']
         filepath = uncpath(filepath)
@@ -873,8 +888,9 @@ class SiteFolder:
                     out = src.read()
                 os.remove(fpath)
             except Exception as ex:
-                log.error('dot could not render %s due to:\n %r', filepath, ex)
-                return {}
+                raise ValueError('dot could not render %s (%s) due to:\n %r' % (
+                    filepath, dot.filepath, ex
+                ))
         with open(filepath, 'w') as dst:
             if viz:
                 viz = len(context[(self, None)].split(osp.sep)) - 1
@@ -1028,7 +1044,7 @@ class SiteIndex(SiteNode):
 
     # noinspection PyUnusedLocal
     @staticmethod
-    def legend(viz=False, **kwargs):
+    def legend(viz=False, executor='async', **kwargs):
         import schedula as sh
         dsp = sh.Dispatcher(name='legend')
         _add_explanation(dsp, dsp.add_data(
@@ -1233,12 +1249,13 @@ class SiteIndex(SiteNode):
                 'output_filter x', 'error', 'missing_inputs_outputs',
                 'distance', 'started', 'duration',
             )
-        ).render(view=False, index=False, directory=tempfile.mkdtemp(), viz=viz)
+        ).render(
+            view=False, index=False, directory=tempfile.mkdtemp(), viz=viz,
+            executor=executor
+        )
 
     def render(self, context, *args, **kwargs):
         import threading
-        import pkg_resources
-        from jinja2 import PackageLoader
         pkg_dir = pkg_resources.resource_filename(__name__, '')
         fpath = osp.join(pkg_dir, 'templates', 'index.html')
 
@@ -1280,9 +1297,13 @@ def before_request(mute):
 
 def _cleanup(files=None, rendered=None):
     if files is None and rendered is None:
-        return 'Nothing to cleanup.'
+        log.info('Nothing to cleanup.')
     while files:
-        fpath = files.pop()
+        # noinspection PyBroadException
+        try:
+            fpath = files.pop().result()
+        except Exception:
+            continue
         try:
             os.remove(fpath)
         except FileNotFoundError:
@@ -1292,16 +1313,7 @@ def _cleanup(files=None, rendered=None):
         except OSError:  # The directory is not empty.
             pass
     rendered and rendered.clear()
-    return 'Cleaned up generated files by the server.'
-
-
-def _shutdown_server():
-    import flask
-    func = flask.request.environ.get('werkzeug.server.shutdown')
-    if func is None:
-        raise RuntimeError('Not running with the Werkzeug Server')
-    func()
-    return 'Server shutting down...'
+    log.info('Cleaned up generated files by the server.')
 
 
 def basic_app(root_path, cleanup=None, shutdown=None, mute=True, **kwargs):
@@ -1309,20 +1321,34 @@ def basic_app(root_path, cleanup=None, shutdown=None, mute=True, **kwargs):
     app = flask.Flask(root_path, root_path=root_path, **kwargs)
     app.before_request(functools.partial(before_request, mute))
     app.mute = mute
-
-    cleanup, rule = (cleanup or _cleanup), '/cleanup'
-    app.add_url_rule(rule, rule[1:], cleanup, methods=['DELETE'])
-
-    shutdown, rule = (shutdown or _shutdown_server), '/shutdown'
-    app.add_url_rule(rule, rule[1:], shutdown, methods=['DELETE'])
+    app.cleanup = cleanup or _cleanup
+    app.shutdown = shutdown
     return app
 
 
+# noinspection HttpUrlsUsage
 _repr_html = '''
 <style> .sh-box {{ width: 100%; height: 500px }} </style>
 <iframe id="{id}" class="sh-box" src="http://{host}:{port}/" allowfullscreen>
 </iframe>
 '''
+
+
+class ServerThread(threading.Thread):
+
+    def __init__(self, app, options):
+        threading.Thread.__init__(self)
+        self.srv = make_server(app=app, **options)
+        self.ctx = app.app_context()
+        self.ctx.push()
+
+    def run(self):
+        log.info('starting server')
+        self.srv.serve_forever()
+
+    def shutdown(self):
+        log.info('shutdown server')
+        self.srv.shutdown()
 
 
 class Site:
@@ -1368,37 +1394,34 @@ class Site:
 
     @property
     def url(self):
+        # noinspection HttpUrlsUsage
         return 'http://{}:{}'.format(self.host, self.port)
 
     def app(self):
         return self.sitemap.app(**self.kwargs)
 
     @staticmethod
-    def shutdown_site(url, cleanup):
-        import requests
-        try:
-            cleanup and requests.delete('%s/cleanup' % url)
-            requests.delete('%s/shutdown' % url)
-        except requests.exceptions.ConnectionError:
-            return False
+    def shutdown_site(shutdown, cleanup):
+        cleanup and cleanup()
+        shutdown()
         return True
 
     def run(self, **options):
         self.shutdown()
-        import threading
         options = combine_dicts(self.run_options, options)
         memo = os.environ.get("WERKZEUG_RUN_MAIN")
         try:
             os.environ["WERKZEUG_RUN_MAIN"] = "true"
-            threading.Thread(
-                target=run_server,
-                args=(self.app(), self.get_port(**options))
-            ).start()
+            app = self.app()
+            thread = ServerThread(app, self.get_port(**options))
+            thread.start()
             # noinspection PyArgumentList
             self.shutdown = weakref.finalize(
-                self, self.shutdown_site, self.url, self.cleanup
+                self, self.shutdown_site, thread.shutdown,
+                self.cleanup and app.cleanup
             )
             self.wait_server()
+            time.sleep(max(min(self.delay, 1), .1))
         finally:
             if memo is None:
                 os.environ.pop("WERKZEUG_RUN_MAIN")
@@ -1422,7 +1445,6 @@ class Site:
         return running
 
     def wait_server(self, elapsed=0):
-        import time
         end = time.time() + self.until
         while not self.is_running:
             time.sleep(self.delay)
@@ -1527,9 +1549,8 @@ class SiteMap(collections.OrderedDict):
         for node in itertools.chain(folder.nodes, folder.edges):
             links, node_id, node_title = node._links, node.node_id, node.title
             only_site_node = depth == 0 or (
-                    node.type == 'data' and not node.attr.get(
-                'force_plot', False
-            ))
+                    node.type == 'data' and not node.attr.get('force_plot', 0)
+            )
             for k, item in node.items():
                 try:
                     if only_site_node:
@@ -1566,7 +1587,7 @@ class SiteMap(collections.OrderedDict):
         raise ValueError('Type %s not supported.' % type(item).__name__)
 
     def app(self, root_path=None, depth=-1, index=True, mute=True, viz_js=False,
-            **kw):
+            executor='async', **kw):
         root_path = osp.abspath(root_path or tempfile.mkdtemp())
         generated_files, rendered = [], {}
         cleanup = functools.partial(_cleanup, generated_files, rendered)
@@ -1575,7 +1596,7 @@ class SiteMap(collections.OrderedDict):
         for (node, extra), filepath in context.items():
             func = functools.partial(
                 site_view, app, node, context, generated_files, rendered, extra,
-                viz_js
+                viz_js, executor
             )
             app.add_url_rule('/%s' % filepath, filepath, func)
 
@@ -1595,14 +1616,20 @@ class SiteMap(collections.OrderedDict):
         return site
 
     def render(self, depth=-1, directory='static', view=False, index=True,
-               viz=False, viz_js=False):
+               viz=False, viz_js=False, executor='async'):
         context = self.rules(depth=depth, index=index, viz_js=viz_js)
         rendered = {}
         for node, extra in context:
             if not extra:
                 cached_view(
-                    node, directory, context, rendered, viz=viz or viz_js
+                    node, directory, context, rendered, viz=viz or viz_js,
+                    executor=executor
                 )
+        for v in rendered.values():
+            try:
+                v.result()
+            except Exception as ex:
+                log.warning(ex)
         fpath = osp.join(directory, next((
             v for (i, j), v in context.items()
             if not isinstance(i, NoView) and j is None
@@ -1613,9 +1640,9 @@ class SiteMap(collections.OrderedDict):
         return fpath
 
 
-def cached_view(node, directory, context, rendered, viz=False):
+def _cached_view_task(node, directory, context, rend, viz, executor):
     n_id = node.view_id
-    rend = {k: v for k, v in rendered.items() if k[0] == n_id}
+    rend = {k: v.result() for k, v in rend.items()}
     cnt = {(n_id, e): f for (n, e), f in context.items() if n == node}
     if rend and all(k in rend and osp.isfile(rend[k]) for k in cnt):
         for k, f in cnt.items():
@@ -1629,10 +1656,39 @@ def cached_view(node, directory, context, rendered, viz=False):
             rend[k] = fpath
     else:
         rend = node.view(
-            osp.join(directory, context[(node, None)]), context=context, viz=viz
+            osp.join(directory, context[(node, None)]), context=context,
+            viz=viz, executor=executor
         )
-        rendered.update(rend)
     return rend
+
+
+def _set_rendered(results, fut, expected=None):
+    try:
+        error, res = None, fut.result()
+    except Exception as ex:
+        res, error = {}, ex
+    for k, v in results.items():
+        if k in res:
+            v.set_result(res[k])
+        else:
+            v.set_exception(
+                error or ValueError(f'Missing rendered result `{expected[k]}`.')
+            )
+
+
+def cached_view(node, directory, context, rendered, viz=False,
+                executor='async'):
+    n_id = node.view_id
+    rend = {k: v for k, v in rendered.items() if k[0] == n_id}
+    expected = {(n_id, e): f for (n, e), f in context.items() if n == node}
+    res = {k: Future() for k in expected if k not in rendered}
+    rendered.update(res)
+    PLOT_EXECUTORS.get_executor((executor, None)).thread(
+        None, _cached_view_task, node, directory, context, rend, viz, executor
+    ).add_done_callback(functools.partial(
+        _set_rendered, res, expected=expected
+    ))
+    return combine_dicts(rend, res)
 
 
 def _compile_subs(o, n):
