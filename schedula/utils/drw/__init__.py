@@ -1302,11 +1302,7 @@ def _cleanup(files=None, rendered=None):
     if files is None and rendered is None:
         log.info('Nothing to cleanup.')
     while files:
-        # noinspection PyBroadException
-        try:
-            fpath = files.pop().result()
-        except Exception:
-            continue
+        fpath = files.pop()
         try:
             os.remove(fpath)
         except FileNotFoundError:
