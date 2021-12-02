@@ -2,6 +2,42 @@ Changelog
 =========
 
 
+v1.2.11 (2021-12-02)
+--------------------
+
+Feat
+~~~~
+- (actions): Add test cases.
+
+- (test): Update test cases.
+
+- (drw): Make plot rendering parallel.
+
+- (asy): Add `sync` executor.
+
+- (dispatcher): Add auto inputs and outputs + prefix tags for
+  `add_dispatcher` method.
+
+- (setup): Pin sphinx version.
+
+
+Fix
+~~~
+- (test): Remove windows long path test.
+
+- (test): Correct test cases for parallel.
+
+- (drw): Correct optional imports.
+
+- (doc): Remove sphinx warning.
+
+- (drw): Correct body format.
+
+- (asy): Correct `atexit_register` function.
+
+- (bin): Correct script.
+
+
 v1.2.10 (2021-11-11)
 --------------------
 
