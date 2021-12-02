@@ -130,10 +130,3 @@ class TestDispatcherDraw(unittest.TestCase):
         smap = dsp.plot(view=False)
         smap.render(directory=filename)
         self.assertIsInstance(smap, SiteMap)
-
-    @unittest.skipIf(PLATFORM != 'windows', 'Your sys can open long path file.')
-    def test_view_long_path(self):
-        dsp = self.dsp
-        filename = osp.join(tempfile.TemporaryDirectory().name, 'a' * 400)
-        smap = dsp.plot(view=False)
-        self.assertRaises(OSError, smap.render, directory=filename, view=True)
