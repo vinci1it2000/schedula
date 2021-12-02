@@ -894,7 +894,7 @@ class TestAsyncParallel(unittest.TestCase):
 
     def test_multiple(self):
         from schedula.utils.asy import EXECUTORS, _parallel_pool_executor
-        t, n, p = os.name == 'nt' and 2 or .1, len(self.dsp2.sub_dsp_nodes), 1
+        t, n, p = os.name == 'nt' and 2 or .5, len(self.dsp2.sub_dsp_nodes), 1
         EXECUTORS.set_executor('parallel-pool', _parallel_pool_executor(p))
 
         sol = self.dsp2({'a': t, 'wait_domain': False}, executor=True).result()
