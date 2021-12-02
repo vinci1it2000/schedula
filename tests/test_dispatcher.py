@@ -719,7 +719,8 @@ class TestAsyncParallel(unittest.TestCase):
         self.dsp2 = dsp = sh.Dispatcher()
         dsp.add_function(function=time.time, outputs=['start'])
         executors = (
-            'parallel-dispatch', 'parallel-pool', 'parallel', 'async', None
+            'parallel-dispatch', 'parallel-pool', 'parallel', 'async', 'sync',
+            None
         )
         for i, executor in enumerate(executors):
             d = sh.Dispatcher(name=executor or 'base', executor=executor)
@@ -749,7 +750,8 @@ class TestAsyncParallel(unittest.TestCase):
         self.dsp3 = dsp = sh.Dispatcher()
         dsp.add_function(function=os.getpid, outputs=['pid'])
         executors = (
-            'parallel-dispatch', 'parallel-pool', 'parallel', 'async', None
+            'parallel-dispatch', 'parallel-pool', 'parallel', 'async', 'sync',
+            None
         )
         for i, executor in enumerate(executors):
             d = sh.Dispatcher(name=executor or 'base', executor=executor)
@@ -900,17 +902,20 @@ class TestAsyncParallel(unittest.TestCase):
         self.assertEqual(len(EXECUTORS._executors), n)
 
         pids = {v for k, v in sol.items() if k.split('-')[-1] in 'bcd'}
-        self.assertIn((len(pids) - 1 - 3 * (n - 3)) - 1, set(range(min(p, 3))))
+        self.assertIn((len(pids) - 1 - 3 * (n - 4)) - 1, set(range(min(p, 3))))
 
         t0 = {k[:-2]: v for k, v in sol.items() if k.endswith('-e')}
-        self.assertEqual(n + 3 - min(p, 2), sum(v // t for v in t0.values()))
+        self.assertEqual(n + 4 - min(p, 2), sum(v // t for v in t0.values()))
 
         sol = self.dsp2({'a': t, 'wait_domain': True}, executor=True).result()
         t1 = {k[:-2]: v for k, v in sol.items() if k.endswith('-e')}
         self.assertLess(max(t0.values()), max(t1.values()))
         self.assertLess(max(t1.values()), sum(t0.values()))
 
-        keys = 'parallel-dispatch', 'parallel-pool', 'parallel', 'async', 'base'
+        keys = (
+            'parallel-dispatch', 'parallel-pool', 'parallel', 'async', 'sync',
+            'base'
+        )
         it = sh.selector(keys, t1, output_type='list')
         for i, j in zip(it[:-1], it[1:]):
             self.assertLess(i, j)
@@ -920,12 +925,14 @@ class TestAsyncParallel(unittest.TestCase):
     def test_await_result(self):
         from schedula.utils.asy import EXECUTORS
         sol = self.dsp3({'a': 0, 'b': 0.1, 'c': 0}, executor=True).result()
-        self.assertEqual(5, len(EXECUTORS._executors))
+        self.assertEqual(6, len(EXECUTORS._executors))
         pids = {v for k, v in sol.items() if k.split('-')[-1] in 'defghi'}
         self.assertGreaterEqual(len(pids - {sh.NONE}), 6)
 
-        executors = 'async', 'parallel', 'parallel-pool', 'parallel-dispatch'
-        pids = {'pid'}.union(
+        executors = (
+            'sync', 'async', 'parallel', 'parallel-pool', 'parallel-dispatch'
+        )
+        pids = {'pid', 'sync-f'}.union(
             map('base-{}'.format, 'dhf'),
             map('-'.join, itertools.product(executors, 'dh'))
         )
@@ -936,7 +943,7 @@ class TestAsyncParallel(unittest.TestCase):
         for k in nones:
             self.assertEqual(sol[k], sh.NONE)
         self.assertEqual(
-            {'async', 'parallel', 'parallel-pool', 'parallel-dispatch'},
+            {'sync', 'async', 'parallel', 'parallel-pool', 'parallel-dispatch'},
             set(sh.shutdown_executors())
         )
 
@@ -949,10 +956,10 @@ class TestAsyncParallel(unittest.TestCase):
         self.dsp2(inputs={'a': 1}, executor=True)
         time.sleep(0.5)
         res = sh.shutdown_executors(False)
-        self.assertEqual(
-            {None, 'async', 'parallel', 'parallel-pool', 'parallel-dispatch'},
-            set(res),
-        )
+        self.assertEqual({
+            None, 'sync', 'async', 'parallel', 'parallel-pool',
+            'parallel-dispatch'
+        }, set(res))
         for r in res.values():
             self.assertIsInstance(r['executor'], sh.PoolExecutor)
             for k, v in r['tasks'].items():
