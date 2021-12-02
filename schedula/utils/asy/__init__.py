@@ -27,6 +27,12 @@ from ..exc import DispatcherError, DispatcherAbort
 from ..dsp import parent_func, SubDispatch, NoSub
 
 
+def _sync_executor():
+    from .executors import PoolExecutor, Executor
+    # noinspection PyTypeChecker
+    return PoolExecutor(Executor())
+
+
 def _async_executor():
     from .executors import PoolExecutor, ThreadExecutor
     return PoolExecutor(ThreadExecutor())
@@ -50,6 +56,7 @@ def _parallel_dispatch_executor():
 
 
 EXECUTORS = ExecutorFactory({
+    'sync': _sync_executor,
     'async': _async_executor,
     'parallel': _parallel_executor,
     'parallel-pool': _parallel_pool_executor,
@@ -57,7 +64,7 @@ EXECUTORS = ExecutorFactory({
 })
 
 
-def register_executor(name, init):
+def register_executor(name, init, executors=None):
     """
     Register a new executor type.
 
@@ -68,11 +75,17 @@ def register_executor(name, init):
     :param init:
         Function to initialize the executor.
     :type init: callable
+
+    :param executors:
+        Executor factory.
+    :type executors: ExecutorFactory
     """
-    EXECUTORS[name] = init
+    if executors is None:
+        executors = EXECUTORS
+    executors[name] = init
 
 
-def shutdown_executor(name=EMPTY, sol_id=EMPTY, wait=True):
+def shutdown_executor(name=EMPTY, sol_id=EMPTY, wait=True, executors=None):
     """
     Clean-up the resources associated with the Executor.
 
@@ -90,14 +103,20 @@ def shutdown_executor(name=EMPTY, sol_id=EMPTY, wait=True):
         reclaimed.
     :type wait: bool
 
+    :param executors:
+        Executor factory.
+    :type executors: ExecutorFactory
+
     :return:
         Shutdown pool executor.
     :rtype: dict[concurrent.futures.Future,Thread|Process]
     """
-    return EXECUTORS.shutdown_executor(name, sol_id, wait)
+    if executors is None:
+        executors = EXECUTORS
+    return executors.shutdown_executor(name, sol_id, wait)
 
 
-def shutdown_executors(wait=True):
+def shutdown_executors(wait=True, executors=None):
     """
     Clean-up the resources of all initialized executors.
 
@@ -107,11 +126,15 @@ def shutdown_executors(wait=True):
         reclaimed.
     :type wait: bool
 
+    :param executors:
+        Executor factory.
+    :type executors: ExecutorFactory
+
     :return:
         Shutdown pool executor.
     :rtype: dict[str,dict]
     """
-    return shutdown_executor(wait=wait)
+    return shutdown_executor(wait=wait, executors=executors)
 
 
 def _process_funcs(

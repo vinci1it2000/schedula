@@ -71,7 +71,10 @@ class Executor:
         return tasks
 
     def submit(self, func, *args, **kwargs):
-        raise NotImplemented
+        fut, send = Future(), lambda res: self._set_future(fut, res)
+        self.tasks[fut] = None
+        self._target(send, func, args, kwargs)
+        return fut
 
 
 class ProcessExecutor(Executor):
