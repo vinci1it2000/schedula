@@ -29,6 +29,7 @@ class TestDispatcherDraw(unittest.TestCase):
             function=fun, inputs=['a'], outputs=['b', sh.SINK, c],
             input_domain=dom, weight=1
         )
+        ss_dsp.add_data('b', wildcard=True, filters=[lambda x: x] * 2)
 
         def raise_fun(a):
             raise ValueError('Error')
@@ -57,8 +58,17 @@ class TestDispatcherDraw(unittest.TestCase):
         s_dsp.add_function('SubDispatch', sdsp, ['d'], ['e', 'f'])
 
         dsp = sh.Dispatcher()
-        dsp.add_data('A', default_value=[0] * 1000)
-        dsp.add_data('D', default_value={'a': 3})
+        dsp.add_data(
+            'A',
+            default_value=[0] * 1000,
+            style={'shape': 'egg'},
+            clusters={'body': {
+                'style': 'filled',
+                'color': 'lightgrey',
+                'label': "process 1"
+            }}
+        )
+        dsp.add_data('D', default_value={'a': 3}, clusters="process 1")
 
         dsp.add_dispatcher(
             dsp=s_dsp,
@@ -66,12 +76,21 @@ class TestDispatcherDraw(unittest.TestCase):
             outputs={'b': 'B', 'c': 'C', 'e': 'E', 'f': 'F'},
             inp_weight={'A': 3}
         )
+        dsp.plot()
         self.sol = dsp.dispatch()
         self.dsp = dsp
 
         dsp = sh.Dispatcher()
         dsp.add_function(function=sh.bypass, inputs=['a'], outputs=[sh.PLOT])
         self.dsp_plot = dsp
+
+        self.dsp_empty = sh.Dispatcher()
+
+        dsp = sh.Dispatcher()
+        dsp.add_data('a', wildcard=True)
+        dsp.add_function(function=lambda x: x + 1, inputs=['a'], outputs=['a'])
+        sol = dsp({'a': 1}, outputs=['a'], wildcard=True)
+        self.sol_wildcard = sol
 
     def test_plot(self):
         from schedula.utils.drw import SiteMap
@@ -88,6 +107,12 @@ class TestDispatcherDraw(unittest.TestCase):
         self.assertIsInstance(plt, SiteMap)
 
         plt = dsp.plot(depth=1, view=False)
+        self.assertIsInstance(plt, SiteMap)
+
+        plt = self.dsp_empty.plot(view=False)
+        self.assertIsInstance(plt, SiteMap)
+
+        plt = self.sol_wildcard.plot(view=False)
         self.assertIsInstance(plt, SiteMap)
 
     def test_view(self):

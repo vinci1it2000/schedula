@@ -200,6 +200,7 @@ class TestDispatcherUtils(unittest.TestCase):
         func = sh.add_args(sh.partial(fo, 1, 2), 2)
         self.assertEqual(func.__name__, 'original_func')
         self.assertEqual(func.__doc__, None)
+        self.assertEqual(str(func.__signature__), '(none, none, *c, d=0, e=0)')
         self.assertEqual(func((1, 2, 3), 2, 4), [1, 2, 4])
         func = sh.add_args(
             sh.partial(sh.partial(func, 1), 1, 2), 2,
@@ -290,6 +291,7 @@ class TestSubDispatchFunction(unittest.TestCase):
     def test_function(self):
         fun = sh.SubDispatchFunction(self.dsp_1, 'F', ['a', 'b'], ['a'])
         self.assertEqual(fun.__name__, 'F')
+        self.assertEqual(str(fun.__signature__), '(a, b, **kw)')
 
         # noinspection PyCallingNonCallable
         self.assertEqual(fun(2, 1), 1)
