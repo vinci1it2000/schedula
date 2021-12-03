@@ -1610,7 +1610,7 @@ class SiteMap(collections.OrderedDict):
         if view:
             site.run()
             # noinspection PyArgumentList
-            self._view(site.url, 'html')
+            self._view(site.url, format='html', quiet=True)
 
         return site
 
@@ -1635,7 +1635,7 @@ class SiteMap(collections.OrderedDict):
         ), ''))
         if view:
             # noinspection PyArgumentList
-            self._view(fpath, osp.splitext(fpath)[1][1:])
+            self._view(fpath, format=osp.splitext(fpath)[1][1:], quiet=True)
         return fpath
 
 
