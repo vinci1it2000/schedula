@@ -46,6 +46,7 @@ class _Token:
     def __reduce__(self):
         if self.module_name:
             import importlib
+            # noinspection PyTypeChecker
             mdl = importlib.import_module(self.module_name)
             for name, obj in mdl.__dict__.items():
                 if obj is self:

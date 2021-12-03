@@ -489,7 +489,7 @@ class BlueDispatcher(Blueprint):
         :param dsp:
             Child dispatcher that is added as sub-dispatcher node to the parent
             dispatcher.
-        :type dsp: Dispatcher | dict[str, list]
+        :type dsp: BlueDispatcher | Dispatcher | dict[str, list]
 
         :param inputs:
             Inputs mapping. Data node ids from parent dispatcher to child

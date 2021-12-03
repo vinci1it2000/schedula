@@ -371,17 +371,16 @@ def await_result(obj, timeout=None):
 
 
 def atexit_register(*args, **kwargs):
-    _register = None
     try:
         from atexit import register as _register
     except ImportError:
-        pass
-    try:
-        from atexit import atexit_register as _register
-    except ImportError:  # MicroPython.
-        pass
+        try:
+            from atexit import atexit_register as _register
+        except ImportError:  # MicroPython.
+            _register = None
 
-    _register and _register(*args, **kwargs)
+    if _register is not None:
+        _register(*args, **kwargs)
     return _register
 
 

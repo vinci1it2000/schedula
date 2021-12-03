@@ -83,8 +83,9 @@ def _import_docstring(documenter):
         try:
             code, content = code_content
             parser = DocTestParser()
-            runner = DocTestRunner(verbose=0,
-                                   optionflags=NORMALIZE_WHITESPACE | ELLIPSIS)
+            runner = DocTestRunner(
+                verbose=False, optionflags=NORMALIZE_WHITESPACE | ELLIPSIS
+            )
 
             glob = {}
             if documenter.modname:
@@ -309,12 +310,12 @@ class DispatcherDocumenter(DataDocumenter):
         self.content = kw['more_content'] = more_content
         return super(DispatcherDocumenter, self).generate(**kw)
 
-    def import_object(self):
+    def import_object(self, *args, **kwargs):
         if _import_docstring(self):
             return True
         self.is_doctest = False
         self.code = None
-        res = DataDocumenter.import_object(self)
+        res = super(DispatcherDocumenter, self).import_object(*args, **kwargs)
         if res and isinstance(self.object, sh.Blueprint):
             self.object = self.object.register(memo=self.blue_cache)
         return res

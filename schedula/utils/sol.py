@@ -471,7 +471,7 @@ class Solution(Base, collections.OrderedDict):
         :rtype: (bool, str) -> bool
         """
 
-        wf_pred, pred = self._wf_pred , self._pred  # Namespace shortcuts.
+        wf_pred, pred = self._wf_pred, self._pred  # Namespace shortcuts.
 
         if self._wait_in:
             we = self._wait_in.get  # Namespace shortcut.

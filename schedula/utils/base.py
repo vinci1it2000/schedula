@@ -223,6 +223,10 @@ class Base:
             Maximum length of the filename, if set name is hashed and reduced.
         :type short_name: int, optional
 
+        :param executor:
+            Pool executor to render object.
+        :type executor: str, optional
+
         :return:
             A SiteMap.
         :rtype: schedula.utils.drw.SiteMap

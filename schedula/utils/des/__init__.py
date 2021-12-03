@@ -113,9 +113,10 @@ def _search_doc_in_func(dsp, node_id, where_succ=True, node_type='function',
             else:
                 fun = parent_func(func_node['function'])
 
-            if  isinstance(fun, SubDispatchFunction) or (
+            if isinstance(fun, SubDispatchFunction) or (
                     isinstance(fun, SubDispatch) and not where_succ):
-                if fun.output_type == 'list' and not isinstance(fun, MapDispatch):
+                if fun.output_type == 'list' and \
+                        not isinstance(fun, MapDispatch):
                     sub_dsp = fun.dsp
                     n_id = getattr(fun, node_attr)[n_ix]
                     n_att = sub_dsp.nodes[n_id]
@@ -132,10 +133,10 @@ def _search_doc_in_func(dsp, node_id, where_succ=True, node_type='function',
                         sig = inspect.signature(fun)
                     except ValueError:
                         return None, ''
-                    VAR_POSITIONAL = inspect.Parameter.VAR_POSITIONAL
+                    var_positional = inspect.Parameter.VAR_POSITIONAL
                     for i, param in enumerate(sig.parameters.values()):
                         attr_name = param.name
-                        if i == n_ix or param.kind is VAR_POSITIONAL:
+                        if i == n_ix or param.kind is var_positional:
                             break
                 return get_attr_doc(doc, attr_name, where_succ, what), ''
 
