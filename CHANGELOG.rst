@@ -2,6 +2,21 @@ Changelog
 =========
 
 
+v1.2.12 (2021-12-03)
+--------------------
+
+Feat
+~~~~
+- (test): Add test cases improving coverage.
+
+
+Fix
+~~~
+- (drw): Correct graphviz `_view` attribute call.
+
+- (drw): Correct cleanup function.
+
+
 v1.2.11 (2021-12-02)
 --------------------
 
