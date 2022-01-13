@@ -1300,7 +1300,7 @@ def _cleanup(files=None, rendered=None):
         fpath = files.pop()
         try:
             os.remove(fpath)
-        except FileNotFoundError:
+        except (FileNotFoundError, PermissionError):
             pass
         try:
             os.removedirs(osp.dirname(fpath))
