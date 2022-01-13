@@ -4,6 +4,7 @@
 wheel
 gitchangelog
 mako
+twine
 sphinx_rtd_theme
 readthedocs-sphinx-ext
 setuptools>=36.0.1
