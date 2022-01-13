@@ -501,7 +501,7 @@ processes::
 
 .. |test_status| image:: https://github.com/vinci1it2000/schedula/actions/workflows/tests.yml/badge.svg?branch=master
     :alt: Build status
-    :target: https://app.travis-ci.com/vinci1it2000/schedula
+    :target: https://github.com/vinci1it2000/schedula/actions/workflows/tests.yml?query=branch%3Amaster
 
 .. |cover_status| image:: https://coveralls.io/repos/github/vinci1it2000/schedula/badge.svg?branch=master
     :target: https://coveralls.io/github/vinci1it2000/schedula?branch=master
