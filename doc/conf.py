@@ -70,7 +70,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'schedula'
-copyright = '2015-2021, Vincenzo Arcidiacono'
+copyright = '2015-2022, Vincenzo Arcidiacono'
 author = 'Vincenzo Arcidiacono'
 extlinks = {
     'gh': (
