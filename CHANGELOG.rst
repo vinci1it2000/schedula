@@ -2,6 +2,27 @@ Changelog
 =========
 
 
+v1.2.13 (2022-01-13)
+--------------------
+
+Feat
+~~~~
+- (doc): Update copyright.
+
+- (actions): Add `fail-fast: false`.
+
+- (setup): Add missing dev requirement.
+
+
+Fix
+~~~
+- (drw): Skip permission error in server cleanup.
+
+- (core): Correct import dependencies.
+
+- (doc): Correct link target.
+
+
 v1.2.12 (2021-12-03)
 --------------------
 
