@@ -44,7 +44,6 @@ import collections
 import pkg_resources
 import os.path as osp
 import urllib.parse as urlparse
-from werkzeug.serving import make_server
 try:
     from jinja2 import Environment, PackageLoader
     from pygments import highlight
@@ -1020,7 +1019,6 @@ class SiteViz(SiteNode, NoView):
         self.sitemap = sitemap
 
     def render(self, context, *args, **kwargs):
-        import pkg_resources
         dfl_folder = osp.join(
             pkg_resources.resource_filename(__name__, ''), 'viz'
         )
@@ -1034,7 +1032,6 @@ class SiteIndex(SiteNode):
     def __init__(self, sitemap, node_id='index'):
         super(SiteIndex, self).__init__(None, node_id, self, None, object())
         self.sitemap = sitemap
-        import pkg_resources
         dfl_folder = osp.join(
             pkg_resources.resource_filename(__name__, ''), 'index'
         )
@@ -1258,7 +1255,6 @@ class SiteIndex(SiteNode):
         )
 
     def render(self, context, *args, **kwargs):
-        import threading
         pkg_dir = pkg_resources.resource_filename(__name__, '')
         fpath = osp.join(pkg_dir, 'templates', 'index.html')
 
@@ -1274,7 +1270,6 @@ class SiteIndex(SiteNode):
 
 
 def run_server(app, options):
-    import threading
     MUTE_REQUESTS[threading.get_ident()] = getattr(app, 'mute', False)
     app.run(**options)
 
@@ -1336,6 +1331,7 @@ _repr_html = '''
 class ServerThread(threading.Thread):
 
     def __init__(self, app, options):
+        from werkzeug.serving import make_server
         threading.Thread.__init__(self)
         self.srv = make_server(app=app, **options)
         self.ctx = app.app_context()
