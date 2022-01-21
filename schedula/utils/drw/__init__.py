@@ -44,6 +44,7 @@ import collections
 import pkg_resources
 import os.path as osp
 import urllib.parse as urlparse
+
 try:
     from jinja2 import Environment, PackageLoader
     from pygments import highlight
@@ -973,8 +974,10 @@ def _sitemap2icicle(sitemap):
     for folder in sitemap:
         try:
             pipe = folder.item.pipe
-        except AttributeError:
+            assert isinstance(pipe, dict)
+        except (AttributeError, AssertionError):
             continue
+
         c = list(_pipe2icicle(pipe))
         cdn.append(dict(
             name=folder.name, children=c, value=0,
