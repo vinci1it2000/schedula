@@ -148,10 +148,15 @@ def update_filenames(node, filenames):
 
 
 def site_view(
-        app, node, context, generated_files, rendered, extra=None, viz=False,
-        executor='async'):
-    static_folder, filepath = app.static_folder, context[(node, extra)]
+        app, context, generated_files, rendered, rules, root, filepath=None,
+        viz=False, executor='async'):
+    static_folder = app.static_folder
+    filepath = filepath or root
     if not osp.isfile(osp.join(static_folder, filepath)):
+        if filepath not in rules:
+            from flask import abort
+            return abort(404)
+        node = rules[filepath]
         generated_files.extend((v.result() for v in cached_view(
             node, static_folder, context, rendered, viz, executor
         ).values()))
@@ -237,6 +242,20 @@ class SiteNode:
             shutil.copy(src(**kwargs) if callable(src) else src, dst)
             rend[(self.view_id, fn)] = dst
         return rend
+
+
+@functools.lru_cache(128)
+def get_match_func(expr):
+    return regex.compile(expr).match
+
+
+@functools.lru_cache(None)
+def parse_funcs(expr, funcs):
+    match = get_match_func(expr)
+    return [
+        (f, None, None) if f == '-' or f == '?' else match(f).groups()
+        for f in funcs
+    ]
 
 
 class FolderNode:
@@ -340,7 +359,7 @@ class FolderNode:
         '.': ('dot',),  # Dot attr.
         '*': ('link',)  # Title link.
     }
-    re_node = regex.compile(r"^([.*+!]?)([\w ]+)(?>\|([\w ]+))?$")
+    re_node = r"^([.*+!]?)([\w ]+)(?>\|([\w ]+))?$"
     max_lines = 5
     max_width = 200
     pprint = pprint.PrettyPrinter(compact=True, width=200)
@@ -552,13 +571,12 @@ class FolderNode:
             funcs = self.edge_data
         else:
             funcs = self.node_data
-        r, s, match = {}, '_%s', self.re_node.match
+        r, s = {}, '_%s'
         workflow = self.folder.workflow
-        for f in funcs:
-            if f == '-' or f == '?':
-                yield f, lambda *args: self.title
+        for k, v, v1 in parse_funcs(self.re_node, funcs):
+            if k == '-' or k == '?':
+                yield k, lambda *args: self.title
             else:
-                k, v, v1 = match(f).groups()
                 if workflow and v1:
                     try:
                         yield k, getattr(self, s % v1)
@@ -1591,16 +1609,15 @@ class SiteMap(collections.OrderedDict):
         cleanup = functools.partial(_cleanup, generated_files, rendered)
         app = basic_app(root_path, cleanup=cleanup, mute=mute, **kw)
         context = self.rules(depth=depth, index=index, viz_js=viz_js)
-        for (node, extra), filepath in context.items():
-            func = functools.partial(
-                site_view, app, node, context, generated_files, rendered, extra,
-                viz_js, executor
-            )
-            app.add_url_rule('/%s' % filepath, filepath, func)
 
         if context:
-            app.add_url_rule('/', next(iter(context.values())))
-
+            rules = {v: k[0] for k, v in context.items()}
+            func = functools.partial(
+                site_view, app, context, generated_files, rendered, rules,
+                next(iter(context.values())), viz=viz_js, executor=executor
+            )
+            app.add_url_rule('/<path:filepath>', 'default', view_func=func)
+            app.add_url_rule('/', 'default')
         return app
 
     def site(self, root_path=None, depth=-1, index=True, view=False, **kw):
