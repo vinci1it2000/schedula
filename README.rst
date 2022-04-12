@@ -527,7 +527,7 @@ processes::
     :target: https://raw.githubusercontent.com/vinci1it2000/schedula/master/LICENSE.txt
     :alt: Project License
 
-.. |dependencies| image:: https://img.shields.io/requires/github/vinci1it2000/schedula.svg?
+.. |dependencies| image:: https://requires.io/github/vinci1it2000/schedula/requirements.svg?branch=master
     :target: https://requires.io/github/vinci1it2000/schedula/requirements/?branch=master
     :alt: Dependencies up-to-date?
 
