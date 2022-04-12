@@ -2,6 +2,16 @@ Changelog
 =========
 
 
+v1.2.15 (2022-04-12)
+--------------------
+
+Feat
+~~~~
+- (sol): Improve performances of `_see_remote_link_node`.
+
+- (drw): Improve performances of site rendering.
+
+
 v1.2.14 (2022-01-21)
 --------------------
 
