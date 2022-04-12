@@ -1135,23 +1135,22 @@ class Solution(Base, collections.OrderedDict):
             A function to check if the remote dispatcher is ok.
         :type check_dsp: (Dispatcher) -> bool
         """
-        # Namespace shortcut.
-        node, p_id, c_i = self.nodes[node_id], self.index[:-1], self.index[-1:]
-
-        if node['type'] == 'data' and p_id and check_dsp(p_id):
-            sol = self.sub_sol[self.index[:-1]]  # Get parent solution.
+        # Get `p_id` if `node_id` is data node.
+        p_id = self.nodes[node_id]['type'] == 'data' and self.index[:-1]
+        if p_id and check_dsp(p_id) and node_id in self:
+            # Get parent solution and child index.
+            sol, c_i = self.sub_sol[p_id], self.index[-1:]
             for dsp_id, n in sol.dsp.nodes.items():
                 if n['index'] == c_i and node_id in n.get('outputs', {}):
                     value = self[node_id]  # Get data output.
+                    visited, has_edge = sol._visited, sol.workflow.has_edge
+                    pass_result, see_node = sol._wf_add_edge, sol._see_node
                     for n_id in stlp(n['outputs'][node_id]):
                         # Node has been visited or inp do not coincide with out.
-                        if not (n_id in sol._visited or
-                                sol.workflow.has_edge(n_id, dsp_id)):
-                            # Donate the result to the child.
-                            sol._wf_add_edge(dsp_id, n_id, value=value)
+                        if not (n_id in visited or has_edge(n_id, dsp_id)):
+                            pass_result(dsp_id, n_id, value=value)  # To child.
                             if fringe is not None:
-                                # See node.
-                                sol._see_node(n_id, fringe, dist, w_wait_in=2)
+                                see_node(n_id, fringe, dist, w_wait_in=2)
                     break
 
     def _check_sub_dsp_domain(self, dsp_id, node, pred, kw):
