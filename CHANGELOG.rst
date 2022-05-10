@@ -2,6 +2,16 @@ Changelog
 =========
 
 
+v1.2.16 (2022-05-10)
+--------------------
+
+Fix
+~~~
+- (drw): Correct recursive plots.
+
+- (doc): Correct `requirements.io` link.
+
+
 v1.2.15 (2022-04-12)
 --------------------
 
