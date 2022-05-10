@@ -1507,14 +1507,14 @@ class SiteMap(collections.OrderedDict):
 
     def rules(self, depth=-1, index=True, viz_js=False):
         filenames, rules = set(), []
-        rules.extend(self._rules(depth=depth, filenames=filenames))
+        rules.extend(self._rules(depth=depth, filenames=filenames, memo={}))
         for b, f in ((viz_js, self.site_viz), (index, self.site_index)):
             if b:
                 rules.extend(list(update_filenames(f(self), filenames))[::-1])
         it = ((k, osp.join(*v).replace('\\', '/')) for k, v in reversed(rules))
         return collections.OrderedDict(it)
 
-    def _rules(self, depth=-1, rule=(), filenames=None):
+    def _rules(self, depth=-1, rule=(), filenames=None, memo=None):
         if self.foldername:
             rule += self.foldername,
         if filenames is None:
@@ -1524,15 +1524,21 @@ class SiteMap(collections.OrderedDict):
         if depth != 0:
             depth -= 1
             for folder, smap in self.items():
-                yield from smap._rules(rule=rule, depth=depth)
-                for k, filename in update_filenames(folder, filenames):
-                    yield k, rule + filename
+                folder_hash = hash(folder)
+                if folder_hash in memo:
+                    rules = memo[folder_hash]
+                else:
+                    memo[folder_hash] = rules = []
+                    rules.extend(smap._rules(rule=rule, depth=depth, memo=memo))
+                    for k, filename in update_filenames(folder, filenames):
+                        rules.append((k, rule + filename))
+                yield from rules
 
         for node in self._nodes:
             for k, filename in update_filenames(node, filenames):
                 yield k, rule + filename
 
-    def _add_obj(self, obj, workflow=False, folder=None, **options):
+    def _add_obj(self, obj, workflow=False, folder=None, memo=None, **options):
         item = parent_func(obj)
         workflow &= not isinstance(item, NoSub)
         if workflow:
@@ -1541,26 +1547,35 @@ class SiteMap(collections.OrderedDict):
         else:
             dsp = self.get_dsp_from(item)
             graph = dsp.dmap
-
-        folder = self.site_folder(
-            item, dsp, graph, obj, workflow=workflow, parent=folder,
-            short_name=self.short_name, **options
-        )
-        folder.sitemap = smap = self[folder] = self.__class__()
-        smap.short_name = self.short_name
+        item_hash = hash(item)
+        if item_hash in memo:
+            folder, smap = memo[item_hash], None
+            self[folder] = folder.sitemap
+        else:
+            memo[item_hash] = folder = self.site_folder(
+                item, dsp, graph, obj, workflow=workflow, parent=folder,
+                short_name=self.short_name, **options
+            )
+            folder.sitemap = smap = self[folder] = self.__class__()
+            smap.short_name = self.short_name
         return smap, folder
 
-    def add_items(self, item, workflow=False, depth=-1, folder=None, **options):
+    def add_items(self, item, workflow=False, depth=-1, folder=None, memo=None,
+                  **options):
         opt = selector(self.options, self.__dict__, allow_miss=True)
         opt = combine_dicts(options, base=opt)
+        if memo is None:
+            memo = {}
         smap, folder = self._add_obj(
-            item, workflow=workflow, folder=folder, **opt
+            item, workflow=workflow, folder=folder, memo=memo, **opt
         )
+        if smap is None:
+            return folder
         if depth > 0:
             depth -= 1
         site_node, append = self.site_node, smap._nodes.append
         add_items = functools.partial(
-            smap.add_items, workflow=workflow, folder=folder, **opt
+            smap.add_items, workflow=workflow, folder=folder, memo=memo, **opt
         )
         for node in itertools.chain(folder.nodes, folder.edges):
             links, node_id, node_title = node._links, node.node_id, node.title
@@ -1571,7 +1586,7 @@ class SiteMap(collections.OrderedDict):
                 try:
                     if only_site_node:
                         raise ValueError
-                    link = add_items(item, depth=depth, name=node_id)
+                    link = add_items(item, depth=depth, name=node_id, memo=memo)
                 except ValueError:  # item is not a dsp object.
                     i = ''.join((node_title, k and '-' or '', k))
                     link = site_node(
