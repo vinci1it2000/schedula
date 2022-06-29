@@ -177,7 +177,7 @@ class Solution(Base, collections.OrderedDict):
         if self._wait_in:
             wait_in = self._wait_in.get(n_id, wait_in)
         if wait_in:
-            wf = self._wf_pred[n_id]
+            wf = self.workflow.pred[n_id]
             return not all(k in wf for k in self._pred[n_id])
         return False
 
@@ -186,7 +186,6 @@ class Solution(Base, collections.OrderedDict):
         from .graph import DiGraph
         self.workflow = DiGraph()
         self._visited = set()
-        self._wf_pred = self.workflow.pred
         self._errors = collections.OrderedDict()
         self.sub_sol = {self.index: self}
         self.fringe = []  # Use heapq with (distance, wait, label).
@@ -472,7 +471,7 @@ class Solution(Base, collections.OrderedDict):
         """
 
         # Get data node estimations.
-        estimations = self._wf_pred[node_id]
+        estimations = self.workflow.pred[node_id]
 
         wait_in = node_attr['wait_inputs']  # Namespace shortcut.
 
@@ -753,7 +752,7 @@ class Solution(Base, collections.OrderedDict):
                 wf_add_edge(node_id, u)
             return True
 
-        args = self._wf_pred[node_id]  # List of the function's arguments.
+        args = self.workflow.pred[node_id]  # List of the function's arguments.
         args = [args[k]['value'] for k in node_attr['inputs']]
 
         try:
@@ -1014,7 +1013,7 @@ class Solution(Base, collections.OrderedDict):
         add_visited, succ = self._visited.add, self.workflow.succ
 
         # Remove unused function and sub-dispatcher nodes.
-        for n in (set(self._wf_pred) - set(self._visited)):
+        for n in (set(self.workflow.pred) - set(self._visited)):
             node_type = nodes[n]['type']  # Node type.
 
             if node_type == 'data':
@@ -1149,7 +1148,7 @@ class Solution(Base, collections.OrderedDict):
 
         # Namespace shortcuts.
         node = self.nodes[dsp_id]
-        dsp, pred = node['function'], self._wf_pred[dsp_id]
+        dsp, pred = node['function'], self.workflow.pred[dsp_id]
         distances, sub_sol = self.dist, self.sub_sol
 
         iv_nodes = [node_id]  # Nodes do be added as initial values.

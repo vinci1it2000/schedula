@@ -72,7 +72,7 @@ class TestDispatcherWeb(unittest.TestCase):
                 continue
             if 'results' not in v:
                 continue
-            inputs = s._wf_pred[k]  # List of the function's arguments.
+            inputs = s.workflow.pred[k]  # List of the function's arguments.
             inputs = sh.bypass(*[
                 inputs[k]['value'] for k in s.nodes[k]['inputs']
             ])
@@ -93,7 +93,7 @@ class TestDispatcherWeb(unittest.TestCase):
                 continue
             if 'results' not in v:
                 continue
-            inputs = s._wf_pred[k]  # List of the function's arguments.
+            inputs = s.workflow.pred[k]  # List of the function's arguments.
             inputs = sh.bypass(*[
                 inputs[k]['value'] for k in s.nodes[k]['inputs']
             ])
