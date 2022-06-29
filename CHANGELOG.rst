@@ -2,6 +2,21 @@ Changelog
 =========
 
 
+v1.2.17 (2022-06-29)
+--------------------
+
+Feat
+~~~~
+- (sol): Improve speed performances.
+
+
+Fix
+~~~
+- (sol): Correct missing reference due to sphinx update.
+
+- (dsp): Correct wrong workflow.pred reference.
+
+
 v1.2.16 (2022-05-10)
 --------------------
 
