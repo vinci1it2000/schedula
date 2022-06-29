@@ -17,8 +17,8 @@ from .imp import finalize, Future
 from .cst import START, NONE, PLOT
 from heapq import heappop, heappush
 from .dsp import stlp, get_nested_dicts, inf
+from .alg import get_full_pipe, _sort_sk_wait_in
 from .exc import DispatcherError, DispatcherAbort, SkipNode, ExecutorShutdown
-from .alg import add_edge_fun, remove_edge_fun, get_full_pipe, _sort_sk_wait_in
 from .asy import async_thread, await_result, async_process, AsyncList, EXECUTORS
 
 log = logging.getLogger(__name__)
@@ -61,19 +61,6 @@ class Solution(Base, collections.OrderedDict):
             # Initialize workflow params.
             self._init_workflow()
 
-    def _input_value(self, inputs=None):
-        # Define a function that return the input value of a given data node.
-        if self.no_call:
-            # noinspection PyUnusedLocal
-            def input_value(k):
-                return {}
-        else:
-            inputs = self.inputs if inputs is None else inputs
-
-            def input_value(k):
-                return {'value': inputs[k]}
-        return input_value
-
     def _set_dsp_features(self, dsp):
         self.dsp = dsp
         self.name = dsp.name
@@ -93,16 +80,19 @@ class Solution(Base, collections.OrderedDict):
                 initial_values.update(dict.fromkeys(inputs, NONE))
         else:
             # Set initial values.
-            initial_values = {k: v['value']
-                              for k, v in self.dsp.default_values.items()}
+            initial_values = {
+                k: v['value'] for k, v in self.dsp.default_values.items()
+            }
 
             if inputs is not None:  # Update initial values with input values.
                 initial_values.update(inputs)
 
         # Set initial values.
-        initial_distances = {k: v['initial_dist']
-                             for k, v in self.dsp.default_values.items()
-                             if not inputs or k not in inputs}
+        initial_distances = {
+            k: v['initial_dist']
+            for k, v in self.dsp.default_values.items()
+            if not inputs or k not in inputs
+        }
 
         if initial_dist is not None:  # Update initial distances.
             initial_distances.update(initial_dist)
@@ -134,11 +124,62 @@ class Solution(Base, collections.OrderedDict):
             w.update([k for k, v in w_crd.items() if v.get('wildcard', True)])
 
     def _update_methods(self):
-        self._wf_add_edge = add_edge_fun(self.workflow)
-        self._wf_remove_edge = remove_edge_fun(self.workflow)
-        self.check_wait_in = self._check_wait_input_flag()
-        self.check_targets = self._check_targets()
-        self.check_cutoff = self._check_cutoff()
+        self._targets = self.outputs.copy() if self.outputs else None
+
+    def wf_remove_edge(self, u, v):
+        graph = self.workflow
+        graph.remove_edge(u, v)  # Remove the edge.
+        if not (graph.succ[v] or graph.pred[v]):  # Check if v is isolate.
+            graph.remove_node(v)  # Remove the isolate out node.
+
+    def wf_add_edge(self, u, v, **attr):
+        graph = self.workflow
+        succ, pred = graph.succ, graph.pred
+        if v not in succ:  # Add nodes.
+            succ[v], pred[v], graph.nodes[v] = {}, {}, {}
+
+        succ[u][v] = pred[v][u] = attr  # Add the edge.
+
+    def check_cutoff(self, distance):
+        """
+        Stops the search of the investigated node of the ArciDispatch
+        algorithm.
+
+        :param distance:
+            Distance from the starting node.
+        :type distance: float, int
+
+        :return:
+            True if distance > cutoff, otherwise False.
+        :rtype: bool
+        """
+        if self.cutoff is None:
+            return False
+        return distance > self.cutoff  # Check cutoff distance.
+
+    def check_wait_in(self, wait_in, n_id):
+        """
+        Stops the search of the investigated node of the ArciDispatch
+        algorithm, until all inputs are satisfied.
+
+        :param wait_in:
+            If True the node is waiting input estimations.
+        :type wait_in: bool
+
+        :param n_id:
+            Data or function node id.
+        :type n_id: str
+
+        :return:
+            True if all node inputs are satisfied, otherwise False.
+        :rtype: bool
+        """
+        if self._wait_in:
+            wait_in = self._wait_in.get(n_id, wait_in)
+        if wait_in:
+            wf = self._wf_pred[n_id]
+            return not all(k in wf for k in self._pred[n_id])
+        return False
 
     def _clean_set(self):
         self.clear()
@@ -152,11 +193,11 @@ class Solution(Base, collections.OrderedDict):
         self.dist = {START: inf(0, -1)}
         self.seen = {START: inf(0, -1)}
         self._meet = {START: inf(0, -1)}
-        self._update_methods()
         self._pipe = []
+        self._update_methods()
 
-    def _init_workflow(self, inputs=None, input_value=None, inputs_dist=None,
-                       initial_dist=0.0, clean=True):
+    def _init_workflow(self, inputs=None, inputs_dist=None, initial_dist=0.0,
+                       clean=True):
         # Clean previous outputs.
         if clean:
             self._clean_set()
@@ -175,12 +216,19 @@ class Solution(Base, collections.OrderedDict):
         if inputs is None:
             inputs = self.inputs
 
-        input_value = input_value or self._input_value(inputs)
         initial_dist = inf.format(initial_dist)
+
         # Add initial values to fringe and seen.
-        it = ((initial_dist + inputs_dist.get(v, 0.0), v) for v in inputs)
-        for d, k in sorted(it, key=lambda x: (x[0], str(x[1]))):
-            add_value(k, input_value(k), d)
+        it = sorted(
+            ((initial_dist + inputs_dist.get(v, 0.0), v) for v in inputs),
+            key=lambda x: (x[0], str(x[1]))
+        )
+        if self.no_call:
+            for d, k in it:
+                add_value(k, {}, d)
+        else:
+            for d, k in it:
+                add_value(k, {'value': inputs[k]}, d)
 
         self._add_out_dsp_inputs()
 
@@ -197,6 +245,15 @@ class Solution(Base, collections.OrderedDict):
             return not set(p.dmap[k]).difference(p.dist)
         return False
 
+    @staticmethod
+    def _update_fut_results(futs, fut, data, key):
+        if isinstance(fut, Future):
+            get_nested_dicts(futs, fut, default=list).append((data, key))
+        elif isinstance(fut, AsyncList):
+            for i, j in enumerate(fut):
+                if isinstance(j, Future):
+                    get_nested_dicts(futs, j, default=list).append((fut, i))
+
     def result(self, timeout=None):
         """
         Set all asynchronous results.
@@ -211,31 +268,23 @@ class Solution(Base, collections.OrderedDict):
         :rtype: Solution
         """
         futs, ex = collections.OrderedDict(), False
-
-        def _update(fut, data, key):
-            if isinstance(fut, Future):
-                get_nested_dicts(futs, fut, default=list).append((data, key))
-            elif isinstance(fut, AsyncList):
-                for i, j in enumerate(fut):
-                    if isinstance(j, Future):
-                        get_nested_dicts(futs, j, default=list).append((fut, i))
-
+        _update = self._update_fut_results
         for p in self._pipe:
             n, s = p[-1]
             if n in s:
-                _update(s[n], s, n)
+                _update(futs, s[n], s, n)
 
         for sol in self.sub_sol.values():
             for k, f in sol.items():
-                _update(f, sol, k)
+                _update(futs, f, sol, k)
 
             for attr in sol.workflow.nodes.values():
                 if 'results' in attr:
-                    _update(attr['results'], attr, 'results')
+                    _update(futs, attr['results'], attr, 'results')
 
             for attr in sol.workflow.edges.values():
                 if 'value' in attr:
-                    _update(attr['value'], attr, 'value')
+                    _update(futs, attr['value'], attr, 'value')
         if futs:
             from concurrent.futures import wait as wait_fut
             wait_fut(futs, timeout)
@@ -256,6 +305,14 @@ class Solution(Base, collections.OrderedDict):
             raise ex
         return self
 
+    @staticmethod
+    def _dsp_closed_add(dsp_closed, s):
+        dsp_closed.add(s.index)
+        for val in s.dsp.sub_dsp_nodes.values():
+            _s = s.sub_sol.get(s.index + val['index'], None)
+            if _s:
+                Solution._dsp_closed_add(dsp_closed, _s)
+
     def _run(self, stopper=None, executor=False):
         # Initialized and terminated dispatcher sets.
         dsp_closed, dsp_init, cached_ids = set(), {self.index}, {}
@@ -268,18 +325,10 @@ class Solution(Base, collections.OrderedDict):
 
         # Namespaces shortcuts
         dsp_init_add, pipe_append = dsp_init.add, pipe.append
-        dsp_closed_add = dsp_closed.add
         fringe, check_cutoff = self.fringe, self.check_cutoff
         ctx = {
             'no_call': self.no_call, 'stopper': stopper, 'executor': executor
         }
-
-        def _dsp_closed_add(s):
-            dsp_closed_add(s.index)
-            for val in s.dsp.sub_dsp_nodes.values():
-                _s = s.sub_sol.get(s.index + val['index'], None)
-                if _s:
-                    _dsp_closed_add(_s)
 
         while fringe:
             # Visit the closest available node.
@@ -291,7 +340,7 @@ class Solution(Base, collections.OrderedDict):
 
             # Close sub-dispatcher solution when all outputs are satisfied.
             if sol._close(cached_ids):
-                _dsp_closed_add(sol)
+                self._dsp_closed_add(dsp_closed, sol)
                 cached_ids.pop(sol.index)
                 continue
 
@@ -303,8 +352,8 @@ class Solution(Base, collections.OrderedDict):
             if not sol._visit_nodes(v, d, fringe, check_cutoff, **ctx):
                 if self is sol:
                     break  # Reach all targets.
-                else:
-                    _dsp_closed_add(sol)  # Terminated sub-dispatcher.
+                else:  # Terminated sub-dispatcher.
+                    self._dsp_closed_add(dsp_closed, sol)
 
             # See remote link node.
             sol._see_remote_link_node(v, fringe, d, check_dsp)
@@ -384,127 +433,24 @@ class Solution(Base, collections.OrderedDict):
         else:
             self.update(collections.OrderedDict((k, self.inputs[k]) for k in o))
 
-    def _check_targets(self):
+    def check_targets(self, node_id):
         """
-        Returns a function to terminate the ArciDispatch algorithm when all
-        targets have been visited.
+        Terminates ArciDispatch algorithm when all targets have been
+        visited.
+
+        :param node_id:
+            Data or function node id.
+        :type node_id: str
 
         :return:
-            A function to terminate the ArciDispatch algorithm.
-        :rtype: (str) -> bool
+            True if all targets have been visited, otherwise False.
+        :rtype: bool
         """
-
-        if self.outputs:
-
-            targets = self.outputs.copy()  # Namespace shortcut for speed.
-
-            def check_targets(node_id):
-                """
-                Terminates ArciDispatch algorithm when all targets have been
-                visited.
-
-                :param node_id:
-                    Data or function node id.
-                :type node_id: str
-
-                :return:
-                    True if all targets have been visited, otherwise False.
-                :rtype: bool
-                """
-
-                try:
-                    targets.remove(node_id)  # Remove visited node.
-                    return not targets  # If no targets terminate the algorithm.
-                except KeyError:  # The node is not in the targets set.
-                    return False
-        else:
-            # noinspection PyUnusedLocal
-            def check_targets(node_id):
-                return False
-
-        return check_targets  # Return the function.
-
-    def _check_cutoff(self):
-        """
-        Returns a function to stop the search of the investigated node of the
-        ArciDispatch algorithm.
-
-        :return:
-            A function to stop the search.
-        :rtype: (int | float) -> bool
-        """
-
-        if self.cutoff is not None:
-
-            cutoff = self.cutoff  # Namespace shortcut for speed.
-
-            def check_cutoff(distance):
-                """
-                Stops the search of the investigated node of the ArciDispatch
-                algorithm.
-
-                :param distance:
-                    Distance from the starting node.
-                :type distance: float, int
-
-                :return:
-                    True if distance > cutoff, otherwise False.
-                :rtype: bool
-                """
-
-                return distance > cutoff  # Check cutoff distance.
-
-        else:  # cutoff is None.
-            # noinspection PyUnusedLocal
-            def check_cutoff(distance):
-                return False
-
-        return check_cutoff  # Return the function.
-
-    def _check_wait_input_flag(self):
-        """
-        Returns a function to stop the search of the investigated node of the
-        ArciDispatch algorithm.
-
-        :return:
-            A function to stop the search.
-        :rtype: (bool, str) -> bool
-        """
-
-        wf_pred, pred = self._wf_pred, self._pred  # Namespace shortcuts.
-
-        if self._wait_in:
-            we = self._wait_in.get  # Namespace shortcut.
-
-            def check_wait_input_flag(wait_in, n_id):
-                """
-                Stops the search of the investigated node of the ArciDispatch
-                algorithm, until all inputs are satisfied.
-
-                :param wait_in:
-                    If True the node is waiting input estimations.
-                :type wait_in: bool
-
-                :param n_id:
-                    Data or function node id.
-                :type n_id: str
-
-                :return:
-                    True if all node inputs are satisfied, otherwise False.
-                :rtype: bool
-                """
-
-                # Return true if the node inputs are satisfied.
-                if we(n_id, wait_in):
-                    return not set(pred[n_id]).issubset(wf_pred[n_id])
-                return False
-
-        else:
-            def check_wait_input_flag(wait_in, n_id):
-                # Return true if the node inputs are satisfied.
-                return wait_in and not set(pred[n_id]).issubset(wf_pred[n_id])
-
-        return check_wait_input_flag  # Return the function.
+        try:
+            self._targets.remove(node_id)  # Remove visited node.
+            return not self._targets  # If no targets terminate the algorithm.
+        except (AttributeError, KeyError):
+            return False  # The node is not in the targets set.
 
     def _get_node_estimations(self, node_attr, node_id):
         """
@@ -700,30 +646,31 @@ class Solution(Base, collections.OrderedDict):
 
         if next_nds:
             # namespace shortcuts for speed.
-            wf_add_edge = self._wf_add_edge
+            wf_add_edge = self.wf_add_edge
 
             for u in next_nds:  # Set workflow.
                 wf_add_edge(node_id, u, **value)
 
         else:
+            # List of functions.
+            succ_fun = []
+
             # namespace shortcuts for speed.
             n, has, sub_sol = self.nodes, self.workflow.has_edge, self.sub_sol
+            index, add_succ_fun = self.index, succ_fun.append
 
-            def no_visited_in_sub_dsp(i):
-                node = n[i]
-                if node['type'] == 'dispatcher' and has(i, node_id):
-                    visited = sub_sol[self.index + node['index']]._visited
-                    return node['inputs'][node_id] not in visited
-                return True
-
-            # List of functions.
-            succ_fun = [u for u in self._succ[node_id]
-                        if no_visited_in_sub_dsp(u)]
+            for u in self._succ[node_id]:  # no_visited_in_sub_dsp.
+                node = n[u]
+                if node['type'] == 'dispatcher' and has(u, node_id):
+                    visited = sub_sol[index + node['index']]._visited
+                    node['inputs'][node_id] not in visited and add_succ_fun(u)
+                else:
+                    add_succ_fun(u)
 
             # Check if it has functions as outputs and wildcard condition.
             if succ_fun and succ_fun[0] not in self._visited:
                 # namespace shortcuts for speed.
-                wf_add_edge = self._wf_add_edge
+                wf_add_edge = self.wf_add_edge
 
                 for u in succ_fun:  # Set workflow.
                     wf_add_edge(node_id, u, **value)
@@ -799,7 +746,7 @@ class Solution(Base, collections.OrderedDict):
             self.workflow.remove_node(node_id)  # Remove function node.
             return False
 
-        wf_add_edge = self._wf_add_edge  # Namespace shortcuts for speed.
+        wf_add_edge = self.wf_add_edge  # Namespace shortcuts for speed.
 
         if no_call:
             for u in output_nodes:  # Set workflow out.
@@ -860,8 +807,8 @@ class Solution(Base, collections.OrderedDict):
 
         # Namespace shortcuts for speed.
         nodes, seen, edge_weight = self.nodes, self.seen, self._edge_length
-        wf_remove_edge, check_wait_in = self._wf_remove_edge, self.check_wait_in
-        wf_add_edge, dsp_in = self._wf_add_edge, self._set_sub_dsp_node_input
+        wf_remove_edge, check_wait_in = self.wf_remove_edge, self.check_wait_in
+        wf_add_edge, dsp_in = self.wf_add_edge, self._set_sub_dsp_node_input
         update_view = self._update_meeting
 
         if fringe is None:
@@ -968,7 +915,7 @@ class Solution(Base, collections.OrderedDict):
         """
 
         # Namespace shortcuts.
-        wf_rm_edge, wf_has_edge = self._wf_remove_edge, self.workflow.has_edge
+        wf_rm_edge, wf_has_edge = self.wf_remove_edge, self.workflow.has_edge
         edge_weight, nodes = self._edge_length, self.nodes
 
         self.dist[node_id] = dist  # Set minimum dist.
@@ -1144,7 +1091,7 @@ class Solution(Base, collections.OrderedDict):
                 if n['index'] == c_i and node_id in n.get('outputs', {}):
                     value = self[node_id]  # Get data output.
                     visited, has_edge = sol._visited, sol.workflow.has_edge
-                    pass_result, see_node = sol._wf_add_edge, sol._see_node
+                    pass_result, see_node = sol.wf_add_edge, sol._see_node
                     for n_id in stlp(n['outputs'][node_id]):
                         # Node has been visited or inp do not coincide with out.
                         if not (n_id in visited or has_edge(n_id, dsp_id)):

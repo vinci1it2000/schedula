@@ -18,60 +18,6 @@ from .dsp import SubDispatch, bypass, selector, stlp, parent_func, NoSub, inf
 __author__ = 'Vincenzo Arcidiacono <vinci1it2000@gmail.com>'
 
 
-# modified from NetworkX library
-def add_edge_fun(graph):
-    """
-    Returns a function that adds an edge to the `graph` checking only the out
-    node.
-
-    :param graph:
-        A directed graph.
-    :type graph: schedula.utils.graph.DiGraph
-
-    :return:
-        A function that adds an edge to the `graph`.
-    :rtype: callable
-    """
-
-    # Namespace shortcut for speed.
-    succ, pred, node = graph.succ, graph.pred, graph.nodes
-
-    def add_edge(u, v, **attr):
-        if v not in succ:  # Add nodes.
-            succ[v], pred[v], node[v] = {}, {}, {}
-
-        succ[u][v] = pred[v][u] = attr  # Add the edge.
-
-    return add_edge  # Returns the function.
-
-
-def remove_edge_fun(graph):
-    """
-    Returns a function that removes an edge from the `graph`.
-
-    ..note:: The out node is removed if this is isolate.
-
-    :param graph:
-        A directed graph.
-    :type graph: schedula.utils.graph.DiGraph
-
-    :return:
-        A function that remove an edge from the `graph`.
-    :rtype: callable
-    """
-
-    # Namespace shortcut for speed.
-    rm_edge, rm_node = graph.remove_edge, graph.remove_node
-    succ, pred = graph.succ, graph.pred
-
-    def remove_edge(u, v):
-        rm_edge(u, v)  # Remove the edge.
-        if not (succ[v] or pred[v]):  # Check if v is isolate.
-            rm_node(v)  # Remove the isolate out node.
-
-    return remove_edge  # Returns the function.
-
-
 def get_unused_node_id(graph, initial_guess='unknown', _format='{}<%d>'):
     """
     Finds an unused node id in `graph`.
