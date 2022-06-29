@@ -22,7 +22,7 @@ from sphinx.ext.autosummary import (
     import_by_name, get_documenter, get_rst_suffix
 )
 from sphinx.ext.autosummary.generate import (
-    _simple_warn, _simple_info, find_autosummary_in_files, AutosummaryEntry
+    find_autosummary_in_files, AutosummaryEntry
 )
 
 logger = logging.getLogger(__name__)
@@ -58,17 +58,16 @@ def get_members(app, obj, typ, include_public=(), imported=False):
 
 
 def generate_autosummary_docs(
-        sources, output_dir=None, suffix='.rst', warn=_simple_warn,
-        info=_simple_info, base_path=None, builder=None, template_dir=None,
-        app=None):
+        sources, output_dir=None, suffix='.rst', base_path=None, builder=None,
+        template_dir=None, app=None):
     showed_sources = list(sorted(sources))
     if len(showed_sources) > 20:
         showed_sources = showed_sources[:10] + ['...'] + showed_sources[-10:]
-    info('[autosummary] generating autosummary for: %s' %
-         ', '.join(showed_sources))
+    logger.info('[autosummary] generating autosummary for: %s' %
+                ', '.join(showed_sources))
 
     if output_dir:
-        info('[autosummary] writing to %s' % output_dir)
+        logger.info('[autosummary] writing to %s' % output_dir)
 
     if base_path is not None:
         sources = [osp.join(base_path, filename) for filename in sources]
@@ -111,7 +110,7 @@ def generate_autosummary_docs(
         try:
             name, obj, parent, mod_name = import_by_name(name)
         except ImportError as e:
-            warn('[autosummary] failed to import %r: %s' % (name, e))
+            logger.warning('[autosummary] failed to import %r: %s' % (name, e))
             continue
 
         fn = osp.join(path, name + suffix)
@@ -185,10 +184,10 @@ def generate_autosummary_docs(
 
     # descend recursively to new files
     if new_files:
-        generate_autosummary_docs(new_files, output_dir=output_dir,
-                                  suffix=suffix, warn=warn, info=info,
-                                  base_path=base_path, builder=builder,
-                                  template_dir=template_dir, app=app)
+        generate_autosummary_docs(
+            new_files, output_dir=output_dir, suffix=suffix, app=app,
+            base_path=base_path, builder=builder, template_dir=template_dir,
+        )
 
 
 def process_generate_options(app):
@@ -212,9 +211,10 @@ def process_generate_options(app):
         logger.warning('autosummary generates .rst files internally. '
                        'But your source_suffix does not contain .rst. Skipped.')
         return
-    generate_autosummary_docs(genfiles, builder=app.builder,
-                              warn=logger.warning, info=logger.info,
-                              suffix=suffix, base_path=app.srcdir, app=app)
+    generate_autosummary_docs(
+        genfiles, builder=app.builder, suffix=suffix, base_path=app.srcdir,
+        app=app
+    )
 
 
 def setup(app):

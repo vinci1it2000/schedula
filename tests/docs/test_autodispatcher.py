@@ -112,14 +112,14 @@ class TestDispatcherDirective(unittest.TestCase):
     def test_get_doc(self):
         _setup()
 
-        def getdocl(obj, name, encoding=None):
+        def getdocl(obj, name):
             global directive
             from schedula.ext.dispatcher.documenter import DispatcherDocumenter
             inst = DispatcherDocumenter(directive, name)
 
             inst.objpath = [name]
             inst.object = obj
-            ds = inst.get_doc(encoding)
+            ds = inst.get_doc()
             # for testing, concat them and strip the empty line at the end.
             res = sum(ds, [])[:-1]
             return res
