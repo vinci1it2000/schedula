@@ -1254,7 +1254,8 @@ class SubDispatchPipe(SubDispatchFunction):
     var_keyword = None
 
     def __init__(self, dsp, function_id=None, inputs=None, outputs=None,
-                 cutoff=None, inputs_dist=None, no_domain=True, wildcard=True):
+                 cutoff=None, inputs_dist=None, no_domain=True, wildcard=True,
+                 shrink=True):
         """
         Initializes the Sub-dispatch Function.
 
@@ -1288,10 +1289,11 @@ class SubDispatchPipe(SubDispatchFunction):
             no_domain=no_domain
         )
         sol._run()
-        from .alg import _union_workflow, _convert_bfs
-        bfs = _union_workflow(sol)
-        o, bfs = outputs or sol, _convert_bfs(bfs)
-        dsp = dsp._get_dsp_from_bfs(o, bfs_graphs=bfs)
+        if shrink:
+            from .alg import _union_workflow, _convert_bfs
+            bfs = _union_workflow(sol)
+            o, bfs = outputs or sol, _convert_bfs(bfs)
+            dsp = dsp._get_dsp_from_bfs(o, bfs_graphs=bfs)
 
         super(SubDispatchPipe, self).__init__(
             dsp, function_id, inputs, outputs=outputs, cutoff=cutoff,
