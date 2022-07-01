@@ -241,7 +241,7 @@ class Solution(Base, collections.OrderedDict):
                 i = self.index[-1:]
                 k = next(k for k, v in p.nodes.items() if v['index'] == i)
                 cached_ids[self.index] = k
-            return not set(p.dmap[k]).difference(p.dist)
+            return all(i in p.dist for i in p.dmap[k])
         return False
 
     @staticmethod
@@ -424,7 +424,7 @@ class Solution(Base, collections.OrderedDict):
 
     def _add_out_dsp_inputs(self):
         # Nodes that are out of the dispatcher nodes.
-        o = sorted(set(self.inputs).difference(self.nodes), key=str)
+        o = sorted((k for k in self.inputs if k not in self.nodes), key=str)
 
         # Add nodes that are out of the dispatcher nodes.
         if self.no_call:
@@ -739,7 +739,9 @@ class Solution(Base, collections.OrderedDict):
         o_nds, dist = node_attr['outputs'], self.dist
 
         # List of nodes that can still be estimated by the function node.
-        output_nodes = next_nds or set(self._succ[node_id]).difference(dist)
+        output_nodes = next_nds or {
+            k for k in self._succ[node_id] if k not in dist
+        }
 
         if not output_nodes:  # This function is not needed.
             self.workflow.remove_node(node_id)  # Remove function node.
@@ -1013,7 +1015,7 @@ class Solution(Base, collections.OrderedDict):
         add_visited, succ = self._visited.add, self.workflow.succ
 
         # Remove unused function and sub-dispatcher nodes.
-        for n in (set(self.workflow.pred) - set(self._visited)):
+        for n in [k for k in self.workflow.pred if k not in self._visited]:
             node_type = nodes[n]['type']  # Node type.
 
             if node_type == 'data':

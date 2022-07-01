@@ -112,7 +112,7 @@ def kk_dict(*kk, **adict):
 
     for k in kk:
         if isinstance(k, dict):
-            if not set(k).isdisjoint(adict):
+            if any(i in adict for i in k):
                 k = ', '.join(sorted(set(k).intersection(adict)))
                 raise ValueError('keyword argument repeated ({})'.format(k))
             adict.update(k)
@@ -810,7 +810,7 @@ class SubDispatch(Base):
                 # Save outputs.
                 return selector(outs, solution, output_type=self.output_type)
             except KeyError:
-                missed = set(outs).difference(solution)  # Outputs not reached.
+                missed = {k for k in outs if k not in solution}  # Outputs not reached.
 
                 # Raise error
                 msg = '\n  Unreachable output-targets: {}\n  Available ' \
@@ -1096,8 +1096,7 @@ class SubDispatchFunction(SubDispatch):
                                  inputs_dist=inputs_dist, wildcard=wildcard)
 
         if outputs:
-            missed = set(outputs).difference(dsp.nodes)  # Outputs not reached.
-
+            missed = {k for k in outputs if k not in dsp.nodes}  # Outputs not reached.
             if missed:  # If outputs are missing raise error.
 
                 available = list(dsp.data_nodes.keys())  # Available data nodes.
@@ -1163,7 +1162,7 @@ class SubDispatchFunction(SubDispatch):
             raise TypeError('too many positional arguments') from None
         if self.var_keyword:
             inputs.update(kw)
-        elif not set(kw).issubset(inputs):
+        elif not all(k in inputs for k in kw):
             msg = 'got an unexpected keyword argument %r'
             raise TypeError(msg % next(kw)) from None
 
@@ -1178,7 +1177,7 @@ class SubDispatchFunction(SubDispatch):
 
         # Parse inputs.
         inp = self._parse_inputs(*args, **kw)
-        i = set(inp) - set(self.dsp.data_nodes)
+        i = tuple(k for k in inp if k not in self.dsp.data_nodes)
         if i:
             msg = "%s() got an unexpected keyword argument '%s'"
             raise TypeError(msg % (self.function_id, min(i)))
@@ -1186,7 +1185,7 @@ class SubDispatchFunction(SubDispatch):
         inputs_dist = combine_dicts(
             sol.inputs_dist, dict.fromkeys(inp, 0), self.inputs_dist or {}
         )
-        inp.update({k: dfl[k]['value'] for k in set(dfl) - set(inp)})
+        inp.update({k: v['value'] for k, v in dfl.items() if k not in inp})
 
         # Initialize.
         sol._init_workflow(inp, inputs_dist=inputs_dist, clean=False)

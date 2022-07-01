@@ -223,12 +223,12 @@ class Dispatcher(Base):
             A copy of the Dispatcher structure.
         :rtype: Dispatcher
         """
-        _map = {
-            'description': '__doc__', 'name': 'name',
-            'raises': 'raises', 'executor': 'executor'
+        kw = {
+            'description': self.__doc__, 'name': self.name,
+            'raises': self.raises, 'executor': self.executor
         }
-        base = {k: getattr(self, v) for k, v in _map.items()}
-        return self.__class__(**combine_dicts(kwargs, base=base))
+        kw.update(kwargs)
+        return self.__class__(**kw)
 
     def add_data(self, data_id=None, default_value=EMPTY, initial_dist=0.0,
                  wait_inputs=False, wildcard=None, function=None, callback=None,
@@ -876,10 +876,14 @@ class Dispatcher(Base):
             description = dsp.__doc__ or None
 
         if inputs is None:
-            inputs = set(dsp.data_nodes) - {START, SINK, SELF, PLOT, END}
+            inputs = kk_dict(*(k for k in dsp.data_nodes if k not in {
+                START, SINK, SELF, PLOT, END
+            }))
 
         if outputs is None:
-            outputs = set(dsp.data_nodes) - {START, SINK, SELF, PLOT, END}
+            outputs = kk_dict(*(k for k in dsp.data_nodes if k not in {
+                START, SINK, SELF, PLOT, END
+            }))
 
         if not isinstance(inputs, dict):  # Create the inputs dict.
             inputs = kk_dict(*inputs)
@@ -1158,7 +1162,7 @@ class Dispatcher(Base):
         for u in nodes_bunch:
             n = nodes[u].get('inputs', None)  # Function inputs.
             # No all inputs
-            if n is not None and not set(n).issubset(nodes_bunch):
+            if n is not None and any(k not in nodes_bunch for k in n):
                 dmap_rm_node(u)  # Remove function node.
 
         # Remove edges that are not in edges_bunch.
@@ -1309,7 +1313,7 @@ class Dispatcher(Base):
                 node_attr = dmap_nodes[c]
 
                 if node_attr['type'] == 'function':
-                    if set(node_attr['inputs']).issubset(family):
+                    if all(k in family for k in node_attr['inputs']):
                         _set_node_attr(c)
 
                         # namespace shortcuts for speed
@@ -1330,9 +1334,10 @@ class Dispatcher(Base):
                                     _set_node_attr(p, add2family=False)
                                     succ[p][c] = s_pred[p] = dmap_succ[p][c]
 
-                        for p in set(node_attr['inputs']).intersection(family):
-                            # add attributes to both representations of edge
-                            succ[p][c] = s_pred[p] = dmap_succ[p][c]
+                        for p in node_attr['inputs']:
+                            if p in family:
+                                # add attributes to both representations of edge
+                                succ[p][c] = s_pred[p] = dmap_succ[p][c]
                         return False
 
                     return True
@@ -1451,8 +1456,9 @@ class Dispatcher(Base):
         :rtype: dict[str, dict]
         """
 
-        return {k: v for k, v in self.nodes.items() if
-                v['type'] == 'dispatcher'}
+        return {
+            k: v for k, v in self.nodes.items() if v['type'] == 'dispatcher'
+        }
 
     def copy(self):
         """
@@ -1506,7 +1512,7 @@ class Dispatcher(Base):
             del v['index']
             if t == 'data':
                 method = 'add_data'
-                combine_dicts(map_list(key_map_data, k, dfl.get(k, {})), base=v)
+                v.update(map_list(key_map_data, k, dfl.get(k, {})))
             elif t in ('function', 'dispatcher'):
                 method = 'add_%s' % t
                 if t == 'dispatcher':
@@ -1962,7 +1968,7 @@ class Dispatcher(Base):
                     wait_in[dsp] = w = dsp._get_wait_in(flag=flag)
                     if 'input_domain' not in a:
                         o = a['outputs']
-                        w = [o[k] for k in set(o).intersection(w)]
+                        w = [v for k, v in o.items() if k in w]
                         wait_in.update(dict.fromkeys(w, flag))
 
                 if 'input_domain' in a:

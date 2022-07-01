@@ -189,7 +189,7 @@ def _get_sub_out(attr, succ):
 def _update_io(a, pred, succ, parent=True):
     inp_k, out_k = ['inputs', 'outputs'][::int(parent) * 2 - 1]
 
-    a[inp_k] = selector(set(a[inp_k]).intersection(pred), a[inp_k])
+    a[inp_k] = {k: v for k, v in a[inp_k].items() if k in pred}
 
     o = {k: tuple(j for j in stlp(v) if j in succ)
          for k, v in a[out_k].items()}
@@ -428,7 +428,7 @@ def _sort_sk_wait_in(sol):
     c = counter()
 
     def _get_sk_wait_in(s):
-        w = set()
+        w = s._visited.copy()
         _l = []
         for n, a in s.dsp.sub_dsp_nodes.items():
             if 'function' in a and s.index + a['index'] in s.sub_sol:
@@ -438,19 +438,19 @@ def _sort_sk_wait_in(sol):
                 wi = {k for k, v in sub_sol._wait_in.items() if v is True}
                 n_d = n_d.union(wi)
                 o = a['outputs']
-                w = w.union([o[k] for k in set(o).intersection(n_d)])
+                w = w.union({v for k, v in o.items() if k in n_d})
 
         # Nodes to be visited.
         wi = {k for k, v in s._wait_in.items() if v is True}
 
-        n_d = (set(s.workflow.nodes.keys()) - s._visited) - w
-
-        n_d = n_d.union(s._visited.intersection(wi))
+        n_d = {k for k in s.workflow.nodes if k not in w}.union(
+            s._visited.intersection(wi)
+        )
         wi = n_d.intersection(wi)
         _inf = inf(float('inf'), 0)
         _l += [(s._meet.get(k, _inf), str(k), c(), s._wait_in, k) for k in wi]
 
-        return set(n_d), _l
+        return n_d, _l
 
     return sorted(_get_sk_wait_in(sol)[1])
 

@@ -18,17 +18,26 @@ class DiGraph:
         return self.__class__, (self.nodes, self.succ)
 
     def __init__(self, nodes=None, adj=None):
-        self.nodes = {} if nodes is None else nodes
-        self.succ = {} if adj is None else adj
-        self.pred = pred = {}
-        for u, e in self.succ.items():
-            for v, attr in e.items():
-                pred[v] = d = pred.get(v, {})
-                d[u] = attr
-        keys = set(self.succ).union(self.pred).union(self.nodes)
-        self.nodes.update({k: {} for k in keys - set(self.nodes)})
-        self.succ.update({k: {} for k in keys - set(self.succ)})
-        self.pred.update({k: {} for k in keys - set(self.pred)})
+        if nodes is None and adj is None:
+            self.nodes = {}
+            self.succ = {}
+            self.pred = {}
+        else:
+            self.succ = {} if adj is None else adj
+            self.pred = pred = {}
+            nds = set()
+
+            for u, e in self.succ.items():
+                nds.add(u)
+                for v, attr in e.items():
+                    pred[v] = d = pred.get(v, {})
+                    d[u] = attr
+                    nds.add(v)
+
+            self.nodes = nodes = {} if nodes is None else nodes
+            self.nodes.update({k: {} for k in nds if k not in nodes})
+            self.succ.update({k: {} for k in nodes if k not in self.succ})
+            self.pred.update({k: {} for k in nodes if k not in self.pred})
 
     def __getitem__(self, item):
         return self.succ[item]
