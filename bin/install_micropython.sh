@@ -1,7 +1,7 @@
 #!/bin/sh
 cd "$(dirname "$0")" && cd ..
 set -e
-[ -e micropython/py/py.mk ] || (git clone https://github.com/micropython/micropython && cd micropython && git checkout tags/v1.12)
+[ -e micropython/py/py.mk ] || (git clone https://github.com/micropython/micropython && cd micropython && git checkout tags/v1.19.1)
 [ -e micropython/lib/libffi/autogen.sh ] || (cd micropython && git submodule update --init lib/libffi )
 export PKG_CONFIG_PATH="${PKG_CONFIG_PATH}:/usr/local/opt/libffi/lib/pkgconfig"
 
