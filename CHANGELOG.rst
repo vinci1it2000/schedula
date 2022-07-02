@@ -2,6 +2,20 @@ Changelog
 =========
 
 
+v1.2.18 (2022-07-02)
+--------------------
+
+Feat
+~~~~
+- (micropython): Update build for `micropython==v1.19.1`.
+
+- (sol): Improve speed performance.
+
+- (dsp): Make `shrink` optional for `SubDispatchPipe`.
+
+- (core): Improve performance dropping `set` instances.
+
+
 v1.2.17 (2022-06-29)
 --------------------
 
