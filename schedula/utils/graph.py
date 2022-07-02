@@ -49,7 +49,9 @@ class DiGraph:
     @staticmethod
     def _add_node(nodes, succ, pred, n, **attr):
         if n not in nodes:  # Add nodes.
-            succ[n], pred[n], nodes[n] = {}, {}, attr
+            succ[n] = {}
+            pred[n] = {}
+            nodes[n] = attr
         elif attr:
             nodes[n].update(attr)
 

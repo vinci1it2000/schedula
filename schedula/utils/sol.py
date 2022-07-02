@@ -201,9 +201,6 @@ class Solution(Base, collections.OrderedDict):
         if clean:
             self._clean_set()
 
-        # Namespace shortcuts for speed.
-        add_value = self._add_initial_value
-
         self._visited.add(START)  # Nodes visited by the algorithm.
 
         # Add the starting node to the workflow graph.
@@ -217,16 +214,18 @@ class Solution(Base, collections.OrderedDict):
 
         initial_dist = inf.format(initial_dist)
 
+        # Namespace shortcuts for speed.
+        add_value = self._add_initial_value
+
         # Add initial values to fringe and seen.
-        it = sorted(
-            ((initial_dist + inputs_dist.get(v, 0.0), v) for v in inputs),
-            key=lambda x: (x[0], str(x[1]))
-        )
+        it = sorted(((
+            initial_dist + inputs_dist.get(k, 0.0), str(k), k
+        ) for k in inputs))
         if self.no_call:
-            for d, k in it:
+            for d, _, k in it:
                 add_value(k, {}, d)
         else:
-            for d, k in it:
+            for d, _, k in it:
                 add_value(k, {'value': inputs[k]}, d)
 
         self._add_out_dsp_inputs()
@@ -530,12 +529,14 @@ class Solution(Base, collections.OrderedDict):
         node_type = node_attr['type']
 
         if node_type == 'data':  # Set data node.
-            return self._set_data_node_output(node_id, node_attr, no_call,
-                                              next_nds, **kw)
+            return self._set_data_node_output(
+                node_id, node_attr, no_call, next_nds, **kw
+            )
 
         elif node_type == 'function':  # Set function node.
-            return self._set_function_node_output(node_id, node_attr, no_call,
-                                                  next_nds, **kw)
+            return self._set_function_node_output(
+                node_id, node_attr, no_call, next_nds, **kw
+            )
 
     def _evaluate_function(self, args, node_id, node_attr, attr, stopper=None,
                            executor=False):
@@ -619,15 +620,22 @@ class Solution(Base, collections.OrderedDict):
         # Get data node estimations.
         est, wait_in = self._get_node_estimations(node_attr, node_id)
 
-        if not no_call:
+        if no_call:
+            self[node_id] = NONE  # Set data output.
+
+            value = {}  # Output value.
+        else:
             if node_id is PLOT:
                 est = est.copy()
                 est[PLOT] = {'value': {'obj': self}}
 
-            sf, args = False, ({k: v['value'] for k, v in est.items()},)
-            if not (wait_in or 'function' in node_attr):
+            sf = not (wait_in or 'function' in node_attr)
+
+            if sf:
                 # Data node that has just one estimation value.
-                sf, args = True, tuple(args[0].values())
+                args = tuple(v['value'] for v in est.values())
+            else:
+                args = ({k: v['value'] for k, v in est.items()},)
             try:
                 # Final estimation of the node and node status.
                 value = async_thread(self, args, node_attr, node_id, sf, **kw)
@@ -638,10 +646,6 @@ class Solution(Base, collections.OrderedDict):
                 self[node_id] = value
 
             value = {'value': value}  # Output value.
-        else:
-            self[node_id] = NONE  # Set data output.
-
-            value = {}  # Output value.
 
         if next_nds:
             # namespace shortcuts for speed.
