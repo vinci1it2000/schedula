@@ -1095,6 +1095,12 @@ class TestDispatch(unittest.TestCase):
         dsp.add_data(sh.SELF)
         self.dsp_select_output_kw = dsp
 
+        dsp = sh.Dispatcher()
+        dsp.add_function(
+            function=_setup_dsp(), inputs=['inputs'], outputs=['outputs']
+        )
+        self.dsp1 = dsp
+
     def test_without_outputs(self):
         dsp = self.dsp
 
@@ -1149,6 +1155,28 @@ class TestDispatch(unittest.TestCase):
         o = dsp.dispatch({'a': 5, 'b': 3}, shrink=True)
         self.assertEqual(dict(o.items()),
                          {'a': 5, 'b': 3, 'c': 3, 'd': 1, 'e': 1})
+        self.assertEqual(set(o.workflow.nodes), r)
+        self.assertEqual(o.workflow.adj, w)
+
+        dsp = self.dsp1
+
+        o = dsp.dispatch({'inputs': {'a': 5, 'b': 6, 'f': 9}})['outputs']
+        r = {'2 / (d + 1)', 'a', 'b', 'c', 'd', 'e', 'log(b - a)', 'min',
+             sh.START}
+        w = {
+            'a': {'log(b - a)': {'value': 5}, 'min': {'value': 5}},
+            'b': {'log(b - a)': {'value': 6}},
+            'c': {'min': {'value': 0.0}},
+            'd': {'2 / (d + 1)': {'value': 0.0}},
+            'e': {},
+            '2 / (d + 1)': {'e': {'value': 2.0}},
+            'log(b - a)': {'c': {'value': 0.0}},
+            'min': {'d': {'value': 0.0}},
+            sh.START: {'a': {'value': 5}, 'b': {'value': 6}}
+        }
+        self.assertEqual(
+            dict(o.items()), {'a': 5, 'b': 6, 'c': 0, 'd': 0, 'e': 2, 'f': 9}
+        )
         self.assertEqual(set(o.workflow.nodes), r)
         self.assertEqual(o.workflow.adj, w)
 

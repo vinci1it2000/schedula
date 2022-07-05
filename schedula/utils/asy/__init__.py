@@ -140,15 +140,20 @@ def shutdown_executors(wait=True, executors=None):
 def _process_funcs(
         exe_id, funcs, executor, *args, stopper=None, sol_name=None,
         verbose=False, **kw):
+    from ...dispatcher import Dispatcher
     res, sid = [], exe_id[-1]
     for fn in funcs:
         if stopper and stopper.is_set():
             raise DispatcherAbort
         pfunc, r = parent_func(fn), {}
-        if isinstance(pfunc, SubDispatch):
+        if isinstance(pfunc, (SubDispatch, Dispatcher)):
             try:
-                r['res'] = fn(*args, _stopper=stopper, _executor=executor,
-                              _sol_name=sol_name, _verbose=verbose, **kw)
+                if isinstance(pfunc, Dispatcher):
+                    r['res'] = fn(*args, stopper=stopper, executor=executor,
+                                  sol_name=sol_name, verbose=verbose, **kw)
+                else:
+                    r['res'] = fn(*args, _stopper=stopper, _executor=executor,
+                                  _sol_name=sol_name, _verbose=verbose, **kw)
             except DispatcherError as ex:
                 if isinstance(pfunc, NoSub):
                     raise ex
