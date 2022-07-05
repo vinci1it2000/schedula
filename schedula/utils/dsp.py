@@ -695,7 +695,8 @@ class SubDispatch(Base):
 
     def __init__(self, dsp, outputs=None, cutoff=None, inputs_dist=None,
                  wildcard=False, no_call=False, shrink=False,
-                 rm_unused_nds=False, output_type='all', function_id=None):
+                 rm_unused_nds=False, output_type='all', function_id=None,
+                 output_type_kw=None):
         """
         Initializes the Sub-dispatch.
 
@@ -742,6 +743,10 @@ class SubDispatch(Base):
                 + 'dict': a dictionary with any outputs listed in `outputs`.
         :type output_type: str, optional
 
+        :param output_type_kw:
+            Extra kwargs to pass to the `selector` function.
+        :type output_type_kw: dict, optional
+
         :param function_id:
             Function name.
         :type function_id: str, optional
@@ -754,6 +759,7 @@ class SubDispatch(Base):
         self.no_call = no_call
         self.shrink = shrink
         self.output_type = output_type
+        self.output_type_kw = output_type_kw or {}
         self.inputs_dist = inputs_dist
         self.rm_unused_nds = rm_unused_nds
         self.name = self.__name__ = function_id or dsp.name
@@ -808,9 +814,13 @@ class SubDispatch(Base):
         if self.output_type != 'all':
             try:
                 # Save outputs.
-                return selector(outs, solution, output_type=self.output_type)
+                return selector(
+                    outs, solution, output_type=self.output_type,
+                    **self.output_type_kw
+                )
             except KeyError:
-                missed = {k for k in outs if k not in solution}  # Outputs not reached.
+                # Outputs not reached.
+                missed = {k for k in outs if k not in solution}
 
                 # Raise error
                 msg = '\n  Unreachable output-targets: {}\n  Available ' \
@@ -1096,7 +1106,8 @@ class SubDispatchFunction(SubDispatch):
                                  inputs_dist=inputs_dist, wildcard=wildcard)
 
         if outputs:
-            missed = {k for k in outputs if k not in dsp.nodes}  # Outputs not reached.
+            # Outputs not reached.
+            missed = {k for k in outputs if k not in dsp.nodes}
             if missed:  # If outputs are missing raise error.
 
                 available = list(dsp.data_nodes.keys())  # Available data nodes.

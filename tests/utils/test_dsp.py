@@ -223,12 +223,15 @@ class TestSubDispatcher(unittest.TestCase):
         def fun(a):
             return a + 1, a - 1
 
-        sub_dsp.add_function('fun', fun, ['a'], ['b', 'c'])
+        sub_dsp.add_function('fun', fun, ['a'], ['b', 'c', 'e'])
 
         dispatch = sh.SubDispatch(sub_dsp, ['a', 'b', 'c'])
         dispatch_dict = sh.SubDispatch(sub_dsp, ['c'], output_type='dict')
         dispatch_list = sh.SubDispatch(sub_dsp, ['a', 'c'], output_type='list')
-        dispatch_val = sh.SubDispatch(sub_dsp, ['c'], output_type='list')
+        dispatch_val = sh.SubDispatch(
+            sub_dsp, ['c', 'e'], output_type='list',
+            output_type_kw={'allow_miss': True}
+        )
 
         dsp = sh.Dispatcher()
         dsp.add_function('dispatch', dispatch, ['d'], ['e'])
