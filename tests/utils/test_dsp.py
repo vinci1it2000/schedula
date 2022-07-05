@@ -131,6 +131,33 @@ class TestDispatcherUtils(unittest.TestCase):
         res = sh.map_list(key_map, *inputs)
         self.assertEqual(res, {'a': 1, 'b': 2, 'c': 3, 'd': 4})
 
+    def test_run_model(self):
+        dsp = sh.BlueDispatcher(name='Dispatcher')
+        dsp.add_function(
+            function_id='execute_dsp', function=sh.run_model,
+            inputs=['dsp_model', 'inputs'], outputs=['outputs']
+        )
+
+        dsp_model = sh.Dispatcher(name='Model')
+        dsp_model.add_function('max', max, inputs=['a', 'b'], outputs=['c'])
+        sol = dsp({'dsp_model': dsp_model, 'inputs': {'b': 1, 'a': 2}})
+        res = [('a', 2), ('b', 1), ('c', 2)]
+        self.assertEqual(sorted(sol['outputs'].items()), res)
+        self.assertEqual(
+            sorted(sol.workflow.nodes['execute_dsp']['solution'].items()), res
+        )
+        sub_dsp = sh.SubDispatch(dsp_model, outputs=['c'], output_type='list')
+        sol = dsp({'dsp_model': sub_dsp, 'inputs': {'b': 1, 'a': 2}})
+        self.assertEqual(sol['outputs'], [2])
+        self.assertEqual(
+            sorted(sol.workflow.nodes['execute_dsp']['solution'].items()), res
+        )
+        sol = dsp({
+            'dsp_model': lambda x: max(x.values()), 'inputs': {'b': 1, 'a': 2}
+        })
+        self.assertEqual(sol['outputs'], 2)
+        self.assertTrue('solution' not in sol.workflow.nodes['execute_dsp'])
+
     def test_stack_nested_keys(self):
         d = {'a': {'b': {'c': ('d',)}}, 'A': {'B': {'C': ('D',)}}}
         output = sorted(sh.stack_nested_keys(d))

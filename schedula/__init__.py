@@ -62,6 +62,7 @@ _all = {
     'SubDispatchFunction': '.utils.dsp',
     'combine_nested_dicts': '.utils.dsp',
     'SubDispatch': '.utils.dsp',
+    'run_model': '.utils.dsp',
     'MapDispatch': '.utils.dsp',
     'parent_func': '.utils.dsp',
     'SubDispatchPipe': '.utils.dsp',
@@ -114,7 +115,7 @@ if sys.version_info[:2] < (3, 7) or os.environ.get('IMPORT_ALL') == 'True':
     from .utils.cst import EMPTY, END, NONE, PLOT, SELF, SINK, START
     from .utils.dsp import (
         DispatchPipe, SubDispatch, SubDispatchFunction, SubDispatchPipe,
-        MapDispatch, add_args, partial,
+        MapDispatch, add_args, partial, run_model,
         add_function, are_in_nested_dicts, bypass, combine_dicts,
         combine_nested_dicts, get_nested_dicts, inf, kk_dict, map_dict,
         map_list,

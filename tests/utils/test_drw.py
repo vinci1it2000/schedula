@@ -76,7 +76,14 @@ class TestDispatcherDraw(unittest.TestCase):
             outputs={'b': 'B', 'c': 'C', 'e': 'E', 'f': 'F'},
             inp_weight={'A': 3}
         )
-        dsp.plot()
+
+        dsp.add_data('G', default_value={'a': 3}, clusters="process 1")
+        dsp.add_function(function=ss_dsp, inputs=['G'], outputs=['H'])
+        dsp.add_data('I', default_value=ss_dsp)
+        dsp.add_function(
+            function=sh.run_model, inputs=['I', 'G'], outputs=['L']
+        )
+
         self.sol = dsp.dispatch()
         self.dsp = dsp
 

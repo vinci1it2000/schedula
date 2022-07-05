@@ -834,6 +834,63 @@ class SubDispatch(Base):
         return _copy.deepcopy(self)
 
 
+class run_model:
+    """
+    It is an utility function to execute dynamically generated function/models
+    and - if Dispatcher based - add their workflows to the parent solution.
+
+    :return:
+        A function that executes the dispatch of the given `dsp`.
+    :rtype: callable
+
+    **Example**:
+
+    Follows a simple example on how to use the
+    :func:`~schedula.utils.dsp.run_model`:
+
+    .. dispatcher:: dsp
+       :opt: graph_attr={'ratio': '1'}
+
+        >>> from schedula import Dispatcher
+        >>> dsp = Dispatcher(name='Dispatcher')
+        >>> dsp.add_function(
+        ...     function_id='execute_dsp', function=run_model,
+        ...     inputs=['dsp_model', 'inputs'], outputs=['outputs']
+        ... )
+        'execute_dsp'
+        >>> dsp_model = Dispatcher(name='Model')
+        >>> dsp_model.add_function('max', max, inputs=['a', 'b'], outputs=['c'])
+        'max'
+        >>> sol = dsp({'dsp_model': dsp_model, 'inputs': {'b': 1, 'a': 2}})
+        >>> sol['outputs']
+        Solution([('a', 2), ('b', 1), ('c', 2)])
+        >>> sol.workflow.nodes['execute_dsp']['solution']
+        Solution([('a', 2), ('b', 1), ('c', 2)])
+
+    Moreover, it can be used also with all
+    :func:`~schedula.utils.dsp.SubDispatcher` like objects::
+
+        >>> sub_dsp = SubDispatch(dsp_model, outputs=['c'], output_type='list')
+        >>> sol = dsp({'dsp_model': sub_dsp, 'inputs': {'b': 1, 'a': 2}})
+        >>> sol['outputs']
+        [2]
+        >>> sol.workflow.nodes['execute_dsp']['solution']
+        Solution([('a', 2), ('b', 1), ('c', 2)])
+    """
+    def __init__(self, func, *args, _init=None, **kwargs):
+        from .blue import Blueprint
+        if isinstance(func, Blueprint):
+            func = func.register(memo={})
+        self.func = func
+        if _init:
+            args, kwargs = _init(*args, **kwargs)
+        self.args = args
+        self.kwargs = kwargs
+
+    def __call__(self, **kwargs):
+        return self.func(*self.args, **self.kwargs, **kwargs)
+
+
 class MapDispatch(SubDispatch):
     """
     It dynamically builds a :class:`~schedula.dispatcher.Dispatcher` that is
@@ -899,9 +956,10 @@ class MapDispatch(SubDispatch):
          Solution([('a', 2), ('b', 2), ('c', 4), ('d', 0)]),
          Solution([('a', 3), ('b', 4), ('c', 7), ('d', -1)])]
     """
+
     def __init__(self, dsp, defaults=None, recursive_inputs=None,
                  constructor=SubDispatch, constructor_kwargs=None,
-                 function_id=None, func_kw=lambda *args, **data: {}, 
+                 function_id=None, func_kw=lambda *args, **data: {},
                  input_label='inputs<{}>', output_label='outputs<{}>',
                  data_label='data<{}>', **kwargs):
         """

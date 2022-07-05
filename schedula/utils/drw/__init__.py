@@ -294,6 +294,12 @@ class FolderNode:
                 'function': {
                     'shape': 'box', 'fillcolor': '#eed867', 'color': '#eed867'
                 },
+                'function-dispatcher': {
+                    'shape': 'note', 'fillcolor': '#eed867', 'color': '#eed867'
+                },
+                'run_model': {
+                    'shape': 'note', 'fillcolor': '#eed867', 'color': '#eed867'
+                },
                 'subdispatch': {
                     'shape': 'note', 'style': 'filled', 'fillcolor': '#ffc490',
                     'color': '#ffc490'
@@ -324,13 +330,15 @@ class FolderNode:
         'warning': {
             NONE: dict.fromkeys((
                 'data', 'function', 'subdispatch', 'subdispatchfunction',
-                'subdispatchpipe', 'dispatchpipe', 'mapdispatch', 'dispatcher'
+                'subdispatchpipe', 'dispatchpipe', 'mapdispatch', 'dispatcher',
+                'run_model', 'function-dispatcher'
             ), {'fillcolor': '#fea22b', 'color': '#C9340A', 'penwidth': 2})
         },
         'error': {
             NONE: dict.fromkeys((
                 'data', 'function', 'subdispatch', 'subdispatchfunction',
-                'subdispatchpipe', 'dispatchpipe', 'mapdispatch', 'dispatcher'
+                'subdispatchpipe', 'dispatchpipe', 'mapdispatch', 'dispatcher',
+                'run_model', 'function-dispatcher'
             ), {'fillcolor': '#FF3536', 'color': '#5E1F00', 'penwidth': 2})
         }
     })
@@ -549,7 +557,7 @@ class FolderNode:
             if self.type in ('dispatcher', 'function'):
                 ntype = 'function',
                 try:
-                    ntype = (_get_type(attr['function']),) + ntype
+                    ntype = (_get_type(attr['function'], self.type),) + ntype
                 except (KeyError, AttributeError):
                     pass
             elif self.type == 'edge':
@@ -631,7 +639,8 @@ class FolderNode:
             dot.update(self.attr.get('graphviz', {}))
             return dot
         from .nodes import _Tr, _Td
-        key, val = dict(ALIGN="RIGHT", BORDER=1), dict(ALIGN="LEFT", BORDER=1)
+        key = {'ALIGN': "RIGHT", 'BORDER': 1}
+        val = {'ALIGN': "LEFT", 'BORDER': 1}
         rows, funcs, cnt = [], list(self.render_funcs()), {'attr': val}
         cnt['parent_ref'] = functools.partial(self.parent_ref, context)
         href, pformat, links = self.href, self.pprint.pformat, self._links
@@ -831,9 +840,9 @@ class SiteFolder:
                 edges[n] = combine_dicts(edges.get(n, {}), {'out_id': i})
 
         for w in [v for u, v in edges if u is START and v in wildcards]:
-            a = combine_dicts(edges.pop((START, w)), dict(
-                label_type='label', wildcard=w, title=w
-            ))
+            a = combine_dicts(edges.pop((START, w)), {
+                'label_type': 'label', 'wildcard': w, 'title': w
+            })
             a1 = selector(('value',), a, allow_miss=True)
             for u, v in list(edges):
                 if u == w and v != END:
@@ -854,10 +863,9 @@ class SiteFolder:
     def dot(self, context=None):
         context = context or {}
 
-        kw = _format_kw_digraph(self.digraph, base=dict(
-            name=self.label_name,
-            body={'label': '<%s>' % self.label_name}
-        ))
+        kw = _format_kw_digraph(self.digraph, base={
+            'name': self.label_name, 'body': {'label': '<%s>' % self.label_name}
+        })
         from .nodes import _DspPlot
         dot = _DspPlot(self.sitemap, **kw)
         id_map, clr = {}, {}
@@ -881,9 +889,9 @@ class SiteFolder:
             dot.edge(*edge.attr['dot_ids'], **edge.dot(context))
 
         for i, (cluster, d) in enumerate(clr.items()):
-            kw = _format_kw_digraph(d.get('kw', {}), base=dict(
-                name='cluster_%d' % i, body={'label': '<%s>' % cluster}
-            ))
+            kw = _format_kw_digraph(d.get('kw', {}), base={
+                'name': 'cluster_%d' % i, 'body': {'label': '<%s>' % cluster}
+            })
             with dot.subgraph(**kw) as g:
                 for node in d['nodes']:
                     g.node(node)
@@ -920,14 +928,19 @@ class SiteFolder:
         return {(self.view_id, None): filepath}
 
 
-def _get_type(obj):
+def _get_type(obj, node_type='function'):
     from ..sol import Solution
-    obj = isinstance(obj, Solution) and obj.parent or obj
-    return type(parent_func(obj)).__name__.lower()
+    obj = parent_func(isinstance(obj, Solution) and obj.parent or obj)
+    if not isinstance(obj, type):
+        obj = type(obj)
+    typ = obj.__name__.lower()
+    if typ == 'dispatcher' and node_type == 'function':
+        return 'function-dispatcher'
+    return typ
 
 
 sort_tree_map = {v: k for k, v in enumerate((
-    'data', 'function', 'dispatchpipe', 'subdispatchpipe',
+    'data', 'function', 'run_model', 'dispatchpipe', 'subdispatchpipe',
     'subdispatchfunction', 'mapdispatch', 'subdispatch', 'dispatcher'
 ), 1)}
 
@@ -937,9 +950,7 @@ def _folder2tree(folder, smap, context, type):
     for item in smap.nodes:
         get_nested_dicts(extra, item.dsp_node_id, default=list).append(item)
     url = context[(folder, None)]
-    nodes = [
-        dict(text='-%s' % type, url=url, type=type)
-    ]
+    nodes = [{'text': '-%s' % type, 'url': url, 'type': type}]
     url = '{}?id=%d'.format(url)
     for node_id, attr in folder.dsp.nodes.items():
         if node_id not in folder.graph.nodes:
@@ -947,21 +958,20 @@ def _folder2tree(folder, smap, context, type):
         type = attr['type']
         if type == 'function' and attr.get('function'):
             type = _get_type(attr['function'])
-        n = dict(
-            text=html.escape(node_id),
-            url=url % attr['index'][-1],
-            type=type
-        )
+        n = {
+            'text': html.escape(node_id), 'url': url % attr['index'][-1],
+            'type': type
+        }
         nodes.append(n)
         if node_id in extra_dsp:
             n['nodes'] = _folder2tree(*extra_dsp[node_id], context, type)
         else:
             i = len(node_id)
-            n['nodes'] = [dict(
-                text=html.escape(item.title[i:] or '-function'),
-                url=context[(item, None)],
-                type=_get_type(item.item)
-            ) for item in extra.get(node_id, [])]
+            n['nodes'] = [{
+                'text': html.escape(item.title[i:] or '-function'),
+                'url': context[(item, None)],
+                'type': _get_type(item.item)
+            } for item in extra.get(node_id, [])]
         if not n['nodes']:
             n.pop('nodes')
     return nodes[:1] + list(sorted(
@@ -971,7 +981,7 @@ def _folder2tree(folder, smap, context, type):
 
 def _pipe2icicle(pipe):
     for k, v in pipe.items():
-        child, (i, s) = dict(name=' → '.join(stlp(k))), v['task'][2]
+        child, (i, s) = {'name': ' → '.join(stlp(k))}, v['task'][2]
         value, t = 0, s.workflow.nodes.get(i, {}).get('duration')
         if 'sub_pipe' in v:
             child['children'] = children = list(_pipe2icicle(v['sub_pipe']))
@@ -997,34 +1007,35 @@ def _sitemap2icicle(sitemap):
             continue
 
         c = list(_pipe2icicle(pipe))
-        cdn.append(dict(
-            name=folder.name, children=c, value=0,
-            duration=sum((v['duration'] for v in c), 0)
-        ))
+        cdn.append({
+            'name': folder.name, 'children': c, 'value': 0,
+            'duration': sum((v['duration'] for v in c), 0)
+        })
     if not cdn:
         return {}
-    return dict(
-        name='main', duration=sum((v['duration'] for v in cdn), 0), children=cdn
-    )
+    return {
+        'name': 'main', 'duration': sum((v['duration'] for v in cdn), 0),
+        'children': cdn
+    }
 
 
 def _sitemap2tree(sitemap, context):
     tree = []
     for folder, smap in sitemap.items():
         type = _get_type(folder.item)
-        tree.append(dict(
-            text=html.escape(folder.name),
-            url=context[(folder, None)],
-            type=type,
-            nodes=_folder2tree(folder, smap, context, type)[1:]
-        ))
+        tree.append({
+            'text': html.escape(folder.name),
+            'url': context[(folder, None)],
+            'type': type,
+            'nodes': _folder2tree(folder, smap, context, type)[1:]
+        })
     return tree
 
 
 def _add_explanation(dsp, node_id, description, **kw):
-    dsp.dmap.add_edge(node_id, dsp.add_data(graphviz=dict(
-        label=description, shape='plaintext', style='', fillcolor=''
-    ), **kw), graphviz={'style': 'dashed'})
+    dsp.dmap.add_edge(node_id, dsp.add_data(graphviz={
+        'label': description, 'shape': 'plaintext', 'style': '', 'fillcolor': ''
+    }, **kw), graphviz={'style': 'dashed'})
     return node_id
 
 
@@ -1123,9 +1134,12 @@ class SiteIndex(SiteNode):
             'plots the dispatcher solution.', clusters='Special Nodes'
         )
 
-        fun_kw = dict(inputs=[], outputs=[], clusters='Functions')
+        fun_kw = {'inputs': [], 'outputs': [], 'clusters': 'Functions'}
 
         class subdispatch:
+            pass
+
+        class run_model:
             pass
 
         class mapdispatch:
@@ -1161,6 +1175,15 @@ class SiteIndex(SiteNode):
             'sample showing the main attributes.'
         ))
 
+        _add_explanation(dsp, dsp.add_function(
+            function_id='<function_id>(run_model)',
+            function=run_model(), **fun_kw
+        ), clusters='Functions', description=(
+            'run_model node. It calls the first argument - i.e. the model.\n '
+            'If the model produces a the workflow, this is added to the\n'
+            'parent workflow.\n'
+            'First argument is a callable.'
+        ))
         _add_explanation(dsp, dsp.add_function(
             function_id='<function_id>(SubDispatch)',
             function=subdispatch(), **fun_kw
@@ -1236,23 +1259,23 @@ class SiteIndex(SiteNode):
             'node one is a sample showing the main attributes.'
         ))
 
-        dsp.add_data('<from>', clusters='Edges', graphviz=dict(style='invis'))
+        dsp.add_data('<from>', clusters='Edges', graphviz={'style': 'invis'})
         dsp.add_function(
             function_id='<to>',
             clusters='Edges',
             inputs=['<from>'],
             outputs=[],
             inp_weight={'<from>': 'Edge distance.'},
-            graphviz=dict(style='invis')
+            graphviz={'style': 'invis'}
         )
-        dsp.dmap['<from>']['<to>'].update(dict(
-            label_type='label',
-            inp_id='Index of input args.',
-            out_id='Index of output list.',
-            graphviz={
+        dsp.dmap['<from>']['<to>'].update({
+            'label_type': 'label',
+            'inp_id': 'Index of input args.',
+            'out_id': 'Index of output list.',
+            'graphviz': {
                 'xlabel': 'This is an edge sample showing the main attributes.'
             }
-        ))
+        })
         return dsp.plot(
             view=False,
             name='legend',
@@ -1403,9 +1426,9 @@ class Site:
         if not self.is_running:
             self.run()
         # noinspection PyTypeChecker
-        kw = combine_dicts(os.environ, dict(
-            id=id(self), host=self.host, port=self.port
-        ))
+        kw = combine_dicts(os.environ, {
+            'id': id(self), 'host': self.host, 'port': self.port
+        })
         return HTML(self._html.format(**kw))._repr_html_()
 
     @property

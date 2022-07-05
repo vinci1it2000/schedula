@@ -24,7 +24,7 @@ from ..imp import Future
 from ..cst import EMPTY
 from .factory import ExecutorFactory
 from ..exc import DispatcherError, DispatcherAbort
-from ..dsp import parent_func, SubDispatch, NoSub
+from ..dsp import parent_func, SubDispatch, NoSub, run_model
 
 
 def _sync_executor():
@@ -146,6 +146,10 @@ def _process_funcs(
         if stopper and stopper.is_set():
             raise DispatcherAbort
         pfunc, r = parent_func(fn), {}
+        if isinstance(pfunc, type) and issubclass(pfunc, run_model):
+            fn = fn(*args)
+            args, kw = (), {}
+            pfunc = fn.func
         if isinstance(pfunc, (SubDispatch, Dispatcher)):
             try:
                 if isinstance(pfunc, Dispatcher):

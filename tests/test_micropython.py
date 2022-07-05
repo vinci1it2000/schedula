@@ -22,21 +22,7 @@ def _make_suite():
     )
 
     suite = unittest.TestSuite()
-    suite.addTest(TestCreateDispatcher)
-    suite.addTest(TestUtils)
-    suite.addTest(TestDispatcherGetSubNode)
-    suite.addTest(TestSubDMap)
-    suite.addTest(TestPipe)
-    suite.addTest(TestShrinkDispatcher)
-    suite.addTest(TestNodeOutput)
-    suite.addTest(TestBoundaryDispatch)
-    suite.addTest(TestPerformance)
     suite.addTest(TestDispatcherUtils)
-    suite.addTest(TestDispatch)
-    suite.addTest(TestSubDispatcher)
-    suite.addTest(TestSubDispatchFunction)
-    suite.addTest(TestSubDispatchPipe)
-    suite.addTest(TestDispatchPipe)
     return suite
 
 
