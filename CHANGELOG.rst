@@ -2,6 +2,23 @@ Changelog
 =========
 
 
+v1.2.19 (2022-07-06)
+--------------------
+
+Feat
+~~~~
+- (dsp): Add new utility function `run_model`.
+
+- (dsp): Add `output_type_kw` option to `SubDispatch` utility.
+
+- (core): Add workflow when function is a dsp.
+
+
+Fix
+~~~
+- (blue): Add memo when call register by default.
+
+
 v1.2.18 (2022-07-02)
 --------------------
 
