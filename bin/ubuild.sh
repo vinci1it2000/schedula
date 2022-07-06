@@ -13,6 +13,7 @@ micropython/ports/unix/micropython -m upip install -r requirements/micropython/t
 echo 'Requirements installed!'
 if env EXTRA=micropython micropython/ports/unix/micropython -m tests.test_micropython; then
   echo 'Building dist..'
+  pip uninstall setuptools-git
   wget https://raw.githubusercontent.com/micropython/micropython-lib/35e3c9e4ffc1c5fbd92fa159aa9dfa504f14c495/sdist_upip.py -O micropython/sdist_upip.py
   python usetup.py sdist
   rm -rf dist/*.tar.gz.orig
