@@ -122,20 +122,21 @@ class Blueprint:
         return self.register(memo={})(*args, **kwargs)
 
 
-def _parent_blue(func, memo=None):
+def _parent_blue(func, memo=None, depth=-1):
     from .dsp import add_args, SubDispatch, partial
     memo = {} if memo is None else memo
     if isinstance(func, partial):
+        kw = func.keywords
         return func.__class__(
-            *(_parent_blue(v, memo) for v in (func.func,) + func.args),
-            **{k: _parent_blue(v, memo) for k, v in func.keywords.items()}
+            *(_parent_blue(v, memo, depth) for v in (func.func,) + func.args),
+            **{k: _parent_blue(v, memo, depth) for k, v in kw.items()}
         )
     elif isinstance(func, add_args):
-        return func.__class__(
-            *(_parent_blue(v, memo) for v in (func.func, func.n, func.callback))
-        )
+        return func.__class__(*(
+            _parent_blue(getattr(func, k), memo, depth) for k in func._args
+        ))
     elif isinstance(func, (Dispatcher, SubDispatch)):
-        return func.blue(memo)
+        return func.blue(memo, depth)
     return func
 
 

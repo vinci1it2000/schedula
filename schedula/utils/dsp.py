@@ -446,6 +446,7 @@ class add_args:
         '(none, none, a, b, *args, c=0)'
     """
     __name__ = __doc__ = None
+    _args = ('func', 'n', 'callback')
 
     def __init__(self, func, n=1, callback=None):
         self.n = n
@@ -766,7 +767,7 @@ class SubDispatch(Base):
         self.__doc__ = dsp.__doc__
         self.solution = dsp.solution.__class__(dsp)
 
-    def blue(self, memo=None):
+    def blue(self, memo=None, depth=-1):
         """
         Constructs a Blueprint out of the current object.
 
@@ -774,17 +775,24 @@ class SubDispatch(Base):
             A dictionary to cache Blueprints.
         :type memo: dict[T,schedula.utils.blue.Blueprint]
 
+        :param depth:
+            Depth of sub-dispatch blue. If negative all levels are bluprinted.
+        :type depth: int, optional
+
         :return:
             A Blueprint of the current object.
         :rtype: schedula.utils.blue.Blueprint
         """
+        if depth == 0:
+            return self
+        depth -= 1
         memo = {} if memo is None else memo
         if self not in memo:
             import inspect
             from .blue import Blueprint, _parent_blue
             keys = tuple(inspect.signature(self.__init__).parameters)
             memo[self] = Blueprint(**{
-                k: _parent_blue(v, memo)
+                k: _parent_blue(v, memo, depth)
                 for k, v in self.__dict__.items() if k in keys
             })._set_cls(self.__class__)
         return memo[self]
@@ -877,6 +885,7 @@ class run_model:
         >>> sol.workflow.nodes['execute_dsp']['solution']
         Solution([('a', 2), ('b', 1), ('c', 2)])
     """
+
     def __init__(self, func, *args, _init=None, **kwargs):
         from .blue import Blueprint
         if isinstance(func, Blueprint):
