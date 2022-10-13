@@ -34,7 +34,8 @@ class Solution(Base, collections.OrderedDict):
     def __init__(self, dsp=None, inputs=None, outputs=None, wildcard=False,
                  cutoff=None, inputs_dist=None, no_call=False,
                  rm_unused_nds=False, wait_in=None, no_domain=False,
-                 _empty=False, index=(-1,), full_name=(), verbose=False):
+                 _empty=False, index=(-1,), full_name=(), verbose=False,
+                 excluded_defaults=()):
         super(Solution, self).__init__()
         self.index = index
         self.rm_unused_nds = rm_unused_nds
@@ -53,7 +54,7 @@ class Solution(Base, collections.OrderedDict):
         self._set_dsp_features(dsp or Dispatcher())
 
         if not _empty:
-            self._set_inputs(inputs, inputs_dist)
+            self._set_inputs(inputs, inputs_dist, excluded_defaults)
 
             # Set wildcards.
             self._set_wildcards(*((inputs, outputs) if wildcard else ()))
@@ -71,17 +72,21 @@ class Solution(Base, collections.OrderedDict):
         self._succ = dsp.dmap.succ
         self._edge_length = dsp._edge_length
 
-    def _set_inputs(self, inputs, initial_dist):
+    def _set_inputs(self, inputs, initial_dist, excluded_defaults=()):
         if self.no_call:
             # Set initial values.
             initial_values = dict.fromkeys(self.dsp.default_values, NONE)
-
+            initial_values = {
+                k: v for k, v in self.dsp.default_values.items()
+                if k not in excluded_defaults
+            }
             if inputs is not None:  # Update initial values with input values.
                 initial_values.update(dict.fromkeys(inputs, NONE))
         else:
             # Set initial values.
             initial_values = {
                 k: v['value'] for k, v in self.dsp.default_values.items()
+                if k not in excluded_defaults
             }
 
             if inputs is not None:  # Update initial values with input values.
@@ -91,7 +96,7 @@ class Solution(Base, collections.OrderedDict):
         initial_distances = {
             k: v['initial_dist']
             for k, v in self.dsp.default_values.items()
-            if not inputs or k not in inputs
+            if k not in excluded_defaults and (not inputs or k not in inputs)
         }
 
         if initial_dist is not None:  # Update initial distances.
@@ -1034,7 +1039,7 @@ class Solution(Base, collections.OrderedDict):
             wf_remove_node(n)  # Remove unused node.
 
     def _init_sub_dsp(self, dsp, fringe, outputs, no_call, initial_dist, index,
-                      full_name):
+                      full_name, excluded_defaults):
         """
         Initialize the dispatcher as sub-dispatcher and update the fringe.
 
@@ -1055,7 +1060,8 @@ class Solution(Base, collections.OrderedDict):
         sol = self.__class__(
             dsp, {}, outputs, False, None, None, no_call, False,
             wait_in=self._wait_in.get(dsp, None), index=self.index + index,
-            full_name=full_name, verbose=self.verbose
+            full_name=full_name, verbose=self.verbose,
+            excluded_defaults=excluded_defaults
         )
 
         sol.sub_sol = self.sub_sol
@@ -1176,7 +1182,8 @@ class Solution(Base, collections.OrderedDict):
             # Initialize the sub-dispatcher.
             sub_sol[self.index + node['index']] = sol = self._init_sub_dsp(
                 dsp, fringe, node['outputs'], no_call, initial_dist,
-                node['index'], self.full_name + (dsp_id,)
+                node['index'], self.full_name + (dsp_id,),
+                set(node.get('inputs', {}).values())
             )
             self.workflow.add_node(dsp_id, solution=sol, **kw)
 
