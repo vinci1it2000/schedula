@@ -1,0 +1,146 @@
+{
+  "ui:layout": {
+    "component": "appbar",
+    "transformData": "function(parent, def){let x = parent.props.context.props.formData.return, isEmpty = !!(typeof(x) === 'object'? Object.keys(x).length === 0 : undefined === x); def.props.current_tab=isEmpty?0:1; return def}",
+    "props": {
+      "children": [
+        {
+          "$id": "input",
+          "props": {
+            "uiSchema": {
+              "ui:layout": {
+                "component": "Paper",
+                "props": {
+                  "variant": "outlined",
+                  "sx": {
+                    "p": {
+                      "xs": 2
+                    }
+                  },
+                  "children": [
+                    {
+                      "$id": "kwargs",
+                      "props": {
+                        "uiSchema": {
+                          "ui:layout": {
+                            "$id": "inputs"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        {
+          "$id": "return",
+          "domain": "function(parent){let x = parent.props.context.props.formData.return, isEmpty = !!(typeof(x) === 'object'? Object.keys(x).length === 0 : undefined === x); return !isEmpty}",
+          "props": {
+            "uiSchema": {
+              "ui:readonly": true,
+              "ui:disabled": true,
+              "ui:layout": {
+                "component": "Paper",
+                "props": {
+                  "variant": "outlined",
+                  "sx": {
+                    "p": {
+                      "xs": 2
+                    }
+                  },
+                  "children": [
+                    {
+                      "component": "Grid",
+                      "props": {
+                        "container": true,
+                        "spacing": 2,
+                        "children": [
+                          {
+                            "component": "Grid",
+                            "props": {
+                              "item": true,
+                              "xs": 6,
+                              "children": [
+                                {
+                                  "$id": "value_in"
+                                }
+                              ]
+                            }
+                          },
+                          {
+                            "component": "Grid",
+                            "props": {
+                              "item": true,
+                              "xs": 6,
+                              "children": [
+                                {
+                                  "$id": "unit_in"
+                                }
+                              ]
+                            }
+                          },
+                          {
+                            "component": "Grid",
+                            "props": {
+                              "item": true,
+                              "xs": 12,
+                              "children": [
+                                {
+                                  "$id": "results",
+                                  "props": {
+                                    "uiSchema": {
+                                      "ui:layout": {
+                                        "component": "datagrid",
+                                        "props": {
+                                          "density": "compact",
+                                          "columns": [
+                                            {
+                                              "field": "value_out"
+                                            },
+                                            {
+                                              "field": "unit_out"
+                                            }
+                                          ]
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      ],
+      "children-right": [
+        {
+          "component": "export"
+        },
+        {
+          "component": "upload"
+        },
+        {
+          "component": "submit",
+          "transformData": "function(parent, def){let x = parent.props.context.props.formData.return, isEmpty = !!(typeof(x) === 'object'? Object.keys(x).length === 0 : undefined === x);def.props.disabled=!isEmpty; return def}",
+          "props": {
+            "disabled": false,
+            "content": "SUBMIT",
+            "variant": "outlined"
+          }
+        }
+      ]
+    }
+  },
+  "ui:submitButtonOptions": {
+    "norender": true
+  }
+}

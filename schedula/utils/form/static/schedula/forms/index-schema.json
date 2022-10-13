@@ -1,0 +1,58 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Schedula Form",
+  "type": "object",
+  "properties": {
+    "input": {
+      "title": "input",
+      "type": "object",
+      "properties": {
+        "kwargs": {
+          "type": "object",
+          "properties": {
+            "inputs": {
+              "type": "object",
+              "additionalProperties": false
+            },
+            "select_output_kw": {
+              "type": "object",
+              "properties": {
+                "keys": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "output_type": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "enum": [
+                    null,
+                    "values",
+                    "all",
+                    "list",
+                    "dict"
+                  ],
+                  "default": "dict"
+                }
+              }
+            }
+          },
+          "required": [
+            "inputs"
+          ]
+        }
+      }
+    },
+    "error": {},
+    "return": {
+      "title": "output",
+      "type": "object"
+    },
+    "hash": {"type": "string"}
+  },
+  "definitions": {
+  }
+}

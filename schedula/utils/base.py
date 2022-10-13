@@ -34,15 +34,15 @@ class Base:
         Creates a dispatcher Flask app.
 
         :param depth:
-            Depth of sub-dispatch plots. If negative all levels are plotted.
+            Depth of sub-dispatch API. If negative all levels are configured.
         :type depth: int, optional
 
         :param node_data:
-            Data node attributes to view.
+            Data node attributes to produce API.
         :type node_data: tuple[str], optional
 
         :param node_function:
-            Function node attributes to view.
+            Function node attributes produce API.
         :type node_function: tuple[str], optional
 
         :param directory:
@@ -94,7 +94,6 @@ class Base:
            When :class:`~schedula.utils.drw.Site` is garbage collected, the
            server is shutdown automatically.
         """
-
         options = {'node_data': node_data, 'node_function': node_function}
         options = {k: v for k, v in options.items() if v is not NONE}
         from .web import WebMap
@@ -104,13 +103,61 @@ class Base:
 
         webmap = WebMap()
         webmap.add_items(obj, workflow=False, depth=depth, **options)
-
+        webmap.directory = directory
         if sites is not None:
-            import tempfile
-            directory = directory or tempfile.mkdtemp()
-            sites.add(webmap.site(directory, view=run))
+            sites.add(webmap.site(view=run))
 
         return webmap
+
+    def form(self, depth=1, node_data=NONE, node_function=NONE, directory=None,
+             sites=None, run=True):
+        """
+        Creates a dispatcher Form Flask app.
+
+        :param depth:
+            Depth of sub-dispatch API. If negative all levels are configured.
+        :type depth: int, optional
+
+        :param node_data:
+            Data node attributes to produce API.
+        :type node_data: tuple[str], optional
+
+        :param node_function:
+            Function node attributes produce API.
+        :type node_function: tuple[str], optional
+
+        :param directory:
+            Where is the generated Flask app root located?
+        :type directory: str, optional
+
+        :param sites:
+            A set of :class:`~schedula.utils.drw.Site` to maintain alive the
+            backend server.
+        :type sites: set[~schedula.utils.drw.Site], optional
+
+        :param run:
+            Run the backend server?
+        :type run: bool, optional
+
+        :return:
+            A FormMap.
+        :rtype: ~schedula.utils.form.FormMap
+        """
+        options = {'node_data': node_data, 'node_function': node_function}
+        options = {k: v for k, v in options.items() if v is not NONE}
+
+        from .form import FormMap
+        from .sol import Solution
+
+        obj = self.dsp if isinstance(self, Solution) else self
+
+        formmap = FormMap()
+        formmap.add_items(obj, workflow=False, depth=depth, **options)
+        formmap.directory = directory
+        if sites is not None:
+            sites.add(formmap.site(view=run))
+
+        return formmap
 
     def plot(self, workflow=None, view=True, depth=-1, name=NONE, comment=NONE,
              format=NONE, engine=NONE, encoding=NONE, graph_attr=NONE,
@@ -273,9 +320,8 @@ class Base:
         sitemap = SiteMap()
         sitemap.short_name = short_name
         sitemap.add_items(self, workflow=workflow, depth=depth, **options)
+        sitemap.directory = directory
         if view:
-            import tempfile
-            directory = directory or tempfile.mkdtemp()
             if sites is None:
                 sitemap.render(
                     directory=directory, view=True, index=index, viz_js=viz,

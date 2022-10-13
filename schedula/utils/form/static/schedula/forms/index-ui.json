@@ -1,0 +1,69 @@
+{
+  "ui:layout": {
+    "component": "appbar",
+    "props": {
+      "children": [
+        {
+          "$id": "input",
+          "props": {
+            "uiSchema": {
+              "ui:layout": {
+                "component": "Paper",
+                "props": {
+                  "variant": "outlined",
+                  "sx": {
+                    "p": {
+                      "xs": 2
+                    }
+                  },
+                  "children": [
+                    {
+                      "$id": "kwargs",
+                      "props": {
+                        "uiSchema": {
+                          "ui:layout": {
+                            "$id": "inputs"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        {
+          "$id": "return",
+          "domain": "function(parent){let x = parent.props.context.props.formData.return, isEmpty = !!(typeof(x) === 'object'? Object.keys(x).length === 0 : undefined === x); return !isEmpty}",
+          "props": {
+            "uiSchema": {
+              "ui:disabled": true,
+              "ui:readonly": true
+            }
+          }
+        }
+      ],
+      "children-right": [
+        {
+          "component": "export"
+        },
+        {
+          "component": "upload"
+        },
+        {
+          "component": "submit",
+          "transformData": "function(parent, def){let x = parent.props.context.props.formData.return, isEmpty = !!(typeof(x) === 'object'? Object.keys(x).length === 0 : undefined === x);def.props.disabled=!isEmpty; return def}",
+          "props": {
+            "disabled": false,
+            "content": "SUBMIT",
+            "variant": "outlined"
+          }
+        }
+      ]
+    }
+  },
+  "ui:submitButtonOptions": {
+    "norender": true
+  }
+}

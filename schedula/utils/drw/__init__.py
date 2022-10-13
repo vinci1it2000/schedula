@@ -1498,6 +1498,7 @@ class SiteMap(collections.OrderedDict):
     site_index = SiteIndex
     site_viz = SiteViz
     short_name = None
+    directory = None
     _view = None
     options = {
         'digraph', 'node_styles', 'node_data', 'node_function', 'edge_data',
@@ -1640,9 +1641,12 @@ class SiteMap(collections.OrderedDict):
             return item
         raise ValueError('Type %s not supported.' % type(item).__name__)
 
+    def get_directory(self, directory):
+        return directory or self.directory or tempfile.mkdtemp()
+
     def app(self, root_path=None, depth=-1, index=True, mute=True, viz_js=False,
             executor='async', **kw):
-        root_path = osp.abspath(root_path or tempfile.mkdtemp())
+        root_path = osp.abspath(self.get_directory(root_path))
         generated_files, rendered = [], {}
         cleanup = functools.partial(_cleanup, generated_files, rendered)
         app = basic_app(root_path, cleanup=cleanup, mute=mute, **kw)
@@ -1659,6 +1663,7 @@ class SiteMap(collections.OrderedDict):
         return app
 
     def site(self, root_path=None, depth=-1, index=True, view=False, **kw):
+        root_path = self.get_directory(root_path)
         site = Site(self, root_path=root_path, depth=depth, index=index, **kw)
 
         if view:
@@ -1670,6 +1675,8 @@ class SiteMap(collections.OrderedDict):
 
     def render(self, depth=-1, directory='static', view=False, index=True,
                viz=False, viz_js=False, executor='async'):
+
+        directory = self.get_directory(directory)
         context = self.rules(depth=depth, index=index, viz_js=viz_js)
         rendered = {}
         for node, extra in context:

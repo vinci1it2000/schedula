@@ -1,0 +1,182 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Schedula Form",
+  "type": "object",
+  "properties": {
+    "input": {
+      "title": "input",
+      "type": "object",
+      "properties": {
+        "kwargs": {
+          "type": "object",
+          "properties": {
+            "inputs": {
+              "type": "object",
+              "properties": {
+                "value_in": {
+                  "title": "Value to convert",
+                  "type": "number"
+                },
+                "unit_in": {
+                  "title": "From Unit",
+                  "$ref": "#/definitions/unit"
+                },
+                "units_out": {
+                  "type": "array",
+                  "title": "To Units",
+                  "description": "You can select more then one",
+                  "items": {
+                    "$ref": "#/definitions/unit"
+                  },
+                  "uniqueItems": true
+                }
+              },
+              "required": [
+                "value_in",
+                "unit_in",
+                "units_out"
+              ],
+              "default": {
+                "value_in": 1,
+                "unit_in": "m",
+                "units_out": [
+                  "in",
+                  "mm",
+                  "km"
+                ]
+              }
+            },
+            "select_output_kw": {
+              "type": "object",
+              "properties": {
+                "keys": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "default": [
+                    "results",
+                    "value_in",
+                    "unit_in"
+                  ]
+                },
+                "output_type": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "enum": [
+                    null,
+                    "values",
+                    "all",
+                    "list",
+                    "dict"
+                  ],
+                  "default": "all"
+                }
+              }
+            }
+          },
+          "required": [
+            "inputs"
+          ]
+        }
+      }
+    },
+    "error": {},
+    "return": {
+      "title": "output",
+      "type": "object",
+      "properties": {
+        "value_in": {
+          "title": "From Value",
+          "type": "number"
+        },
+        "unit_in": {
+          "title": "From Unit",
+          "$ref": "#/definitions/unit"
+        },
+        "results": {
+          "title": "Converted values",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "unit_out": {
+                "title": "To Unit",
+                "$ref": "#/definitions/unit"
+              },
+              "value_out": {
+                "title": "To Value",
+                "type": "number"
+              }
+            },
+            "required": [
+              "unit_out",
+              "value_out"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "unit": {
+      "type": "string",
+      "oneOf": [
+        {
+          "const": "lea",
+          "title": "lea"
+        },
+        {
+          "const": "mi",
+          "title": "mi"
+        },
+        {
+          "const": "fur",
+          "title": "fur"
+        },
+        {
+          "const": "ch",
+          "title": "ch"
+        },
+        {
+          "const": "yd",
+          "title": "yd"
+        },
+        {
+          "const": "ft",
+          "title": "ft"
+        },
+        {
+          "const": "in",
+          "title": "in"
+        },
+        {
+          "const": "th",
+          "title": "th"
+        },
+        {
+          "const": "km",
+          "title": "km"
+        },
+        {
+          "const": "m",
+          "title": "m"
+        },
+        {
+          "const": "dm",
+          "title": "dm"
+        },
+        {
+          "const": "cm",
+          "title": "cm"
+        },
+        {
+          "const": "mm",
+          "title": "mm"
+        }
+      ]
+    }
+  }
+}

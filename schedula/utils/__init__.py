@@ -44,6 +44,7 @@ Sub-Modules:
     drw
     dsp
     exc
+    form
     gen
     graph
     imp
