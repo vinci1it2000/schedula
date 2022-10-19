@@ -2,6 +2,16 @@ Changelog
 =========
 
 
+v1.3.1 (2022-10-20)
+-------------------
+
+Fix
+~~~
+- (form): Add missing package data.
+
+- (ext): Correct documenter doctest import.
+
+
 v1.3.0 (2022-10-19)
 -------------------
 
