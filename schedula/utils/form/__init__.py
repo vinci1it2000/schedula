@@ -12,8 +12,8 @@ It provides functions to build a form flask app from a dispatcher.
 import json
 import os.path as osp
 from ..web import WebMap
-from schedula._version import __copyright__
 from flask import render_template, Blueprint
+from jinja2 import TemplateNotFound
 
 __author__ = 'Vincenzo Arcidiacono <vinci1it2000@gmail.com>'
 
@@ -28,9 +28,14 @@ class FormMap(WebMap):
 
     def render_form(self, form='index'):
         template = f'schedula/{form}.html'
-        return render_template(
-            template, name=form, form_id=form, main_js=main_js
-        )
+        try:
+            return render_template(
+                template, name=form, form_id=form, main_js=main_js
+            )
+        except TemplateNotFound:
+            return render_template(
+                'schedula/base.html', name=form, form_id=form, main_js=main_js
+            )
 
     @staticmethod
     def send_static_file(filename):
@@ -50,6 +55,9 @@ class FormMap(WebMap):
         bp = Blueprint('schedula', __name__, template_folder='templates')
         bp.add_url_rule(
             '/', 'render-form', self.render_form, methods=['GET']
+        )
+        bp.add_url_rule(
+            '/form/<form>', 'render-form', self.render_form, methods=['GET']
         )
         bp.add_url_rule(
             '/static/schedula/<path:filename>', 'static', self.send_static_file,

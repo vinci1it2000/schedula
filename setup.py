@@ -152,6 +152,10 @@ if __name__ == '__main__':
         package_data={
             'schedula.utils.drw': [
                 'templates/*', 'index/js/*', 'index/css/*', 'viz/*'
+            ],
+            'schedula.utils.form': [
+                'templates/schedula/*', 'static/schedula/js/*.js',
+                'static/schedula/forms/*'
             ]
         },
     )
