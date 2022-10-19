@@ -48,13 +48,7 @@ def contains_doctest(text):
 def get_grandfather_content(content, level=2):
     if content.parent and level:
         return get_grandfather_content(content.parent, level - 1)
-    return content, get_grandfather_offset(content)
-
-
-def get_grandfather_offset(content):
-    if content.parent:
-        return get_grandfather_offset(content.parent) + content.parent_offset
-    return 0
+    return content
 
 
 def _import_docstring_code_content(documenter):
@@ -68,9 +62,7 @@ def _import_docstring_code_content(documenter):
 
         is_doctest = contains_doctest(get_code(content))
         if is_doctest:
-            parent, parent_offset = get_grandfather_content(content)
-            parent = parent[:content._offset + len(content) - parent_offset]
-            code = get_code(parent)
+            code = get_code(get_grandfather_content(content))
         else:
             code = get_code(content, '>>> ')
         return code, content
