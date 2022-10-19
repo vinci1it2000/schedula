@@ -2,6 +2,24 @@ Changelog
 =========
 
 
+v1.3.0 (2022-10-19)
+-------------------
+
+Feat
+~~~~
+- (form): Add new method form to create jsonschema react forms
+  automatically.
+
+- (blue): Add option to limit the depth of sub-dispatch blue.
+
+
+Fix
+~~~
+- (sol): Correct default initialization for sub-dispatchers.
+
+- (setup): Ensure correct size of distribution pkg.
+
+
 v1.2.19 (2022-07-06)
 --------------------
 
