@@ -4,7 +4,8 @@ import validator from "@rjsf/validator-ajv6";
 import React, {useState, useEffect} from 'react';
 import {
     ArrayField,
-    ObjectField
+    ObjectField,
+    isEmpty
 } from "./components/layout";
 import ErrorList from "./components/error"
 import {JSONUpload, JSONExport} from "./components/io";
@@ -61,9 +62,9 @@ function Form({schema, uiSchema = {}, url = '/', name = "form", ...props}) {
         e.preventDefault();
         setSpinner(true)
         postData(url, formData.input).then((data) => {
-            setFormData(Object.assign({input: formData.input}, data))
+            setFormData(formatData(Object.assign({input: formData.input}, data)))
         }).catch(error => {
-            setFormData(Object.assign({input: formData.input}, {error: error.message}))
+            setFormData(formatData(Object.assign({input: formData.input}, {error: error.message})))
         }).finally((data) => {
             setSpinner(false)
         });
@@ -73,7 +74,7 @@ function Form({schema, uiSchema = {}, url = '/', name = "form", ...props}) {
             formData = formatData(formData)
         }
         if (formData.hasOwnProperty('return')) {
-            let hasReturn = !(typeof (formData.return) === 'object' ? Object.keys(formData.return).length === 0 : undefined === formData.return);
+            let hasReturn = !isEmpty(formData.return);
             if (hasReturn && formData.hash !== formatData(formData).hash) {
                 delete formData.return;
                 delete formData.hash;
@@ -138,7 +139,6 @@ function Form({schema, uiSchema = {}, url = '/', name = "form", ...props}) {
                     <AlertTitle>Error</AlertTitle>
                     {errorMessage}
                 </Alert>
-
             </Modal>
         </div>
     );

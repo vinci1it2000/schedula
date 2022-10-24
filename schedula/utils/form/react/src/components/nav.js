@@ -68,11 +68,13 @@ export default function _nav(props) {
     const handleChange = (event, newValue) => {
         setValue(newValue);
     };
+
     return (
         <React.Fragment>
             <AppBar color="inherit" {...props}>
                 <Toolbar>
-                    <Tabs key={0}
+                    <Box key={0}>{props['children-left']}</Box>
+                    <Tabs key={1}
                           value={value}
                           onChange={handleChange}
                           sx={{flexGrow: 1}}
@@ -80,10 +82,10 @@ export default function _nav(props) {
                     >
                         {props.children.map((element, index) => (
                             <Tab key={index}
-                                 label={element.props.schema.title || `tab ${index}`} {...a11yProps(index)} />
+                                 label={(element.props.schema || {}).title || ''} {...((props['tabs-props'] || {})[index] || {})}{...a11yProps(index)} />
                         ))}
                     </Tabs>
-                    <Box key={1}>{props['children-right']}</Box>
+                    <Box key={2}>{props['children-right']}</Box>
                 </Toolbar>
             </AppBar>
             <Toolbar id="back-to-top-anchor"/>

@@ -191,7 +191,6 @@ export default function _datagrid(props) {
     };
 
 
-    columns = [...columns]
     if (!columns) {
         const fields = new Set()
         Object.keys(context.props.schema.items.properties).forEach(k => {
@@ -204,6 +203,8 @@ export default function _datagrid(props) {
         })
         fields.delete('id')
         columns = Array.from(fields).sort().map(k => ({field: k}))
+    } else {
+        columns = [...columns]
     }
     columns.forEach(d => {
         d.renderEditCell = (params) => {

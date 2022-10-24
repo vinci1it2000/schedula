@@ -9,6 +9,8 @@ import DataGrid from "./datagrid";
 import Plot from "./plot";
 import _Accordion from "./accordion";
 import {JSONUpload, JSONExport} from "./io"
+import ResizePanel from "react-resize-panel";
+
 import {
     Accordion,
     AccordionActions,
@@ -320,10 +322,22 @@ var components = {
     Unstable_Grid2,
     Unstable_TrapFocus,
     Zoom,
+    ResizePanel
 };
 
 export function registerComponent(name, component) {
     components[name] = component
+}
+
+export function isEmpty(obj) {
+    if (typeof (obj) === 'object') {
+        if (Object.keys(obj).length === 0) {
+            return true
+        } else if (!Array.isArray(obj)) {
+            return Object.values(obj).every(isEmpty)
+        }
+    }
+    return undefined === obj
 }
 
 function compileFunc(func) {
@@ -333,6 +347,7 @@ function compileFunc(func) {
 }
 
 class Layout extends React.Component {
+    emptyObj = isEmpty
     createElement = (def) => {
         if (def.transformData)
             def = compileFunc(def.transformData)(this, def);
