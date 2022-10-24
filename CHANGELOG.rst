@@ -2,6 +2,21 @@ Changelog
 =========
 
 
+v1.3.2 (2022-10-24)
+-------------------
+
+Feat
+~~~~
+- (drw, web, form): Add option to return a blueprint.
+
+- (form): Update bundle.
+
+
+Fix
+~~~
+- (form): Add extra missing package data.
+
+
 v1.3.1 (2022-10-20)
 -------------------
 
