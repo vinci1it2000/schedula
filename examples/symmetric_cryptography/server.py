@@ -9,7 +9,7 @@ dsp = _model.register().get_sub_dsp((
     'decrypted', 'generate_key', sh.START
 ))
 
-app = dsp.web().site().app()
+app = dsp.web().app()
 
 if __name__ == '__main__':
     app.run()

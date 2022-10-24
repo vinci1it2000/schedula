@@ -1354,16 +1354,6 @@ def _cleanup(files=None, rendered=None):
     log.info('Cleaned up generated files by the server.')
 
 
-def basic_app(root_path, cleanup=None, shutdown=None, mute=True, **kwargs):
-    import flask
-    app = flask.Flask(root_path, root_path=root_path, **kwargs)
-    app.before_request(functools.partial(before_request, mute))
-    app.mute = mute
-    app.cleanup = cleanup or _cleanup
-    app.shutdown = shutdown
-    return app
-
-
 # noinspection HttpUrlsUsage
 _repr_html = '''
 <style> .sh-box {{ width: 100%; height: 500px }} </style>
@@ -1499,6 +1489,7 @@ class SiteMap(collections.OrderedDict):
     site_viz = SiteViz
     short_name = None
     directory = None
+    blueprint_name = None
     _view = None
     options = {
         'digraph', 'node_styles', 'node_data', 'node_function', 'edge_data',
@@ -1644,12 +1635,31 @@ class SiteMap(collections.OrderedDict):
     def get_directory(self, directory):
         return directory or self.directory or tempfile.mkdtemp()
 
-    def app(self, root_path=None, depth=-1, index=True, mute=True, viz_js=False,
-            executor='async', **kw):
+    def basic_app(
+            self, root_path, cleanup=None, shutdown=None, mute=True,
+            blueprint_name=None, **kwargs):
+        import flask
         root_path = osp.abspath(self.get_directory(root_path))
+        if blueprint_name is None:
+            app = flask.Flask(root_path, root_path=root_path, **kwargs)
+            app.before_request(functools.partial(before_request, mute))
+            app.mute = mute
+            app.cleanup = cleanup or _cleanup
+            app.shutdown = shutdown
+        else:
+            app = flask.Blueprint(
+                blueprint_name, root_path, root_path=root_path, **kwargs
+            )
+        return app
+
+    def app(self, root_path=None, depth=-1, index=True, mute=True, viz_js=False,
+            executor='async', blueprint_name=None, **kw):
         generated_files, rendered = [], {}
         cleanup = functools.partial(_cleanup, generated_files, rendered)
-        app = basic_app(root_path, cleanup=cleanup, mute=mute, **kw)
+        app = self.basic_app(
+            root_path, cleanup=cleanup, mute=mute,
+            blueprint_name=blueprint_name, **kw
+        )
         context = self.rules(depth=depth, index=index, viz_js=viz_js)
 
         if context:
@@ -1663,7 +1673,6 @@ class SiteMap(collections.OrderedDict):
         return app
 
     def site(self, root_path=None, depth=-1, index=True, view=False, **kw):
-        root_path = self.get_directory(root_path)
         site = Site(self, root_path=root_path, depth=depth, index=index, **kw)
 
         if view:

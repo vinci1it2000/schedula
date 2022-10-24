@@ -319,8 +319,8 @@ class Base:
 
         sitemap = SiteMap()
         sitemap.short_name = short_name
-        sitemap.add_items(self, workflow=workflow, depth=depth, **options)
         sitemap.directory = directory
+        sitemap.add_items(self, workflow=workflow, depth=depth, **options)
         if view:
             if sites is None:
                 sitemap.render(

@@ -10,14 +10,11 @@
 It provides functions to build a flask app from a dispatcher.
 """
 
-import functools
 import logging
-import tempfile
-import os.path as osp
-from ..drw import SiteMap, SiteFolder, FolderNode, SiteNode, basic_app
+import functools
+from ..drw import SiteMap, SiteFolder, FolderNode, SiteNode
 
 __author__ = 'Vincenzo Arcidiacono <vinci1it2000@gmail.com>'
-
 
 log = logging.getLogger(__name__)
 
@@ -60,10 +57,12 @@ class WebMap(SiteMap):
     def _repr_svg_(self):
         raise NotImplementedError()
 
-    def app(self, root_path=None, depth=-1, mute=False, **kwargs):
+    def app(self, root_path=None, depth=-1, mute=False, blueprint_name=None,
+            **kwargs):
         kwargs.pop('index', None)
-        root_path = self.get_directory(root_path)
-        app = basic_app(root_path, mute=mute, **kwargs)
+        app = self.basic_app(
+            root_path, mute=mute, blueprint_name=blueprint_name, **kwargs
+        )
         context = self.rules(depth=depth, index=False)
         for (node, extra), filepath in context.items():
             func = functools.partial(_func_handler, node.obj)

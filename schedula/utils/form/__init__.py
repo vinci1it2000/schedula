@@ -47,10 +47,11 @@ class FormMap(WebMap):
         except NotFound:
             return send_from_directory(static_dir, filename)
 
-    def app(self, root_path=None, depth=1, mute=False, **kwargs):
-        root_path = self.get_directory(root_path)
+    def app(self, root_path=None, depth=1, mute=False, blueprint_name=None,
+            **kwargs):
         app = super(FormMap, self).app(
-            root_path=root_path, depth=depth, mute=mute, **kwargs
+            root_path=root_path, depth=depth, mute=mute,
+            blueprint_name=blueprint_name, **kwargs
         )
         bp = Blueprint('schedula', __name__, template_folder='templates')
         bp.add_url_rule(
