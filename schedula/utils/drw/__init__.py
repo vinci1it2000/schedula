@@ -116,7 +116,7 @@ def autoplot_callback(res):
 
 
 def jinja2_format(source, context=None, **kw):
-    return Environment(**kw).from_string(source).render(context or {})
+    return Environment(**kw, autoescape=True).from_string(source).render(context or {})
 
 
 def valid_filename(item, filenames, ext=None):
