@@ -4,13 +4,13 @@ import CloseIcon from "@mui/icons-material/Close";
 import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
 import {
-    Snackbar,
+    Box,
     Badge,
     Alert,
     Stack,
-    AlertTitle
+    AlertTitle,
+    Fab
 } from "@mui/material";
-import IconButton from '@mui/material/IconButton';
 
 const ErrorList = ({errors}) => {
     const [open, setOpen] = useState(false);
@@ -18,24 +18,21 @@ const ErrorList = ({errors}) => {
         setOpen(!open)
     };
     return (
-        <Snackbar
-            anchorOrigin={{vertical: 'bottom', horizontal: 'right'}}
-            open={true}
-            onClose={() => {
-            }}
+        <Box
+            sx={{position: 'fixed', top: 84, right: 16, "z-index": 10000}}
             key={'error'}
         >
             <div>{!open ? (
-                    <IconButton onClick={setToggle}>
+                    <Fab size="small" onClick={setToggle}>
                         <Badge color="error"
                                badgeContent={errors.length} max={99}>
                             <ErrorIcon/>
                         </Badge>
-                    </IconButton>) :
+                    </Fab>) :
                 (<Stack
                     direction="row"
                     justifyContent="flex-end"
-                    alignItems="flex-end"
+                    alignItems="flex-start"
                     spacing={0}>
                     <Alert severity="error">
                         <AlertTitle>Errors</AlertTitle>
@@ -47,12 +44,11 @@ const ErrorList = ({errors}) => {
                             )}
                         </List>
                     </Alert>
-                    <IconButton color="inherit" size="small"
-                                onClick={setToggle}>
+                    <Fab size="small" onClick={setToggle}>
                         <CloseIcon/>
-                    </IconButton>
+                    </Fab>
                 </Stack>)}</div>
-        </Snackbar>
+        </Box>
 
     );
 };
