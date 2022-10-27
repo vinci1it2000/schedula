@@ -21,6 +21,7 @@ export default function _stepper(props) {
     const handleStep = (step) => {
         setActiveStep(step);
     };
+    let elements = (props.elements || {});
     return (
         <React.Fragment>
             <Box sx={{
@@ -41,8 +42,8 @@ export default function _stepper(props) {
                     {props.children.map((element, index) => (
                         <Step onClick={handleStep.bind(null, index)}
                               key={index}
-                              style={{cursor: 'pointer'}}>
-                            <StepLabel>{element.props.schema.title}</StepLabel>
+                              style={{cursor: 'pointer'}} {...(elements[index] || {}).props}>
+                            <StepLabel>{(elements[(element.props || {}).index] || {}).name || ((element.props || {}).schema || {}).title || (element.props || {}).name}</StepLabel>
                         </Step>
                     ))}
                 </Stepper>

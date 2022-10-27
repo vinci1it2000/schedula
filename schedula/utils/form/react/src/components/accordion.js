@@ -16,13 +16,13 @@ export default function _accordion(props) {
             {props.children.map((element, index) => (
                 <Accordion key={index} {...(elements[index] || {}).props}>
                     <AccordionSummary
-                        expandIcon={<ExpandMoreIcon/>}
-                        aria-controls="panel1a-content"
-                        id="panel1a-header"
-                    >
+                        sx={{"backgroundColor": "lightgray"}}
+                        expandIcon={
+                            <ExpandMoreIcon/>
+                        } {...(elements[index] || {}).propsSummary}>
                         <Typography>{(elements[index] || {}).name || ((element.props || {}).schema || {}).title || (element.props || {}).name}</Typography>
                     </AccordionSummary>
-                    <AccordionDetails>
+                    <AccordionDetails {...(elements[index] || {}).propsDetails}>
                         {element}
                     </AccordionDetails>
                 </Accordion>
