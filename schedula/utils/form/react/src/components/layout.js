@@ -9,7 +9,6 @@ import DataGrid from "./datagrid";
 import Plot from "./plot";
 import _Accordion from "./accordion";
 import {JSONUpload, JSONExport} from "./io"
-import ResizePanel from "react-resize-panel";
 
 import {
     Accordion,
@@ -321,9 +320,9 @@ var components = {
     Typography,
     Unstable_Grid2,
     Unstable_TrapFocus,
-    Zoom,
-    ResizePanel
+    Zoom
 };
+
 
 export function registerComponent(name, component) {
     components[name] = component
@@ -352,7 +351,7 @@ class Layout extends React.Component {
         if (def.transformData)
             def = compileFunc(def.transformData)(this, def);
         let props = Object.assign({}, def.props || {}),
-            children = [];
+            children = [], type;
 
         if (def.domain && !compileFunc(def.domain)(this, def, props))
             return null;
@@ -373,7 +372,8 @@ class Layout extends React.Component {
         } else if (def.hasOwnProperty('value')) {
             children = [this.props.context.dataForm[def.value]]
         } else if (def.$id) {
-            return this.props.context.render_key(def.$id, props)
+            let element = this.props.context.render_key(def.$id, props);
+            return Object.keys(element.props.schema).length ? element : null
         } else if (props.children) {
             children = props.children.map((c, index) => {
                     c.props = c.props || {}
@@ -386,9 +386,14 @@ class Layout extends React.Component {
         }
         props.context = this.props.context
         children = children.filter(v => v !== null)
-        return React.createElement(
-            components[def.component] || def.tag || "div", props, children
-        )
+        type = components[def.component] || def.tag || "div"
+        if (children.length) {
+            return React.createElement(type, props, children)
+        } else if (def.render_empty) {
+            return React.createElement(type, props)
+        } else {
+            return null
+        }
     };
 
     render() {
@@ -421,7 +426,7 @@ export class ArrayField extends fields.ArrayField {
         }
     }
 
-    render_children(grid = false) {
+    render_children() {
         const {
             schema,
             uiSchema = {},
@@ -439,11 +444,8 @@ export class ArrayField extends fields.ArrayField {
         const {keyedFormData} = this.state;
         const {schemaUtils} = registry;
         const _schemaItems = isObject(schema.items) ? (schema.items) : ({});
-        if (grid) {
-
-        }
         const formData = keyedToPlainFormData(this.state.keyedFormData);
-        return keyedFormData.map((keyedItem, index) => {
+        return keyedFormData.length ? keyedFormData.map((keyedItem, index) => {
             const {key, item} = keyedItem;
             // While we are actually dealing with a single item of type T, the types require a T[], so cast
             const itemCast = item;
@@ -473,7 +475,7 @@ export class ArrayField extends fields.ArrayField {
                 onFocus,
                 rawErrors,
             }).children;
-        })
+        }) : [undefined]
     }
 }
 
