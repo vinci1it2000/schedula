@@ -9,7 +9,7 @@
 """
 It provides functions to build a form flask app from a dispatcher.
 """
-import json
+import glob
 import os.path as osp
 from ..web import WebMap
 from flask import render_template, Blueprint
@@ -18,9 +18,9 @@ from jinja2 import TemplateNotFound
 __author__ = 'Vincenzo Arcidiacono <vinci1it2000@gmail.com>'
 
 static_dir = osp.join(osp.dirname(__file__), 'static')
-
-with open(osp.join(static_dir, 'asset-manifest.json')) as f:
-    main_js = '/'.join(json.load(f)['files']['main.js'].split('/')[2:])
+main_js = osp.relpath(glob.glob(osp.join(
+    static_dir, 'schedula', 'js', 'main.*.js'
+))[0], osp.join(static_dir, 'schedula')).replace('\\', '/')
 
 
 class FormMap(WebMap):
@@ -53,12 +53,12 @@ class FormMap(WebMap):
             root_path=root_path, depth=depth, mute=mute,
             blueprint_name=blueprint_name, **kwargs
         )
-        bp = Blueprint('schedula', __name__, template_folder='templates')
-        bp.add_url_rule(
-            '/', 'render-form', self.render_form, methods=['GET']
+        bp = Blueprint(
+            'schedula', __name__, template_folder='templates'
         )
+        bp.add_url_rule('/', None, self.render_form, methods=['GET'])
         bp.add_url_rule(
-            '/form/<form>', 'render-form', self.render_form, methods=['GET']
+            '/<form>', 'render-form', self.render_form, methods=['GET']
         )
         bp.add_url_rule(
             '/static/schedula/<path:filename>', 'static', self.send_static_file,

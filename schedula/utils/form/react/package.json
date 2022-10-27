@@ -10,6 +10,7 @@
     "@rjsf/mui": "^5.0.0-beta.10",
     "@rjsf/utils": "^5.0.0-beta.10",
     "@rjsf/validator-ajv6": "^5.0.0-beta.10",
+    "mui-markdown": "^0.5.5",
     "nanoid": "^4.0.0",
     "notistack": "^2.0.8",
     "object-hash": "^3.0.0",
@@ -27,11 +28,12 @@
     "@babel/preset-env": "^7.12.7",
     "browserify": "^16.5.2",
     "react-scripts": "5.0.1",
+    "rewire": "^6.0.0",
     "uglify-js": "^3.10.4"
   },
   "scripts": {
     "start": "react-scripts start",
-    "build": "react-scripts build",
+    "build": "node ./scripts/custom-build.js",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },

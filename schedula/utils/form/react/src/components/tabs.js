@@ -14,7 +14,7 @@ function TabPanel(props) {
             hidden={value !== index}
             id={`tabpanel-${index}`}
             aria-labelledby={`tab-${index}`}
-            style={{display:"contents"}}
+            style={{display: "contents"}}
             {...other}
         >
             {value === index &&
@@ -43,7 +43,8 @@ export default function _tabs(props) {
             sx={{borderRight: 1, borderColor: 'divider'}}{...props}
         >
             {props.children.map((element, index) => (
-                <Tab key={index} label={element.props.schema.title || `tab ${index}`} {...a11yProps(index)} />
+                <Tab key={index}
+                     label={element.props.schema.title || `tab ${index}`} {...a11yProps(index)} />
             ))}
         </Tabs>
         {props.children.map((element, index) => (

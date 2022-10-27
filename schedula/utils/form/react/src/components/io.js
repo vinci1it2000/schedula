@@ -35,12 +35,12 @@ export class JSONUpload extends React.Component {
             }
         }
         return (
-                <Button component={'label'} color="primary"
-                        startIcon={<FileUploadOutlinedIcon/>}>
-                    Import
-                    <input accept={['json']} type={'file'} hidden
-                           onChange={upload}></input>
-                </Button>
+            <Button component={'label'} color="primary"
+                    startIcon={<FileUploadOutlinedIcon/>}>
+                Import
+                <input accept={['json']} type={'file'} hidden
+                       onChange={upload}></input>
+            </Button>
 
         )
     }

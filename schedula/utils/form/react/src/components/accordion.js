@@ -2,7 +2,8 @@ import {
     Accordion,
     AccordionSummary,
     Typography,
-    AccordionDetails, Stack
+    AccordionDetails,
+    Stack
 } from '@mui/material';
 
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -28,6 +29,5 @@ export default function _accordion(props) {
                 </Accordion>
             ))}
         </Stack>
-
     );
 }

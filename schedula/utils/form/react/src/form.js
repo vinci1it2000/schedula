@@ -1,6 +1,6 @@
 import {Form as BaseForm} from "@rjsf/mui";
 import ReactDOM from 'react-dom/client'
-import validator from "@rjsf/validator-ajv6";
+import {customizeValidator} from "@rjsf/validator-ajv6";
 import React, {useState, useEffect} from 'react';
 import {
     ArrayField,
@@ -17,8 +17,48 @@ import {
     Modal
 } from '@mui/material';
 import hash from 'object-hash'
+const validator = customizeValidator({ajvOptionsOverrides: {$data: true}})
 
-
+validator.ajv.addKeyword('date-greater', {
+    $data: true,
+    validate: function dateGreater(threshold, date, parentSchema) {
+        threshold = new Date(threshold)
+        threshold.setDate(threshold.getDate() + (parentSchema.days || 0))
+        date = new Date(date)
+        if (threshold < date) {
+            return true
+        } else {
+            dateGreater.errors = [
+                {
+                    keyword: 'date-greater',
+                    message: `'${date.toISOString()}' should be greater than ${threshold.toISOString()}.`,
+                    params: {keyword: 'date-greater'}
+                }
+            ];
+            return false
+        }
+    }
+});
+validator.ajv.addKeyword('date-lower', {
+    $data: true,
+    validate: function dateLower(threshold, date, parentSchema) {
+        threshold = new Date(threshold)
+        threshold.setDate(threshold.getDate() + (parentSchema.days || 0))
+        date = new Date(date)
+        if (threshold > date) {
+            return true
+        } else {
+            dateLower.errors = [
+                {
+                    keyword: 'date-lower',
+                    message: `'${date.toISOString()}' should be lower than ${threshold.toISOString()}.`,
+                    params: {keyword: 'date-lower'}
+                }
+            ];
+            return false
+        }
+    }
+});
 const templates = {ErrorListTemplate: ErrorList};
 const fields = {
     ArrayField,
@@ -92,7 +132,7 @@ function Form({schema, uiSchema = {}, url = '/', name = "form", ...props}) {
         setTimeout(() => setSpinner(false), 1000)
     }, []);
     return (
-        <div id={name} className="App">
+        <div id={name}>
             <Backdrop
                 sx={{
                     color: '#fff',

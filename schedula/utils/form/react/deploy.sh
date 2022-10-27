@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 
 cd "$(dirname "$0")"
-npm i
+
 rm -r ../static/schedula/js
-rm ../static/asset-manifest.json
 mkdir "../static/schedula/js"
 
+echo "Installing dependences..."
+npm i
 echo "Bundle index..."
 npm run build
 echo "Moving files $f..."
-cp -r ./build/static/js ../static/schedula
-cp ./build/asset-manifest.json ../static/asset-manifest.json
-git add ../static/schedula/js --force
-git add ../static/asset-manifest.json --force
+cp -r ./build/static/schedula/js ../static/schedula
+git add ../static/schedula/js/*.js --force
+git add ../static/schedula/js/*.LICENSE.txt --force
 echo "Done $f!"
