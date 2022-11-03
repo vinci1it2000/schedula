@@ -144,7 +144,7 @@ def _plot(lines, dsp, dot_view_opt, documenter, dsp_opt):
     executor = dot_view_opt.get('executor', 'async')
     if osp.isdir(dspdir):
         fpath = glob.glob(osp.join(dspdir, '*.gv'))[0]
-    else:
+    elif hasattr(dsp, 'plot'):
         smap = dsp.plot(**dot_view_opt)
         folder = next(iter(smap))
         fpath = osp.join(dspdir, '%s.gv' % folder.sitemap.foldername)
@@ -153,6 +153,8 @@ def _plot(lines, dsp, dot_view_opt, documenter, dsp_opt):
             directory=dspdir, index=index, viz_js=viz_js, executor=executor
         )
         dot.save(fpath, directory='')
+    else:
+        return
 
     dsource = osp.dirname(osp.join(env.srcdir, env.docname))
     p = osp.relpath(fpath, dsource).replace('\\', '/')

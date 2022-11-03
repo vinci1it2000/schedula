@@ -1055,7 +1055,8 @@ class Dispatcher(Base):
 
         A dispatcher with a data node named `a`::
 
-            >>> dsp = Dispatcher(name='Dispatcher')
+            >>> import schedula as sh
+            >>> dsp = sh.Dispatcher(name='Dispatcher')
             ...
             >>> dsp.add_data(data_id='a')
             'a'
@@ -1068,7 +1069,7 @@ class Dispatcher(Base):
 
         Remove the default value of `a` node::
 
-            >>> dsp.set_default_value('a', value=EMPTY)
+            >>> dsp.set_default_value('a', value=sh.EMPTY)
             >>> dsp.default_values
             {}
         """
