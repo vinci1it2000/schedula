@@ -2,6 +2,27 @@ Changelog
 =========
 
 
+v1.3.3 (2022-11-03)
+-------------------
+
+Feat
+~~~~
+- (form): Add markdown.
+
+- (form): Avoid rendering elements with empty children.
+
+- (form): Add more option to accordion and stepper.
+
+- (form): Change position of error messages.
+
+
+Fix
+~~~
+- (rtd): Correct doc rendering.
+
+- (form): Correct plotting behaviour.
+
+
 v1.3.2 (2022-10-24)
 -------------------
 
