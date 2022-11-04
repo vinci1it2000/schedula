@@ -1,6 +1,5 @@
 import React from 'react';
-
-const MuiMarkdown = React.lazy(() => import('mui-markdown'));
+import MuiMarkdown from 'mui-markdown'
 
 function format2(string, args = [], kwargs = {}) {
     let i = -1;

@@ -155,8 +155,8 @@ if __name__ == '__main__':
             ],
             'schedula.utils.form': [
                 'templates/schedula/*', 'static/schedula/js/*.js',
-                'static/schedula/forms/*',
-                'static/asset-manifest.json'
+                'static/schedula/css/*.css',
+                'static/schedula/forms/*'
             ]
         },
     )

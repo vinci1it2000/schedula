@@ -30,9 +30,13 @@ from flask import (
 __author__ = 'Vincenzo Arcidiacono <vinci1it2000@gmail.com>'
 
 static_dir = osp.join(osp.dirname(__file__), 'static')
-main_js = osp.relpath(glob.glob(osp.join(
-    static_dir, 'schedula', 'js', 'main.*.js'
-))[0], osp.join(static_dir, 'schedula')).replace('\\', '/')
+
+static_context = {
+    f'main_{k}': osp.relpath(glob.glob(osp.join(
+        static_dir, 'schedula', k, f'main.*.{k}'
+    ))[0], osp.join(static_dir, 'schedula')).replace('\\', '/')
+    for k in ('js', 'css')
+}
 
 
 class FormMap(WebMap):
@@ -79,11 +83,12 @@ class FormMap(WebMap):
     def render_form(self, form='index'):
         template = f'schedula/{form}.html'
         context = {
-            'name': form, 'form_id': form, 'main_js': main_js,
+            'name': form, 'form_id': form,
             'csrf_token': self.generate_csrf,
             'get_form_context': self.get_form_context,
             'get_form_data': self.get_form_data,
         }
+        context.update(static_context)
         try:
             return render_template(template, **context)
         except TemplateNotFound:

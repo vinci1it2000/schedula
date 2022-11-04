@@ -306,10 +306,7 @@ export default function _nav(props) {
                     <DrawerHeader/>
                     <div id="back-to-top-anchor"/>
                     {props.children.map((element, index) => (
-                        Math.abs(value) === index ?
-                            <div key={index}>
-                                {element}
-                            </div> : null
+                        Math.abs(value) === index ? element : null
                     ))}
                 </Box>
                 <ScrollTop>

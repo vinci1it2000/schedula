@@ -143,6 +143,9 @@ import {
     Zoom
 } from '@mui/material';
 import {
+    ReflexContainer, ReflexSplitter, ReflexElement, ReflexHandle
+} from 'react-reflex'
+import {
     getUiOptions,
     orderProperties,
     ADDITIONAL_PROPERTY_FLAG,
@@ -151,8 +154,8 @@ import {
 import get from "lodash/get";
 import has from "lodash/has";
 import isObject from "lodash/isObject";
-
 var components = {
+    Suspense: React.Suspense,
     stepper: _Stepper,
     upload: JSONUpload,
     export: JSONExport,
@@ -293,7 +296,11 @@ var components = {
     Typography,
     Unstable_Grid2,
     Unstable_TrapFocus,
-    Zoom
+    Zoom,
+    ReflexContainer,
+    ReflexSplitter,
+    ReflexElement,
+    ReflexHandle
 };
 
 
