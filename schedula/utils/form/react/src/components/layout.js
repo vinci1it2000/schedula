@@ -9,7 +9,6 @@ import DataGrid from "./datagrid";
 import Plot from "./plot";
 import _Accordion from "./accordion";
 import {JSONUpload, JSONExport} from "./io"
-
 import {
     Accordion,
     AccordionActions,

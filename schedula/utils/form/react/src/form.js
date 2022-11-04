@@ -17,6 +17,7 @@ import {
     Modal
 } from '@mui/material';
 import hash from 'object-hash'
+
 const validator = customizeValidator({ajvOptionsOverrides: {$data: true}})
 
 validator.ajv.addKeyword('date-greater', {
@@ -68,7 +69,7 @@ const fields = {
 };
 
 
-async function postData(url = '', data = {}) {
+async function postData(url = '', data = {}, csrf_token) {
     const response = await fetch(url, {
         method: 'POST',
         crossDomain: true,
@@ -77,20 +78,37 @@ async function postData(url = '', data = {}) {
         //credentials: 'same-origin', // include, *same-origin, omit
         headers: {
             'Content-Type': 'application/json',
+            'X-CSRF-Token': csrf_token
             //'Access-Control-Allow-Origin': '*'
             // 'Content-Type': 'application/x-www-form-urlencoded',
         },
         redirect: 'follow', // manual, *follow, error
-        referrerPolicy: 'no-referrer', // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
+        referrerPolicy: 'unsafe-url', // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
         body: JSON.stringify(data) // body data type must match "Content-Type" header
+    }).then(response => {
+        if (response.redirected) {
+            window.location.href = response.url;
+        }
+        return response
     });
     return response.json(); // parses JSON response into native JavaScript objects
 }
 
 
-function Form({schema, uiSchema = {}, url = '/', name = "form", ...props}) {
+function Form(
+    {
+        schema,
+        csrf_token,
+        uiSchema = {},
+        url = '/',
+        name = "form",
+        formContext = {},
+        ...props
+    }
+) {
     const [spinner, setSpinner] = useState(true);
-    const [formData, setFormData] = useState({});
+    const [formData, setFormData] = useState(props.formData || {});
+    delete props.formData
     const [errorMessage, setErrorMessage] = useState("");
     const formatData = (data) => {
         data = Object.assign({}, data);
@@ -101,7 +119,7 @@ function Form({schema, uiSchema = {}, url = '/', name = "form", ...props}) {
     const onSubmit = ({formData}, e) => {
         e.preventDefault();
         setSpinner(true)
-        postData(url, formData.input).then((data) => {
+        postData(url, formData.input, csrf_token).then((data) => {
             setFormData(formatData(Object.assign({input: formData.input}, data)))
         }).catch(error => {
             setFormData(formatData(Object.assign({input: formData.input}, {error: error.message})))
@@ -127,7 +145,10 @@ function Form({schema, uiSchema = {}, url = '/', name = "form", ...props}) {
             setErrorMessage(error)
         }
         setFormData(formData)
+        window.localStorage.setItem('schedula-' + name + '-formData', JSON.stringify(formData));
     }
+
+    window.localStorage.setItem('schedula-' + name + '-formData', JSON.stringify(formData));
     useEffect(() => {
         setTimeout(() => setSpinner(false), 1000)
     }, []);
@@ -155,6 +176,7 @@ function Form({schema, uiSchema = {}, url = '/', name = "form", ...props}) {
                       liveValidate={true}
                       onChange={onChange}
                       onSubmit={onSubmit}
+                      formContext={formContext}
                       {...props}
             />
             <Modal
@@ -184,13 +206,15 @@ function Form({schema, uiSchema = {}, url = '/', name = "form", ...props}) {
     );
 }
 
-async function renderForm({
-                              element,
-                              schema,
-                              uiSchema,
-                              url = '/',
-                              name = "form", ...props
-                          }) {
+async function renderForm(
+    {
+        element,
+        schema,
+        uiSchema,
+        url = '/',
+        name = "form", ...props
+    }
+) {
     const root = ReactDOM.createRoot(element);
     root.render(
         <React.StrictMode>

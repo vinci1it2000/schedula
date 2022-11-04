@@ -3,7 +3,7 @@ import {Button} from "@mui/material";
 import FileUploadOutlinedIcon from "@mui/icons-material/FileUploadOutlined";
 import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
 
-const exportJson = ({data, fileName}) => {
+export function exportJson({data, fileName}) {
     // Create a blob with the data we want to download as a file
     const blob = new Blob([JSON.stringify(data)], {type: 'text/json'})
     // Create an anchor element and dispatch a click event on it

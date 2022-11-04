@@ -110,7 +110,7 @@ class Base:
         return webmap
 
     def form(self, depth=1, node_data=NONE, node_function=NONE, directory=None,
-             sites=None, run=True):
+             sites=None, run=True, get_context=NONE, get_data=NONE):
         """
         Creates a dispatcher Form Flask app.
 
@@ -139,6 +139,14 @@ class Base:
             Run the backend server?
         :type run: bool, optional
 
+        :param get_context:
+            Function to pass extra data as form context.
+        :type get_context: function, optional
+
+        :param get_data:
+            Function to initialize the formdata.
+        :type get_data: function, optional
+
         :return:
             A FormMap.
         :rtype: ~schedula.utils.form.FormMap
@@ -154,6 +162,10 @@ class Base:
         formmap = FormMap()
         formmap.add_items(obj, workflow=False, depth=depth, **options)
         formmap.directory = directory
+        if get_context is not NONE:
+            formmap.get_form_context = get_context
+        if get_data is not NONE:
+            formmap.get_form_data = get_data
         if sites is not None:
             sites.add(formmap.site(view=run))
 
