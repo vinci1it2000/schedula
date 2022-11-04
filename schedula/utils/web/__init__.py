@@ -12,6 +12,7 @@ It provides functions to build a flask app from a dispatcher.
 
 import logging
 import functools
+from ..exc import WebResponse
 from ..drw import SiteMap, SiteFolder, FolderNode, SiteNode
 
 __author__ = 'Vincenzo Arcidiacono <vinci1it2000@gmail.com>'
@@ -81,13 +82,18 @@ class WebMap(SiteMap):
 
 def _func_handler(func):
     from ..dsp import selector
-    from flask import request, jsonify
+    from flask import request, jsonify, Response
     data = {}
     try:
         inp = data['input'] = request.get_json(force=True)
         data['return'] = func(*inp.get('args', ()), **inp.get('kwargs', {}))
+        if isinstance(data['return'], Response):
+            return data['return']
+    except WebResponse as ex:
+        return ex.response
     except Exception as ex:
         data['error'] = str(ex)
+
     keys = request.args.get('data', 'return,error').split(',')
     keys = [v.strip(' ') for v in keys]
     return jsonify(selector(keys, data, allow_miss=True))

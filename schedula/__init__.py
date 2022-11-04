@@ -72,6 +72,7 @@ _all = {
     'DispatcherError': '.utils.exc',
     'DispatcherAbort': '.utils.exc',
     'ExecutorShutdown': '.utils.exc',
+    'WebResponse': '.utils.exc',
     'SkipNode': '.utils.exc',
     'counter': '.utils.gen',
     'Token': '.utils.gen',
@@ -123,7 +124,8 @@ if sys.version_info[:2] < (3, 7) or os.environ.get('IMPORT_ALL') == 'True':
         summation
     )
     from .utils.exc import (
-        DispatcherAbort, DispatcherError, ExecutorShutdown, SkipNode
+        DispatcherAbort, DispatcherError, ExecutorShutdown, SkipNode,
+        WebResponse
     )
     from .utils.gen import Token, counter
     from .utils.graph import DiGraph

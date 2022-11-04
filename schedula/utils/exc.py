@@ -44,3 +44,8 @@ class SkipNode(BaseException):
 
 class ExecutorShutdown(BaseException):
     pass
+
+
+class WebResponse(BaseException):
+    def __init__(self, response):
+        self.response = response
