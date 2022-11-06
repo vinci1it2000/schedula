@@ -1,5 +1,16 @@
 import React from 'react';
 import MuiMarkdown from 'mui-markdown'
+import nunjucks from 'nunjucks';
+
+var env = new nunjucks.Environment();
+env.addFilter('decimal', function (val, i, lang) {
+    let n = i ? Math.pow(10, i) : 1;
+    return (Math.round((val + Number.EPSILON) * n) / n).toLocaleString(lang || 'it');
+});
+env.addFilter('locale', function (val, lang) {
+    return (val).toLocaleString(lang || 'it');
+});
+
 
 function format2(string, args = [], kwargs = {}) {
     let i = -1;
@@ -12,8 +23,9 @@ function format2(string, args = [], kwargs = {}) {
         return typeof args[i] != 'undefined' ? args[i] : match;
     });
 };
+
 export default function _markdown(props) {
-    let args = [], kwargs = {}, data = props.context.props.formData || {};
+    let args = [], kwargs = {}, data = props.context.props.formData || {}, md;
     if (typeof data !== 'object') {
         args = [data]
     } else if (Array.isArray(data)) {
@@ -21,8 +33,11 @@ export default function _markdown(props) {
     } else {
         kwargs = data
     }
-
-    let md = format2(props.children.join('\n'), args, kwargs);
+    md = format2(env.renderString(props.children.join('\n'), {
+        data,
+        props,
+        window
+    }), args, kwargs);
     return (<MuiMarkdown>
         {md}
     </MuiMarkdown>);
