@@ -2,6 +2,22 @@ Changelog
 =========
 
 
+v1.3.4 (2022-11-07)
+-------------------
+
+Feat
+~~~~
+- (form): Add fullscreen support.
+
+- (form): Add nunjucks support.
+
+- (form): Add react-reflex component.
+
+- (web): Add option to rise a WebResponse from a dispatch.
+
+- (form): Add CSRF protection.
+
+
 v1.3.3 (2022-11-03)
 -------------------
 
