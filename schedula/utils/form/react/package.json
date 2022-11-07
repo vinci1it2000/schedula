@@ -21,6 +21,7 @@
     "prop-types": "^15.8.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-full-screen": "^1.1.1",
     "react-markdown": "^8.0.3",
     "react-plotly.js": "^2.6.0",
     "react-reflex": "^4.0.9"

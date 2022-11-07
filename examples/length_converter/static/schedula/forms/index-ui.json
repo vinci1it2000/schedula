@@ -1,114 +1,244 @@
 {
   "ui:layout": {
     "component": "appbar",
-    "transformData": "function(parent, def){let x = parent.props.context.props.formData.return, isEmpty = !!(typeof(x) === 'object'? Object.keys(x).length === 0 : undefined === x); def.props.current_tab=isEmpty?0:1; return def}",
+    "transformData": "function(parent, def){let x = parent.props.context.props.formData.return;def.props['props-run'].disabled=!parent.emptyObj(x); return def}",
     "props": {
+      "props-run": {
+        "disabled": false
+      },
+      "props-main": {
+        "sx": {
+          "height": "100vh",
+          "flexGrow": 1,
+          "py": 3,
+          "pl": 3,
+          "pr": "67px",
+          "display": "flex",
+          "flexDirection": "column"
+        }
+      },
+      "tabs-props": [
+      ],
+      "disable-tabs": true,
       "children": [
         {
-          "$id": "input",
+          "component": "ReflexContainer",
           "props": {
-            "uiSchema": {
-              "ui:layout": {
-                "component": "Paper",
+            "orientation": "horizontal",
+            "children": [
+              {
+                "component": "ReflexElement",
+                "transformData": "function(parent, def){def.props.flex = parent.emptyObj(parent.props.context.props.formData.return)?1:0.001; return def}",
                 "props": {
-                  "variant": "outlined",
-                  "sx": {
-                    "p": {
-                      "xs": 2
-                    }
+                  "minSize": 50,
+                  "flex": 1,
+                  "style": {
+                    "display": "flex",
+                    "flex-direction": "column"
                   },
                   "children": [
                     {
-                      "$id": "kwargs",
+                      "component": "AccordionSummary",
                       "props": {
-                        "uiSchema": {
-                          "ui:layout": {
-                            "$id": "inputs"
-                          }
-                        }
+                        "sx": {
+                          "textAlign": "center",
+                          "backgroundColor": "lightgray"
+                        },
+                        "style": {
+                          "cursor": "unset"
+                        },
+                        "content": "INPUT"
                       }
-                    }
-                  ]
-                }
-              }
-            }
-          }
-        },
-        {
-          "$id": "return",
-          "domain": "function(parent){let x = parent.props.context.props.formData.return, isEmpty = !!(typeof(x) === 'object'? Object.keys(x).length === 0 : undefined === x); return !isEmpty}",
-          "props": {
-            "uiSchema": {
-              "ui:readonly": true,
-              "ui:disabled": true,
-              "ui:layout": {
-                "component": "Paper",
-                "props": {
-                  "variant": "outlined",
-                  "sx": {
-                    "p": {
-                      "xs": 2
-                    }
-                  },
-                  "children": [
+                    },
                     {
-                      "component": "Grid",
+                      "component": "Paper",
                       "props": {
-                        "container": true,
-                        "spacing": 2,
+                        "sx": {
+                          "overflow": "auto",
+                          "p": 1,
+                          "m": 2
+                        },
                         "children": [
                           {
-                            "component": "Grid",
+                            "$id": "input",
+                            "component": "Box",
                             "props": {
-                              "item": true,
-                              "xs": 6,
-                              "children": [
-                                {
-                                  "$id": "value_in"
-                                }
-                              ]
-                            }
-                          },
-                          {
-                            "component": "Grid",
-                            "props": {
-                              "item": true,
-                              "xs": 6,
-                              "children": [
-                                {
-                                  "$id": "unit_in"
-                                }
-                              ]
-                            }
-                          },
-                          {
-                            "component": "Grid",
-                            "props": {
-                              "item": true,
-                              "xs": 12,
-                              "children": [
-                                {
-                                  "$id": "results",
+                              "uiSchema": {
+                                "ui:layout": {
+                                  "$id": "kwargs",
                                   "props": {
                                     "uiSchema": {
                                       "ui:layout": {
-                                        "component": "datagrid",
+                                        "$id": "inputs",
                                         "props": {
-                                          "density": "compact",
-                                          "columns": [
-                                            {
-                                              "field": "value_out"
-                                            },
-                                            {
-                                              "field": "unit_out"
+                                          "uiSchema": {
+                                            "ui:layout": {
+                                              "component": "Grid",
+                                              "props": {
+                                                "container": true,
+                                                "spacing": 2,
+                                                "children": [
+                                                  {
+                                                    "component": "Grid",
+                                                    "props": {
+                                                      "item": true,
+                                                      "xs": 6,
+                                                      "children": [
+                                                        {
+                                                          "$id": "value_in"
+                                                        }
+                                                      ]
+                                                    }
+                                                  },
+                                                  {
+                                                    "component": "Grid",
+                                                    "props": {
+                                                      "item": true,
+                                                      "xs": 6,
+                                                      "children": [
+                                                        {
+                                                          "$id": "unit_in"
+                                                        }
+                                                      ]
+                                                    }
+                                                  },
+                                                  {
+                                                    "component": "Grid",
+                                                    "props": {
+                                                      "item": true,
+                                                      "xs": 12,
+                                                      "children": [
+                                                        {
+                                                          "$id": "units_out"
+                                                        }
+                                                      ]
+                                                    }
+                                                  }
+                                                ]
+                                              }
                                             }
-                                          ]
+                                          }
                                         }
                                       }
                                     }
                                   }
                                 }
-                              ]
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "component": "ReflexSplitter",
+                "domain": "function(parent){let x = parent.props.context.props.formData.return; return !parent.emptyObj(x)}",
+                "props": {
+                  "style": {
+                    "height": "unset"
+                  },
+                  "children": [
+                    {
+                      "component": "AccordionSummary",
+                      "props": {
+                        "sx": {
+                          "backgroundColor": "lightgray"
+                        },
+                        "style": {
+                          "cursor": "unset"
+                        },
+                        "content": "OUTPUT"
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "component": "ReflexElement",
+                "domain": "function(parent){let x = parent.props.context.props.formData.return; return !parent.emptyObj(x)}",
+                "props": {
+                  "children": [
+                    {
+                      "component": "Paper",
+                      "props": {
+                        "sx": {
+                          "p": 1,
+                          "m": 2
+                        },
+                        "children": [
+                          {
+                            "$id": "return",
+                            "component": "Box",
+                            "domain": "function(parent){let x = parent.props.context.props.formData.return; return !parent.emptyObj(x)}",
+                            "props": {
+                              "uiSchema": {
+                                "ui:readonly": true,
+                                "ui:layout": {
+                                  "component": "Grid",
+                                  "props": {
+                                    "container": true,
+                                    "spacing": 2,
+                                    "children": [
+                                      {
+                                        "component": "Grid",
+                                        "props": {
+                                          "item": true,
+                                          "xs": 6,
+                                          "children": [
+                                            {
+                                              "$id": "value_in"
+                                            }
+                                          ]
+                                        }
+                                      },
+                                      {
+                                        "component": "Grid",
+                                        "props": {
+                                          "item": true,
+                                          "xs": 6,
+                                          "children": [
+                                            {
+                                              "$id": "unit_in"
+                                            }
+                                          ]
+                                        }
+                                      },
+                                      {
+                                        "component": "Grid",
+                                        "props": {
+                                          "item": true,
+                                          "xs": 12,
+                                          "children": [
+                                            {
+                                              "$id": "results",
+                                              "props": {
+                                                "uiSchema": {
+                                                  "ui:layout": {
+                                                    "component": "datagrid",
+                                                    "props": {
+                                                      "density": "compact",
+                                                      "columns": [
+                                                        {
+                                                          "field": "value_out"
+                                                        },
+                                                        {
+                                                          "field": "unit_out"
+                                                        }
+                                                      ]
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          ]
+                                        }
+                                      }
+                                    ]
+                                  }
+                                }
+                              }
                             }
                           }
                         ]
@@ -117,24 +247,20 @@
                   ]
                 }
               }
-            }
+            ]
           }
         }
       ],
       "children-right": [
         {
-          "component": "export"
-        },
-        {
-          "component": "upload"
-        },
-        {
-          "component": "submit",
-          "transformData": "function(parent, def){let x = parent.props.context.props.formData.return, isEmpty = !!(typeof(x) === 'object'? Object.keys(x).length === 0 : undefined === x);def.props.disabled=!isEmpty; return def}",
+          "component": "Stack",
           "props": {
-            "disabled": false,
-            "content": "SUBMIT",
-            "variant": "outlined"
+            "direction": "row",
+            "spacing": 2,
+            "justifyContent": "flex-end",
+            "alignItems": "center",
+            "children": [
+            ]
           }
         }
       ]

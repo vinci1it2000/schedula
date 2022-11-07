@@ -26,6 +26,9 @@ import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined';
 import FileUploadOutlinedIcon from '@mui/icons-material/FileUploadOutlined';
 import PlayCircleIcon from '@mui/icons-material/PlayCircle';
 import {exportJson} from './io';
+import {FullScreen, useFullScreenHandle} from "react-full-screen";
+import FullscreenIcon from '@mui/icons-material/Fullscreen';
+import FullscreenExitIcon from '@mui/icons-material/FullscreenExit';
 
 function ScrollTop(props) {
     const {children, window} = props;
@@ -173,8 +176,10 @@ export default function _nav(props) {
         }
     }
     let AppBar = props['disable-drawer'] ? MuiAppBar : DrawerAppBar;
+    const handle = useFullScreenHandle();
+
     return (
-        <React.Fragment>
+        <FullScreen handle={handle}>
             <Box sx={{display: 'flex'}}>
                 <CssBaseline/>
                 <AppBar color="inherit" position="fixed" open={open}>
@@ -186,24 +191,31 @@ export default function _nav(props) {
                                 onClick={handleDrawerOpen}
                                 edge="start"
                                 sx={{
-                                    marginRight: 5,
+
                                     ...(open && {display: 'none'}),
                                 }}
                             >
                                 <MenuIcon/>
                             </IconButton>}
-                        <Box key={0}>{props['children-left']}</Box>
-                        <Tabs key={1}
-                              value={value}
-                              onChange={handleChange}
-                              sx={{flexGrow: 1}}
-                              {...props}
-                        >
-                            {props.children.map((element, index) => (
-                                <Tab key={index}
-                                     label={(element.props.schema || {}).title || ''} {...((props['tabs-props'] || {})[index] || {})}{...a11yProps(index)} />
-                            ))}
-                        </Tabs>
+                        {props['disable-fullscreen'] ? null :
+                            <IconButton onClick={handle.enter}>{
+                                handle.active ?
+                                    <FullscreenExitIcon/> : <FullscreenIcon/>
+                            }</IconButton>}
+                        <Box key={0}
+                             sx={{marginLeft: 5}}>{props['children-left']}</Box>
+                        {props['disable-tabs'] ? null :
+                            <Tabs key={1}
+                                  value={value}
+                                  onChange={handleChange}
+                                  sx={{flexGrow: 1}}
+                                  {...props}
+                            >
+                                {props.children.map((element, index) => (
+                                    <Tab key={index}
+                                         label={(element.props.schema || {}).title || ''} {...((props['tabs-props'] || {})[index] || {})}{...a11yProps(index)} />
+                                ))}
+                            </Tabs>}
                         <Box key={2}>{props['children-right']}</Box>
                     </Toolbar>
                 </AppBar>
@@ -302,7 +314,12 @@ export default function _nav(props) {
                                 </ListItem>}
                         </List>
                     </Drawer>}
-                <Box component="main" sx={{flexGrow: 1, py: 3, pl: 3, pr: '67px'}} {...props['props-main']}>
+                <Box component="main" sx={{
+                    flexGrow: 1,
+                    py: 3,
+                    pl: 3,
+                    pr: '67px'
+                }} {...props['props-main']}>
                     <DrawerHeader/>
                     <div id="back-to-top-anchor"/>
                     {props.children.map((element, index) => (
@@ -315,6 +332,6 @@ export default function _nav(props) {
                     </Fab>
                 </ScrollTop>
             </Box>
-        </React.Fragment>
+        </FullScreen>
     );
 }
