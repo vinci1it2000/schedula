@@ -13,7 +13,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ ubuntu-latest ]
-        extra: [ base, io, web, plot, sphinx, parallel, all, dev ]
+        extra: [ base, io, web,form, plot, sphinx, parallel, all, dev ]
         python-version: [ '3.7', '3.8', '3.9' ]
         include:
           - os: windows-latest
@@ -26,6 +26,7 @@ jobs:
             extra: all
             python-version: '3.9'
     env:
+      ACTION: "true"
       EXTRAS: ${{ matrix.extra }}
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
@@ -45,6 +46,18 @@ jobs:
       - if: matrix.extra != 'base'
         name: Install Dependencies
         run: pip install -e .[${{ matrix.extra }}]
+
+      - if: matrix.os == 'ubuntu-latest' && (matrix.extra == 'all' || matrix.extra == 'form')
+        name: Removing previous chrome instances on runner
+        run: sudo apt purge google-chrome-stable
+      - if: matrix.os == 'ubuntu-latest' && (matrix.extra == 'all' || matrix.extra == 'form')
+        name: Installing all necessary packages for selenium
+        run: pip install chromedriver-autoinstaller selenium pyvirtualdisplay
+
+      - if: matrix.os == 'ubuntu-latest' && (matrix.extra == 'all' || matrix.extra == 'form')
+        name: Install xvfb
+        run: sudo apt-get install xvfb
+
       - name: Run Test
         run: coverage run --source=schedula setup.py nosetests
       - if: matrix.python-version == '3.9' && matrix.extra == 'all' && matrix.os == 'ubuntu-latest'

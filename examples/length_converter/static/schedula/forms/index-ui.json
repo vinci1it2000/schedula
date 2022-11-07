@@ -4,7 +4,8 @@
     "transformData": "function(parent, def){let x = parent.props.context.props.formData.return;def.props['props-run'].disabled=!parent.emptyObj(x); return def}",
     "props": {
       "props-run": {
-        "disabled": false
+        "disabled": false,
+        "id": "run-button"
       },
       "props-main": {
         "sx": {
@@ -260,6 +261,14 @@
             "justifyContent": "flex-end",
             "alignItems": "center",
             "children": [
+              {
+                "domain": "function(parent){return !!parent.props.context.props.formContext.data}",
+                "transformData": "function(parent, def){def.props.content=parent.props.context.props.formContext.data; return def}",
+                "props": {
+                  "id": "context-data",
+                  "content": ""
+                }
+              }
             ]
           }
         }

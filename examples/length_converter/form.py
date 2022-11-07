@@ -32,5 +32,7 @@ if __name__ == '__main__':
     import os.path as osp
 
     sites = set()
-    form.register().form(directory=osp.abspath(osp.dirname(__file__)), sites=sites)
+    form.register().form(
+        directory=osp.abspath(osp.dirname(__file__)), sites=sites
+    )
     sites

@@ -9,13 +9,12 @@
 """
 It provides functions to build a form flask app from a dispatcher.
 """
-import json
 import os
 import glob
 import hmac
-import flask
 import secrets
 import hashlib
+import webbrowser
 import os.path as osp
 from ..web import WebMap
 from urllib.parse import urlparse
@@ -40,7 +39,10 @@ static_context = {
 
 
 class FormMap(WebMap):
-    _view = None
+    @staticmethod
+    def _view(url, *args, **kwargs):
+        webbrowser.open(url)
+
     csrf_defaults = {
         'CSRF_FIELD_NAME': 'csrf_token',
         'CSRF_SECRET_KEY': lambda: current_app.secret_key,

@@ -13,7 +13,6 @@ import timeit
 import platform
 import unittest
 import itertools
-import functools
 import schedula as sh
 from math import log, pow
 

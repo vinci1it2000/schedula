@@ -82,6 +82,7 @@ if __name__ == '__main__':
     extras = {
         'io': ['dill!=0.2.7'],
         'web': ['requests', 'regex', 'flask'],
+        'form': ['requests', 'regex', 'flask', 'itsdangerous'],
         'parallel': ['multiprocess'],
         'plot': [
             'requests', 'graphviz>=0.17', 'regex', 'flask', 'Pygments',
