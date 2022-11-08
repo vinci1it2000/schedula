@@ -7,7 +7,7 @@ mkdir "../static/schedula/js"
 rm -r ../static/schedula/css
 mkdir "../static/schedula/css"
 
-echo "Installing dependences..."
+echo "Installing dependencies..."
 npm i
 echo "Bundle index..."
 npm run build

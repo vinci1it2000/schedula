@@ -154,6 +154,7 @@ import {
 import get from "lodash/get";
 import has from "lodash/has";
 import isObject from "lodash/isObject";
+
 var components = {
     Suspense: React.Suspense,
     stepper: _Stepper,
@@ -332,6 +333,13 @@ class Layout extends React.Component {
             def = compileFunc(def.transformData)(this, def);
         let props = Object.assign({}, def.props || {}),
             children = [], type;
+        [
+            'onClick', 'onDoubleClick', 'onBlur', 'onFocus', 'onChange',
+            'onError', 'onHover'
+        ].forEach(k => {
+            if (props.hasOwnProperty(k) && typeof props[k] === 'string')
+                props[k] = compileFunc(props[k]).bind(this);
+        })
 
         if (def.domain && !compileFunc(def.domain)(this, def, props))
             return null;

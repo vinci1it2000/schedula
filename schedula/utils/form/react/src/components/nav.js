@@ -169,7 +169,7 @@ export default function _nav(props) {
         if (event.target.files.length) {
             const reader = new FileReader()
             reader.onload = async ({target}) => {
-                this.props.context.props.onChange(JSON.parse(target.result))
+                props.context.props.onChange(JSON.parse(target.result))
             }
             reader.readAsText(event.target.files[0]);
             event.target.value = null;
