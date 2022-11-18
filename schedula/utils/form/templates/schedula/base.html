@@ -23,7 +23,7 @@
                 forms_url = "{{ url_for('schedula.static', filename='forms') }}",
                 csrf_token = "{{ csrf_token() }}",
                 formContext = JSON.parse('{{ get_form_context() | tojson | safe}}'),
-                formData = JSON.parse('{{ get_form_data() | tojson | safe}}') || JSON.parse(window.localStorage.getItem('schedula-' + name + '-formData') || '{}');
+                formData = JSON.parse('{{ get_form_data() | tojson | safe}}');
             Promise.all([
                 fetch(`${forms_url}/${name}-schema.json`).then(v => v.json()),
                 fetch(`${forms_url}/${name}-ui.json`).then(v => v.json())

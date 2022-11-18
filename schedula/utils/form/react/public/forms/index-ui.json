@@ -122,21 +122,6 @@
         }
       ],
       "children-right": [
-        {
-          "component": "export"
-        },
-        {
-          "component": "upload"
-        },
-        {
-          "component": "submit",
-          "transformData": "function(parent, def){let x = parent.props.context.props.formData.return, isEmpty = !!(typeof(x) === 'object'? Object.keys(x).length === 0 : undefined === x);def.props.disabled=!isEmpty; return def}",
-          "props": {
-            "disabled": false,
-            "content": "SUBMIT",
-            "variant": "outlined"
-          }
-        }
       ]
     }
   },

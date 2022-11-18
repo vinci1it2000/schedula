@@ -145,13 +145,13 @@ function Form(
             setErrorMessage(error)
         }
         setFormData(formData)
-        window.localStorage.setItem('schedula-' + name + '-formData', JSON.stringify(formData));
     }
 
-    window.localStorage.setItem('schedula-' + name + '-formData', JSON.stringify(formData));
     useEffect(() => {
         setTimeout(() => setSpinner(false), 1000)
     }, []);
+    if (!formContext.hasOwnProperty('$id'))
+        formContext.$id = name
     return (
         <div id={name}>
             <Backdrop
