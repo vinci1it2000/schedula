@@ -115,6 +115,7 @@ dispatch.
 
 .. _end-about:
 .. _start-install:
+.. _start-install-core:
 
 Installation
 ============
@@ -130,6 +131,7 @@ or download the last git version and use (with root privileges):
 
     $ python setup.py install
 
+.. _end-install-core:
 
 Install extras
 --------------

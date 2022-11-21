@@ -27,7 +27,7 @@ def read_project_version():
 
 
 # noinspection PyPackageRequirements
-def get_long_description(cleanup=True):
+def get_long_description(cleanup=True, core=False):
     from sphinx.application import Sphinx
     from sphinx.util.osutil import abspath
     import tempfile
@@ -39,24 +39,30 @@ def get_long_description(cleanup=True):
     outdir = tempfile.mkdtemp(prefix='setup-', dir='.')
     exclude_patterns = os.listdir(mydir or '.')
     exclude_patterns.remove('pypi.rst')
+    exclude_patterns.remove('pypi-core.rst')
+    doc = 'pypi'
+    if core:
+        doc = 'pypi-core'
 
     # noinspection PyTypeChecker
     app = Sphinx(abspath(mydir), osp.join(mydir, 'doc/'), outdir,
                  outdir + '/.doctree', 'rst',
                  confoverrides={
                      'exclude_patterns': exclude_patterns,
-                     'master_doc': 'pypi',
+                     'master_doc': doc,
                      'dispatchers_out_dir': abspath(outdir + '/_dispatchers'),
                      'extensions': extensions + ['sphinxcontrib.restbuilder']
                  }, status=None, warning=None)
 
-    app.build(filenames=[osp.join(app.srcdir, 'pypi.rst')])
+    app.build(filenames=[osp.join(app.srcdir, f'{doc}.rst')])
 
-    with open(outdir + '/pypi.rst') as file:
+    with open(outdir + f'/{doc}.rst') as file:
         res = file.read()
 
     if cleanup:
         shutil.rmtree(outdir)
+    if core:
+        res = res.replace('pip install schedula', 'pip install schedula-core')
     return res
 
 
@@ -72,14 +78,7 @@ if __name__ == '__main__':
     import functools
     from setuptools import setup, find_packages
 
-    long_description = ''
-    if os.environ.get('ENABLE_SETUP_LONG_DESCRIPTION') == 'TRUE':
-        try:
-            long_description = get_long_description()
-            print('LONG DESCRIPTION ENABLED!')
-        except Exception as ex:
-            print('LONG DESCRIPTION ERROR:\n %r', ex)
-
+    core = os.environ.get('ENABLE_SETUP_CORE') == 'TRUE'
     extras = {
         'io': ['dill!=0.2.7'],
         'web': ['requests', 'regex', 'flask'],
@@ -103,7 +102,7 @@ if __name__ == '__main__':
         'micropython', 'micropython.*',
         'requirements', 'binder', 'bin'
     ]
-    if os.environ.get('ENABLE_SETUP_CORE') == 'TRUE':
+    if core:
         exclude.extend([
             'schedula.ext', 'schedula.ext.*',
             'schedula.utils.io', 'schedula.utils.io.*',
@@ -114,7 +113,13 @@ if __name__ == '__main__':
         ])
         name = '%s-core' % name
         extras = {}
-
+    long_description = ''
+    if os.environ.get('ENABLE_SETUP_LONG_DESCRIPTION') == 'TRUE':
+        try:
+            long_description = get_long_description(core=core)
+            print('LONG DESCRIPTION ENABLED!')
+        except Exception as ex:
+            print('LONG DESCRIPTION ERROR:\n %r', ex)
     setup(
         name=name,
         version=proj_ver,

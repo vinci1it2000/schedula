@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 cd "$(dirname "$0")" && cd ..
+
 while true; do
   echo "Do you want to build the package?[Y/n]"
   read yn
@@ -10,6 +11,21 @@ while true; do
       read yn
       case ${yn} in
       [Yy] | "")
+        while true; do
+          echo "Do you want to build schedula ('n' for schedula-core)?[Y/n]"
+          read yn
+          case ${yn} in
+          [Yy] | "")
+            export ENABLE_SETUP_CORE="FALSE"
+            break;;
+
+          [Nn])
+            export ENABLE_SETUP_CORE="TRUE"
+            break;;
+
+          *) echo "Please answer y/n."
+          esac
+        done
         bash bin/build.sh
         break
         ;;
