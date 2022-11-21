@@ -311,7 +311,7 @@ export function registerComponent(name, component) {
 
 export function isEmpty(obj) {
     if (typeof (obj) === 'object') {
-        if (Object.keys(obj).length === 0) {
+        if (obj === null || Object.keys(obj).length === 0) {
             return true
         } else if (!Array.isArray(obj)) {
             return Object.values(obj).every(isEmpty)

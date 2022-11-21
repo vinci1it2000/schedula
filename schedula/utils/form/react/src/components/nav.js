@@ -420,7 +420,7 @@ export default function _nav(props) {
                                     </Tooltip>}
                                 {props['disable-datasaver'] ? null :
                                     <Tooltip
-                                        title={(savingData ? 'Saving' : 'Save') + ' data on the sessionStorage of the browser'}
+                                        title={(savingData ? 'Stop saving' : 'Save') + ' data on the sessionStorage of the browser'}
                                         arrow
                                         placement="right" {...props['props-tooltip-datasaver']}>
                                         <ListItem key={'datasaver'}
