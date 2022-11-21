@@ -64,7 +64,7 @@ proj_ver = read_project_version()
 url = 'https://github.com/vinci1it2000/%s' % name
 download_url = '%s/tarball/v%s' % (url, proj_ver)
 project_urls = collections.OrderedDict((
-    ('Documentation', 'http://%s.readthedocs.io' % name),
+    ('Documentation', 'https://%s.readthedocs.io' % name),
     ('Issue tracker', '%s/issues' % url),
 ))
 
@@ -90,24 +90,35 @@ if __name__ == '__main__':
         ]
     }
     extras['sphinx'] = ['sphinx>4'] + extras['plot']
-    # noinspection PyTypeChecker
     extras['all'] = sorted(functools.reduce(set.union, extras.values(), set()))
     extras['dev'] = extras['all'] + [
         'wheel', 'sphinx>4', 'gitchangelog', 'mako', 'sphinx_rtd_theme',
         'setuptools>=36.0.1', 'sphinxcontrib-restbuilder', 'nose', 'coveralls',
         'requests', 'readthedocs-sphinx-ext', 'twine'
     ]
+    exclude = [
+        'doc', 'doc.*',
+        'tests', 'tests.*',
+        'examples', 'examples.*',
+        'micropython', 'micropython.*',
+        'requirements', 'binder', 'bin'
+    ]
+    if os.environ.get('ENABLE_SETUP_CORE') == 'TRUE':
+        exclude.extend([
+            'schedula.ext', 'schedula.ext.*',
+            'schedula.utils.io', 'schedula.utils.io.*',
+            'schedula.utils.drw', 'schedula.utils.drw.*',
+            'schedula.utils.web', 'schedula.utils.web.*',
+            'schedula.utils.form', 'schedula.utils.form.*',
+            'schedula.utils.des', 'schedula.utils.des.*',
+        ])
+        name = '%s-core' % name
+        extras = {}
 
     setup(
         name=name,
         version=proj_ver,
-        packages=find_packages(exclude=[
-            'doc', 'doc.*',
-            'tests', 'tests.*',
-            'examples', 'examples.*',
-            'micropython', 'micropython.*',
-            'requirements', 'binder', 'bin'
-        ]),
+        packages=find_packages(exclude=exclude),
         url=url,
         project_urls=project_urls,
         download_url=download_url,

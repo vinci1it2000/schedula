@@ -36,6 +36,7 @@ if __name__ == '__main__':
             'schedula.utils.io', 'schedula.utils.io.*',
             'schedula.utils.drw', 'schedula.utils.drw.*',
             'schedula.utils.web', 'schedula.utils.web.*',
+            'schedula.utils.form', 'schedula.utils.form.*',
             'schedula.utils.des', 'schedula.utils.des.*',
             'requirements', 'binder', 'bin'
         ]),
