@@ -2,6 +2,20 @@ Changelog
 =========
 
 
+v1.3.6 (2022-11-21)
+-------------------
+
+Feat
+~~~~
+- (form): Add data saver and restore options + fix fullscreen + improve
+  `ScrollTop`.
+
+
+Fix
+~~~
+- (form): Fix layout `isEmpty`.
+
+
 v1.3.5 (2022-11-08)
 -------------------
 
