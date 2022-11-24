@@ -7,14 +7,12 @@
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
 import unittest
-import platform
 import schedula as sh
 import tempfile
 import os.path as osp
 import os
 
 EXTRAS = os.environ.get('EXTRAS', 'all')
-PLATFORM = platform.system().lower()
 
 
 @unittest.skipIf(EXTRAS not in ('all', 'plot'), 'Not for extra %s.' % EXTRAS)

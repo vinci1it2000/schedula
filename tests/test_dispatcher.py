@@ -5,15 +5,20 @@
 # Licensed under the EUPL (the 'Licence');
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
+
 import os
+import ddt
 import time
 import timeit
+import platform
 import unittest
 import itertools
+import functools
 import schedula as sh
 from math import log, pow
 
 EXTRAS = os.environ.get('EXTRAS', 'all')
+PLATFORM = platform.system().lower()
 
 
 def _setup_dsp():
@@ -583,6 +588,9 @@ class TestPerformance(unittest.TestCase):
 # noinspection PyUnusedLocal,PyTypeChecker
 @unittest.skipIf(EXTRAS not in ('all', 'parallel'),
                  'Not for extra %s.' % EXTRAS)
+@unittest.skipIf(PLATFORM not in ('darwin', 'linux'),
+                 'Not for platform %s.' % PLATFORM)
+@ddt.ddt
 class TestAsyncParallel(unittest.TestCase):
     def setUp(self):
         # noinspection PyUnresolvedReferences
@@ -779,17 +787,17 @@ class TestAsyncParallel(unittest.TestCase):
         self.dsp4 = dsp = sh.Dispatcher(executor=None)
         dsp.add_func(sleep, outputs=['pid', 'dt'])
 
+    def tearDown(self) -> None:
+        sh.shutdown_executors(False)
+
     def test_dispatch(self):
-        # noinspection PyUnresolvedReferences
-        from multiprocess import Event
         from concurrent.futures import ThreadPoolExecutor as Pool, Future
         from schedula.utils.asy import EXECUTORS
         EXECUTORS.set_executor(None, sh.PoolExecutor(Pool(3), Pool(3)))
-        stopper = Event()
         self.reset_counter()
-        sol = self.dsp({'a': 3, 'b': 1}, executor=True, stopper=stopper)
+        sol = self.dsp({'a': 3, 'b': 1}, executor=True)
         self.assertTrue(all(isinstance(v, Future) for v in sol.values()))
-        sol.result()
+        sol.result(9)
         pid = os.getpid()
         self.assertEqual(sol, {
             'a': 3, 'b': 1, 'd': (3, 0, pid), 'e': (2, 1, pid),
@@ -799,17 +807,14 @@ class TestAsyncParallel(unittest.TestCase):
         self.assertEqual({None}, set(sh.shutdown_executors()))
 
     def test_dispatch_pipe(self):
-        # noinspection PyUnresolvedReferences
-        from multiprocess import Event
         from schedula.utils.asy import EXECUTORS
         from concurrent.futures import ThreadPoolExecutor as Pool
         pid = os.getpid()
-        stopper = Event()
         self.reset_counter()
         func = sh.DispatchPipe(self.dsp, '', ['a', 'b'], ['d', 'e', 'f'])
         EXECUTORS.set_executor('parallel', sh.PoolExecutor(Pool(3), Pool(3)))
         dt0 = time.time()
-        res = func(2, 1, _executor='parallel', _stopper=stopper)
+        res = func(2, 1, _executor='parallel')
         dt0 = time.time() - dt0
         self.assertEqual([(3, 0, pid), (2, 1, pid), (6, 5, pid)], res)
         self.reset_counter()
@@ -826,10 +831,7 @@ class TestAsyncParallel(unittest.TestCase):
         self.assertEqual({'parallel'}, set(sh.shutdown_executors()))
 
     def test_map_dispatch(self):
-        # noinspection PyUnresolvedReferences
-        from multiprocess import Event
         pid = os.getpid()
-        stopper = Event()
         func = sh.MapDispatch(
             self.dsp4, constructor=sh.DispatchPipe, constructor_kwargs={
                 'outputs': ['pid', 'dt'], 'output_type': 'list',
@@ -849,59 +851,62 @@ class TestAsyncParallel(unittest.TestCase):
         self.assertEqual({'parallel'}, set(sh.shutdown_executors()))
 
     def test_parallel_dispatch(self):
-        # noinspection PyUnresolvedReferences
-        from multiprocess import Event
         from concurrent.futures import Future
-        stopper = Event()
         sol = self.dsp1(
-            {'a': 1, 'b': 1}, executor='parallel-dispatch', stopper=stopper
+            {'a': 1, 'b': 1}, executor='parallel-dispatch'
         )
         self.assertTrue(all(isinstance(v, Future) for v in sol.values()))
-        sol.result()
+        sol.result(9)
         pids = set(sol['d'] + sol['e'][0] + sol['e'][1] + sol['f'])
         self.assertEqual(len(pids), 7)
         self.assertIn((-1, 1), sol.sub_sol)
         sh.shutdown_executors()
 
-    def test_errors(self):
+    @ddt.idata(['async', 'parallel', 'parallel-pool', 'parallel-dispatch'])
+    def test_errors(self, executor):
+        from concurrent.futures import Future
+        kw = {'inputs': {'a': 1, 'err': True, 'b': 1}}
+        sol = self.dsp1(executor=executor, **kw)
+        self.assertTrue(all(isinstance(v, Future) for v in sol.values()))
+        self.assertEqual({executor}, set(sh.shutdown_executors()))
+        with self.assertRaises(ValueError):
+            sol.result()
+        self.assertEqual(set(sol), {'d', 'b', 'a', 'f', 'err', 'e'})
+
+    @ddt.idata(['async', 'parallel', 'parallel-pool', 'parallel-dispatch'])
+    def test_shutdown(self, executor):
+        from concurrent.futures import Future
+        sol = self.dsp1({'a': 1, 'err': True, 'b': 1}, executor=executor)
+        self.assertTrue(all(isinstance(v, Future) for v in sol.values()))
+        sh.shutdown_executors(False)
+        with self.assertRaises(sh.ExecutorShutdown):
+            sol.result()
+        self.assertFalse(set(sol) - {'b', 'a', 'err'})
+
+    @ddt.idata(['async', 'parallel', 'parallel-pool', 'parallel-dispatch'])
+    def test_abort(self, executor):
         # noinspection PyUnresolvedReferences
         from multiprocess import Event
         from concurrent.futures import Future
-        from schedula.utils.exc import ExecutorShutdown
-        kw = {'inputs': {'a': 1, 'err': True, 'b': 1}}
-        executors = ('async', 'parallel', 'parallel-pool', 'parallel-dispatch')
-        for executor in executors:
-            sol = self.dsp1(executor=executor, stopper=Event(), **kw)
-            self.assertTrue(all(isinstance(v, Future) for v in sol.values()))
-            self.assertEqual({executor}, set(sh.shutdown_executors()))
-            with self.assertRaises(ValueError):
-                sol.result()
-            self.assertEqual(set(sol), {'d', 'b', 'a', 'f', 'err', 'e'})
-
-        for executor in executors:
-            sol = self.dsp1(executor=executor, stopper=Event(), **kw)
-            self.assertTrue(all(isinstance(v, Future) for v in sol.values()))
-            sh.shutdown_executors(False)
-            with self.assertRaises(ExecutorShutdown):
-                sol.result()
-            self.assertFalse(set(sol) - {'b', 'a', 'err'})
-
-        for executor in executors:
-            stopper = Event()
-            sol = self.dsp1(executor=executor, stopper=stopper, **kw)
-            stopper.set()
-            self.assertTrue(all(isinstance(v, Future) for v in sol.values()))
-            with self.assertRaises(sh.DispatcherAbort):
-                sol.result()
-            self.assertFalse(set(sol) - {'b', 'a', 'err', 'd'})
-        sh.shutdown_executors()
+        stopper = Event()
+        sol = self.dsp1(
+            {'a': 1, 'err': True, 'b': 1}, executor=executor, stopper=stopper
+        )
+        stopper.set()
+        self.assertTrue(all(isinstance(v, Future) for v in sol.values()))
+        with self.assertRaises(sh.DispatcherAbort):
+            sol.result()
+        self.assertFalse(set(sol) - {'b', 'a', 'err', 'd'})
 
     def test_multiple(self):
         from schedula.utils.asy import EXECUTORS, _parallel_pool_executor
         t, n, p = os.name == 'nt' and 2 or .5, len(self.dsp2.sub_dsp_nodes), 1
-        EXECUTORS.set_executor('parallel-pool', _parallel_pool_executor(p))
 
-        sol = self.dsp2({'a': t, 'wait_domain': False}, executor=True).result()
+        EXECUTORS.set_executor('parallel-pool', _parallel_pool_executor(
+            _init_kwargs={'processes': p}
+        ))
+
+        sol = self.dsp2({'a': t, 'wait_domain': False}, executor=True).result(9)
         self.assertLess(time.time() - sol['start'], t * n * 2)
         self.assertEqual(len(EXECUTORS._executors), n)
 
@@ -911,7 +916,7 @@ class TestAsyncParallel(unittest.TestCase):
         t0 = {k[:-2]: v for k, v in sol.items() if k.endswith('-e')}
         self.assertEqual(n + 4 - min(p, 2), sum(v // t for v in t0.values()))
 
-        sol = self.dsp2({'a': t, 'wait_domain': True}, executor=True).result()
+        sol = self.dsp2({'a': t, 'wait_domain': True}, executor=True).result(9)
         t1 = {k[:-2]: v for k, v in sol.items() if k.endswith('-e')}
         self.assertLess(max(t0.values()), max(t1.values()))
         self.assertLess(max(t1.values()), sum(t0.values()))
@@ -921,14 +926,15 @@ class TestAsyncParallel(unittest.TestCase):
             'base'
         )
         it = sh.selector(keys, t1, output_type='list')
-        for i, j in zip(it[:-1], it[1:]):
-            self.assertLess(i, j)
+
+        for f, t, i, j in zip(keys[:-1], keys[1:], it[:-1], it[1:]):
+            self.assertLess(i, j, f'{f}>={t}')
 
         self.assertEqual(set(keys[:-1]), set(sh.shutdown_executors()))
 
     def test_await_result(self):
         from schedula.utils.asy import EXECUTORS
-        sol = self.dsp3({'a': 0, 'b': 0.1, 'c': 0}, executor=True).result()
+        sol = self.dsp3({'a': 0, 'b': 0.1, 'c': 0}, executor=True).result(9)
         self.assertEqual(6, len(EXECUTORS._executors))
         pids = {v for k, v in sol.items() if k.split('-')[-1] in 'defghi'}
         self.assertGreaterEqual(len(pids - {sh.NONE}), 6)
@@ -946,10 +952,9 @@ class TestAsyncParallel(unittest.TestCase):
             self.assertIsInstance(sol[k], int)
         for k in nones:
             self.assertEqual(sol[k], sh.NONE)
-        self.assertEqual(
-            {'sync', 'async', 'parallel', 'parallel-pool', 'parallel-dispatch'},
-            set(sh.shutdown_executors())
-        )
+        self.assertEqual({
+            'sync', 'async', 'parallel', 'parallel-pool', 'parallel-dispatch'
+        }, set(sh.shutdown_executors()))
 
     def test_shutdown_executors(self):
         from threading import Thread
@@ -971,7 +976,7 @@ class TestAsyncParallel(unittest.TestCase):
                 for fut, task in v.items():
                     self.assertIsInstance(fut, Future)
                     with self.assertRaises(sh.ExecutorShutdown):
-                        fut.result()
+                        fut.result(9)
                     self.assertIsInstance(task, task_type)
 
 

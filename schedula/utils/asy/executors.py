@@ -52,9 +52,13 @@ class Executor:
     @staticmethod
     def _target(send, func, args, kwargs):
         try:
-            send({'res': func(*args, **kwargs)})
+            obj = {'res': func(*args, **kwargs)}
         except BaseException as ex:
-            send({'err': ex})
+            obj = {'err': ex}
+        if send:
+            send(obj)
+        else:
+            return obj
 
     def shutdown(self, wait=True):
         tasks = dict(self.tasks)
@@ -77,31 +81,6 @@ class Executor:
         return fut
 
 
-class ProcessExecutor(Executor):
-    """Multi Process Executor"""
-
-    def __reduce__(self):
-        return self.__class__, (self._ctx,)
-
-    def __init__(self, mp_context=None):
-        super(ProcessExecutor, self).__init__()
-        if not mp_context:
-            # noinspection PyUnresolvedReferences
-            from multiprocess import get_context
-            mp_context = get_context()
-        self._ctx = mp_context
-
-    def submit(self, func, *args, **kwargs):
-        # noinspection PyUnresolvedReferences
-
-        fut, (c0, c1) = Future(), self._ctx.Pipe(duplex=False)
-        self.tasks[fut] = task = self._ctx.Process(
-            target=self._target, args=(c1.send, func, args, kwargs)
-        )
-        task.start()
-        return self._set_future(fut, c0.recv())
-
-
 class ThreadExecutor(Executor):
     """Multi Thread Executor"""
 
@@ -116,39 +95,68 @@ class ThreadExecutor(Executor):
         return fut
 
 
-class ProcessPoolExecutor(Executor):
-    """Process Pool Executor"""
+class ProcessExecutor(Executor):
+    """Process Executor"""
+    _init = None
+    _init_args = ()
+    _init_kwargs = {}
+    _shutdown = None
+
+    def _submit(self, func, args, kwargs):
+        # noinspection PyUnresolvedReferences
+        from multiprocess import get_context
+        ctx = get_context()
+        fut, (c0, c1) = Future(), ctx.Pipe(duplex=False)
+        self.tasks[fut] = task = ctx.Process(
+            target=self._target, args=(c1.send, func, args, kwargs)
+        )
+        task.start()
+        return self._set_future(fut, c0.recv())
 
     def __reduce__(self):
-        return self.__class__, (
-            self._max_workers, self._ctx, self._initializer, self._initargs
-        )
+        return self.__class__, (), {
+            '_init': self._init,
+            '_submit': self._submit,
+            '_shutdown': self._shutdown,
+            '_init_args': self._init_args,
+            '_init_kwargs': self._init_kwargs
+        }
 
-    def __init__(self, max_workers=None, mp_context=None, initializer=None,
-                 initargs=()):
-        super(ProcessPoolExecutor, self).__init__()
-        if not mp_context:
-            # noinspection PyUnresolvedReferences
-            from multiprocess import get_context
-            mp_context = get_context()
+    def __init__(self, *args, **state):
+        super(ProcessExecutor, self).__init__()
+        import threading
+        self.lock = threading.Lock()
+        for k, v in state.items():
+            setattr(self, k, v)
 
-        self._max_workers = max_workers
-        self._ctx = mp_context
-        self._initializer = initializer
-        self._initargs = initargs
-        self.lock = self._ctx.Lock()
-        self.pool = None
-
-    def _init(self):
-        with self.lock:
-            if self.pool is None:
-                self.pool = self._ctx.Pool(
-                    processes=self._max_workers, initializer=self._initializer,
-                    initargs=self._initargs,
-                )
+    def init(self):
+        if self._init:
+            with self.lock:
+                self._init()
 
     def submit(self, func, *args, **kwargs):
-        self._init()
+        self.init()
+        return self._submit(func, args, kwargs)
+
+    def shutdown(self, wait=True):
+        tasks = super(ProcessExecutor, self).shutdown(wait)
+        if self._shutdown:
+            with self.lock:
+                self._shutdown()
+        return tasks
+
+
+class ProcessPoolExecutor(ProcessExecutor):
+    """Process Pool Executor"""
+
+    def _init(self):
+        if getattr(self, 'pool', None) is None:
+            # noinspection PyUnresolvedReferences
+            from multiprocess import get_context
+            ctx = get_context()
+            self.pool = ctx.Pool(*self._init_args, **self._init_kwargs)
+
+    def _submit(self, func, args, kwargs):
         fut = Future()
         callback = functools.partial(_safe_set_result, fut)
         error_callback = functools.partial(_safe_set_exception, fut)
@@ -158,12 +166,10 @@ class ProcessPoolExecutor(Executor):
         fut.add_done_callback(self.tasks.pop)
         return fut
 
-    def shutdown(self, wait=True):
-        super(ProcessPoolExecutor, self).shutdown(wait)
-        with self.lock:
-            if self.pool:
-                self.pool.terminate()
-                self.pool.join()
+    def _shutdown(self):
+        if getattr(self, 'pool', None):
+            self.pool.terminate()
+            self.pool.join()
 
 
 class PoolExecutor:
@@ -238,13 +244,15 @@ class PoolExecutor:
         if self._running:
             wait and self.wait()
             self._running = False
-            tasks = dict(
-                executor=self,
-                tasks=dict(
-                    process=self._process and self._process.shutdown(0) or {},
-                    thread=self._thread.shutdown(0)
-                )
-            )
+            tasks = {
+                'executor': self,
+                'tasks': {
+                    'process': self._process and self._process.shutdown(
+                        0
+                    ) or {},
+                    'thread': self._thread.shutdown(0)
+                }
+            }
             self.futures = {}
             self._process = self._thread = None
             return tasks
