@@ -633,13 +633,13 @@ class TestAsyncParallel(unittest.TestCase):
             _counter_increment()
             time.sleep(1 / 30)
 
-        sub_dsp = sh.Dispatcher()
+        sub_dsp = sh.Dispatcher(executor=None)
         sub_dsp.add_function(
             function=sleep, inputs=['a'], outputs=['d', sh.SINK],
             filters=[filter]
         )
 
-        self.dsp = dsp = sh.Dispatcher()
+        self.dsp = dsp = sh.Dispatcher(executor=None)
         dsp.add_data('d', callback=callback)
         dsp.add_dispatcher(sub_dsp.copy(), inputs=['a'], outputs=['d'])
         func = sh.SubDispatchFunction(sub_dsp, 'func', ['a'], ['d'])
@@ -649,7 +649,7 @@ class TestAsyncParallel(unittest.TestCase):
 
         # ----------------------------------------------------------------------
 
-        self.dsp1 = dsp = sh.Dispatcher(raises='')
+        self.dsp1 = dsp = sh.Dispatcher(raises='', executor=None)
 
         def sleep(x, *a):
             time.sleep(x / 10)
@@ -668,12 +668,12 @@ class TestAsyncParallel(unittest.TestCase):
             if err:
                 raise ValueError
 
-        sub_sub_dsp = sh.Dispatcher(raises='')
+        sub_sub_dsp = sh.Dispatcher(raises='', executor=None)
         sub_sub_dsp.add_function(
             function=sleep, inputs=['a'], outputs=['pid']
         )
 
-        sub_dsp = sh.Dispatcher(raises='')
+        sub_dsp = sh.Dispatcher(raises='', executor=None)
         sub_dsp.add_function(
             function=sleep, inputs=['a'], outputs=['d'], filters=[filter]
         )
@@ -716,7 +716,7 @@ class TestAsyncParallel(unittest.TestCase):
             b = any(isinstance(v, Future) and not v.done() for v in args)
             return b or all(not isinstance(v, Future) for v in args)
 
-        self.dsp2 = dsp = sh.Dispatcher()
+        self.dsp2 = dsp = sh.Dispatcher(executor=None)
         dsp.add_function(function=time.time, outputs=['start'])
         executors = (
             'parallel-dispatch', 'parallel-pool', 'parallel', 'async', 'sync',
@@ -747,7 +747,7 @@ class TestAsyncParallel(unittest.TestCase):
             time.sleep(x)
             return os.getpid(), sh.NONE
 
-        self.dsp3 = dsp = sh.Dispatcher()
+        self.dsp3 = dsp = sh.Dispatcher(executor=None)
         dsp.add_function(function=os.getpid, outputs=['pid'])
         executors = (
             'parallel-dispatch', 'parallel-pool', 'parallel', 'async', 'sync',
@@ -776,7 +776,7 @@ class TestAsyncParallel(unittest.TestCase):
             time.sleep(t)
             return os.getpid(), time.time() - start
 
-        self.dsp4 = dsp = sh.Dispatcher()
+        self.dsp4 = dsp = sh.Dispatcher(executor=None)
         dsp.add_func(sleep, outputs=['pid', 'dt'])
 
     def test_dispatch(self):

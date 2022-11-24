@@ -136,7 +136,7 @@ class Dispatcher(Base):
         return state
 
     def __init__(self, dmap=None, name='', default_values=None, raises=False,
-                 description='', executor=None):
+                 description='', executor=False):
         """
         Initializes the dispatcher.
 

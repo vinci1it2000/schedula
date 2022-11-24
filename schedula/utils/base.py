@@ -175,7 +175,7 @@ class Base:
              format=NONE, engine=NONE, encoding=NONE, graph_attr=NONE,
              node_attr=NONE, edge_attr=NONE, body=NONE, node_styles=NONE,
              node_data=NONE, node_function=NONE, edge_data=NONE, max_lines=NONE,
-             max_width=NONE, directory=None, sites=None, index=False,
+             max_width=NONE, directory=None, sites=None, index=True,
              viz=False, short_name=None, executor='async'):
         """
         Plots the Dispatcher with a graph in the DOT language with Graphviz.

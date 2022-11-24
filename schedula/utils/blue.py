@@ -208,7 +208,7 @@ class BlueDispatcher(Blueprint):
     """
 
     def __init__(self, dmap=None, name='', default_values=None, raises=False,
-                 description='', executor=None):
+                 description='', executor=False):
         kwargs = {
             'dmap': dmap, 'name': name, 'default_values': default_values,
             'raises': raises, 'description': description, 'executor': executor

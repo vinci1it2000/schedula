@@ -798,7 +798,7 @@ class SubDispatch(Base):
         return memo[self]
 
     def __call__(self, *input_dicts, copy_input_dicts=False, _stopper=None,
-                 _executor=None, _sol_name=(), _verbose=False):
+                 _executor=False, _sol_name=(), _verbose=False):
 
         # Combine input dictionaries.
         i = combine_dicts(*input_dicts, copy=copy_input_dicts)
@@ -1067,7 +1067,7 @@ class MapDispatch(SubDispatch):
 
     # noinspection PyMethodOverriding
     def __call__(self, inputs, defaults=None, recursive_inputs=None,
-                 _stopper=None, _executor=None, _sol_name=(), _verbose=False):
+                 _stopper=None, _executor=False, _sol_name=(), _verbose=False):
         inputs = self._init_dsp(defaults, inputs, recursive_inputs)
         return super(MapDispatch, self).__call__(
             inputs, _stopper=_stopper, _executor=_executor, _verbose=_verbose,
