@@ -114,6 +114,13 @@ function GridToolbar({context, columns, setRowModesModel, setNewKey}) {
                             onClick={onAddClick} key={5}>
                         Add record
                     </Button> : ""}
+                {!context.props.readonly ?
+                    <Button color="primary" startIcon={<DeleteIcon/>}
+                            onClick={() => {
+                                context.props.onChange([])
+                            }} key={6}>
+                        Delete all
+                    </Button> : ""}
             </GridToolbarContainer>
         </Stack>
     );

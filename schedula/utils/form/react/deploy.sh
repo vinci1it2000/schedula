@@ -8,7 +8,7 @@ rm -r ../static/schedula/css
 mkdir "../static/schedula/css"
 
 echo "Installing dependencies..."
-npm i
+npm i --force
 echo "Bundle index..."
 npm run build
 echo "Moving files $f..."
