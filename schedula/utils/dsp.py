@@ -1139,7 +1139,8 @@ class SubDispatchFunction(SubDispatch):
     var_keyword = 'kw'
 
     def __init__(self, dsp, function_id=None, inputs=None, outputs=None,
-                 cutoff=None, inputs_dist=None, shrink=True, wildcard=True):
+                 cutoff=None, inputs_dist=None, shrink=True, wildcard=True,
+                 output_type=None, output_type_kw=None, first_arg_as_kw=False):
         """
         Initializes the Sub-dispatch Function.
 
@@ -1166,11 +1167,39 @@ class SubDispatchFunction(SubDispatch):
         :param inputs_dist:
             Initial distances of input data nodes.
         :type inputs_dist: dict[str, int | float], optional
+
+        :param shrink:
+            If True the dispatcher is shrink before the dispatch.
+        :type shrink: bool, optional
+
+        :param wildcard:
+            If True, when the data node is used as input and target in the
+            ArciDispatch algorithm, the input value will be used as input for
+            the connected functions, but not as output.
+        :type wildcard: bool, optional
+
+        :param output_type:
+            Type of function output:
+
+                + 'all': a dictionary with all dispatch outputs.
+                + 'list': a list with all outputs listed in `outputs`.
+                + 'dict': a dictionary with any outputs listed in `outputs`.
+        :type output_type: str, optional
+
+        :param output_type_kw:
+            Extra kwargs to pass to the `selector` function.
+        :type output_type_kw: dict, optional
+
+        :param first_arg_as_kw:
+            Uses the first argument of the __call__ method as `kwargs`.
+        :type output_type_kw: bool
         """
 
         if shrink:
-            dsp = dsp.shrink_dsp(inputs, outputs, cutoff=cutoff,
-                                 inputs_dist=inputs_dist, wildcard=wildcard)
+            dsp = dsp.shrink_dsp(
+                inputs, outputs, cutoff=cutoff, inputs_dist=inputs_dist,
+                wildcard=wildcard
+            )
 
         if outputs:
             # Outputs not reached.
@@ -1197,14 +1226,17 @@ class SubDispatchFunction(SubDispatch):
         # Initialize as sub dispatch.
         super(SubDispatchFunction, self).__init__(
             dsp, outputs, cutoff, inputs_dist, wildcard, no_call,
-            True, True, 'list'
+            True, True, 'list', output_type_kw=output_type_kw
         )
-
         # Define the function to return outputs sorted.
-        if outputs is None:
+        if output_type is not None:
+            self.output_type = output_type
+        elif outputs is None:
             self.output_type = 'all'
         elif len(outputs) == 1:
             self.output_type = 'values'
+
+        self.first_arg_as_kw = first_arg_as_kw
 
     @property
     def __signature__(self):
@@ -1221,6 +1253,13 @@ class SubDispatchFunction(SubDispatch):
         return inspect.Signature(p, __validate_parameters__=False)
 
     def _parse_inputs(self, *args, **kw):
+        if self.first_arg_as_kw:
+            for k in sorted(args[0]):
+                if k in kw:
+                    msg = 'multiple values for argument %r'
+                    raise TypeError(msg % k) from None
+            kw.update(args[0])
+            args = args[1:]
         defaults, inputs = self.dsp.default_values, {}
         for i, k in enumerate(self.inputs or ()):
             try:
@@ -1241,8 +1280,9 @@ class SubDispatchFunction(SubDispatch):
         if self.var_keyword:
             inputs.update(kw)
         elif not all(k in inputs for k in kw):
+            k = next(k for k in sorted(kw) if k not in inputs)
             msg = 'got an unexpected keyword argument %r'
-            raise TypeError(msg % next(kw)) from None
+            raise TypeError(msg % k) from None
 
         return inputs
 
@@ -1333,7 +1373,8 @@ class SubDispatchPipe(SubDispatchFunction):
 
     def __init__(self, dsp, function_id=None, inputs=None, outputs=None,
                  cutoff=None, inputs_dist=None, no_domain=True, wildcard=True,
-                 shrink=True):
+                 shrink=True, output_type=None, output_type_kw=None,
+                 first_arg_as_kw=False):
         """
         Initializes the Sub-dispatch Function.
 
@@ -1360,6 +1401,36 @@ class SubDispatchPipe(SubDispatchFunction):
         :param inputs_dist:
             Initial distances of input data nodes.
         :type inputs_dist: dict[str, int | float], optional
+
+        :param no_domain:
+            Skip the domain check.
+        :type no_domain: bool, optional
+
+        :param shrink:
+            If True the dispatcher is shrink before the dispatch.
+        :type shrink: bool, optional
+
+        :param wildcard:
+            If True, when the data node is used as input and target in the
+            ArciDispatch algorithm, the input value will be used as input for
+            the connected functions, but not as output.
+        :type wildcard: bool, optional
+
+        :param output_type:
+            Type of function output:
+
+                + 'all': a dictionary with all dispatch outputs.
+                + 'list': a list with all outputs listed in `outputs`.
+                + 'dict': a dictionary with any outputs listed in `outputs`.
+        :type output_type: str, optional
+
+        :param output_type_kw:
+            Extra kwargs to pass to the `selector` function.
+        :type output_type_kw: dict, optional
+
+        :param first_arg_as_kw:
+            Converts first argument of the __call__ method as `kwargs`.
+        :type output_type_kw: bool
         """
 
         self.solution = sol = dsp.solution.__class__(
@@ -1375,7 +1446,9 @@ class SubDispatchPipe(SubDispatchFunction):
 
         super(SubDispatchPipe, self).__init__(
             dsp, function_id, inputs, outputs=outputs, cutoff=cutoff,
-            inputs_dist=inputs_dist, shrink=False, wildcard=wildcard
+            inputs_dist=inputs_dist, shrink=False, wildcard=wildcard,
+            output_type=output_type, output_type_kw=output_type_kw,
+            first_arg_as_kw=first_arg_as_kw
         )
         self._reset_sol()
         self.pipe = self._set_pipe()

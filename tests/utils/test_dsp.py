@@ -374,7 +374,11 @@ class TestSubDispatchFunction(unittest.TestCase):
         self.assertRaises(TypeError, fun, 2)
         self.assertRaises(TypeError, fun, y=4)
         self.assertRaises(TypeError, fun, a=2)
-
+        fun = sh.SubDispatchFunction(
+            self.dsp_3, inputs=['y', 'x'], outputs=['z'], first_arg_as_kw=True
+        )
+        self.assertEqual(fun({'x': 3}), 3)
+        self.assertRaises(TypeError, fun, {'x': 2}, x=2)
 
 class TestSubDispatchPipe(unittest.TestCase):
     def setUp(self):

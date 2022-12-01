@@ -830,9 +830,13 @@ class TestAsyncParallel(unittest.TestCase):
         from multiprocess import Event
         pid = os.getpid()
         stopper = Event()
-        func = sh.MapDispatch(self.dsp4, constructor_kwargs={
-            'outputs': ['pid', 'dt'], 'output_type': 'list', 'function_id': 'F'
-        })
+        func = sh.MapDispatch(
+            self.dsp4, constructor=sh.DispatchPipe, constructor_kwargs={
+                'outputs': ['pid', 'dt'], 'output_type': 'list',
+                'function_id': 'F', 'first_arg_as_kw': True,
+                'inputs': ['start', 't']
+            }
+        )
         start = time.time()
         t, n = os.name == 'nt' and 2 or .1, 6
         res = func(
