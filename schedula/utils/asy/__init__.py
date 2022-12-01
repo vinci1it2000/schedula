@@ -162,7 +162,8 @@ def _process_funcs(
                 if isinstance(pfunc, NoSub):
                     raise ex
                 r['err'] = ex
-            r['sol'] = pfunc.solution
+            if not isinstance(pfunc, NoSub):
+                r['sol'] = pfunc.solution
         else:
             e = EXECUTORS.get_executor(exe_id)
             r['res'] = e.process(sid, fn, *args, **kw) if e else fn(*args, **kw)
