@@ -1568,7 +1568,7 @@ class Dispatcher(Base):
         from .utils.blue import BlueDispatcher as Blue
         return Blue().extend(*blues, memo=memo).register(self, memo=memo)
 
-    def dispatch(self, inputs=None, outputs=None, cutoff=None, inputs_dist=None,
+    def dispatch(self, inputs=None, outputs=None, inputs_dist=None,
                  wildcard=False, no_call=False, shrink=False,
                  rm_unused_nds=False, select_output_kw=None, _wait_in=None,
                  stopper=None, executor=False, sol_name=(), verbose=False):
@@ -1583,10 +1583,6 @@ class Dispatcher(Base):
         :param outputs:
             Ending data nodes.
         :type outputs: list[str], iterable, optional
-
-        :param cutoff:
-            Depth to stop the search.
-        :type cutoff: float, int, optional
 
         :param inputs_dist:
             Initial distances of input data nodes.
@@ -1708,9 +1704,7 @@ class Dispatcher(Base):
 
         if not no_call:
             if shrink:  # Pre shrink.
-                dsp = self.shrink_dsp(
-                    inputs, outputs, cutoff, inputs_dist, wildcard
-                )
+                dsp = self.shrink_dsp(inputs, outputs, inputs_dist, wildcard)
             elif outputs:
                 dsp = self.get_sub_dsp_from_workflow(
                     outputs, self.dmap, reverse=True, blockers=inputs,
@@ -1719,8 +1713,8 @@ class Dispatcher(Base):
 
         # Initialize.
         self.solution = sol = self.solution.__class__(
-            dsp, inputs, outputs, wildcard, cutoff, inputs_dist, no_call,
-            rm_unused_nds, _wait_in, full_name=sol_name, verbose=verbose
+            dsp, inputs, outputs, wildcard, inputs_dist, no_call, rm_unused_nds,
+            _wait_in, full_name=sol_name, verbose=verbose
         )
 
         # Dispatch.
@@ -1735,8 +1729,8 @@ class Dispatcher(Base):
     def __call__(self, *args, **kwargs):
         return self.dispatch(*args, **kwargs)
 
-    def shrink_dsp(self, inputs=None, outputs=None, cutoff=None,
-                   inputs_dist=None, wildcard=True):
+    def shrink_dsp(self, inputs=None, outputs=None, inputs_dist=None,
+                   wildcard=True):
         """
         Returns a reduced dispatcher.
 
@@ -1747,10 +1741,6 @@ class Dispatcher(Base):
         :param outputs:
             Ending data nodes.
         :type outputs: list[str], iterable, optional
-
-        :param cutoff:
-            Depth to stop the search.
-        :type cutoff: float, int, optional
 
         :param inputs_dist:
             Initial distances of input data nodes.
@@ -1830,7 +1820,7 @@ class Dispatcher(Base):
 
             # Evaluate the workflow graph without invoking functions.
             o = self.dispatch(
-                inputs, outputs, cutoff, inputs_dist, wildcard, True, False,
+                inputs, outputs, inputs_dist, wildcard, True, False,
                 True, _wait_in=wait_in
             )
 
@@ -1851,7 +1841,7 @@ class Dispatcher(Base):
             while True:  # Start shrinking loop.
                 # Evaluate the workflow graph without invoking functions.
                 o = self.dispatch(
-                    inputs, outputs, cutoff, inputs_dist, wildcard, True, False,
+                    inputs, outputs, inputs_dist, wildcard, True, False,
                     False, _wait_in=wait_in
                 )
 

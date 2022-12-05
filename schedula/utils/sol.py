@@ -32,7 +32,7 @@ class Solution(Base, collections.OrderedDict):
         return id(self)
 
     def __init__(self, dsp=None, inputs=None, outputs=None, wildcard=False,
-                 cutoff=None, inputs_dist=None, no_call=False,
+                 inputs_dist=None, no_call=False,
                  rm_unused_nds=False, wait_in=None, no_domain=False,
                  _empty=False, index=(-1,), full_name=(), verbose=False,
                  excluded_defaults=()):
@@ -41,7 +41,6 @@ class Solution(Base, collections.OrderedDict):
         self.rm_unused_nds = rm_unused_nds
         self.no_call = no_call
         self.no_domain = no_domain
-        self.cutoff = cutoff
         self._wait_in = wait_in or {}
         self.outputs = set(outputs or ())
         self.full_name = full_name
@@ -144,23 +143,6 @@ class Solution(Base, collections.OrderedDict):
             succ[v], pred[v], graph.nodes[v] = {}, {}, {}
 
         succ[u][v] = pred[v][u] = attr  # Add the edge.
-
-    def check_cutoff(self, distance):
-        """
-        Stops the search of the investigated node of the ArciDispatch
-        algorithm.
-
-        :param distance:
-            Distance from the starting node.
-        :type distance: float, int
-
-        :return:
-            True if distance > cutoff, otherwise False.
-        :rtype: bool
-        """
-        if self.cutoff is None:
-            return False
-        return distance > self.cutoff  # Check cutoff distance.
 
     def check_wait_in(self, wait_in, n_id):
         """
@@ -328,7 +310,7 @@ class Solution(Base, collections.OrderedDict):
 
         # Namespaces shortcuts
         dsp_init_add, pipe_append = dsp_init.add, pipe.append
-        fringe, check_cutoff = self.fringe, self.check_cutoff
+        fringe = self.fringe
         ctx = {
             'no_call': self.no_call, 'stopper': stopper, 'executor': executor
         }
@@ -352,7 +334,7 @@ class Solution(Base, collections.OrderedDict):
             pipe_append(n)  # Add node to the pipe.
 
             # Set and visit nodes.
-            if not sol._visit_nodes(v, d, fringe, check_cutoff, **ctx):
+            if not sol._visit_nodes(v, d, fringe, **ctx):
                 if self is sol:
                     break  # Reach all targets.
                 else:  # Terminated sub-dispatcher.
@@ -410,9 +392,9 @@ class Solution(Base, collections.OrderedDict):
 
     def _copy_structure(self, **kwargs):
         sol = self.__class__(
-            self.dsp, self.inputs, self.outputs, False, self.cutoff,
-            self.inputs_dist, self.no_call, self.rm_unused_nds, self._wait_in,
-            self.no_domain, True, self.index, self.full_name, self.verbose
+            self.dsp, self.inputs, self.outputs, False, self.inputs_dist,
+            self.no_call, self.rm_unused_nds, self._wait_in, self.no_domain,
+            True, self.index, self.full_name, self.verbose
         )
         sol._clean_set()
         it = ['_wildcards', 'inputs', 'inputs_dist']
@@ -781,18 +763,14 @@ class Solution(Base, collections.OrderedDict):
 
         return True  # Return that the output have been evaluated correctly.
 
-    def _add_initial_value(self, data_id, value, initial_dist=0.0,
-                           fringe=None, check_cutoff=None, no_call=None):
+    def _add_initial_value(self, data_id, value, initial_dist=0.0, fringe=None,
+                           no_call=None):
         """
         Add initial values updating workflow, seen, and fringe.
 
         :param fringe:
             Heapq of closest available nodes.
         :type fringe: list[(float | int, bool, (str, Dispatcher)]
-
-        :param check_cutoff:
-            Check the cutoff limit.
-        :type check_cutoff: (int | float) -> bool
 
         :param no_call:
             If True data node estimation function is not used.
@@ -827,8 +805,6 @@ class Solution(Base, collections.OrderedDict):
         if no_call is None:
             no_call = self.no_call
 
-        check_cutoff = check_cutoff or self.check_cutoff
-
         if data_id not in nodes:  # Data node is not in the dmap.
             return False
 
@@ -854,12 +830,9 @@ class Solution(Base, collections.OrderedDict):
 
                 update_view(w, vw_dist)  # Update view distance.
 
-                # Check the cutoff limit and if all inputs are satisfied.
-                if check_cutoff(vw_dist):
-                    wf_remove_edge(data_id, w)  # Remove workflow edge.
-                    continue  # Pass the node.
-                elif node['type'] == 'dispatcher':
-                    dsp_in(data_id, w, fringe, check_cutoff, no_call, vw_dist)
+                # Check if all inputs are satisfied.
+                if node['type'] == 'dispatcher':
+                    dsp_in(data_id, w, fringe, no_call, vw_dist)
                 elif check_wait_in(True, w):
                     continue  # Pass the node.
 
@@ -874,9 +847,7 @@ class Solution(Base, collections.OrderedDict):
 
         update_view(data_id, initial_dist)  # Update view distance.
 
-        if check_cutoff(initial_dist):  # Check the cutoff limit.
-            wf_remove_edge(START, data_id)  # Remove workflow edge.
-        elif not check_wait_in(wait_in, data_id):  # Check inputs.
+        if not check_wait_in(wait_in, data_id):  # Check inputs.
             seen[data_id] = initial_dist  # Update distance.
             if fringe is not None:  # SubDispatchPipe.
                 vd = wait_in, str(data_id), self.index + index  # Virtual dist.
@@ -894,7 +865,7 @@ class Solution(Base, collections.OrderedDict):
         else:
             view[node_id] = dist
 
-    def _visit_nodes(self, node_id, dist, fringe, check_cutoff, no_call=False,
+    def _visit_nodes(self, node_id, dist, fringe, no_call=False,
                      **kw):
         """
         Visits a node, updating workflow, seen, and fringe..
@@ -910,10 +881,6 @@ class Solution(Base, collections.OrderedDict):
         :param fringe:
             Heapq of closest available nodes.
         :type fringe: list[(float | int, bool, (str, Dispatcher)]
-
-        :param check_cutoff:
-            Check the cutoff limit.
-        :type check_cutoff: (int | float) -> bool
 
         :param no_call:
             If True data node estimation function is not used.
@@ -947,13 +914,8 @@ class Solution(Base, collections.OrderedDict):
 
             vw_d = dist + edge_weight(e_data, node)  # Evaluate dist.
 
-            if check_cutoff(vw_d):  # Check the cutoff limit.
-                wf_rm_edge(node_id, w)  # Remove edge that cannot be see.
-                continue
-
             if node['type'] == 'dispatcher':
-                self._set_sub_dsp_node_input(
-                    node_id, w, fringe, check_cutoff, no_call, vw_d)
+                self._set_sub_dsp_node_input(node_id, w, fringe, no_call, vw_d)
 
             else:  # See the node.
                 self._see_node(w, fringe, vw_d)
@@ -1058,7 +1020,7 @@ class Solution(Base, collections.OrderedDict):
 
         # Initialize as sub-dispatcher.
         sol = self.__class__(
-            dsp, {}, outputs, False, None, None, no_call, False,
+            dsp, {}, outputs, False, None, no_call, False,
             wait_in=self._wait_in.get(dsp, None), index=self.index + index,
             full_name=full_name, verbose=self.verbose,
             excluded_defaults=excluded_defaults
@@ -1124,8 +1086,8 @@ class Solution(Base, collections.OrderedDict):
                 self._warning(msg, dsp_id, ex)
                 return False
 
-    def _set_sub_dsp_node_input(self, node_id, dsp_id, fringe, check_cutoff,
-                                no_call, initial_dist):
+    def _set_sub_dsp_node_input(self, node_id, dsp_id, fringe, no_call,
+                                initial_dist):
         """
         Initializes the sub-dispatcher and set its inputs.
 
@@ -1140,10 +1102,6 @@ class Solution(Base, collections.OrderedDict):
         :param fringe:
             Heapq of closest available nodes.
         :type fringe: list[(float | int, bool, (str, Dispatcher)]
-
-        :param check_cutoff:
-            Check the cutoff limit.
-        :type check_cutoff: (int | float) -> bool
 
         :param no_call:
             If True data node estimation function is not used.
@@ -1198,7 +1156,7 @@ class Solution(Base, collections.OrderedDict):
             for n in stlp(node['inputs'][n_id]):
                 # Add initial value to the sub-dispatcher.
                 sol._add_initial_value(
-                    n, val, initial_dist, fringe, check_cutoff, no_call
+                    n, val, initial_dist, fringe, no_call
                 )
 
         return True

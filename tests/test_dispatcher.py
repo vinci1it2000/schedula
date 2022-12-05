@@ -1464,64 +1464,6 @@ class TestDispatch(unittest.TestCase):
         self.assertEqual(set(o.workflow.nodes), r)
         self.assertEqual(o.workflow.adj, w)
 
-    def test_cutoff(self):
-        dsp = self.dsp_cutoff
-
-        o = dsp.dispatch({'a': 5, 'b': 6}, cutoff=2)
-        r = {'a', 'b', 'c', 'log(b - a)', 'max', 'min', sh.START}
-        w = {
-            'a': {'log(b - a)': {'value': 5}, 'min': {'value': 5}},
-            'b': {'log(b - a)': {'value': 6}, 'max': {'value': 6}},
-            'c': {},
-            'log(b - a)': {'c': {'value': 0.0}},
-            'max': {},
-            'min': {},
-            sh.START: {'a': {'value': 5}, 'b': {'value': 6}}
-        }
-        self.assertEqual(dict(o.items()), {'a': 5, 'b': 6, 'c': 0})
-        self.assertEqual(set(o.workflow.nodes), r)
-        self.assertEqual(o.workflow.succ, w)
-
-        o = dsp.dispatch({'a': 5, 'b': 6}, cutoff=2, shrink=True)
-        n = {'max', 'min'}
-        r -= n
-        w = {k[0]: dict(v for v in k[1].items() if v[0] not in n)
-             for k in w.items() if k[0] not in n}
-        self.assertEqual(dict(o.items()), {'a': 5, 'b': 6, 'c': 0})
-        self.assertEqual(set(o.workflow.nodes), r)
-        self.assertEqual(o.workflow.succ, w)
-
-        for it in (dsp.dmap.edges.values(), dsp.nodes.values()):
-            for v in it:
-                v.pop('weight', None)
-
-        o = dsp.dispatch({'a': 5, 'b': 6}, cutoff=2)
-        r = {'a', 'b', 'c', 'd', 'log(b - a)', 'max', 'min', sh.START, 'x - 4'}
-        w = {
-            'a': {'log(b - a)': {'value': 5}, 'min': {'value': 5},
-                  'x - 4': {'value': 5}},
-            'b': {'log(b - a)': {'value': 6}, 'max': {'value': 6}},
-            'c': {},
-            'd': {},
-            'max': {},
-            'min': {},
-            'log(b - a)': {'c': {'value': 0.0}},
-            'x - 4': {'d': {'value': 1}},
-            sh.START: {'a': {'value': 5}, 'b': {'value': 6}}
-        }
-        self.assertEqual(dict(o.items()), {'a': 5, 'b': 6, 'c': 0, 'd': 1})
-        self.assertEqual(set(o.workflow.nodes), r)
-        self.assertEqual(o.workflow.succ, w)
-
-        o = dsp.dispatch({'a': 5, 'b': 6}, cutoff=2, shrink=True)
-        n = {'max', 'min'}
-        r -= n
-        w = {k[0]: dict(v for v in k[1].items() if v[0] not in n)
-             for k in w.items() if k[0] not in n}
-        self.assertEqual(dict(o.items()), {'a': 5, 'b': 6, 'c': 0, 'd': 1})
-        self.assertEqual(set(o.workflow.nodes), r)
-        self.assertEqual(o.workflow.adj, w)
-
     def test_wildcard(self):
         dsp = self.dsp
         o = dsp.dispatch({'a': 5, 'b': 6}, ['a', 'b'], wildcard=True)
@@ -1585,61 +1527,49 @@ class TestDispatch(unittest.TestCase):
     def test_input_dists(self):
         dsp = self.dsp_cutoff
 
-        o = dsp.dispatch({'a': 5, 'b': 6}, cutoff=2,
-                         inputs_dist={'b': 1})
-        r = {'a', 'b', 'log(b - a)', 'max', 'min', sh.START}
+        o = dsp.dispatch({'a': 5, 'b': 6}, inputs_dist={'b': 1})
+        r = {'a', 'b', 'log(b - a)', 'min', sh.START, 'e', 'c', 'd',
+             '2 / (d + 1)'}
         w = {
+            '2 / (d + 1)': {'e': {'value': 2.0}},
             'a': {'log(b - a)': {'value': 5}, 'min': {'value': 5}},
-            'b': {'log(b - a)': {'value': 6}, 'max': {'value': 6}},
-            'log(b - a)': {},
-            'max': {},
-            'min': {},
+            'b': {'log(b - a)': {'value': 6}},
+            'c': {'min': {'value': 0.0}},
+            'd': {'2 / (d + 1)': {'value': 0.0}},
+            'e': {},
+            'log(b - a)': {'c': {'value': 0.0}},
+            'min': {'d': {'value': 0.0}},
             sh.START: {'a': {'value': 5}, 'b': {'value': 6}}
         }
-        self.assertEqual(dict(o.items()), {'a': 5, 'b': 6})
-        self.assertEqual(set(o.workflow.nodes), r)
-        self.assertEqual(o.workflow.adj, w)
-
-        o = dsp.dispatch({'a': 5, 'b': 6}, cutoff=2, shrink=True,
-                         inputs_dist={'b': 1})
-        n = {'max', 'min', 'log(b - a)'}
-        r -= n
-        w = {k[0]: dict(v for v in k[1].items() if v[0] not in n)
-             for k in w.items() if k[0] not in n}
-        self.assertEqual(dict(o.items()), {'a': 5, 'b': 6})
+        self.assertEqual(
+            dict(o.items()), {'a': 5, 'b': 6, 'c': 0.0, 'd': 0.0, 'e': 2.0}
+        )
         self.assertEqual(set(o.workflow.nodes), r)
         self.assertEqual(o.workflow.adj, w)
 
         for it in (dsp.dmap.edges.values(), dsp.nodes.values()):
             for v in it:
                 v.pop('weight', None)
-        o = dsp.dispatch({'a': 5, 'b': 6}, cutoff=2,
-                         inputs_dist={'b': 1})
-        r = {'a', 'b', 'd', 'log(b - a)', 'max', 'min', sh.START, 'x - 4'}
+        o = dsp.dispatch({'a': 5, 'b': 6}, inputs_dist={'b': 1})
+        r = {'a', 'b', 'd', 'log(b - a)', sh.START, 'x - 4', '2 / (d + 1)', 'c',
+             'e'}
         w = {
-            'a': {'log(b - a)': {'value': 5}, 'min': {'value': 5},
-                  'x - 4': {'value': 5}},
-            'b': {'log(b - a)': {'value': 6}, 'max': {'value': 6}},
-            'd': {},
-            'max': {},
-            'min': {},
-            'log(b - a)': {},
-            'x - 4': {'d': {'value': 1}},
-            sh.START: {'a': {'value': 5}, 'b': {'value': 6}}
+            '2 / (d + 1)': {'e': {'value': 1.0}},
+            'a': {'log(b - a)': {'value': 5}, 'x - 4': {'value': 5}},
+            'b': {'log(b - a)': {'value': 6}},
+            'c': {},
+            'd': {'2 / (d + 1)': {'value': 1}},
+            'e': {},
+            'log(b - a)': {'c': {'value': 0.0}},
+            sh.START: {'a': {'value': 5}, 'b': {'value': 6}},
+            'x - 4': {'d': {'value': 1}}
         }
-        self.assertEqual(dict(o.items()), {'a': 5, 'b': 6, 'd': 1})
+        self.assertEqual(dict(o.items()), {
+            'a': 5, 'b': 6, 'c': 0.0, 'd': 1, 'e': 1.0
+        })
         self.assertEqual(set(o.workflow.nodes), r)
         self.assertEqual(o.workflow.adj, w)
 
-        o = dsp.dispatch({'a': 5, 'b': 6}, cutoff=2, shrink=True,
-                         inputs_dist={'b': 1})
-        n = {'max', 'min', 'log(b - a)'}
-        r -= n
-        w = {k[0]: dict(v for v in k[1].items() if v[0] not in n)
-             for k in w.items() if k[0] not in n}
-        self.assertEqual(dict(o.items()), {'a': 5, 'b': 6, 'd': 1})
-        self.assertEqual(set(o.workflow.nodes), r)
-        self.assertEqual(o.workflow.adj, w)
 
         dsp = self.dsp
         o = dsp.dispatch({'a': 5, 'b': 6, 'd': 0}, ['a', 'b', 'd'],

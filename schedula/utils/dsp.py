@@ -694,10 +694,9 @@ class SubDispatch(Base):
         self.__dict__ = d
         self.__name__ = self.name
 
-    def __init__(self, dsp, outputs=None, cutoff=None, inputs_dist=None,
-                 wildcard=False, no_call=False, shrink=False,
-                 rm_unused_nds=False, output_type='all', function_id=None,
-                 output_type_kw=None):
+    def __init__(self, dsp, outputs=None, inputs_dist=None, wildcard=False,
+                 no_call=False, shrink=False, rm_unused_nds=False,
+                 output_type='all', function_id=None, output_type_kw=None):
         """
         Initializes the Sub-dispatch.
 
@@ -708,10 +707,6 @@ class SubDispatch(Base):
         :param outputs:
             Ending data nodes.
         :type outputs: list[str], iterable
-
-        :param cutoff:
-            Depth to stop the search.
-        :type cutoff: float, int, optional
 
         :param inputs_dist:
             Initial distances of input data nodes.
@@ -755,7 +750,6 @@ class SubDispatch(Base):
 
         self.dsp = dsp
         self.outputs = outputs
-        self.cutoff = cutoff
         self.wildcard = wildcard
         self.no_call = no_call
         self.shrink = shrink
@@ -805,10 +799,9 @@ class SubDispatch(Base):
 
         # Dispatch the function calls.
         self.solution = self.dsp.dispatch(
-            i, self.outputs, self.cutoff, self.inputs_dist, self.wildcard,
-            self.no_call, self.shrink, self.rm_unused_nds,
-            stopper=_stopper, executor=_executor, sol_name=_sol_name,
-            verbose=_verbose
+            i, self.outputs, self.inputs_dist, self.wildcard, self.no_call,
+            self.shrink, self.rm_unused_nds, stopper=_stopper,
+            executor=_executor, sol_name=_sol_name, verbose=_verbose
         )
 
         return self._return(self.solution)
@@ -1139,8 +1132,8 @@ class SubDispatchFunction(SubDispatch):
     var_keyword = 'kw'
 
     def __init__(self, dsp, function_id=None, inputs=None, outputs=None,
-                 cutoff=None, inputs_dist=None, shrink=True, wildcard=True,
-                 output_type=None, output_type_kw=None, first_arg_as_kw=False):
+                 inputs_dist=None, shrink=True, wildcard=True, output_type=None,
+                 output_type_kw=None, first_arg_as_kw=False):
         """
         Initializes the Sub-dispatch Function.
 
@@ -1159,10 +1152,6 @@ class SubDispatchFunction(SubDispatch):
         :param outputs:
             Ending data nodes.
         :type outputs: list[str], iterable, optional
-
-        :param cutoff:
-            Depth to stop the search.
-        :type cutoff: float, int, optional
 
         :param inputs_dist:
             Initial distances of input data nodes.
@@ -1197,8 +1186,7 @@ class SubDispatchFunction(SubDispatch):
 
         if shrink:
             dsp = dsp.shrink_dsp(
-                inputs, outputs, cutoff=cutoff, inputs_dist=inputs_dist,
-                wildcard=wildcard
+                inputs, outputs, inputs_dist=inputs_dist, wildcard=wildcard
             )
 
         if outputs:
@@ -1225,8 +1213,8 @@ class SubDispatchFunction(SubDispatch):
 
         # Initialize as sub dispatch.
         super(SubDispatchFunction, self).__init__(
-            dsp, outputs, cutoff, inputs_dist, wildcard, no_call,
-            True, True, 'list', output_type_kw=output_type_kw
+            dsp, outputs, inputs_dist, wildcard, no_call, True, True, 'list',
+            output_type_kw=output_type_kw
         )
         # Define the function to return outputs sorted.
         if output_type is not None:
@@ -1372,9 +1360,8 @@ class SubDispatchPipe(SubDispatchFunction):
     var_keyword = None
 
     def __init__(self, dsp, function_id=None, inputs=None, outputs=None,
-                 cutoff=None, inputs_dist=None, no_domain=True, wildcard=True,
-                 shrink=True, output_type=None, output_type_kw=None,
-                 first_arg_as_kw=False):
+                 inputs_dist=None, no_domain=True, wildcard=True, shrink=True,
+                 output_type=None, output_type_kw=None, first_arg_as_kw=False):
         """
         Initializes the Sub-dispatch Function.
 
@@ -1393,10 +1380,6 @@ class SubDispatchPipe(SubDispatchFunction):
         :param outputs:
             Ending data nodes.
         :type outputs: list[str], iterable, optional
-
-        :param cutoff:
-            Depth to stop the search.
-        :type cutoff: float, int, optional
 
         :param inputs_dist:
             Initial distances of input data nodes.
@@ -1434,7 +1417,7 @@ class SubDispatchPipe(SubDispatchFunction):
         """
 
         self.solution = sol = dsp.solution.__class__(
-            dsp, inputs, outputs, wildcard, cutoff, inputs_dist, True, True,
+            dsp, inputs, outputs, wildcard, inputs_dist, True, True,
             no_domain=no_domain
         )
         sol._run()
@@ -1445,10 +1428,9 @@ class SubDispatchPipe(SubDispatchFunction):
             dsp = dsp._get_dsp_from_bfs(o, bfs_graphs=bfs)
 
         super(SubDispatchPipe, self).__init__(
-            dsp, function_id, inputs, outputs=outputs, cutoff=cutoff,
-            inputs_dist=inputs_dist, shrink=False, wildcard=wildcard,
-            output_type=output_type, output_type_kw=output_type_kw,
-            first_arg_as_kw=first_arg_as_kw
+            dsp, function_id, inputs, outputs=outputs, inputs_dist=inputs_dist,
+            shrink=False, wildcard=wildcard, output_type=output_type,
+            output_type_kw=output_type_kw, first_arg_as_kw=first_arg_as_kw
         )
         self._reset_sol()
         self.pipe = self._set_pipe()
@@ -1515,7 +1497,7 @@ class SubDispatchPipe(SubDispatchFunction):
                 break
 
             for n, vw_d in nxt_dsp:
-                s._set_sub_dsp_node_input(v, n, [], s.check_cutoff, False, vw_d)
+                s._set_sub_dsp_node_input(v, n, [], False, vw_d)
             s._see_remote_link_node(v)
 
         # Return outputs sorted.
