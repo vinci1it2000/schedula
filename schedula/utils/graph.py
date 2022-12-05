@@ -46,8 +46,8 @@ class DiGraph:
     def adj(self):
         return self.succ
 
-    @staticmethod
-    def _add_node(nodes, succ, pred, n, **attr):
+    def _add_node(self, n, attr):
+        nodes, succ, pred = self.nodes, self.succ, self.pred
         if n not in nodes:  # Add nodes.
             succ[n] = {}
             pred[n] = {}
@@ -55,8 +55,8 @@ class DiGraph:
         elif attr:
             nodes[n].update(attr)
 
-    @staticmethod
-    def _remove_node(nodes, succ, pred, n):
+    def _remove_node(self, n):
+        nodes, succ, pred = self.nodes, self.succ, self.pred
         for u in succ[n]:
             del pred[u][n]
         for u in pred[n]:
@@ -64,47 +64,47 @@ class DiGraph:
         del nodes[n], succ[n], pred[n]
 
     def add_node(self, n, **attr):
-        self._add_node(self.nodes, self.succ, self.pred, n, **attr)
+        self._add_node(n, attr)
         return self
 
     def remove_node(self, n):
-        self._remove_node(self.nodes, self.succ, self.pred, n)
+        self._remove_node(n)
         return self
 
     def add_nodes_from(self, nodes_for_adding):
-        nodes, succ, pred, fn = self.nodes, self.succ, self.pred, self._add_node
+        fn = self.add_node
         for n in nodes_for_adding:
             try:
-                fn(nodes, succ, pred, n)
+                fn(n)
             except TypeError:
-                fn(nodes, succ, pred, n[0], **n[1])
+                fn(n[0], **n[1])
         return self
 
     def remove_nodes_from(self, nodes):
-        nd, succ, pred, fn = self.nodes, self.succ, self.pred, self._remove_node
+        fn = self.remove_node
         for n in nodes:
-            fn(nd, succ, pred, n)
+            fn(n)
         return self
 
-    @staticmethod
-    def _add_edge(nodes, succ, pred, u, v, **attr):
-        DiGraph._add_node(nodes, succ, pred, u)
-        DiGraph._add_node(nodes, succ, pred, v)
-        succ[u][v] = pred[v][u] = dd = succ[u].get(v, {})
+    def _add_edge(self, u, v, attr):
+        succ = self.succ
+        self.add_node(u)
+        self.add_node(v)
+        succ[u][v] = self.pred[v][u] = dd = succ[u].get(v, {})
         dd.update(attr)
 
     def add_edge(self, u, v, **attr):
-        self._add_edge(self.nodes, self.succ, self.pred, u, v, **attr)
+        self._add_edge(u, v, attr)
         return self
 
     def add_edges_from(self, ebunch_to_add):
-        nodes, succ, pred, fn = self.nodes, self.succ, self.pred, self._add_edge
+        fn = self.add_edge
         for e in ebunch_to_add:
             try:
                 (u, v), attr = e, {}
             except ValueError:
                 u, v, attr = e
-            fn(nodes, succ, pred, u, v, **attr)
+            fn(u, v, **attr)
 
     def remove_edge(self, u, v):
         del self.succ[u][v], self.pred[v][u]

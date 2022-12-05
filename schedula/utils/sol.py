@@ -74,7 +74,6 @@ class Solution(Base, collections.OrderedDict):
     def _set_inputs(self, inputs, initial_dist, excluded_defaults=()):
         if self.no_call:
             # Set initial values.
-            initial_values = dict.fromkeys(self.dsp.default_values, NONE)
             initial_values = {
                 k: v for k, v in self.dsp.default_values.items()
                 if k not in excluded_defaults
@@ -133,8 +132,8 @@ class Solution(Base, collections.OrderedDict):
     def wf_remove_edge(self, u, v):
         graph = self.workflow
         graph.remove_edge(u, v)  # Remove the edge.
-        if not (graph.succ[v] or graph.pred[v]):  # Check if v is isolate.
-            graph.remove_node(v)  # Remove the isolate out node.
+        if not (graph.succ[v] or graph.pred[v]):  # Check if v is isolated.
+            graph.remove_node(v)  # Remove the isolated out node.
 
     def wf_add_edge(self, u, v, **attr):
         graph = self.workflow
