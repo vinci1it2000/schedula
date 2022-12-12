@@ -173,10 +173,11 @@ class Base:
 
     def plot(self, workflow=None, view=True, depth=-1, name=NONE, comment=NONE,
              format=NONE, engine=NONE, encoding=NONE, graph_attr=NONE,
-             node_attr=NONE, edge_attr=NONE, body=NONE, node_styles=NONE,
-             node_data=NONE, node_function=NONE, edge_data=NONE, max_lines=NONE,
-             max_width=NONE, directory=None, sites=None, index=True,
-             viz=False, short_name=None, executor='async'):
+             node_attr=NONE, edge_attr=NONE, body=NONE, raw_body=NONE,
+             node_styles=NONE, node_data=NONE, node_function=NONE,
+             edge_data=NONE, max_lines=NONE, max_width=NONE, directory=None,
+             sites=None, index=True, viz=False, short_name=None,
+             executor='async'):
         """
         Plots the Dispatcher with a graph in the DOT language with Graphviz.
 
@@ -249,6 +250,10 @@ class Base:
             Dict of (attribute, value) pairs to add to the graph body.
         :type body: dict, optional
 
+        :param raw_body:
+            List of command to add to the graph body.
+        :type raw_body: list, optional
+
         :param directory:
             Where is the generated Flask app root located?
         :type directory: str, optional
@@ -307,9 +312,9 @@ class Base:
         """
 
         d = {
-            'name': name, 'comment': comment, 'format': format,
+            'name': name, 'comment': comment, 'format': format, 'body': body,
             'engine': engine, 'encoding': encoding, 'graph_attr': graph_attr,
-            'node_attr': node_attr, 'edge_attr': edge_attr, 'body': body,
+            'node_attr': node_attr, 'edge_attr': edge_attr, 'raw_body': raw_body
         }
         options = {
             'digraph': {k: v for k, v in d.items() if v is not NONE} or NONE,
