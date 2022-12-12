@@ -16,6 +16,7 @@
 import sys
 import os
 from os.path import abspath, join, dirname
+from schedula._version import __version__
 
 on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 
@@ -83,7 +84,6 @@ extlinks = {
 #
 # The short X.Y version.
 
-from schedula._version import __version__
 
 version = '.'.join(__version__.split('.')[:-1])
 # The full version, including alpha/beta/rc tags.
