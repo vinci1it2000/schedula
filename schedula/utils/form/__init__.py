@@ -24,7 +24,7 @@ from werkzeug.exceptions import NotFound
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadData
 from flask import (
     render_template, Blueprint, current_app, session, g, request,
-    send_from_directory
+    send_from_directory, jsonify
 )
 
 __author__ = 'Vincenzo Arcidiacono <vinci1it2000@gmail.com>'
@@ -152,12 +152,12 @@ class FormMap(WebMap):
 
         token = self._get_csrf_token()
         if not token:
-            raise RuntimeError('The CSRF token is missing.')
+            return jsonify({'error': 'The CSRF token is missing.'})
 
         field_name = self._get_config('CSRF_FIELD_NAME')
 
         if field_name not in session:
-            raise RuntimeError('The CSRF session token is missing.')
+            return jsonify({'error': 'The CSRF session token is missing.'})
 
         secret_key = self._get_config('CSRF_SECRET_KEY')
 
@@ -167,16 +167,16 @@ class FormMap(WebMap):
         try:
             token = s.loads(token, max_age=time_limit)
         except SignatureExpired:
-            raise RuntimeError('The CSRF token has expired.')
+            return jsonify({'error': 'The CSRF token has expired.'})
         except BadData:
-            raise RuntimeError('The CSRF token is invalid.')
+            return jsonify({'error': 'The CSRF token is invalid.'})
 
         if not hmac.compare_digest(session[field_name], token):
-            raise RuntimeError('The CSRF tokens do not match.')
+            return jsonify({'error': 'The CSRF tokens do not match.'})
 
         if request.is_secure and self._get_config('CSRF_SSL_STRICT'):
             if not request.referrer:
-                raise RuntimeError('The referrer header is missing.')
+                return jsonify({'error': 'The referrer header is missing.'})
 
             c = urlparse(request.referrer)
             r = urlparse(f'https://{request.host}/')
@@ -185,7 +185,9 @@ class FormMap(WebMap):
                     c.scheme == r.scheme, c.hostname == r.hostname,
                     c.port == r.port
             )):
-                raise RuntimeError('The referrer does not match the host.')
+                return jsonify({
+                    'error': 'The referrer does not match the host.'
+                })
 
         g.csrf_valid = True  # mark this request as CSRF valid
 
