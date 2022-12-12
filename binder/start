@@ -6,5 +6,6 @@ SCHEDULA_SITE_REPR_HTML="
 <script>document.getElementById('{id}').src='https://' +
 window.location.hostname + '{JUPYTERHUB_SERVICE_PREFIX}proxy/{port}/'</script>
 "
+export SCHEDULA_FORM_URL_PREFIX="./"
 export SCHEDULA_SITE_REPR_HTML=$SCHEDULA_SITE_REPR_HTML
 exec "$@"

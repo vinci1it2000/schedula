@@ -61,6 +61,7 @@ class FormMap(WebMap):
     def __init__(self):
         super(FormMap, self).__init__()
         self._csrf_protected = set()
+        self.url_prefix = os.environ.get('SCHEDULA_FORM_URL_PREFIX', '')
 
     def _get_config(self, config_name):
         value = current_app.config.get(
@@ -87,6 +88,7 @@ class FormMap(WebMap):
             'csrf_token': self.generate_csrf,
             'get_form_context': self.get_form_context,
             'get_form_data': self.get_form_data,
+            'url_prefix': self.url_prefix
         }
         context.update(static_context)
         try:

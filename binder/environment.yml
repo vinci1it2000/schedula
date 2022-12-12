@@ -3,23 +3,9 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - docutils
-  - flask
-  - jupyterlab >=0.35.5,<0.36
-  - multiprocess
-  - pandas
-  - numpy >=1.15
-  - dill !=0.2.7
-  - openpyxl
-  - scipy
-  - xlrd
+  - jupyterlab
   - pip
-  - python >=3.7,<3.8.0a0
+  - python == 3.9
   - python-graphviz
-  - regex
-  - plotly
-  - tornado<6
-  - cryptography
-  - requests
   - pip:
       - jupyter-server-proxy

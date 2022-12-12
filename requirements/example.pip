@@ -1,0 +1,8 @@
+- all.pip
+
+numpy
+scipy
+pandas
+openpyxl
+plotly
+requests

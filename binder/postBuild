@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
-python -m pip install -e . --ignore-installed --no-dependencies
+python -m pip install -e ".[dev]"
+pip install "jupyterlab>=3" "ipywidgets>=7.6"
+pip install -r requirements/example.pip
 jupyter serverextension enable --sys-prefix jupyter_server_proxy
-jupyter labextension install @jupyterlab/plotly-extension

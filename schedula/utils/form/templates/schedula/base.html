@@ -6,21 +6,21 @@
     {% block title %}
     <title>{% block title_name %}{{ name }}{% endblock %}</title>
     <link rel="shortcut icon"
-          href="{{ url_for('static', filename='favicon.ico') }}"/>
+          href="{{ url_prefix + url_for('static', filename='favicon.ico') }}"/>
     {% endblock %}
     {% block js %}
-    <script src="{{ url_for('schedula.static', filename=main_js) }}"></script>
+    <script src="{{ url_prefix + url_for('schedula.static', filename=main_js) }}"></script>
     {% endblock %}
     {% block css %}
-    <link href="{{ url_for('schedula.static', filename=main_css) }}" rel="stylesheet">
+    <link href="{{ url_prefix + url_for('schedula.static', filename=main_css) }}" rel="stylesheet">
     {% endblock %}
     {% block js_onload %}
     <script defer="defer">
         function onLoad() {
             let name = "{{ form_id or 'index' }}",
-                url = '/',
+                url = '{{ url_prefix }}',
                 element = document.getElementById('root'),
-                forms_url = "{{ url_for('schedula.static', filename='forms') }}",
+                forms_url = "{{ url_prefix + url_for('schedula.static', filename='forms') }}",
                 csrf_token = "{{ csrf_token() }}",
                 formContext = JSON.parse('{{ get_form_context() | tojson | safe}}'),
                 formData = JSON.parse('{{ get_form_data() | tojson | safe}}');
