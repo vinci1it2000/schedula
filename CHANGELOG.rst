@@ -2,6 +2,41 @@ Changelog
 =========
 
 
+v1.4.0 (2022-12-12)
+-------------------
+
+Feat
+~~~~
+- (form): Add extension for forms with test cases.
+
+- (drw): Add option to add raw body to dot graphviz file.
+
+- (dsp): Improve readability of `MapDispatch` results.
+
+- (core): Drop cutoff functionality.
+
+- (dsp): Add options to use `SubDispatchFunction` like `SubDispatch`.
+
+- (setup) :gh:`19`: Add option to publish schedula-core.
+
+- (form): Add delete all button on datagrid.
+
+- (parallel): Make sync the default executor.
+
+- (setup) :gh:`19`: Add feature to install only core functionalities.
+
+
+Fix
+~~~
+- (binder): Correct installation of binder.
+
+- (form): Correct `CSRF` error handling.
+
+- (jinja)Disable HTML AutoEscape.
+
+- (asy): Avoid adding solution when `NoSub`.
+
+
 v1.3.6 (2022-11-21)
 -------------------
 
