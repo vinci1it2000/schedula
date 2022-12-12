@@ -963,7 +963,7 @@ class MapDispatch(SubDispatch):
                  constructor=SubDispatch, constructor_kwargs=None,
                  function_id=None, func_kw=lambda *args, **data: {},
                  input_label='inputs<{}>', output_label='outputs<{}>',
-                 data_label='data<{}>', **kwargs):
+                 data_label='data<{}>', cluster_label='task<{}>', **kwargs):
         """
         Initializes the MapDispatch function.
 
@@ -1025,38 +1025,68 @@ class MapDispatch(SubDispatch):
         self.input_label = input_label
         self.output_label = output_label
         self.data_label = data_label
+        self.cluster_label = cluster_label
         self.func_kw = func_kw
 
     @staticmethod
-    def prepare_inputs(inputs, defaults, recursive_inputs=None, outputs=None):
-        if outputs and recursive_inputs:
-            data = selector(recursive_inputs, outputs or {}, allow_miss=True)
-            if isinstance(recursive_inputs, dict):
-                data = map_dict(recursive_inputs, data)
-            inputs = combine_dicts(inputs, base=data)
-        return combine_dicts(defaults, inputs)
+    def prepare_inputs(inputs, defaults):
+        inputs = [combine_dicts(defaults, d) for d in inputs]
+        return inputs if len(inputs) > 1 else inputs[0]
+
+    @staticmethod
+    def recursive_data(recursive_inputs, input_data, outputs):
+        data = selector(recursive_inputs, outputs or {}, allow_miss=True)
+        if isinstance(recursive_inputs, dict):
+            data = map_dict(recursive_inputs, data)
+        data.update(input_data)
+        return data
+
+    @staticmethod
+    def format_labels(it, label):
+        f = label.format
+        return [f(k, **v) for k, v in it]
+
+    @staticmethod
+    def format_clusters(it, label):
+        f = label.format
+        return [{'body': {
+            'label': f'"{f(k, **v)}"', 'labelloc': 'b'
+        }} for k, v in it]
 
     def _init_dsp(self, defaults, inputs, recursive_inputs=None):
-        defaults = combine_dicts(self.defaults or {}, defaults or {})
-        recursive_inputs = recursive_inputs or self.recursive_inputs
         from ..dispatcher import Dispatcher
+        defaults = combine_dicts(self.defaults or {}, defaults or {})
         self.dsp = dsp = Dispatcher(**self.kwargs)
-        func, func_kw, add_f = self.func, self.func_kw, dsp.add_function
-        pf = (defaults or recursive_inputs) and self.prepare_inputs
-        output_f, data_f = self.output_label.format, self.data_label.format
-        self.outputs, input_f = [], self.input_label.format
-        _inputs = {'defaults': defaults, 'recursive_inputs': recursive_inputs}
-        for k, v in enumerate(inputs):
-            i, o = input_f(k, **v), output_f(k, **v)
-            _inputs[i] = v
-            if pf:
-                i, keys = data_f(k, **v), [i, 'defaults']
-                if recursive_inputs and self.outputs:
-                    keys += ['recursive_inputs'] + self.outputs[-1:]
-                add_f(function=pf, inputs=keys, outputs=[i])
-            add_f(function=func, inputs=[i], outputs=[o], **func_kw(k, **v))
-            self.outputs.append(o)
-        return _inputs
+        add_data, add_func = dsp.add_data, dsp.add_func
+
+        n = len(str(len(inputs) + 1))
+        it = [(str(k).zfill(n), v) for k, v in enumerate(inputs, 1)]
+        inp = self.format_labels(it, self.input_label)
+        clt = self.format_clusters(it, self.cluster_label)
+        rl = self.format_labels(it, 'run<{}>')
+        self.outputs = out = self.format_labels(it, self.output_label)
+        add_func(self.prepare_inputs, inp, inputs=['inputs', 'defaults'])
+        recursive = recursive_inputs or self.recursive_inputs
+        if recursive:
+            func = functools.partial(self.recursive_data, recursive)
+            dat = self.format_labels(it, self.data_label)
+            fl = self.format_labels(it, 'recursive_data<{}>')
+            it = iter(zip(inp, dat, clt, fl))
+            i, d, c, fid = next(it)
+            add_data(i, clusters=c)
+            add_func(bypass, [d], inputs=[i], clusters=c)
+            for (i, d, c, fid), o, in zip(it, out[:-1]):
+                add_data(i, clusters=c)
+                add_func(func, [d], inputs=[i, o], clusters=c, function_id=fid)
+            inp = dat
+        for i, o, c, fid, (k, v) in zip(inp, out, clt, rl, enumerate(inputs)):
+            add_data(i, clusters=c)
+            kw = {'clusters': c, 'function_id': fid}
+            kw.update(self.func_kw(k, **v))
+            add_func(self.func, [o], inputs=[i], **kw)
+            add_data(o, clusters=c)
+
+        return {'inputs': inputs, 'defaults': defaults}
 
     # noinspection PyMethodOverriding
     def __call__(self, inputs, defaults=None, recursive_inputs=None,

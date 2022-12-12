@@ -116,7 +116,9 @@ def autoplot_callback(res):
 
 
 def jinja2_format(source, context=None, **kw):
-    return Environment(**kw, autoescape=True).from_string(source).render(context or {})
+    return Environment(**kw, autoescape=True).from_string(source).render(
+        context or {}
+    )
 
 
 def valid_filename(item, filenames, ext=None):
@@ -265,7 +267,7 @@ class FolderNode:
         'info': {
             START: {
                 'shape': 'egg', 'label': 'start', 'fillcolor': '#39bf7f',
-                'color': '#39bf7f'
+                'color': '#39bf7f', 'ordering': 'out'
             },
             SELF: {
                 'shape': 'egg', 'label': 'self', 'fillcolor': '#C1A4FE',
@@ -277,7 +279,7 @@ class FolderNode:
             },
             END: {
                 'shape': 'egg', 'label': 'end', 'fontcolor': '#FFFFFF',
-                'fillcolor': '#084368', 'color': '#084368'
+                'fillcolor': '#084368', 'color': '#084368', 'ordering': 'in'
             },
             EMPTY: {
                 'shape': 'egg', 'label': 'empty', 'fillcolor': '#FFFFFF'
@@ -292,13 +294,16 @@ class FolderNode:
                     'fillcolor': '#73c4fa', 'color': '#73c4fa'
                 },
                 'function': {
-                    'shape': 'box', 'fillcolor': '#eed867', 'color': '#eed867'
+                    'shape': 'box', 'fillcolor': '#eed867', 'color': '#eed867',
+                    'ordering': 'in'
                 },
                 'function-dispatcher': {
-                    'shape': 'note', 'fillcolor': '#eed867', 'color': '#eed867'
+                    'shape': 'note', 'fillcolor': '#eed867', 'color': '#eed867',
+                    'ordering': 'in'
                 },
                 'run_model': {
-                    'shape': 'note', 'fillcolor': '#eed867', 'color': '#eed867'
+                    'shape': 'note', 'fillcolor': '#eed867', 'color': '#eed867',
+                    'ordering': 'in'
                 },
                 'subdispatch': {
                     'shape': 'note', 'style': 'filled', 'fillcolor': '#ffc490',
@@ -306,19 +311,19 @@ class FolderNode:
                 },
                 'mapdispatch': {
                     'shape': 'note', 'style': 'filled', 'fillcolor': '#f4bd6a',
-                    'color': '#f4bd6a'
+                    'color': '#f4bd6a', 'ordering': 'in'
                 },
                 'subdispatchfunction': {
                     'shape': 'note', 'style': 'filled', 'fillcolor': '#f9d951',
-                    'color': '#f9d951'
+                    'color': '#f9d951', 'ordering': 'in'
                 },
                 'subdispatchpipe': {
                     'shape': 'note', 'style': 'filled', 'fillcolor': '#f1cd5d',
-                    'color': '#f1cd5d'
+                    'color': '#f1cd5d', 'ordering': 'in'
                 },
                 'dispatchpipe': {
                     'shape': 'note', 'style': 'filled', 'fillcolor': '#e8c268',
-                    'color': '#e8c268'
+                    'color': '#e8c268', 'ordering': 'in'
                 },
                 'dispatcher': {
                     'shape': 'note', 'style': 'filled', 'fillcolor': '#c6c6c6',
@@ -656,7 +661,7 @@ class FolderNode:
                         tr.add(**v)
                     else:
                         j = render_output(j, pformat)
-                        s = jinja2_format(j, cnt)
+                        s = html.unescape(jinja2_format(j, cnt))
                         if s.startswith('_Td('):
                             tr += eval(s)
                         else:  # It is not a valid jinja2 format.
@@ -700,10 +705,13 @@ def _format_output(obj, **kwargs):
 
 def _format_kw_digraph(*dicts, base=None):
     kw = combine_nested_dicts(*dicts, base=base)
-    if 'body' in kw:
-        kw['body'] = [
-            '\t%s = %s\n' % (k, v) for k, v in sorted(kw['body'].items())
-        ]
+    body= kw.pop('body', None)
+    if 'raw_body' in kw:
+        get_nested_dicts(kw, 'body', default=list).extend(kw.pop('raw_body'))
+    if body:
+        get_nested_dicts(kw, 'body', default=list).extend(
+            '\t%s = %s\n' % (k, v) for k, v in sorted(body.items())
+        )
     return kw
 
 
@@ -711,7 +719,9 @@ class SiteFolder:
     counter = SiteNode.counter
     digraph = {
         'node_attr': {'style': 'filled'},
-        'graph_attr': {'bgcolor': 'transparent'},
+        'graph_attr': {
+            'bgcolor': 'transparent', 'nslimit': '1', 'nslimit1': '1'
+        },
         'edge_attr': {},
         'body': {'splines': 'ortho', 'style': 'filled'},
         'format': 'svg'
@@ -811,8 +821,11 @@ class SiteFolder:
 
         if any(o in it for o in self.outputs) and END not in gnode:
             it[END] = {'index': (END,)}
-
-        for k, a in sorted(it.items()):
+        it = sorted(
+            it.items(),
+            key=lambda x: (x[0] is END, nodes.get(x[0], {}).get('index', ()), x[0])
+        )
+        for k, a in it:
             attr = combine_dicts(nodes.get(k, {}), a)
             if k in errors:
                 attr['error'] = errors[k]
@@ -890,7 +903,7 @@ class SiteFolder:
 
         for i, (cluster, d) in enumerate(clr.items()):
             kw = _format_kw_digraph(d.get('kw', {}), base={
-                'name': 'cluster_%d' % i, 'body': {'label': '<%s>' % cluster}
+                'name': 'cluster_%d' % i, 'body': {'label': '"%s"' % cluster}
             })
             with dot.subgraph(**kw) as g:
                 for node in d['nodes']:
