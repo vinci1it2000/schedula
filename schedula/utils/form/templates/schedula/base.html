@@ -18,7 +18,7 @@
     <script defer="defer">
         function onLoad() {
             let name = "{{ form_id or 'index' }}",
-                url = '{{ url_prefix }}',
+                url = '{{ url_prefix + "/" }}',
                 element = document.getElementById('root'),
                 forms_url = "{{ url_prefix + url_for('schedula.static', filename='forms') }}",
                 csrf_token = "{{ csrf_token() }}",
