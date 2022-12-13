@@ -382,7 +382,7 @@ Now that the ``api`` model is secure, we can deploy our web API service.
 maps all its functions and sub-dispatchers. Each of these APIs are commonly
 called endpoints. You can launch the server with the code below::
 
-    >>> server = api.web().site(host='127.0.0.1', port=5000).run()
+    >>> server = api.web(run=False).site(host='127.0.0.1', port=5000).run()
     >>> url = server.url; url
     'http://127.0.0.1:5000'
 

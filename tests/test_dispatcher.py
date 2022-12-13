@@ -1188,6 +1188,27 @@ class TestDispatch(unittest.TestCase):
         self.assertEqual(set(o.workflow.nodes), r)
         self.assertEqual(o.workflow.adj, w)
 
+    def test_verbose(self):
+        dsp = self.dsp
+        with self.assertLogs('schedula', level='INFO') as cm:
+            o = dsp.dispatch({'a': 5, 'b': 6, 'f': 9}, verbose=True)
+            self.assertEqual(
+                dict(o.items()),
+                {'a': 5, 'b': 6, 'c': 0, 'd': 0, 'e': 2, 'f': 9}
+            )
+            res = [
+                'INFO:schedula\.utils\.sol:Start `log\(b - a\)`\.\.\.',
+                'INFO:schedula\.utils\.sol:Done `log\(b - a\)` in \d+\.\d+ sec\.',
+                'INFO:schedula\.utils\.sol:Start `min`\.\.\.',
+                'INFO:schedula\.utils\.sol:Done `min` in \d+\.\d+ sec\.',
+                'INFO:schedula\.utils\.sol:Start `2 / \(d \+ 1\)`\.\.\.',
+                'INFO:schedula\.utils\.sol:Done `2 / \(d \+ 1\)` in \d+\.\d+ sec\.'
+            ]
+
+            self.assertEqual(len(cm.output), len(cm.output))
+            for o, regex in zip(cm.output, res):
+                self.assertRegex(o, regex)
+
     def test_no_call(self):
         dsp = self.dsp
         o = dsp.dispatch(['a', 'b'], no_call=True)
@@ -1568,7 +1589,6 @@ class TestDispatch(unittest.TestCase):
         })
         self.assertEqual(set(o.workflow.nodes), r)
         self.assertEqual(o.workflow.adj, w)
-
 
         dsp = self.dsp
         o = dsp.dispatch({'a': 5, 'b': 6, 'd': 0}, ['a', 'b', 'd'],

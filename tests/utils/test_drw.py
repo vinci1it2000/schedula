@@ -121,22 +121,27 @@ class TestDispatcherDraw(unittest.TestCase):
         self.assertIsInstance(plt, SiteMap)
 
     def test_view(self):
+        import requests
         from schedula.utils.drw import SiteMap, Site
 
         sol = self.sol
         SiteMap._view = lambda *args, **kwargs: None
-        plt = sol.plot(view=True)
+        plt = sol.plot(view=True, render=True)
         self.assertIsInstance(plt, SiteMap)
 
-        plt = self.dsp_plot({'a': {}})[sh.PLOT]['plot']
-        self.assertIsInstance(plt, SiteMap)
+        site = self.dsp_plot({'a': {}})[sh.PLOT]['plot']
+        self.assertIsInstance(site, Site)
+        self.assertEqual(requests.get(site.url).status_code, 200)
+        self.assertEqual(404, requests.get(site.url + '/missing').status_code)
+
+        self.assertTrue(site.shutdown())
+        self.assertFalse(site.shutdown())
 
         sites = set()
         plt = sol.plot(view=True, sites=sites, index=True)
         self.assertIsInstance(plt, SiteMap)
         site = sites.pop()
         self.assertIsInstance(site, Site)
-        import requests
         self.assertEqual(requests.get(site.url).status_code, 200)
         self.assertIsInstance(site, Site)
         self.assertTrue(site.shutdown())

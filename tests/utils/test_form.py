@@ -37,7 +37,6 @@ class TestDispatcherForm(unittest.TestCase):
 
         chromedriver_autoinstaller.install()
         cls.driver = webdriver.Chrome()
-        time.sleep(3)
         cls.form_dir = form_dir = osp.abspath(osp.join(
             osp.dirname(__file__), '..', '..', 'examples',
             'length_converter'
@@ -64,9 +63,7 @@ class TestDispatcherForm(unittest.TestCase):
         from selenium.common.exceptions import NoSuchElementException
         from selenium.webdriver.support import expected_conditions as EC
 
-        sites = set()
-        self.dsp.form(directory=self.form_dir, run=True, sites=sites)
-        self.site = sites.pop()
+        self.site = self.dsp.form(directory=self.form_dir, run=True, view=False)
         driver = self.driver
 
         driver.get('%s/' % self.site.url)
@@ -83,7 +80,7 @@ class TestDispatcherForm(unittest.TestCase):
 
         sites = set()
         self.dsp.form(
-            directory=self.form_dir, run=True, sites=sites,
+            directory=self.form_dir, run=True, sites=sites, view=False,
             get_context=lambda: {
                 'data': 'cool'
             }, get_data=lambda: {
@@ -112,7 +109,7 @@ class TestDispatcherForm(unittest.TestCase):
         self.site = sites.pop()
         driver = self.driver
 
-        driver.get('%s/' % self.site.url)
+        driver.get('%s/index' % self.site.url)
         self.assertTrue(WebDriverWait(driver, 30).until(
             EC.visibility_of_element_located((By.ID, "run-button"))
         ).get_attribute('disabled'))

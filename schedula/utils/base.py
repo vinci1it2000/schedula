@@ -79,8 +79,7 @@ class Base:
 
         You can create a web server with the following steps::
 
-            >>> webmap = dsp.web()
-            >>> print("Starting...\\n"); site = webmap.site().run(); site
+            >>> print("Starting...\\n"); site = dsp.web(); site
             Starting...
             Site(WebMap([(Dispatcher, WebMap())]), host='localhost', ...)
             >>> import requests
@@ -106,11 +105,12 @@ class Base:
         webmap.directory = directory
         if sites is not None:
             sites.add(webmap.site(view=run))
-
+        elif run:
+            return webmap.site(view=run)
         return webmap
 
     def form(self, depth=1, node_data=NONE, node_function=NONE, directory=None,
-             sites=None, run=True, get_context=NONE, get_data=NONE):
+             sites=None, run=True, view=True, get_context=NONE, get_data=NONE):
         """
         Creates a dispatcher Form Flask app.
 
@@ -139,6 +139,10 @@ class Base:
             Run the backend server?
         :type run: bool, optional
 
+        :param view:
+            Open the url site with the sys default opener.
+        :type view: bool, optional
+
         :param get_context:
             Function to pass extra data as form context.
         :type get_context: function, optional
@@ -148,8 +152,8 @@ class Base:
         :type get_data: function, optional
 
         :return:
-            A FormMap.
-        :rtype: ~schedula.utils.form.FormMap
+            A FormMap or a Site if `sites is None` and `run or view is True`.
+        :rtype: ~schedula.utils.form.FormMap | ~schedula.utils.drw.Site
         """
         options = {'node_data': node_data, 'node_function': node_function}
         options = {k: v for k, v in options.items() if v is not NONE}
@@ -166,9 +170,12 @@ class Base:
             formmap.get_form_context = get_context
         if get_data is not NONE:
             formmap.get_form_data = get_data
-        if sites is not None:
-            sites.add(formmap.site(view=run))
-
+        if sites is not None or run or view:
+            site = formmap.site(view=view)
+            site = run and not view and site.run() or site
+            if sites is None:
+                return site
+            sites.add(site)
         return formmap
 
     def plot(self, workflow=None, view=True, depth=-1, name=NONE, comment=NONE,
@@ -177,7 +184,7 @@ class Base:
              node_styles=NONE, node_data=NONE, node_function=NONE,
              edge_data=NONE, max_lines=NONE, max_width=NONE, directory=None,
              sites=None, index=True, viz=False, short_name=None,
-             executor='async'):
+             executor='async', render=False):
         """
         Plots the Dispatcher with a graph in the DOT language with Graphviz.
 
@@ -279,6 +286,10 @@ class Base:
             Open the main page of the site?
         :type view: bool, optional
 
+        :param render:
+            Render all pages statically?
+        :type render: bool, optional
+
         :param viz:
             Use viz.js as back-end?
         :type viz: bool, optional
@@ -292,7 +303,7 @@ class Base:
         :type executor: str, optional
 
         :return:
-            A SiteMap.
+            A SiteMap or a Site if .
         :rtype: schedula.utils.drw.SiteMap
 
         Example:
@@ -338,17 +349,18 @@ class Base:
         sitemap.short_name = short_name
         sitemap.directory = directory
         sitemap.add_items(self, workflow=workflow, depth=depth, **options)
-        if view:
+        if render:
+            sitemap.render(
+                directory=directory, view=view, index=index, viz_js=viz,
+                executor=executor
+            )
+        elif view or sites is not None:
+            site = sitemap.site(
+                directory, view=view, index=index, viz_js=viz, executor=executor
+            )
             if sites is None:
-                sitemap.render(
-                    directory=directory, view=True, index=index, viz_js=viz,
-                    executor=executor
-                )
-            else:
-                sites.add(sitemap.site(
-                    directory, view=True, index=index, viz_js=viz,
-                    executor=executor
-                ))
+                return site
+            sites.add(site)
         return sitemap
 
     def get_node(self, *node_ids, node_attr=NONE):

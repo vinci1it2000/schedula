@@ -38,7 +38,7 @@ class TestDispatcherWeb(unittest.TestCase):
         s_dsp.add_function(None, sdsppipe, ['a'], ['g'])
         s_dsp.add_function('SubDispatch', sdsp, ['d'], ['e', 'f'])
 
-        dsp = sh.Dispatcher(name='model')
+        dsp = sh.Dispatcher(name='model', raises=True)
         dsp.add_data('A', default_value=0)
         dsp.add_data('D', default_value={'a': 3})
 
@@ -99,6 +99,17 @@ class TestDispatcherWeb(unittest.TestCase):
             ])
             io.append((rule, inputs, v['results']))
 
+        def func(mode):
+            from flask import jsonify
+            response = jsonify('ciao')
+            if mode == 1:
+                raise sh.WebResponse(response)
+            elif mode == 2:
+                raise ValueError('error')
+            return response
+
+        dsp.add_func(func, outputs=['response'])
+
     def tearDown(self):
         self.site.shutdown()
 
@@ -117,3 +128,22 @@ class TestDispatcherWeb(unittest.TestCase):
         for r, i, o in self.io1:
             r = requests.post(url + r, json={'args': (i,)}).json()['return']
             self.assertEqual(tuple(r), tuple(o))
+
+        r = requests.post(url, json={
+            'kwargs': {'inputs': {'mode': 1}}
+        }).json()
+        self.assertEqual(r, 'ciao')
+        r = requests.post(url, json={
+            'kwargs': {'inputs': {'mode': 2}}
+        }).json()
+        self.assertEqual(r, {
+            'error': '("Failed DISPATCHING \'%s\' due to:'
+                     '\\n  %r", \'func\', ValueError(\'error\'))'
+        })
+
+        r = requests.post(url, json={'kwargs': {
+            'inputs': {'mode': 3}, 'outputs': ['response'],
+            'select_output_kw': {'output_type': 'values', 'keys': ['response']}
+        }}).json()
+        self.assertEqual(r, 'ciao')
+        self.assertEqual(404, requests.post(url + '/missing').status_code)
