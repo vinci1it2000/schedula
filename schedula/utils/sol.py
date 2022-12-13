@@ -20,6 +20,7 @@ from .dsp import stlp, get_nested_dicts, inf
 from .alg import get_full_pipe, _sort_sk_wait_in
 from .exc import DispatcherError, DispatcherAbort, SkipNode, ExecutorShutdown
 from .asy import async_thread, await_result, async_process, AsyncList, EXECUTORS
+from .utl import select_diff, dict_diff
 
 log = logging.getLogger(__name__)
 
@@ -72,30 +73,28 @@ class Solution(Base, collections.OrderedDict):
         self._edge_length = dsp._edge_length
 
     def _set_inputs(self, inputs, initial_dist, excluded_defaults=()):
+        excluded = set(excluded_defaults)
         if self.no_call:
             # Set initial values.
-            initial_values = {
-                k: v for k, v in self.dsp.default_values.items()
-                if k not in excluded_defaults
-            }
+            initial_values = dict_diff(self.dsp.default_values, excluded)
+
             if inputs is not None:  # Update initial values with input values.
                 initial_values.update(dict.fromkeys(inputs, NONE))
         else:
+
             # Set initial values.
-            initial_values = {
-                k: v['value'] for k, v in self.dsp.default_values.items()
-                if k not in excluded_defaults
-            }
+            initial_values = select_diff(
+                self.dsp.default_values, excluded, 'value'
+            )
 
             if inputs is not None:  # Update initial values with input values.
                 initial_values.update(inputs)
+        excluded.update(inputs or set())
 
         # Set initial values.
-        initial_distances = {
-            k: v['initial_dist']
-            for k, v in self.dsp.default_values.items()
-            if k not in excluded_defaults and (not inputs or k not in inputs)
-        }
+        initial_distances = select_diff(
+            self.dsp.default_values, excluded, 'initial_dist'
+        )
 
         if initial_dist is not None:  # Update initial distances.
             initial_distances.update(initial_dist)
@@ -134,14 +133,6 @@ class Solution(Base, collections.OrderedDict):
         graph.remove_edge(u, v)  # Remove the edge.
         if not (graph.succ[v] or graph.pred[v]):  # Check if v is isolated.
             graph.remove_node(v)  # Remove the isolated out node.
-
-    def wf_add_edge(self, u, v, **attr):
-        graph = self.workflow
-        succ, pred = graph.succ, graph.pred
-        if v not in succ:  # Add nodes.
-            succ[v], pred[v], graph.nodes[v] = {}, {}, {}
-
-        succ[u][v] = pred[v][u] = attr  # Add the edge.
 
     def check_wait_in(self, wait_in, n_id):
         """
@@ -635,10 +626,10 @@ class Solution(Base, collections.OrderedDict):
 
         if next_nds:
             # namespace shortcuts for speed.
-            wf_add_edge = self.wf_add_edge
+            add_edge_fw = self.workflow.add_edge_fw
 
             for u in next_nds:  # Set workflow.
-                wf_add_edge(node_id, u, **value)
+                add_edge_fw(node_id, u, **value)
 
         else:
             # List of functions.
@@ -659,18 +650,16 @@ class Solution(Base, collections.OrderedDict):
             # Check if it has functions as outputs and wildcard condition.
             if succ_fun and succ_fun[0] not in self._visited:
                 # namespace shortcuts for speed.
-                wf_add_edge = self.wf_add_edge
+                add_edge_fw = self.workflow.add_edge_fw
 
                 for u in succ_fun:  # Set workflow.
-                    wf_add_edge(node_id, u, **value)
+                    add_edge_fw(node_id, u, **value)
 
         return True  # Return that the output have been evaluated correctly.
 
     def _apply_filters(self, res, node_id, node_attr, attr, stopper=None,
                        executor=False):
-        funcs = node_attr.get('filters')
-
-        if funcs:
+        if 'filters' in node_attr:
             self._started(attr, node_id)
             attr['solution_filters'] = filters = [res]
 
@@ -679,8 +668,9 @@ class Solution(Base, collections.OrderedDict):
                 filters.append(sol)
 
             res = async_process(
-                funcs, res, stopper=stopper, executor=executor, sol=self,
-                callback=_callback, sol_name=self.full_name + (node_id,)
+                node_attr['filters'], res, stopper=stopper, executor=executor,
+                sol=self, sol_name=self.full_name + (node_id,),
+                callback=_callback
             )
 
         return res
@@ -737,11 +727,12 @@ class Solution(Base, collections.OrderedDict):
             self.workflow.remove_node(node_id)  # Remove function node.
             return False
 
-        wf_add_edge = self.wf_add_edge  # Namespace shortcuts for speed.
+        # Namespace shortcuts for speed.
+        add_edge_fw = self.workflow.add_edge_fw
 
         if no_call:
             for u in output_nodes:  # Set workflow out.
-                wf_add_edge(node_id, u)
+                add_edge_fw(node_id, u)
             return True
 
         args = self.workflow.pred[node_id]  # List of the function's arguments.
@@ -758,7 +749,7 @@ class Solution(Base, collections.OrderedDict):
         # Set workflow.
         for k, v in zip(o_nds, res if len(o_nds) > 1 else [res]):
             if k in output_nodes and v is not NONE:
-                wf_add_edge(node_id, k, value=v)
+                add_edge_fw(node_id, k, value=v)
 
         return True  # Return that the output have been evaluated correctly.
 
@@ -795,7 +786,7 @@ class Solution(Base, collections.OrderedDict):
         # Namespace shortcuts for speed.
         nodes, seen, edge_weight = self.nodes, self.seen, self._edge_length
         wf_remove_edge, check_wait_in = self.wf_remove_edge, self.check_wait_in
-        wf_add_edge, dsp_in = self.wf_add_edge, self._set_sub_dsp_node_input
+        add_edge_fw, dsp_in = self.workflow.add_edge_fw, self._set_sub_dsp_node_input
         update_view = self._update_meeting
 
         if fringe is None:
@@ -811,7 +802,7 @@ class Solution(Base, collections.OrderedDict):
 
         index = nodes[data_id]['index']  # Store node index.
 
-        wf_add_edge(START, data_id, **value)  # Add edge.
+        add_edge_fw(START, data_id, **value)  # Add edge.
 
         if data_id in self._wildcards:  # Check if the data node has wildcard.
 
@@ -820,7 +811,7 @@ class Solution(Base, collections.OrderedDict):
             self.workflow.add_node(data_id)  # Add node to workflow.
 
             for w, edge_data in self.dmap[data_id].items():  # See func node.
-                wf_add_edge(data_id, w, **value)  # Set workflow.
+                add_edge_fw(data_id, w, **value)  # Set workflow.
 
                 node = nodes[w]  # Node attributes.
 
@@ -1063,7 +1054,7 @@ class Solution(Base, collections.OrderedDict):
                 if n['index'] == c_i and node_id in n.get('outputs', {}):
                     value = self[node_id]  # Get data output.
                     visited, has_edge = sol._visited, sol.workflow.has_edge
-                    pass_result, see_node = sol.wf_add_edge, sol._see_node
+                    pass_result, see_node = sol.workflow.add_edge_fw, sol._see_node
                     for n_id in stlp(n['outputs'][node_id]):
                         # Node has been visited or inp do not coincide with out.
                         if not (n_id in visited or has_edge(n_id, dsp_id)):

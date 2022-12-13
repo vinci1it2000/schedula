@@ -15,6 +15,7 @@ from .utils.dsp import (
 )
 from .utils.gen import counter
 from .utils.base import Base
+from .utils.utl import get_unused_node_id
 
 __all__ = ['Dispatcher']
 __author__ = 'Vincenzo Arcidiacono <vinci1it2000@gmail.com>'
@@ -392,7 +393,6 @@ class Dispatcher(Base):
         nodes = self.dmap.nodes  # Namespace shortcut for speed.
 
         if data_id is None:  # Search for an unused node id.
-            from .utils.alg import get_unused_node_id
             data_id = get_unused_node_id(self.dmap)  # Get an unused node id.
 
         # Check if the node id exists as function.
@@ -578,7 +578,6 @@ class Dispatcher(Base):
         else:
             function_name = function_id
 
-        from .utils.alg import get_unused_node_id
         # Get an unused node id.
         fun_id = get_unused_node_id(self.dmap, initial_guess=function_name)
 

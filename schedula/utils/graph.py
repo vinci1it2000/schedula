@@ -93,6 +93,14 @@ class DiGraph:
         succ[u][v] = self.pred[v][u] = dd = succ[u].get(v, {})
         dd.update(attr)
 
+    def _add_edge_fw(self, u, v, attr):
+        if v not in self.succ:  # Add nodes.
+            self._add_node(v, {})
+        self._add_edge(u, v, attr)  # Add the edge.
+
+    def add_edge_fw(self, u, v, **attr):
+        self._add_edge_fw(u, v, attr)
+
     def add_edge(self, u, v, **attr):
         self._add_edge(u, v, attr)
         return self
