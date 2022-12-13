@@ -128,12 +128,6 @@ class Solution(Base, collections.OrderedDict):
     def _update_methods(self):
         self._targets = self.outputs.copy() if self.outputs else None
 
-    def wf_remove_edge(self, u, v):
-        graph = self.workflow
-        graph.remove_edge(u, v)  # Remove the edge.
-        if not (graph.succ[v] or graph.pred[v]):  # Check if v is isolated.
-            graph.remove_node(v)  # Remove the isolated out node.
-
     def check_wait_in(self, wait_in, n_id):
         """
         Stops the search of the investigated node of the ArciDispatch
@@ -785,8 +779,9 @@ class Solution(Base, collections.OrderedDict):
 
         # Namespace shortcuts for speed.
         nodes, seen, edge_weight = self.nodes, self.seen, self._edge_length
-        wf_remove_edge, check_wait_in = self.wf_remove_edge, self.check_wait_in
-        add_edge_fw, dsp_in = self.workflow.add_edge_fw, self._set_sub_dsp_node_input
+        check_wait_in = self.check_wait_in
+        add_edge_fw = self.workflow.add_edge_fw
+        dsp_in = self._set_sub_dsp_node_input
         update_view = self._update_meeting
 
         if fringe is None:
@@ -882,8 +877,9 @@ class Solution(Base, collections.OrderedDict):
         """
 
         # Namespace shortcuts.
-        wf_rm_edge, wf_has_edge = self.wf_remove_edge, self.workflow.has_edge
-        edge_weight, nodes = self._edge_length, self.nodes
+        wf_has_edge = self.workflow.has_edge
+        edge_weight = self._edge_length
+        nodes = self.nodes
 
         self.dist[node_id] = dist  # Set minimum dist.
 
@@ -1053,8 +1049,10 @@ class Solution(Base, collections.OrderedDict):
             for dsp_id, n in sol.dsp.nodes.items():
                 if n['index'] == c_i and node_id in n.get('outputs', {}):
                     value = self[node_id]  # Get data output.
-                    visited, has_edge = sol._visited, sol.workflow.has_edge
-                    pass_result, see_node = sol.workflow.add_edge_fw, sol._see_node
+                    visited = sol._visited
+                    has_edge = sol.workflow.has_edge
+                    pass_result = sol.workflow.add_edge_fw
+                    see_node = sol._see_node
                     for n_id in stlp(n['outputs'][node_id]):
                         # Node has been visited or inp do not coincide with out.
                         if not (n_id in visited or has_edge(n_id, dsp_id)):
