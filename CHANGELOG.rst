@@ -2,6 +2,26 @@ Changelog
 =========
 
 
+v1.4.1 (2022-12-12)
+-------------------
+
+Feat
+~~~~
+- (base): Update default behaviour when invoking `plot`, `web` and
+  `form`.
+
+- (sol): Remove unused code.
+
+- (core): Create a new module `utl`.
+
+
+Fix
+~~~
+- (form): Correct form `url` API.
+
+- (doc): Remove `requires.io`.
+
+
 v1.4.0 (2022-12-12)
 -------------------
 
