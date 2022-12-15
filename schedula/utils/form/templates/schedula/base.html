@@ -6,24 +6,73 @@
     {% block title %}
     <title>{% block title_name %}{{ name }}{% endblock %}</title>
     <link rel="shortcut icon"
-          href="{{ url_prefix + url_for('static', filename='favicon.ico') }}"/>
+          href="{{ form.url_prefix + url_for('static', filename='favicon.ico') }}"/>
     {% endblock %}
     {% block js %}
-    <script src="{{ url_prefix + url_for('schedula.static', filename=main_js) }}"></script>
+    <script src="{{ form.url_prefix + url_for('schedula.static', filename=main_js) }}"></script>
     {% endblock %}
     {% block css %}
-    <link href="{{ url_prefix + url_for('schedula.static', filename=main_css) }}" rel="stylesheet">
+    <link href="{{ form.url_prefix + url_for('schedula.static', filename=main_css) }}"
+          rel="stylesheet">
+    {% endblock %}
+
+    {% block edit_on_change_func %}
+    <script>
+        const editOnChange = {{ form.get_edit_on_change_func() | safe }};
+        /*({
+             formData,
+             formContext,
+             schema,
+             uiSchema,
+             csrf_token,
+             setFormData,
+             ...props
+         }) => {
+            return false
+        }*/
+    </script>
+    {% endblock %}
+
+    {% block pre_submit_func %}
+    <script>
+        const preSubmit = {{ form.get_pre_submit_func() | safe }};
+        /*({
+             input,
+             formContext,
+             schema,
+             uiSchema,
+             csrf_token,
+             ...props
+         }) => (input)
+        */
+    </script>
+    {% endblock %}
+
+    {% block post_submit_func %}
+    <script>
+        const postSubmit = {{ form.get_post_submit_func() | safe }};
+        /*({
+             data,
+             input,
+             formContext,
+             schema,
+             uiSchema,
+             csrf_token,
+             ...props
+         }) => (data)
+        */
+    </script>
     {% endblock %}
     {% block js_onload %}
     <script defer="defer">
         function onLoad() {
             let name = "{{ form_id or 'index' }}",
-                url = '{{ url_prefix + "/" }}',
+                url = '{{ form.url_prefix + "/" }}',
                 element = document.getElementById('root'),
-                forms_url = "{{ url_prefix + url_for('schedula.static', filename='forms') }}",
-                csrf_token = "{{ csrf_token() }}",
-                formContext = JSON.parse('{{ get_form_context() | tojson | safe}}'),
-                formData = JSON.parse('{{ get_form_data() | tojson | safe}}');
+                forms_url = "{{ form.url_prefix + url_for('schedula.static', filename='forms') }}",
+                csrf_token = "{{ form.generate_csrf() }}",
+                formContext = JSON.parse('{{ form.get_form_context() | tojson | safe}}'),
+                formData = JSON.parse('{{ form.get_form_data() | tojson | safe}}');
             Promise.all([
                 fetch(`${forms_url}/${name}-schema.json`).then(v => v.json()),
                 fetch(`${forms_url}/${name}-ui.json`).then(v => v.json())
@@ -36,7 +85,10 @@
                     uiSchema,
                     csrf_token,
                     formContext,
-                    formData
+                    formData,
+                    editOnChange,
+                    preSubmit,
+                    postSubmit
                 })
             });
         }

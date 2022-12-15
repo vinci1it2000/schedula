@@ -110,7 +110,8 @@ class Base:
         return webmap
 
     def form(self, depth=1, node_data=NONE, node_function=NONE, directory=None,
-             sites=None, run=True, view=True, get_context=NONE, get_data=NONE):
+             sites=None, run=True, view=True, get_context=NONE, get_data=NONE,
+             edit_on_change=NONE, pre_submit=NONE, post_submit=NONE):
         """
         Creates a dispatcher Form Flask app.
 
@@ -145,11 +146,23 @@ class Base:
 
         :param get_context:
             Function to pass extra data as form context.
-        :type get_context: function, optional
+        :type get_context: function | dict, optional
 
         :param get_data:
             Function to initialize the formdata.
-        :type get_data: function, optional
+        :type get_data: function | dict, optional
+
+        :param edit_on_change:
+            Function to initialize the formdata.
+        :type edit_on_change: function | dict, optional
+
+        :param pre_submit:
+            Function to initialize the formdata.
+        :type pre_submit: function | dict, optional
+
+        :param post_submit:
+            Function to initialize the formdata.
+        :type post_submit: function | dict, optional
 
         :return:
             A FormMap or a Site if `sites is None` and `run or view is True`.
@@ -166,10 +179,17 @@ class Base:
         formmap = FormMap()
         formmap.add_items(obj, workflow=False, depth=depth, **options)
         formmap.directory = directory
-        if get_context is not NONE:
-            formmap.get_form_context = get_context
-        if get_data is not NONE:
-            formmap.get_form_data = get_data
+
+        methods = {
+            'get_form_context': get_context,
+            'get_form_data': get_data,
+            'get_edit_on_change_func': edit_on_change,
+            'get_pre_submit_func': pre_submit,
+            'get_post_submit_func': post_submit
+        }
+        for k, v in methods.items():
+            if v is not NONE:
+                setattr(formmap, f'_{k}', v)
         if sites is not None or run or view:
             site = formmap.site(view=view)
             site = run and not view and site.run() or site

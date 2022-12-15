@@ -32,7 +32,7 @@
     "@babel/core": "^7.12.7",
     "@babel/preset-env": "^7.12.7",
     "browserify": "^16.5.2",
-    "react-scripts": "5.0.1",
+    "react-scripts": "^5.0.1",
     "rewire": "^6.0.0",
     "uglify-js": "^3.10.4"
   },

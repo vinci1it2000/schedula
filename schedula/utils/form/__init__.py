@@ -39,6 +39,45 @@ static_context = {
 
 
 class FormMap(WebMap):
+    _get_edit_on_change_func = """
+    ({
+         formData,
+         formContext,
+         schema,
+         uiSchema,
+         csrf_token,
+         setFormData,
+         ...props
+    }) => (false)
+    """
+    _get_pre_submit_func = """
+    ({
+         input,
+         formContext,
+         schema,
+         uiSchema,
+         csrf_token,
+         ...props
+    }) => (input)
+    """
+    _get_post_submit_func = """
+    ({
+         data,
+         input,
+         formContext,
+         schema,
+         uiSchema,
+         csrf_token,
+         ...props
+    }) => (data)
+    """
+
+    def _get_form_context(self):
+        return {}
+
+    def _get_form_data(self):
+        return
+
     @staticmethod
     def _view(url, *args, **kwargs):
         webbrowser.open(url)
@@ -65,7 +104,7 @@ class FormMap(WebMap):
         self._csrf_protected = set()
         self.url_prefix = os.environ.get('SCHEDULA_FORM_URL_PREFIX', '')
 
-    def _get_config(self, config_name):
+    def _config(self, config_name):
         value = current_app.config.get(
             config_name, self.csrf_defaults[config_name]
         )
@@ -77,29 +116,27 @@ class FormMap(WebMap):
 
         return value
 
-    def get_form_context(self):
-        return {}
-
-    def get_form_data(self):
-        return
+    def __getattr__(self, item):
+        if item.startswith('get_') and hasattr(self, f'_{item}'):
+            attr = getattr(self, f'_{item}')
+            if isinstance(attr, dict):
+                attr = attr.get(request.path, attr[None])
+            if hasattr(attr, '__call__'):
+                return attr
+            return lambda: attr
+        return super(FormMap, self).__getattr__(item)
 
     def render_form(self, form='index'):
         template = f'schedula/{form}.html'
-        context = {
-            'name': form, 'form_id': form,
-            'csrf_token': self.generate_csrf,
-            'get_form_context': self.get_form_context,
-            'get_form_data': self.get_form_data,
-            'url_prefix': self.url_prefix
-        }
+        context = {'name': form, 'form_id': form, 'form': self}
         context.update(static_context)
         try:
             return render_template(template, **context)
         except TemplateNotFound:
             return render_template('schedula/base.html', **context)
 
-    def _get_csrf_token(self):
-        field_name = self._get_config('CSRF_FIELD_NAME')
+    def _csrf_token(self):
+        field_name = self._config('CSRF_FIELD_NAME')
         base_token = request.form.get(field_name)
 
         if base_token:
@@ -114,7 +151,7 @@ class FormMap(WebMap):
                     return csrf_token
 
         # find the token in the headers
-        for header_name in self._get_config('CSRF_HEADERS'):
+        for header_name in self._config('CSRF_HEADERS'):
             csrf_token = request.headers.get(header_name)
 
             if csrf_token:
@@ -123,11 +160,11 @@ class FormMap(WebMap):
         return None
 
     def generate_csrf(self):
-        if self._get_config('CSRF_ENABLED'):
-            field_name = self._get_config('CSRF_FIELD_NAME')
+        if self._config('CSRF_ENABLED'):
+            field_name = self._config('CSRF_FIELD_NAME')
 
             if field_name not in g:
-                secret_key = self._get_config('CSRF_SECRET_KEY')
+                secret_key = self._config('CSRF_SECRET_KEY')
                 s = URLSafeTimedSerializer(secret_key, salt='csrf-token')
 
                 if field_name not in session:
@@ -146,28 +183,28 @@ class FormMap(WebMap):
             return g.get(field_name)
 
     def validate_csrf(self):
-        if (not self._get_config('CSRF_ENABLED') or
-                request.method not in self._get_config('CSRF_METHODS') or
+        if (not self._config('CSRF_ENABLED') or
+                request.method not in self._config('CSRF_METHODS') or
                 not request.endpoint or not (
                         ('view', request.endpoint) in self._csrf_protected or
                         ('bp', request.blueprint) in self._csrf_protected
                 )):
             return
 
-        token = self._get_csrf_token()
+        token = self._csrf_token()
         if not token:
             return jsonify({'error': 'The CSRF token is missing.'})
 
-        field_name = self._get_config('CSRF_FIELD_NAME')
+        field_name = self._config('CSRF_FIELD_NAME')
 
         if field_name not in session:
             return jsonify({'error': 'The CSRF session token is missing.'})
 
-        secret_key = self._get_config('CSRF_SECRET_KEY')
+        secret_key = self._config('CSRF_SECRET_KEY')
 
         s = URLSafeTimedSerializer(secret_key, salt='csrf-token')
 
-        time_limit = self._get_config('CSRF_TIME_LIMIT')
+        time_limit = self._config('CSRF_TIME_LIMIT')
         try:
             token = s.loads(token, max_age=time_limit)
         except SignatureExpired:
@@ -178,7 +215,7 @@ class FormMap(WebMap):
         if not hmac.compare_digest(session[field_name], token):
             return jsonify({'error': 'The CSRF tokens do not match.'})
 
-        if request.is_secure and self._get_config('CSRF_SSL_STRICT'):
+        if request.is_secure and self._config('CSRF_SSL_STRICT'):
             if not request.referrer:
                 return jsonify({'error': 'The referrer header is missing.'})
 

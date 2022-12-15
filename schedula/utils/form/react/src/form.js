@@ -17,6 +17,7 @@ import {
     Modal
 } from '@mui/material';
 import hash from 'object-hash'
+import cloneDeep from 'lodash/cloneDeep'
 
 const validator = customizeValidator({ajvOptionsOverrides: {$data: true}})
 
@@ -103,12 +104,16 @@ function Form(
         url = '/',
         name = "form",
         formContext = {},
+        editOnChange = null,
+        preSubmit = null,
+        postSubmit = null,
         ...props
     }
 ) {
     const [spinner, setSpinner] = useState(true);
     const [formData, setFormData] = useState(props.formData || {});
     delete props.formData
+    var form;
     const [errorMessage, setErrorMessage] = useState("");
     const formatData = (data) => {
         data = Object.assign({}, data);
@@ -119,7 +124,27 @@ function Form(
     const onSubmit = ({formData}, e) => {
         e.preventDefault();
         setSpinner(true)
-        postData(url, formData.input, csrf_token).then((data) => {
+        let input = preSubmit ? preSubmit({
+            input: formData.input,
+            formData,
+            formContext,
+            schema,
+            uiSchema,
+            csrf_token,
+            ...props
+        }) : formData.input;
+        postData(url, input, csrf_token).then((data) => (
+            postSubmit ? postSubmit({
+                data,
+                input: formData.input,
+                formData,
+                formContext,
+                schema,
+                uiSchema,
+                csrf_token,
+                ...props
+            }) : data
+        )).then((data) => {
             setFormData(formatData(Object.assign({input: formData.input}, data)))
         }).catch(error => {
             setFormData(formatData(Object.assign({input: formData.input}, {error: error.message})))
@@ -128,6 +153,22 @@ function Form(
         });
     }
     const onChange = ({formData, errors}) => {
+        if (editOnChange) {
+            let oldHash = hash(formData),
+                newFormData = editOnChange({
+                    formData: cloneDeep(formData),
+                    formContext,
+                    schema,
+                    uiSchema,
+                    csrf_token,
+                    ...props
+                });
+            if (oldHash !== hash(newFormData)) {
+                formData = formatData(newFormData)
+                if (form)
+                    form.setState(Object.assign({}, form.state, {formData}))
+            }
+        }
         if (!formData.hash) {
             formData = formatData(formData)
         }
@@ -163,21 +204,25 @@ function Form(
             >
                 <CircularProgress color="inherit"/>
             </Backdrop>
-            <BaseForm key={name + '-Form'}
-                      id={name + '-Form'}
-                      schema={schema}
-                      uiSchema={uiSchema}
-                      formData={formData}
-                      fields={fields}
-                      validator={validator}
-                      templates={templates}
-                      showErrorList={true}
-                      omitExtraData={true}
-                      liveValidate={true}
-                      onChange={onChange}
-                      onSubmit={onSubmit}
-                      formContext={formContext}
-                      {...props}
+            <BaseForm
+                key={name + '-Form'}
+                id={name + '-Form'}
+                schema={schema}
+                uiSchema={uiSchema}
+                formData={formData}
+                fields={fields}
+                ref={_form => {
+                    form = _form;
+                }}
+                validator={validator}
+                templates={templates}
+                showErrorList={true}
+                omitExtraData={true}
+                liveValidate={true}
+                onChange={onChange}
+                onSubmit={onSubmit}
+                formContext={formContext}
+                {...props}
             />
             <Modal
                 key={name + "-error-modal"}
