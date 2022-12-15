@@ -2,6 +2,15 @@ Changelog
 =========
 
 
+v1.4.2 (2022-12-15)
+-------------------
+
+Feat
+~~~~
+- (form): Add options to edit/pre- post-process within the form
+  dynamically.
+
+
 v1.4.1 (2022-12-12)
 -------------------
 
