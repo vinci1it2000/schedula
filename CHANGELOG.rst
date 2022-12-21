@@ -2,6 +2,21 @@ Changelog
 =========
 
 
+v1.4.3 (2022-12-21)
+-------------------
+
+Feat
+~~~~
+- (web): Add `DEBUG` method as `API` service.
+
+
+Fix
+~~~
+- (test): Correct test cases to generate autodispatcher.
+
+- (form): Correct bug when plot is empty.
+
+
 v1.4.2 (2022-12-15)
 -------------------
 
