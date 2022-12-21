@@ -11,6 +11,31 @@
     <script src="{{folder|safe}}/js/jquery.fullscreen.min.js"></script>
     <script src="{{folder|safe}}/js/d3-scale.v3.min.js"></script>
     <script src="{{folder|safe}}/js/sunburst-chart.min.js"></script>
+    {% if alive_url %}
+    <script>
+        async function imAlive() {
+            const alive_url = "{{ alive_url }}";
+            const alive_period = {{ (alive_period or 600) * 1000 }};
+            let response, fail = 0;
+            while (alive_url){
+                await new Promise(resolve => setTimeout(resolve, alive_period));
+                response = await fetch(alive_url, {method: 'PING'});
+                if (response.status == 200) {
+                    fail = 0
+                } else if (response.status == 503) {
+                    document.open()
+                    document.write(await response.text())
+                    document.close()
+                    break;
+                } else {
+                    fail++
+                }
+                if (fail === 5) break;
+            }
+        }
+        imAlive();
+    </script>
+    {% endif %}
     <meta charset="UTF-8">
 </head>
 <body>

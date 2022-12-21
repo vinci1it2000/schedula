@@ -7,6 +7,7 @@
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
 import os
+import time
 import unittest
 import schedula as sh
 
@@ -52,7 +53,8 @@ class TestDispatcherWeb(unittest.TestCase):
         self.sol = sol = dsp.dispatch()
         sites = set()
         webmap = dsp.web(
-            node_data=('+set_value',), run=True, sites=sites
+            node_data=('+set_value',), run=True, sites=sites,
+            subsite_idle_timeout=os.name == 'nt' and 6 or 1
         )
         self.site = sites.pop()
         self.url = '%s/' % self.site.url
@@ -112,11 +114,12 @@ class TestDispatcherWeb(unittest.TestCase):
 
     def tearDown(self):
         self.site.shutdown()
+        sh.shutdown_executors(False)
 
     def test_web(self):
         import requests
         url = self.url
-        r = requests.post(url, json={}).json()['return']
+        r = requests.post(url).json()['return']
         self.assertEqual(r, self.sol)
         for r, i, o in self.io:
             r = requests.post(url + r, json={'args': (i,)}).json()['return']
@@ -145,5 +148,32 @@ class TestDispatcherWeb(unittest.TestCase):
             'inputs': {'mode': 3}, 'outputs': ['response'],
             'select_output_kw': {'output_type': 'values', 'keys': ['response']}
         }}).json()
-        self.assertEqual(r, 'ciao')
+        self.assertEqual('ciao', r)
         self.assertEqual(404, requests.post(url + '/missing').status_code)
+
+    @unittest.skipIf(EXTRAS not in ('all',), 'Not for extra %s.' % EXTRAS)
+    def test_web_debug(self):
+        import requests
+        url = self.url
+        r = requests.request('DEBUG', url, json={
+            'kwargs': {'inputs': {'mode': 1}}
+        })
+        self.assertEqual(200, r.status_code)
+        self.assertEqual('ciao', r.json())
+        self.assertIn('Debug-Location', r.headers)
+
+        debug_url = url[:-1] + r.headers['Debug-Location']
+        r = requests.get(debug_url)
+        self.assertEqual(200, r.status_code)
+        self.assertTrue(r.text.startswith('<html'))
+        self.assertTrue(r.text.endswith('</html>'))
+
+        ping_url = debug_url + 'alive'
+        r = requests.request('PING', ping_url)
+        self.assertEqual(200, r.status_code)
+        self.assertEqual('active', r.text)
+
+        time.sleep(os.name == 'nt' and 20 or 5)
+        self.assertEqual(503, requests.get(debug_url).status_code)
+        self.assertEqual(404, requests.request('PING', ping_url).status_code)
+        self.assertEqual(404, requests.get(debug_url).status_code)

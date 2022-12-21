@@ -89,6 +89,10 @@ class TestDispatcherDirective(unittest.TestCase):
         global app
         app.cleanup()
 
+    @classmethod
+    def tearDownClass(cls) -> None:
+        sh.shutdown_executors(False)
+
     def test_format_signature(self):
         _setup()
 

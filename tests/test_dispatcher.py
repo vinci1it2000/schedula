@@ -578,10 +578,10 @@ class TestPerformance(unittest.TestCase):
                 'fun = DispatchPipe(d, "f", ["a", "b"], ["c", "d", "e"])'
                 % __name__,
                 repeat=repeat, number=number)) / repeat
-            print(
-                msg % (
-                    'DispatchPipe.__call__ async', '', t, (t0 - t) / t0 * 100))
-            sh.shutdown_executors()
+            print(msg % (
+                'DispatchPipe.__call__ async', '', t, (t0 - t) / t0 * 100
+            ))
+            sh.shutdown_executors(False)
 
 
 # noinspection PyUnusedLocal,PyTypeChecker
@@ -789,6 +789,11 @@ class TestAsyncParallel(unittest.TestCase):
     def tearDown(self) -> None:
         sh.shutdown_executors(False)
 
+    @classmethod
+    def tearDownClass(cls) -> None:
+        time.sleep(3)
+        sh.shutdown_executors(False)
+
     def test_dispatch(self):
         from concurrent.futures import ThreadPoolExecutor as Pool, Future
         from schedula.utils.asy import EXECUTORS
@@ -839,7 +844,7 @@ class TestAsyncParallel(unittest.TestCase):
             }
         )
         start = time.time()
-        t, n = os.name == 'nt' and 2 or .1, 6
+        t, n = os.name == 'nt' and 2 or .3, 6
         res = func(
             [{'start': start, 't': t} for _ in range(n)], _executor='parallel'
         )

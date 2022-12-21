@@ -70,9 +70,9 @@ const fields = {
 };
 
 
-async function postData(url = '', data = {}, csrf_token) {
+async function postData(url = '', data = {}, csrf_token, method = 'POST') {
     const response = await fetch(url, {
-        method: 'POST',
+        method: method,
         crossDomain: true,
         //mode: 'no-cors', // no-cors, *cors, same-origin
         cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
@@ -87,6 +87,9 @@ async function postData(url = '', data = {}, csrf_token) {
         referrerPolicy: 'unsafe-url', // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
         body: JSON.stringify(data) // body data type must match "Content-Type" header
     }).then(response => {
+        if (response.headers.has('Debug-Location')) {
+            window.open(response.headers.get('Debug-Location'), '_black')
+        }
         if (response.redirected) {
             window.location.href = response.url;
         }
@@ -123,6 +126,7 @@ function Form(
     }
     const onSubmit = ({formData}, e) => {
         e.preventDefault();
+        let method = e.nativeEvent.submitter.getAttribute('formmethod') || 'POST';
         setSpinner(true)
         let input = preSubmit ? preSubmit({
             input: formData.input,
@@ -133,7 +137,7 @@ function Form(
             csrf_token,
             ...props
         }) : formData.input;
-        postData(url, input, csrf_token).then((data) => (
+        postData(url, input, csrf_token, method).then((data) => (
             postSubmit ? postSubmit({
                 data,
                 input: formData.input,

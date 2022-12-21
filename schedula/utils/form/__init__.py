@@ -48,7 +48,7 @@ class FormMap(WebMap):
          csrf_token,
          setFormData,
          ...props
-    }) => (false)
+    }) => (formData)
     """
     _get_pre_submit_func = """
     ({
@@ -88,7 +88,7 @@ class FormMap(WebMap):
         'CSRF_TIME_LIMIT': 3600,
         'CSRF_HEADERS': {'X-CSRFToken', 'X-CSRF-Token'},
         'CSRF_ENABLED': True,
-        'CSRF_METHODS': {'POST', 'PUT', 'PATCH', 'DELETE'},
+        'CSRF_METHODS': {'POST', 'PUT', 'PATCH', 'DELETE', 'DEBUG'},
         'CSRF_SSL_STRICT': True
     }
 
@@ -128,7 +128,9 @@ class FormMap(WebMap):
 
     def render_form(self, form='index'):
         template = f'schedula/{form}.html'
-        context = {'name': form, 'form_id': form, 'form': self}
+        context = {
+            'name': form, 'form_id': form, 'form': self, 'app': current_app
+        }
         context.update(static_context)
         try:
             return render_template(template, **context)
@@ -258,13 +260,15 @@ class FormMap(WebMap):
         bp = Blueprint(
             'schedula', __name__, template_folder='templates'
         )
-        bp.add_url_rule('/', None, self.render_form, methods=['GET'])
         bp.add_url_rule(
-            '/<form>', 'render-form', self.render_form, methods=['GET']
+            '/<form>', 'render_form', self.render_form, methods=['GET']
         )
+        bp.add_url_rule('/', 'render_form')
+
         bp.add_url_rule(
             '/static/schedula/<path:filename>', 'static', self.send_static_file,
             methods=['GET']
         )
+        bp.add_url_rule('/static/schedula/<string:filename>', 'static')
         app.register_blueprint(bp)
         return app

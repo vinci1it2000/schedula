@@ -93,6 +93,31 @@
     </style>
     <!-- Required Javascript -->
     {{ viz and '<script src="%s"></script>' % viz or '' }}
+    {% if alive_url %}
+    <script>
+        async function imAlive() {
+            const alive_url = "{{ alive_url }}";
+            const alive_period = {{ (alive_period or 600) * 1000 }};
+            let response, fail = 0;
+            while (alive_url){
+                await new Promise(resolve => setTimeout(resolve, alive_period));
+                response = await fetch(alive_url, {method: 'PING'});
+                if (response.status == 200) {
+                    fail = 0
+                } else if (response.status == 503) {
+                    document.open()
+                    document.write(await response.text())
+                    document.close()
+                    break;
+                } else {
+                    fail++
+                }
+                if (fail === 5) break;
+            }
+        }
+        imAlive();
+    </script>
+    {% endif %}
 </head>
 <body onload="_onload()">
 <div id="index" style="display: none; height: 100%">

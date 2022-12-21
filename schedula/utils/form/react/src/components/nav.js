@@ -46,6 +46,7 @@ import Button from '@mui/material/Button';
 import ReactDiffViewer from 'react-diff-viewer';
 import ReplayIcon from '@mui/icons-material/Replay';
 import CancelIcon from '@mui/icons-material/Cancel';
+import AdbIcon from '@mui/icons-material/Adb';
 
 function ScrollTop(props) {
     const {children, window, anchor} = props;
@@ -329,6 +330,7 @@ export default function _nav(props) {
                                             <ListItemButton
                                                 component={'button'}
                                                 type="submit"
+                                                formMethod="POST"
                                                 sx={{
                                                     minHeight: 48,
                                                     justifyContent: open ? 'initial' : 'center',
@@ -346,6 +348,36 @@ export default function _nav(props) {
                                                     <PlayCircleIcon/>
                                                 </ListItemIcon>
                                                 <ListItemText primary={'RUN'}
+                                                              sx={{opacity: open ? 1 : 0}}/>
+                                            </ListItemButton>
+                                        </ListItem></Tooltip>}
+                                {props['disable-debug'] ? null :
+                                    <Tooltip
+                                        title={'Debug current data'}
+                                        arrow
+                                        placement="right" {...props['props-tooltip-debug']}>
+                                        <ListItem key={'debug'} disablePadding>
+                                            <ListItemButton
+                                                component={'button'}
+                                                type="submit"
+                                                formMethod="DEBUG"
+                                                sx={{
+                                                    minHeight: 48,
+                                                    justifyContent: open ? 'initial' : 'center',
+                                                    px: 2.5,
+                                                }}
+                                                {...props['props-debug']}
+                                            >
+                                                <ListItemIcon
+                                                    sx={{
+                                                        minWidth: 0,
+                                                        mr: open ? 3 : 'auto',
+                                                        justifyContent: 'center',
+                                                    }}
+                                                >
+                                                    <AdbIcon/>
+                                                </ListItemIcon>
+                                                <ListItemText primary={'DEBUG'}
                                                               sx={{opacity: open ? 1 : 0}}/>
                                             </ListItemButton>
                                         </ListItem></Tooltip>}

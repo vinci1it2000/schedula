@@ -1,6 +1,5 @@
 -r base.pip
 
 ddt
-nose
 coveralls
 cryptography

@@ -9,6 +9,7 @@
 import os
 import platform
 import unittest
+import schedula as sh
 import os.path as osp
 
 EXTRAS = os.environ.get('EXTRAS', 'all')
@@ -52,10 +53,14 @@ class TestDispatcherForm(unittest.TestCase):
     def tearDownClass(cls):
         if hasattr(cls, 'driver'):
             cls.driver.close()
+        if hasattr(cls, 'display'):
+            cls.display.stop()
 
     def tearDown(self):
         if self.site:
             self.site.shutdown()
+
+        sh.shutdown_executors(False)
 
     def test_form1(self):
         from selenium.webdriver.common.by import By

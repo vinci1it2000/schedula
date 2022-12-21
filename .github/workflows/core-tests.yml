@@ -14,7 +14,7 @@ jobs:
       matrix:
         os: [ ubuntu-latest ]
         extra: [ base ]
-        python-version: [ '3.7', '3.8', '3.9' ]
+        python-version: [ '3.8', '3.9', '3.10' ]
     env:
       EXTRAS: ${{ matrix.extra }}
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -30,4 +30,4 @@ jobs:
       - name: Build/Install wheel
         run: export ENABLE_SETUP_CORE="TRUE" && pip install wheel && python setup.py bdist_wheel && WHEEL=$(find dist/schedula_core*.whl) && pip install $WHEEL --no-dependencies --no-cache-dir
       - name: Run Test
-        run: coverage run --source=schedula setup.py nosetests
+        run: python -m unittest discover -s tests -p 'test_*.py'

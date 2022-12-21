@@ -13,18 +13,18 @@ jobs:
       fail-fast: false
       matrix:
         os: [ ubuntu-latest ]
-        extra: [ base, io, web,form, plot, sphinx, parallel, all, dev ]
-        python-version: [ '3.7', '3.8', '3.9' ]
+        extra: [ base, io, web, form, plot, sphinx, parallel, all, dev ]
+        python-version: [ '3.8', '3.9', '3.10' ]
         include:
-          - os: windows-latest
-            extra: all
-            python-version: '3.7'
           - os: windows-latest
             extra: all
             python-version: '3.8'
           - os: windows-latest
             extra: all
             python-version: '3.9'
+          - os: windows-latest
+            extra: all
+            python-version: '3.10'
     env:
       ACTION: "true"
       EXTRAS: ${{ matrix.extra }}
@@ -59,7 +59,7 @@ jobs:
         run: sudo apt-get install xvfb
 
       - name: Run Test
-        run: coverage run --source=schedula setup.py nosetests
-      - if: matrix.python-version == '3.9' && matrix.extra == 'all' && matrix.os == 'ubuntu-latest'
+        run: coverage run --source=schedula -m unittest discover -s tests -p 'test_*.py'
+      - if: matrix.python-version == '3.10' && matrix.extra == 'all' && matrix.os == 'ubuntu-latest'
         name: Run Coveralls
         run: coveralls --service=github

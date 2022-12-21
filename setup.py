@@ -81,19 +81,19 @@ if __name__ == '__main__':
     core = os.environ.get('ENABLE_SETUP_CORE') == 'TRUE'
     extras = {
         'io': ['dill!=0.2.7'],
-        'web': ['requests', 'regex', 'flask'],
-        'form': ['requests', 'regex', 'flask', 'itsdangerous'],
+        'web': ['requests', 'regex', 'flask', 'gevent'],
+        'form': ['requests', 'regex', 'flask', 'itsdangerous', 'gevent'],
         'parallel': ['multiprocess'],
         'plot': [
             'requests', 'graphviz>=0.17', 'regex', 'flask', 'Pygments',
-            'jinja2', 'docutils'
+            'jinja2', 'docutils', 'gevent'
         ]
     }
     extras['sphinx'] = ['sphinx>4'] + extras['plot']
     extras['all'] = sorted(functools.reduce(set.union, extras.values(), set()))
     extras['dev'] = extras['all'] + [
         'wheel', 'sphinx>4', 'gitchangelog', 'mako', 'sphinx_rtd_theme',
-        'setuptools>=36.0.1', 'sphinxcontrib-restbuilder', 'nose', 'coveralls',
+        'setuptools>=36.0.1', 'sphinxcontrib-restbuilder', 'coveralls',
         'requests', 'readthedocs-sphinx-ext', 'twine', 'ddt'
     ]
     exclude = [
@@ -164,8 +164,7 @@ if __name__ == '__main__':
         ],
         install_requires=[],
         extras_require=extras,
-        test_suite='nose.collector',
-        tests_require=['nose>=1.0', 'requests', 'cryptography'],
+        tests_require=['requests', 'cryptography', 'ddt'],
         package_data={
             'schedula.utils.drw': [
                 'templates/*', 'index/js/*', 'index/css/*', 'viz/*'

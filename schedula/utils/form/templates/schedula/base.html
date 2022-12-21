@@ -16,6 +16,34 @@
           rel="stylesheet">
     {% endblock %}
 
+    {% block alive_func %}
+    {% if 'alive' in app.view_functions %}
+    <script>
+        async function imAlive() {
+            const alive_url = "{{ url_for('alive') }}";
+            const alive_period = {{ (app.alive_period or 600) * 1000 }};
+            let response, fail = 0;
+            while (alive_url){
+                await new Promise(resolve => setTimeout(resolve, alive_period));
+                response = await fetch(alive_url, {method: 'PING'});
+                if (response.status == 200) {
+                    fail = 0
+                } else if (response.status == 503) {
+                    document.open()
+                    document.write(await response.text())
+                    document.close()
+                    break;
+                } else {
+                    fail++
+                }
+                if (fail === 5) break;
+            }
+        }
+        imAlive();
+    </script>
+    {% endif %}
+    {% endblock %}
+
     {% block edit_on_change_func %}
     <script>
         const editOnChange = {{ form.get_edit_on_change_func() | safe }};
@@ -27,9 +55,8 @@
              csrf_token,
              setFormData,
              ...props
-         }) => {
-            return false
-        }*/
+         }) => (formData)
+        */
     </script>
     {% endblock %}
 

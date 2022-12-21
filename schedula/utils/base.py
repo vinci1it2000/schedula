@@ -29,7 +29,7 @@ class Base:
         return result
 
     def web(self, depth=-1, node_data=NONE, node_function=NONE, directory=None,
-            sites=None, run=True):
+            sites=None, run=True, subsite_idle_timeout=600):
         """
         Creates a dispatcher Flask app.
 
@@ -57,6 +57,10 @@ class Base:
         :param run:
             Run the backend server?
         :type run: bool, optional
+
+        :param subsite_idle_timeout:
+            Idle timeout of a debug subsite in seconds.
+        :type subsite_idle_timeout: int, optional
 
         :return:
             A WebMap.
@@ -103,6 +107,7 @@ class Base:
         webmap = WebMap()
         webmap.add_items(obj, workflow=False, depth=depth, **options)
         webmap.directory = directory
+        webmap.idle_timeout = subsite_idle_timeout
         if sites is not None:
             sites.add(webmap.site(view=run))
         elif run:
@@ -111,7 +116,8 @@ class Base:
 
     def form(self, depth=1, node_data=NONE, node_function=NONE, directory=None,
              sites=None, run=True, view=True, get_context=NONE, get_data=NONE,
-             edit_on_change=NONE, pre_submit=NONE, post_submit=NONE):
+             edit_on_change=NONE, pre_submit=NONE, post_submit=NONE,
+             subsite_idle_timeout=600):
         """
         Creates a dispatcher Form Flask app.
 
@@ -164,6 +170,10 @@ class Base:
             Function to initialize the formdata.
         :type post_submit: function | dict, optional
 
+        :param subsite_idle_timeout:
+            Idle timeout of a debug subsite in seconds.
+        :type subsite_idle_timeout: int, optional
+
         :return:
             A FormMap or a Site if `sites is None` and `run or view is True`.
         :rtype: ~schedula.utils.form.FormMap | ~schedula.utils.drw.Site
@@ -179,7 +189,7 @@ class Base:
         formmap = FormMap()
         formmap.add_items(obj, workflow=False, depth=depth, **options)
         formmap.directory = directory
-
+        formmap.idle_timeout = subsite_idle_timeout
         methods = {
             'get_form_context': get_context,
             'get_form_data': get_data,
