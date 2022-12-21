@@ -1,11 +1,7 @@
 import os
 import unittest
 import schedula as sh
-
-try:
-    from .util import TestApp, Struct
-except SystemError:
-    from test.docs.util import TestApp, Struct
+from .util import TestApp, Struct
 
 app = None
 
@@ -212,12 +208,12 @@ class TestDispatcherDirective(unittest.TestCase):
             assert len(_warnings) == 0, _warnings
             assert_equal_items(self, items)
 
-        directive.env.ref_context['py:module'] = __name__
+        directive.env.ref_context['py:module'] = 'tests.docs.test_autodispatcher'
 
         res = [
             '',
             '.. py:data:: dsp',
-            '   :module: %s' % __name__,
+            '   :module: tests.docs.test_autodispatcher',
             '   :annotation:  = Pippo',
             '',
             'Docstring 1',
@@ -242,8 +238,8 @@ class TestDispatcherDirective(unittest.TestCase):
             ".. csv-table:: **Pippo's functions**",
             '',
             '   ":func:`fun1 <>`", "Fun1"',
-            '   ":func:`fun2 <%s.fun2>`", "Fun2"' % __name__,
-            '   ":func:`fun3 <%s.fun2>`", "Fun3"' % __name__,
+            '   ":func:`fun2 <tests.docs.test_autodispatcher.fun2>`", "Fun2"',
+            '   ":func:`fun3 <tests.docs.test_autodispatcher.fun2>`", "Fun3"',
             '']
         assert_result(self, res, 'dsp')
 

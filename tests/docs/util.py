@@ -80,8 +80,7 @@ class TestApp(Sphinx):
         else:
             srcdir = osp.join(tempdir, srcdir)
 
-        if not osp.exists(srcdir):
-            shutil.copytree(testroot, srcdir)
+        shutil.copytree(testroot, srcdir, dirs_exist_ok=True)
 
         if docutilsconf is not None:
             with open(osp.join(srcdir, 'docutils.conf'), 'w') as f:
@@ -121,7 +120,7 @@ class TestApp(Sphinx):
         except ImportError:  # sphinx >= 2.0
             pass
         sys.path[:] = self._saved_path
-        sys.modules.pop('autodoc_fodder', None)
+        sys.modules.pop('autodoc_folder', None)
 
     def __repr__(self):
         return '<%s buildername=%r>' % (self.__class__.__name__,
