@@ -1,0 +1,44 @@
+.flexible-modal {
+    position: absolute;
+    z-index: 10000000000;
+    border: none;
+    background: transparent;
+
+}
+
+.flexible-modal-mask {
+    position: fixed;
+    display: none;
+    height: 100%;
+    background: rgba(55, 55, 55, 0.6);
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+}
+
+.flexible-modal-resizer {
+
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    cursor: se-resize;
+    margin: 5px;
+    border-bottom: solid 2px #333;
+    border-right: solid 2px #333;
+}
+
+.flexible-modal-drag-area {
+    background: unset!important;
+    height: 64px!important;
+    position: absolute;
+    left: 0!important;
+    right: 64px!important;
+    width: unset!important;
+    top: 0;
+    cursor: move;
+}
+
+.flexible-modal-drag-area-left, .flexible-modal-drag-area-right, .flexible-modal-drag-area-bottom, .flexible-modal-drag-area-top {
+    display: none;
+}

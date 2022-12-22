@@ -24,6 +24,7 @@
     "react-dom": "^18.2.0",
     "react-easyfullscreen": "^1.1.2",
     "react-markdown": "^8.0.3",
+    "react-modal-resizable-draggable": "^0.1.6",
     "react-plotly.js": "^2.6.0",
     "react-reflex": "^4.0.9"
   },

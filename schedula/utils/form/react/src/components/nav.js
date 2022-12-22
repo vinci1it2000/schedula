@@ -60,7 +60,7 @@ function ScrollTop(props) {
     });
 
     const handleClick = (event) => {
-        anchor.scrollIntoView({
+        anchor.current.scrollIntoView({
             block: 'center',
         });
     };
@@ -239,7 +239,8 @@ export default function _nav(props) {
             'encoding': 'base64'
         })
     }
-    const anchor = <div/>
+    const anchor = React.useRef(null);
+
     return (
         <ReactFullscreen onChange={() => {
             setFullScreen(screenfull.isFullscreen)
@@ -555,13 +556,14 @@ export default function _nav(props) {
                             </List>
                         </Drawer>}
                     <Box component="main" sx={{
+                        bgcolor: 'background.paper',
                         flexGrow: 1,
                         py: 3,
                         pl: 3,
                         pr: '67px'
                     }} {...props['props-main']}>
                         <DrawerHeader/>
-                        {anchor}
+                        <div ref={anchor}/>
                         {props.children.map((element, index) => (
                             Math.abs(value) === index ? element : null
                         ))}
