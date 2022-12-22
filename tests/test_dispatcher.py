@@ -1195,6 +1195,8 @@ class TestDispatch(unittest.TestCase):
 
     def test_verbose(self):
         dsp = self.dsp
+        import logging
+        logging.disable(False)
         with self.assertLogs('schedula', level='INFO') as cm:
             o = dsp.dispatch({'a': 5, 'b': 6, 'f': 9}, verbose=True)
             self.assertEqual(
@@ -1213,6 +1215,7 @@ class TestDispatch(unittest.TestCase):
             self.assertEqual(len(cm.output), len(cm.output))
             for o, regex in zip(cm.output, res):
                 self.assertRegex(o, regex)
+        logging.disable()
 
     def test_no_call(self):
         dsp = self.dsp
