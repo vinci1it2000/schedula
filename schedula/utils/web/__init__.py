@@ -55,8 +55,8 @@ class WebMap(SiteMap):
     site_folder = WebFolder
     site_node = WebNode
     include_folders_as_filenames = False
-    methods = ['POST', 'DEBUG']
-    subsite_methods = ['GET', 'PING']
+    methods = ['POST']
+    subsite_methods = ['GET', 'POST']
     idle_timeout = 600
 
     def _repr_svg_(self):
@@ -69,19 +69,19 @@ class WebMap(SiteMap):
             root_path, mute=mute, blueprint_name=blueprint_name, **kwargs
         )
         context = self.rules(depth=depth, index=False)
-        for (node, extra), filepath in context.items():
-            app.add_url_rule('/%s' % filepath, filepath, functools.partial(
-                self._func_handler, node.obj
-            ), methods=self.methods)
+        opt = {'methods': self.methods}
+        for i, ((node, extra), path) in enumerate(context.items()):
+            view = functools.partial(self._func_handler, node.obj)
+            if i:
+                app.add_url_rule('/%s' % path, f'api_{path}', view, **opt)
+            else:
+                app.add_url_rule('/', 'api', view, **opt)
+                app.add_url_rule('/%s' % path, 'api', **opt)
 
-        if context:
-            app.add_url_rule(
-                '/', next(iter(context.values())), methods=self.methods
-            )
-        view, mtd = self._site_proxy, self.subsite_methods
-        app.add_url_rule('/subsite/<key>/', 'subsite', view, methods=mtd)
-        app.add_url_rule('/subsite/<key>/<path:path>', 'subsite', methods=mtd)
-        app.add_url_rule('/subsite/<key>/<string:path>', 'subsite', methods=mtd)
+        opt = {'methods': self.subsite_methods}
+        app.add_url_rule('/subsite/<key>/', 'subsite', self._site_proxy, **opt)
+        app.add_url_rule('/subsite/<key>/<path:path>', 'subsite', **opt)
+        app.add_url_rule('/subsite/<key>/<string:path>', 'subsite', **opt)
 
         return app
 
@@ -123,12 +123,12 @@ class WebMap(SiteMap):
             keys = request.args.get('data', 'return,error').split(',')
             keys = [v.strip(' ') for v in keys]
             resp = jsonify(selector(keys, data, allow_miss=True))
-        if request.method == 'DEBUG' and isinstance(func, Base):
+        if request.headers.get('Debug') == 'true' and isinstance(func, Base):
             resp.headers['Debug-Location'] = self.init_debug_subsite(func)
 
         return resp
 
-    def _site_proxy(self, key, path=None):
+    def _site_proxy(self, key, path=''):
         import requests
         from flask import request, current_app, abort
         key = key.lower()
@@ -138,7 +138,7 @@ class WebMap(SiteMap):
         try:
             resp = requests.request(
                 method=request.method,
-                url=f'{host_url}{request.path}',
+                url=f"{'/'.join((host_url, path or '/'))}",
                 headers={k: v for k, v in request.headers if k != 'Host'},
                 data=request.get_data(),
                 cookies=request.cookies,

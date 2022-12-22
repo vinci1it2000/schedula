@@ -360,7 +360,8 @@ export default function _nav(props) {
                                             <ListItemButton
                                                 component={'button'}
                                                 type="submit"
-                                                formMethod="DEBUG"
+                                                formMethod="POST"
+                                                headers={JSON.stringify({'Debug': 'true'})}
                                                 sx={{
                                                     minHeight: 48,
                                                     justifyContent: open ? 'initial' : 'center',

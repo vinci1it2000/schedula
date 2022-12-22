@@ -88,7 +88,7 @@ class FormMap(WebMap):
         'CSRF_TIME_LIMIT': 3600,
         'CSRF_HEADERS': {'X-CSRFToken', 'X-CSRF-Token'},
         'CSRF_ENABLED': True,
-        'CSRF_METHODS': {'POST', 'PUT', 'PATCH', 'DELETE', 'DEBUG'},
+        'CSRF_METHODS': {'POST', 'PUT', 'PATCH', 'DELETE'},
         'CSRF_SSL_STRICT': True
     }
 
@@ -260,14 +260,11 @@ class FormMap(WebMap):
         bp = Blueprint(
             'schedula', __name__, template_folder='templates'
         )
-        bp.add_url_rule(
-            '/<form>', 'render_form', self.render_form, methods=['GET']
-        )
+        bp.add_url_rule('/<form>', 'render_form', self.render_form)
         bp.add_url_rule('/', 'render_form')
 
         bp.add_url_rule(
-            '/static/schedula/<path:filename>', 'static', self.send_static_file,
-            methods=['GET']
+            '/static/schedula/<path:filename>', 'static', self.send_static_file
         )
         bp.add_url_rule('/static/schedula/<string:filename>', 'static')
         app.register_blueprint(bp)

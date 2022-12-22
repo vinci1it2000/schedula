@@ -155,7 +155,7 @@ class TestDispatcherWeb(unittest.TestCase):
     def test_web_debug(self):
         import requests
         url = self.url
-        r = requests.request('DEBUG', url, json={
+        r = requests.post(url, headers={'Debug': 'true'}, json={
             'kwargs': {'inputs': {'mode': 1}}
         })
         self.assertEqual(200, r.status_code)
@@ -169,11 +169,11 @@ class TestDispatcherWeb(unittest.TestCase):
         self.assertTrue(r.text.endswith('</html>'))
 
         ping_url = debug_url + 'alive'
-        r = requests.request('PING', ping_url)
+        r = requests.get(ping_url)
         self.assertEqual(200, r.status_code)
         self.assertEqual('active', r.text)
 
         time.sleep(os.name == 'nt' and 20 or 5)
         self.assertEqual(503, requests.get(debug_url).status_code)
-        self.assertEqual(404, requests.request('PING', ping_url).status_code)
+        self.assertEqual(404, requests.get(ping_url).status_code)
         self.assertEqual(404, requests.get(debug_url).status_code)

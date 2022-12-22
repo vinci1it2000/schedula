@@ -70,25 +70,25 @@ const fields = {
 };
 
 
-async function postData(url = '', data = {}, csrf_token, method = 'POST') {
+async function postData(url = '', data = {}, csrf_token, method = 'POST', headers = {}) {
     const response = await fetch(url, {
         method: method,
         crossDomain: true,
         //mode: 'no-cors', // no-cors, *cors, same-origin
         cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
         //credentials: 'same-origin', // include, *same-origin, omit
-        headers: {
+        headers: Object.assign({
             'Content-Type': 'application/json',
             'X-CSRF-Token': csrf_token
             //'Access-Control-Allow-Origin': '*'
             // 'Content-Type': 'application/x-www-form-urlencoded',
-        },
+        }, headers),
         redirect: 'follow', // manual, *follow, error
         referrerPolicy: 'unsafe-url', // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
         body: JSON.stringify(data) // body data type must match "Content-Type" header
     }).then(response => {
         if (response.headers.has('Debug-Location')) {
-            window.open(response.headers.get('Debug-Location'), '_black')
+            window.open(response.headers.get('Debug-Location'), '_blank')
         }
         if (response.redirected) {
             window.location.href = response.url;
@@ -126,7 +126,10 @@ function Form(
     }
     const onSubmit = ({formData}, e) => {
         e.preventDefault();
-        let method = e.nativeEvent.submitter.getAttribute('formmethod') || 'POST';
+        let method = e.nativeEvent.submitter.getAttribute('formmethod') || 'POST',
+            headers =  JSON.parse(
+            e.nativeEvent.submitter.getAttribute('headers') || '{}'
+        );
         setSpinner(true)
         let input = preSubmit ? preSubmit({
             input: formData.input,
@@ -137,7 +140,7 @@ function Form(
             csrf_token,
             ...props
         }) : formData.input;
-        postData(url, input, csrf_token, method).then((data) => (
+        postData(url, input, csrf_token, method, headers).then((data) => (
             postSubmit ? postSubmit({
                 data,
                 input: formData.input,

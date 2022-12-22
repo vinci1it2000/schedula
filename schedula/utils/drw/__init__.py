@@ -1477,9 +1477,7 @@ class Site:
         if self.idle_timeout > 0:
             app.after_app_request(self.update_last_activity)
             if 'alive' not in app.view_functions:
-                app.add_url_rule(
-                    '/alive', 'alive', self.alive_view, methods=['PING']
-                )
+                app.add_url_rule('/alive', 'alive', self.alive_view)
             app.add_app_template_global(self.idle_timeout, 'alive_period')
         from flask import Blueprint, Flask
         if isinstance(app, Blueprint):

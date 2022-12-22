@@ -101,7 +101,7 @@
             let response, fail = 0;
             while (alive_url){
                 await new Promise(resolve => setTimeout(resolve, alive_period));
-                response = await fetch(alive_url, {method: 'PING'});
+                response = await fetch(alive_url);
                 if (response.status == 200) {
                     fail = 0
                 } else if (response.status == 503) {
