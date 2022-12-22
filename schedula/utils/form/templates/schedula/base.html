@@ -6,13 +6,13 @@
     {% block title %}
     <title>{% block title_name %}{{ name }}{% endblock %}</title>
     <link rel="shortcut icon"
-          href="{{ form.url_prefix + url_for('static', filename='favicon.ico') }}"/>
+          href="{{ url_for('static', filename='favicon.ico') }}"/>
     {% endblock %}
     {% block js %}
-    <script src="{{ form.url_prefix + url_for('schedula.static', filename=main_js) }}"></script>
+    <script src="{{ url_for('schedula.static', filename=main_js) }}"></script>
     {% endblock %}
     {% block css %}
-    <link href="{{ form.url_prefix + url_for('schedula.static', filename=main_css) }}"
+    <link href="{{ url_for('schedula.static', filename=main_css) }}"
           rel="stylesheet">
     {% endblock %}
 
@@ -94,9 +94,9 @@
     <script defer="defer">
         function onLoad() {
             let name = "{{ form_id or 'index' }}",
-                url = '{{ form.url_prefix + "/" }}',
+                url = "{{ url_for('api') }}",
                 element = document.getElementById('root'),
-                forms_url = "{{ form.url_prefix + url_for('schedula.static', filename='forms') }}",
+                forms_url = "{{ url_for('schedula.static', filename='forms') }}",
                 csrf_token = "{{ form.generate_csrf() }}",
                 formContext = JSON.parse('{{ form.get_form_context() | tojson | safe}}'),
                 formData = JSON.parse('{{ form.get_form_data() | tojson | safe}}');

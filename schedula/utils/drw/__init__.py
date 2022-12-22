@@ -1417,9 +1417,19 @@ class IdleContainer(threading.Thread):
 IDLES = IdleContainer()
 
 
+class ReverseProxied:
+    def __init__(self, app, script_name):
+        self.app = app
+        self.script_name = script_name
+
+    def __call__(self, environ, start_response):
+        environ['SCRIPT_NAME'] = self.script_name
+        return self.app(environ, start_response)
+
+
 class Site:
     def __init__(self, sitemap, host='localhost', port=0, delay=0.1, until=30,
-                 run_options=None, idle_timeout=0, **kwargs):
+                 run_options=None, idle_timeout=0, url_prefix=None, **kwargs):
         self.sitemap = sitemap
         self.kwargs = kwargs
         self.host = host
@@ -1430,6 +1440,11 @@ class Site:
         self.idle_timeout = idle_timeout
         self._html = os.environ.get("SCHEDULA_SITE_REPR_HTML", _repr_html)
         self.run_options = {} if run_options is None else run_options
+        if url_prefix is None:
+            self.proxy = os.environ.get("SCHEDULA_FORM_URL_PREFIX", '')
+        else:
+            self.proxy = url_prefix
+
 
     def __repr__(self):
         s = "%s(%s, " % (self.__class__.__name__, self.sitemap)
@@ -1448,15 +1463,18 @@ class Site:
         sock.close()
         return kw
 
-    def _repr_html_(self):
-        from IPython.display import HTML
-        if not self.is_running:
-            self.run()
+    def format(self, string):
         # noinspection PyTypeChecker
         kw = combine_dicts(os.environ, {
             'id': id(self), 'host': self.host, 'port': self.port
         })
-        return HTML(self._html.format(**kw))._repr_html_()
+        return string.format(**kw)
+
+    def _repr_html_(self):
+        from IPython.display import HTML
+        if not self.is_running:
+            self.run()
+        return HTML(self.format(self._html))._repr_html_()
 
     @property
     def url(self):
@@ -1490,6 +1508,10 @@ class Site:
                 root_path=bp.root_path
             )
             app.register_blueprint(bp)
+        if self.proxy:
+            app.wsgi_app = ReverseProxied(
+                app.wsgi_app, script_name=self.format(self.proxy)
+            )
         return app
 
     @staticmethod
@@ -1506,8 +1528,9 @@ class Site:
         memo = os.environ.get("WERKZEUG_RUN_MAIN")
         try:
             os.environ["WERKZEUG_RUN_MAIN"] = "true"
+            kw = self.get_port(**options)
             app = self.app()
-            thread = ServerThread(app, **self.get_port(**options))
+            thread = ServerThread(app, **kw)
             thread.start()
             # noinspection PyArgumentList
             self.shutdown = weakref.finalize(

@@ -3,9 +3,8 @@
 SCHEDULA_SITE_REPR_HTML="
 <style> .sh-box {{ width: 100%; height: 500px }} </style>
 <iframe id='{id}' class='sh-box' allowfullscreen></iframe>
-<script>document.getElementById('{id}').src='https://' +
-window.location.hostname + '{JUPYTERHUB_SERVICE_PREFIX}proxy/{port}/'</script>
+<script>document.getElementById('{id}').src='{JUPYTERHUB_SERVICE_PREFIX}proxy/{port}/'</script>
 "
-export SCHEDULA_FORM_URL_PREFIX="./"
+export SCHEDULA_FORM_URL_PREFIX="{JUPYTERHUB_SERVICE_PREFIX}proxy/{port}/"
 export SCHEDULA_SITE_REPR_HTML=$SCHEDULA_SITE_REPR_HTML
 exec "$@"
