@@ -1388,7 +1388,10 @@ class ServerThread(threading.Thread):
 
     def shutdown(self):
         log.info('shutdown server')
-        self.srv and self.srv.close()
+        try:
+            self.srv.close()
+        except AttributeError:
+            pass
 
 
 class IdleContainer(threading.Thread):
@@ -1444,7 +1447,6 @@ class Site:
             self.proxy = os.environ.get("SCHEDULA_FORM_URL_PREFIX", '')
         else:
             self.proxy = url_prefix
-
 
     def __repr__(self):
         s = "%s(%s, " % (self.__class__.__name__, self.sitemap)
