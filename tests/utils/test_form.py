@@ -8,6 +8,7 @@
 
 import os
 import platform
+import time
 import unittest
 import schedula as sh
 import os.path as osp
@@ -75,8 +76,29 @@ class TestDispatcherForm(unittest.TestCase):
         WebDriverWait(driver, 30).until(
             EC.visibility_of_element_located((By.ID, "run-button"))
         ).click()
+        time.sleep(3)
         with self.assertRaises(NoSuchElementException):
             driver.find_element(value='context-data')
+        self.assertTrue(WebDriverWait(driver, 30).until(
+            EC.visibility_of_element_located((By.ID, "run-button"))
+        ).get_attribute('disabled'))
+
+        WebDriverWait(driver, 30).until(
+            EC.visibility_of_element_located((By.ID, "delete-button"))
+        ).click()
+        time.sleep(3)
+        self.assertTrue(not WebDriverWait(driver, 30).until(
+            EC.visibility_of_element_located((By.ID, "run-button"))
+        ).get_attribute('disabled'))
+        if EXTRAS in ('all',):
+            WebDriverWait(driver, 30).until(
+                EC.visibility_of_element_located((By.ID, "debug-button"))
+            ).click()
+            time.sleep(3)
+            self.assertTrue(WebDriverWait(driver, 30).until(
+                EC.visibility_of_element_located((By.ID, "run-button"))
+            ).get_attribute('disabled'))
+
 
     def test_form2(self):
         from selenium.webdriver.common.by import By

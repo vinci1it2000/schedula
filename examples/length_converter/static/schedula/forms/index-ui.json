@@ -7,6 +7,14 @@
         "disabled": false,
         "id": "run-button"
       },
+      "props-debug": {
+        "disabled": false,
+        "id": "debug-button"
+      },
+      "props-delete": {
+        "disabled": false,
+        "id": "delete-button"
+      },
       "props-main": {
         "sx": {
           "height": "100vh",
