@@ -2,6 +2,26 @@ Changelog
 =========
 
 
+v1.4.4 (2022-12-22)
+-------------------
+
+Feat
+~~~~
+- (test): Add more form test cases.
+
+- (test): Disable logging for test cases.
+
+- (site): Add option `url_prefix`.
+
+
+Fix
+~~~
+- (form): Use modal instead popup to show the debug view.
+
+- (web): Remove custom methods `PING` and `DEBUG` for standards `GET`
+  and `POST`.
+
+
 v1.4.3 (2022-12-21)
 -------------------
 
