@@ -1,6 +1,7 @@
-import React from 'react';
-import MuiMarkdown from 'mui-markdown'
+import React, {Suspense} from "react";
 import nunjucks from 'nunjucks';
+
+const MuiMarkdown = React.lazy(() => (import('mui-markdown')))
 
 var env = new nunjucks.Environment();
 env.addFilter('decimal', function (val, i, lang) {
@@ -22,7 +23,7 @@ function format2(string, args = [], kwargs = {}) {
         i++;
         return typeof args[i] != 'undefined' ? args[i] : match;
     });
-};
+}
 
 export default function _markdown(props) {
     let args = [], kwargs = {}, data = props.context.props.formData || {}, md;
@@ -38,7 +39,5 @@ export default function _markdown(props) {
         props,
         window
     }), args, kwargs);
-    return (<MuiMarkdown>
-        {md}
-    </MuiMarkdown>);
+    return (<Suspense><MuiMarkdown>{md}</MuiMarkdown></Suspense>);
 }

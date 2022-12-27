@@ -1,7 +1,7 @@
-import React from 'react'
-import {Button} from "@mui/material";
-import FileUploadOutlinedIcon from "@mui/icons-material/FileUploadOutlined";
-import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
+import React, {Suspense} from "react";
+const Button = React.lazy(() => import("@mui/material/Button"));
+const FileUploadOutlinedIcon = React.lazy(() => import("@mui/icons-material/FileUploadOutlined"));
+const FileDownloadOutlinedIcon = React.lazy(() => import("@mui/icons-material/FileDownloadOutlined"));
 
 export function exportJson({data, fileName}) {
     // Create a blob with the data we want to download as a file
@@ -34,21 +34,20 @@ export class JSONUpload extends React.Component {
                 event.target.value = null;
             }
         }
-        return (
+        return (<Suspense>
             <Button component={'label'} color="primary"
                     startIcon={<FileUploadOutlinedIcon/>}>
                 Import
                 <input accept={['json']} type={'file'} hidden
                        onChange={upload}></input>
             </Button>
-
-        )
+        </Suspense>)
     }
 }
 
 export class JSONExport extends React.Component {
     render() {
-        return (
+        return (<Suspense>
             <Button color="primary"
                     startIcon={<FileDownloadOutlinedIcon/>} onClick={() => {
                 exportJson({
@@ -56,6 +55,6 @@ export class JSONExport extends React.Component {
                     fileName: `${this.props.context.props.name || 'file'}.json`
                 })
             }}>Export</Button>
-        )
+        </Suspense>)
     }
 }

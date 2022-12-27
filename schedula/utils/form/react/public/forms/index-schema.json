@@ -13,6 +13,37 @@
             "inputs": {
               "type": "object",
               "properties": {
+                "plot": {
+                  "type": "object"
+                },
+                "datagrid": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "a": {
+                        "type": "number"
+                      },
+                      "b": {
+                        "type": "number"
+                      }
+                    }
+                  }
+                },
+                "file": {
+                  "title": "File",
+                  "type": "string",
+                  "format": "data-url"
+                },
+                "files": {
+                  "title": "Files",
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "format": "data-url"
+                  },
+                  "maxItems": 2
+                },
                 "value_in": {
                   "title": "Value to convert",
                   "type": "number"
@@ -37,6 +68,31 @@
                 "units_out"
               ],
               "default": {
+                "plot": {
+                  "data": [
+                    {
+                      "x": [
+                        1,
+                        2,
+                        3
+                      ],
+                      "y": [
+                        1,
+                        2,
+                        3
+                      ]
+                    }
+                  ]
+                },
+                "datagrid": [
+                  {
+                    "a": 1,
+                    "b": 2
+                  },
+                  {
+                    "a": 2
+                  }
+                ],
                 "value_in": 1,
                 "unit_in": "m",
                 "units_out": [

@@ -1,0 +1,2 @@
+"use strict";(self.webpackChunkschedula_form=self.webpackChunkschedula_form||[]).push([[6138],{16138:function(e,h,v){var a=v(64836);Object.defineProperty(h,"__esModule",{value:!0}),h.default=void 0;var u=a(v(45649)),d=v(80184),f=(0,u.default)((0,d.jsx)("path",{d:"M14 9v2h-3V9H8.5V7H11V1H4v6h2.5v2H4v6h2.5v2H4v6h7v-6H8.5v-2H11v-2h3v2h7V9h-7z"}),"Schema");h.default=f}}]);
+//# sourceMappingURL=6138.2e167d28.chunk.js.map

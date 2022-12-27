@@ -1,10 +1,10 @@
-import React from "react";
+import React, {Suspense} from "react";
 
-import Box from '@mui/material/Box';
-import Stepper from '@mui/material/Stepper';
-import Step from '@mui/material/Step';
-import StepLabel from '@mui/material/StepLabel';
-import Button from '@mui/material/Button';
+const Box = React.lazy(() => import('@mui/material/Box'));
+const Stepper = React.lazy(() => import('@mui/material/Stepper'));
+const Step = React.lazy(() => import('@mui/material/Step'));
+const StepLabel = React.lazy(() => import('@mui/material/StepLabel'));
+const Button = React.lazy(() => import('@mui/material/Button'));
 
 
 export default function _stepper(props) {
@@ -23,7 +23,7 @@ export default function _stepper(props) {
     };
     let elements = (props.elements || {});
     return (
-        <React.Fragment>
+        <Suspense>
             <Box sx={{
                 display: 'flex',
                 justifyContent: "flex-start",
@@ -58,6 +58,6 @@ export default function _stepper(props) {
             <React.Fragment>
                 {props.children[activeStep]}
             </React.Fragment>
-        </React.Fragment>
+        </Suspense>
     );
 }

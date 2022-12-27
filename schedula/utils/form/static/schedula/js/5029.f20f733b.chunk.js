@@ -1,0 +1,2 @@
+"use strict";(self.webpackChunkschedula_form=self.webpackChunkschedula_form||[]).push([[5029],{85029:function(e,h,u){var v=u(64836);Object.defineProperty(h,"__esModule",{value:!0}),h.default=void 0;var a=v(u(45649)),l=u(80184),s=(0,a.default)((0,l.jsx)("path",{d:"M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"}),"Fullscreen");h.default=s}}]);
+//# sourceMappingURL=5029.f20f733b.chunk.js.map

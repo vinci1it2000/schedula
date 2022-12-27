@@ -1,23 +1,23 @@
-import React, {useState} from "react";
+import React, {useState, Suspense} from "react";
 import ErrorIcon from "@mui/icons-material/Error";
 import CloseIcon from "@mui/icons-material/Close";
 import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
-import {
-    Box,
-    Badge,
-    Alert,
-    Stack,
-    AlertTitle,
-    Fab
-} from "@mui/material";
+
+const Box = React.lazy(() => import('@mui/material/Box'));
+const Badge = React.lazy(() => import('@mui/material/Badge'));
+const Alert = React.lazy(() => import('@mui/material/Alert'));
+const Stack = React.lazy(() => import('@mui/material/Stack'));
+const AlertTitle = React.lazy(() => import('@mui/material/AlertTitle'));
+const Fab = React.lazy(() => import('@mui/material/Fab'));
+
 
 const ErrorList = ({errors}) => {
     const [open, setOpen] = useState(false);
     const setToggle = () => {
         setOpen(!open)
     };
-    return (
+    return (<Suspense>
         <Box
             sx={{position: 'fixed', top: 84, right: 16, "z-index": 10000000000}}
             key={'error'}
@@ -49,8 +49,7 @@ const ErrorList = ({errors}) => {
                     </Fab>
                 </Stack>)}</div>
         </Box>
-
-    );
+    </Suspense>);
 };
 
 export default ErrorList;

@@ -1,0 +1,2 @@
+"use strict";(self.webpackChunkschedula_form=self.webpackChunkschedula_form||[]).push([[1131],{81131:function(e,a,u){var d=u(64836);Object.defineProperty(a,"__esModule",{value:!0}),a.default=void 0;var l=d(u(45649)),f=u(80184),s=(0,l.default)((0,f.jsx)("path",{d:"M16.59 8.59 12 13.17 7.41 8.59 6 10l6 6 6-6z"}),"ExpandMore");a.default=s}}]);
+//# sourceMappingURL=1131.b98a14c0.chunk.js.map

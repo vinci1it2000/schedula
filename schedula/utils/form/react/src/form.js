@@ -1,7 +1,6 @@
-import {Form as BaseForm} from "@rjsf/mui";
+import React, {useState, useEffect, Suspense} from 'react';
 import ReactDOM from 'react-dom/client'
 import {customizeValidator} from "@rjsf/validator-ajv6";
-import React, {useState, useEffect} from 'react';
 import {
     ArrayField,
     ObjectField,
@@ -9,25 +8,25 @@ import {
 } from "./components/layout";
 import ErrorList from "./components/error"
 import {JSONUpload, JSONExport} from "./components/io";
-import {
-    Backdrop,
-    CircularProgress,
-    Alert,
-    AlertTitle,
-    Modal,
-    Card,
-    CardHeader,
-    CardContent,
-    IconButton,
-    Fab
-} from '@mui/material';
-import CloseIcon from "@mui/icons-material/Close";
 import hash from 'object-hash'
 import cloneDeep from 'lodash/cloneDeep'
 import './components/modal.css';
-import ReactModal from 'react-modal-resizable-draggable';
-import SchemaIcon from '@mui/icons-material/Schema';
+import FileWidget from "./widgets/files";
 
+const CloseIcon = React.lazy(() => import("@mui/icons-material/Close"));
+const SchemaIcon = React.lazy(() => import('@mui/icons-material/Schema'));
+const BaseForm = React.lazy(() => import("@rjsf/mui"));
+const Backdrop  = React.lazy(() => import('@mui/material/Backdrop'));
+const CircularProgress  = React.lazy(() => import('@mui/material/CircularProgress'));
+const Alert  = React.lazy(() => import('@mui/material/Alert'));
+const AlertTitle  = React.lazy(() => import('@mui/material/AlertTitle'));
+const Modal  = React.lazy(() => import('@mui/material/Modal'));
+const Card  = React.lazy(() => import('@mui/material/Card'));
+const CardHeader  = React.lazy(() => import('@mui/material/CardHeader'));
+const CardContent  = React.lazy(() => import('@mui/material/CardContent'));
+const IconButton  = React.lazy(() => import('@mui/material/IconButton'));
+const Fab  = React.lazy(() => import('@mui/material/Fab'));
+const ReactModal = React.lazy(() => import('react-modal-resizable-draggable'));
 const validator = customizeValidator({ajvOptionsOverrides: {$data: true}})
 
 validator.ajv.addKeyword('date-greater', {
@@ -77,6 +76,7 @@ const fields = {
     upload: JSONUpload,
     export: JSONExport
 };
+const widgets = {FileWidget};
 
 
 async function postData(url = '', data = {}, csrf_token, method = 'POST', headers = {}, setDebugSrc) {
@@ -122,7 +122,7 @@ function Form(
         ...props
     }
 ) {
-    const [spinner, setSpinner] = useState(true);
+    const [spinner, setSpinner] = useState(false);
     const [formData, setFormData] = useState(props.formData || {});
     delete props.formData
     var form;
@@ -153,6 +153,7 @@ function Form(
         }) : formData.input;
         postData(url, input, csrf_token, method, headers, (url) => {
             setDebugSrc(url);
+            setSpinner(false)
             setOpenDebug(true)
         }).then((data) => (
             postSubmit ? postSubmit({
@@ -214,9 +215,6 @@ function Form(
         setFormData(formData)
     }
 
-    useEffect(() => {
-        setTimeout(() => setSpinner(false), 1000)
-    }, []);
     const [windowSize, setWindowSize] = useState(getWindowSize());
 
     useEffect(() => {
@@ -232,7 +230,7 @@ function Form(
     }, []);
     if (!formContext.hasOwnProperty('$id'))
         formContext.$id = name
-    return (
+    return (<Suspense>
         <div id={name}>
             <Backdrop
                 sx={{
@@ -250,6 +248,7 @@ function Form(
                 uiSchema={uiSchema}
                 formData={formData}
                 fields={fields}
+                widgets={widgets}
                 ref={_form => {
                     form = _form;
                 }}
@@ -336,7 +335,7 @@ function Form(
                 </Card>
             </ReactModal>
         </div>
-    );
+    </Suspense>);
 }
 
 function getWindowSize() {
@@ -355,11 +354,11 @@ async function renderForm(
 ) {
     const root = ReactDOM.createRoot(element);
     root.render(
-        <React.StrictMode>
+        <Suspense>
             <Form schema={schema} uiSchema={uiSchema}
                   name={name}
                   url={url} {...props}/>
-        </React.StrictMode>
+        </Suspense>
     );
 }
 

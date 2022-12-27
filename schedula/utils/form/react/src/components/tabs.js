@@ -1,8 +1,8 @@
-import * as React from 'react';
-import Tabs from '@mui/material/Tabs';
-import Tab from '@mui/material/Tab';
-import Box from '@mui/material/Box';
+import React, {Suspense, useState} from "react";
 
+const Box = React.lazy(() => import('@mui/material/Box'));
+const Tab = React.lazy(() => import('@mui/material/Tab'));
+const Tabs = React.lazy(() => import('@mui/material/Tabs'));
 
 
 function TabPanel(props) {
@@ -31,12 +31,12 @@ function a11yProps(index) {
 }
 
 export default function _tabs(props) {
-    const [value, setValue] = React.useState(0);
+    const [value, setValue] = useState(0);
 
     const handleChange = (event, newValue) => {
         setValue(newValue);
     };
-    return (<React.Fragment>
+    return (<Suspense>
         <Tabs
             value={value}
             onChange={handleChange}
@@ -52,5 +52,5 @@ export default function _tabs(props) {
                 {element}
             </TabPanel>
         ))}
-    </React.Fragment>)
+    </Suspense>)
 }

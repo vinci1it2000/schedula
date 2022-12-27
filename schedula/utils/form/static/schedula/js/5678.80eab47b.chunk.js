@@ -1,0 +1,2 @@
+"use strict";(self.webpackChunkschedula_form=self.webpackChunkschedula_form||[]).push([[5678],{95678:function(e,a,u){var l=u(64836);Object.defineProperty(a,"__esModule",{value:!0}),a.default=void 0;var d=l(u(45649)),r=u(80184),f=(0,d.default)((0,r.jsx)("path",{d:"M7.41 15.41 12 10.83l4.59 4.58L18 14l-6-6-6 6z"}),"KeyboardArrowUp");a.default=f}}]);
+//# sourceMappingURL=5678.80eab47b.chunk.js.map

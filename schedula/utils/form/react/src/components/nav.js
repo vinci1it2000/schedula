@@ -1,52 +1,57 @@
-import React from 'react';
+import React, {useEffect, Suspense} from 'react';
+import {diff, applyChange} from 'deep-diff';
+import cjson from 'compressed-json';
+import cloneDeep from 'lodash/cloneDeep';
 import PropTypes from 'prop-types';
-import Toolbar from '@mui/material/Toolbar';
-import Box from '@mui/material/Box';
-import Fade from '@mui/material/Fade';
 import useScrollTrigger from '@mui/material/useScrollTrigger';
-import Fab from '@mui/material/Fab';
-import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
-import Tabs from '@mui/material/Tabs';
-import Tab from '@mui/material/Tab';
 import {styled, useTheme} from '@mui/material/styles';
-import MuiDrawer from '@mui/material/Drawer';
-import MuiAppBar from '@mui/material/AppBar';
-import List from '@mui/material/List';
-import CssBaseline from '@mui/material/CssBaseline';
-import Divider from '@mui/material/Divider';
-import IconButton from '@mui/material/IconButton';
-import MenuIcon from '@mui/icons-material/Menu';
-import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
-import ChevronRightIcon from '@mui/icons-material/ChevronRight';
-import ListItem from '@mui/material/ListItem';
-import ListItemButton from '@mui/material/ListItemButton';
-import ListItemIcon from '@mui/material/ListItemIcon';
-import ListItemText from '@mui/material/ListItemText';
-import ListItemAvatar from '@mui/material/ListItemAvatar';
-import Avatar from '@mui/material/Avatar';
-import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined';
-import FileUploadOutlinedIcon from '@mui/icons-material/FileUploadOutlined';
-import PlayCircleIcon from '@mui/icons-material/PlayCircle';
 import {exportJson} from './io';
-import Tooltip from '@mui/material/Tooltip';
-import ReactFullscreen from 'react-easyfullscreen';
-import FullscreenIcon from '@mui/icons-material/Fullscreen';
-import FullscreenExitIcon from '@mui/icons-material/FullscreenExit';
 import screenfull from 'screenfull';
-import DataSaverOnIcon from '@mui/icons-material/DataSaverOn';
-import DataSaverOffIcon from '@mui/icons-material/DataSaverOff';
-import RestoreIcon from '@mui/icons-material/Restore';
 import hash from 'object-hash'
-import DifferenceIcon from '@mui/icons-material/Difference';
-import DialogTitle from '@mui/material/DialogTitle';
-import Dialog from '@mui/material/Dialog';
-import DialogContent from '@mui/material/DialogContent';
-import DialogActions from '@mui/material/DialogActions';
-import Button from '@mui/material/Button';
-import ReactDiffViewer from 'react-diff-viewer';
-import ReplayIcon from '@mui/icons-material/Replay';
-import CancelIcon from '@mui/icons-material/Cancel';
-import AdbIcon from '@mui/icons-material/Adb';
+import DiffViewer from './diff';
+
+const Toolbar = React.lazy(() => import('@mui/material/Toolbar'));
+const Box = React.lazy(() => import('@mui/material/Box'));
+const Fade = React.lazy(() => import('@mui/material/Fade'));
+const Fab = React.lazy(() => import('@mui/material/Fab'));
+const KeyboardArrowUpIcon = React.lazy(() => import('@mui/icons-material/KeyboardArrowUp'));
+const Tabs = React.lazy(() => import('@mui/material/Tabs'));
+const Tab = React.lazy(() => import('@mui/material/Tab'));
+const MuiDrawer = React.lazy(() => import('@mui/material/Drawer'));
+const MuiAppBar = React.lazy(() => import('@mui/material/AppBar'));
+const List = React.lazy(() => import('@mui/material/List'));
+const CssBaseline = React.lazy(() => import('@mui/material/CssBaseline'));
+const Divider = React.lazy(() => import('@mui/material/Divider'));
+const IconButton = React.lazy(() => import('@mui/material/IconButton'));
+const MenuIcon = React.lazy(() => import('@mui/icons-material/Menu'));
+const ChevronLeftIcon = React.lazy(() => import('@mui/icons-material/ChevronLeft'));
+const ChevronRightIcon = React.lazy(() => import('@mui/icons-material/ChevronRight'));
+const ListItem = React.lazy(() => import('@mui/material/ListItem'));
+const ListItemButton = React.lazy(() => import('@mui/material/ListItemButton'));
+const ListItemIcon = React.lazy(() => import('@mui/material/ListItemIcon'));
+const ListItemText = React.lazy(() => import('@mui/material/ListItemText'));
+const ListItemAvatar = React.lazy(() => import('@mui/material/ListItemAvatar'));
+const Avatar = React.lazy(() => import('@mui/material/Avatar'));
+const FileDownloadOutlinedIcon = React.lazy(() => import('@mui/icons-material/FileDownloadOutlined'));
+const FileUploadOutlinedIcon = React.lazy(() => import('@mui/icons-material/FileUploadOutlined'));
+const PlayCircleIcon = React.lazy(() => import('@mui/icons-material/PlayCircle'));
+const Tooltip = React.lazy(() => import('@mui/material/Tooltip'));
+const ReactFullscreen = React.lazy(() => import('react-easyfullscreen'));
+const FullscreenIcon = React.lazy(() => import('@mui/icons-material/Fullscreen'));
+const FullscreenExitIcon = React.lazy(() => import('@mui/icons-material/FullscreenExit'));
+const DataSaverOnIcon = React.lazy(() => import('@mui/icons-material/DataSaverOn'));
+const DataSaverOffIcon = React.lazy(() => import('@mui/icons-material/DataSaverOff'));
+const RestoreIcon = React.lazy(() => import('@mui/icons-material/Restore'));
+const DifferenceIcon = React.lazy(() => import('@mui/icons-material/Difference'));
+const DialogTitle = React.lazy(() => import('@mui/material/DialogTitle'));
+const Dialog = React.lazy(() => import('@mui/material/Dialog'));
+const DialogContent = React.lazy(() => import('@mui/material/DialogContent'));
+const DialogActions = React.lazy(() => import('@mui/material/DialogActions'));
+const Button = React.lazy(() => import('@mui/material/Button'));
+const ReplayIcon = React.lazy(() => import('@mui/icons-material/Replay'));
+const CancelIcon = React.lazy(() => import('@mui/icons-material/Cancel'));
+const AdbIcon = React.lazy(() => import('@mui/icons-material/Adb'));
+
 
 function ScrollTop(props) {
     const {children, window, anchor} = props;
@@ -160,33 +165,64 @@ const Drawer = styled(MuiDrawer, {shouldForwardProp: (prop) => prop !== 'open'})
         }),
     }),
 );
+const applyChanges = (target, changes) => {
+    changes.forEach((change) => applyChange(target, null, change))
+    return target
+}
+const buildData = (changes, currentDate) => {
+    changes = changes.filter(
+        ([date, data], i) => (i === 0 || date <= currentDate)
+    )
+    return changes.slice(1).reduce(
+        (target, [date, data]) => applyChanges(target, data),
+        cloneDeep(changes[0][1])
+    )
+}
+
+const readStoredData = (key, dataHash) => {
+    let storage = (window.sessionStorage.getItem(key) || ''),
+        changes = storage.slice(28), getData;
+    changes = (changes ? cjson.decompress.fromString(changes) : [])
+    getData = buildData.bind(null, changes)
+    if (storage.slice(0, 28) === dataHash) {
+        changes = changes.slice(0, changes.length - 1)
+    }
+    return changes.map((
+        [date, data, oldHash]
+    ) => ([date, getData, dataHash === oldHash]))
+}
+
 const appendData = (key, formData) => {
     let dataHash = hash(formData, {
-        'algorithm': 'sha1',
-        'encoding': 'base64'
-    }), storedData = window.sessionStorage.getItem(key) || '[]';
+            'algorithm': 'sha1',
+            'encoding': 'base64'
+        }),
+        storage = window.sessionStorage.getItem(key) || '';
 
-    if (!storedData.endsWith(`,"${dataHash}"]]`)) {
-
-        let data = `${JSON.stringify(formData)}`,
-            size = data.length,
-            date = `${Math.floor(Date.now() / 60000)}`,
-            n = storedData.length - 1;
-
-        storedData = storedData.slice(0, n)
-        n -= 32
-        if (storedData.slice(0, n).endsWith(date)) {
-            n -= date.length + 2
-            let v = n + 1
-            while (storedData.charAt(n) !== ',') {
-                n -= 1
+    if (storage.slice(0, 28) !== dataHash) {
+        let data, changes = storage.slice(28);
+        changes = changes ? cjson.decompress.fromString(changes) : [];
+        let currentDate = Math.floor(Date.now() / 60000);
+        changes = changes.filter(
+            ([date, data], i) => (date < currentDate)
+        )
+        if (changes.length) {
+            data = diff(changes.slice(1).reduce(
+                (target, [date, data]) => applyChanges(target, data),
+                cloneDeep(changes[0][1])
+            ), formData)
+            if (!data) {
+                return
             }
-            n -= parseInt(storedData.slice(n + 1, v)) + 2
-            storedData = storedData.slice(0, n) || '['
+        } else {
+            data = formData
         }
+        changes.push([currentDate, data, dataHash])
 
-        storedData += `${storedData === '[' ? '' : ','}[${data},${size},${date},"${dataHash}"]]`
-        window.sessionStorage.setItem(key, storedData);
+        window.sessionStorage.setItem(
+            key, `${dataHash}${cjson.compress.toString(changes)}`
+        );
+
     }
 }
 export default function _nav(props) {
@@ -200,9 +236,18 @@ export default function _nav(props) {
     const [open, setOpen] = React.useState(false);
     let key = 'schedula-' + props.context.props.formContext.$id + '-' + props.context.props.idSchema.$id + '-formData';
     let formData = props.context.props.formData;
-    if (savingData) {
-        appendData(key, formData)
-    }
+
+    useEffect(function updateStorage() {
+        if (savingData) {
+            try {
+                appendData(key, formData)
+            } catch (error) {
+                setSavingData(false)
+                alert(`Ops..${savingData} disabling auto-saving because:\n\n${error.message}`)
+            }
+        }
+    }, [key, formData, savingData]);
+
 
     const handleDrawerOpen = () => {
         setOpen(true);
@@ -241,12 +286,12 @@ export default function _nav(props) {
     }
     const anchor = React.useRef(null);
 
-    return (
+    return (<Suspense>
         <ReactFullscreen onChange={() => {
             setFullScreen(screenfull.isFullscreen)
         }}>
             {({ref, onToggle, isEnabled}) => (
-                <Box ref={ref} sx={{display: 'flex'}}>
+                <Box ref={ref} sx={{display: 'flex',}}>
                     <CssBaseline/>
                     <AppBar color="inherit" position="fixed" open={open}>
                         <Toolbar>
@@ -580,50 +625,49 @@ export default function _nav(props) {
                         <DialogTitle>Restore data</DialogTitle>
                         <DialogContent dividers={true}>
                             <List sx={{pt: 0}}>
-                                {!openRestore ? null : JSON.parse(window.sessionStorage.getItem(key) || '[]').reverse().map((raw, i, array) => (
-                                    ((i === 0 && dataHash !== raw[3]) || (i !== 0 && array[i - 1][3] !== raw[3])) ?
-                                        <ListItem
-                                            key={i}
-                                            secondaryAction={
-                                                <IconButton onClick={() => {
-                                                    setOldValue(raw)
-                                                    setOpenDiff(true)
-                                                }}>
-                                                    <Tooltip
-                                                        title={'Show data difference'}
-                                                        arrow
-                                                        placement="left">
-                                                        <DifferenceIcon/></Tooltip>
-                                                </IconButton>
-                                            }>
-                                            <ListItemAvatar
-                                                sx={{cursor: 'pointer'}}
-                                                onClick={() => {
-                                                    setOpenRestore(false);
-                                                    props.context.props.onChange(raw[0])
-                                                }}>
+                                {!openRestore ? null : readStoredData(key, dataHash).reverse().map(([date, getD, same], i) => (
+                                    <ListItem
+                                        key={i}
+                                        secondaryAction={
+                                            !same ? <IconButton onClick={() => {
+                                                setOldValue([date, getD(date)])
+                                                setOpenDiff(true)
+                                            }}>
                                                 <Tooltip
-                                                    title={'Restore data'}
+                                                    title={'Show data difference'}
                                                     arrow
-                                                    placement="right">
-                                                    <Avatar>
-                                                        <ReplayIcon/>
-                                                    </Avatar></Tooltip>
-                                            </ListItemAvatar>
-                                            <ListItemText
-                                                primary={(new Date(raw[2] * 60000)).toLocaleString()}
-                                            />
-                                        </ListItem> : null
+                                                    placement="left">
+                                                    <DifferenceIcon/></Tooltip>
+                                            </IconButton> : null
+                                        }>
+                                        <ListItemAvatar
+                                            sx={{cursor: 'pointer'}}
+                                            onClick={() => {
+                                                setOpenRestore(false);
+                                                props.context.props.onChange(getD(date))
+                                            }}>
+                                            <Tooltip
+                                                title={'Restore data'}
+                                                arrow
+                                                placement="right">
+                                                <Avatar>
+                                                    <ReplayIcon/>
+                                                </Avatar></Tooltip>
+                                        </ListItemAvatar>
+                                        <ListItemText
+                                            primary={(new Date(date * 60000)).toLocaleString()}
+                                        />
+                                    </ListItem>
                                 ))}
                                 <Dialog scroll={'paper'} open={openDiff}
                                         onClose={handleDiffClose} fullWidth
                                         maxWidth={"xl"}>
                                     <DialogTitle>Show difference</DialogTitle>
                                     <DialogContent dividers={true}>
-                                        {oldValue ? <ReactDiffViewer
+                                        {oldValue ? <DiffViewer
                                             rightTitle={(new Date(Math.floor(Date.now() / 60000) * 60000)).toLocaleString() + ' (current)'}
-                                            leftTitle={(new Date(oldValue[2] * 60000)).toLocaleString()}
-                                            oldValue={JSON.stringify(oldValue[0], null, 2)}
+                                            leftTitle={(new Date(oldValue[0] * 60000)).toLocaleString()}
+                                            oldValue={JSON.stringify(oldValue[1], null, 2)}
                                             newValue={JSON.stringify(props.context.props.formData, null, 2)}/> : null}
                                     </DialogContent>
                                     <DialogActions>
@@ -652,5 +696,5 @@ export default function _nav(props) {
                 </Box>
             )}
         </ReactFullscreen>
-    );
+    </Suspense>);
 }

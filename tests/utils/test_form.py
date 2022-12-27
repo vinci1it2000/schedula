@@ -24,14 +24,12 @@ PLATFORM = platform.system().lower()
 class TestDispatcherForm(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        try:
-            import sys
-            import time
-            import chromedriver_autoinstaller
-            from selenium import webdriver
-            from pyvirtualdisplay import Display
-        except ImportError:
-            return
+
+        import sys
+        import chromedriver_autoinstaller
+        from selenium import webdriver
+        from pyvirtualdisplay import Display
+
 
         if os.environ.get('ACTION', '').lower() == 'true':
             cls.display = display = Display(visible=False, size=(800, 800))

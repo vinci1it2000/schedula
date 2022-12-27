@@ -1,0 +1,2 @@
+"use strict";(self.webpackChunkschedula_form=self.webpackChunkschedula_form||[]).push([[4392],{44392:function(e,l,u){var a=u(64836);Object.defineProperty(l,"__esModule",{value:!0}),l.default=void 0;var d=a(u(45649)),t=u(80184),c=(0,d.default)((0,t.jsx)("path",{d:"M18 15v3H6v-3H4v3c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2v-3h-2zm-1-4-1.41-1.41L13 12.17V4h-2v8.17L8.41 9.59 7 11l5 5 5-5z"}),"FileDownloadOutlined");l.default=c}}]);
+//# sourceMappingURL=4392.8af6bb00.chunk.js.map

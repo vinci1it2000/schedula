@@ -1,12 +1,5 @@
-import * as React from 'react';
-import {Typography, Stack, Button} from '@mui/material';
+import React, {Suspense} from "react";
 
-import AddIcon from '@mui/icons-material/Add';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/DeleteOutlined';
-import SaveIcon from '@mui/icons-material/Save';
-import CancelIcon from '@mui/icons-material/Close';
-import FileUploadOutlinedIcon from '@mui/icons-material/FileUploadOutlined';
 import {
     DataGrid,
     GridToolbarContainer,
@@ -19,6 +12,27 @@ import {
 } from '@mui/x-data-grid';
 import Papa from "papaparse";
 import {nanoid} from "nanoid";
+//import {GridRowModes} from '@mui/x-data-grid/models/gridEditRowModel';
+//import {useGridApiContext} from '@mui/x-data-grid/hooks/utils/useGridApiContext';
+
+const AddIcon = React.lazy(() => import('@mui/icons-material/Add'));
+const EditIcon = React.lazy(() => import('@mui/icons-material/Edit'));
+const DeleteIcon = React.lazy(() => import('@mui/icons-material/DeleteOutlined'));
+const SaveIcon = React.lazy(() => import('@mui/icons-material/Save'));
+const CancelIcon = React.lazy(() => import('@mui/icons-material/Close'));
+const FileUploadOutlinedIcon = React.lazy(() => import('@mui/icons-material/FileUploadOutlined'));
+
+//const DataGrid = React.lazy(() => import('@mui/x-data-grid/DataGrid/DataGrid'));
+//const GridToolbarContainer = React.lazy(() => import('@mui/x-data-grid/components/containers/GridToolbarContainer'));
+//const GridToolbarColumnsButton = React.lazy(() => import('@mui/x-data-grid/components/toolbar/GridToolbarColumnsButton'));
+//const GridToolbarDensitySelector = React.lazy(() => import('@mui/x-data-grid/components/toolbar/GridToolbarDensitySelector'));
+//const GridToolbarExport = React.lazy(() => import('@mui/x-data-grid/components/toolbar/GridToolbarExport'));
+//const GridActionsCellItem = React.lazy(() => import('@mui/x-data-grid/components/cell/GridActionsCellItem'));
+
+
+const Typography = React.lazy(() => import('@mui/material/Typography'));
+const Stack = React.lazy(() => import('@mui/material/Stack'));
+const Button = React.lazy(() => import('@mui/material/Button'));
 
 
 function keyedToPlainFormData(keyedFormData) {
@@ -57,7 +71,6 @@ function GridToolbar({context, columns, setRowModesModel, setNewKey}) {
                     res[header[i]] = toNumeric(v)
                     return res
                 }, {}))))
-
             }
             reader.readAsText(event.target.files[0]);
             event.target.value = null;
@@ -91,7 +104,7 @@ function GridToolbar({context, columns, setRowModesModel, setNewKey}) {
         }));
     };
 
-    return (
+    return (<Suspense>
         <Stack spacing={1}>
             <Typography variant="button" display="block" key='title'>
                 {title}
@@ -123,7 +136,7 @@ function GridToolbar({context, columns, setRowModesModel, setNewKey}) {
                     </Button> : ""}
             </GridToolbarContainer>
         </Stack>
-    );
+    </Suspense>);
 }
 
 function EditComponent(props) {
@@ -131,17 +144,13 @@ function EditComponent(props) {
     const apiRef = useGridApiContext(),
         {registry, schema} = context.props,
         {SchemaField} = registry.fields,
-        schemaItems = schema.items.properties;
+        schemaItems = (schema.items || {}).properties || {};
     const handleValueChange = (newValue) => {
         apiRef.current.setEditCellValue({id, field, value: newValue});
     };
 
     return <div style={{width: '100%'}}><SchemaField
-        formData={value} schema={schemaItems[field]}
-        onFocus={() => {
-        }}
-        onBlur={() => {
-        }}
+        formData={value} schema={schemaItems[field] || {}}
         onChange={handleValueChange} registry={registry}
         idSchema={{"$id": context.props.idSchema['$id'] + '-editing'}}/>
     </div>
@@ -197,10 +206,10 @@ export default function _datagrid(props) {
         context.onChangeForIndex(index)(data)
         return updatedRow;
     };
-
+    const items_properties = ((context.props.schema || {}).items || {}).properties || {};
     if (!columns) {
         const fields = new Set()
-        Object.keys(context.props.schema.items.properties).forEach(k => {
+        Object.keys(items_properties).forEach(k => {
             fields.add(k)
         })
         rows.forEach(r => {
@@ -218,11 +227,11 @@ export default function _datagrid(props) {
             return EditComponent({context, ...params})
         }
         if (!d.hasOwnProperty('headerName')) {
-            let schema = context.props.schema.items.properties[d.field] || {}
+            let schema = items_properties[d.field] || {}
             d.headerName = schema.hasOwnProperty('title') ? schema.title : d.field
         }
         if (!d.hasOwnProperty('description')) {
-            let schema = context.props.schema.items.properties[d.field] || {}
+            let schema = items_properties[d.field] || {}
             if (schema.hasOwnProperty('description'))
                 d.description = schema.description
         }
@@ -249,11 +258,13 @@ export default function _datagrid(props) {
                 if (isInEditMode) {
                     return [
                         <GridActionsCellItem
+                            key={'save'}
                             icon={<SaveIcon/>}
                             label="Save"
                             onClick={handleSaveClick(id)}
                         />,
                         <GridActionsCellItem
+                            key={'cancel'}
                             icon={<CancelIcon/>}
                             label="Cancel"
                             className="textPrimary"
@@ -265,6 +276,7 @@ export default function _datagrid(props) {
 
                 return [
                     <GridActionsCellItem
+                        key={'edit'}
                         icon={<EditIcon/>}
                         label="Edit"
                         className="textPrimary"
@@ -272,6 +284,7 @@ export default function _datagrid(props) {
                         color="inherit"
                     />,
                     <GridActionsCellItem
+                        key={'delete'}
                         icon={<DeleteIcon/>}
                         label="Delete"
                         onClick={handleDeleteClick(id)}
@@ -284,7 +297,7 @@ export default function _datagrid(props) {
 
     kw.isCellEditable = () => (!context.props.readonly)
 
-    return <DataGrid
+    return <Suspense><DataGrid
         autoHeight rows={rows} columns={columns}
         pageSize={pageSize}
         disableSelectionOnClick
@@ -303,5 +316,5 @@ export default function _datagrid(props) {
             toolbar: {setRowModesModel, context, columns, setNewKey},
         }}
         experimentalFeatures={{newEditingApi: true}}
-        pagination {...kw}/>
+        pagination {...kw}/></Suspense>
 }
