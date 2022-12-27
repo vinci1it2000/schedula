@@ -2,6 +2,20 @@ Changelog
 =========
 
 
+v1.4.5 (2022-12-27)
+-------------------
+
+Feat
+~~~~
+- (form): Add FileWidget + Improve Autosaving and enforce code
+  splitting.
+
+
+Fix
+~~~
+- (site): Correct `gevent` error when watcher is `None`.
+
+
 v1.4.4 (2022-12-22)
 -------------------
 
