@@ -21,6 +21,7 @@
     "notistack": "^2.0.8",
     "nunjucks": "^3.2.3",
     "object-hash": "^3.0.0",
+    "pako": "^2.1.0",
     "papaparse": "^5.3.2",
     "plotly.js": "^2.15.1",
     "prop-types": "^15.8.1",

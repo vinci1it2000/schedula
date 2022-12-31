@@ -1,6 +1,6 @@
 import React, {useState, useEffect, Suspense} from 'react';
 import ReactDOM from 'react-dom/client'
-import {customizeValidator} from "@rjsf/validator-ajv6";
+import {customizeValidator} from "@rjsf/validator-ajv8";
 import {
     ArrayField,
     ObjectField,
@@ -12,6 +12,8 @@ import hash from 'object-hash'
 import cloneDeep from 'lodash/cloneDeep'
 import './components/modal.css';
 import FileWidget from "./widgets/files";
+import {gzip} from 'pako';
+import debounce from 'lodash/debounce'
 
 const CloseIcon = React.lazy(() => import("@mui/icons-material/Close"));
 const SchemaIcon = React.lazy(() => import('@mui/icons-material/Schema'));
@@ -88,13 +90,15 @@ async function postData(url = '', data = {}, csrf_token, method = 'POST', header
         //credentials: 'same-origin', // include, *same-origin, omit
         headers: Object.assign({
             'Content-Type': 'application/json',
-            'X-CSRF-Token': csrf_token
+            'X-CSRF-Token': csrf_token,
+            'Content-Encoding': 'gzip',
+            'Accept-Encoding': 'gzip'
             //'Access-Control-Allow-Origin': '*'
             // 'Content-Type': 'application/x-www-form-urlencoded',
         }, headers),
         redirect: 'follow', // manual, *follow, error
         referrerPolicy: 'unsafe-url', // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
-        body: JSON.stringify(data) // body data type must match "Content-Type" header
+        body: gzip(JSON.stringify(data)) // body data type must match "Content-Type" header
     }).then(response => {
         if (setDebugSrc && response.headers.has('Debug-Location')) {
             setDebugSrc(response.headers.get('Debug-Location'))

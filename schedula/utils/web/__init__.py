@@ -9,7 +9,7 @@
 """
 It provides functions to build a flask app from a dispatcher.
 """
-
+import gzip
 import logging
 import functools
 from ..exc import WebResponse
@@ -103,11 +103,13 @@ class WebMap(SiteMap):
 
     def _func_handler(self, func):
         from ..dsp import selector
-        from flask import request, jsonify, Response
+        from flask import request, current_app, Response
         resp = None
         data = {}
         try:
-            if not (request.is_json or request.get_data()):
+            if request.headers.get('Content-Encoding') == 'gzip':
+                inp = current_app.json.loads(gzip.decompress(request.data))
+            elif not (request.is_json or request.get_data()):
                 inp = {}
             else:
                 inp = request.get_json(force=True)
@@ -119,13 +121,23 @@ class WebMap(SiteMap):
             resp = ex.response
         except Exception as ex:
             data['error'] = str(ex)
+        headers = {}
         if resp is None:
             keys = request.args.get('data', 'return,error').split(',')
             keys = [v.strip(' ') for v in keys]
-            resp = jsonify(selector(keys, data, allow_miss=True))
-        if request.headers.get('Debug') == 'true' and isinstance(func, Base):
-            resp.headers['Debug-Location'] = self.init_debug_subsite(func)
+            content = current_app.json.dumps(selector(
+                keys, data, allow_miss=True
+            )).encode('utf8')
 
+            if 'gzip' in request.headers.get('Accept-Encoding', '').lower():
+                content = gzip.compress(content)
+                headers['Content-length'] = len(content)
+                headers['Content-Encoding'] = 'gzip'
+            resp = current_app.make_response(content)
+
+        if request.headers.get('Debug') == 'true' and isinstance(func, Base):
+            headers['Debug-Location'] = self.init_debug_subsite(func)
+        resp.headers.update(headers)
         return resp
 
     def _site_proxy(self, key, path=''):
