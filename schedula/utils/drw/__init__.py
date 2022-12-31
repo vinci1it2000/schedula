@@ -60,6 +60,9 @@ from ..dsp import (
 from ..gen import counter
 from ..asy import _async_executor, atexit_register, Future, _sync_executor
 from ..asy.factory import ExecutorFactory
+from gevent import monkey
+
+monkey.patch_all()
 
 __author__ = 'Vincenzo Arcidiacono <vinci1it2000@gmail.com>'
 
@@ -707,7 +710,7 @@ def _format_output(obj, **kwargs):
     fpath = osp.join(pkg_dir, 'templates', 'render.html')
     with open(fpath) as template:
         return jinja2_format(
-            template.read(), combine_dicts({'obj': obj}, kwargs),
+            template.read(), combine_dicts(kwargs, base={'obj': obj}),
             loader=PackageLoader(__name__)
         )
 
@@ -1839,14 +1842,16 @@ def cached_view(node, directory, context, rendered, viz=False, executor='async',
     rend = {k: v for k, v in rendered.items() if k[0] == n_id}
     expected = {(n_id, e): f for (n, e), f in context.items() if n == node}
     res = {k: Future() for k in expected if k not in rendered}
-    rendered.update(res)
-    PLOT_EXECUTORS.get_executor((executor, None)).thread(
-        None, _cached_view_task, node, directory, context, rend, viz, executor,
-        **render_ctx
-    ).add_done_callback(functools.partial(
-        _set_rendered, res, expected=expected
-    ))
-    return combine_dicts(rend, res)
+    if res:
+        rendered.update(res)
+        PLOT_EXECUTORS.get_executor((executor, None)).thread(
+            None, _cached_view_task, node, directory, context, rend, viz,
+            executor, **render_ctx
+        ).add_done_callback(functools.partial(
+            _set_rendered, res, expected=expected
+        ))
+    rend.update(res)
+    return rend
 
 
 def _compile_subs(o, n):
