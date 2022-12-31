@@ -67,8 +67,21 @@ function GridToolbar({context, columns, setRowModesModel, setNewKey}) {
                 } else {
                     header = columns.map(v => (v.field))
                 }
+                let key, type, items = context.props.schema.items.properties;
                 context.props.onChange(parsedData.map(r => (r.reduce((res, v, i) => {
-                    res[header[i]] = toNumeric(v)
+                    key = header[i]
+                    type = items[key].type
+                    if (type === 'number' || type === 'integer') {
+                        v = toNumeric(v)
+                    } else if (type === 'boolean') {
+                        v = toNumeric(v)
+                        if (typeof v === "string") {
+                            v = v.toLowerCase() !== 'false'
+                        } else {
+                            v = !!v
+                        }
+                    }
+                    res[key] = v
                     return res
                 }, {}))))
             }
