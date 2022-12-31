@@ -17,10 +17,10 @@ export default function FilePreviewer({file, ...props}) {
     return <Suspense>
         <Box {...props}>
             {imagePreview != null &&
-                <img style={{minHeight: '20px', maxHeight: '80px'}}
+                <img style={{minHeight: '20px', maxHeight: '80px', maxWidth: '150px'}}
                      src={imagePreview} alt=""/>}
             {videoPreview != null &&
-                <video style={{minHeight: '20px', maxHeight: '80px'}}
+                <video style={{minHeight: '20px', maxHeight: '80px', maxWidth: '150px'}}
                        controls
                        src={videoPreview}></video>}
         </Box>
