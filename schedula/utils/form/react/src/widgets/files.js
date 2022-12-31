@@ -15,6 +15,10 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import BorderedSection from "../components/borderedSection";
 import FilePreviewer from "../components/previewer";
 import FileUploadIcon from '@mui/icons-material/FileUpload';
+import DownloadForOfflineOutlinedIcon
+    from '@mui/icons-material/DownloadForOfflineOutlined';
+import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined';
+import JSZip from 'jszip';
 
 const toBase64 = file => new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -66,7 +70,8 @@ function FileWidget(
             }
         );
     };
-    const files = value ? multiple ? value : [value] : [];
+    const files = (value ? multiple ? value : [value] : []).filter((v) => !!v);
+    const realFiles = files.map(dataURLtoFile)
 
     return <BorderedSection
         id={id}
@@ -82,7 +87,7 @@ function FileWidget(
                     variant="outlined"
                     color="primary"
                     icon={<FileUploadIcon/>}
-                    label={`Drag File${!multiple || (schema.maxItems && (schema.maxItems - files.length) === 1)  ? '' : 's'} Here or Click to Browse`}
+                    label={`Drag File${!multiple || (schema.maxItems && (schema.maxItems - files.length) === 1) ? '' : 's'} Here or Click to Browse`}
                 />}
             />}
         {files.length ?
@@ -90,33 +95,52 @@ function FileWidget(
                 <Table size="small">
                     <TableHead>
                         <TableRow>
-                            <TableCell>Name</TableCell>
-                            <TableCell
-                                align="center">Size</TableCell>
-                            <TableCell
-                                align="center">Type</TableCell>
-                            <TableCell
-                                align="center">Preview</TableCell>
+                            <TableCell align="left">Name</TableCell>
+                            <TableCell align="center">Size</TableCell>
+                            <TableCell align="center">Type</TableCell>
+                            <TableCell align="center">Preview</TableCell>
                             <TableCell align="right">
                                 {files.length > 1 ? <IconButton
+                                    key={'download'}
                                     onClick={() => {
-                                        onChange([])
+                                        const zip = new JSZip();
+                                        realFiles.forEach((file) => {
+                                            zip.file(file.name, file);
+                                        })
+                                        zip.generateAsync({type: "base64"}).then(function (base64) {
+                                            const a = document.createElement('a')
+                                            a.download = `${schema.title || 'file'}.zip`
+                                            a.href = "data:application/zip;base64," + base64;
+                                            const clickEvt = new MouseEvent('click', {
+                                                view: window,
+                                                bubbles: true,
+                                                cancelable: true,
+                                            })
+                                            a.dispatchEvent(clickEvt)
+                                            a.remove()
+                                        });
                                     }}>
-                                    <DeleteIcon/>
+                                    <FileDownloadOutlinedIcon/>
                                 </IconButton> : null}
+                                {!(readonly || disabled) && files.length > 1 ?
+                                    <IconButton key={'delete'}
+                                                onClick={() => {
+                                                    onChange([])
+                                                }}>
+                                        <DeleteIcon/>
+                                    </IconButton> : null}
                             </TableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                        {files.map(dataURLtoFile).map((file, key) => {
+                        {realFiles.map((file, key) => {
                             const {name, size, type} = file;
                             return (
                                 <TableRow
                                     key={key}
                                     sx={{'&:last-child td, &:last-child th': {border: 0}}}
                                 >
-                                    <TableCell component="th"
-                                               scope="row">
+                                    <TableCell component="th" scope="row">
                                         {name}
                                     </TableCell>
                                     <TableCell
@@ -124,23 +148,41 @@ function FileWidget(
                                     <TableCell
                                         align="center">{type}</TableCell>
                                     <TableCell align="center">
-                                        <FilePreviewer file={file}
-                                                       sx={{maxHeight: '80px'}}/>
+                                        <FilePreviewer
+                                            file={file}
+                                            sx={{maxHeight: '80px', maxWidth:'150px'}}/>
                                     </TableCell>
 
-                                    <TableCell
-                                        align="right"><IconButton
-                                        onClick={() => {
-                                            if (multiple) {
-                                                let newFiles = [...files]
-                                                newFiles.splice(key, 1)
-                                                onChange(newFiles)
-                                            } else {
-                                                onChange(undefined)
-                                            }
-                                        }}>
-                                        <ClearIcon/>
-                                    </IconButton></TableCell>
+                                    <TableCell align="right">
+                                        <IconButton key={'download'}
+                                                    onClick={() => {
+                                                        const a = document.createElement('a')
+                                                        a.download = name
+                                                        a.href = files[key]
+                                                        const clickEvt = new MouseEvent('click', {
+                                                            view: window,
+                                                            bubbles: true,
+                                                            cancelable: true,
+                                                        })
+                                                        a.dispatchEvent(clickEvt)
+                                                        a.remove()
+                                                    }}>
+                                            <DownloadForOfflineOutlinedIcon/>
+                                        </IconButton>
+                                        {!(readonly || disabled) ? <IconButton
+                                            key={'delete'}
+                                            onClick={() => {
+                                                if (multiple) {
+                                                    let newFiles = [...files]
+                                                    newFiles.splice(key, 1)
+                                                    onChange(newFiles)
+                                                } else {
+                                                    onChange(undefined)
+                                                }
+                                            }}>
+                                            <ClearIcon/>
+                                        </IconButton> : null}
+                                    </TableCell>
                                 </TableRow>
                             );
                         })}

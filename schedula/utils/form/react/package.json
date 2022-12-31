@@ -14,6 +14,7 @@
     "deep-diff": "^1.0.2",
     "diff": "^5.1.0",
     "jinja-js": "^0.1.8",
+    "jszip": "^3.10.1",
     "lru-cache": "^7.14.1",
     "mui-markdown": "^0.5.5",
     "nanoid": "^4.0.0",
