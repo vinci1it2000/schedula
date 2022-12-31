@@ -12,6 +12,7 @@ import isObject from "lodash/isObject";
 import {
     ReflexContainer, ReflexSplitter, ReflexElement, ReflexHandle
 } from 'react-reflex'
+
 const _Markdown = React.lazy(() => import('./markdown'));
 const _Stepper = React.lazy(() => import("./stepper"));
 const Submit = React.lazy(() => import("./submit"));
@@ -356,6 +357,8 @@ class Layout extends React.Component {
             children = this.props.context.dataForm
         } else if (def.hasOwnProperty('value')) {
             children = [this.props.context.dataForm[def.value]]
+        } else if (def.hasOwnProperty('path')) {
+            children = [get(this.props, def.path)]
         } else if (def.$id) {
             let element = this.props.context.render_key(def.$id, props);
             return Object.keys(element.props.schema).length ? element : null
