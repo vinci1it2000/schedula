@@ -484,7 +484,6 @@ export class ObjectField extends fields.ObjectField {
         const {
             schema: rawSchema,
             uiSchema = {},
-            formData,
             errorSchema,
             idSchema,
             name,
@@ -497,7 +496,7 @@ export class ObjectField extends fields.ObjectField {
             onFocus,
             registry,
         } = this.props;
-
+        let {formData} = this.props;
         const {fields, formContext, schemaUtils} = registry;
         const {SchemaField} = fields;
         const schema = schemaUtils.retrieveSchema(rawSchema, formData);
@@ -511,12 +510,15 @@ export class ObjectField extends fields.ObjectField {
             ? uiSchema.additionalProperties
             : uiSchema[key];
         const fieldIdSchema = get(idSchema, [key], {});
+        const childSchema = get(schema, [PROPERTIES_KEY, key], {});
+        const onChange = this.onPropertyChange(key, addedByAdditionalProperties)
+
         return (
             <SchemaField
                 key={key}
                 name={key}
                 required={this.isRequired(key)}
-                schema={get(schema, [PROPERTIES_KEY, key], {})}
+                schema={childSchema}
                 uiSchema={fieldUiSchema}
                 errorSchema={get(errorSchema, key)}
                 idSchema={fieldIdSchema}
@@ -526,10 +528,7 @@ export class ObjectField extends fields.ObjectField {
                 formContext={formContext}
                 wasPropertyKeyModified={this.state.wasPropertyKeyModified}
                 onKeyChange={this.onKeyChange(key)}
-                onChange={this.onPropertyChange(
-                    key,
-                    addedByAdditionalProperties
-                )}
+                onChange={onChange}
                 onBlur={onBlur}
                 onFocus={onFocus}
                 registry={registry}

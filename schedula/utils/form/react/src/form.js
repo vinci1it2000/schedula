@@ -18,17 +18,17 @@ import debounce from 'lodash/debounce'
 const CloseIcon = React.lazy(() => import("@mui/icons-material/Close"));
 const SchemaIcon = React.lazy(() => import('@mui/icons-material/Schema'));
 const BaseForm = React.lazy(() => import("@rjsf/mui"));
-const Backdrop  = React.lazy(() => import('@mui/material/Backdrop'));
-const CircularProgress  = React.lazy(() => import('@mui/material/CircularProgress'));
-const Alert  = React.lazy(() => import('@mui/material/Alert'));
-const AlertTitle  = React.lazy(() => import('@mui/material/AlertTitle'));
-const Modal  = React.lazy(() => import('@mui/material/Modal'));
-const Card  = React.lazy(() => import('@mui/material/Card'));
-const CardHeader  = React.lazy(() => import('@mui/material/CardHeader'));
-const CardContent  = React.lazy(() => import('@mui/material/CardContent'));
-const IconButton  = React.lazy(() => import('@mui/material/IconButton'));
-const Fab  = React.lazy(() => import('@mui/material/Fab'));
-const ReactModal = React.lazy(() => import('react-modal-resizable-draggable'));
+const Backdrop = React.lazy(() => import('@mui/material/Backdrop'));
+const CircularProgress = React.lazy(() => import('@mui/material/CircularProgress'));
+const Alert = React.lazy(() => import('@mui/material/Alert'));
+const AlertTitle = React.lazy(() => import('@mui/material/AlertTitle'));
+const Modal = React.lazy(() => import('@mui/material/Modal'));
+const Card = React.lazy(() => import('@mui/material/Card'));
+const CardHeader = React.lazy(() => import('@mui/material/CardHeader'));
+const CardContent = React.lazy(() => import('@mui/material/CardContent'));
+const IconButton = React.lazy(() => import('@mui/material/IconButton'));
+const Fab = React.lazy(() => import('@mui/material/Fab'));
+const ReactModal = React.lazy(() => import('demisto-react-modal-resizable-draggable'));
 const validator = customizeValidator({ajvOptionsOverrides: {$data: true}})
 
 validator.ajv.addKeyword('date-greater', {

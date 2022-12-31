@@ -1,7 +1,8 @@
 import React, {Suspense} from "react";
 import cloneDeep from 'lodash/cloneDeep'
-
-const Plot = React.lazy(() => import('react-plotly.js'));
+import Plotly from "plotly.js-cartesian-dist-min";
+import createPlotlyComponent from "react-plotly.js/factory";
+const Plot = createPlotlyComponent(Plotly);
 
 export default function _plot(props) {
     let {context, children, ...kw} = props
