@@ -9,7 +9,6 @@ import {
 import ErrorList from "./components/error"
 import {JSONUpload, JSONExport} from "./components/io";
 import hash from 'object-hash'
-import cloneDeep from 'lodash/cloneDeep'
 import './components/modal.css';
 import FileWidget from "./widgets/files";
 import {gzip} from 'pako';
@@ -81,8 +80,8 @@ const fields = {
 const widgets = {FileWidget};
 
 
-async function postData(url = '', data = {}, csrf_token, method = 'POST', headers = {}, setDebugSrc) {
-    const response = await fetch(url, {
+async function postData(url = '', data = {}, csrf_token, method = 'POST', headers = {}) {
+    return fetch(url, {
         method: method,
         crossDomain: true,
         //mode: 'no-cors', // no-cors, *cors, same-origin
@@ -99,16 +98,16 @@ async function postData(url = '', data = {}, csrf_token, method = 'POST', header
         redirect: 'follow', // manual, *follow, error
         referrerPolicy: 'unsafe-url', // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
         body: gzip(JSON.stringify(data)) // body data type must match "Content-Type" header
-    }).then(response => {
-        if (setDebugSrc && response.headers.has('Debug-Location')) {
-            setDebugSrc(response.headers.get('Debug-Location'))
+    }).then(async (response) => {
+        let debugUrl;
+        if (response.headers.has('Debug-Location')) {
+            debugUrl = response.headers.get('Debug-Location')
         }
         if (response.redirected) {
             window.location.href = response.url;
         }
-        return response
+        return {data: await response.json(), debugUrl}
     });
-    return response.json(); // parses JSON response into native JavaScript objects
 }
 
 
@@ -123,28 +122,44 @@ function Form(
         editOnChange = null,
         preSubmit = null,
         postSubmit = null,
+        formData = {},
+        liveValidate = true,
+        removeReturnOnChange = true,
         ...props
     }
 ) {
-    const [spinner, setSpinner] = useState(false);
-    const [formData, setFormData] = useState(props.formData || {});
-    delete props.formData
-    var form;
-    const [errorMessage, setErrorMessage] = useState("");
-    const [debugSrc, setDebugSrc] = useState("");
-    const [openDebug, setOpenDebug] = useState(!!debugSrc);
-    const formatData = (data) => {
-        data = Object.assign({}, data);
-        delete data.hash;
-        data.hash = hash(data)
-        return data
-    }
+    let currentForm;
+    const [dataState, setDataState] = useState({
+        formData,
+        hash: hash(formData)
+    });
+
+    const [errorState, setErrorState] = useState({
+        errorMessage: "",
+        openError: false
+    });
+
+    const [debugState, setDebugState] = useState({
+        debugUrl: "",
+        openDebug: false
+    });
+
+    const [spinner, setSpinner] = useState(true);
+    const validateForm = debounce(() => {
+        if (currentForm)
+            currentForm.validateForm()
+    }, 500)
+
+
     const onSubmit = ({formData}, e) => {
         e.preventDefault();
         let method = e.nativeEvent.submitter.getAttribute('formmethod') || 'POST',
             headers = JSON.parse(
                 e.nativeEvent.submitter.getAttribute('headers') || '{}'
             );
+        setDataState({formData, hash: hash(formData)})
+        setDebugState({debugUrl: "", openDebug: false})
+        setErrorState({openError: false, errorMessage: ""})
         setSpinner(true)
         let input = preSubmit ? preSubmit({
             input: formData.input,
@@ -155,70 +170,76 @@ function Form(
             csrf_token,
             ...props
         }) : formData.input;
-        postData(url, input, csrf_token, method, headers, (url) => {
-            setDebugSrc(url);
+        postData(url, input, csrf_token, method, headers).then(
+            ({data, debugUrl}) => {
+                return {
+                    debugUrl,
+                    data: postSubmit ? postSubmit({
+                        data,
+                        input: formData.input,
+                        formData,
+                        formContext,
+                        schema,
+                        uiSchema,
+                        csrf_token,
+                        ...props
+                    }) : data
+                }
+            }).then(({data, debugUrl}) => {
             setSpinner(false)
-            setOpenDebug(true)
-        }).then((data) => (
-            postSubmit ? postSubmit({
-                data,
-                input: formData.input,
-                formData,
-                formContext,
-                schema,
-                uiSchema,
-                csrf_token,
-                ...props
-            }) : data
-        )).then((data) => {
-            setFormData(formatData(Object.assign({input: formData.input}, data)))
+            if (debugUrl) {
+                setDebugState({
+                    debugUrl: debugUrl,
+                    openDebug: true
+                })
+            }
+            if (data.hasOwnProperty('error')) {
+                setErrorState({
+                    openError: true,
+                    errorMessage: data.error
+                })
+            } else {
+                formData = Object.assign({input: formData.input}, data)
+                setDataState({formData, hash: hash(formData)})
+            }
         }).catch(error => {
-            setFormData(formatData(Object.assign({input: formData.input}, {error: error.message})))
-        }).finally((data) => {
             setSpinner(false)
+            setErrorState({openError: true, errorMessage: error.message})
         });
     }
     const onChange = ({formData, errors}) => {
-        if (editOnChange) {
-            let oldHash = hash(formData),
-                newFormData = editOnChange({
-                    formData: cloneDeep(formData),
+        if (currentForm) {
+            let prevHash = hash(formData), forceUpdate = false,
+                noReturn = isEmpty(formData.return || {});
+            if (removeReturnOnChange && !noReturn && prevHash !== dataState.hash) {
+                delete formData.return;
+                noReturn = true
+            }
+
+            if (debugState.debugUrl && noReturn) {
+                setDebugState({debugUrl: "", openDebug: false})
+                forceUpdate = true
+            }
+            if (editOnChange) {
+                formData = editOnChange({
+                    formData,
                     formContext,
                     schema,
                     uiSchema,
                     csrf_token,
                     ...props
                 });
-            if (oldHash !== hash(newFormData)) {
-                formData = formatData(newFormData)
-                if (form)
-                    form.setState(Object.assign({}, form.state, {formData}))
+            }
+
+            let currentHash = hash(formData)
+            if (forceUpdate || prevHash !== currentHash) {
+                setDataState({formData, hash: currentHash})
+            }
+            if (liveValidate) {
+                validateForm()
             }
         }
-        if (!formData.hash) {
-            formData = formatData(formData)
-        }
-        if (formData.hasOwnProperty('return')) {
-            let hasReturn = !isEmpty(formData.return);
-            if (hasReturn && formData.hash !== formatData(formData).hash) {
-                formData = cloneDeep(formData)
-                delete formData.return;
-                delete formData.hash;
-                setDebugSrc("")
-            }
-        }
-
-        if (formData.hasOwnProperty('error') && typeof (formData.error) === 'string') {
-            let error = formData.error;
-            delete formData.error;
-            setErrorMessage(error)
-        }
-        if (form)
-            form.setState(Object.assign({}, form.state, {formData}))
-
-        setFormData(formData)
     }
-
     const [windowSize, setWindowSize] = useState(getWindowSize());
 
     useEffect(() => {
@@ -226,41 +247,44 @@ function Form(
             setWindowSize(getWindowSize());
         }
 
-        window.addEventListener('resize', handleWindowResize);
-
-        return () => {
-            window.removeEventListener('resize', handleWindowResize);
-        };
+        window.addEventListener('resize', debounce(handleWindowResize, 300));
     }, []);
     if (!formContext.hasOwnProperty('$id'))
         formContext.$id = name
+    useEffect(() => {
+        setTimeout(() => setSpinner(false), 300)
+    });
     return (<Suspense>
         <div id={name}>
-            <Backdrop
-                sx={{
-                    color: '#fff',
-                    zIndex: (theme) => theme.zIndex.drawer + 1
-                }}
-                open={spinner}
-            >
-                <CircularProgress color="inherit"/>
-            </Backdrop>
+            {spinner ?
+                <Backdrop
+                    sx={{
+                        color: '#fff',
+                        zIndex: (theme) => theme.zIndex.drawer * 100
+                    }}
+                    open={spinner}
+                >
+                    <CircularProgress color="inherit"/>
+                </Backdrop> : null}
             <BaseForm
                 key={name + '-Form'}
                 id={name + '-Form'}
                 schema={schema}
                 uiSchema={uiSchema}
-                formData={formData}
+                formData={dataState.formData}
                 fields={fields}
                 widgets={widgets}
-                ref={_form => {
-                    form = _form;
+                ref={(form) => {
+                    if (form) {
+                        currentForm = form;
+                        validateForm()
+                    }
                 }}
                 validator={validator}
                 templates={templates}
                 showErrorList={'top'}
                 omitExtraData={true}
-                liveValidate={true}
+                liveValidate={false}
                 onChange={onChange}
                 onSubmit={onSubmit}
                 formContext={formContext}
@@ -268,12 +292,10 @@ function Form(
             />
             <Modal
                 key={name + "-error-modal"}
-                open={errorMessage !== ""}
+                open={errorState.openError}
                 onClose={() => {
-                    setErrorMessage("")
+                    setErrorState(Object.assign({}, errorState, {openError: false}))
                 }}
-                aria-labelledby="error-modal-title"
-                aria-describedby="error-modal-description"
             >
                 <Alert variant="outlined" severity="error" sx={{
                     position: 'absolute',
@@ -283,32 +305,31 @@ function Form(
                     minWidth: 400,
                     p: 4, bgcolor: 'background.paper',
                 }} onClose={() => {
-                    setErrorMessage("")
+                    setErrorState(Object.assign({}, errorState, {openError: false}))
                 }}>
                     <AlertTitle>Error</AlertTitle>
-                    {errorMessage}
+                    {errorState.errorMessage}
                 </Alert>
             </Modal>
-            {!debugSrc || openDebug ? null : <Fab
-                sx={{
-                    position: 'fixed',
-                    top: 135,
-                    right: 16,
-                    "z-index": 10000000000
-                }}
-                size="small" onClick={() => {
-                setOpenDebug(true)
-            }}>
-                <SchemaIcon/>
-            </Fab>}
+            {!debugState.debugUrl || debugState.openDebug ? null :
+                <Fab
+                    sx={{
+                        position: 'fixed',
+                        top: 135,
+                        right: 16,
+                        "z-index": 10000000000
+                    }}
+                    size="small" onClick={() => {
+                    setDebugState(Object.assign({}, debugState, {openDebug: true}))
+                }}>
+                    <SchemaIcon/>
+                </Fab>}
             <ReactModal
-                initHeight={windowSize.innerHeight * 0.6}
-                initWidth={windowSize.innerWidth * 0.6}
                 disableKeystroke={true}
                 onRequestClose={() => {
-                    setOpenDebug(false)
+                    setDebugState(Object.assign({}, debugState, {openDebug: false}))
                 }}
-                isOpen={debugSrc && openDebug}>
+                isOpen={debugState.debugUrl && debugState.openDebug}>
                 <Card sx={{
                     height: '100%',
                     display: 'flex',
@@ -318,16 +339,17 @@ function Form(
                         sx={{"backgroundColor": "lightgray"}}
                         action={
                             <IconButton onClick={() => {
-                                setOpenDebug(false)
+                                setDebugState(Object.assign({}, debugState, {openDebug: false}))
                             }}>
                                 <CloseIcon/>
                             </IconButton>
                         } title={'Debug mode'}>
                     </CardHeader>
                     <CardContent sx={{flexGrow: 1}}>
-
-                        {debugSrc ? <iframe
-                            id="{id}" src={debugSrc}
+                        {debugState.debugUrl ? <iframe
+                            id={name + '-Form-debug'}
+                            title={name + '-Form-debug'}
+                            src={debugState.debugUrl}
                             allowFullScreen
                             style={{
                                 height: '100%',
@@ -342,10 +364,6 @@ function Form(
     </Suspense>);
 }
 
-function getWindowSize() {
-    const {innerWidth, innerHeight} = window;
-    return {innerWidth, innerHeight};
-}
 
 async function renderForm(
     {
