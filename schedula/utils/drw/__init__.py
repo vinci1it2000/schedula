@@ -60,9 +60,6 @@ from ..dsp import (
 from ..gen import counter
 from ..asy import _async_executor, atexit_register, Future, _sync_executor
 from ..asy.factory import ExecutorFactory
-from gevent import monkey
-
-monkey.patch_all()
 
 __author__ = 'Vincenzo Arcidiacono <vinci1it2000@gmail.com>'
 
@@ -1373,28 +1370,19 @@ _repr_html = '''
 
 class ServerThread(threading.Thread):
 
-    def __init__(self, application, host, port, **kwargs):
-        super(ServerThread, self).__init__()
-        self.app = application
-        self.listener = host, port
-        self.kwargs = kwargs
-        self.srv = None
+    def __init__(self, application, threaded=True, **kwargs):
+        from werkzeug.serving import make_server
+        threading.Thread.__init__(self)
+        self.srv = make_server(app=application, threaded=threaded, **kwargs)
+
 
     def run(self):
         log.info('starting server')
-        try:
-            from gevent.pywsgi import WSGIServer
-            self.srv = WSGIServer(self.listener, self.app, **self.kwargs)
-            self.srv.serve_forever()
-        finally:
-            del self.srv, self.app, self.listener, self.kwargs
+        self.srv.serve_forever()
 
     def shutdown(self):
         log.info('shutdown server')
-        try:
-            self.srv.close()
-        except AttributeError:
-            pass
+        self.srv.shutdown()
 
 
 class IdleContainer(threading.Thread):

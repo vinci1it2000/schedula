@@ -3,4 +3,3 @@
 flask
 regex
 requests
-gevent

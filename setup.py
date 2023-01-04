@@ -81,12 +81,12 @@ if __name__ == '__main__':
     core = os.environ.get('ENABLE_SETUP_CORE') == 'TRUE'
     extras = {
         'io': ['dill!=0.2.7'],
-        'web': ['requests', 'regex', 'flask', 'gevent'],
-        'form': ['requests', 'regex', 'flask', 'itsdangerous', 'gevent'],
+        'web': ['requests', 'regex', 'flask'],
+        'form': ['requests', 'regex', 'flask', 'itsdangerous'],
         'parallel': ['multiprocess'],
         'plot': [
             'requests', 'graphviz>=0.17', 'regex', 'flask', 'Pygments',
-            'jinja2', 'docutils', 'gevent'
+            'jinja2', 'docutils'
         ]
     }
     extras['sphinx'] = ['sphinx>4'] + extras['plot']

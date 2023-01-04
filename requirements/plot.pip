@@ -7,4 +7,3 @@ requests
 Pygments
 jinja2
 docutils
-gevent
