@@ -150,7 +150,7 @@ class WebMap(SiteMap):
         try:
             resp = requests.request(
                 method=request.method,
-                url=f"{'/'.join((host_url, path or '/'))}",
+                url=f"{'/'.join((host_url, path or ''))}",
                 headers={k: v for k, v in request.headers if k != 'Host'},
                 data=request.get_data(),
                 cookies=request.cookies,
