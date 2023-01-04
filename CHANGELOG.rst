@@ -2,6 +2,43 @@ Changelog
 =========
 
 
+v1.4.6 (2023-01-04)
+-------------------
+
+Feat
+~~~~
+- (site): Drop gevent dependence.
+
+- (form): Update bundle.
+
+- (form): Add error handling on file widget.
+
+- (form): Move `ReactModal` in a custom component.
+
+- (form): Add `savingData` option to nav component.
+
+- (form): Add download buttons to file widget.
+
+- (form): Group all states to a single state + debounce live validation.
+
+- (site): Enable async routes.
+
+- (form): Reduce bundle size.
+
+- (form): Add new method `path` for `ui:layout`.
+
+- (form): Use gzip to POST requests.
+
+- (form): Add download buttons to file widget.
+
+
+Fix
+~~~
+- (form): Correct modal css.
+
+- (form): Ensure datagrid string or bool format.
+
+
 v1.4.5 (2022-12-27)
 -------------------
 
