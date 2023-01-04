@@ -9,7 +9,6 @@ import {
 import ErrorList from "./components/error"
 import {JSONUpload, JSONExport} from "./components/io";
 import hash from 'object-hash'
-import './components/modal.css';
 import FileWidget from "./widgets/files";
 import {gzip} from 'pako';
 import debounce from 'lodash/debounce'
@@ -27,7 +26,7 @@ const CardHeader = React.lazy(() => import('@mui/material/CardHeader'));
 const CardContent = React.lazy(() => import('@mui/material/CardContent'));
 const IconButton = React.lazy(() => import('@mui/material/IconButton'));
 const Fab = React.lazy(() => import('@mui/material/Fab'));
-const ReactModal = React.lazy(() => import('demisto-react-modal-resizable-draggable'));
+const ReactModal = React.lazy(() => import('./components/modal'));
 const validator = customizeValidator({ajvOptionsOverrides: {$data: true}})
 
 validator.ajv.addKeyword('date-greater', {
@@ -240,15 +239,7 @@ function Form(
             }
         }
     }
-    const [windowSize, setWindowSize] = useState(getWindowSize());
 
-    useEffect(() => {
-        function handleWindowResize() {
-            setWindowSize(getWindowSize());
-        }
-
-        window.addEventListener('resize', debounce(handleWindowResize, 300));
-    }, []);
     if (!formContext.hasOwnProperty('$id'))
         formContext.$id = name
     useEffect(() => {
