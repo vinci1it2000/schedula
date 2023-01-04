@@ -227,7 +227,7 @@ const appendData = (key, formData) => {
 }
 export default function _nav(props) {
     const [fullScreen, setFullScreen] = React.useState(false);
-    const [savingData, setSavingData] = React.useState(true);
+    const [savingData, setSavingData] = React.useState(props.hasOwnProperty('savingData') ? props.savingData : true);
     const [value, setValue] = React.useState(props.current_tab || 0);
     const handleChange = (event, newValue) => {
         setValue(newValue);
@@ -618,7 +618,7 @@ export default function _nav(props) {
                             <KeyboardArrowUpIcon/>
                         </Fab>
                     </ScrollTop>
-                    <Dialog fullWidth
+                    <Dialog fullWidth sx={{'z-index': 100000000000}}
                             maxWidth="sm" scroll={'paper'} onClose={() => {
                         setOpenRestore(false);
                     }} open={openRestore}>
