@@ -68,7 +68,9 @@ function FileWidget(
                 values = files.concat(values).filter((v, i, a) => a.indexOf(v) === i)
                 onChange(multiple ? values : values[0])
             }
-        );
+        ).catch(error => {
+            alert(error.message)
+        });
     };
     const files = (value ? multiple ? value : [value] : []).filter((v) => !!v);
     const realFiles = files.map(dataURLtoFile)
@@ -118,6 +120,8 @@ function FileWidget(
                                             })
                                             a.dispatchEvent(clickEvt)
                                             a.remove()
+                                        }).catch(error => {
+                                            alert(error.message)
                                         });
                                     }}>
                                     <FileDownloadOutlinedIcon/>
@@ -150,7 +154,10 @@ function FileWidget(
                                     <TableCell align="center">
                                         <FilePreviewer
                                             file={file}
-                                            sx={{maxHeight: '80px', maxWidth:'150px'}}/>
+                                            sx={{
+                                                maxHeight: '80px',
+                                                maxWidth: '150px'
+                                            }}/>
                                     </TableCell>
 
                                     <TableCell align="right">
