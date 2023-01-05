@@ -186,7 +186,6 @@ function Form(
                     }) : data
                 }
             }).then(({data, debugUrl}) => {
-            setSpinner(false)
             if (debugUrl) {
                 setDebugState({
                     debugUrl: debugUrl,
@@ -202,9 +201,11 @@ function Form(
                 formData = Object.assign({input: formData.input}, data)
                 setDataState({formData, hash: hash(formData)})
             }
-        }).catch(error => {
+            validateForm()
             setSpinner(false)
+        }).catch(error => {
             setErrorState({openError: true, errorMessage: error.message})
+            setSpinner(false)
         });
     }
     const onChange = ({formData, errors}) => {
