@@ -18,12 +18,6 @@ jobs:
         include:
           - os: windows-latest
             extra: all
-            python-version: '3.8'
-          - os: windows-latest
-            extra: all
-            python-version: '3.9'
-          - os: windows-latest
-            extra: all
             python-version: '3.10'
     env:
       ACTION: "true"
