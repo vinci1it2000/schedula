@@ -2,6 +2,31 @@ Changelog
 =========
 
 
+v1.4.7 (2023-01-05)
+-------------------
+
+Feat
+~~~~
+- (form): Update bundle.
+
+- (form): Request gzip schemas.
+
+- (form): Enforce correct defaults.
+
+- (form): Resolve schema.
+
+
+Fix
+~~~
+- (test): Test only one python version for windows.
+
+- (form): Invoke form validation after submit.
+
+- (form): Use `retrieveSchema` function to retrieve field schema.
+
+- (web): Correct debug url.
+
+
 v1.4.6 (2023-01-04)
 -------------------
 
