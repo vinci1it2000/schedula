@@ -416,7 +416,8 @@ export class ArrayField extends fields.ArrayField {
 
     render_children() {
         const {
-            schema,
+            schema: rawSchema,
+            formData: rawFormData,
             uiSchema = {},
             errorSchema,
             idSchema,
@@ -431,6 +432,7 @@ export class ArrayField extends fields.ArrayField {
         } = this.props;
         const {keyedFormData} = this.state;
         const {schemaUtils} = registry;
+        const schema = schemaUtils.retrieveSchema(rawSchema, rawFormData)
         const _schemaItems = isObject(schema.items) ? (schema.items) : ({});
         const formData = keyedToPlainFormData(this.state.keyedFormData);
         return keyedFormData.length ? keyedFormData.map((keyedItem, index) => {
@@ -510,7 +512,8 @@ export class ObjectField extends fields.ObjectField {
             ? uiSchema.additionalProperties
             : uiSchema[key];
         const fieldIdSchema = get(idSchema, [key], {});
-        const childSchema = get(schema, [PROPERTIES_KEY, key], {});
+        const childFormData = get(formData, key);
+        const childSchema = schemaUtils.retrieveSchema(get(schema, [PROPERTIES_KEY, key], {}), childFormData);
         const onChange = this.onPropertyChange(key, addedByAdditionalProperties)
 
         return (
@@ -524,7 +527,7 @@ export class ObjectField extends fields.ObjectField {
                 idSchema={fieldIdSchema}
                 idPrefix={idPrefix}
                 idSeparator={idSeparator}
-                formData={get(formData, key)}
+                formData={childFormData}
                 formContext={formContext}
                 wasPropertyKeyModified={this.state.wasPropertyKeyModified}
                 onKeyChange={this.onKeyChange(key)}
