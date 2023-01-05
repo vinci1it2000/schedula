@@ -270,10 +270,20 @@ function Form(
                 ref={(form) => {
                     if (form) {
                         currentForm = form;
-                        let currentHash = hash(form.state.formData)
+                        let formData = form.state.formData, currentHash;
+                        if (editOnChange)
+                            formData = editOnChange({
+                                formData,
+                                formContext,
+                                schema,
+                                uiSchema,
+                                csrf_token,
+                                ...props
+                            })
+                        currentHash = hash(formData)
                         if (dataState.hash !== currentHash) {
                             setDataState({
-                                formData: form.state.formData,
+                                formData: formData,
                                 hash: currentHash
                             })
                             validateForm()
