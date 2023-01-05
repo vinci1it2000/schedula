@@ -146,8 +146,14 @@ function Form(
 
     const [spinner, setSpinner] = useState(true);
     const validateForm = debounce(() => {
-        if (currentForm)
-            currentForm.validateForm()
+        if (currentForm && currentForm.validateForm() && (currentForm.state.schemaValidationErrors.length || currentForm.state.errors.length)) {
+            currentForm.setState(Object.assign({}, currentForm.state, {
+                errors: [],
+                errorSchema: {},
+                schemaValidationErrorSchema: {},
+                schemaValidationErrors: []
+            }))
+        }
     }, 500)
 
 
