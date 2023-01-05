@@ -334,42 +334,44 @@ function Form(
                 }}>
                     <SchemaIcon/>
                 </Fab>}
-            <ReactModal
-                disableKeystroke={true}
-                onRequestClose={() => {
-                    setDebugState(Object.assign({}, debugState, {openDebug: false}))
-                }}
-                isOpen={debugState.debugUrl && debugState.openDebug}>
-                <Card sx={{
-                    height: '100%',
-                    display: 'flex',
-                    flexDirection: 'column',
-                }}>
-                    <CardHeader
-                        sx={{"backgroundColor": "lightgray"}}
-                        action={
-                            <IconButton onClick={() => {
-                                setDebugState(Object.assign({}, debugState, {openDebug: false}))
-                            }}>
-                                <CloseIcon/>
-                            </IconButton>
-                        } title={'Debug mode'}>
-                    </CardHeader>
-                    <CardContent sx={{flexGrow: 1}}>
-                        {debugState.debugUrl ? <iframe
-                            id={name + '-Form-debug'}
-                            title={name + '-Form-debug'}
-                            src={debugState.debugUrl}
-                            allowFullScreen
-                            style={{
-                                height: '100%',
-                                width: '100%',
-                                border: "none"
-                            }}>
-                        </iframe> : null}
-                    </CardContent>
-                </Card>
-            </ReactModal>
+            <div style={debugState.openDebug ? {} : {display: "none"}}>
+                <ReactModal
+                    disableKeystroke={true}
+                    onRequestClose={() => {
+                        setDebugState(Object.assign({}, debugState, {openDebug: false}))
+                    }}
+                    isOpen={debugState.debugUrl}>
+                    <Card sx={{
+                        height: '100%',
+                        display: 'flex',
+                        flexDirection: 'column',
+                    }}>
+                        <CardHeader
+                            sx={{"backgroundColor": "lightgray"}}
+                            action={
+                                <IconButton onClick={() => {
+                                    setDebugState(Object.assign({}, debugState, {openDebug: false}))
+                                }}>
+                                    <CloseIcon/>
+                                </IconButton>
+                            } title={'Debug mode'}>
+                        </CardHeader>
+                        <CardContent sx={{flexGrow: 1}}>
+                            {debugState.debugUrl ? <iframe
+                                id={name + '-Form-debug'}
+                                title={name + '-Form-debug'}
+                                src={debugState.debugUrl}
+                                allowFullScreen
+                                style={{
+                                    height: '100%',
+                                    width: '100%',
+                                    border: "none"
+                                }}>
+                            </iframe> : null}
+                        </CardContent>
+                    </Card>
+                </ReactModal>
+            </div>
         </div>
     </Suspense>);
 }
