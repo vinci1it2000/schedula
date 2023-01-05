@@ -2,6 +2,23 @@ Changelog
 =========
 
 
+v1.4.8 (2023-01-05)
+-------------------
+
+Feat
+~~~~
+- (form): Update bundle.
+
+- (form): Make modal unmount.
+
+
+Fix
+~~~
+- (form): Correct `useEffect` loop.
+
+- (form): Add missing invocation of `editOnChange`.
+
+
 v1.4.7 (2023-01-05)
 -------------------
 
