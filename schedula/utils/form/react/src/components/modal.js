@@ -19,7 +19,7 @@ export default function ReactModal(props) {
         }
 
         window.addEventListener('resize', debounce(handleWindowResize, 500));
-    });
+    }, [props.isOpen]);
     return <Modal
         initHeight={windowSize.innerHeight * 0.6}
         initWidth={windowSize.innerWidth * 0.6}

@@ -246,7 +246,7 @@ function Form(
         formContext.$id = name
     useEffect(() => {
         setTimeout(() => setSpinner(false), 300)
-    });
+    }, []);
     return (<Suspense>
         <div id={name}>
             {spinner ?
