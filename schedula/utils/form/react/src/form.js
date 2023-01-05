@@ -1,6 +1,7 @@
 import React, {useState, useEffect, Suspense} from 'react';
 import ReactDOM from 'react-dom/client'
 import {customizeValidator} from "@rjsf/validator-ajv8";
+import jref from 'json-ref-lite';
 import {
     ArrayField,
     ObjectField,
@@ -368,9 +369,11 @@ async function renderForm(
     const root = ReactDOM.createRoot(element);
     root.render(
         <Suspense>
-            <Form schema={schema} uiSchema={uiSchema}
-                  name={name}
-                  url={url} {...props}/>
+            <Form
+                schema={jref.resolve(schema)}
+                uiSchema={uiSchema}
+                name={name}
+                url={url} {...props}/>
         </Suspense>
     );
 }

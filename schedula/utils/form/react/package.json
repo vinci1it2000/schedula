@@ -15,6 +15,7 @@
     "demisto-react-modal-resizable-draggable": "^0.1.6",
     "diff": "^5.1.0",
     "jinja-js": "^0.1.8",
+    "json-ref-lite": "^1.1.0",
     "jszip": "^3.10.1",
     "lru-cache": "^7.14.1",
     "mui-markdown": "^0.5.6",
