@@ -270,7 +270,14 @@ function Form(
                 ref={(form) => {
                     if (form) {
                         currentForm = form;
-                        validateForm()
+                        let currentHash = hash(form.state.formData)
+                        if (dataState.hash !== currentHash) {
+                            setDataState({
+                                formData: form.state.formData,
+                                hash: currentHash
+                            })
+                            validateForm()
+                        }
                     }
                 }}
                 validator={validator}
