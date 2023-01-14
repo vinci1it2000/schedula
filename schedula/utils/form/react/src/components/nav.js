@@ -6,7 +6,7 @@ import PropTypes from 'prop-types';
 import useScrollTrigger from '@mui/material/useScrollTrigger';
 import {styled, useTheme} from '@mui/material/styles';
 import {exportJson} from './io';
-import screenfull from 'screenfull';
+import {useFullscreen} from 'ahooks';
 import hash from 'object-hash'
 import DiffViewer from './diff';
 
@@ -36,7 +36,6 @@ const FileDownloadOutlinedIcon = React.lazy(() => import('@mui/icons-material/Fi
 const FileUploadOutlinedIcon = React.lazy(() => import('@mui/icons-material/FileUploadOutlined'));
 const PlayCircleIcon = React.lazy(() => import('@mui/icons-material/PlayCircle'));
 const Tooltip = React.lazy(() => import('@mui/material/Tooltip'));
-const ReactFullscreen = React.lazy(() => import('react-easyfullscreen'));
 const FullscreenIcon = React.lazy(() => import('@mui/icons-material/Fullscreen'));
 const FullscreenExitIcon = React.lazy(() => import('@mui/icons-material/FullscreenExit'));
 const DataSaverOnIcon = React.lazy(() => import('@mui/icons-material/DataSaverOn'));
@@ -226,7 +225,6 @@ const appendData = (key, formData) => {
     }
 }
 export default function _nav(props) {
-    const [fullScreen, setFullScreen] = React.useState(false);
     const [savingData, setSavingData] = React.useState(props.hasOwnProperty('savingData') ? props.savingData : true);
     const [value, setValue] = React.useState(props.current_tab || 0);
     const handleChange = (event, newValue) => {
@@ -236,7 +234,6 @@ export default function _nav(props) {
     const [open, setOpen] = React.useState(false);
     let key = 'schedula-' + props.context.props.formContext.$id + '-' + props.context.props.idSchema.$id + '-formData';
     let formData = props.context.props.formData;
-
     useEffect(function updateStorage() {
         if (savingData) {
             try {
@@ -285,416 +282,412 @@ export default function _nav(props) {
         })
     }
     const anchor = React.useRef(null);
-
+    const [isFullscreen, {isEnabled, toggleFullscreen}] = useFullscreen(
+        props.context.props.formContext.ref
+    );
     return (<Suspense>
-        <ReactFullscreen onChange={() => {
-            setFullScreen(screenfull.isFullscreen)
-        }}>
-            {({ref, onToggle, isEnabled}) => (
-                <Box ref={ref} sx={{display: 'flex',}}>
-                    <CssBaseline/>
-                    <AppBar color="inherit" position="fixed" open={open}>
-                        <Toolbar>
-                            {props['disable-drawer'] ? null :
-                                <IconButton
-                                    color="inherit"
-                                    aria-label="open drawer"
-                                    onClick={handleDrawerOpen}
-                                    edge="start"
-                                    sx={{
-                                        ...(open && {display: 'none'}),
-                                    }}
-                                >
-                                    <MenuIcon/>
-                                </IconButton>}
-                            <Box key={0}
-                                 sx={{marginLeft: 5}}>{props['children-left']}</Box>
-                            {props['disable-tabs'] ? null :
-                                <Tabs key={1}
-                                      value={value}
-                                      onChange={handleChange}
-                                      sx={{flexGrow: 1}}
-                                      {...props}
-                                >
-                                    {props.children.map((element, index) => (
-                                        <Tab key={index}
-                                             label={(element.props.schema || {}).title || ''} {...((props['tabs-props'] || {})[index] || {})}{...a11yProps(index)} />
-                                    ))}
-                                </Tabs>}
-                            <Box key={2}>{props['children-right']}</Box>
-                        </Toolbar>
-                    </AppBar>
+        <Box sx={{display: 'flex'}}>
+            <CssBaseline/>
+            <AppBar color="inherit" position="fixed" open={open}>
+                <Toolbar>
                     {props['disable-drawer'] ? null :
-                        <Drawer variant="permanent" open={open}>
-                            <DrawerHeader>
-                                <IconButton onClick={handleDrawerClose}>
-                                    {theme.direction === 'rtl' ?
-                                        <ChevronRightIcon/> :
-                                        <ChevronLeftIcon/>}
-                                </IconButton>
-                            </DrawerHeader>
-                            <Divider/>
-                            <List>
-                                {isEnabled && props['disable-fullscreen'] ? null :
-                                    <Tooltip
-                                        title={'Enable/Disable fullscreen'}
-                                        arrow
-                                        placement="right" {...props['props-tooltip-fullscreen']}>
-                                        <ListItem key={'fullscreen'}
-                                                  disablePadding>
-                                            <ListItemButton
-                                                sx={{
-                                                    minHeight: 48,
-                                                    justifyContent: open ? 'initial' : 'center',
-                                                    px: 2.5,
-                                                }}
-                                                onClick={onToggle}
-                                                {...props['props-fullscreen']}
-                                            >
-                                                <ListItemIcon
-                                                    sx={{
-                                                        minWidth: 0,
-                                                        mr: open ? 3 : 'auto',
-                                                        justifyContent: 'center',
-                                                    }}
-                                                >
-                                                    {fullScreen ?
-                                                        <FullscreenExitIcon/> :
-                                                        <FullscreenIcon/>}
-                                                </ListItemIcon>
-                                                <ListItemText
-                                                    primary={'FULLSCREEN'}
-                                                    sx={{opacity: open ? 1 : 0}}/>
-                                            </ListItemButton>
-                                        </ListItem></Tooltip>}
-                                {props['disable-run'] ? null :
-                                    <Tooltip
-                                        title={'Run current data'}
-                                        arrow
-                                        placement="right" {...props['props-tooltip-run']}>
-                                        <ListItem key={'run'} disablePadding>
-                                            <ListItemButton
-                                                component={'button'}
-                                                type="submit"
-                                                formMethod="POST"
-                                                sx={{
-                                                    minHeight: 48,
-                                                    justifyContent: open ? 'initial' : 'center',
-                                                    px: 2.5,
-                                                }}
-                                                {...props['props-run']}
-                                            >
-                                                <ListItemIcon
-                                                    sx={{
-                                                        minWidth: 0,
-                                                        mr: open ? 3 : 'auto',
-                                                        justifyContent: 'center',
-                                                    }}
-                                                >
-                                                    <PlayCircleIcon/>
-                                                </ListItemIcon>
-                                                <ListItemText primary={'RUN'}
-                                                              sx={{opacity: open ? 1 : 0}}/>
-                                            </ListItemButton>
-                                        </ListItem></Tooltip>}
-                                {props['disable-debug'] ? null :
-                                    <Tooltip
-                                        title={'Debug current data'}
-                                        arrow
-                                        placement="right" {...props['props-tooltip-debug']}>
-                                        <ListItem key={'debug'} disablePadding>
-                                            <ListItemButton
-                                                component={'button'}
-                                                type="submit"
-                                                formMethod="POST"
-                                                headers={JSON.stringify({'Debug': 'true'})}
-                                                sx={{
-                                                    minHeight: 48,
-                                                    justifyContent: open ? 'initial' : 'center',
-                                                    px: 2.5,
-                                                }}
-                                                {...props['props-debug']}
-                                            >
-                                                <ListItemIcon
-                                                    sx={{
-                                                        minWidth: 0,
-                                                        mr: open ? 3 : 'auto',
-                                                        justifyContent: 'center',
-                                                    }}
-                                                >
-                                                    <AdbIcon/>
-                                                </ListItemIcon>
-                                                <ListItemText primary={'DEBUG'}
-                                                              sx={{opacity: open ? 1 : 0}}/>
-                                            </ListItemButton>
-                                        </ListItem></Tooltip>}
-                                {props['disable-upload'] ? null :
-                                    <Tooltip
-                                        title={'Upload data'}
-                                        arrow
-                                        placement="right" {...props['props-tooltip-upload']}>
-                                        <ListItem key={'upload'} disablePadding>
-                                            <ListItemButton
-                                                component={'label'}
-                                                sx={{
-                                                    minHeight: 48,
-                                                    justifyContent: open ? 'initial' : 'center',
-                                                    px: 2.5,
-                                                }}
-                                                {...props['props-upload']}
-                                            >
-                                                <ListItemIcon
-                                                    sx={{
-                                                        minWidth: 0,
-                                                        mr: open ? 3 : 'auto',
-                                                        justifyContent: 'center',
-                                                    }}
-                                                >
-                                                    <FileUploadOutlinedIcon/>
-                                                </ListItemIcon>
-                                                <ListItemText primary={'UPLOAD'}
-                                                              sx={{opacity: open ? 1 : 0}}/>
+                        <IconButton
+                            color="inherit"
+                            aria-label="open drawer"
+                            onClick={handleDrawerOpen}
+                            edge="start"
+                            sx={{
+                                ...(open && {display: 'none'}),
+                            }}
+                        >
+                            <MenuIcon/>
+                        </IconButton>}
+                    <Box key={0}
+                         sx={{marginLeft: 5}}>{props['children-left']}</Box>
+                    {props['disable-tabs'] ? null :
+                        <Tabs key={1}
+                              value={value}
+                              onChange={handleChange}
+                              sx={{flexGrow: 1}}
+                              {...props}
+                        >
+                            {props.children.map((element, index) => (
+                                <Tab key={index}
+                                     label={(element.props.schema || {}).title || ''} {...((props['tabs-props'] || {})[index] || {})}{...a11yProps(index)} />
+                            ))}
+                        </Tabs>}
+                    <Box key={2}>{props['children-right']}</Box>
+                </Toolbar>
+            </AppBar>
+            {props['disable-drawer'] ? null :
+                <Drawer variant="permanent" open={open}>
+                    <DrawerHeader>
+                        <IconButton onClick={handleDrawerClose}>
+                            {theme.direction === 'rtl' ?
+                                <ChevronRightIcon/> :
+                                <ChevronLeftIcon/>}
+                        </IconButton>
+                    </DrawerHeader>
+                    <Divider/>
+                    <List>
+                        {!isEnabled || props['disable-fullscreen'] ? null :
+                            <Tooltip
+                                title={'Enable/Disable fullscreen'}
+                                arrow
+                                placement="right" {...props['props-tooltip-fullscreen']}>
+                                <ListItem key={'fullscreen'}
+                                          disablePadding>
+                                    <ListItemButton
+                                        sx={{
+                                            minHeight: 48,
+                                            justifyContent: open ? 'initial' : 'center',
+                                            px: 2.5,
+                                        }}
+                                        onClick={toggleFullscreen}
+                                        {...props['props-fullscreen']}
+                                    >
+                                        <ListItemIcon
+                                            sx={{
+                                                minWidth: 0,
+                                                mr: open ? 3 : 'auto',
+                                                justifyContent: 'center',
+                                            }}
+                                        >
+                                            {isFullscreen ?
+                                                <FullscreenExitIcon/> :
+                                                <FullscreenIcon/>}
+                                        </ListItemIcon>
+                                        <ListItemText
+                                            primary={'FULLSCREEN'}
+                                            sx={{opacity: open ? 1 : 0}}/>
+                                    </ListItemButton>
+                                </ListItem></Tooltip>}
+                        {props['disable-run'] ? null :
+                            <Tooltip
+                                title={'Run current data'}
+                                arrow
+                                placement="right" {...props['props-tooltip-run']}>
+                                <ListItem key={'run'} disablePadding>
+                                    <ListItemButton
+                                        component={'button'}
+                                        type="submit"
+                                        formMethod="POST"
+                                        sx={{
+                                            minHeight: 48,
+                                            justifyContent: open ? 'initial' : 'center',
+                                            px: 2.5,
+                                        }}
+                                        {...props['props-run']}
+                                    >
+                                        <ListItemIcon
+                                            sx={{
+                                                minWidth: 0,
+                                                mr: open ? 3 : 'auto',
+                                                justifyContent: 'center',
+                                            }}
+                                        >
+                                            <PlayCircleIcon/>
+                                        </ListItemIcon>
+                                        <ListItemText primary={'RUN'}
+                                                      sx={{opacity: open ? 1 : 0}}/>
+                                    </ListItemButton>
+                                </ListItem></Tooltip>}
+                        {props['disable-debug'] ? null :
+                            <Tooltip
+                                title={'Debug current data'}
+                                arrow
+                                placement="right" {...props['props-tooltip-debug']}>
+                                <ListItem key={'debug'} disablePadding>
+                                    <ListItemButton
+                                        component={'button'}
+                                        type="submit"
+                                        formMethod="POST"
+                                        headers={JSON.stringify({'Debug': 'true'})}
+                                        sx={{
+                                            minHeight: 48,
+                                            justifyContent: open ? 'initial' : 'center',
+                                            px: 2.5,
+                                        }}
+                                        {...props['props-debug']}
+                                    >
+                                        <ListItemIcon
+                                            sx={{
+                                                minWidth: 0,
+                                                mr: open ? 3 : 'auto',
+                                                justifyContent: 'center',
+                                            }}
+                                        >
+                                            <AdbIcon/>
+                                        </ListItemIcon>
+                                        <ListItemText primary={'DEBUG'}
+                                                      sx={{opacity: open ? 1 : 0}}/>
+                                    </ListItemButton>
+                                </ListItem></Tooltip>}
+                        {props['disable-upload'] ? null :
+                            <Tooltip
+                                title={'Upload data'}
+                                arrow
+                                placement="right" {...props['props-tooltip-upload']}>
+                                <ListItem key={'upload'} disablePadding>
+                                    <ListItemButton
+                                        component={'label'}
+                                        sx={{
+                                            minHeight: 48,
+                                            justifyContent: open ? 'initial' : 'center',
+                                            px: 2.5,
+                                        }}
+                                        {...props['props-upload']}
+                                    >
+                                        <ListItemIcon
+                                            sx={{
+                                                minWidth: 0,
+                                                mr: open ? 3 : 'auto',
+                                                justifyContent: 'center',
+                                            }}
+                                        >
+                                            <FileUploadOutlinedIcon/>
+                                        </ListItemIcon>
+                                        <ListItemText primary={'UPLOAD'}
+                                                      sx={{opacity: open ? 1 : 0}}/>
 
-                                                <input accept={['json']}
-                                                       type={'file'}
-                                                       hidden
-                                                       onChange={upload}></input>
-                                            </ListItemButton>
-                                        </ListItem></Tooltip>}
-                                {props['disable-download'] ? null :
-                                    <Tooltip
-                                        title={'Download current data'}
-                                        arrow
-                                        placement="right" {...props['props-tooltip-download']}>
-                                        <ListItem key={'download'}
-                                                  disablePadding>
-                                            <ListItemButton
-                                                sx={{
-                                                    minHeight: 48,
-                                                    justifyContent: open ? 'initial' : 'center',
-                                                    px: 2.5
-                                                }}
-                                                onClick={() => {
-                                                    exportJson({
-                                                        data: props.context.props.formData,
-                                                        fileName: `${props.context.props.name || 'file'}.json`
-                                                    })
-                                                }}
-                                                {...props['props-download']}
-                                            >
-                                                <ListItemIcon
-                                                    sx={{
-                                                        minWidth: 0,
-                                                        mr: open ? 3 : 'auto',
-                                                        justifyContent: 'center',
-                                                    }}
-                                                >
-                                                    <FileDownloadOutlinedIcon/>
-                                                </ListItemIcon>
-                                                <ListItemText
-                                                    primary={'DOWNLOAD'}
-                                                    sx={{opacity: open ? 1 : 0}}/>
-                                            </ListItemButton>
-                                        </ListItem>
-                                    </Tooltip>}
-                                {props['disable-datasaver'] ? null :
-                                    <Tooltip
-                                        title={(savingData ? 'Stop saving' : 'Save') + ' data on the sessionStorage of the browser'}
-                                        arrow
-                                        placement="right" {...props['props-tooltip-datasaver']}>
-                                        <ListItem key={'datasaver'}
-                                                  disablePadding>
-                                            <ListItemButton
-                                                component={'button'}
-                                                sx={{
-                                                    minHeight: 48,
-                                                    justifyContent: open ? 'initial' : 'center',
-                                                    px: 2.5
-                                                }}
-                                                onClick={() => {
-                                                    setSavingData(!savingData)
-                                                }}
-                                                {...props['props-datasaver']}
-                                            >
-                                                <ListItemIcon
-                                                    sx={{
-                                                        minWidth: 0,
-                                                        mr: open ? 3 : 'auto',
-                                                        justifyContent: 'center',
-                                                    }}
-                                                >
-                                                    {savingData ?
-                                                        <DataSaverOnIcon/> :
-                                                        <DataSaverOffIcon/>}
-                                                </ListItemIcon>
-                                                <ListItemText
-                                                    primary={'DATASAVER'}
-                                                    sx={{opacity: open ? 1 : 0}}/>
-                                            </ListItemButton>
-                                        </ListItem></Tooltip>}
-                                {props['disable-restore'] ? null :
+                                        <input accept={['json']}
+                                               type={'file'}
+                                               hidden
+                                               onChange={upload}></input>
+                                    </ListItemButton>
+                                </ListItem></Tooltip>}
+                        {props['disable-download'] ? null :
+                            <Tooltip
+                                title={'Download current data'}
+                                arrow
+                                placement="right" {...props['props-tooltip-download']}>
+                                <ListItem key={'download'}
+                                          disablePadding>
+                                    <ListItemButton
+                                        sx={{
+                                            minHeight: 48,
+                                            justifyContent: open ? 'initial' : 'center',
+                                            px: 2.5
+                                        }}
+                                        onClick={() => {
+                                            exportJson({
+                                                data: props.context.props.formData,
+                                                fileName: `${props.context.props.name || 'file'}.json`
+                                            })
+                                        }}
+                                        {...props['props-download']}
+                                    >
+                                        <ListItemIcon
+                                            sx={{
+                                                minWidth: 0,
+                                                mr: open ? 3 : 'auto',
+                                                justifyContent: 'center',
+                                            }}
+                                        >
+                                            <FileDownloadOutlinedIcon/>
+                                        </ListItemIcon>
+                                        <ListItemText
+                                            primary={'DOWNLOAD'}
+                                            sx={{opacity: open ? 1 : 0}}/>
+                                    </ListItemButton>
+                                </ListItem>
+                            </Tooltip>}
+                        {props['disable-datasaver'] ? null :
+                            <Tooltip
+                                title={(savingData ? 'Stop saving' : 'Save') + ' data on the sessionStorage of the browser'}
+                                arrow
+                                placement="right" {...props['props-tooltip-datasaver']}>
+                                <ListItem key={'datasaver'}
+                                          disablePadding>
+                                    <ListItemButton
+                                        component={'button'}
+                                        sx={{
+                                            minHeight: 48,
+                                            justifyContent: open ? 'initial' : 'center',
+                                            px: 2.5
+                                        }}
+                                        onClick={() => {
+                                            setSavingData(!savingData)
+                                        }}
+                                        {...props['props-datasaver']}
+                                    >
+                                        <ListItemIcon
+                                            sx={{
+                                                minWidth: 0,
+                                                mr: open ? 3 : 'auto',
+                                                justifyContent: 'center',
+                                            }}
+                                        >
+                                            {savingData ?
+                                                <DataSaverOnIcon/> :
+                                                <DataSaverOffIcon/>}
+                                        </ListItemIcon>
+                                        <ListItemText
+                                            primary={'DATASAVER'}
+                                            sx={{opacity: open ? 1 : 0}}/>
+                                    </ListItemButton>
+                                </ListItem></Tooltip>}
+                        {props['disable-restore'] ? null :
+                            <Tooltip
+                                title={'Restore data'}
+                                arrow
+                                placement="right" {...props['props-tooltip-restore']}>
+                                <ListItem key={'restore'}
+                                          disablePadding>
+                                    <ListItemButton
+                                        component={'label'}
+                                        sx={{
+                                            minHeight: 48,
+                                            justifyContent: open ? 'initial' : 'center',
+                                            px: 2.5,
+                                        }}
+                                        onClick={() => {
+                                            setOpenRestore(true)
+                                        }}
+                                        {...props['props-restore']}
+                                    >
+                                        <ListItemIcon
+                                            sx={{
+                                                minWidth: 0,
+                                                mr: open ? 3 : 'auto',
+                                                justifyContent: 'center',
+                                            }}
+                                        >
+                                            <RestoreIcon/>
+                                        </ListItemIcon>
+                                        <ListItemText
+                                            primary={'RESTORE DATA'}
+                                            sx={{opacity: open ? 1 : 0}}/>
+                                    </ListItemButton>
+                                </ListItem>
+                            </Tooltip>}
+                        {props['disable-delete'] ? null :
+                            <Tooltip
+                                title={'Cleanup current data'}
+                                arrow
+                                placement="right" {...props['props-tooltip-delete']}>
+                                <ListItem key={'delete'} disablePadding>
+                                    <ListItemButton
+                                        component={'label'}
+                                        sx={{
+                                            minHeight: 48,
+                                            justifyContent: open ? 'initial' : 'center',
+                                            px: 2.5,
+                                        }}
+                                        onClick={() => {
+                                            props.context.props.onChange({})
+                                        }}
+                                        {...props['props-delete']}
+                                    >
+                                        <ListItemIcon
+                                            sx={{
+                                                minWidth: 0,
+                                                mr: open ? 3 : 'auto',
+                                                justifyContent: 'center',
+                                            }}
+                                        >
+                                            <CancelIcon/>
+                                        </ListItemIcon>
+                                        <ListItemText primary={'CLEAN'}
+                                                      sx={{opacity: open ? 1 : 0}}/>
+                                    </ListItemButton>
+                                </ListItem>
+                            </Tooltip>}
+                    </List>
+                </Drawer>}
+            <Box component="main" sx={{
+                bgcolor: 'background.paper',
+                flexGrow: 1,
+                py: 3,
+                pl: 3,
+                pr: '67px'
+            }} {...props['props-main']}>
+                <DrawerHeader/>
+                <div ref={anchor}/>
+                {props.children.map((element, index) => (
+                    Math.abs(value) === index ? element : null
+                ))}
+            </Box>
+            <ScrollTop anchor={anchor}>
+                <Fab size="small" aria-label="scroll back to top">
+                    <KeyboardArrowUpIcon/>
+                </Fab>
+            </ScrollTop>
+            <Dialog fullWidth
+                    maxWidth="sm" scroll={'paper'} onClose={() => {
+                setOpenRestore(false);
+            }} open={openRestore}>
+                <DialogTitle>Restore data</DialogTitle>
+                <DialogContent dividers={true}>
+                    <List sx={{pt: 0}}>
+                        {!openRestore ? null : readStoredData(key, dataHash).reverse().map(([date, getD, same], i) => (
+                            <ListItem
+                                key={i}
+                                secondaryAction={
+                                    !same ? <IconButton onClick={() => {
+                                        setOldValue([date, getD(date)])
+                                        setOpenDiff(true)
+                                    }}>
+                                        <Tooltip
+                                            title={'Show data difference'}
+                                            arrow
+                                            placement="left">
+                                            <DifferenceIcon/></Tooltip>
+                                    </IconButton> : null
+                                }>
+                                <ListItemAvatar
+                                    sx={{cursor: 'pointer'}}
+                                    onClick={() => {
+                                        setOpenRestore(false);
+                                        props.context.props.onChange(getD(date))
+                                    }}>
                                     <Tooltip
                                         title={'Restore data'}
                                         arrow
-                                        placement="right" {...props['props-tooltip-restore']}>
-                                        <ListItem key={'restore'}
-                                                  disablePadding>
-                                            <ListItemButton
-                                                component={'label'}
-                                                sx={{
-                                                    minHeight: 48,
-                                                    justifyContent: open ? 'initial' : 'center',
-                                                    px: 2.5,
-                                                }}
-                                                onClick={() => {
-                                                    setOpenRestore(true)
-                                                }}
-                                                {...props['props-restore']}
-                                            >
-                                                <ListItemIcon
-                                                    sx={{
-                                                        minWidth: 0,
-                                                        mr: open ? 3 : 'auto',
-                                                        justifyContent: 'center',
-                                                    }}
-                                                >
-                                                    <RestoreIcon/>
-                                                </ListItemIcon>
-                                                <ListItemText
-                                                    primary={'RESTORE DATA'}
-                                                    sx={{opacity: open ? 1 : 0}}/>
-                                            </ListItemButton>
-                                        </ListItem>
-                                    </Tooltip>}
-                                {props['disable-delete'] ? null :
-                                    <Tooltip
-                                        title={'Cleanup current data'}
-                                        arrow
-                                        placement="right" {...props['props-tooltip-delete']}>
-                                        <ListItem key={'delete'} disablePadding>
-                                            <ListItemButton
-                                                component={'label'}
-                                                sx={{
-                                                    minHeight: 48,
-                                                    justifyContent: open ? 'initial' : 'center',
-                                                    px: 2.5,
-                                                }}
-                                                onClick={() => {
-                                                    props.context.props.onChange({})
-                                                }}
-                                                {...props['props-delete']}
-                                            >
-                                                <ListItemIcon
-                                                    sx={{
-                                                        minWidth: 0,
-                                                        mr: open ? 3 : 'auto',
-                                                        justifyContent: 'center',
-                                                    }}
-                                                >
-                                                    <CancelIcon/>
-                                                </ListItemIcon>
-                                                <ListItemText primary={'CLEAN'}
-                                                              sx={{opacity: open ? 1 : 0}}/>
-                                            </ListItemButton>
-                                        </ListItem>
-                                    </Tooltip>}
-                            </List>
-                        </Drawer>}
-                    <Box component="main" sx={{
-                        bgcolor: 'background.paper',
-                        flexGrow: 1,
-                        py: 3,
-                        pl: 3,
-                        pr: '67px'
-                    }} {...props['props-main']}>
-                        <DrawerHeader/>
-                        <div ref={anchor}/>
-                        {props.children.map((element, index) => (
-                            Math.abs(value) === index ? element : null
+                                        placement="right">
+                                        <Avatar>
+                                            <ReplayIcon/>
+                                        </Avatar></Tooltip>
+                                </ListItemAvatar>
+                                <ListItemText
+                                    primary={(new Date(date * 60000)).toLocaleString()}
+                                />
+                            </ListItem>
                         ))}
-                    </Box>
-                    <ScrollTop anchor={anchor}>
-                        <Fab size="small" aria-label="scroll back to top">
-                            <KeyboardArrowUpIcon/>
-                        </Fab>
-                    </ScrollTop>
-                    <Dialog fullWidth sx={{'z-index': 100000000000}}
-                            maxWidth="sm" scroll={'paper'} onClose={() => {
-                        setOpenRestore(false);
-                    }} open={openRestore}>
-                        <DialogTitle>Restore data</DialogTitle>
-                        <DialogContent dividers={true}>
-                            <List sx={{pt: 0}}>
-                                {!openRestore ? null : readStoredData(key, dataHash).reverse().map(([date, getD, same], i) => (
-                                    <ListItem
-                                        key={i}
-                                        secondaryAction={
-                                            !same ? <IconButton onClick={() => {
-                                                setOldValue([date, getD(date)])
-                                                setOpenDiff(true)
-                                            }}>
-                                                <Tooltip
-                                                    title={'Show data difference'}
-                                                    arrow
-                                                    placement="left">
-                                                    <DifferenceIcon/></Tooltip>
-                                            </IconButton> : null
-                                        }>
-                                        <ListItemAvatar
-                                            sx={{cursor: 'pointer'}}
-                                            onClick={() => {
-                                                setOpenRestore(false);
-                                                props.context.props.onChange(getD(date))
-                                            }}>
-                                            <Tooltip
-                                                title={'Restore data'}
-                                                arrow
-                                                placement="right">
-                                                <Avatar>
-                                                    <ReplayIcon/>
-                                                </Avatar></Tooltip>
-                                        </ListItemAvatar>
-                                        <ListItemText
-                                            primary={(new Date(date * 60000)).toLocaleString()}
-                                        />
-                                    </ListItem>
-                                ))}
-                                <Dialog scroll={'paper'} open={openDiff}
-                                        onClose={handleDiffClose} fullWidth
-                                        maxWidth={"xl"}>
-                                    <DialogTitle>Show difference</DialogTitle>
-                                    <DialogContent dividers={true}>
-                                        {oldValue ? <DiffViewer
-                                            rightTitle={(new Date(Math.floor(Date.now() / 60000) * 60000)).toLocaleString() + ' (current)'}
-                                            leftTitle={(new Date(oldValue[0] * 60000)).toLocaleString()}
-                                            oldValue={JSON.stringify(oldValue[1], null, 2)}
-                                            newValue={JSON.stringify(props.context.props.formData, null, 2)}/> : null}
-                                    </DialogContent>
-                                    <DialogActions>
-                                        <Button onClick={() => {
-                                            setOpenRestore(false);
-                                            props.context.props.onChange(oldValue[0])
-                                            handleDiffClose()
-                                        }}>Restore</Button>
-                                        <Button
-                                            onClick={handleDiffClose}>Close</Button>
-                                    </DialogActions>
-                                </Dialog>
-                            </List>
-                        </DialogContent>
-                        <DialogActions>
-                            <Button onClick={() => {
-                                setOpenRestore(false);
-                                window.sessionStorage.removeItem(key)
-                            }}>Erase storage</Button>
-                            <Button
-                                onClick={() => {
+                        <Dialog scroll={'paper'} open={openDiff}
+                                onClose={handleDiffClose} fullWidth
+                                maxWidth={"xl"}>
+                            <DialogTitle>Show difference</DialogTitle>
+                            <DialogContent dividers={true}>
+                                {oldValue ? <DiffViewer
+                                    rightTitle={(new Date(Math.floor(Date.now() / 60000) * 60000)).toLocaleString() + ' (current)'}
+                                    leftTitle={(new Date(oldValue[0] * 60000)).toLocaleString()}
+                                    oldValue={JSON.stringify(oldValue[1], null, 2)}
+                                    newValue={JSON.stringify(props.context.props.formData, null, 2)}/> : null}
+                            </DialogContent>
+                            <DialogActions>
+                                <Button onClick={() => {
                                     setOpenRestore(false);
-                                }}>Close</Button>
-                        </DialogActions>
-                    </Dialog>
-                </Box>
-            )}
-        </ReactFullscreen>
+                                    props.context.props.onChange(oldValue[0])
+                                    handleDiffClose()
+                                }}>Restore</Button>
+                                <Button
+                                    onClick={handleDiffClose}>Close</Button>
+                            </DialogActions>
+                        </Dialog>
+                    </List>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => {
+                        setOpenRestore(false);
+                        window.sessionStorage.removeItem(key)
+                    }}>Erase storage</Button>
+                    <Button
+                        onClick={() => {
+                            setOpenRestore(false);
+                        }}>Close</Button>
+                </DialogActions>
+            </Dialog>
+        </Box>
     </Suspense>);
 }

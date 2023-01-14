@@ -13,5 +13,5 @@ const renderFile = ({oldRevision, newRevision, type, hunks}) => (
 export default function DiffViewer({oldValue, newValue}) {
     const diffText = formatLines(diffLines(oldValue, newValue), {context: 3});
     const files = parseDiff(diffText);
-    return (<div>{files.map(renderFile)}</div>);
+    return <div>{files.map(renderFile)}</div>
 }

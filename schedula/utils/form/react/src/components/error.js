@@ -19,7 +19,7 @@ const ErrorList = ({errors}) => {
     };
     return (<Suspense>
         <Box
-            sx={{position: 'fixed', top: 84, right: 16, "z-index": 10000000000}}
+            sx={{position: 'fixed', top: 84, right: 16, "z-index": 1050}}
             key={'error'}
         >
             <div>{!open ? (

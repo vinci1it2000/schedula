@@ -146,7 +146,7 @@ function Form(
 
     const [spinner, setSpinner] = useState(true);
     const validateForm = debounce(() => {
-        if (currentForm && currentForm.validateForm() && (currentForm.state.schemaValidationErrors.length || currentForm.state.errors.length)) {
+        if (currentForm && currentForm.validateForm() && (((currentForm.state || {}).schemaValidationErrors || []).length || ((currentForm.state || {}).errors || []).length)) {
             currentForm.setState(Object.assign({}, currentForm.state, {
                 errors: [],
                 errorSchema: {},
@@ -155,8 +155,6 @@ function Form(
             }))
         }
     }, 500)
-
-
     const onSubmit = ({formData}, e) => {
         e.preventDefault();
         let method = e.nativeEvent.submitter.getAttribute('formmethod') || 'POST',
@@ -253,8 +251,10 @@ function Form(
     useEffect(() => {
         setTimeout(() => setSpinner(false), 300)
     }, []);
+    const ref = React.useRef(null);
+    formContext.ref = ref
     return (<Suspense>
-        <div id={name}>
+        <div ref={ref} id={name}>
             {spinner ?
                 <Backdrop
                     sx={{
@@ -333,7 +333,7 @@ function Form(
                         position: 'fixed',
                         top: 135,
                         right: 16,
-                        "z-index": 10000000000
+                        "z-index": 1050
                     }}
                     size="small" onClick={() => {
                     setDebugState(Object.assign({}, debugState, {openDebug: true}))
