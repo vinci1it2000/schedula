@@ -45,10 +45,14 @@ def contains_doctest(text):
 # ------------------------------------------------------------------------------
 
 
-def get_grandfather_content(content, level=2):
+def get_grandfather_content(content, level=2, offset=None):
+    if offset is None:
+        offset = len(content)
     if content.parent and level:
-        return get_grandfather_content(content.parent, level - 1)
-    return content
+        return get_grandfather_content(
+            content.parent, level - 1, offset=offset + content.parent_offset
+        )
+    return content[:offset]
 
 
 def _import_docstring_code_content(documenter):
