@@ -20,6 +20,7 @@ from .cst import START
 from .gen import Token
 from .base import Base
 from .exc import DispatcherError
+from dataclasses import dataclass
 
 __author__ = 'Vincenzo Arcidiacono <vinci1it2000@gmail.com>'
 
@@ -1703,8 +1704,16 @@ def add_function(dsp, inputs_kwargs=False, inputs_defaults=False, **kw):
     return decorator
 
 
-class inf(collections.namedtuple('_inf', ['inf', 'num'])):
+@dataclass(repr=False, frozen=True, eq=False)
+class inf:
     """Class to model infinite numbers for workflow distance."""
+
+    inf: float = 0
+    num: float = 0
+
+    def __iter__(self):
+        yield self.inf
+        yield self.num
 
     @staticmethod
     def format(val):
@@ -1713,14 +1722,14 @@ class inf(collections.namedtuple('_inf', ['inf', 'num'])):
         return inf(*val)
 
     def __repr__(self):
-        if self[0] == 0:
-            return str(self[1])
+        if self.inf == 0:
+            return str(self.num)
         return 'inf(inf={}, num={})'.format(*self)
 
     def __add__(self, other):
         if isinstance(other, self.__class__):
-            return inf(self[0] + other[0], self[1] + other[1])
-        return inf(self[0], self[1] + other)
+            return inf(self.inf + other.inf, self.num + other.num)
+        return inf(self.inf, self.num + other)
 
     def __sub__(self, other):
         other = isinstance(other, self.__class__) and other or (0, other)
