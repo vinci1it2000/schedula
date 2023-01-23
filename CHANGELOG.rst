@@ -2,7 +2,26 @@ Changelog
 =========
 
 
-v1.4.8 (2023-01-05)
+v1.4.9 (2023-01-23)
+-------------------
+
+Feat
+~~~~
+- (form): Update bundle.
+
+- (dsp): Use `dataclass` for inf instance.
+
+
+Fix
+~~~
+- (ext): Correct parent content getter.
+
+- (form): Correct fullscreen behaviour.
+
+- (form): Clean wrong error states.
+
+
+v1.4.8 (2023-01-06)
 -------------------
 
 Feat
