@@ -1,0 +1,2 @@
+"use strict";(self.webpackChunkschedula_form=self.webpackChunkschedula_form||[]).push([[853],{853:function(e,r,u){u.r(r);var n=u(1413),t=u(45987),d=u(87309),h=u(80184),s=["children","render"];r.default=function(e){var r=e.children,u=(e.render,(0,t.Z)(e,s));return(0,h.jsx)(d.ZP,(0,n.Z)((0,n.Z)({htmlType:"submit",formMethod:"POST",type:"primary",headers:JSON.stringify({Debug:"true"})},u),{},{children:r||"debug"}))}}}]);
+//# sourceMappingURL=853.cc0b2603.chunk.js.map

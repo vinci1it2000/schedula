@@ -6,7 +6,7 @@
         function onLoad() {
             let name = "index",
                 url = 'http://127.0.0.1:5000',
-                element = document.getElementById('root'),
+                element = document.getElementById('content'),
                 forms_url = 'forms';
 
             Promise.all([
@@ -20,6 +20,6 @@
 </head>
 <body onload="onLoad();">
 <noscript>You need to enable JavaScript to run this app.</noscript>
-<div id="root"></div>
+<div id="content"></div>
 </body>
 </html>

@@ -1,7 +1,5 @@
-import {renderForm} from './form'
-import {registerComponent} from "./components/layout";
-import 'react-reflex/styles.css'
-
+import renderForm, {registerComponent} from './core'
+import './main.css'
 window.schedula = {renderForm, registerComponent}
 
 

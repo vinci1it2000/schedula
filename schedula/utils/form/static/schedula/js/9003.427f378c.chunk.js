@@ -1,0 +1,2 @@
+"use strict";(self.webpackChunkschedula_form=self.webpackChunkschedula_form||[]).push([[9003],{59817:function(e,n,i){i.r(n),i.d(n,{default:function(){return a}});i(72791);var f=i(8444),r=(i(84031),i(80184));function a(e){var n=e.oldValue,i=e.newValue,a=new f.H({detectCircular:!0,maxDepth:1/0,showModifications:!0,arrayDiffMethod:"lcs"}).diff(n,i);return(0,r.jsx)(f.A,{diff:a,indent:4,lineNumbers:!0,hideUnchangedLines:!0,highlightInlineDiff:!0,inlineDiffOptions:{mode:"word",wordSeparator:" "}})}}}]);
+//# sourceMappingURL=9003.427f378c.chunk.js.map

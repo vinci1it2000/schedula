@@ -1,340 +1,1017 @@
 {
+  "ui:configProvider": {
+    "dark": false,
+    "local": "en",
+    "theme": {
+      "token": {
+        "sizeUnit": 2
+      },
+      "components": {
+        "Table": {
+          "fontWeightStrong": 700
+        }
+      }
+    }
+  },
   "ui:layout": {
-    "component": "appbar",
-    "transformData": "function(parent, def){let x = parent.props.context.props.formData.return;def.props['props-run'].disabled=!parent.emptyObj(x); return def}",
+    "component": "App",
     "props": {
-      "props-run": {
-        "disabled": false,
-        "id": "run-button"
+      "theme": "dark",
+      "urlContact": "user/contact",
+      "userProps": {
+        "urlForgotPassword": "user/reset",
+        "urlLogin": "user/login",
+        "urlLogout": "user/logout",
+        "urlRegister": "user/register",
+        "urlConfirmMail": "user/confirm",
+        "urlResetPassword": "user/reset",
+        "urlVerify": "user/verify",
+        "urlSettings": "user/edit"
       },
-      "props-debug": {
-        "disabled": false,
-        "id": "debug-button"
-      },
-      "props-delete": {
-        "disabled": false,
-        "id": "delete-button"
-      },
-      "tabs-props": [
-      ],
-      "disable-tabs": true,
-      "children": [
+      "items": [
         {
-          "component": "ReflexContainer",
-          "props": {
-            "orientation": "horizontal",
-            "children": [
+          "label": "INPUTS",
+          "key": 0
+        },
+        {
+          "label": "OUTPUTS",
+          "key": 1
+        },
+        {
+          "label": "OUTPUT",
+          "children": [
+            {
+              "label": "OUTPUeT",
+              "href": "/flash"
+            }
+          ]
+        }
+      ]
+    },
+    "children": [
+      {
+        "component": "FlexLayout",
+        "props": {
+          "model": {
+            "global": {
+              "tabEnableClose": false
+            },
+            "borders": [
               {
-                "component": "ReflexElement",
-                "transformData": "function(parent, def){def.props.flex = parent.emptyObj(parent.props.context.props.formData.return)?1:0.001; return def}",
-                "props": {
-                  "minSize": 50,
-                  "flex": 1,
-                  "style": {
-                    "display": "flex",
-                    "flex-direction": "column"
-                  },
+                "type": "border",
+                "location": "left",
+                "enableDrop": false,
+                "size": 1200,
+                "selected": 0,
+                "children": [
+                  {
+                    "type": "tab",
+                    "enableClose": false,
+                    "enableDrag": false,
+                    "enableFloat": true,
+                    "name": "Debug",
+                    "component": 3
+                  }
+                ]
+              },
+              {
+                "type": "border",
+                "location": "right",
+                "enableDrop": false,
+                "size": 400,
+                "selected": 0,
+                "children": [
+                  {
+                    "type": "tab",
+                    "enableClose": false,
+                    "enableDrag": false,
+                    "enableFloat": false,
+                    "name": "Errors",
+                    "component": 2
+                  }
+                ]
+              }
+            ],
+            "layout": {
+              "type": "row",
+              "children": [
+                {
+                  "type": "tabset",
+                  "weight": 50,
                   "children": [
                     {
-                      "component": "AccordionSummary",
-                      "props": {
-                        "sx": {
-                          "textAlign": "center",
-                          "backgroundColor": "lightgray"
-                        },
-                        "style": {
-                          "cursor": "unset"
-                        },
-                        "content": "INPUT"
-                      }
-                    },
+                      "type": "tab",
+                      "name": "INPUT",
+                      "component": 0
+                    }
+                  ]
+                },
+                {
+                  "type": "tabset",
+                  "weight": 100,
+                  "children": [
                     {
-                      "component": "Paper",
-                      "props": {
-                        "sx": {
-                          "overflow": "auto",
-                          "p": 1,
-                          "m": 2
-                        },
-                        "children": [
-                          {
-                            "$id": "input",
-                            "component": "Box",
-                            "props": {
-                              "uiSchema": {
-                                "ui:layout": {
-                                  "$id": "kwargs",
-                                  "props": {
-                                    "uiSchema": {
-                                      "ui:layout": {
-                                        "$id": "inputs",
-                                        "props": {
-                                          "uiSchema": {
-                                            "ui:layout": {
-                                              "component": "Grid",
-                                              "props": {
-                                                "container": true,
-                                                "spacing": 2,
-                                                "children": [
-                                                  {
-                                                    "component": "Grid",
-                                                    "props": {
-                                                      "item": true,
-                                                      "xs": 12,
-                                                      "children": [
-                                                        {
-                                                          "$id": "plot",
-                                                          "props": {
-                                                            "uiSchema": {
-                                                              "ui:layout": {
-                                                                "component": "plot",
-                                                                "render_empty": true
-                                                              }
-                                                            }
-                                                          }
-                                                        }
-                                                      ]
-                                                    }
-                                                  },
-                                                  {
-                                                    "component": "Grid",
-                                                    "props": {
-                                                      "item": true,
-                                                      "xs": 12,
-                                                      "children": [
-                                                        {
-                                                          "$id": "datagrid",
-                                                          "props": {
-                                                            "uiSchema": {
-                                                              "ui:layout": {
-                                                                "component": "datagrid",
-                                                                "render_empty": true
-                                                              }
-                                                            }
-                                                          }
-                                                        }
-                                                      ]
-                                                    }
-                                                  },
-                                                  {
-                                                    "component": "Grid",
-                                                    "props": {
-                                                      "item": true,
-                                                      "xs": 12,
-                                                      "children": [
-                                                        {
-                                                          "$id": "file"
-                                                        }
-                                                      ]
-                                                    }
-                                                  },
-                                                  {
-                                                    "component": "Grid",
-                                                    "props": {
-                                                      "item": true,
-                                                      "xs": 12,
-                                                      "children": [
-                                                        {
-                                                          "$id": "files"
-                                                        }
-                                                      ]
-                                                    }
-                                                  },
-                                                  {
-                                                    "component": "Grid",
-                                                    "props": {
-                                                      "item": true,
-                                                      "xs": 6,
-                                                      "children": [
-                                                        {
-                                                          "$id": "value_in"
-                                                        }
-                                                      ]
-                                                    }
-                                                  },
-                                                  {
-                                                    "component": "Grid",
-                                                    "props": {
-                                                      "item": true,
-                                                      "xs": 6,
-                                                      "children": [
-                                                        {
-                                                          "$id": "unit_in"
-                                                        }
-                                                      ]
-                                                    }
-                                                  },
-                                                  {
-                                                    "component": "Grid",
-                                                    "props": {
-                                                      "item": true,
-                                                      "xs": 12,
-                                                      "children": [
-                                                        {
-                                                          "$id": "units_out"
-                                                        }
-                                                      ]
-                                                    }
-                                                  }
-                                                ]
-                                              }
-                                            }
-                                          }
-                                        }
-                                      }
-                                    }
-                                  }
-                                }
-                              }
-                            }
-                          }
+                      "type": "tab",
+                      "name": "OUTPUT",
+                      "component": 1
+                    }
+                  ]
+                },
+                {
+                  "type": "tabset",
+                  "weight": 100,
+                  "children": [
+                    {
+                      "type": "tab",
+                      "name": "OUTPUT-2",
+                      "component": 1,
+                      "domain": "({formData})=>((formData.return || []).length > 0)"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        "children": [
+          {
+            "component": "Accordion",
+            "props": {
+              "defaultActiveKey": [
+                "12"
+              ],
+              "items": {
+                "0": {
+                  "header": "Number"
+                },
+                "1": {
+                  "header": "Plot"
+                },
+                "2": {
+                  "header": "Files"
+                },
+                "3": {
+                  "header": "Markdown"
+                },
+                "4": {
+                  "header": "Cascader"
+                },
+                "5": {
+                  "header": "Steps"
+                },
+                "6": {
+                  "header": "Submit"
+                },
+                "7": {
+                  "header": "Table"
+                },
+                "8": {
+                  "header": "Tabs"
+                },
+                "9": {
+                  "header": "QRCode"
+                },
+                "10": {
+                  "header": "TabsField"
+                },
+                "11": {
+                  "header": "Image"
+                },
+                "12": {
+                  "header": "PDFField"
+                },
+                "13": {
+                  "header": "CloudDownloadField"
+                },
+                "14": {
+                  "header": "Radio"
+                },
+                "15": {
+                  "header": "CloudUploadField"
+                },
+                "16": {
+                  "header": "VTableField"
+                },
+                "17": {
+                  "header": "TablePath"
+                },
+                "18": {
+                  "header": "Pricing"
+                }
+              }
+            },
+            "children": [
+              {
+                "children": [
+                  {
+                    "path": "number",
+                    "uiSchema": {
+                      "ui:info": "If you enter anything here then billing_address will become required.",
+                      "ui:widget": "range",
+                      "ui:marks": {
+                        "0": "0°C",
+                        "100": "100°C"
+                      }
+                    }
+                  },
+                  {
+                    "path": "number",
+                    "uiSchema": {
+                      "ui:readonly": true
+                    }
+                  }
+                ]
+              },
+              {
+                "path": "input/kwargs/inputs/plot",
+                "uiSchema": {
+                  "ui:field": "PlotlyField"
+                }
+              },
+              {
+                "path": "input/kwargs/inputs",
+                "component": "div",
+                "children": [
+                  {
+                    "path": "file",
+                    "uiSchema": {
+                      "ui:options": {
+                        "accept": [
+                          "png",
+                          "jpeg"
                         ]
                       }
                     }
-                  ]
-                }
+                  },
+                  {
+                    "path": "files"
+                  }
+                ]
               },
               {
-                "component": "ReflexSplitter",
-                "domain": "function(parent){let x = parent.props.context.props.formData.return; return !parent.emptyObj(x)}",
-                "props": {
-                  "style": {
-                    "height": "unset"
+                "component": "Markdown",
+                "children": [
+                  "# Title\n\nnumber **{{ (data.number * 1000) | n('en', {'style': 'currency', 'currency': 'EUR'}) }}**"
+                ]
+              },
+              {
+                "children": [
+                  {
+                    "path": "cascader",
+                    "uiSchema": {
+                      "ui:fieldReplacesAnyOrOneOf": true,
+                      "ui:field": "CascaderField",
+                      "ui:label": "",
+                      "ui:names": [
+                        "a",
+                        "b",
+                        "c"
+                      ]
+                    }
                   },
-                  "children": [
+                  {
+                    "path": "cascader"
+                  }
+                ]
+              },
+              {
+                "component": "Steps",
+                "props": {
+                  "items": [
                     {
-                      "component": "AccordionSummary",
-                      "props": {
-                        "sx": {
-                          "backgroundColor": "lightgray"
-                        },
-                        "style": {
-                          "cursor": "unset"
-                        },
-                        "content": "OUTPUT"
-                      }
+                      "title": "Step 1",
+                      "subTitle": "00:00:05",
+                      "status": "wait",
+                      "description": "This is a description."
+                    },
+                    {
+                      "title": "Step 2",
+                      "subTitle": "00:01:02",
+                      "status": "wait",
+                      "description": "This is a description."
+                    },
+                    {
+                      "title": "Step 3",
+                      "subTitle": "00:01:02",
+                      "status": "wait",
+                      "description": "This is a description."
+                    },
+                    {
+                      "title": "Step 4",
+                      "subTitle": "00:01:02",
+                      "status": "wait",
+                      "description": "This is a description."
                     }
                   ]
-                }
+                },
+                "children": [
+                  {
+                    "path": "range",
+                    "uiSchema": {
+                      "ui:info": "If you enter anything here then billing_address will become required.",
+                      "ui:widget": "RangeWidget",
+                      "ui:marks": {
+                        "20": "20°C",
+                        "50": "50°C",
+                        "100": "100°C"
+                      }
+                    }
+                  },
+                  {
+                    "path": "multi_select"
+                  },
+                  {
+                    "path": "select"
+                  },
+                  {
+                    "path": "number"
+                  }
+                ]
               },
               {
-                "component": "ReflexElement",
-                "domain": "function(parent){let x = parent.props.context.props.formData.return; return !parent.emptyObj(x)}",
-                "props": {
-                  "children": [
-                    {
-                      "component": "Paper",
+                "component": "Submit",
+                "children": [
+                  "Submit"
+                ]
+              },
+              {
+                "path": "table",
+                "uiSchema": {
+                  "ui:info": "If you enter anything here then billing_address will become required.",
+                  "ui:field": "TableField",
+                  "ui:summary": "function (table){const summary = (table.state.keyedFormData ||[]).map(({item}) => item).reduce((r, v) => ({a: (r.a || 0) + (v.c ? v.a : 0), b: (r.b || '') + (v.c ? v.b : '')}), {}); return summary}",
+                  "ui:expandable": {
+                    "ui:layout": {
+                      "component": "Grid.Row",
                       "props": {
-                        "sx": {
-                          "p": 1,
-                          "m": 2
-                        },
-                        "children": [
-                          {
-                            "$id": "return",
-                            "component": "Box",
-                            "domain": "function(parent){let x = parent.props.context.props.formData.return; return !parent.emptyObj(x)}",
-                            "props": {
-                              "uiSchema": {
-                                "ui:readonly": true,
-                                "ui:layout": {
-                                  "component": "Grid",
-                                  "props": {
-                                    "container": true,
-                                    "spacing": 2,
-                                    "children": [
-                                      {
-                                        "component": "Grid",
-                                        "props": {
-                                          "item": true,
-                                          "xs": 6,
-                                          "children": [
-                                            {
-                                              "$id": "value_in"
-                                            }
-                                          ]
-                                        }
-                                      },
-                                      {
-                                        "component": "Grid",
-                                        "props": {
-                                          "item": true,
-                                          "xs": 6,
-                                          "children": [
-                                            {
-                                              "$id": "unit_in"
-                                            }
-                                          ]
-                                        }
-                                      },
-                                      {
-                                        "component": "Grid",
-                                        "props": {
-                                          "item": true,
-                                          "xs": 12,
-                                          "children": [
-                                            {
-                                              "$id": "results",
-                                              "props": {
-                                                "uiSchema": {
-                                                  "ui:layout": {
-                                                    "component": "datagrid",
-                                                    "props": {
-                                                      "density": "compact",
-                                                      "columns": [
-                                                        {
-                                                          "field": "value_out"
-                                                        },
-                                                        {
-                                                          "field": "unit_out"
-                                                        }
-                                                      ]
-                                                    }
-                                                  }
-                                                }
-                                              }
-                                            }
-                                          ]
-                                        }
-                                      }
+                        "gutter": 6
+                      },
+                      "children": [
+                        {
+                          "component": "Grid.Col",
+                          "props": {
+                            "span": 24
+                          },
+                          "children": [
+                            {
+                              "component": "ArrayAccordion",
+                              "props": {
+                                "items": {
+                                  "0": {
+                                    "header": "ciao",
+                                    "cloudUrl": "item/data",
+                                    "copyItems": [
+                                      "a",
+                                      "b"
                                     ]
                                   }
                                 }
+                              },
+                              "children": [
+                                {
+                                  "component": "Grid.Row",
+                                  "props": {
+                                    "gutter": 6
+                                  },
+                                  "children": [
+                                    {
+                                      "component": "Grid.Col",
+                                      "props": {
+                                        "span": 6
+                                      },
+                                      "children": [
+                                        {
+                                          "path": "a"
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "component": "Grid.Col",
+                                      "props": {
+                                        "span": 6
+                                      },
+                                      "children": [
+                                        {
+                                          "path": "b"
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "component": "Grid.Col",
+                          "props": {
+                            "span": 24
+                          },
+                          "children": [
+                            {
+                              "path": "c",
+                              "uiSchema": {
+                                "ui:widget": "SwitchWidget"
                               }
                             }
-                          }
-                        ]
-                      }
+                          ]
+                        }
+                      ]
+                    }
+                  },
+                  "ui:columns": [
+                    {
+                      "title": "A",
+                      "dataIndex": "a"
+                    },
+                    {
+                      "title": "B",
+                      "dataIndex": "b"
+                    },
+                    {
+                      "title": "C",
+                      "dataIndex": "c"
                     }
                   ]
                 }
+              },
+              {
+                "component": "Tabs",
+                "props": {
+                  "items": [
+                    {
+                      "label": "Tab 1"
+                    },
+                    {
+                      "label": "Tab 2"
+                    },
+                    {
+                      "label": "Tab 3",
+                      "disabled": true
+                    }
+                  ]
+                },
+                "children": [
+                  {
+                    "path": "number"
+                  },
+                  {
+                    "path": "number"
+                  },
+                  {
+                    "path": "number"
+                  }
+                ]
+              },
+              {
+                "path": "QRCode",
+                "uiSchema": {
+                  "ui:field": "QRCodeField"
+                }
+              },
+              {
+                "path": "tabs",
+                "uiSchema": {
+                  "ui:field": "TabsField",
+                  "ui:label": "",
+                  "items": {
+                    "ui:layout": {
+                      "component": "Grid.Row",
+                      "props": {
+                        "gutter": 6
+                      },
+                      "children": [
+                        {
+                          "component": "Grid.Col",
+                          "props": {
+                            "span": 24
+                          },
+                          "children": [
+                            {
+                              "component": "ArrayAccordion",
+                              "props": {
+                                "items": {
+                                  "0": {
+                                    "header": "ciao",
+                                    "copyItems": [
+                                      "a",
+                                      "b"
+                                    ]
+                                  }
+                                }
+                              },
+                              "children": [
+                                {
+                                  "component": "Grid.Row",
+                                  "props": {
+                                    "gutter": 6
+                                  },
+                                  "children": [
+                                    {
+                                      "component": "Grid.Col",
+                                      "props": {
+                                        "span": 6
+                                      },
+                                      "children": [
+                                        {
+                                          "path": "a"
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "component": "Grid.Col",
+                                      "props": {
+                                        "span": 6
+                                      },
+                                      "children": [
+                                        {
+                                          "path": "b"
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "component": "Grid.Col",
+                          "props": {
+                            "span": 24
+                          },
+                          "children": [
+                            {
+                              "path": "c"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  },
+                  "ui:itemLabel": "a",
+                  "ui:tabLegend": "bla bla"
+                }
+              },
+              {
+                "path": "image",
+                "uiSchema": {
+                  "ui:field": "ImageField",
+                  "ui:height": "100px",
+                  "ui:width": "300px"
+                }
+              },
+              {
+                "path": "pdf",
+                "uiSchema": {
+                  "ui:field": "PDFField",
+                  "ui:document": [
+                    {
+                      "component": "Page",
+                      "style": "page",
+                      "props": {
+                        "size": "A4"
+                      },
+                      "children": [
+                        {
+                          "section": "header"
+                        },
+                        {
+                          "section": "footer"
+                        },
+                        {
+                          "section": "intro"
+                        }
+                      ]
+                    }
+                  ],
+                  "ui:treeData": [
+                    {
+                      "title": "layout",
+                      "key": "layout",
+                      "children": [
+                        {
+                          "title": "Footer",
+                          "key": "footer"
+                        },
+                        {
+                          "title": "Header",
+                          "key": "header"
+                        }
+                      ]
+                    },
+                    {
+                      "title": "content",
+                      "key": "content",
+                      "children": [
+                        {
+                          "title": "Intro",
+                          "key": "intro"
+                        }
+                      ]
+                    }
+                  ],
+                  "ui:sections": {
+                    "header": {
+                      "name": "Header",
+                      "component": "View",
+                      "style": "header",
+                      "props": {
+                        "fixed": true
+                      },
+                      "children": [
+                        {
+                          "style": "left-logo",
+                          "component": "Image",
+                          "path": "image"
+                        },
+                        {
+                          "component": "View",
+                          "style": "header-body",
+                          "children": [
+                            {
+                              "component": "Text",
+                              "children": [
+                                "header body"
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "style": "right-logo",
+                          "component": "Text",
+                          "children": [
+                            "right logo"
+                          ]
+                        }
+                      ]
+                    },
+                    "footer": {
+                      "name": "Footer",
+                      "component": "View",
+                      "style": "footer",
+                      "props": {
+                        "fixed": true
+                      },
+                      "children": [
+                        {
+                          "component": "Text",
+                          "style": {
+                            "textAlign": "justify"
+                          },
+                          "children": [
+                            "footer text"
+                          ]
+                        },
+                        {
+                          "component": "PageNumber"
+                        }
+                      ]
+                    },
+                    "intro": {
+                      "name": "Intro",
+                      "component": "View",
+                      "children": [
+                        "INTRO",
+                        {
+                          "component": "Markdown",
+                          "children": [
+                            "# H1\n",
+                            "## H2\n",
+                            "### H3\n",
+                            "#### H4\n",
+                            "##### H5\n",
+                            "###### H6\n",
+                            "text lorem ipsum **bold** *italic* ***bold+italic***\n",
+                            "\n",
+                            "[link](https://github.com/vinci1it2000/schedula)\n",
+                            "![image info]({{ data.image }})\n",
+                            "number: {{ props.form.n(11111111) }}\n",
+                            "> blockquote\n",
+                            "\n",
+                            "1. item item\n",
+                            "1. item\n",
+                            "1. item\n",
+                            "\n",
+                            "---\n",
+                            "\n",
+                            "- item\n",
+                            "- item\n",
+                            "- item\n",
+                            "\n",
+                            "---\n",
+                            "\n",
+                            "{{ data.table | table([['a', 'AAA'], ['b', 'BBB'], 'f'], {'footer': true, 'align': ['l', 'c'], 'empty': '-', 'removeEmpty': true, 'format': {'a': [props.form.n, {'style': 'currency', 'currency': 'EUR'}],'b': props.form.t} }) }}\n\n\\",
+                            "\n",
+                            "| a | b |\n| -: | :- |\n| 3 | 4 |\n| 4 | 6 |\n\n",
+                            "\n\\\n\n",
+                            "| a | b |\n| -: | :- |\n| 3 | 4 |\n| 4 | 6 |\n",
+                            "| a | b |\n| -: | :- |\n"
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                }
+              },
+              {
+                "path": "#",
+                "uiSchema": {
+                  "ui:cloudUrl": "/item/data",
+                  "ui:button": true,
+                  "ui:field": "CloudDownloadField"
+                }
+              },
+              {
+                "path": "radio",
+                "uiSchema": {
+                  "ui:widget": "radio"
+                }
+              },
+              {
+                "path": "#",
+                "uiSchema": {
+                  "ui:cloudUrl": "/item/data",
+                  "ui:button": true,
+                  "ui:field": "CloudUploadField"
+                }
+              },
+              {
+                "path": "table",
+                "uiSchema": {
+                  "ui:field": "VTableField",
+                  "ui:rows": [
+                    {
+                      "title": "A",
+                      "dataIndex": "a",
+                      "uiSchema": {
+                        "ui:format": {
+                          "currency": "EUR",
+                          "style": "currency"
+                        }
+                      },
+                      "children": [
+                        {
+                          "title": "B",
+                          "dataIndex": "b",
+                          "children": [
+                            {
+                              "title": "C",
+                              "dataIndex": "b"
+                            },
+                            {
+                              "title": "D",
+                              "dataIndex": "b"
+                            }
+                          ]
+                        },
+                        {
+                          "title": "E",
+                          "dataIndex": "b"
+                        }
+                      ]
+                    },
+                    {
+                      "title": "F",
+                      "dataIndex": "c"
+                    }
+                  ],
+                  "ui:columnIndex": {
+                    "component": "Space",
+                    "children": [
+                      {
+                        "path": "a",
+                        "uiSchema": {
+                          "ui:widget": "ValueWidget",
+                          "ui:label": "",
+                          "ui:onlyChildren": true,
+                          "ui:format": {
+                            "currency": "EUR",
+                            "style": "currency"
+                          }
+                        }
+                      },
+                      {
+                        "path": "b",
+                        "uiSchema": {
+                          "ui:label": "",
+                          "ui:onlyChildren": true,
+                          "ui:widget": "ValueWidget"
+                        }
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "path": "table/0"
+              },
+              {
+                "component": "Grid.Row",
+                "children": [
+                  {
+                    "component": "Grid.Col",
+                    "props": {
+                      "sx": 24,
+                      "md": 12
+                    },
+                    "children": [
+                      {
+                        "component": "Element",
+                        "props": {
+                          "type": "img",
+                          "width": "100%",
+                          "src": "https://gw.alipayobjects.com/mdn/rms_ae7ad9/afts/img/A*OnyWT4Nsxy0AAAAAAAAAAABjARQnAQ"
+                        },
+                        "force_render": true
+                      }
+                    ]
+                  },
+                  {
+                    "component": "Grid.Col",
+                    "props": {
+                      "sx": 24,
+                      "md": 12
+                    },
+                    "children": [
+                      {
+                        "component": "Markdown",
+                        "children": [
+                          "# Title\n\n",
+                          "[buy](/order)"
+                        ]
+                      }
+                    ]
+                  }
+                ]
               }
             ]
-          }
-        }
-      ],
-      "children-right": [
-        {
-          "component": "Stack",
-          "props": {
-            "direction": "row",
-            "spacing": 2,
-            "justifyContent": "flex-end",
-            "alignItems": "center",
+          },
+          {
+            "component": "Accordion",
+            "props": {
+              "defaultActiveKey": [
+                "1"
+              ],
+              "items": {
+                "0": {
+                  "header": "Number"
+                },
+                "1": {
+                  "header": "PDF"
+                },
+                "2": {
+                  "header": "TransferWidget"
+                },
+                "3": {
+                  "header": "DateWidget"
+                },
+                "4": {
+                  "header": "DateRangeWidget"
+                },
+                "5": {
+                  "header": "ColorWidget"
+                }
+              }
+            },
             "children": [
               {
-                "domain": "function(parent){return !!parent.props.context.props.formContext.data}",
-                "transformData": "function(parent, def){def.props.content=parent.props.context.props.formContext.data; return def}",
-                "props": {
-                  "id": "context-data",
-                  "content": ""
+                "path": "number"
+              },
+              {
+                "path": "pdf",
+                "uiSchema": {
+                  "ui:treeData": [],
+                  "ui:field": "PDFField",
+                  "ui:fileName": "pdf.pdf",
+                  "ui:document": [
+                    {
+                      "component": "Page",
+                      "style": "page",
+                      "props": {
+                        "size": "A4"
+                      },
+                      "children": [
+                        {
+                          "section": "intro"
+                        }
+                      ]
+                    }
+                  ],
+                  "ui:sections": {
+                    "intro": {
+                      "name": "Intro",
+                      "component": "View",
+                      "children": [
+                        "INTRO",
+                        {
+                          "component": "Markdown",
+                          "children": [
+                            "# H1\n",
+                            "## H2\n",
+                            "### H3\n",
+                            "#### H4\n",
+                            "##### H5\n",
+                            "###### H6\n",
+                            "text lorem ipsum **bold** *italic* ***bold+italic***\n",
+                            "\n",
+                            "[link](https://github.com/vinci1it2000/schedula)\n",
+                            "![image info]({{ data.image }})\n",
+                            "> blockquote\n",
+                            "\n",
+                            "1. item item\n",
+                            "1. item\n",
+                            "1. item\n",
+                            "\n",
+                            "---\n",
+                            "\n",
+                            "- item\n",
+                            "- item\n",
+                            "- item\n",
+                            "\n",
+                            "---\n",
+                            "\n",
+                            "{{ data.table | table(['a', 'b']) }}\n"
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                }
+              },
+              {
+                "path": "options",
+                "uiSchema": {
+                  "ui:widget": "TransferWidget"
+                }
+              },
+              {
+                "component": "div",
+                "children": [
+                  {
+                    "path": "date"
+                  },
+                  {
+                    "path": "date-time"
+                  }
+                ]
+              },
+              {
+                "component": "div",
+                "children": [
+                  {
+                    "path": "dates",
+                    "uiSchema": {
+                      "ui:widget": "DateRangeWidget",
+                      "ui:picker": "week"
+                    }
+                  },
+                  {
+                    "path": "date-times",
+                    "uiSchema": {
+                      "ui:widget": "DateRangeWidget",
+                      "ui:picker": "month"
+                    }
+                  }
+                ]
+              },
+              {
+                "path": "color",
+                "uiSchema": {
+                  "ui:widget": "color"
                 }
               }
             ]
+          },
+          {
+            "component": "Errors",
+            "force_render": true
+          },
+          {
+            "component": "Debug",
+            "force_render": true
           }
-        }
-      ]
-    }
+        ]
+      },
+      {
+        "component": "Accordion",
+        "props": {
+          "items": {
+            "0": {
+              "header": "Number"
+            }
+          }
+        },
+        "children": [
+          {
+            "path": "number",
+            "uiSchema": {
+              "ui:widget": "RateWidget"
+            }
+          }
+        ]
+      }
+    ]
   },
   "ui:submitButtonOptions": {
     "norender": true

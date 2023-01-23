@@ -1,1 +1,0 @@
-"use strict";(self.webpackChunkschedula_form=self.webpackChunkschedula_form||[]).push([[5386],{55386:function(n,e,t){t.r(e),t.d(e,{default:function(){return u.Z},getTableContainerUtilityClass:function(){return r.n},tableContainerClasses:function(){return r.Z}});var u=t(55261),r=t(443)}}]);

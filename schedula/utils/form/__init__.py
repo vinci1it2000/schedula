@@ -14,13 +14,15 @@ import glob
 import hmac
 import secrets
 import hashlib
+import datetime
 import webbrowser
 import os.path as osp
 from ..web import WebMap
 from urllib.parse import urlparse
 from jinja2 import TemplateNotFound
+from .server import Config, basic_app
 from werkzeug.exceptions import NotFound
-from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadData
+from itsdangerous import URLSafeTimedSerializer, BadData
 from flask import (
     render_template, Blueprint, current_app, session, g, request,
     send_from_directory, jsonify
@@ -69,8 +71,9 @@ class FormMap(WebMap):
          uiSchema,
          csrf_token,
          ...props
-    }) => (data)
+    }) => ({data})
     """
+    _get_basic_app_config = Config
 
     def _get_form_context(self):
         return {}
@@ -83,10 +86,11 @@ class FormMap(WebMap):
         webbrowser.open(url)
 
     csrf_defaults = {
-        'CSRF_FIELD_NAME': 'csrf_token',
+        'CSRF_FIELD_NAME': 'CSRF_token',
         'CSRF_SECRET_KEY': lambda: current_app.secret_key,
         'CSRF_TIME_LIMIT': 3600,
         'CSRF_HEADERS': {'X-CSRFToken', 'X-CSRF-Token'},
+        'CSRF_AUTO_REFRESH_HEADER': 'N-CSRF-Token',
         'CSRF_ENABLED': True,
         'CSRF_METHODS': {'POST', 'PUT', 'PATCH', 'DELETE'},
         'CSRF_SSL_STRICT': True
@@ -120,7 +124,9 @@ class FormMap(WebMap):
         if item.startswith('get_') and hasattr(self, f'_{item}'):
             attr = getattr(self, f'_{item}')
             if isinstance(attr, dict):
-                attr = attr.get(request.path, attr[None])
+                attr = attr.get(request.path, attr.get(
+                    None, getattr(self.__class__, f'_{item}')
+                ))
             if hasattr(attr, '__call__'):
                 return attr
             return lambda: attr
@@ -171,18 +177,28 @@ class FormMap(WebMap):
 
                 if field_name not in session:
                     session[field_name] = hashlib.sha1(
-                        os.urandom(64)).hexdigest()
+                        os.urandom(64)
+                    ).hexdigest()
 
                 try:
                     token = s.dumps(session[field_name])
                 except TypeError:
                     session[field_name] = hashlib.sha1(
-                        os.urandom(64)).hexdigest()
+                        os.urandom(64)
+                    ).hexdigest()
                     token = s.dumps(session[field_name])
 
                 setattr(g, field_name, token)
 
             return g.get(field_name)
+
+    def add_headers(self, resp):
+        if g.get('csrf_refresh'):
+            token = self.generate_csrf()
+            g.csrf_refresh = False
+            if token:
+                resp.headers[self._config('CSRF_AUTO_REFRESH_HEADER')] = token
+        return resp
 
     def validate_csrf(self):
         if (not self._config('CSRF_ENABLED') or
@@ -206,11 +222,8 @@ class FormMap(WebMap):
 
         s = URLSafeTimedSerializer(secret_key, salt='csrf-token')
 
-        time_limit = self._config('CSRF_TIME_LIMIT')
         try:
-            token = s.loads(token, max_age=time_limit)
-        except SignatureExpired:
-            return jsonify({'error': 'The CSRF token has expired.'})
+            token, timestamp = s.loads(token, return_timestamp=True)
         except BadData:
             return jsonify({'error': 'The CSRF token is invalid.'})
 
@@ -231,7 +244,11 @@ class FormMap(WebMap):
                 return jsonify({
                     'error': 'The referrer does not match the host.'
                 })
-
+        time_limit = self._config('CSRF_TIME_LIMIT') or 0
+        if time_limit >= 0:
+            now = datetime.datetime.now(tz=datetime.timezone.utc)
+            if not (0 <= (now - timestamp).total_seconds() <= time_limit):
+                g.csrf_refresh = True
         g.csrf_valid = True  # mark this request as CSRF valid
 
     @staticmethod
@@ -242,21 +259,28 @@ class FormMap(WebMap):
         except NotFound:
             return send_from_directory(static_dir, filename)
 
-    def app(self, root_path=None, depth=1, mute=False, blueprint_name=None,
-            **kwargs):
-        app = super(FormMap, self).app(
-            root_path=root_path, depth=depth, mute=mute,
-            blueprint_name=blueprint_name, **kwargs
-        )
-        if isinstance(app, Blueprint):
+    def add2csrf_protected(self, app=None, item=None):
+        if item:
+            self._csrf_protected.add(item)
+        elif isinstance(app, Blueprint):
             self._csrf_protected.add(('bp', app.name))
         else:
             if app.secret_key is None:
                 app.secret_key = secrets.token_hex(32)
             for endpoint in app.view_functions:
                 self._csrf_protected.add(('view', endpoint))
+        return app
+
+    def app(self, root_path=None, depth=1, mute=False, blueprint_name=None,
+            **kwargs):
+        app = super(FormMap, self).app(
+            root_path=root_path, depth=depth, mute=mute,
+            blueprint_name=blueprint_name, **kwargs
+        )
+        self.add2csrf_protected(app)
 
         app.before_request(self.validate_csrf)
+        app.after_request(self.add_headers)
         bp = Blueprint(
             'schedula', __name__, template_folder='templates'
         )
@@ -268,4 +292,12 @@ class FormMap(WebMap):
         )
         bp.add_url_rule('/static/schedula/<string:filename>', 'static')
         app.register_blueprint(bp)
+        return app
+
+    def basic_app(self, root_path, mute=True, blueprint_name=None, **kwargs):
+        app = super(FormMap, self).basic_app(
+            root_path, mute=mute, blueprint_name=blueprint_name, **kwargs
+        )
+        if blueprint_name is None:
+            app = basic_app(self, app)
         return app
