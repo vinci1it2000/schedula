@@ -1375,7 +1375,6 @@ class ServerThread(threading.Thread):
         threading.Thread.__init__(self)
         self.srv = make_server(app=application, threaded=threaded, **kwargs)
 
-
     def run(self):
         log.info('starting server')
         self.srv.serve_forever()
@@ -1527,7 +1526,8 @@ class Site:
             thread.start()
             # noinspection PyArgumentList
             self.shutdown = weakref.finalize(
-                self, self.shutdown_site, thread.shutdown, self.sitemap.subsites
+                self, self.shutdown_site, thread.shutdown,
+                self.sitemap and self.sitemap.subsites or {}
             )
             self.wait_server()
             if self.idle_timeout > 0:
@@ -1750,11 +1750,11 @@ class SiteMap(collections.OrderedDict):
             app.add_url_rule('/', 'default', defaults={'filepath': ''})
         return app
 
-    def site(self, root_path=None, depth=-1, index=True, view=False, **kw):
+    def site(self, root_path=None, depth=-1, index=True, view=False, run=False,
+             **kw):
         site = Site(self, root_path=root_path, depth=depth, index=index, **kw)
-
+        (run or view) and site.run()
         if view:
-            site.run()
             # noinspection PyArgumentList
             self._view(site.url, format='html', quiet=True)
 
