@@ -117,7 +117,7 @@ class Base:
     def form(self, depth=1, node_data=NONE, node_function=NONE, directory=None,
              sites=None, run=True, view=True, get_context=NONE, get_data=NONE,
              edit_on_change=NONE, pre_submit=NONE, post_submit=NONE,
-             subsite_idle_timeout=600):
+             subsite_idle_timeout=600, basic_app_config=None):
         """
         Creates a dispatcher Form Flask app.
 
@@ -174,6 +174,10 @@ class Base:
             Idle timeout of a debug subsite in seconds.
         :type subsite_idle_timeout: int, optional
 
+        :param basic_app_config:
+            Flask app config object.
+        :type basic_app_config: object, optional
+
         :return:
             A FormMap or a Site if `sites is None` and `run or view is True`.
         :rtype: ~schedula.utils.form.FormMap | ~schedula.utils.drw.Site
@@ -190,6 +194,7 @@ class Base:
         formmap.add_items(obj, workflow=False, depth=depth, **options)
         formmap.directory = directory
         formmap.idle_timeout = subsite_idle_timeout
+        formmap.basic_app_config = basic_app_config
         methods = {
             'get_form_context': get_context,
             'get_form_data': get_data,

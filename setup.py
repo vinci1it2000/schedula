@@ -173,7 +173,8 @@ if __name__ == '__main__':
             'schedula.utils.form': [
                 'templates/schedula/*', 'static/schedula/js/*.js',
                 'static/schedula/css/*.css',
+                'static/schedula/media/*',
                 'static/schedula/forms/*'
             ]
-        },
+        }
     )
