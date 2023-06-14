@@ -214,7 +214,7 @@ class Base:
              node_styles=NONE, node_data=NONE, node_function=NONE,
              edge_data=NONE, max_lines=NONE, max_width=NONE, directory=None,
              sites=None, index=True, viz=False, short_name=None,
-             executor='async', render=False):
+             executor='async', render=False, run=False):
         """
         Plots the Dispatcher with a graph in the DOT language with Graphviz.
 
@@ -384,9 +384,10 @@ class Base:
                 directory=directory, view=view, index=index, viz_js=viz,
                 executor=executor
             )
-        elif view or sites is not None:
+        elif view or run or sites is not None:
             site = sitemap.site(
-                directory, view=view, index=index, viz_js=viz, executor=executor
+                directory, view=view, run=run, index=index, viz_js=viz,
+                executor=executor
             )
             if sites is None:
                 return site
