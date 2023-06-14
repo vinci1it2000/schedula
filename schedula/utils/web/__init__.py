@@ -10,6 +10,7 @@
 It provides functions to build a flask app from a dispatcher.
 """
 import gzip
+import base64
 import logging
 import functools
 from ..exc import WebResponse
@@ -62,12 +63,20 @@ class WebMap(SiteMap):
     def _repr_svg_(self):
         raise NotImplementedError()
 
+    def basic_app(self, root_path, mute=True, blueprint_name=None, **kwargs):
+        app = super(WebMap, self).basic_app(
+            root_path, mute=mute, blueprint_name=blueprint_name, **kwargs
+        )
+        app.before_request(self.before_request)
+        return app
+
     def app(self, root_path=None, depth=-1, mute=False, blueprint_name=None,
             **kwargs):
         kwargs.pop('index', None)
         app = self.basic_app(
             root_path, mute=mute, blueprint_name=blueprint_name, **kwargs
         )
+        app.after_request(self.after_request)
         context = self.rules(depth=depth, index=False)
         opt = {'methods': self.methods}
         for i, ((node, extra), path) in enumerate(context.items()):
@@ -101,15 +110,33 @@ class WebMap(SiteMap):
         self.subsites[key] = (site.url, site.shutdown)
         return upx
 
+    @staticmethod
+    def before_request():
+        from flask import request
+        if request.headers.get('Content-Encoding') == 'gzip':
+            request.stream = gzip.GzipFile(fileobj=request.stream)
+
+    def after_request(self, response):
+        from flask import request, current_app, get_flashed_messages
+        messages = get_flashed_messages(with_categories=True)
+        if messages:
+            headers = {}
+            messages = current_app.json.dumps(messages).encode('utf8')
+            if 'gzip' in request.headers.get('Accept-Encoding', '').lower():
+                messages = base64.b64encode(gzip.compress(messages))
+                headers['X-Flash-Messages-length'] = len(messages)
+                headers['X-Flash-Messages-Encoding'] = 'gzip'
+            headers['X-Flash-Messages'] = messages
+            response.headers.update(headers)
+        return response
+
     def _func_handler(self, func):
         from ..dsp import selector
         from flask import request, current_app, Response
         resp = None
         data = {}
         try:
-            if request.headers.get('Content-Encoding') == 'gzip':
-                inp = current_app.json.loads(gzip.decompress(request.data))
-            elif not (request.is_json or request.get_data()):
+            if not (request.is_json or request.get_data()):
                 inp = {}
             else:
                 inp = request.get_json(force=True)
@@ -121,7 +148,7 @@ class WebMap(SiteMap):
             resp = ex.response
         except Exception as ex:
             data['error'] = str(ex)
-        headers = {}
+        headers = {'Content-Type': 'application/json'}
         if resp is None:
             keys = request.args.get('data', 'return,error').split(',')
             keys = [v.strip(' ') for v in keys]
