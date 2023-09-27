@@ -9,21 +9,23 @@
 """
 It is a patch to sphinx.ext.autosummary.
 """
+import os
 import warnings
 import logging
 import os.path as osp
-from sphinx import package_dir
+
+from typing import TYPE_CHECKING, Any
 from sphinx.util.osutil import ensuredir
-from sphinx.util.inspect import safe_getattr
-from jinja2.sandbox import SandboxedEnvironment
-from sphinx.jinja2glue import BuiltinTemplateLoader
-from jinja2 import FileSystemLoader, TemplateNotFound
+from sphinx.util.inspect import getall
 from sphinx.ext.autosummary import (
-    import_by_name, get_documenter, get_rst_suffix
+    import_by_name, get_documenter, get_rst_suffix, mock, import_ivar_by_name,
+    ImportExceptionGroup
 )
 from sphinx.ext.autosummary.generate import (
-    find_autosummary_in_files, AutosummaryEntry
+    find_autosummary_in_files, AutosummaryRenderer, ModuleScanner, _get_members,
+    _get_module_attrs, _get_modules, _split_full_qualified_name
 )
+from sphinx.locale import __
 
 logger = logging.getLogger(__name__)
 warnings.filterwarnings(
@@ -31,190 +33,243 @@ warnings.filterwarnings(
 )
 
 
-def get_members(app, obj, typ, include_public=(), imported=False):
-    items = []
-    for name in dir(obj):
-        try:
-            obj_name = safe_getattr(obj, name)
-            documenter = get_documenter(app, obj_name, obj)
-        except AttributeError:
-            continue
-        if documenter.objtype == typ:
-            try:
-                cond = imported or (obj_name.__module__ == obj.__name__)
-            except AttributeError:
-                cond = True
+def generate_autosummary_content(name: str, obj: Any, parent: Any,
+                                 template: AutosummaryRenderer,
+                                 template_name: str,
+                                 imported_members: bool, app: Any,
+                                 recursive: bool, context: dict,
+                                 modname: str | None = None,
+                                 qualname: str | None = None) -> str:
+    doc = get_documenter(app, obj, parent)
 
-            if cond:
-                items.append(name)
-    skip = set(app.config.autosummary_skip_members)
-    _n = '{}.%s'.format(obj.__name__)
+    ns: dict[str, Any] = {}
+    ns.update(context)
 
-    public = [
-        x for x in items
-        if (x in include_public or not x.startswith('_')) and _n % x not in skip
-    ]
-    return public, items
+    if doc.objtype == 'module':
+        scanner = ModuleScanner(app, obj)
+        ns['members'] = scanner.scan(imported_members)
+
+        respect_module_all = not app.config.autosummary_ignore_module_all
+        imported_members = imported_members or (
+                '__all__' in dir(obj) and respect_module_all)
+
+        ns['functions'], ns['all_functions'] = \
+            _get_members(doc, app, obj, {'function'}, imported=imported_members)
+        ns['functions'], ns['all_functions'] = \
+            _get_members(doc, app, obj, {'function'}, imported=imported_members)
+        ns['classes'], ns['all_classes'] = \
+            _get_members(doc, app, obj, {'class'}, imported=imported_members)
+        ns['exceptions'], ns['all_exceptions'] = \
+            _get_members(doc, app, obj, {'exception'},
+                         imported=imported_members)
+        ns['attributes'], ns['all_attributes'] = \
+            _get_module_attrs(name, ns['members'])
+        ns['dispatchers'], ns['all_dispatchers'] = \
+            _get_members(doc, app, obj, {'dispatcher'},
+                         imported=imported_members)
+        ispackage = hasattr(obj, '__path__')
+        if ispackage and recursive:
+            # Use members that are not modules as skip list, because it would then mean
+            # that module was overwritten in the package namespace
+            skip = (
+                    ns["all_functions"]
+                    + ns["all_classes"]
+                    + ns["all_exceptions"]
+                    + ns["all_attributes"]
+                    + ns["all_dispatchers"]
+            )
+
+            # If respect_module_all and module has a __all__ attribute, first get
+            # modules that were explicitly imported. Next, find the rest with the
+            # get_modules method, but only put in "public" modules that are in the
+            # __all__ list
+            #
+            # Otherwise, use get_modules method normally
+            if respect_module_all and '__all__' in dir(obj):
+                imported_modules, all_imported_modules = \
+                    _get_members(doc, app, obj, {'module'}, imported=True)
+                skip += all_imported_modules
+                imported_modules = [name + '.' + modname for modname in
+                                    imported_modules]
+                all_imported_modules = \
+                    [name + '.' + modname for modname in all_imported_modules]
+                public_members = getall(obj)
+            else:
+                imported_modules, all_imported_modules = [], []
+                public_members = None
+
+            modules, all_modules = _get_modules(obj, skip=skip, name=name,
+                                                public_members=public_members)
+            ns['modules'] = imported_modules + modules
+            ns["all_modules"] = all_imported_modules + all_modules
+    elif doc.objtype == 'class':
+        ns['members'] = dir(obj)
+        ns['inherited_members'] = \
+            set(dir(obj)) - set(obj.__dict__.keys())
+        ns['methods'], ns['all_methods'] = \
+            _get_members(doc, app, obj, {'method'}, include_public={'__init__'})
+        ns['attributes'], ns['all_attributes'] = \
+            _get_members(doc, app, obj, {'attribute', 'property'})
+
+    if modname is None or qualname is None:
+        modname, qualname = _split_full_qualified_name(name)
+
+    if doc.objtype in ('method', 'attribute', 'property'):
+        ns['class'] = qualname.rsplit(".", 1)[0]
+
+    if doc.objtype in ('class',):
+        shortname = qualname
+    else:
+        shortname = qualname.rsplit(".", 1)[-1]
+
+    ns['fullname'] = name
+    ns['module'] = modname
+    ns['objname'] = qualname
+    ns['name'] = shortname
+
+    ns['objtype'] = doc.objtype
+    ns['underline'] = len(name) * '='
+
+    if template_name:
+        return template.render(template_name, ns)
+    else:
+        return template.render(doc.objtype, ns)
 
 
-def generate_autosummary_docs(
-        sources, output_dir=None, suffix='.rst', base_path=None, builder=None,
-        template_dir=None, app=None):
-    showed_sources = list(sorted(sources))
+def generate_autosummary_docs(sources: list[str],
+                              output_dir: str | os.PathLike[str] | None = None,
+                              suffix: str = '.rst',
+                              base_path: str | os.PathLike[str] | None = None,
+                              imported_members: bool = False, app=None,
+                              overwrite: bool = True,
+                              encoding: str = 'utf-8') -> None:
+    showed_sources = sorted(sources)
     if len(showed_sources) > 20:
         showed_sources = showed_sources[:10] + ['...'] + showed_sources[-10:]
-    logger.info('[autosummary] generating autosummary for: %s' %
+    logger.info(__('[autosummary] generating autosummary for: %s') %
                 ', '.join(showed_sources))
 
     if output_dir:
-        logger.info('[autosummary] writing to %s' % output_dir)
+        logger.info(__('[autosummary] writing to %s') % output_dir)
 
     if base_path is not None:
         sources = [osp.join(base_path, filename) for filename in sources]
 
-    # create our own templating environment
-    template_dirs = [osp.join(package_dir, 'ext', 'autosummary', 'templates')]
-    if builder is not None:
-        # allow the user to override the templates
-        template_loader = BuiltinTemplateLoader()
-        template_loader.init(builder, dirs=template_dirs)
-    else:
-        if template_dir:
-            template_dirs.insert(0, template_dir)
-        template_loader = FileSystemLoader(template_dirs)
-    template_env = SandboxedEnvironment(loader=template_loader, autoescape=True)
+    template = AutosummaryRenderer(app)
 
     # read
     items = find_autosummary_in_files(sources)
-    items = [
-        isinstance(v, AutosummaryEntry) and (v.name, v.path, v.template) or v
-        for v in items
-    ]
-    # remove possible duplicates
-    items = list(dict([(item, True) for item in items]).keys())
 
     # keep track of new files
     new_files = []
 
+    if app:
+        filename_map = app.config.autosummary_filename_map
+    else:
+        filename_map = {}
+
     # write
-    # noinspection PyTypeChecker
-    for name, path, template_name in sorted(items, key=str):
-        if path is None:
+    for entry in sorted(set(items), key=str):
+        if entry.path is None:
             # The corresponding autosummary:: directive did not have
             # a :toctree: option
             continue
 
-        path = output_dir or osp.abspath(path)
+        path = output_dir or osp.abspath(entry.path)
         ensuredir(path)
 
         try:
-            name, obj, parent, mod_name = import_by_name(name)
-        except ImportError as e:
-            logger.warning('[autosummary] failed to import %r: %s' % (name, e))
-            continue
+            name, obj, parent, modname = import_by_name(entry.name)
+            qualname = name.replace(modname + ".", "")
+        except ImportExceptionGroup as exc:
+            try:
+                # try to import as an instance attribute
+                name, obj, parent, modname = import_ivar_by_name(entry.name)
+                qualname = name.replace(modname + ".", "")
+            except ImportError as exc2:
+                if exc2.__cause__:
+                    exceptions: list[BaseException] = exc.exceptions + [
+                        exc2.__cause__]
+                else:
+                    exceptions = exc.exceptions + [exc2]
 
-        fn = osp.join(path, name + suffix)
+                errors = list(
+                    {f"* {type(e).__name__}: {e}" for e in exceptions})
+                logger.warning(
+                    __('[autosummary] failed to import %s.\nPossible hints:\n%s'),
+                    entry.name, '\n'.join(errors))
+                continue
 
-        # skip it if it exists
-        if osp.isfile(fn):
-            continue
+        context: dict[str, Any] = {}
+        if app:
+            context.update(app.config.autosummary_context)
 
-        new_files.append(fn)
+        content = generate_autosummary_content(name, obj, parent, template,
+                                               entry.template,
+                                               imported_members, app,
+                                               entry.recursive, context,
+                                               modname, qualname)
 
-        f = open(fn, 'w')
+        filename = osp.join(path, filename_map.get(name, name) + suffix)
+        if osp.isfile(filename):
+            with open(filename, encoding=encoding) as f:
+                old_content = f.read()
 
-        try:
-            doc = get_documenter(app, obj, parent)
-
-            if template_name is not None:
-                template = template_env.get_template(template_name)
-            else:
-                try:
-                    template = template_env.get_template('autosummary/%s.rst'
-                                                         % doc.objtype)
-                except TemplateNotFound:
-                    template = template_env.get_template('autosummary/base.rst')
-
-            ns = {}
-
-            if doc.objtype == 'module':
-                ns['members'] = dir(obj)
-                ns['functions'], ns['all_functions'] = \
-                    get_members(app, obj, 'function')
-                ns['classes'], ns['all_classes'] = \
-                    get_members(app, obj, 'class')
-                ns['exceptions'], ns['all_exceptions'] = \
-                    get_members(app, obj, 'exception')
-                ns['data'], ns['all_data'] = \
-                    get_members(app, obj, 'data', imported=True)
-
-                ns['data'] = ', '.join(ns['data'])
-                ns['all_data'] = ', '.join(ns['all_data'])
-
-                ns['dispatchers'], ns['all_dispatchers'] = \
-                    get_members(app, obj, 'dispatcher', imported=True)
-            elif doc.objtype == 'class':
-                ns['members'] = dir(obj)
-                ns['methods'], ns['all_methods'] = \
-                    get_members(app, obj, 'method', ['__init__'], True)
-                ns['attributes'], ns['all_attributes'] = \
-                    get_members(app, obj, 'attribute')
-
-            parts = name.split('.')
-            if doc.objtype in ('method', 'attribute'):
-                mod_name = '.'.join(parts[:-2])
-                cls_name = parts[-2]
-                obj_name = '.'.join(parts[-2:])
-                ns['class'] = cls_name
-            else:
-                mod_name, obj_name = '.'.join(parts[:-1]), parts[-1]
-
-            ns['fullname'] = name
-            ns['module'] = mod_name
-            ns['objname'] = obj_name
-            ns['name'] = parts[-1]
-
-            ns['objtype'] = doc.objtype
-            ns['underline'] = len(name) * '='
-
-            rendered = template.render(**ns)
-            f.write(rendered)
-        finally:
-            f.close()
+            if content == old_content:
+                continue
+            if overwrite:  # content has changed
+                with open(filename, 'w', encoding=encoding) as f:
+                    f.write(content)
+                new_files.append(filename)
+        else:
+            with open(filename, 'w', encoding=encoding) as f:
+                f.write(content)
+            new_files.append(filename)
 
     # descend recursively to new files
     if new_files:
-        generate_autosummary_docs(
-            new_files, output_dir=output_dir, suffix=suffix, app=app,
-            base_path=base_path, builder=builder, template_dir=template_dir,
-        )
+        generate_autosummary_docs(new_files, output_dir=output_dir,
+                                  suffix=suffix, base_path=base_path,
+                                  imported_members=imported_members, app=app,
+                                  overwrite=overwrite)
 
 
-def process_generate_options(app):
+def process_generate_options(app) -> None:
     genfiles = app.config.autosummary_generate
 
-    if genfiles and not hasattr(genfiles, '__len__'):
+    if genfiles is True:
         env = app.builder.env
-        genfiles = [env.doc2path(x, base=None) for x in env.found_docs
+        genfiles = [env.doc2path(x, base=False) for x in env.found_docs
                     if osp.isfile(env.doc2path(x))]
+    elif genfiles is False:
+        pass
+    else:
+        ext = list(app.config.source_suffix)
+        genfiles = [
+            genfile + (ext[0] if not genfile.endswith(tuple(ext)) else '')
+            for genfile in genfiles]
+
+        for entry in genfiles[:]:
+            if not osp.isfile(osp.join(app.srcdir, entry)):
+                logger.warning(__('autosummary_generate: file not found: %s'),
+                               entry)
+                genfiles.remove(entry)
 
     if not genfiles:
         return
 
-    ext = tuple(app.config.source_suffix)
-    genfiles = [genfile + (not genfile.endswith(ext) and ext[0] or '')
-                for genfile in genfiles]
-
     suffix = get_rst_suffix(app)
-
     if suffix is None:
-        logger.warning('autosummary generates .rst files internally. '
-                       'But your source_suffix does not contain .rst. Skipped.')
+        logger.warning(__('autosummary generats .rst files internally. '
+                          'But your source_suffix does not contain .rst. Skipped.'))
         return
-    generate_autosummary_docs(
-        genfiles, builder=app.builder, suffix=suffix, base_path=app.srcdir,
-        app=app
-    )
+
+    imported_members = app.config.autosummary_imported_members
+    with mock(app.config.autosummary_mock_imports):
+        generate_autosummary_docs(genfiles, suffix=suffix, base_path=app.srcdir,
+                                  app=app, imported_members=imported_members,
+                                  overwrite=app.config.autosummary_generate_overwrite,
+                                  encoding=app.config.source_encoding)
 
 
 def setup(app):

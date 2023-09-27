@@ -36,6 +36,7 @@ def _setup(**kw):
         special_members=False,
         imported_members=False,
         show_inheritance=False,
+        no_index=False,
         noindex=False,
         annotation=None,
         synopsis='',
