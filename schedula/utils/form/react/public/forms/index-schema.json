@@ -179,7 +179,23 @@
                     "two"
                   ]
                 }
-              }
+              },
+              "oneOf": [
+                {
+                  "properties": {
+                    "c": {
+                      "const": "one"
+                    }
+                  }
+                },
+                {
+                  "properties": {
+                    "c": {
+                      "const": "two"
+                    }
+                  }
+                }
+              ]
             },
             {
               "properties": {
@@ -192,7 +208,23 @@
                     "four"
                   ]
                 }
-              }
+              },
+              "oneOf": [
+                {
+                  "properties": {
+                    "c": {
+                      "const": "two"
+                    }
+                  }
+                },
+                {
+                  "properties": {
+                    "c": {
+                      "const": "four"
+                    }
+                  }
+                }
+              ]
             }
           ]
         },
@@ -220,7 +252,23 @@
                     "four"
                   ]
                 }
-              }
+              },
+              "oneOf": [
+                {
+                  "properties": {
+                    "c": {
+                      "const": "two"
+                    }
+                  }
+                },
+                {
+                  "properties": {
+                    "c": {
+                      "const": "four"
+                    }
+                  }
+                }
+              ]
             },
             {
               "properties": {
@@ -233,7 +281,23 @@
                     "eight"
                   ]
                 }
-              }
+              },
+              "oneOf": [
+                {
+                  "properties": {
+                    "c": {
+                      "const": "four"
+                    }
+                  }
+                },
+                {
+                  "properties": {
+                    "c": {
+                      "const": "eight"
+                    }
+                  }
+                }
+              ]
             }
           ]
         }

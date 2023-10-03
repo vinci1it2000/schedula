@@ -5,13 +5,13 @@ import {
     getTemplate,
     getUiOptions,
     isObject,
-    mergeObjects,
     NAME_KEY,
     RJSF_ADDITONAL_PROPERTIES_FLAG,
     shouldRender
 } from "@rjsf/utils"
 import _ from "lodash"
 import _get from "lodash/get"
+import isEqual from "lodash/isEqual"
 import _isEmpty from "lodash/isEmpty"
 import _pick from "lodash/pick"
 import _toPath from "lodash/toPath"
@@ -426,17 +426,6 @@ export default class Form extends Component {
                 formData: newFormData
             }
         }
-        if (!noValidate && newErrorSchema) {
-            const errorSchema = extraErrors
-                ? mergeObjects(newErrorSchema, extraErrors, "preventDuplicates")
-                : newErrorSchema
-            state = {
-                ...state,
-                formData: newFormData,
-                errorSchema: errorSchema,
-                errors: schemaUtils.getValidator().toErrorList(errorSchema)
-            }
-        }
         this.setState(
             state,
             () => {
@@ -609,7 +598,13 @@ export default class Form extends Component {
             }
             event.persist()
         }
-        this.setState({...this.state, loading: true}, () => {
+        this.setState({
+            ...this.state, loading: true,
+            errors: [],
+            errorSchema: {},
+            schemaValidationErrors: [],
+            schemaValidationErrorSchema: {}
+        }, () => {
             this.debounceSubmit(event, detail)
         })
     }
@@ -693,8 +688,7 @@ export default class Form extends Component {
      */
     validateForm() {
         const {extraErrors, focusOnFirstError, onError} = this.props
-        const {formData} = this.state
-        const {schemaUtils} = this.state
+        const {formData, schemaUtils, errors: prevErrors} = this.state
         const schemaValidation = this.validate(formData)
         let errors = schemaValidation.errors
         let errorSchema = schemaValidation.errorSchema
@@ -712,21 +706,30 @@ export default class Form extends Component {
             if (focusOnFirstError) {
                 this.focusOnError(schemaValidation.errors[0])
             }
-            this.setState(
-                {
-                    errors,
-                    errorSchema,
-                    schemaValidationErrors,
-                    schemaValidationErrorSchema
-                },
-                () => {
-                    if (onError) {
-                        onError(errors)
-                    } else {
-                        console.error("Form validation failed", errors)
-                    }
-                }
-            )
+            if (!isEqual(errors, prevErrors)) {
+                this.setState({
+                    errors: [],
+                    errorSchema: {},
+                    schemaValidationErrors: [],
+                    schemaValidationErrorSchema: {}
+                }, () => {
+                    this.setState(
+                        {
+                            errors,
+                            errorSchema,
+                            schemaValidationErrors,
+                            schemaValidationErrorSchema
+                        },
+                        () => {
+                            if (onError) {
+                                onError(errors)
+                            } else {
+                                console.error("Form validation failed", errors)
+                            }
+                        }
+                    )
+                })
+            }
             return false
         }
         return true
