@@ -1,3 +1,12 @@
 -r web.pip
 
 itsdangerous
+flask_sqlalchemy
+flask_babel
+flask_wtf
+flask_principal
+flask_security
+sqlalchemy
+flask_mail
+rst2txt
+docutils

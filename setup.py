@@ -82,7 +82,11 @@ if __name__ == '__main__':
     extras = {
         'io': ['dill!=0.2.7'],
         'web': ['requests', 'regex', 'flask'],
-        'form': ['requests', 'regex', 'flask', 'itsdangerous'],
+        'form': [
+            'requests', 'regex', 'flask', 'itsdangerous', 'flask_sqlalchemy',
+            'flask_babel', 'flask_wtf', 'flask_principal', 'flask_security',
+            'sqlalchemy', 'flask_mail', 'rst2txt', 'docutils'
+        ],
         'parallel': ['multiprocess'],
         'plot': [
             'requests', 'graphviz>=0.17', 'regex', 'flask', 'Pygments',
@@ -174,7 +178,9 @@ if __name__ == '__main__':
                 'templates/schedula/*', 'static/schedula/js/*.js',
                 'static/schedula/css/*.css',
                 'static/schedula/media/*',
-                'static/schedula/forms/*'
+                'static/schedula/forms/*',
+                'templates/schedula/*',
+                'templates/schedula/email/*'
             ]
         }
     )
