@@ -13,8 +13,7 @@ import os
 import warnings
 import logging
 import os.path as osp
-
-from typing import TYPE_CHECKING, Any
+from typing import Any
 from sphinx.util.osutil import ensuredir
 from sphinx.util.inspect import getall
 from sphinx.ext.autosummary import (
