@@ -14,8 +14,8 @@ import warnings
 import logging
 import os.path as osp
 from typing import Any
-from sphinx.util.osutil import ensuredir
 from sphinx.util.inspect import getall
+from sphinx.util.osutil import ensuredir
 from sphinx.ext.autosummary import (
     import_by_name, get_documenter, get_rst_suffix, mock, import_ivar_by_name,
     ImportExceptionGroup

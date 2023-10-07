@@ -253,7 +253,7 @@ class FormMap(WebMap):
 
     @staticmethod
     def send_static_file(filename):
-        filename = osp.join('schedula', filename)
+        filename = f'schedula/{filename}'
         try:
             return current_app.send_static_file(filename)
         except NotFound:
