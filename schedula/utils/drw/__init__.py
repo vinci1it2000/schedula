@@ -41,7 +41,6 @@ import functools
 import itertools
 import threading
 import collections
-import pkg_resources
 import os.path as osp
 import urllib.parse as urlparse
 
@@ -73,7 +72,7 @@ PLOT_EXECUTORS = ExecutorFactory({
     'sync': _sync_executor,
     'async': _async_executor
 })
-
+pkg_dir = osp.abspath(osp.dirname(__file__))
 atexit_register(PLOT_EXECUTORS.shutdown_executor, wait=False)
 
 
@@ -703,7 +702,6 @@ class FolderNode:
 
 
 def _format_output(obj, **kwargs):
-    pkg_dir = pkg_resources.resource_filename(__name__, '')
     fpath = osp.join(pkg_dir, 'templates', 'render.html')
     with open(fpath) as template:
         return jinja2_format(
@@ -1074,10 +1072,7 @@ class SiteViz(SiteNode, NoView):
         self.sitemap = sitemap
 
     def render(self, context, *args, **kwargs):
-        dfl_folder = osp.join(
-            pkg_resources.resource_filename(__name__, ''), 'viz'
-        )
-        with open(osp.join(dfl_folder, 'viz.js')) as f:
+        with open(osp.join(pkg_dir, 'viz', 'viz.js')) as f:
             return f.read()
 
 
@@ -1087,9 +1082,7 @@ class SiteIndex(SiteNode):
     def __init__(self, sitemap, node_id='index'):
         super(SiteIndex, self).__init__(None, node_id, self, None, object())
         self.sitemap = sitemap
-        dfl_folder = osp.join(
-            pkg_resources.resource_filename(__name__, ''), 'index'
-        )
+        dfl_folder = osp.join(pkg_dir, 'index')
         for default_file in glob.glob(osp.join(dfl_folder, '**/*')):
             if osp.isfile(default_file):
                 self.extra_files.append(
@@ -1322,7 +1315,6 @@ class SiteIndex(SiteNode):
         )
 
     def render(self, context, *args, **kwargs):
-        pkg_dir = pkg_resources.resource_filename(__name__, '')
         fpath = osp.join(pkg_dir, 'templates', 'index.html')
 
         with open(fpath) as template:
