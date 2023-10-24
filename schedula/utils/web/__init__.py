@@ -104,7 +104,7 @@ class WebMap(SiteMap):
         key = ''.join(random.choices(ascii_lowercase + digits, k=12))
         upx = url_for('subsite', key=key)
         site = func.plot(workflow=True, view=False).site(
-            index=True, url_prefix=upx, blueprint_name='',
+            index=True, url_prefix=upx, blueprint_name='debug',
             idle_timeout=self.idle_timeout
         ).run()
         self.subsites[key] = (site.url, site.shutdown)
