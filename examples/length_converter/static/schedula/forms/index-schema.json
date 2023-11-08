@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Schedula Form",
+  "title": "Length Converter",
   "type": "object",
   "properties": {
     "input": {
@@ -83,7 +83,6 @@
         }
       }
     },
-    "error": {},
     "return": {
       "title": "output",
       "type": "object",
