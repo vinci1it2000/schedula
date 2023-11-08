@@ -2,8 +2,8 @@ import {useLocaleStore} from "../../../models/locale";
 import React, {useEffect} from 'react';
 import {Dropdown} from 'antd';
 
-const LanguageNav = ({form}) => {
-    const {changeLocale, locale, languages} = useLocaleStore()
+const LanguageNav = ({form, languages}) => {
+    const {changeLocale, locale} = useLocaleStore()
     useEffect(() => {
         if (locale.language !== form.state.language)
             changeLocale(form.state.language)

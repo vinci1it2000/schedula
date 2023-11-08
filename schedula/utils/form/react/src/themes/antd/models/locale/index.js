@@ -17,20 +17,7 @@ function useLocale() {
         });
     }
 
-    const languages = [
-        {
-            key: 'en_US',
-            icon: '🇺🇸',
-            label: 'English'
-        },
-        {
-            key: 'it_IT',
-            icon: '🇮🇹',
-            label: 'Italiano'
-        }
-    ]
-
-    return {locale, getLocale, changeLocale, languages};
+    return {locale, getLocale, changeLocale};
 }
 
 export const [useLocaleStore] = createGlobalStore(useLocale);

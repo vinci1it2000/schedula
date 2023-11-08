@@ -20,6 +20,7 @@ export const locale = {
         cloudUploadButton: "Save",
         cloudDownloadTooltip: "Import data from Cloud",
         cloudDownloadButton: "Import",
+        branchesButton: "Branches",
         autoSavingButton: "AutoSaving",
         autoSavingTooltip: "Disable AutoSaving",
         autoSaveButton: "AutoSave",
