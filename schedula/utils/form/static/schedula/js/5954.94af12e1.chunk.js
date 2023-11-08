@@ -1,2 +1,0 @@
-"use strict";(self.webpackChunkschedula_form=self.webpackChunkschedula_form||[]).push([[5954],{85954:function(e,r,n){n.r(r);var u=n(1413),c=n(45987),a=n(76688),d=n(80184),h=["children","render"],l=a.Z.Summary.Row;r.default=function(e){var r=e.children,n=(e.render,(0,c.Z)(e,h));return(0,d.jsx)(l,(0,u.Z)((0,u.Z)({},n),{},{children:r}))}}}]);
-//# sourceMappingURL=5954.94af12e1.chunk.js.map
