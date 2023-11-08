@@ -34,7 +34,7 @@ from flask_security import (
 )
 
 
-def _get_form_context():
+def default_get_form_context():
     return {
         'userInfo': getattr(cu, "get_security_payload", lambda: {})(),
         'reCAPTCHA': current_app.config.get('RECAPTCHA_PUBLIC_KEY')
@@ -45,7 +45,6 @@ def basic_app(sitemap, app):
     app.config.from_object(Config)
     if getattr(sitemap, 'basic_app_config'):
         app.config.from_object(sitemap.basic_app_config)
-    sitemap._get_form_context = _get_form_context
 
     # Create database connection object
     db = SQLAlchemy(app)
@@ -132,8 +131,9 @@ def basic_app(sitemap, app):
                     db.session.delete(item)
                 elif method in ('PATCH', 'PUT'):
                     if method == 'PATCH':
-                        kw['data'] = sh.combine_nested_dicts(item.data,
-                                                             kw['data'])
+                        kw['data'] = sh.combine_nested_dicts(
+                            item.data, kw['data']
+                        )
                     for k, v in kw.items():
                         setattr(item, k, v)
                     db.session.add(item)

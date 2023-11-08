@@ -12,6 +12,8 @@ It provides functions to build a form flask app from a dispatcher.
 import os
 import secrets
 from importlib.resources import files
+
+
 class Config:
     DEBUG = True
     WTF_CSRF_CHECK_DEFAULT = False

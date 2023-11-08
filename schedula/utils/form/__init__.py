@@ -20,9 +20,9 @@ import os.path as osp
 from ..web import WebMap
 from urllib.parse import urlparse
 from jinja2 import TemplateNotFound
-from .server import Config, basic_app
 from werkzeug.exceptions import NotFound
 from itsdangerous import URLSafeTimedSerializer, BadData
+from .server import Config, basic_app, default_get_form_context
 from flask import (
     render_template, Blueprint, current_app, session, g, request,
     send_from_directory, jsonify
@@ -75,8 +75,11 @@ class FormMap(WebMap):
     """
     _get_basic_app_config = Config
 
-    def _get_form_context(self):
-        return {}
+    def get_form_context(self):
+        context = default_get_form_context().copy()
+        if hasattr(self, '_get_form_context'):
+            context.update(self._get_form_context())
+        return context
 
     def _get_form_data(self):
         return
