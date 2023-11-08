@@ -95,7 +95,9 @@ export default class TableField extends ArrayField {
             const tableColumns = columns.filter((column) => (
                 !removeEmpty || column.render || availableKeys.has(column.dataIndex) || formData.some(d => has(d, column.dataIndex.replace('/', '.')))
             )).map((column) => ({
-                key: column.dataIndex, ...column,
+                key: column.dataIndex,
+                title: get(_schemaItems, ['properties', column.dataIndex, 'title']),
+                ...column,
                 render: (text, record, index) => {
                     const {pagination, keyedFormData} = this.state
                     index = index + (pagination.current - 1) * pagination.pageSize
