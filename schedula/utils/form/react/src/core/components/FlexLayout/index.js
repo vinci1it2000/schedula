@@ -5,7 +5,6 @@ import './FlexLayout.css'
 import isEqual from 'lodash/isEqual'
 
 
-
 const parseModel = (render, items, element, key = '0') => {
     let {children = null, component = null, domain = null} = element;
     const {formContext: {form}} = render

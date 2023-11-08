@@ -6,7 +6,7 @@ import {useLocaleStore} from "../../../models/locale";
 import post from "../../../../../core/utils/fetch";
 
 export default function LogoutForm(
-    {form, urlLogout, setOpen,setAuth, setSpinning}) {
+    {form, urlLogout, setOpen, setAuth, setSpinning}) {
     const onFinish = () => {
         setSpinning(true)
         post({

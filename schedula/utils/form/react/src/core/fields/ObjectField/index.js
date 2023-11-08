@@ -16,6 +16,7 @@ import isObject from "lodash/isObject";
 import set from "lodash/set";
 import unset from "lodash/unset";
 import {createLayoutElement} from "../utils";
+
 /** The `ObjectField` component is used to render a field in the schema that is of type `object`. It tracks whether an
  * additional property key was modified and what it was modified to
  *

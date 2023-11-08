@@ -36,8 +36,9 @@ const applyChanges = (target, changes) => {
             })).reverse()
         }
     },
-    cleanStorage=(storeKey)=>{
-                    window.sessionStorage.removeItem(storeKey)},
+    cleanStorage = (storeKey) => {
+        window.sessionStorage.removeItem(storeKey)
+    },
     storeData = (key, formData) => {
         let dataHash = hash(formData, {
                 'algorithm': 'sha1',

@@ -27,12 +27,12 @@ const ConfigProvider = (
     if (compact)
         algorithm.push(compactAlgorithm)
     return <BaseConfigProvider
-            locale={locale}
-            theme={{
-                algorithm,
-                ...themeProps
-            }} {...props}>
-            {children}
-        </BaseConfigProvider>
+        locale={locale}
+        theme={{
+            algorithm,
+            ...themeProps
+        }} {...props}>
+        {children}
+    </BaseConfigProvider>
 };
 export default ConfigProvider;

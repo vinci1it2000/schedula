@@ -87,7 +87,11 @@ export default class TabField extends ArrayField {
                 } = uiOptions;
                 const editable = _editable && !(readonly || disabled)
                 const _schemaItems = schema.items;
-                const {keyedFormData, activeKey: rawActiveKey, collapsed} = this.state;
+                const {
+                    keyedFormData,
+                    activeKey: rawActiveKey,
+                    collapsed
+                } = this.state;
                 const closable = removable && schema.minItems ? keyedFormData.length > schema.minItems : true
                 const formData = keyedToPlainFormData(keyedFormData);
                 const canAdd = this.canAddItem(formData);

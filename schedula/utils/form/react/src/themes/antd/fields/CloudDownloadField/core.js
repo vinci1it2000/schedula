@@ -240,7 +240,11 @@ export default function CloudDownloadField(
                     description: (data.errors || [data.error]).join('\n'),
                 })
             } else {
-                const {id, name, data: _data} = postGet ? form.compileFunc(postGet)({
+                const {
+                    id,
+                    name,
+                    data: _data
+                } = postGet ? form.compileFunc(postGet)({
                     ...data,
                     formData
                 }) : data
