@@ -18,7 +18,6 @@ EXTRAS = os.environ.get('EXTRAS', 'all')
 PLATFORM = platform.system().lower()
 
 
-@unittest.skipIf(True, 'Skip test.')
 @unittest.skipIf(EXTRAS not in ('all', 'form'), 'Not for extra %s.' % EXTRAS)
 @unittest.skipIf(PLATFORM not in ('darwin', 'linux'),
                  'Not for platform %s.' % PLATFORM)
@@ -31,16 +30,15 @@ class TestDispatcherForm(unittest.TestCase):
         from selenium import webdriver
         from pyvirtualdisplay import Display
 
-
         if os.environ.get('ACTION', '').lower() == 'true':
             cls.display = display = Display(visible=False, size=(800, 800))
             display.start()
 
         chromedriver_autoinstaller.install()
         cls.driver = webdriver.Chrome()
+        cls.driver.implicitly_wait(2)
         cls.form_dir = form_dir = osp.abspath(osp.join(
-            osp.dirname(__file__), '..', '..', 'examples',
-            'length_converter'
+            osp.dirname(__file__), '..', '..', 'examples', 'length_converter'
         ))
         sys.path.insert(0, form_dir)
 
@@ -64,55 +62,17 @@ class TestDispatcherForm(unittest.TestCase):
 
     def test_form1(self):
         from selenium.webdriver.common.by import By
-        from selenium.webdriver.support.ui import WebDriverWait
         from selenium.common.exceptions import NoSuchElementException
-        from selenium.webdriver.support import expected_conditions as EC
-
-        self.site = self.dsp.form(directory=self.form_dir, run=True, view=False)
-        driver = self.driver
-
-        driver.get('%s/' % self.site.url)
-        WebDriverWait(driver, 30).until(
-            EC.visibility_of_element_located((By.ID, "run-button"))
-        ).click()
-        time.sleep(3)
-        with self.assertRaises(NoSuchElementException):
-            driver.find_element(value='context-data')
-        self.assertTrue(WebDriverWait(driver, 30).until(
-            EC.visibility_of_element_located((By.ID, "run-button"))
-        ).get_attribute('disabled'))
-
-        WebDriverWait(driver, 30).until(
-            EC.visibility_of_element_located((By.ID, "delete-button"))
-        ).click()
-        time.sleep(3)
-        self.assertTrue(not WebDriverWait(driver, 30).until(
-            EC.visibility_of_element_located((By.ID, "run-button"))
-        ).get_attribute('disabled'))
-        if EXTRAS in ('all',):
-            WebDriverWait(driver, 30).until(
-                EC.visibility_of_element_located((By.ID, "debug-button"))
-            ).click()
-            time.sleep(3)
-            self.assertTrue(WebDriverWait(driver, 30).until(
-                EC.visibility_of_element_located((By.ID, "run-button"))
-            ).get_attribute('disabled'))
-
-
-    def test_form2(self):
-        from selenium.webdriver.common.by import By
-        from selenium.webdriver.support.ui import WebDriverWait
-        from selenium.webdriver.support import expected_conditions as EC
-
         sites = set()
         self.dsp.form(
             directory=self.form_dir, run=True, sites=sites, view=False,
             get_context=lambda: {
-                'data': 'cool'
+                'runnable': False,
+                'userInfo': {}
             }, get_data=lambda: {
                 "input": {"kwargs": {
                     "inputs": {
-                        "value_in": 1, "unit_in": "m",
+                        "value_in": 2, "unit_in": "m",
                         "units_out": ["in", "mm", "km"]
                     },
                     "select_output_kw": {
@@ -122,24 +82,44 @@ class TestDispatcherForm(unittest.TestCase):
                 }},
                 "return": {
                     "results": [
-                        {"unit_out": "in", "value_out": 39.37007874015748},
-                        {"unit_out": "mm", "value_out": 1000},
-                        {"unit_out": "km", "value_out": 0.001}
+                        {"unit_out": "in", "value_out": 78.74015748031496},
+                        {"unit_out": "mm", "value_out": 2000},
+                        {"unit_out": "km", "value_out": 0.002}
                     ],
                     "unit_in": "m",
-                    "value_in": 1
-                },
-                "hash": "cc051052ae52aa702474df394b5d4f23c19f3232"
+                    "value_in": 2
+                }
             }
         )
         self.site = sites.pop()
         driver = self.driver
+        driver.get('%s/' % self.site.url)
 
-        driver.get('%s/index' % self.site.url)
-        self.assertTrue(WebDriverWait(driver, 30).until(
-            EC.visibility_of_element_located((By.ID, "run-button"))
-        ).get_attribute('disabled'))
-        self.assertEqual(
-            driver.find_element(value='context-data').get_attribute('content'),
-            'cool'
-        )
+        def _btn(*classes):
+            classes = ' and '.join(f'contains(@class, "{v}")' for v in classes)
+            return driver.find_element(By.XPATH, f'//li[{classes}]')
+
+        def _clean():
+            _btn('clean-button').click()
+            time.sleep(1)
+            driver.find_element(By.XPATH, "//span[text()='OK']").click()
+            time.sleep(1)
+            with self.assertRaises(NoSuchElementException):
+                _btn('run-button', 'ant-menu-item-disabled')
+            with self.assertRaises(NoSuchElementException):
+                _btn('debug-button', 'ant-menu-item-disabled')
+
+        def _run(btn):
+            _btn(btn).click()
+            self.assertTrue(_btn('run-button', 'ant-menu-item-disabled'))
+
+        self.assertTrue(_btn('run-button', 'ant-menu-item-disabled'))
+        _clean()
+        _run('run-button')
+        with self.assertRaises(NoSuchElementException):
+            _btn('debug-button', 'ant-menu-item-disabled')
+        _clean()
+        if EXTRAS in ('all',):
+            _run('debug-button')
+            self.assertTrue(_btn('debug-button', 'ant-menu-item-disabled'))
+            _clean()
