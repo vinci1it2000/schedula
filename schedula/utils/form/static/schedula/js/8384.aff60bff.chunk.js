@@ -1,2 +1,0 @@
-"use strict";(self.webpackChunkschedula_form=self.webpackChunkschedula_form||[]).push([[8384],{58384:(e,r,s)=>{s.r(r),s.d(r,{default:()=>u});var c=s(22266),l=s(80184);const u=e=>{let{children:r,render:s,...u}=e;return(0,l.jsx)(c.C,{...u,children:r})}}}]);
-//# sourceMappingURL=8384.aff60bff.chunk.js.map
