@@ -74,6 +74,7 @@ const {Header, Content, Footer, Sider} = Layout,
                footer = null,
                theme = 'light',
                contentProps,
+               selectedKeys,
                ...props
            }) => {
         const {getLocale} = useLocaleStore()
@@ -139,7 +140,7 @@ const {Header, Content, Footer, Sider} = Layout,
         }, [logged, currentDataId])
         if (typeof footer === 'number')
             footer = children[footer]
-        return <Layout style={{height: '100%'}} {...props}>
+        return <Layout style={{height: '100%'}}>
             {currentDataId || urlContact || languages || userProps || _items.length || logo ?
                 <Header
                     className={`ant-menu-${theme}`}
@@ -165,6 +166,7 @@ const {Header, Content, Footer, Sider} = Layout,
                             mode="horizontal"
                             style={{flex: "auto", minWidth: 0}}
                             defaultSelectedKeys={defaultSelectedKeys}
+                            selectedKeys={selectedKeys}
                             items={_items}
                             onSelect={({key}) => {
                                 setIndexContent(key)
