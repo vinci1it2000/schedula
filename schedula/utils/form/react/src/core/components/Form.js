@@ -1,27 +1,22 @@
-import React, {Component, forwardRef} from "react"
+import React, {forwardRef} from "react"
 import {
     createSchemaUtils,
     deepEquals,
     getTemplate,
     getUiOptions,
     isObject,
-    NAME_KEY,
-    RJSF_ADDITONAL_PROPERTIES_FLAG,
-    shouldRender
+    UI_GLOBAL_OPTIONS_KEY
 } from "@rjsf/utils"
 import _ from "lodash"
-import _get from "lodash/get"
 import isEqual from "lodash/isEqual"
-import _isEmpty from "lodash/isEmpty"
-import _pick from "lodash/pick"
 import _toPath from "lodash/toPath"
-import {getDefaultRegistry} from "@rjsf/core"
 import debounce from "lodash/debounce";
 import postData from "../utils/fetch";
 import defineValidator from "./validator";
 import i18n from "./translator";
 import isString from "lodash/isString";
 import toPathSchema from './toPathSchema'
+import BaseForm from "@rjsf/core"
 
 function translateJSON(t, data) {
     if (isString(data)) {
@@ -49,43 +44,7 @@ function customCreateSchemaUtils(validator, schema) {
 
 
 /** The `Form` component renders the outer form and all the fields defined in the `schema` */
-export default class Form extends Component {
-    /** Constructs the `Form` from the `props`. Will setup the initial state from the props. It will also call the
-     * `onChange` handler if the initially provided `formData` is modified to add missing default values as part of the
-     * state construction.
-     *
-     * @param props - The initial props for the `Form`
-     */
-    constructor(props) {
-        super(props)
-
-        this.state = this.getStateFromProps(props, props.formData)
-        if (
-            this.props.onChange &&
-            !deepEquals(this.state.formData, this.props.formData)
-        ) {
-            this.props.onChange(this.state)
-        }
-        this.formElement = React.createRef()
-    }
-
-    /** React lifecycle method that gets called before new props are provided, updates the state based on new props. It
-     * will also call the`onChange` handler if the `formData` is modified to add missing default values as part of the
-     * state construction.
-     *
-     * @param nextProps - The new set of props about to be applied to the `Form`
-     */
-    UNSAFE_componentWillReceiveProps(nextProps) {
-        const nextState = this.getStateFromProps(nextProps, nextProps.formData)
-        if (
-            !deepEquals(nextState.formData, nextProps.formData) &&
-            !deepEquals(nextState.formData, this.state.formData) &&
-            nextProps.onChange
-        ) {
-            nextProps.onChange(nextState)
-        }
-        this.setState(nextState)
-    }
+export default class Form extends BaseForm {
 
     componentDidMount() {
         this.debounceValidate()
@@ -162,25 +121,22 @@ export default class Form extends Component {
      * @returns - The new state for the `Form`
      */
     getStateFromProps(props, inputFormData) {
-        const state = this.state || {}
         const rootSchema = "schema" in props ? props.schema : this.props.schema
         const rootUiSchema = ("uiSchema" in props ? props.uiSchema : this.props.uiSchema) || {}
-        const edit = typeof inputFormData !== "undefined"
+        const schema = this.t(_.cloneDeep(rootSchema))
+        const uiSchema = this.t(_.cloneDeep(rootUiSchema))
         const options = getUiOptions(rootUiSchema)
         const language = options.language || ("language" in props ? props.language : this.props.language) || 'en_US'
         i18n.changeLanguage(language)
-        const schema = this.t(_.cloneDeep(rootSchema))
-        const uiSchema = this.t(_.cloneDeep(rootUiSchema))
-        const validator = props.validator || defineValidator(language)
+        let state = super.getStateFromProps({
+            ...props,
+            schema,
+            uiSchema
+        }, inputFormData)
         let schemaUtils = state.schemaUtils
-        if (
-            !schemaUtils ||
-            schemaUtils.doesSchemaUtilsDiffer(validator, schema)
-        ) {
-            schemaUtils = customCreateSchemaUtils(validator, schema)
+        state.schemaUtils.toPathSchema = (schema, name, formData) => {
+            return toPathSchema(schemaUtils.validator, schema, name, schemaUtils.rootSchema, formData);
         }
-        const formData = schemaUtils.getDefaultFormState(schema, inputFormData)
-        const retrievedSchema = schemaUtils.retrieveSchema(schema, formData)
         const csrf_token = "csrf_token" in state ? state.csrf_token : ("csrf_token" in props ? props.csrf_token : this.props.csrf_token)
         const submitCount = "submitCount" in state ? state.submitCount : 0
         const {formContext = {}} = props
@@ -189,49 +145,10 @@ export default class Form extends Component {
         const debuggable = "debuggable" in state ? state.debuggable : ("debuggable" in formContext ? formContext.debuggable : true)
         const loading = "loading" in state ? state.loading : false
         const debugUrl = "debugUrl" in state ? state.debugUrl : ""
-
-        const getCurrentErrors = () => {
-            if (props.noValidate) {
-                return {errors: [], errorSchema: {}}
-            } else {
-                return {
-                    errors: state.schemaValidationErrors || [],
-                    errorSchema: state.schemaValidationErrorSchema || {}
-                }
-            }
-        }
-        let errors
-        let errorSchema
-        let schemaValidationErrors = state.schemaValidationErrors
-        let schemaValidationErrorSchema = state.schemaValidationErrorSchema
-
-        const currentErrors = getCurrentErrors()
-        errors = currentErrors.errors
-        errorSchema = currentErrors.errorSchema
-
-        if (props.extraErrors) {
-            const merged = schemaUtils.mergeValidationData(
-                {errorSchema, errors},
-                props.extraErrors
-            )
-            errorSchema = merged.errorSchema
-            errors = merged.errors
-        }
-        const idSchema = schemaUtils.toIdSchema(
-            retrievedSchema,
-            uiSchema["ui:rootFieldId"],
-            formData,
-            props.idPrefix,
-            props.idSeparator
-        )
         return {
-            schemaUtils,
+            ...state,
             rootSchema,
             rootUiSchema,
-            schema,
-            uiSchema,
-            idSchema,
-            formData,
             csrf_token,
             loading,
             runnable,
@@ -239,23 +156,8 @@ export default class Form extends Component {
             debugUrl,
             userInfo,
             submitCount,
-            language,
-            edit,
-            errors,
-            errorSchema,
-            schemaValidationErrors,
-            schemaValidationErrorSchema
+            language
         }
-    }
-
-    /** React lifecycle method that is used to determine whether component should be updated.
-     *
-     * @param nextProps - The next version of the props
-     * @param nextState - The next version of the state
-     * @returns - True if the component should be updated, false otherwise
-     */
-    shouldComponentUpdate(nextProps, nextState) {
-        return shouldRender(this, nextProps, nextState)
     }
 
     /** Validates the `formData` against the `schema` using the `altSchemaUtils` (if provided otherwise it uses the
@@ -280,87 +182,6 @@ export default class Form extends Component {
                 transformErrors,
                 uiSchema
             )
-    }
-
-    /** Renders any errors contained in the `state` in using the `ErrorList`, if not disabled by `showErrorList`. */
-    renderErrors(registry) {
-        const {errors, errorSchema, schema, uiSchema} = this.state
-        const {formContext} = this.props
-        const options = getUiOptions(uiSchema)
-        const ErrorListTemplate = getTemplate(
-            "ErrorListTemplate",
-            registry,
-            options
-        )
-
-        if (errors && errors.length) {
-            return (
-                <ErrorListTemplate
-                    errors={errors}
-                    errorSchema={errorSchema || {}}
-                    schema={schema}
-                    uiSchema={uiSchema}
-                    formContext={formContext}
-                />
-            )
-        }
-        return null
-    }
-
-    /** Returns the `formData` with only the elements specified in the `fields` list
-     *
-     * @param formData - The data for the `Form`
-     * @param fields - The fields to keep while filtering
-     */
-    getUsedFormData = (formData, fields) => {
-        // For the case of a single input form
-        if (fields.length === 0 && typeof formData !== "object") {
-            return formData
-        }
-
-        // _pick has incorrect type definition, it works with string[][], because lodash/hasIn supports it
-        const data = _pick(formData, fields)
-        if (Array.isArray(formData)) {
-            return Object.keys(data).map(key => data[key])
-        }
-
-        return data
-    }
-
-    /** Returns the list of field names from inspecting the `pathSchema` as well as using the `formData`
-     *
-     * @param pathSchema - The `PathSchema` object for the form
-     * @param [formData] - The form data to use while checking for empty objects/arrays
-     */
-    getFieldNames = (pathSchema, formData) => {
-        const getAllPaths = (_obj, acc = [], paths = [[]]) => {
-            Object.keys(_obj).forEach(key => {
-                if (typeof _obj[key] === "object") {
-                    const newPaths = paths.map(path => [...path, key])
-                    // If an object is marked with additionalProperties, all its keys are valid
-                    if (
-                        _obj[key][RJSF_ADDITONAL_PROPERTIES_FLAG] &&
-                        _obj[key][NAME_KEY] !== ""
-                    ) {
-                        acc.push(_obj[key][NAME_KEY])
-                    } else {
-                        getAllPaths(_obj[key], acc, newPaths)
-                    }
-                } else if (key === NAME_KEY && _obj[key] !== "") {
-                    paths.forEach(path => {
-                        const formValue = _get(formData, path)
-                        // adds path to fieldNames if it points to a value
-                        // or an empty object/array
-                        if (typeof formValue !== "object" || _isEmpty(formValue)) {
-                            acc.push(path)
-                        }
-                    })
-                }
-            })
-            return acc
-        }
-
-        return getAllPaths(pathSchema)
     }
 
     debounceValidate = debounce(() => {
@@ -401,10 +222,8 @@ export default class Form extends Component {
 
     debounceOnChange = debounce((formData, newErrorSchema, id) => {
         const {
-            extraErrors,
             omitExtraData,
             liveOmit,
-            noValidate,
             liveValidate,
             onChange
         } = this.props
@@ -456,32 +275,6 @@ export default class Form extends Component {
      */
     onChange = (formData, newErrorSchema, id) => {
         this.debounceOnChange(formData, newErrorSchema, id)
-    }
-
-    /** Callback function to handle when a field on the form is blurred. Calls the `onBlur` callback for the `Form` if it
-     * was provided.
-     *
-     * @param id - The unique `id` of the field that was blurred
-     * @param data - The data associated with the field that was blurred
-     */
-    onBlur = (id, data) => {
-        const {onBlur} = this.props
-        if (onBlur) {
-            onBlur(id, data)
-        }
-    }
-
-    /** Callback function to handle when a field on the form is focused. Calls the `onFocus` callback for the `Form` if it
-     * was provided.
-     *
-     * @param id - The unique `id` of the field that was focused
-     * @param data - The data associated with the field that was focused
-     */
-    onFocus = (id, data) => {
-        const {onFocus} = this.props
-        if (onFocus) {
-            onFocus(id, data)
-        }
     }
 
     debounceSubmit = debounce((event, detail) => {
@@ -622,74 +415,12 @@ export default class Form extends Component {
 
     /** Returns the registry for the form */
     getRegistry() {
-        const {translateString: customTranslateString} = this.props;
-        const {schemaUtils, schema} = this.state
-        const {
-            fields,
-            templates,
-            widgets,
-            formContext,
-            translateString
-        } = getDefaultRegistry()
-        return {
-            fields: {...fields, ...this.props.fields},
-            templates: {
-                ...templates,
-                ...this.props.templates,
-                ButtonTemplates: {
-                    ...templates.ButtonTemplates,
-                    ...this.props.templates?.ButtonTemplates
-                }
-            },
-            widgets: {...widgets, ...this.props.widgets},
-            rootSchema: schema,
-            formContext: {
-                ...this.props.formContext || formContext, form: this
-            },
-            schemaUtils,
-            translateString: customTranslateString || translateString,
-        }
-    }
-
-    /** Provides a function that can be used to programmatically submit the `Form` */
-    submit() {
-        if (this.formElement.current) {
-            this.formElement.current.dispatchEvent(
-                new CustomEvent("submit", {
-                    cancelable: true
-                })
-            )
-            this.formElement.current.requestSubmit()
-        }
-    }
-
-    /** Attempts to focus on the field associated with the `error`. Uses the `property` field to compute path of the error
-     * field, then, using the `idPrefix` and `idSeparator` converts that path into an id. Then the input element with that
-     * id is attempted to be found using the `formElement` ref. If it is located, then it is focused.
-     *
-     * @param error - The error on which to focus
-     */
-    focusOnError(error) {
-        const {idPrefix = "root", idSeparator = "_"} = this.props
-        const {property} = error
-        const path = _toPath(property)
-        if (path[0] === "") {
-            // Most of the time the `.foo` property results in the first element being empty, so replace it with the idPrefix
-            path[0] = idPrefix
-        } else {
-            // Otherwise insert the idPrefix into the first location using unshift
-            path.unshift(idPrefix)
-        }
-
-        const elementId = path.join(idSeparator)
-        let field = this.formElement.current.elements[elementId]
-        if (!field) {
-            // if not an exact match, try finding an input starting with the element id (like radio buttons or checkboxes)
-            field = this.formElement.current.querySelector(`input[id^=${elementId}`)
-        }
-        if (field) {
-            field.focus()
-        }
+        let registry = super.getRegistry()
+        const {uiSchema, schema} = this.state
+        registry.formContext.form = this
+        registry.rootSchema = schema
+        registry.globalUiOptions = uiSchema[UI_GLOBAL_OPTIONS_KEY]
+        return registry
     }
 
     /** Programmatically validate the form. If `onError` is provided, then it will be called with the list of errors the

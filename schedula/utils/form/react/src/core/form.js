@@ -1,6 +1,8 @@
 import {withTheme} from './components/Form';
 import {HoxRoot} from "hox";
 import React from 'react'
+import defineValidator from "./components/validator";
+import {getUiOptions} from "@rjsf/utils";
 
 function Form(
     {
@@ -15,6 +17,7 @@ function Form(
         ...props
     }
 ) {
+    const validator = "validator" in props ? props.validator : defineValidator(getUiOptions("uiSchema" in props ? props.uiSchema : {}).language || ("language" in props ? props.language : 'en_US'))
     const BaseForm = withTheme(theme);
     const rootRef = React.createRef()
     return <HoxRoot key={name}>
@@ -35,6 +38,7 @@ function Form(
             preSubmit={null}
             postSubmit={null}
             showDebug={false}
+            validator={validator}
             {...props}
         />
     </HoxRoot>
