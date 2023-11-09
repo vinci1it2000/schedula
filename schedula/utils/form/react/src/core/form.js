@@ -14,6 +14,7 @@ function Form(
         name = "form",
         removeReturnOnChange = true,
         theme,
+        liveValidate = true,
         ...props
     }
 ) {
@@ -32,13 +33,14 @@ function Form(
             url={url}
             uiSchema={uiSchema}
             showErrorList={false}
-            liveValidate={true}
             omitExtraData={true}
             editOnChange={null}
             preSubmit={null}
             postSubmit={null}
             showDebug={false}
+            liveValidate={false}
             validator={validator}
+            debounceValidate={liveValidate}
             experimental_defaultFormStateBehavior={{
                 arrayMinItems: 'populate',
                 emptyObjectFields: 'populateAllDefaults'

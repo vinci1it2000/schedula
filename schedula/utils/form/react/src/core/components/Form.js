@@ -231,6 +231,7 @@ export default class Form extends BaseForm {
             liveOmit,
             noValidate,
             liveValidate,
+            debounceValidate,
             onChange
         } = this.props
         if (isObject(formData) || Array.isArray(formData)) {
@@ -296,7 +297,7 @@ export default class Form extends BaseForm {
             state,
             () => {
                 onChange && onChange({...this.state, ...state}, id)
-                liveValidate && this.debounceValidate()
+                debounceValidate && this.debounceValidate()
             }
         )
     }, 50)
