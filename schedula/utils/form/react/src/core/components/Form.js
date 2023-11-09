@@ -9,7 +9,6 @@ import {
 } from "@rjsf/utils"
 import _ from "lodash"
 import isEqual from "lodash/isEqual"
-import _toPath from "lodash/toPath"
 import debounce from "lodash/debounce";
 import postData from "../utils/fetch";
 import defineValidator from "./validator";
@@ -41,7 +40,6 @@ function customCreateSchemaUtils(validator, schema) {
     }
     return schemaUtils
 }
-
 
 /** The `Form` component renders the outer form and all the fields defined in the `schema` */
 export default class Form extends BaseForm {
@@ -511,7 +509,7 @@ export default class Form extends BaseForm {
             idSchema
         } = this.state;
         const registry = this.getRegistry();
-        const {SchemaField: _SchemaField} = registry.fields;
+        const {SchemaField} = registry.fields;
         const as = _internalFormWrapper ? tagName : undefined;
         const FormTag = _internalFormWrapper || tagName || "form";
         const uiOptions = getUiOptions(uiSchema)
@@ -521,56 +519,54 @@ export default class Form extends BaseForm {
         const ConfigProvider = getTemplate('ConfigProvider', registry, uiOptions);
         const Debug = getTemplate('Debug', registry, uiOptions);
         const {formContext} = registry
-        return (
-            <FormTag
-                className={className ? className : "rjsf"}
-                id={id}
-                name={name}
-                method={method}
-                target={target}
-                action={action}
-                autoComplete={autoComplete}
-                encType={enctype}
-                acceptCharset={acceptcharset}
-                noValidate={noHtml5Validate}
-                onSubmit={this.onSubmit}
-                as={as}
-                style={{height: '100%'}}
-                ref={this.formElement}>
-                <ConfigProvider {...propsConfigProvider}>
-                    <Loader spinning={this.state.loading}>
-                        <ModalProvider>
-                            {showErrorList === "top" && this.renderErrors(registry)}
-                            <_SchemaField
-                                name=""
-                                schema={schema}
-                                uiSchema={uiSchema}
-                                errorSchema={errorSchema}
-                                idSchema={idSchema}
-                                idPrefix={idPrefix}
-                                idSeparator={idSeparator}
-                                formContext={formContext}
-                                formData={formData}
-                                onChange={this.onChange}
-                                onBlur={this.onBlur}
-                                onFocus={this.onFocus}
-                                registry={registry}
-                                disabled={disabled}
-                                readonly={readonly}
-                                submitCount={this.state.submitCount}  // used to re-render
-                            />
-                            {children}
-                            {showDebug && this.state.debugUrl ? <Debug
-                                key={name + '-Debug'}
-                                id={name + '-Debug'}
-                                src={this.state.debugUrl}
-                                name={name}/> : null}
-                            {showErrorList === "bottom" && this.renderErrors(registry)}
-                        </ModalProvider>
-                    </Loader>
-                </ConfigProvider>
-            </FormTag>
-        );
+        return <FormTag
+            className={className ? className : "rjsf"}
+            id={id}
+            name={name}
+            method={method}
+            target={target}
+            action={action}
+            autoComplete={autoComplete}
+            encType={enctype}
+            acceptCharset={acceptcharset}
+            noValidate={noHtml5Validate}
+            onSubmit={this.onSubmit}
+            as={as}
+            style={{height: '100%'}}
+            ref={this.formElement}>
+            <ConfigProvider {...propsConfigProvider}>
+                <Loader spinning={this.state.loading}>
+                    <ModalProvider>
+                        {showErrorList === "top" && this.renderErrors(registry)}
+                        <SchemaField
+                            name=""
+                            schema={schema}
+                            uiSchema={uiSchema}
+                            errorSchema={errorSchema}
+                            idSchema={idSchema}
+                            idPrefix={idPrefix}
+                            idSeparator={idSeparator}
+                            formContext={formContext}
+                            formData={formData}
+                            onChange={this.onChange}
+                            onBlur={this.onBlur}
+                            onFocus={this.onFocus}
+                            registry={registry}
+                            disabled={disabled}
+                            readonly={readonly}
+                            submitCount={this.state.submitCount}  // used to re-render
+                        />
+                        {children}
+                        {showDebug && this.state.debugUrl ? <Debug
+                            key={name + '-Debug'}
+                            id={name + '-Debug'}
+                            src={this.state.debugUrl}
+                            name={name}/> : null}
+                        {showErrorList === "bottom" && this.renderErrors(registry)}
+                    </ModalProvider>
+                </Loader>
+            </ConfigProvider>
+        </FormTag>
     }
 }
 
