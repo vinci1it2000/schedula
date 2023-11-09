@@ -18,11 +18,12 @@ import {
     retrieveSchema
 } from "@rjsf/utils"
 
-export function getFirstMatchingOption(
+function getFirstMatchingOption(
     validator,
+    rootSchema,
     formData,
     options,
-    rootSchema,
+    selectedOption = -1,
     discriminatorField
 ) {
     // For performance, skip validating subschemas if formData is undefined. We just
