@@ -1,69 +1,136 @@
 {
+  "ui:configProvider": {
+    "dark": false,
+    "local": "en",
+    "theme": {
+      "token": {
+        "sizeUnit": 2
+      }
+    }
+  },
   "ui:layout": {
-    "component": "appbar",
+    "component": "App",
     "props": {
-      "children": [
-        {
-          "$id": "input",
-          "props": {
-            "uiSchema": {
-              "ui:layout": {
-                "component": "Paper",
-                "props": {
-                  "variant": "outlined",
-                  "sx": {
-                    "p": {
-                      "xs": 2
-                    }
-                  },
+      "theme": "light"
+    },
+    "children": [
+      {
+        "component": "FlexLayout",
+        "props": {
+          "model": {
+            "global": {
+              "tabEnableClose": false
+            },
+            "borders": [
+              {
+                "type": "border",
+                "location": "left",
+                "enableDrop": false,
+                "size": 1200,
+                "selected": 0,
+                "children": [
+                  {
+                    "type": "tab",
+                    "enableClose": false,
+                    "enableDrag": false,
+                    "enableFloat": true,
+                    "name": "Debug",
+                    "component": 3
+                  }
+                ]
+              },
+              {
+                "type": "border",
+                "location": "right",
+                "enableDrop": false,
+                "size": 400,
+                "selected": 0,
+                "children": [
+                  {
+                    "type": "tab",
+                    "enableClose": false,
+                    "enableDrag": false,
+                    "enableFloat": false,
+                    "name": "Errors",
+                    "component": 2
+                  }
+                ]
+              }
+            ],
+            "layout": {
+              "type": "row",
+              "children": [
+                {
+                  "type": "row",
                   "children": [
                     {
-                      "$id": "kwargs",
-                      "props": {
-                        "uiSchema": {
-                          "ui:layout": {
-                            "$id": "inputs"
-                          }
+                      "type": "tabset",
+                      "weight": 50,
+                      "children": [
+                        {
+                          "type": "tab",
+                          "name": "INPUT",
+                          "component": 0
                         }
-                      }
+                      ]
+                    },
+                    {
+                      "type": "tabset",
+                      "domain": "({formData})=>(((formData.return || {}).results || []).length > 0)",
+                      "weight": 100,
+                      "children": [
+                        {
+                          "type": "tab",
+                          "name": "OUTPUT",
+                          "component": 1
+                        }
+                      ]
                     }
                   ]
                 }
+              ]
+            }
+          }
+        },
+        "children": [
+          {
+            "component": "Element",
+            "props": {
+              "type": "div",
+              "style": {
+                "padding": 18
               }
-            }
+            },
+            "children": [
+              {
+                "path": "input/kwargs/inputs"
+              }
+            ]
+          },
+          {
+            "component": "Element",
+            "props": {
+              "type": "div",
+              "style": {
+                "padding": 18
+              }
+            },
+            "children": [
+              {
+                "path": "return/results"
+              }
+            ]
+          },
+          {
+            "component": "Errors",
+            "force_render": true
+          },
+          {
+            "component": "Debug",
+            "force_render": true
           }
-        },
-        {
-          "$id": "return",
-          "domain": "function(parent){let x = parent.props.context.props.formData.return, isEmpty = !!(typeof(x) === 'object'? Object.keys(x).length === 0 : undefined === x); return !isEmpty}",
-          "props": {
-            "uiSchema": {
-              "ui:disabled": true,
-              "ui:readonly": true
-            }
-          }
-        }
-      ],
-      "children-right": [
-        {
-          "component": "export"
-        },
-        {
-          "component": "upload"
-        },
-        {
-          "component": "submit",
-          "transformData": "function(parent, def){let x = parent.props.context.props.formData.return, isEmpty = !!(typeof(x) === 'object'? Object.keys(x).length === 0 : undefined === x);def.props.disabled=!isEmpty; return def}",
-          "props": {
-            "disabled": false,
-            "content": "SUBMIT",
-            "variant": "outlined"
-          }
-        }
-      ]
-    }
-  },
-  "ui:submitButtonOptions": {
-    "norender": true
+        ]
+      }
+    ]
   }
 }
