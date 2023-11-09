@@ -3,8 +3,11 @@ import {
     createSchemaUtils,
     deepEquals,
     getTemplate,
+    mergeObjects,
+    toErrorList,
     getUiOptions,
     isObject,
+    validationDataMerge,
     UI_GLOBAL_OPTIONS_KEY
 } from "@rjsf/utils"
 import _ from "lodash"
@@ -33,8 +36,8 @@ function translateJSON(t, data) {
     }
 }
 
-function customCreateSchemaUtils(validator, schema) {
-    let schemaUtils = createSchemaUtils(validator, schema)
+function customCreateSchemaUtils(validator, schema, experimental_defaultFormStateBehavior) {
+    let schemaUtils = createSchemaUtils(validator, schema, experimental_defaultFormStateBehavior)
     schemaUtils.toPathSchema = (schema, name, formData) => {
         return toPathSchema(schemaUtils.validator, schema, name, schemaUtils.rootSchema, formData);
     }
@@ -95,13 +98,14 @@ export default class Form extends BaseForm {
                     const validator = this.props.validator || defineValidator(language)
                     const schema = this.t(this.state.rootSchema)
                     const uiSchema = this.t(this.state.rootUiSchema)
+                    const experimental_defaultFormStateBehavior = this.props.experimental_defaultFormStateBehavior
                     this.setState({
                         ...this.state,
                         loading: false,
                         language,
                         schema,
                         uiSchema,
-                        schemaUtils: customCreateSchemaUtils(validator, schema)
+                        schemaUtils: customCreateSchemaUtils(validator, schema, experimental_defaultFormStateBehavior)
                     }, () => {
                         this.validateForm()
                     })
@@ -220,16 +224,21 @@ export default class Form extends BaseForm {
 
     debounceOnChange = debounce((formData, newErrorSchema, id) => {
         const {
+            extraErrors,
             omitExtraData,
             liveOmit,
+            noValidate,
             liveValidate,
             onChange
         } = this.props
         const {schemaUtils, schema} = this.state
         if (isObject(formData) || Array.isArray(formData)) {
-            formData = this.getStateFromProps(this.props, formData).formData
+            const newState = this.getStateFromProps(this.props, formData)
+            formData = newState.formData
         }
         formData = this.editOnChange(formData, id)
+        const mustValidate = !noValidate && liveValidate
+
         let state = {formData, schema, debugUrl: ""}
 
         let newFormData = formData
@@ -245,6 +254,36 @@ export default class Form extends BaseForm {
                 formData: newFormData
             }
         }
+        if (mustValidate) {
+            const schemaValidation = this.validate(newFormData)
+            let errors = schemaValidation.errors
+            let errorSchema = schemaValidation.errorSchema
+            const schemaValidationErrors = errors
+            const schemaValidationErrorSchema = errorSchema
+            if (extraErrors) {
+                const merged = validationDataMerge(schemaValidation, extraErrors)
+                errorSchema = merged.errorSchema
+                errors = merged.errors
+            }
+            state = {
+                ...state,
+                formData: newFormData,
+                errors,
+                errorSchema,
+                schemaValidationErrors,
+                schemaValidationErrorSchema
+            }
+        } else if (!noValidate && newErrorSchema) {
+            const errorSchema = extraErrors
+                ? mergeObjects(newErrorSchema, extraErrors, "preventDuplicates")
+                : newErrorSchema
+            state = {
+                ...state,
+                formData: newFormData,
+                errorSchema: errorSchema,
+                errors: toErrorList(errorSchema)
+            }
+        }
         const runnable = this.state.runnable || !deepEquals(this.state.formData, state.formData)
         state = {
             ...state,
@@ -258,7 +297,7 @@ export default class Form extends BaseForm {
                 liveValidate && this.debounceValidate()
             }
         )
-    }, 250)
+    }, 50)
 
     /** Function to handle changes made to a field in the `Form`. This handler receives an entirely new copy of the
      * `formData` along with a new `ErrorSchema`. It will first update the `formData` with any missing default fields and
@@ -299,9 +338,7 @@ export default class Form extends BaseForm {
             // There are no errors generated through schema validation.
             // Check for user provided errors and update state accordingly.
             const errorSchema = extraErrors || {}
-            const errors = extraErrors
-                ? schemaUtils.getValidator().toErrorList(extraErrors)
-                : []
+            const errors = extraErrors ? toErrorList(extraErrors) : []
 
             const input = this.preSubmit({
                 input: newFormData.input, formData: newFormData
@@ -427,16 +464,26 @@ export default class Form extends BaseForm {
      * @returns - True if the form is valid, false otherwise.
      */
     validateForm() {
-        const {extraErrors, focusOnFirstError, onError} = this.props
-        const {formData, schemaUtils, errors: prevErrors} = this.state
+        const {
+            extraErrors,
+            extraErrorsBlockSubmit,
+            focusOnFirstError,
+            onError
+        } = this.props
+        const {
+            formData,
+            errors: prevErrors
+        } = this.state
         const schemaValidation = this.validate(formData)
         let errors = schemaValidation.errors
         let errorSchema = schemaValidation.errorSchema
         const schemaValidationErrors = errors
         const schemaValidationErrorSchema = errorSchema
-        if (errors.length > 0) {
+        const hasError =
+            errors.length > 0 || (extraErrors && extraErrorsBlockSubmit)
+        if (hasError) {
             if (extraErrors) {
-                const merged = schemaUtils.mergeValidationData(
+                const merged = validationDataMerge(
                     schemaValidation,
                     extraErrors
                 )
@@ -444,7 +491,11 @@ export default class Form extends BaseForm {
                 errors = merged.errors
             }
             if (focusOnFirstError) {
-                this.focusOnError(schemaValidation.errors[0])
+                if (typeof focusOnFirstError === "function") {
+                    focusOnFirstError(errors[0])
+                } else {
+                    this.focusOnError(errors[0])
+                }
             }
             if (!isEqual(errors, prevErrors)) {
                 this.setState({
@@ -470,9 +521,15 @@ export default class Form extends BaseForm {
                     )
                 })
             }
-            return false
+        } else if (prevErrors.length > 0) {
+            this.setState({
+                errors: [],
+                errorSchema: {},
+                schemaValidationErrors: [],
+                schemaValidationErrorSchema: {}
+            })
         }
-        return true
+        return !hasError
     }
 
     /** Renders the `Form` fields inside the <form> | `tagName` or `_internalFormWrapper`, rendering any errors if

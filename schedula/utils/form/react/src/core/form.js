@@ -39,6 +39,10 @@ function Form(
             postSubmit={null}
             showDebug={false}
             validator={validator}
+            experimental_defaultFormStateBehavior={{
+                arrayMinItems: 'populate',
+                emptyObjectFields: 'populateAllDefaults'
+            }}
             {...props}
         />
     </HoxRoot>
