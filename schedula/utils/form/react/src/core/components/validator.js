@@ -6,7 +6,11 @@ function defineValidator(language) {
         ajvOptionsOverrides: {
             $data: true,
             useDefaults: true,
-            coerceTypes: true
+            coerceTypes: true,
+            validateSchema: false,
+            code: {
+                optimize: false
+            }
         }
     }, localizer[language.split('_')[0]] || localizer.en)
 }
