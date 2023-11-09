@@ -174,7 +174,7 @@ export default class Form extends BaseForm {
     validate(formData, schema, altSchemaUtils) {
         const schemaUtils = altSchemaUtils ? altSchemaUtils : this.state.schemaUtils
         schema = schema ? schema : this.state.schema
-        const uiSchema = this.state.uiSchema
+        const uiSchema = this.state ? this.state.uiSchema : this.props.uiSchema
         const {customValidate, transformErrors} = this.props
         const resolvedSchema = schemaUtils.retrieveSchema(schema, formData)
         return schemaUtils
@@ -233,11 +233,11 @@ export default class Form extends BaseForm {
             liveValidate,
             onChange
         } = this.props
-        const {schemaUtils, schema} = this.state
         if (isObject(formData) || Array.isArray(formData)) {
             const newState = this.getStateFromProps(this.props, formData)
             formData = newState.formData
         }
+        const {schemaUtils, schema} = this.state
         formData = this.editOnChange(formData, id)
         const mustValidate = !noValidate && liveValidate
 
