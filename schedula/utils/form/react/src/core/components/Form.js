@@ -11,6 +11,7 @@ import {
     UI_GLOBAL_OPTIONS_KEY
 } from "@rjsf/utils"
 import _ from "lodash"
+import cloneDeep from "lodash/cloneDeep";
 import isEqual from "lodash/isEqual"
 import debounce from "lodash/debounce";
 import postData from "../utils/fetch";
@@ -125,8 +126,8 @@ export default class Form extends BaseForm {
     getStateFromProps(props, inputFormData) {
         const rootSchema = "schema" in props ? props.schema : this.props.schema
         const rootUiSchema = ("uiSchema" in props ? props.uiSchema : this.props.uiSchema) || {}
-        const schema = this.t(_.cloneDeep(rootSchema))
-        const uiSchema = this.t(_.cloneDeep(rootUiSchema))
+        const schema = this.t(cloneDeep(rootSchema))
+        const uiSchema = this.t(cloneDeep(rootUiSchema))
         const options = getUiOptions(rootUiSchema)
         const language = options.language || ("language" in props ? props.language : this.props.language) || 'en_US'
         i18n.changeLanguage(language)
@@ -149,6 +150,7 @@ export default class Form extends BaseForm {
         const debugUrl = "debugUrl" in state ? state.debugUrl : ""
         return {
             ...state,
+            formData: cloneDeep(state.formData),
             rootSchema,
             rootUiSchema,
             csrf_token,
