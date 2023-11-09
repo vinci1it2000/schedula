@@ -96,7 +96,7 @@ export default class Form extends BaseForm {
                         })
                     })
                 } else {
-                    const validator = this.props.validator || defineValidator(language)
+                    const validator = defineValidator(language)
                     const schema = this.t(this.state.rootSchema)
                     const uiSchema = this.t(this.state.rootUiSchema)
                     const experimental_defaultFormStateBehavior = this.props.experimental_defaultFormStateBehavior
@@ -198,7 +198,7 @@ export default class Form extends BaseForm {
                 schemaValidationErrors: []
             })
         }
-    }, 500)
+    }, 50)
 
     editOnChange(formData, id) {
         if (this.props.editOnChange) {
