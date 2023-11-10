@@ -43,8 +43,10 @@ const List = React.lazy(() => import('./List'));
 const List_Item = React.lazy(() => import('./List/Item'));
 const List_Item_Meta = React.lazy(() => import('./List/Item/Meta'));
 const Markdown = React.lazy(() => import('./Markdown'));
+const OverPack = React.lazy(() => import('./OverPack'));
 const Popover = React.lazy(() => import('./Popover'));
 const Pricing = React.lazy(() => import('./Pricing'));
+const QueueAnim = React.lazy(() => import('./QueueAnim'));
 const Segmented = React.lazy(() => import('./Segmented'));
 const Space = React.lazy(() => import('./Space'));
 const Space_Compact = React.lazy(() => import('./Space/Compact'));
@@ -56,6 +58,7 @@ const Table_Summary = React.lazy(() => import('./Table/Summary'));
 const Table_Summary_Col = React.lazy(() => import('./Table/Summary/Col'));
 const Table_Summary_Row = React.lazy(() => import('./Table/Summary/Row'));
 const Tabs = React.lazy(() => import('./Tabs'));
+const TweenOne = React.lazy(() => import('./TweenOne'));
 const Typography_Paragraph = React.lazy(() => import('./Typography/Paragraph'));
 const Typography_Text = React.lazy(() => import('./Typography/Text'));
 const Typography_Title = React.lazy(() => import('./Typography/Title'));
@@ -98,8 +101,10 @@ export function generateComponents(register = true, registerDomains = true) {
         "List.Item": List_Item,
         "List.Item.Meta": List_Item_Meta,
         Markdown,
+        OverPack,
         Popover,
         Pricing,
+        QueueAnim,
         Segmented,
         Space,
         "Space.Compact": Space_Compact,
@@ -111,6 +116,7 @@ export function generateComponents(register = true, registerDomains = true) {
         "Table.Summary.Col": Table_Summary_Col,
         "Table.Summary.Row": Table_Summary_Row,
         Tabs,
+        TweenOne,
         "Typography.Paragraph": Typography_Paragraph,
         "Typography.Text": Typography_Text,
         "Typography.Title": Typography_Title,

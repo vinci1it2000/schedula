@@ -828,40 +828,35 @@
                 "path": "table/0"
               },
               {
-                "component": "Grid.Row",
-                "children": [
-                  {
-                    "component": "Grid.Col",
-                    "props": {
-                      "sx": 24,
-                      "md": 12
-                    },
+                "component": "Pricing",
+                "props": {
+                  "enableOverPack": false,
+                  "title": "Standard",
+                  "img": "https://gw.alipayobjects.com/mdn/rms_ae7ad9/afts/img/A*OnyWT4Nsxy0AAAAAAAAAAABjARQnAQ",
+                  "pricing": {
+                    "component": "Markdown",
                     "children": [
-                      {
-                        "component": "Element",
-                        "props": {
-                          "type": "img",
-                          "width": "100%",
-                          "src": "https://gw.alipayobjects.com/mdn/rms_ae7ad9/afts/img/A*OnyWT4Nsxy0AAAAAAAAAAABjARQnAQ"
-                        },
-                        "force_render": true
-                      }
+                      "**{{ 5000 | n('en', {'style': 'currency', 'currency': 'EUR'}) }}**"
                     ]
                   },
-                  {
-                    "component": "Grid.Col",
+                  "button": {
+                    "component": "Button",
                     "props": {
-                      "sx": 24,
-                      "md": 12
+                      "icon": "shopping-cart",
+                      "type": "primary"
                     },
                     "children": [
                       {
-                        "component": "Markdown",
-                        "children": [
-                          "# Title\n\n",
-                          "[buy](/order)"
-                        ]
+                        "content": "Buy"
                       }
+                    ]
+                  }
+                },
+                "children": [
+                  {
+                    "component": "Markdown",
+                    "children": [
+                      "Wow che offerta"
                     ]
                   }
                 ]
@@ -1033,8 +1028,5 @@
         ]
       }
     ]
-  },
-  "ui:submitButtonOptions": {
-    "norender": true
   }
 }
