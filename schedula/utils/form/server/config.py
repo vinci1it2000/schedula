@@ -11,7 +11,13 @@ It provides functions to build a form flask app from a dispatcher.
 """
 import os
 import secrets
-from importlib.resources import files
+import inspect
+import os.path as osp
+
+try:
+    import flask_security
+except ImportError:
+    flask_security = None
 
 
 class Config:
@@ -70,11 +76,16 @@ class Config:
     MAIL_USE_SSL = True
     MAIL_USERNAME = os.environ.get('MAIL_USER', 'info@prosaweb.it')
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD', 'prosaweb@123')
-    SECURITY_I18N_DIRNAME = [
-        str(files("flask_security") / "translations"),
+
+    SECURITY_I18N_DIRNAME = []
+    if flask_security is not None:
+        SECURITY_I18N_DIRNAME.append(osp.join(
+            osp.dirname(inspect.getfile(flask_security)), 'translations'
+        ))
+    SECURITY_I18N_DIRNAME.extend((
         os.environ.get('SECURITY_I18N_DIRNAME', 'translations'),
         "translations"
-    ]
+    ))
 
     SCHEDULA_I18N_DIRNAME = [
         os.environ.get('SCHEDULA_I18N_DIRNAME', 'translations'),

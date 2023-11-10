@@ -32,13 +32,9 @@ warnings.filterwarnings(
 )
 
 
-def generate_autosummary_content(name: str, obj: Any, parent: Any,
-                                 template: AutosummaryRenderer,
-                                 template_name: str,
-                                 imported_members: bool, app: Any,
-                                 recursive: bool, context: dict,
-                                 modname: str | None = None,
-                                 qualname: str | None = None) -> str:
+def generate_autosummary_content(
+        name, obj, parent, template, template_name, imported_members, app,
+        recursive, context, modname=None, qualname=None):
     doc = get_documenter(app, obj, parent)
 
     ns: dict[str, Any] = {}
@@ -135,13 +131,9 @@ def generate_autosummary_content(name: str, obj: Any, parent: Any,
         return template.render(doc.objtype, ns)
 
 
-def generate_autosummary_docs(sources: list[str],
-                              output_dir: str | os.PathLike[str] | None = None,
-                              suffix: str = '.rst',
-                              base_path: str | os.PathLike[str] | None = None,
-                              imported_members: bool = False, app=None,
-                              overwrite: bool = True,
-                              encoding: str = 'utf-8') -> None:
+def generate_autosummary_docs(
+        sources, output_dir=None, suffix='.rst', base_path=None,
+        imported_members=False, app=None, overwrite=True, encoding='utf-8'):
     showed_sources = sorted(sources)
     if len(showed_sources) > 20:
         showed_sources = showed_sources[:10] + ['...'] + showed_sources[-10:]
@@ -233,7 +225,7 @@ def generate_autosummary_docs(sources: list[str],
                                   overwrite=overwrite)
 
 
-def process_generate_options(app) -> None:
+def process_generate_options(app):
     genfiles = app.config.autosummary_generate
 
     if genfiles is True:
