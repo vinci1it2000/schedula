@@ -1708,12 +1708,12 @@ def add_function(dsp, inputs_kwargs=False, inputs_defaults=False, **kw):
 class inf:
     """Class to model infinite numbers for workflow distance."""
 
-    inf: float = 0
-    num: float = 0
+    _inf: float = 0
+    _num: float = 0
 
     def __iter__(self):
-        yield self.inf
-        yield self.num
+        yield self._inf
+        yield self._num
 
     @staticmethod
     def format(val):
@@ -1722,14 +1722,14 @@ class inf:
         return inf(*val)
 
     def __repr__(self):
-        if self.inf == 0:
-            return str(self.num)
+        if self._inf == 0:
+            return str(self._num)
         return 'inf(inf={}, num={})'.format(*self)
 
     def __add__(self, other):
         if isinstance(other, self.__class__):
-            return inf(self.inf + other.inf, self.num + other.num)
-        return inf(self.inf, self.num + other)
+            return inf(self._inf + other._inf, self._num + other._num)
+        return inf(self._inf, self._num + other)
 
     def __sub__(self, other):
         other = isinstance(other, self.__class__) and other or (0, other)
