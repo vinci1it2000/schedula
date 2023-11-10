@@ -32,6 +32,8 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
+      - name: Uninstall unwanted libs
+        run: pip uninstall flask-security
       - name: Install Test Dependencies
         run: pip install -r requirements/test.pip
       - if: matrix.extra == 'base'
