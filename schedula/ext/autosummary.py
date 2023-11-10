@@ -9,7 +9,6 @@
 """
 It is a patch to sphinx.ext.autosummary.
 """
-import os
 import warnings
 import logging
 import os.path as osp
