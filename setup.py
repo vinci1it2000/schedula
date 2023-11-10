@@ -93,10 +93,10 @@ if __name__ == '__main__':
         'flask-babel', 'flask-wtf', 'flask-principal', 'flask-security-too',
         'flask-mail'
     ]
-    extras['sphinx'] = ['sphinx>=7'] + extras['plot']
+    extras['sphinx'] = ['sphinx>=7.2'] + extras['plot']
     extras['all'] = sorted(functools.reduce(set.union, extras.values(), set()))
     extras['dev'] = extras['all'] + [
-        'wheel', 'sphinx>=7', 'gitchangelog', 'mako', 'sphinx_rtd_theme',
+        'wheel', 'sphinx>=7.2', 'gitchangelog', 'mako', 'sphinx_rtd_theme',
         'setuptools>=36.0.1', 'sphinxcontrib-restbuilder', 'coveralls',
         'requests', 'readthedocs-sphinx-ext', 'twine', 'ddt'
     ]
