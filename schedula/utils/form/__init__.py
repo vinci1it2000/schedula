@@ -9,12 +9,15 @@
 """
 It provides functions to build a form flask app from a dispatcher.
 """
+import io
 import os
+import gzip
 import glob
 import hmac
 import secrets
 import hashlib
 import datetime
+import mimetypes
 import webbrowser
 import os.path as osp
 from ..web import WebMap
@@ -24,8 +27,8 @@ from werkzeug.exceptions import NotFound
 from itsdangerous import URLSafeTimedSerializer, BadData
 from .server import Config, basic_app, default_get_form_context
 from flask import (
-    render_template, Blueprint, current_app, session, g, request,
-    send_from_directory, jsonify
+    render_template, Blueprint, current_app, session, g, request, send_file,
+    jsonify
 )
 
 __author__ = 'Vincenzo Arcidiacono <vinci1it2000@gmail.com>'
@@ -34,9 +37,12 @@ static_dir = osp.join(osp.dirname(__file__), 'static')
 
 static_context = {
     f'main_{k}': osp.relpath(glob.glob(osp.join(
-        static_dir, 'schedula', k, f'main.*.{k}'
+        static_dir, 'schedula', k, f'main.*.{k}.gz'
     ))[0], osp.join(static_dir, 'schedula')).replace('\\', '/')
     for k in ('js', 'css')
+}
+static_context = {
+    k: v[:-3] if v.endswith('.gz') else v for k, v in static_context.items()
 }
 
 
@@ -256,11 +262,32 @@ class FormMap(WebMap):
 
     @staticmethod
     def send_static_file(filename):
-        filename = f'schedula/{filename}'
-        try:
-            return current_app.send_static_file(filename)
-        except NotFound:
-            return send_from_directory(static_dir, filename)
+        filename = f'schedula/{filename}'.split('/')
+        download_name = filename[-1]
+        kw = {
+            'download_name': download_name,
+            'max_age': current_app.get_send_file_max_age(download_name)
+        }
+        gzipped = 'gzip' in request.headers.get('Accept-Encoding', '').lower()
+        for sdir in (current_app.static_folder, static_dir):
+            sdir = osp.join(sdir, *filename[:-1])
+            for ext in ('.gz', '')[::gzipped and 1 or -1]:
+                fn = f'{download_name}{ext}'
+                fp = osp.join(sdir, fn)
+                if osp.exists(fp):
+                    if gzipped != bool(ext):
+                        with open(fp, "rb") as f:
+                            func = gzipped and gzip.compress or gzip.decompress
+                            f = io.BytesIO(func(f.read()))
+                            fn = gzipped and f'{fn}.gz' or download_name
+                    else:
+                        f = open(fp, "rb")
+                    mimetype, encoding = mimetypes.guess_type(fn)
+                    response = send_file(f, **kw)
+                    response.content_type = mimetype
+                    response.content_encoding = encoding
+                    return response
+        raise NotFound
 
     def add2csrf_protected(self, app=None, item=None):
         if item:

@@ -17,8 +17,13 @@ echo "Moving files $f..."
 cp -r ./build/static/schedula/js ../static/schedula
 cp -r ./build/static/schedula/css ../static/schedula
 cp -r ./build/static/schedula/media ../static/schedula
-git add ../static/schedula/js/*.js --force
+
+find ../static/schedula/js/ -name "*.js" -exec gzip {} \;
+git add ../static/schedula/js/*.js.gz --force
 git add ../static/schedula/js/*.LICENSE.txt --force
-git add ../static/schedula/css/*.css --force
-git add ../static/schedula/media/* --force
+find ../static/schedula/css/ -name "*.css" -exec gzip {} \;
+git add ../static/schedula/css/*.css.gz --force
+find ../static/schedula/media/ -name "*" -exec gzip {} \;
+git add ../static/schedula/media/*.gz --force
+
 echo "Done $f!"
