@@ -2,6 +2,107 @@ Changelog
 =========
 
 
+v1.5.0 (2023-11-10)
+-------------------
+
+Feat
+~~~~
+- (react): Split bundle.
+
+- (react): Add pricing component.
+
+- (setup): Add python 3.11.
+
+- (form): Update static code.
+
+- (form): Compress all static files.
+
+- (form): Update default ui schema.
+
+- (react): Update dev requirements.
+
+- (react): Extend base ObjectField.
+
+- (react): Extend base form.
+
+- (form): Update static code.
+
+- (example): Add output table title.
+
+- (form): Remove unuseful log.
+
+- (example): Update length converter form example.
+
+- (form): Re-enable form tests.
+
+- (form): Update requirements.
+
+- (form): Update App component.
+
+- (form): Correct behaviour of `get_form_context`.
+
+- (form): Update App component.
+
+- (form): Add automatic column table name form schema.
+
+- (form): Add new requirements for server.
+
+- (form): Update state only when errors change.
+
+- (form)Simplify layout definition.
+
+- (drw): Add option to run site when plotting.
+
+- (drw): Add option to run site when plotting.
+
+- (form)Simplify layout definition.
+
+
+Fix
+~~~
+- (sphinx): Correct sphinx requirement `sphinx>=7.2`.
+
+- (setup): Update form requirements.
+
+- (test): Remove unwanted libs.
+
+- (sphinx): Correct sphinx requirement.
+
+- (core): Fix compatibility with python 3.8.
+
+- (react): Correct layout.
+
+- (react): Remove warning about `selectedKeys`.
+
+- (react): Define validator before rendering.
+
+- (react): Use `debounceValidate` instead `liveValidate`.
+
+- (react): Correct uiSchema and schemaUtils errors.
+
+- (react): Avoid the overwrite of rootSchema.
+
+- (react): Speed up validator definition.
+
+- (react): Correct `getFirstMatchingOption` parameters.
+
+- (react): Update `rjsf` to version 5.13.6.
+
+- (react): Remove unused import.
+
+- (form): Correct requirements.
+
+- (web): Correct blueprint_name.
+
+- (form): Remove dependency from `pkg_resources`.
+
+- (form): Correct filename for windows.
+
+- (ext): Update autosummary according to new Sphinx.
+
+- (web): Improve gzip encoding handler.
+
+
 v1.4.9 (2023-01-23)
 -------------------
 
