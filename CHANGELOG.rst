@@ -2,6 +2,18 @@ Changelog
 =========
 
 
+v1.5.1 (2023-11-11)
+-------------------
+
+Fix
+~~~
+- (doc): Correct docs errors.
+
+- (doc): Add missing API links.
+
+- (doc): Add readthedocs config file.
+
+
 v1.5.0 (2023-11-10)
 -------------------
 
