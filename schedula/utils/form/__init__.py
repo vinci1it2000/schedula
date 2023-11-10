@@ -8,6 +8,16 @@
 
 """
 It provides functions to build a form flask app from a dispatcher.
+
+Sub-Modules:
+
+.. currentmodule:: schedula.utils.form
+
+.. autosummary::
+    :nosignatures:
+    :toctree: form/
+
+    server
 """
 import io
 import os

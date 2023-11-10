@@ -7,7 +7,7 @@
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
 """
-It provides functions to build a form flask app from a dispatcher.
+It provides functions to send mails with Flask.
 """
 import os
 import rst2txt
