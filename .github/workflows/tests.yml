@@ -56,6 +56,6 @@ jobs:
 
       - name: Run Test
         run: coverage run --source=schedula -m unittest discover -s tests -p 'test_*.py'
-      - if: matrix.python-version == '3.10' && matrix.extra == 'all' && matrix.os == 'ubuntu-latest'
+      - if: matrix.python-version == '3.11' && matrix.extra == 'all' && matrix.os == 'ubuntu-latest'
         name: Run Coveralls
         run: coveralls --service=github
