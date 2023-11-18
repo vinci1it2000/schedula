@@ -61,10 +61,11 @@ const {Header, Content, Footer, Sider} = Layout,
                items = [],
                defaultSelectedKeys = ["0"],
                urlContact,
-               languages,
+               languages = true,
                logo,
                userProps,
                cloudUrl,
+               hideNav = false,
                hideRun = false,
                hideDebug = false,
                hideClean = false,
@@ -140,8 +141,24 @@ const {Header, Content, Footer, Sider} = Layout,
         }, [logged, currentDataId])
         if (typeof footer === 'number')
             footer = children[footer]
+        const [languageOptions, setLanguageOptions] = useState(languages !== true ? languages : null);
+        useEffect(() => {
+            if (languages === true)
+                fetch('/locales', {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Content-Encoding': 'gzip',
+                        'Accept-Encoding': 'gzip'
+                    }
+                }).then(v => v.json()).then((v) => {
+                    setLanguageOptions(v)
+                }).catch((error) => {
+                    setLanguageOptions(null)
+                    form.props.notify({message: error})
+                })
+        }, [languages]);
         return <Layout style={{height: '100%'}}>
-            {currentDataId || urlContact || languages || userProps || _items.length || logo ?
+            {!hideNav || currentDataId || urlContact || languages || userProps || _items.length || logo ?
                 <Header
                     className={`ant-menu-${theme}`}
                     style={{
@@ -187,9 +204,9 @@ const {Header, Content, Footer, Sider} = Layout,
                                     form={form}
                                     formContext={formContext}
                                     urlContact={urlContact}/> : null}
-                                {languages ? <LanguageNav
+                                {languageOptions ? <LanguageNav
                                     form={form}
-                                    languages={languages}/> : null}
+                                    languages={languageOptions}/> : null}
                                 {userProps ?
                                     <UserNav
                                         form={form} {...userProps}/> : null}

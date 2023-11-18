@@ -16,7 +16,8 @@
   "ui:layout": {
     "component": "App",
     "props": {
-      "theme": "light"
+      "theme": "dark",
+      "languages": false
     },
     "children": [
       {

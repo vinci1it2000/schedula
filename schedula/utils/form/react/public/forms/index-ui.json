@@ -18,18 +18,16 @@
     "props": {
       "theme": "dark",
       "urlContact": "user/contact",
-      "languages": [
-        {
-          "key": "en_US",
+      "languages": {
+        "en_US": {
           "icon": "🇺🇸",
           "label": "English"
         },
-        {
-          "key": "it_IT",
+        "it_IT": {
           "icon": "🇮🇹",
           "label": "Italiano"
         }
-      ],
+      },
       "logo": {
         "component": "Element",
         "props": {
@@ -244,10 +242,20 @@
                 ]
               },
               {
-                "path": "input/kwargs/inputs/plot",
-                "uiSchema": {
-                  "ui:field": "PlotlyField"
-                }
+                "component": "div",
+                "props": {
+                  "style": {
+                    "height": "400px"
+                  }
+                },
+                "children": [
+                  {
+                    "path": "input/kwargs/inputs/plot",
+                    "uiSchema": {
+                      "ui:field": "PlotlyField"
+                    }
+                  }
+                ]
               },
               {
                 "path": "input/kwargs/inputs",

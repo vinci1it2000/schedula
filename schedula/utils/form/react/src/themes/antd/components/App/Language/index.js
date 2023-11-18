@@ -4,21 +4,23 @@ import {Dropdown} from 'antd';
 
 const LanguageNav = ({form, languages}) => {
     const {changeLocale, locale} = useLocaleStore()
+    const language = form.state.language
     useEffect(() => {
-        if (locale.language !== form.state.language)
-            changeLocale(form.state.language)
-    })
+        if (locale.language !== language)
+            changeLocale(form, language)
+    }, [language])
     return <Dropdown
         key={'language-menu'}
         menu={{
             selectedKeys: [form.state.language],
             onClick: ({key}) => {
-                form.updateLanguage(key)
-                changeLocale(key)
+                form.updateLanguage(key, () => {
+                    changeLocale(form, key)
+                })
             },
-            items: languages
+            items: Object.entries(languages).map(([key, item]) => Object.assign({key}, item))
         }}>
-        <div>{languages.filter(({key}) => key === form.state.language)[0].icon}</div>
+        <div>{languages[form.state.language].icon}</div>
     </Dropdown>
 }
 export default LanguageNav;

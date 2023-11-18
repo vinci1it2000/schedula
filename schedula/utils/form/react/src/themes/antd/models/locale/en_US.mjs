@@ -1,7 +1,7 @@
-import en_US from 'antd/locale/en_US';
-
-export const locale = {
-    ...en_US,
+import en_US from 'antd/locale/en_US.js';
+import merge from "lodash/merge.js";
+const en = en_US.default
+export const locale = merge({}, en, {
     App: {
         runButton: "Run",
         debugButton: "Debug",
@@ -198,16 +198,16 @@ export const locale = {
         titleModal: 'Errors'
     },
     PDFField: {
-        ...en_US.Upload, ...en_US.Image,
+        ...en.Upload, ...en.Image,
         titleSectionSelection: 'Sections'
     },
     ArrayAccordion: {
-        ...en_US.global,
+        ...en.global,
         tooltipExtra: "Copy data over",
         titleCopyButton: 'Please select where to copy data?'
     },
     ArrayCopy: {
-        ...en_US.global,
+        ...en.global,
         tooltip: "Copy data over",
         titleCopyButton: 'Please select where to copy data?'
     },
@@ -227,6 +227,20 @@ export const locale = {
         delete: 'delete',
         select: 'select',
         selectItem: 'Select item'
+    },
+    Calendar: {
+        lang: {
+            shortMonths: null,
+            shortWeekDays: null,
+            monthFormat: null,
+        }
+    },
+    DatePicker: {
+        lang: {
+            shortMonths: null,
+            shortWeekDays: null,
+            monthFormat: null,
+        }
     }
-}
+})
 export default locale

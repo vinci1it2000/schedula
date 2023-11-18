@@ -8,17 +8,6 @@
 
 """
 It provides functions to build the base form flask app.
-
-Sub-Modules:
-
-.. currentmodule:: schedula.utils.form.server
-
-.. autosummary::
-    :nosignatures:
-    :toctree: server/
-
-    config
-    mail
 """
 
 import datetime
@@ -202,11 +191,17 @@ def basic_app(sitemap, app):
                 pass
         raise NotFound()
 
+    @app.route('/locales', methods=['GET'])
+    def get_locales():
+        return jsonify(current_app.config.get('BABEL_LANGUAGES'))
+
     @app.route(f'{app.config["SECURITY_URL_PREFIX"]}/edit', methods=['POST'])
     @auth_required()
     def edit():
-        data = MultiDict(
-            request.get_json()) if request.is_json else request.form
+        if request.is_json:
+            data = MultiDict(request.get_json())
+        else:
+            data = request.form
         form = EditForm(data, meta=suppress_form_csrf())
         form.user = cu
         if form.validate_on_submit():
@@ -250,9 +245,14 @@ def basic_app(sitemap, app):
         return base_render_json(form)
 
     def get_locale():
-        from flask import request
-        return request.accept_languages.best_match(['it_IT', 'en_US'])
+        from flask import request, session, current_app
+        locale = session.get('locale')
+        if not locale:
+            session['locale'] = locale = request.accept_languages.best_match(
+                current_app.config.get('BABEL_LANGUAGES')
+            )
+        return locale
 
-    Babel(app, default_locale='en', locale_selector=get_locale)
+    Babel(app, locale_selector=get_locale)
     mail = Mail(app)
     return app

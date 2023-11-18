@@ -1,7 +1,7 @@
-import it_IT from 'antd/locale/it_IT';
-
+import it_IT from 'antd/locale/it_IT.js';
+const it = it_IT.default
 export const locale = {
-    ...it_IT,
+    ...it,
     App: {
         runButton: "Esegui",
         debugButton: "Debug",
@@ -24,8 +24,8 @@ export const locale = {
         autoSavingButton: "AutoSaving",
         autoSavingTooltip: "Disabilita salvataggio automatico",
         autoSaveButton: "AutoSave",
-        autoSavingErrorTitle: 'Ops... disattivando il salvataggio automatico',
         autoSaveTooltip: "Abilita salvataggio automatico",
+        autoSavingErrorTitle: 'Ops... disattivando il salvataggio automatico',
         restoreButton: "Ripristina",
         restoreTooltip: "Ripristina i dati",
         restoreModalTitle: "Ripristina i dati",
@@ -36,6 +36,21 @@ export const locale = {
         restoreConfirm: "Sicuro di ripristinare i dati?",
         restoreDifferences: "Mostra le differenze rispetto ai dati correnti",
         restoreTitleDifferences: "Differenze"
+    },
+    Contact: {
+        buttonTooltip: "Contatti",
+        title: "Contattaci",
+        submitButton: "Invia",
+        namePlaceholder: "Tuo Nome",
+        nameRequired: "Please input your Name!",
+        emailPlaceholder: "Email",
+        emailRequired: "Inserisci la tua mail!",
+        emailInvalid: "Mail invalida!",
+        subjectPlaceholder: "Oggetto della mail",
+        subjectRequired: "Inserisci l'Oggetto della mail!",
+        messagePlaceholder: "Il tuo messaggio",
+        messageRequired: "Inserisci il tuo messaggio!",
+        errorTitle: 'Ops... qualcosa è andata storta!'
     },
     User: {
         buttonTooltip: "Accedi",
@@ -49,7 +64,7 @@ export const locale = {
         titleResetPassword: "Resetta la password",
         loginTooltip: 'Accedi',
         infoButton: 'Profilo',
-        settingsButton: 'Impostazioni',
+        settingButton: 'Impostazioni',
         logoutButton: 'Uscire'
     },
     "User.Login": {
@@ -118,14 +133,48 @@ export const locale = {
         passwordConfirmError: 'Le due password che hai inserito non corrispondono!',
         errorTitle: 'Ops... qualcosa è andata storta!'
     },
-    "User.Settings": {
+    "User.Setting": {
         errorTitle: 'Ops... qualcosa è andata storta!',
-        saveButton: 'Salva',
+        submitButton: 'Salva',
         revertButton: 'Ripristina',
         firstnamePlaceholder: "Nome",
         firstnameRequired: "Inserisci il tuo Nome!",
         lastnamePlaceholder: "Cognome",
         lastnameRequired: "Inserisci il tuo Cognome!",
+    },
+    CloudDownloadField: {
+        errorTitle: 'Ops... qualcosa è andata storta!',
+        fieldErrors: {name: 'Inserisci il nome!'},
+        dataSwitchChecked: "corrente",
+        dataSwitchUnChecked: "server",
+        titleName: "Nome",
+        titleData: "Sorgente Dati",
+        buttonDownload: "Server",
+        buttonOverwrite: "Sovrascrivi",
+        createdAt: "Creato",
+        updatedAt: "Aggiornato",
+        confirmDelete: "Sicuro di eliminare?",
+        buttonSaveNew: 'Nuovo record',
+        buttonSave: "Salva",
+        buttonCancel: "Cancella",
+        titleSaveNew: "Salva i dati correnti"
+    },
+    CloudUploadField: {
+        errorTitle: 'Ops... qualcosa è andata storta!',
+        fieldErrors: {name: 'Inserisci il nome!'},
+        dataSwitchChecked: "corrente",
+        dataSwitchUnChecked: "server",
+        titleName: "Nome",
+        titleData: "Sorgente Dati",
+        buttonDownload: "Server",
+        buttonOverwrite: "Sovrascrivi",
+        createdAt: "Creato",
+        updatedAt: "Aggiornato",
+        confirmDelete: "Sicuro di eliminare?",
+        buttonSaveNew: 'Nuovo record',
+        buttonSave: "Salva",
+        buttonCancel: "Cancella",
+        titleSaveNew: "Salva i dati correnti"
     },
     FileWidget: {
         errorNotUploaded: 'Ops... file non caricato',
@@ -149,12 +198,17 @@ export const locale = {
         titleModal: 'Errori'
     },
     PDFField: {
-        ...it_IT.Upload, ...it_IT.Image,
+        ...it.Upload, ...it.Image,
         titleSectionSelection: 'Sezioni di stampa'
     },
     ArrayAccordion: {
-        ...it_IT.global,
+        ...it.global,
         tooltipExtra: "Copia dati",
+        titleCopyButton: 'Seleziona dove copiare i dati?'
+    },
+    ArrayCopy: {
+        ...it.global,
+        tooltip: "Copia dati",
         titleCopyButton: 'Seleziona dove copiare i dati?'
     },
     TableField: {

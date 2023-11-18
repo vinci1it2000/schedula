@@ -4,6 +4,7 @@ import po2i18next from 'gettext-converter/po2i18next'
 
 i18n.use(Backend).init({
     fallbackLng: 'en_US',
+    lng: document.documentElement.lang,
     ns: 'messages',
     defaultNS: 'messages',
     parseMissingKeyHandler: (key) => (

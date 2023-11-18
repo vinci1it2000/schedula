@@ -28,6 +28,7 @@
                   "items": {
                     "$ref": "#/definitions/unit"
                   },
+                  "minItems": 1,
                   "uniqueItems": true
                 }
               },

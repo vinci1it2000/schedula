@@ -21,15 +21,19 @@ import isString from "lodash/isString";
 import toPathSchema from './toPathSchema'
 import BaseForm from "@rjsf/core"
 
-function translateJSON(t, data) {
+function translateJSON(t, data, options) {
     if (isString(data)) {
-        return t(data)
+        let newData = t(data, options)
+        if (newData.startsWith('§')) {
+            newData = eval(newData.slice(1))
+        }
+        return newData
     } else if (Array.isArray(data)) {
-        return data.map(v => translateJSON(t, v))
+        return data.map(v => translateJSON(t, v, options))
     } else if (isObject(data)) {
         let newData = {}
         Object.entries(data).forEach(([k, v]) => {
-            newData[k] = translateJSON(t, v)
+            newData[k] = translateJSON(t, v, options)
         })
         return newData
     } else {
@@ -56,8 +60,8 @@ export default class Form extends BaseForm {
         return new Function('form', "return " + func)(this)
     }
 
-    t(object, t) {
-        return translateJSON(t || i18n.t, object)
+    t(object, options, t) {
+        return translateJSON(t || i18n.t, object, options)
     }
 
     n(number, options) {
@@ -80,37 +84,31 @@ export default class Form extends BaseForm {
         return new Intl.DateTimeFormat(this.state.language.replace('_', '-'), options).format(date);
     }
 
-    updateLanguage(language) {
+    updateLanguage(language, callback) {
         this.setState({
             ...this.state,
             loading: true
         }, () => {
             i18n.changeLanguage(language, (err, t) => {
-                if (err) {
-                    this.setState({
-                        ...this.state,
-                        loading: false
-                    }, () => {
-                        this.props.notify({
-                            message: err
-                        })
-                    })
-                } else {
-                    const validator = defineValidator(language)
-                    const schema = this.t(this.state.rootSchema)
-                    const uiSchema = this.t(this.state.rootUiSchema)
-                    const experimental_defaultFormStateBehavior = this.props.experimental_defaultFormStateBehavior
-                    this.setState({
-                        ...this.state,
-                        loading: false,
-                        language,
-                        schema,
-                        uiSchema,
-                        schemaUtils: customCreateSchemaUtils(validator, schema, experimental_defaultFormStateBehavior)
-                    }, () => {
-                        this.validateForm()
-                    })
-                }
+                console.log(err)
+                const validator = defineValidator(language)
+                const schema = this.t(this.state.rootSchema)
+                const uiSchema = this.t(this.state.rootUiSchema)
+                const experimental_defaultFormStateBehavior = this.props.experimental_defaultFormStateBehavior
+                this.setState({
+                    ...this.state,
+                    loading: false,
+                    language,
+                    schema,
+                    uiSchema,
+                    schemaUtils: customCreateSchemaUtils(validator, schema, experimental_defaultFormStateBehavior)
+                }, () => {
+                    if (callback) {
+                        callback(this)
+                    }
+                    this.validateForm()
+                })
+
             })
         })
     }
@@ -280,12 +278,13 @@ export default class Form extends BaseForm {
             const errorSchema = extraErrors
                 ? mergeObjects(newErrorSchema, extraErrors, "preventDuplicates")
                 : newErrorSchema
-            state = {
-                ...state,
-                formData: newFormData,
-                errorSchema: errorSchema,
-                errors: toErrorList(errorSchema)
+
+            const {errors: prevErrors} = this.state
+            const errors = toErrorList(errorSchema)
+            if (isEqual(prevErrors, errors)) {
+                state = {...state, errorSchema, errors}
             }
+
         }
         const runnable = this.state.runnable || !deepEquals(this.state.formData, state.formData)
         state = {

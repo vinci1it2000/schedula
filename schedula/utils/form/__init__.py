@@ -17,6 +17,8 @@ Sub-Modules:
     :nosignatures:
     :toctree: form/
 
+    config
+    mail
     server
 """
 import io
@@ -40,6 +42,7 @@ from flask import (
     render_template, Blueprint, current_app, session, g, request, send_file,
     jsonify
 )
+from flask_babel import get_locale
 
 __author__ = 'Vincenzo Arcidiacono <vinci1it2000@gmail.com>'
 
@@ -154,7 +157,8 @@ class FormMap(WebMap):
     def render_form(self, form='index'):
         template = f'schedula/{form}.html'
         context = {
-            'name': form, 'form_id': form, 'form': self, 'app': current_app
+            'name': form, 'form_id': form, 'form': self, 'app': current_app,
+            'get_locale': get_locale
         }
         context.update(static_context)
         try:

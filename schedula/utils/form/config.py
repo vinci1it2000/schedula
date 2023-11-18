@@ -77,20 +77,27 @@ class Config:
     MAIL_USERNAME = os.environ.get('MAIL_USER', 'info@prosaweb.it')
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD', 'prosaweb@123')
 
-    SECURITY_I18N_DIRNAME = []
+    SECURITY_I18N_DIRNAME = [
+        "translations",
+        os.environ.get('SECURITY_I18N_DIRNAME', 'translations'),
+        osp.join(osp.dirname(osp.dirname(__file__)), 'translations')
+    ]
     if flask_security is not None:
         SECURITY_I18N_DIRNAME.append(osp.join(
             osp.dirname(inspect.getfile(flask_security)), 'translations'
         ))
-    SECURITY_I18N_DIRNAME.extend((
-        os.environ.get('SECURITY_I18N_DIRNAME', 'translations'),
-        "translations"
-    ))
 
     SCHEDULA_I18N_DIRNAME = [
+        "translations",
         os.environ.get('SCHEDULA_I18N_DIRNAME', 'translations'),
-        "translations"
+        osp.join(osp.dirname(__file__), 'translations'),
     ]
+
+    BABEL_DEFAULT_LOCALE = 'en_US'
+    BABEL_LANGUAGES = {
+        'en_US': {"icon": "🇺🇸", "label": "English"},
+        'it_IT': {"icon": "🇮🇹", "label": "Italiano"}
+    }
 
     # have session and remember cookie be samesite (flask/flask_login)
     REMEMBER_COOKIE_SAMESITE = "strict"
