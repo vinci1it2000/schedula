@@ -5,6 +5,8 @@ wheel
 gitchangelog
 mako
 twine
+polib
+translators
 sphinx_rtd_theme
 readthedocs-sphinx-ext
 setuptools>=36.0.1

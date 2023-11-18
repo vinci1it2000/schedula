@@ -1,0 +1,1342 @@
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: 1.0\n"
+"Report-Msgid-Bugs-To: vinci1it2000@gmail.com\n"
+"PO-Revision-Date: 2023-11-18 08:55+0000\n"
+"Last-Translator: Vincenzo Arcidiacono <vinci1it2000@gmail.com>\n"
+"Language-Team: English <vinci1it2000@gmail.com>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+# traslated
+msgid "Contact.errorTitle"
+msgstr "Ops... Bir şeyler ters gitti!"
+
+# traslated
+msgid "ColorPicker.presetEmpty"
+msgstr "Boş"
+
+msgid "Table.filterReset"
+msgstr "Sıfırla"
+
+# traslated
+msgid "User.Register.login"
+msgstr "Oturum açma!"
+
+# traslated
+msgid "TableField.addItemTooltip"
+msgstr "Öğe ekle"
+
+# traslated
+msgid "CloudUploadField.buttonDownload"
+msgstr "Sunucu"
+
+# traslated
+msgid "User.Logout.submitButton"
+msgstr "Oturum kapatma"
+
+msgid "Calendar.lang.dateFormat"
+msgstr "M/D/YYYY"
+
+msgid "Calendar.lang.dateSelect"
+msgstr "Tarih Seç"
+
+# traslated
+msgid "User.Confirm.errorTitle"
+msgstr "Ops... Bir şeyler ters gitti!"
+
+# traslated
+msgid "TabsField.moveup"
+msgstr "Yukarı taşı"
+
+msgid "Modal.justOkText"
+msgstr "Tamam"
+
+# traslated
+msgid "PDFField.titleSectionSelection"
+msgstr "Bölüm"
+
+msgid "Calendar.lang.previousCentury"
+msgstr "Önceki Yüzyıl"
+
+# traslated
+msgid "User.ResetPassword.passwordPlaceholder"
+msgstr "Yeni Şifre"
+
+# traslated
+msgid "User.loginTooltip"
+msgstr "Oturum açma"
+
+msgid "Form.defaultValidateMessages.whitespace"
+msgstr "${label} sadece boşluk olamaz"
+
+msgid "Pagination.prev_page"
+msgstr "Önceki Sayfa"
+
+# traslated
+msgid "QRCode.expired"
+msgstr "QR kodunun süresi doldu"
+
+# traslated
+msgid "FileWidget.errorNotUploaded"
+msgstr "Ops... Dosya yüklenmedi"
+
+msgid "Form.defaultValidateMessages.string.max"
+msgstr "${label} en çok ${max} karakter olmalı"
+
+# traslated
+msgid "User.Confirm.submitButton"
+msgstr "Talimatları gönder"
+
+msgid "Form.defaultValidateMessages.types.hex"
+msgstr "${label} geçerli bir ${type} değil"
+
+# traslated
+msgid "Contact.submitButton"
+msgstr "Gönder"
+
+msgid "Table.expand"
+msgstr "Satırı genişlet"
+
+# traslated
+msgid "App.restoreDifferences"
+msgstr "Mevcut verilerden farklılıkları göster"
+
+msgid "Pagination.jump_to_confirm"
+msgstr "onayla"
+
+# traslated
+msgid "User.ResetPassword.submitButton"
+msgstr "Şifre Sıfırlama"
+
+msgid "Transfer.itemUnit"
+msgstr "Öğe"
+
+msgid "global.placeholder"
+msgstr "Lütfen seçiniz"
+
+msgid "DatePicker.lang.rangeMonthPlaceholder"
+msgstr "§[\"Başlangıç ayı\",\"Bitiş ayı\"]"
+
+# traslated
+msgid "User.titleResetPassword"
+msgstr "Şifre sıfırlama"
+
+# traslated
+msgid "Contact.emailPlaceholder"
+msgstr "E-posta"
+
+msgid "Table.triggerAsc"
+msgstr "Artan düzende sırala"
+
+# traslated
+msgid "User.Register.usernameRequired"
+msgstr "Lütfen Kullanıcı Adınızı giriniz!"
+
+# traslated
+msgid "User.titleLogout"
+msgstr "Oturumu kapattığınızdan emin misiniz?"
+
+# traslated
+msgid "ArrayCopy.titleCopyButton"
+msgstr "Lütfen verilerin nereye kopyalanacağını seçin."
+
+msgid "Popconfirm.cancelText"
+msgstr "İptal"
+
+# traslated
+msgid "User.titleConfirm"
+msgstr "Onay e-postası gönder"
+
+msgid "Form.defaultValidateMessages.array.range"
+msgstr "${label} sayısı ${min}-${max} arası olmalı"
+
+# traslated
+msgid "User.ResetPassword.login"
+msgstr "Oturum açma!"
+
+# traslated
+msgid "Calendar.lang.rangeQuarterPlaceholder"
+msgstr "§[\"Çeyreği başlat\",\"Çeyrek sonu\"]"
+
+# traslated
+msgid "PDFField.previewFile"
+msgstr "Önizleme dosyası"
+
+# traslated
+msgid "Contact.subjectPlaceholder"
+msgstr "Posta Konusu"
+
+# traslated
+msgid "User.titleInfo"
+msgstr "Kullanıcı bilgileri"
+
+# traslated
+msgid "App.cloudDownloadButton"
+msgstr "Ithalat"
+
+msgid "Form.defaultValidateMessages.types.float"
+msgstr "${label} geçerli bir ${type} değil"
+
+# traslated
+msgid "App.runButton"
+msgstr "Koşmak"
+
+# traslated
+msgid "User.Register.emailInvalid"
+msgstr "Geçersiz E-posta!"
+
+msgid "Modal.cancelText"
+msgstr "İptal"
+
+msgid "DatePicker.lang.nextCentury"
+msgstr "Sonraki Yüzyıl"
+
+msgid "Upload.removeFile"
+msgstr "Dosyayı kaldır"
+
+# traslated
+msgid "FileWidget.errorToolTip"
+msgstr "Yükleme Hatası"
+
+# traslated
+msgid "TableField.deleteAllConfirm"
+msgstr "Tüm içeriği sildiğinizden emin misiniz?"
+
+msgid "Form.defaultValidateMessages.number.range"
+msgstr "${label} ${min}-${max} arası olmalı"
+
+msgid "Form.defaultValidateMessages.date.format"
+msgstr "${label} tarih biçimi geçersiz"
+
+msgid "Form.defaultValidateMessages.types.string"
+msgstr "${label} geçerli bir ${type} değil"
+
+msgid "Transfer.selectInvert"
+msgstr "Tersini seç"
+
+# traslated
+msgid "ErrorListTemplate.tooltipFloatButton"
+msgstr "Açık Hata Mesajları"
+
+msgid "DatePicker.lang.dateSelect"
+msgstr "Tarih Seç"
+
+# traslated
+msgid "Table.emptyText"
+msgstr "Veri yok"
+
+msgid "DatePicker.lang.backToToday"
+msgstr "Bugüne Geri Dön"
+
+msgid "DatePicker.lang.dayFormat"
+msgstr "D"
+
+# traslated
+msgid "User.Forgot.emailInvalid"
+msgstr "Geçersiz E-posta!"
+
+# default
+msgid "DatePicker.lang.shortMonths"
+msgstr "§undefined"
+
+# traslated
+msgid "User.ResetPassword.passwordRequired"
+msgstr "Lütfen Yeni Şifrenizi giriniz!"
+
+# traslated
+msgid "User.Register.lastnamePlaceholder"
+msgstr "Soyadı"
+
+# traslated
+msgid "CloudUploadField.titleName"
+msgstr "Ad"
+
+# traslated
+msgid "Contact.title"
+msgstr "Bize ulaşın"
+
+msgid "Calendar.lang.nextCentury"
+msgstr "Sonraki Yüzyıl"
+
+msgid "Form.defaultValidateMessages.string.min"
+msgstr "${label} en az ${min} karakter olmalı"
+
+msgid "Modal.okText"
+msgstr "Tamam"
+
+# traslated
+msgid "User.Register.emailRequired"
+msgstr "Lütfen E-postanızı girin!"
+
+msgid "Table.collapse"
+msgstr "Satırı daralt"
+
+msgid "Pagination.prev_5"
+msgstr "Önceki 5 Sayfa"
+
+# traslated
+msgid "ArrayAccordion.titleCopyButton"
+msgstr "Lütfen verilerin nereye kopyalanacağını seçin."
+
+msgid "Calendar.lang.previousMonth"
+msgstr "Önceki Ay (PageUp)"
+
+msgid "Transfer.removeCurrent"
+msgstr "Sayfayı kaldır"
+
+msgid "Form.defaultValidateMessages.array.max"
+msgstr "${label} sayısı en çok ${max} olmalı"
+
+# traslated
+msgid "App.cloudUploadTooltip"
+msgstr "Verileri Bulut'a kaydedin"
+
+# traslated
+msgid "CloudDownloadField.buttonCancel"
+msgstr "İptal"
+
+# traslated
+msgid "Contact.emailRequired"
+msgstr "Lütfen E-postanızı girin!"
+
+msgid "Calendar.lang.monthBeforeYear"
+msgstr "§true"
+
+# traslated
+msgid "User.Confirm.emailInvalid"
+msgstr "Geçersiz E-posta!"
+
+# traslated
+msgid "User.ResetPassword.passwordConfirmError"
+msgstr "Girdiğiniz iki şifre eşleşmiyor!"
+
+# traslated
+msgid "CloudUploadField.titleSaveNew"
+msgstr "Mevcut verileri kaydet"
+
+# traslated
+msgid "User.Register.lastnameRequired"
+msgstr "Lütfen Soyadınızı giriniz!"
+
+# traslated
+msgid "User.settingButton"
+msgstr "Ayarlar"
+
+msgid "Pagination.next_3"
+msgstr "Sonraki 3 Sayfa"
+
+msgid "Transfer.remove"
+msgstr "Kaldır"
+
+msgid "DatePicker.lang.yearFormat"
+msgstr "YYYY"
+
+# traslated
+msgid "User.Login.passwordPlaceholder"
+msgstr "Parola"
+
+msgid "DatePicker.lang.placeholder"
+msgstr "Tarih seç"
+
+# traslated
+msgid "User.titleForgot"
+msgstr "Şifreyi kurtar"
+
+msgid "Calendar.lang.quarterPlaceholder"
+msgstr "Çeyrek seç"
+
+msgid "DatePicker.lang.previousCentury"
+msgstr "Önceki Yüzyıl"
+
+# traslated
+msgid "App.restoreButton"
+msgstr "Geri yüklemek"
+
+# default
+msgid "DatePicker.lang.shortWeekDays"
+msgstr "§undefined"
+
+# traslated
+msgid "User.logoutButton"
+msgstr "Oturum kapatma"
+
+# traslated
+msgid "User.buttonTooltip"
+msgstr "Oturum açma"
+
+msgid "DatePicker.lang.rangeYearPlaceholder"
+msgstr "§[\"Başlangıç yılı\",\"Bitiş yılı\"]"
+
+msgid "Pagination.page_size"
+msgstr "sayfa boyutu"
+
+# traslated
+msgid "Calendar.lang.weekSelect"
+msgstr "Bir hafta seçin"
+
+msgid "Form.defaultValidateMessages.date.invalid"
+msgstr "${label} geçersiz bir tarih"
+
+# traslated
+msgid "App.restoreCloseButton"
+msgstr "Kapatmak"
+
+# traslated
+msgid "User.Forgot.submitButton"
+msgstr "Şifreyi Kurtar"
+
+msgid "Transfer.selectCurrent"
+msgstr "Tüm sayfayı seç"
+
+# traslated
+msgid "User.Register.usernamePlaceholder"
+msgstr "Kullanıcı adı"
+
+# traslated
+msgid "App.filesButton"
+msgstr "Dosyaları"
+
+# traslated
+msgid "TabsField.moveright"
+msgstr "Sağa hareket et"
+
+# traslated
+msgid "DatePicker.lang.weekSelect"
+msgstr "Bir hafta seçin"
+
+msgid "Calendar.lang.rangeMonthPlaceholder"
+msgstr "§[\"Başlangıç ayı\",\"Bitiş ayı\"]"
+
+msgid "Table.filterTitle"
+msgstr "Filtre menüsü"
+
+# traslated
+msgid "App.restoreTooltip"
+msgstr "Verileri geri yükle"
+
+msgid "Upload.downloadFile"
+msgstr "Dosyayı indir"
+
+msgid "Calendar.lang.yearSelect"
+msgstr "Yıl Seç"
+
+msgid "Text.copy"
+msgstr "Kopyala"
+
+# traslated
+msgid "User.ResetPassword.errorTitle"
+msgstr "Ops... Bir şeyler ters gitti!"
+
+# traslated
+msgid "Tour.Finish"
+msgstr "Bitirmek"
+
+msgid "Form.defaultValidateMessages.number.len"
+msgstr "${label} ${len} olmalı"
+
+# traslated
+msgid "CloudDownloadField.titleSaveNew"
+msgstr "Mevcut verileri kaydet"
+
+# traslated
+msgid "CloudUploadField.confirmDelete"
+msgstr "Sildiğinizden emin misiniz?"
+
+# traslated
+msgid "PDFField.uploading"
+msgstr "Yükleme..."
+
+msgid "Transfer.removeAll"
+msgstr "Tümünü kaldır"
+
+msgid "Calendar.timePickerLocale.rangePlaceholder"
+msgstr "§[\"Başlangıç zamanı\",\"Bitiş zamanı\"]"
+
+# traslated
+msgid "User.Forgot.errorTitle"
+msgstr "Ops... Bir şeyler ters gitti!"
+
+msgid "Table.filterEmptyText"
+msgstr "Filtre yok"
+
+# traslated
+msgid "PDFField.removeFile"
+msgstr "Dosyayı kaldır"
+
+# traslated
+msgid "User.Login.sendConfirmMail"
+msgstr "Onay e-postasını tekrar gönder"
+
+msgid "Pagination.next_5"
+msgstr "Sonraki 5 Sayfa"
+
+# traslated
+msgid "ErrorListTemplate.descriptionFloatButton"
+msgstr "YANILMAK"
+
+# traslated
+msgid "PDFField.preview"
+msgstr "Önizleme"
+
+msgid "Form.defaultValidateMessages.enum"
+msgstr "${label} şunlardan biri olmalı: [${enum}]"
+
+# traslated
+msgid "Contact.nameRequired"
+msgstr "Lütfen Adınızı giriniz!"
+
+# traslated
+msgid "ErrorListTemplate.titleModal"
+msgstr "Hata"
+
+msgid "Form.defaultValidateMessages.number.min"
+msgstr "${label} en az ${min} olmalı"
+
+# traslated
+msgid "User.Register.firstnamePlaceholder"
+msgstr "Ad"
+
+msgid "Calendar.lang.dayFormat"
+msgstr "D"
+
+msgid "DatePicker.lang.yearSelect"
+msgstr "Yıl Seç"
+
+# traslated
+msgid "User.Register.submitButton"
+msgstr "Kaydolmak"
+
+msgid "Calendar.lang.backToToday"
+msgstr "Bugüne Geri Dön"
+
+# traslated
+msgid "User.Login.rememberMe"
+msgstr "Beni hatırla"
+
+# traslated
+msgid "CloudDownloadField.buttonDownload"
+msgstr "Sunucu"
+
+# traslated
+msgid "ArrayAccordion.tooltipExtra"
+msgstr "Verileri kopyalama"
+
+msgid "Calendar.timePickerLocale.placeholder"
+msgstr "Zaman seç"
+
+msgid "Calendar.lang.year"
+msgstr "Yıl"
+
+# traslated
+msgid "User.Register.passwordConfirmRequired"
+msgstr "Lütfen Şifrenizi onaylayın!"
+
+# traslated
+msgid "App.disableFullscreen"
+msgstr "Tam Ekranı Devre Dışı Bırak"
+
+# traslated
+msgid "CloudDownloadField.createdAt"
+msgstr "Oluşturulan"
+
+# traslated
+msgid "App.downloadTooltip"
+msgstr "Verileri JSON olarak dışarı aktarma"
+
+# traslated
+msgid "App.autoSaveTooltip"
+msgstr "Otomatik Kaydetmeyi Etkinleştir"
+
+msgid "DatePicker.lang.today"
+msgstr "Bugün"
+
+# traslated
+msgid "Tour.Previous"
+msgstr "Önceki"
+
+msgid "Pagination.jump_to"
+msgstr "Git"
+
+# traslated
+msgid "User.ResetPassword.or"
+msgstr "Veya"
+
+# traslated
+msgid "User.Register.passwordPlaceholder"
+msgstr "Parola"
+
+msgid "Table.selectAll"
+msgstr "Tüm sayfayı seç"
+
+# traslated
+msgid "CloudUploadField.buttonOverwrite"
+msgstr "Üzerine"
+
+# traslated
+msgid "CloudDownloadField.updatedAt"
+msgstr "Güncel -leştirilmiş"
+
+# traslated
+msgid "User.Login.or"
+msgstr "Veya"
+
+# traslated
+msgid "DebugTemplate.titleModal"
+msgstr "Hata Ayıklama İş Akışı"
+
+msgid "Calendar.lang.rangePlaceholder"
+msgstr "§[\"Başlangıç tarihi\",\"Bitiş tarihi\"]"
+
+msgid "Text.edit"
+msgstr "Düzenle"
+
+msgid "DatePicker.lang.previousMonth"
+msgstr "Önceki Ay (PageUp)"
+
+# traslated
+msgid "App.autoSaveButton"
+msgstr "Otomatik Kaydet"
+
+# traslated
+msgid "CloudDownloadField.buttonOverwrite"
+msgstr "Üzerine"
+
+# traslated
+msgid "FileWidget.errorOnlyOneItem"
+msgstr "En fazla bir dosya yükleyebilirsiniz!"
+
+msgid "Pagination.prev_3"
+msgstr "Önceki 3 Sayfa"
+
+# traslated
+msgid "User.Login.emailRequired"
+msgstr "Lütfen E-postanızı girin!"
+
+# traslated
+msgid "CloudDownloadField.confirmDelete"
+msgstr "Sildiğinizden emin misiniz?"
+
+# traslated
+msgid "User.Register.passwordRequired"
+msgstr "Lütfen Şifrenizi giriniz!"
+
+msgid "TimePicker.rangePlaceholder"
+msgstr "§[\"Başlangıç zamanı\",\"Bitiş zamanı\"]"
+
+# traslated
+msgid "FileWidget.errorMaxItems"
+msgstr "Maksimum {maxItems} dosya yükleyebilirsiniz!"
+
+msgid "Calendar.lang.dateTimeFormat"
+msgstr "M/D/YYYY HH:mm:ss"
+
+# traslated
+msgid "User.Confirm.or"
+msgstr "Veya"
+
+# traslated
+msgid "Contact.messagePlaceholder"
+msgstr "Mesajınız"
+
+msgid "Form.defaultValidateMessages.string.len"
+msgstr "${label} ${len} karakter olmalı"
+
+# traslated
+msgid "ArrayCopy.tooltip"
+msgstr "Verileri kopyalama"
+
+msgid "DatePicker.lang.monthPlaceholder"
+msgstr "Ay seç"
+
+msgid "Calendar.lang.today"
+msgstr "Bugün"
+
+msgid "Transfer.itemsUnit"
+msgstr "Öğeler"
+
+# traslated
+msgid "Table.filterSearchPlaceholder"
+msgstr "Filtrelerde arama"
+
+# default
+msgid "DatePicker.lang.monthFormat"
+msgstr "§undefined"
+
+# traslated
+msgid "CloudDownloadField.dataSwitchChecked"
+msgstr "geçerli"
+
+msgid "Transfer.selectAll"
+msgstr "Tümünü seç"
+
+msgid "Image.preview"
+msgstr "Önizleme"
+
+msgid "Table.triggerDesc"
+msgstr "Azalan düzende sırala"
+
+msgid "DatePicker.lang.dateTimeFormat"
+msgstr "M/D/YYYY HH:mm:ss"
+
+# traslated
+msgid "CloudUploadField.errorTitle"
+msgstr "Ops... Bir şeyler ters gitti!"
+
+msgid "DatePicker.timePickerLocale.rangePlaceholder"
+msgstr "§[\"Başlangıç zamanı\",\"Bitiş zamanı\"]"
+
+# traslated
+msgid "App.enableFullscreen"
+msgstr "Tam Ekranı Etkinleştir"
+
+msgid "DatePicker.lang.clear"
+msgstr "Temizle"
+
+msgid "Calendar.lang.nextDecade"
+msgstr "Sonraki On Yıl"
+
+# traslated
+msgid "User.Register.emailPlaceholder"
+msgstr "E-posta"
+
+# traslated
+msgid "App.cloudButton"
+msgstr "Bulut"
+
+# traslated
+msgid "App.autoSavingTooltip"
+msgstr "Otomatik Kaydetmeyi Devre Dışı Bırak"
+
+msgid "Form.defaultValidateMessages.date.parse"
+msgstr "${label} bir tarihe dönüştürülemedi"
+
+msgid "Form.defaultValidateMessages.pattern.mismatch"
+msgstr "${label} şu kalıpla eşleşmeli: ${pattern}"
+
+msgid "Form.defaultValidateMessages.types.regexp"
+msgstr "${label} geçerli bir ${type} değil"
+
+msgid "Text.expand"
+msgstr "Genişlet"
+
+# traslated
+msgid "User.Login.forgotPassword"
+msgstr "Şifremi unuttum"
+
+msgid "Form.defaultValidateMessages.number.max"
+msgstr "${label} en çok ${max} olmalı"
+
+# traslated
+msgid "CloudUploadField.dataSwitchUnChecked"
+msgstr "sunucu"
+
+# traslated
+msgid "App.cleanConfirm"
+msgstr "Bu verileri sildiğinizden emin misiniz?"
+
+# traslated
+msgid "CloudUploadField.buttonSaveNew"
+msgstr "Yeni rekor"
+
+msgid "DatePicker.lang.nextMonth"
+msgstr "Sonraki Ay (PageDown)"
+
+msgid "Table.selectInvert"
+msgstr "Tersini seç"
+
+# traslated
+msgid "App.restoreConfirm"
+msgstr "Bu verileri geri yüklediğinizden emin misiniz?"
+
+msgid "DatePicker.lang.weekPlaceholder"
+msgstr "Hafta seç"
+
+msgid "Calendar.lang.monthPlaceholder"
+msgstr "Ay seç"
+
+# traslated
+msgid "User.Login.errorTitle"
+msgstr "Ops... Bir şeyler ters gitti!"
+
+msgid "Form.defaultValidateMessages.array.min"
+msgstr "${label} sayısı en az ${min} olmalı"
+
+# traslated
+msgid "TabsField.select"
+msgstr "seçmek"
+
+# traslated
+msgid "TabsField.movedown"
+msgstr "Aşağı Taşı"
+
+msgid "DatePicker.lang.monthSelect"
+msgstr "Ay Seç"
+
+# traslated
+msgid "App.autoSavingButton"
+msgstr "Otomatik Kaydetme"
+
+msgid "Calendar.lang.previousDecade"
+msgstr "Önceki On Yıl"
+
+msgid "Calendar.lang.ok"
+msgstr "Tamam"
+
+# traslated
+msgid "User.Confirm.emailRequired"
+msgstr "Lütfen E-postanızı girin!"
+
+# traslated
+msgid "User.Setting.firstnameRequired"
+msgstr "Lütfen Adınızı giriniz!"
+
+# default
+msgid "Calendar.lang.monthFormat"
+msgstr "§undefined"
+
+# traslated
+msgid "User.Setting.submitButton"
+msgstr "Kurtarmak"
+
+# traslated
+msgid "Tour.Next"
+msgstr "Önümüzdeki"
+
+msgid "Calendar.lang.rangeWeekPlaceholder"
+msgstr "§[\"Başlangıç haftası\",\"Bitiş haftası\"]"
+
+# traslated
+msgid "CloudDownloadField.errorTitle"
+msgstr "Ops... Bir şeyler ters gitti!"
+
+# traslated
+msgid "User.Confirm.login"
+msgstr "Oturum açma!"
+
+# traslated
+msgid "User.ResetPassword.passwordConfirmPlaceholder"
+msgstr "Yeni Şifreyi Onayla"
+
+msgid "DatePicker.lang.now"
+msgstr "Şimdi"
+
+msgid "Calendar.lang.nextYear"
+msgstr "Sonraki Yıl (Control + Sağ)"
+
+msgid "Form.defaultValidateMessages.types.date"
+msgstr "${label} geçerli bir ${type} değil"
+
+# traslated
+msgid "User.Register.or"
+msgstr "Veya"
+
+msgid "DatePicker.lang.previousDecade"
+msgstr "Önceki On Yıl"
+
+# traslated
+msgid "App.branchesButton"
+msgstr "Şube"
+
+msgid "Form.defaultValidateMessages.types.email"
+msgstr "${label} geçerli bir ${type} değil"
+
+msgid "Pagination.next_page"
+msgstr "Sonraki Sayfa"
+
+msgid "Icon.icon"
+msgstr "ikon"
+
+msgid "Form.defaultValidateMessages.types.method"
+msgstr "${label} geçerli bir ${type} değil"
+
+msgid "DatePicker.lang.locale"
+msgstr "tr_TR"
+
+msgid "Calendar.lang.clear"
+msgstr "Temizle"
+
+msgid "Calendar.lang.yearFormat"
+msgstr "YYYY"
+
+msgid "Form.defaultValidateMessages.required"
+msgstr "${label} gerekli bir alan"
+
+# traslated
+msgid "App.debugButton"
+msgstr "Hata ayıklama"
+
+msgid "locale"
+msgstr "tr"
+
+msgid "DatePicker.lang.ok"
+msgstr "Tamam"
+
+msgid "Table.cancelSort"
+msgstr "Sıralamayı kaldır"
+
+msgid "Calendar.lang.rangeYearPlaceholder"
+msgstr "§[\"Başlangıç yılı\",\"Bitiş yılı\"]"
+
+# traslated
+msgid "User.Setting.errorTitle"
+msgstr "Ops... Bir şeyler ters gitti!"
+
+# traslated
+msgid "Contact.namePlaceholder"
+msgstr "Adınız"
+
+msgid "Calendar.lang.placeholder"
+msgstr "Tarih seç"
+
+# traslated
+msgid "App.restoreEraseButton"
+msgstr "Depolamayı sil"
+
+# traslated
+msgid "User.Login.passwordRequired"
+msgstr "Lütfen Şifrenizi giriniz!"
+
+# traslated
+msgid "User.Forgot.or"
+msgstr "Veya"
+
+msgid "Form.defaultValidateMessages.types.boolean"
+msgstr "${label} geçerli bir ${type} değil"
+
+msgid "DatePicker.lang.rangeWeekPlaceholder"
+msgstr "§[\"Başlangıç haftası\",\"Bitiş haftası\"]"
+
+# traslated
+msgid "App.cleanButton"
+msgstr "Temiz"
+
+msgid "Form.defaultValidateMessages.types.integer"
+msgstr "${label} geçerli bir ${type} değil"
+
+msgid "Empty.description"
+msgstr "Veri Yok"
+
+# default
+msgid "Calendar.lang.shortMonths"
+msgstr "§undefined"
+
+# traslated
+msgid "DebugTemplate.tooltipFloatButton"
+msgstr "Hata Ayıklama İş Akışını Aç"
+
+msgid "Calendar.lang.decadeSelect"
+msgstr "On Yıl Seç"
+
+msgid "Upload.uploadError"
+msgstr "Yükleme hatası"
+
+# traslated
+msgid "User.Login.submitButton"
+msgstr "Oturum açma"
+
+# traslated
+msgid "User.Register.errorTitle"
+msgstr "Ops... Bir şeyler ters gitti!"
+
+msgid "DatePicker.lang.timeSelect"
+msgstr "Zaman Seç"
+
+# traslated
+msgid "App.uploadButton"
+msgstr "Karşıya yükleme"
+
+# traslated
+msgid "User.Register.passwordConfirmPlaceholder"
+msgstr "Şifreyi Onayla"
+
+# traslated
+msgid "CloudDownloadField.fieldErrors.name"
+msgstr "Lütfen isim giriniz!"
+
+# traslated
+msgid "CloudUploadField.fieldErrors.name"
+msgstr "Lütfen isim giriniz!"
+
+# traslated
+msgid "TableField.exportTooltip"
+msgstr "Tabloyu CSV olarak dışa aktar"
+
+# traslated
+msgid "User.Login.registerNow"
+msgstr "Şimdi kaydolun!"
+
+# traslated
+msgid "User.Login.emailInvalid"
+msgstr "Geçersiz E-posta!"
+
+# traslated
+msgid "User.Forgot.login"
+msgstr "Oturum açma!"
+
+msgid "Pagination.items_per_page"
+msgstr "/ sayfa"
+
+# traslated
+msgid "CloudDownloadField.buttonSave"
+msgstr "Kurtarmak"
+
+# traslated
+msgid "User.titleRegister"
+msgstr "Yeni kayıt"
+
+msgid "Calendar.lang.now"
+msgstr "Şimdi"
+
+# traslated
+msgid "Contact.buttonTooltip"
+msgstr "Temas"
+
+msgid "Form.optional"
+msgstr "(opsiyonel)"
+
+# traslated
+msgid "App.restoreTitleDifferences"
+msgstr "Farklılık -lar"
+
+msgid "DatePicker.lang.monthBeforeYear"
+msgstr "§true"
+
+msgid "DatePicker.lang.rangePlaceholder"
+msgstr "§[\"Başlangıç tarihi\",\"Bitiş tarihi\"]"
+
+# traslated
+msgid "User.Confirm.emailPlaceholder"
+msgstr "E-posta"
+
+msgid "DatePicker.lang.nextDecade"
+msgstr "Sonraki On Yıl"
+
+# traslated
+msgid "Errors.title"
+msgstr "Doğrulama Hataları"
+
+msgid "DatePicker.lang.yearPlaceholder"
+msgstr "Yıl seç"
+
+# traslated
+msgid "FileWidget.errorFileType"
+msgstr "Yalnızca {fileTypes} dosyasını yükleyebilirsiniz!"
+
+# traslated
+msgid "PDFField.uploadError"
+msgstr "Yükleme hatası"
+
+# traslated
+msgid "DatePicker.lang.rangeQuarterPlaceholder"
+msgstr "§[\"Çeyreği başlat\",\"Çeyrek sonu\"]"
+
+# traslated
+msgid "App.restoreCurrent"
+msgstr "geçerli"
+
+# traslated
+msgid "ArrayAccordion.placeholder"
+msgstr "Lütfen seçiniz"
+
+msgid "Calendar.lang.weekPlaceholder"
+msgstr "Hafta seç"
+
+# traslated
+msgid "User.Register.firstnameRequired"
+msgstr "Lütfen Adınızı giriniz!"
+
+# traslated
+msgid "User.Setting.revertButton"
+msgstr "Geri dönmek"
+
+# traslated
+msgid "App.fullscreenButton"
+msgstr "Tam ekran"
+
+# traslated
+msgid "CloudDownloadField.buttonSaveNew"
+msgstr "Yeni rekor"
+
+msgid "DatePicker.lang.month"
+msgstr "Ay"
+
+msgid "Calendar.lang.nextMonth"
+msgstr "Sonraki Ay (PageDown)"
+
+# traslated
+msgid "TableField.deleteItemConfirm"
+msgstr "Sildiğinizden emin misiniz?"
+
+msgid "Form.defaultValidateMessages.array.len"
+msgstr "${label} sayısı ${len} olmalı"
+
+msgid "Table.filterConfirm"
+msgstr "Tamam"
+
+# traslated
+msgid "User.Setting.firstnamePlaceholder"
+msgstr "Ad"
+
+# traslated
+msgid "App.autoSavingErrorTitle"
+msgstr "Ops... Otomatik kaydetmeyi devre dışı bırakma"
+
+msgid "TimePicker.placeholder"
+msgstr "Zaman seç"
+
+msgid "DatePicker.lang.quarterPlaceholder"
+msgstr "Çeyrek seç"
+
+# traslated
+msgid "User.ResetPassword.passwordConfirmRequired"
+msgstr "Lütfen Yeni Şifrenizi onaylayın!"
+
+# traslated
+msgid "CloudDownloadField.dataSwitchUnChecked"
+msgstr "sunucu"
+
+# traslated
+msgid "Table.selectNone"
+msgstr "Tüm verileri temizle"
+
+msgid "Form.defaultValidateMessages.types.url"
+msgstr "${label} geçerli bir ${type} değil"
+
+msgid "Pagination.page"
+msgstr "Sayfa"
+
+# traslated
+msgid "User.titleSetting"
+msgstr "Ayarları düzenle"
+
+# traslated
+msgid "User.Forgot.emailRequired"
+msgstr "Lütfen E-postanızı girin!"
+
+msgid "Table.selectionAll"
+msgstr "Tümünü seç"
+
+msgid "Form.defaultValidateMessages.string.range"
+msgstr "${label} ${min}-${max} karakter arası olmalı"
+
+# traslated
+msgid "User.Login.emailPlaceholder"
+msgstr "E-posta"
+
+# traslated
+msgid "TabsField.moveleft"
+msgstr "Sola git"
+
+# traslated
+msgid "App.cloudUploadButton"
+msgstr "Kurtarmak"
+
+# traslated
+msgid "User.Forgot.emailPlaceholder"
+msgstr "E-posta"
+
+# traslated
+msgid "PDFField.downloadFile"
+msgstr "Dosyayı indir"
+
+msgid "DatePicker.timePickerLocale.placeholder"
+msgstr "Zaman seç"
+
+# traslated
+msgid "Contact.messageRequired"
+msgstr "Lütfen mesajınızı giriniz!"
+
+# traslated
+msgid "User.Setting.lastnameRequired"
+msgstr "Lütfen Soyadınızı giriniz!"
+
+# traslated
+msgid "CloudUploadField.buttonCancel"
+msgstr "İptal"
+
+# traslated
+msgid "App.downloadButton"
+msgstr "İndirmek"
+
+msgid "DatePicker.lang.dateFormat"
+msgstr "M/D/YYYY"
+
+# traslated
+msgid "Contact.subjectRequired"
+msgstr "Lütfen mail konusunu giriniz!"
+
+# default
+msgid "Calendar.lang.shortWeekDays"
+msgstr "§undefined"
+
+msgid "Calendar.lang.locale"
+msgstr "tr_TR"
+
+# traslated
+msgid "CloudDownloadField.titleName"
+msgstr "Ad"
+
+msgid "Transfer.searchPlaceholder"
+msgstr "Arama"
+
+# traslated
+msgid "CloudUploadField.createdAt"
+msgstr "Oluşturulan"
+
+# traslated
+msgid "Contact.emailInvalid"
+msgstr "Geçersiz E-posta!"
+
+# traslated
+msgid "User.infoButton"
+msgstr "Profil"
+
+# traslated
+msgid "User.Register.passwordConfirmError"
+msgstr "Girdiğiniz iki şifre eşleşmiyor!"
+
+# traslated
+msgid "CloudUploadField.dataSwitchChecked"
+msgstr "geçerli"
+
+# traslated
+msgid "TabsField.clone"
+msgstr "Klon"
+
+msgid "Transfer.titles"
+msgstr "§[\"\",\"\"]"
+
+# traslated
+msgid "QRCode.refresh"
+msgstr "Yenilemek"
+
+# traslated
+msgid "TableField.importTooltip"
+msgstr "Tabloyu CSV'den içe aktar"
+
+# traslated
+msgid "App.uploadTooltip"
+msgstr "Verileri JSON olarak içeri aktarma"
+
+msgid "DatePicker.lang.decadeSelect"
+msgstr "On Yıl Seç"
+
+# traslated
+msgid "App.restoreModalTitle"
+msgstr "Verileri geri yükle"
+
+msgid "Table.sortTitle"
+msgstr "Sırala"
+
+msgid "DatePicker.lang.year"
+msgstr "Yıl"
+
+# traslated
+msgid "App.restoreRestoreButton"
+msgstr "Geri yüklemek"
+
+msgid "Form.defaultValidateMessages.types.number"
+msgstr "${label} geçerli bir ${type} değil"
+
+msgid "Calendar.lang.yearPlaceholder"
+msgstr "Yıl seç"
+
+msgid "Popconfirm.okText"
+msgstr "Tamam"
+
+# traslated
+msgid "CloudDownloadField.titleData"
+msgstr "Veri Kaynağı"
+
+# traslated
+msgid "ArrayCopy.placeholder"
+msgstr "Lütfen seçiniz"
+
+msgid "Upload.uploading"
+msgstr "Yükleniyor..."
+
+# traslated
+msgid "CloudUploadField.titleData"
+msgstr "Veri Kaynağı"
+
+msgid "Text.copied"
+msgstr "Kopyalandı"
+
+# traslated
+msgid "App.cloudDownloadTooltip"
+msgstr "Buluttan veri içe aktarma"
+
+# traslated
+msgid "FileWidget.dropMessage"
+msgstr "Dosyayı buraya sürükleyin veya göz atmak için tıklayın"
+
+msgid "Calendar.lang.month"
+msgstr "Ay"
+
+msgid "Form.defaultValidateMessages.types.object"
+msgstr "${label} geçerli bir ${type} değil"
+
+msgid "PageHeader.back"
+msgstr "Geri"
+
+msgid "DatePicker.lang.nextYear"
+msgstr "Sonraki Yıl (Control + Sağ)"
+
+# traslated
+msgid "User.titleLogin"
+msgstr "Oturum açma"
+
+# traslated
+msgid "Table.filterCheckall"
+msgstr "Tüm öğeleri seç"
+
+msgid "DatePicker.lang.previousYear"
+msgstr "Önceki Yıl (Control + Sol)"
+
+msgid "Upload.previewFile"
+msgstr "Dosyayı önizle"
+
+# traslated
+msgid "CloudUploadField.updatedAt"
+msgstr "Güncel -leştirilmiş"
+
+msgid "Calendar.lang.timeSelect"
+msgstr "Zaman Seç"
+
+# traslated
+msgid "CloudUploadField.buttonSave"
+msgstr "Kurtarmak"
+
+# traslated
+msgid "TabsField.selectItem"
+msgstr "Öğe seç"
+
+# traslated
+msgid "FileWidget.errorSameFile"
+msgstr "{filename} dosyası zaten yüklendi!"
+
+msgid "Calendar.lang.monthSelect"
+msgstr "Ay Seç"
+
+msgid "Form.defaultValidateMessages.types.array"
+msgstr "${label} geçerli bir ${type} değil"
+
+msgid "language"
+msgstr "tr_TR"
+
+# traslated
+msgid "User.Setting.lastnamePlaceholder"
+msgstr "Soyadı"
+
+# traslated
+msgid "TabsField.delete"
+msgstr "silmek"
+
+msgid "Form.defaultValidateMessages.default"
+msgstr "Alan doğrulama hatası ${label}"
+
+msgid "Calendar.lang.previousYear"
+msgstr "Önceki Yıl (Control + Sol)"

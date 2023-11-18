@@ -1,0 +1,1360 @@
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: 1.0\n"
+"Report-Msgid-Bugs-To: vinci1it2000@gmail.com\n"
+"PO-Revision-Date: 2023-11-18 08:55+0000\n"
+"Last-Translator: Vincenzo Arcidiacono <vinci1it2000@gmail.com>\n"
+"Language-Team: English <vinci1it2000@gmail.com>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+# traslated
+msgid "Contact.errorTitle"
+msgstr "Ops... Alguna cosa ha anat malament!"
+
+# traslated
+msgid "ColorPicker.presetEmpty"
+msgstr "Buit"
+
+msgid "Table.filterReset"
+msgstr "Reiniciar"
+
+# traslated
+msgid "User.Register.login"
+msgstr "Connexió!"
+
+# traslated
+msgid "TableField.addItemTooltip"
+msgstr "Afegeix un element"
+
+# traslated
+msgid "CloudUploadField.buttonDownload"
+msgstr "Servidor"
+
+# traslated
+msgid "User.Logout.submitButton"
+msgstr "Logout"
+
+msgid "Calendar.lang.dateFormat"
+msgstr "D/M/YYYY"
+
+msgid "Calendar.lang.dateSelect"
+msgstr "Seleccionar data"
+
+# traslated
+msgid "User.Confirm.errorTitle"
+msgstr "Ops... Alguna cosa ha anat malament!"
+
+# traslated
+msgid "TabsField.moveup"
+msgstr "Pujar"
+
+msgid "Modal.justOkText"
+msgstr "D’acord"
+
+# traslated
+msgid "PDFField.titleSectionSelection"
+msgstr "Seccions"
+
+msgid "Calendar.lang.previousCentury"
+msgstr "Segle anterior"
+
+# traslated
+msgid "User.ResetPassword.passwordPlaceholder"
+msgstr "Nova contrasenya"
+
+# traslated
+msgid "User.loginTooltip"
+msgstr "Connexió"
+
+msgid "Form.defaultValidateMessages.whitespace"
+msgstr "${label} no pot ser un caràcter en blanc"
+
+msgid "Pagination.prev_page"
+msgstr "Pàgina prèvia"
+
+# traslated
+msgid "QRCode.expired"
+msgstr "El codi QR ha caducat"
+
+# traslated
+msgid "FileWidget.errorNotUploaded"
+msgstr "Ops... fitxer no carregat"
+
+msgid "Form.defaultValidateMessages.string.max"
+msgstr "${label} ha de tenir com a màxim ${max} caràcters"
+
+# traslated
+msgid "User.Confirm.submitButton"
+msgstr "Enviar instruccions"
+
+msgid "Form.defaultValidateMessages.types.hex"
+msgstr "${label} no és un ${type} vàlid"
+
+# traslated
+msgid "Contact.submitButton"
+msgstr "Enviar"
+
+msgid "Table.expand"
+msgstr "Ampliar la fila"
+
+# traslated
+msgid "App.restoreDifferences"
+msgstr "Mostrar diferències amb les dades actuals"
+
+msgid "Pagination.jump_to_confirm"
+msgstr "Confirma"
+
+# traslated
+msgid "User.ResetPassword.submitButton"
+msgstr "Restableix la contrasenya"
+
+msgid "Transfer.itemUnit"
+msgstr "ítem"
+
+msgid "global.placeholder"
+msgstr "Seleccionar"
+
+# traslated
+msgid "DatePicker.lang.rangeMonthPlaceholder"
+msgstr "§[\"Mes d'inici\",\"Mes final\"]"
+
+# traslated
+msgid "User.titleResetPassword"
+msgstr "Restableix la contrasenya"
+
+# traslated
+msgid "Contact.emailPlaceholder"
+msgstr "Correu electrònic"
+
+msgid "Table.triggerAsc"
+msgstr "Ordre ascendent"
+
+# traslated
+msgid "User.Register.usernameRequired"
+msgstr "Si us plau, introdueixi el seu nom d'usuari!"
+
+# traslated
+msgid "User.titleLogout"
+msgstr "Segur de tancar sessió?"
+
+# traslated
+msgid "ArrayCopy.titleCopyButton"
+msgstr "Seleccioneu on copiar les dades?"
+
+msgid "Popconfirm.cancelText"
+msgstr "Cancel·lar"
+
+# traslated
+msgid "User.titleConfirm"
+msgstr "Envia un correu electrònic de confirmació"
+
+msgid "Form.defaultValidateMessages.array.range"
+msgstr "La llargada de ${label} ha d’estar entre ${min} i ${max}"
+
+# traslated
+msgid "User.ResetPassword.login"
+msgstr "Connexió!"
+
+# traslated
+msgid "Calendar.lang.rangeQuarterPlaceholder"
+msgstr "§[\"Inici trimestre\",\"Final de trimestre\"]"
+
+# traslated
+msgid "PDFField.previewFile"
+msgstr "Vista prèvia del fitxer"
+
+# traslated
+msgid "Contact.subjectPlaceholder"
+msgstr "Assumpte del correu"
+
+# traslated
+msgid "User.titleInfo"
+msgstr "Informació de l'usuari"
+
+# traslated
+msgid "App.cloudDownloadButton"
+msgstr "Importació"
+
+msgid "Form.defaultValidateMessages.types.float"
+msgstr "${label} no és un ${type} vàlid"
+
+# traslated
+msgid "App.runButton"
+msgstr "Córrer"
+
+# traslated
+msgid "User.Register.emailInvalid"
+msgstr "Correu electrònic no vàlid!"
+
+msgid "Modal.cancelText"
+msgstr "Cancel·lar"
+
+msgid "DatePicker.lang.nextCentury"
+msgstr "Segle següent"
+
+msgid "Upload.removeFile"
+msgstr "Eliminar el fitxer"
+
+# traslated
+msgid "FileWidget.errorToolTip"
+msgstr "Error de càrrega"
+
+# traslated
+msgid "TableField.deleteAllConfirm"
+msgstr "Segur d'eliminar tot el contingut?"
+
+msgid "Form.defaultValidateMessages.number.range"
+msgstr "${label} ha de tenir un valor entre ${min} i ${max}"
+
+msgid "Form.defaultValidateMessages.date.format"
+msgstr "El format de la data de ${label} és invàlid"
+
+msgid "Form.defaultValidateMessages.types.string"
+msgstr "${label} no és un ${type} vàlid"
+
+msgid "Transfer.selectInvert"
+msgstr "Invertir la selecció"
+
+# traslated
+msgid "ErrorListTemplate.tooltipFloatButton"
+msgstr "Obrir missatges d'error"
+
+msgid "DatePicker.lang.dateSelect"
+msgstr "Seleccionar data"
+
+# traslated
+msgid "Table.emptyText"
+msgstr "Sense dades"
+
+msgid "DatePicker.lang.backToToday"
+msgstr "Tornar a avui"
+
+msgid "DatePicker.lang.dayFormat"
+msgstr "D"
+
+# traslated
+msgid "User.Forgot.emailInvalid"
+msgstr "Correu electrònic no vàlid!"
+
+# default
+msgid "DatePicker.lang.shortMonths"
+msgstr "§undefined"
+
+# traslated
+msgid "User.ResetPassword.passwordRequired"
+msgstr "Si us plau, introdueixi la seva nova contrasenya!"
+
+# traslated
+msgid "User.Register.lastnamePlaceholder"
+msgstr "Cognom"
+
+# traslated
+msgid "CloudUploadField.titleName"
+msgstr "Nom"
+
+# traslated
+msgid "Contact.title"
+msgstr "Contacta amb nosaltres"
+
+msgid "Calendar.lang.nextCentury"
+msgstr "Segle següent"
+
+msgid "Form.defaultValidateMessages.string.min"
+msgstr "${label} ha de tenir com a mínim ${min} caràcters"
+
+msgid "Modal.okText"
+msgstr "D’acord"
+
+# traslated
+msgid "User.Register.emailRequired"
+msgstr "Si us plau, introdueixi el seu correu electrònic!"
+
+msgid "Table.collapse"
+msgstr "Plegar la fila"
+
+msgid "Pagination.prev_5"
+msgstr "5 pàgines prèvies"
+
+# traslated
+msgid "ArrayAccordion.titleCopyButton"
+msgstr "Seleccioneu on copiar les dades?"
+
+msgid "Calendar.lang.previousMonth"
+msgstr "Mes anterior (PageUp)"
+
+msgid "Transfer.removeCurrent"
+msgstr "Eliminar la selecció"
+
+msgid "Form.defaultValidateMessages.array.max"
+msgstr "La llargada de ${label} ha de ser com a màxim de ${max}"
+
+# traslated
+msgid "App.cloudUploadTooltip"
+msgstr "Desar dades al núvol"
+
+# traslated
+msgid "CloudDownloadField.buttonCancel"
+msgstr "Cancel·lar"
+
+# traslated
+msgid "Contact.emailRequired"
+msgstr "Si us plau, introdueixi el seu correu electrònic!"
+
+msgid "Calendar.lang.monthBeforeYear"
+msgstr "§true"
+
+# traslated
+msgid "User.Confirm.emailInvalid"
+msgstr "Correu electrònic no vàlid!"
+
+# traslated
+msgid "User.ResetPassword.passwordConfirmError"
+msgstr "Les dues contrasenyes que has introduït no coincideixen!"
+
+# traslated
+msgid "CloudUploadField.titleSaveNew"
+msgstr "Desar dades actuals"
+
+# traslated
+msgid "User.Register.lastnameRequired"
+msgstr "Si us plau, introdueix el teu cognom!"
+
+# traslated
+msgid "User.settingButton"
+msgstr "Configuració"
+
+msgid "Pagination.next_3"
+msgstr "3 pàgines següents"
+
+msgid "Transfer.remove"
+msgstr "Eliminar"
+
+msgid "DatePicker.lang.yearFormat"
+msgstr "YYYY"
+
+# traslated
+msgid "User.Login.passwordPlaceholder"
+msgstr "Contrasenya"
+
+msgid "DatePicker.lang.placeholder"
+msgstr "Seleccionar data"
+
+# traslated
+msgid "User.titleForgot"
+msgstr "Recuperar contrasenya"
+
+# traslated
+msgid "Calendar.lang.quarterPlaceholder"
+msgstr "Selecciona barri"
+
+msgid "DatePicker.lang.previousCentury"
+msgstr "Segle anterior"
+
+# traslated
+msgid "App.restoreButton"
+msgstr "Restaurar"
+
+# default
+msgid "DatePicker.lang.shortWeekDays"
+msgstr "§undefined"
+
+# traslated
+msgid "User.logoutButton"
+msgstr "Logout"
+
+# traslated
+msgid "User.buttonTooltip"
+msgstr "Connexió"
+
+# traslated
+msgid "DatePicker.lang.rangeYearPlaceholder"
+msgstr "§[\"Any d'inici\",\"Any final\"]"
+
+msgid "Pagination.page_size"
+msgstr "mida de la pàgina"
+
+# traslated
+msgid "Calendar.lang.weekSelect"
+msgstr "Tria una setmana"
+
+msgid "Form.defaultValidateMessages.date.invalid"
+msgstr "${label} és una data invàlida"
+
+# traslated
+msgid "App.restoreCloseButton"
+msgstr "Tancar"
+
+# traslated
+msgid "User.Forgot.submitButton"
+msgstr "Recuperar contrasenya"
+
+msgid "Transfer.selectCurrent"
+msgstr "Seleccionar la pàgina actual"
+
+# traslated
+msgid "User.Register.usernamePlaceholder"
+msgstr "Nom d'usuari"
+
+# traslated
+msgid "App.filesButton"
+msgstr "ﬁtxers"
+
+# traslated
+msgid "TabsField.moveright"
+msgstr "Mou-te a la dreta"
+
+# traslated
+msgid "DatePicker.lang.weekSelect"
+msgstr "Tria una setmana"
+
+# traslated
+msgid "Calendar.lang.rangeMonthPlaceholder"
+msgstr "§[\"Mes d'inici\",\"Mes final\"]"
+
+msgid "Table.filterTitle"
+msgstr "Filtrar el menú"
+
+# traslated
+msgid "App.restoreTooltip"
+msgstr "Restaurar dades"
+
+msgid "Upload.downloadFile"
+msgstr "Baixar el fitxer"
+
+msgid "Calendar.lang.yearSelect"
+msgstr "Escollir un any"
+
+msgid "Text.copy"
+msgstr "Copiar"
+
+# traslated
+msgid "User.ResetPassword.errorTitle"
+msgstr "Ops... Alguna cosa ha anat malament!"
+
+# traslated
+msgid "Tour.Finish"
+msgstr "Acabar"
+
+msgid "Form.defaultValidateMessages.number.len"
+msgstr "${label} ha de ser igual a ${len}"
+
+# traslated
+msgid "CloudDownloadField.titleSaveNew"
+msgstr "Desar dades actuals"
+
+# traslated
+msgid "CloudUploadField.confirmDelete"
+msgstr "Segur d'esborrar?"
+
+# traslated
+msgid "PDFField.uploading"
+msgstr "Carregar..."
+
+msgid "Transfer.removeAll"
+msgstr "Eliminar-ho tot"
+
+# traslated
+msgid "Calendar.timePickerLocale.rangePlaceholder"
+msgstr "§[\"Hora d'inici\",\"Hora de finalització\"]"
+
+# traslated
+msgid "User.Forgot.errorTitle"
+msgstr "Ops... Alguna cosa ha anat malament!"
+
+msgid "Table.filterEmptyText"
+msgstr "Sense filtres"
+
+# traslated
+msgid "PDFField.removeFile"
+msgstr "Suprimeix el fitxer"
+
+# traslated
+msgid "User.Login.sendConfirmMail"
+msgstr "Tornar a enviar el correu electrònic de confirmació"
+
+msgid "Pagination.next_5"
+msgstr "5 pàgines següents"
+
+# traslated
+msgid "ErrorListTemplate.descriptionFloatButton"
+msgstr "ERR"
+
+# traslated
+msgid "PDFField.preview"
+msgstr "Preestrena"
+
+msgid "Form.defaultValidateMessages.enum"
+msgstr "${label} ha de ser un de [${enum}]"
+
+# traslated
+msgid "Contact.nameRequired"
+msgstr "Si us plau, introdueixi el seu nom!"
+
+# traslated
+msgid "ErrorListTemplate.titleModal"
+msgstr "Errors"
+
+msgid "Form.defaultValidateMessages.number.min"
+msgstr "${label} ha de tenir un valor mínim de ${min}"
+
+# traslated
+msgid "User.Register.firstnamePlaceholder"
+msgstr "Nom"
+
+msgid "Calendar.lang.dayFormat"
+msgstr "D"
+
+msgid "DatePicker.lang.yearSelect"
+msgstr "Escollir un any"
+
+# traslated
+msgid "User.Register.submitButton"
+msgstr "Registrar"
+
+msgid "Calendar.lang.backToToday"
+msgstr "Tornar a avui"
+
+# traslated
+msgid "User.Login.rememberMe"
+msgstr "Recorda'm"
+
+# traslated
+msgid "CloudDownloadField.buttonDownload"
+msgstr "Servidor"
+
+# traslated
+msgid "ArrayAccordion.tooltipExtra"
+msgstr "Copieu les dades"
+
+msgid "Calendar.timePickerLocale.placeholder"
+msgstr "Seleccionar hora"
+
+msgid "Calendar.lang.year"
+msgstr "Any"
+
+# traslated
+msgid "User.Register.passwordConfirmRequired"
+msgstr "Si us plau, confirmi la seva contrasenya!"
+
+# traslated
+msgid "App.disableFullscreen"
+msgstr "Desactivar la pantalla completa"
+
+# traslated
+msgid "CloudDownloadField.createdAt"
+msgstr "Creada"
+
+# traslated
+msgid "App.downloadTooltip"
+msgstr "Exportar dades com a JSON"
+
+# traslated
+msgid "App.autoSaveTooltip"
+msgstr "Activa l'estalvi automàtic"
+
+msgid "DatePicker.lang.today"
+msgstr "Avui"
+
+# traslated
+msgid "Tour.Previous"
+msgstr "Anterior"
+
+msgid "Pagination.jump_to"
+msgstr "Anar a"
+
+# traslated
+msgid "User.ResetPassword.or"
+msgstr "O"
+
+# traslated
+msgid "User.Register.passwordPlaceholder"
+msgstr "Contrasenya"
+
+msgid "Table.selectAll"
+msgstr "Seleccionar la pàgina actual"
+
+# traslated
+msgid "CloudUploadField.buttonOverwrite"
+msgstr "Sobreescriure"
+
+# traslated
+msgid "CloudDownloadField.updatedAt"
+msgstr "Actualitzat"
+
+# traslated
+msgid "User.Login.or"
+msgstr "O"
+
+# traslated
+msgid "DebugTemplate.titleModal"
+msgstr "Flux de treball de depuració"
+
+msgid "Calendar.lang.rangePlaceholder"
+msgstr "§[\"Data inicial\",\"Data final\"]"
+
+msgid "Text.edit"
+msgstr "Editar"
+
+msgid "DatePicker.lang.previousMonth"
+msgstr "Mes anterior (PageUp)"
+
+# traslated
+msgid "App.autoSaveButton"
+msgstr "Desa automàticament"
+
+# traslated
+msgid "CloudDownloadField.buttonOverwrite"
+msgstr "Sobreescriure"
+
+# traslated
+msgid "FileWidget.errorOnlyOneItem"
+msgstr "Podeu pujar un màxim d'un fitxer!"
+
+msgid "Pagination.prev_3"
+msgstr "3 pàgines prèvies"
+
+# traslated
+msgid "User.Login.emailRequired"
+msgstr "Si us plau, introdueixi el seu correu electrònic!"
+
+# traslated
+msgid "CloudDownloadField.confirmDelete"
+msgstr "Segur d'esborrar?"
+
+# traslated
+msgid "User.Register.passwordRequired"
+msgstr "Si us plau, introdueixi la seva contrasenya!"
+
+# traslated
+msgid "TimePicker.rangePlaceholder"
+msgstr "§[\"Hora d'inici\",\"Hora de finalització\"]"
+
+# traslated
+msgid "FileWidget.errorMaxItems"
+msgstr "Podeu pujar un màxim de fitxers {maxItems}!"
+
+msgid "Calendar.lang.dateTimeFormat"
+msgstr "D/M/YYYY HH:mm:ss"
+
+# traslated
+msgid "User.Confirm.or"
+msgstr "O"
+
+# traslated
+msgid "Contact.messagePlaceholder"
+msgstr "El teu missatge"
+
+msgid "Form.defaultValidateMessages.string.len"
+msgstr "${label} ha de ser de ${len} caràcters"
+
+# traslated
+msgid "ArrayCopy.tooltip"
+msgstr "Copieu les dades"
+
+# traslated
+msgid "DatePicker.lang.monthPlaceholder"
+msgstr "Selecciona mes"
+
+msgid "Calendar.lang.today"
+msgstr "Avui"
+
+msgid "Transfer.itemsUnit"
+msgstr "ítems"
+
+# traslated
+msgid "Table.filterSearchPlaceholder"
+msgstr "Cercar en filtres"
+
+# default
+msgid "DatePicker.lang.monthFormat"
+msgstr "§undefined"
+
+# traslated
+msgid "CloudDownloadField.dataSwitchChecked"
+msgstr "actual"
+
+msgid "Transfer.selectAll"
+msgstr "Seleccionar-ho tot"
+
+# traslated
+msgid "Image.preview"
+msgstr "Preestrena"
+
+msgid "Table.triggerDesc"
+msgstr "Ordre descendent"
+
+msgid "DatePicker.lang.dateTimeFormat"
+msgstr "D/M/YYYY HH:mm:ss"
+
+# traslated
+msgid "CloudUploadField.errorTitle"
+msgstr "Ops... Alguna cosa ha anat malament!"
+
+# traslated
+msgid "DatePicker.timePickerLocale.rangePlaceholder"
+msgstr "§[\"Hora d'inici\",\"Hora de finalització\"]"
+
+# traslated
+msgid "App.enableFullscreen"
+msgstr "Activar la pantalla completa"
+
+msgid "DatePicker.lang.clear"
+msgstr "Netejar"
+
+msgid "Calendar.lang.nextDecade"
+msgstr "Dècada següent"
+
+# traslated
+msgid "User.Register.emailPlaceholder"
+msgstr "Correu electrònic"
+
+# traslated
+msgid "App.cloudButton"
+msgstr "Núvol"
+
+# traslated
+msgid "App.autoSavingTooltip"
+msgstr "Desactivar l'estalvi automàtic"
+
+msgid "Form.defaultValidateMessages.date.parse"
+msgstr "${label} no es pot convertir a cap data"
+
+msgid "Form.defaultValidateMessages.pattern.mismatch"
+msgstr "${label} no coincideix amb el patró ${pattern}"
+
+msgid "Form.defaultValidateMessages.types.regexp"
+msgstr "${label} no és un ${type} vàlid"
+
+msgid "Text.expand"
+msgstr "Ampliar"
+
+# traslated
+msgid "User.Login.forgotPassword"
+msgstr "He oblidat la contrasenya"
+
+msgid "Form.defaultValidateMessages.number.max"
+msgstr "${label} ha de tenir un valor màxim de ${max}"
+
+# traslated
+msgid "CloudUploadField.dataSwitchUnChecked"
+msgstr "servidor"
+
+# traslated
+msgid "App.cleanConfirm"
+msgstr "Segur d'esborrar aquestes dades?"
+
+# traslated
+msgid "CloudUploadField.buttonSaveNew"
+msgstr "Nou rècord"
+
+msgid "DatePicker.lang.nextMonth"
+msgstr "Mes següent (PageDown)"
+
+msgid "Table.selectInvert"
+msgstr "Invertir la selecció"
+
+# traslated
+msgid "App.restoreConfirm"
+msgstr "Segur de restaurar aquestes dades?"
+
+# traslated
+msgid "DatePicker.lang.weekPlaceholder"
+msgstr "Selecciona setmana"
+
+# traslated
+msgid "Calendar.lang.monthPlaceholder"
+msgstr "Selecciona mes"
+
+# traslated
+msgid "User.Login.errorTitle"
+msgstr "Ops... Alguna cosa ha anat malament!"
+
+msgid "Form.defaultValidateMessages.array.min"
+msgstr "La llargada de ${label} ha de ser com a mínim de ${min}"
+
+# traslated
+msgid "TabsField.select"
+msgstr "seleccionar"
+
+# traslated
+msgid "TabsField.movedown"
+msgstr "Moure cap avall"
+
+msgid "DatePicker.lang.monthSelect"
+msgstr "Escollir un mes"
+
+# traslated
+msgid "App.autoSavingButton"
+msgstr "Estalvi automàtic"
+
+msgid "Calendar.lang.previousDecade"
+msgstr "Dècada anterior"
+
+msgid "Calendar.lang.ok"
+msgstr "Acceptar"
+
+# traslated
+msgid "User.Confirm.emailRequired"
+msgstr "Si us plau, introdueixi el seu correu electrònic!"
+
+# traslated
+msgid "User.Setting.firstnameRequired"
+msgstr "Si us plau, introdueixi el seu nom!"
+
+# default
+msgid "Calendar.lang.monthFormat"
+msgstr "§undefined"
+
+# traslated
+msgid "User.Setting.submitButton"
+msgstr "Salvar"
+
+# traslated
+msgid "Tour.Next"
+msgstr "Proper"
+
+# traslated
+msgid "Calendar.lang.rangeWeekPlaceholder"
+msgstr "§[\"Setmana d'inici\",\"Setmana final\"]"
+
+# traslated
+msgid "CloudDownloadField.errorTitle"
+msgstr "Ops... Alguna cosa ha anat malament!"
+
+# traslated
+msgid "User.Confirm.login"
+msgstr "Connexió!"
+
+# traslated
+msgid "User.ResetPassword.passwordConfirmPlaceholder"
+msgstr "Confirmeu una contrasenya nova"
+
+msgid "DatePicker.lang.now"
+msgstr "Ara"
+
+msgid "Calendar.lang.nextYear"
+msgstr "Mes següent (Control + right)"
+
+msgid "Form.defaultValidateMessages.types.date"
+msgstr "${label} no és un ${type} vàlid"
+
+# traslated
+msgid "User.Register.or"
+msgstr "O"
+
+msgid "DatePicker.lang.previousDecade"
+msgstr "Dècada anterior"
+
+# traslated
+msgid "App.branchesButton"
+msgstr "Branques"
+
+msgid "Form.defaultValidateMessages.types.email"
+msgstr "${label} no és un ${type} vàlid"
+
+msgid "Pagination.next_page"
+msgstr "Pàgina següent"
+
+msgid "Icon.icon"
+msgstr "icona"
+
+msgid "Form.defaultValidateMessages.types.method"
+msgstr "${label} no és un ${type} vàlid"
+
+msgid "DatePicker.lang.locale"
+msgstr "ca_ES"
+
+msgid "Calendar.lang.clear"
+msgstr "Netejar"
+
+msgid "Calendar.lang.yearFormat"
+msgstr "YYYY"
+
+msgid "Form.defaultValidateMessages.required"
+msgstr "Introdueix ${label}"
+
+# traslated
+msgid "App.debugButton"
+msgstr "Depurar"
+
+msgid "locale"
+msgstr "ca"
+
+msgid "DatePicker.lang.ok"
+msgstr "Acceptar"
+
+msgid "Table.cancelSort"
+msgstr "Desactivar l’ordre"
+
+# traslated
+msgid "Calendar.lang.rangeYearPlaceholder"
+msgstr "§[\"Any d'inici\",\"Any final\"]"
+
+# traslated
+msgid "User.Setting.errorTitle"
+msgstr "Ops... Alguna cosa ha anat malament!"
+
+# traslated
+msgid "Contact.namePlaceholder"
+msgstr "El teu nom"
+
+msgid "Calendar.lang.placeholder"
+msgstr "Seleccionar data"
+
+# traslated
+msgid "App.restoreEraseButton"
+msgstr "Esborrar les dades d'emmagatzematge"
+
+# traslated
+msgid "User.Login.passwordRequired"
+msgstr "Si us plau, introdueixi la seva contrasenya!"
+
+# traslated
+msgid "User.Forgot.or"
+msgstr "O"
+
+msgid "Form.defaultValidateMessages.types.boolean"
+msgstr "${label} no és un ${type} vàlid"
+
+# traslated
+msgid "DatePicker.lang.rangeWeekPlaceholder"
+msgstr "§[\"Setmana d'inici\",\"Setmana final\"]"
+
+# traslated
+msgid "App.cleanButton"
+msgstr "Net"
+
+msgid "Form.defaultValidateMessages.types.integer"
+msgstr "${label} no és un ${type} vàlid"
+
+msgid "Empty.description"
+msgstr "Sense dades"
+
+# default
+msgid "Calendar.lang.shortMonths"
+msgstr "§undefined"
+
+# traslated
+msgid "DebugTemplate.tooltipFloatButton"
+msgstr "Obriu el flux de treball de depuració"
+
+msgid "Calendar.lang.decadeSelect"
+msgstr "Escollir una dècada"
+
+msgid "Upload.uploadError"
+msgstr "Error de càrrega"
+
+# traslated
+msgid "User.Login.submitButton"
+msgstr "Connexió"
+
+# traslated
+msgid "User.Register.errorTitle"
+msgstr "Ops... Alguna cosa ha anat malament!"
+
+msgid "DatePicker.lang.timeSelect"
+msgstr "Seleccionar hora"
+
+# traslated
+msgid "App.uploadButton"
+msgstr "Pujar"
+
+# traslated
+msgid "User.Register.passwordConfirmPlaceholder"
+msgstr "Confirma la contrasenya"
+
+# traslated
+msgid "CloudDownloadField.fieldErrors.name"
+msgstr "Si us plau, introduïu el nom!"
+
+# traslated
+msgid "CloudUploadField.fieldErrors.name"
+msgstr "Si us plau, introduïu el nom!"
+
+# traslated
+msgid "TableField.exportTooltip"
+msgstr "Exportar taula en CSV"
+
+# traslated
+msgid "User.Login.registerNow"
+msgstr "Registra't ara!"
+
+# traslated
+msgid "User.Login.emailInvalid"
+msgstr "Correu electrònic no vàlid!"
+
+# traslated
+msgid "User.Forgot.login"
+msgstr "Connexió!"
+
+msgid "Pagination.items_per_page"
+msgstr "/ pàgina"
+
+# traslated
+msgid "CloudDownloadField.buttonSave"
+msgstr "Salvar"
+
+# traslated
+msgid "User.titleRegister"
+msgstr "Nova inscripció"
+
+msgid "Calendar.lang.now"
+msgstr "Ara"
+
+# traslated
+msgid "Contact.buttonTooltip"
+msgstr "Contacte"
+
+msgid "Form.optional"
+msgstr "(opcional)"
+
+# traslated
+msgid "App.restoreTitleDifferences"
+msgstr "Diferències"
+
+msgid "DatePicker.lang.monthBeforeYear"
+msgstr "§true"
+
+msgid "DatePicker.lang.rangePlaceholder"
+msgstr "§[\"Data inicial\",\"Data final\"]"
+
+# traslated
+msgid "User.Confirm.emailPlaceholder"
+msgstr "Correu electrònic"
+
+msgid "DatePicker.lang.nextDecade"
+msgstr "Dècada següent"
+
+# traslated
+msgid "Errors.title"
+msgstr "Errors de validació"
+
+# traslated
+msgid "DatePicker.lang.yearPlaceholder"
+msgstr "Selecciona l'any"
+
+# traslated
+msgid "FileWidget.errorFileType"
+msgstr "Només podeu carregar el fitxer {fileTypes}!"
+
+# traslated
+msgid "PDFField.uploadError"
+msgstr "Error de pujada"
+
+# traslated
+msgid "DatePicker.lang.rangeQuarterPlaceholder"
+msgstr "§[\"Inici trimestre\",\"Final de trimestre\"]"
+
+# traslated
+msgid "App.restoreCurrent"
+msgstr "actual"
+
+# traslated
+msgid "ArrayAccordion.placeholder"
+msgstr "Si us plau, seleccioneu"
+
+# traslated
+msgid "Calendar.lang.weekPlaceholder"
+msgstr "Selecciona setmana"
+
+# traslated
+msgid "User.Register.firstnameRequired"
+msgstr "Si us plau, introdueixi el seu nom!"
+
+# traslated
+msgid "User.Setting.revertButton"
+msgstr "Tornar"
+
+# traslated
+msgid "App.fullscreenButton"
+msgstr "Pantalla completa"
+
+# traslated
+msgid "CloudDownloadField.buttonSaveNew"
+msgstr "Nou rècord"
+
+msgid "DatePicker.lang.month"
+msgstr "Mes"
+
+msgid "Calendar.lang.nextMonth"
+msgstr "Mes següent (PageDown)"
+
+# traslated
+msgid "TableField.deleteItemConfirm"
+msgstr "Segur d'esborrar?"
+
+msgid "Form.defaultValidateMessages.array.len"
+msgstr "La llargada de ${label} ha de ser de ${len}"
+
+msgid "Table.filterConfirm"
+msgstr "D’acord"
+
+# traslated
+msgid "User.Setting.firstnamePlaceholder"
+msgstr "Nom"
+
+# traslated
+msgid "App.autoSavingErrorTitle"
+msgstr "Ops... Desactivació de l'estalvi automàtic"
+
+msgid "TimePicker.placeholder"
+msgstr "Seleccionar hora"
+
+# traslated
+msgid "DatePicker.lang.quarterPlaceholder"
+msgstr "Selecciona barri"
+
+# traslated
+msgid "User.ResetPassword.passwordConfirmRequired"
+msgstr "Si us plau, confirmeu la vostra nova contrasenya."
+
+# traslated
+msgid "CloudDownloadField.dataSwitchUnChecked"
+msgstr "servidor"
+
+# traslated
+msgid "Table.selectNone"
+msgstr "Esborrar totes les dades"
+
+msgid "Form.defaultValidateMessages.types.url"
+msgstr "${label} no és un ${type} vàlid"
+
+msgid "Pagination.page"
+msgstr ""
+
+# traslated
+msgid "User.titleSetting"
+msgstr "Editar la configuració"
+
+# traslated
+msgid "User.Forgot.emailRequired"
+msgstr "Si us plau, introdueixi el seu correu electrònic!"
+
+msgid "Table.selectionAll"
+msgstr "Seleccionar-ho tot"
+
+msgid "Form.defaultValidateMessages.string.range"
+msgstr "${label} ha d’estar entre ${min} i ${max} caràcters"
+
+# traslated
+msgid "User.Login.emailPlaceholder"
+msgstr "Correu electrònic"
+
+# traslated
+msgid "TabsField.moveleft"
+msgstr "Mou-te a l'esquerra"
+
+# traslated
+msgid "App.cloudUploadButton"
+msgstr "Salvar"
+
+# traslated
+msgid "User.Forgot.emailPlaceholder"
+msgstr "Correu electrònic"
+
+# traslated
+msgid "PDFField.downloadFile"
+msgstr "Descarregar arxiu"
+
+msgid "DatePicker.timePickerLocale.placeholder"
+msgstr "Seleccionar hora"
+
+# traslated
+msgid "Contact.messageRequired"
+msgstr "Si us plau, introdueix el teu missatge!"
+
+# traslated
+msgid "User.Setting.lastnameRequired"
+msgstr "Si us plau, introdueix el teu cognom!"
+
+# traslated
+msgid "CloudUploadField.buttonCancel"
+msgstr "Cancel·lar"
+
+# traslated
+msgid "App.downloadButton"
+msgstr "Descarregar"
+
+msgid "DatePicker.lang.dateFormat"
+msgstr "D/M/YYYY"
+
+# traslated
+msgid "Contact.subjectRequired"
+msgstr "Si us plau, introduïu l'assumpte del correu!"
+
+# default
+msgid "Calendar.lang.shortWeekDays"
+msgstr "§undefined"
+
+msgid "Calendar.lang.locale"
+msgstr "ca_ES"
+
+# traslated
+msgid "CloudDownloadField.titleName"
+msgstr "Nom"
+
+msgid "Transfer.searchPlaceholder"
+msgstr "Cercar"
+
+# traslated
+msgid "CloudUploadField.createdAt"
+msgstr "Creada"
+
+# traslated
+msgid "Contact.emailInvalid"
+msgstr "Correu electrònic no vàlid!"
+
+# traslated
+msgid "User.infoButton"
+msgstr "Perfil"
+
+# traslated
+msgid "User.Register.passwordConfirmError"
+msgstr "Les dues contrasenyes que has introduït no coincideixen!"
+
+# traslated
+msgid "CloudUploadField.dataSwitchChecked"
+msgstr "actual"
+
+# traslated
+msgid "TabsField.clone"
+msgstr "clon"
+
+msgid "Transfer.titles"
+msgstr "§[\"\",\"\"]"
+
+# traslated
+msgid "QRCode.refresh"
+msgstr "Refrescar"
+
+# traslated
+msgid "TableField.importTooltip"
+msgstr "Taula d'importació des de CSV"
+
+# traslated
+msgid "App.uploadTooltip"
+msgstr "Importar dades com a JSON"
+
+msgid "DatePicker.lang.decadeSelect"
+msgstr "Escollir una dècada"
+
+# traslated
+msgid "App.restoreModalTitle"
+msgstr "Restaurar dades"
+
+msgid "Table.sortTitle"
+msgstr "Ordenar"
+
+msgid "DatePicker.lang.year"
+msgstr "Any"
+
+# traslated
+msgid "App.restoreRestoreButton"
+msgstr "Restaurar"
+
+msgid "Form.defaultValidateMessages.types.number"
+msgstr "${label} no és un ${type} vàlid"
+
+# traslated
+msgid "Calendar.lang.yearPlaceholder"
+msgstr "Selecciona l'any"
+
+msgid "Popconfirm.okText"
+msgstr "D’acord"
+
+# traslated
+msgid "CloudDownloadField.titleData"
+msgstr "Font de dades"
+
+# traslated
+msgid "ArrayCopy.placeholder"
+msgstr "Si us plau, seleccioneu"
+
+msgid "Upload.uploading"
+msgstr "Carregant…"
+
+# traslated
+msgid "CloudUploadField.titleData"
+msgstr "Font de dades"
+
+msgid "Text.copied"
+msgstr "Copiat"
+
+# traslated
+msgid "App.cloudDownloadTooltip"
+msgstr "Importar dades des del núvol"
+
+# traslated
+msgid "FileWidget.dropMessage"
+msgstr "Arrossegueu el fitxer aquí o feu clic per navegar"
+
+msgid "Calendar.lang.month"
+msgstr "Mes"
+
+msgid "Form.defaultValidateMessages.types.object"
+msgstr "${label} no és un ${type} vàlid"
+
+msgid "PageHeader.back"
+msgstr "Enrere"
+
+msgid "DatePicker.lang.nextYear"
+msgstr "Mes següent (Control + right)"
+
+# traslated
+msgid "User.titleLogin"
+msgstr "Connexió"
+
+# traslated
+msgid "Table.filterCheckall"
+msgstr "Selecciona tots els ítems"
+
+msgid "DatePicker.lang.previousYear"
+msgstr "Any anterior (Control + left)"
+
+msgid "Upload.previewFile"
+msgstr "Vista prèvia del fitxer"
+
+# traslated
+msgid "CloudUploadField.updatedAt"
+msgstr "Actualitzat"
+
+msgid "Calendar.lang.timeSelect"
+msgstr "Seleccionar hora"
+
+# traslated
+msgid "CloudUploadField.buttonSave"
+msgstr "Salvar"
+
+# traslated
+msgid "TabsField.selectItem"
+msgstr "Selecciona un element"
+
+# traslated
+msgid "FileWidget.errorSameFile"
+msgstr "Fitxer {nom del fitxer} ja carregat!"
+
+msgid "Calendar.lang.monthSelect"
+msgstr "Escollir un mes"
+
+msgid "Form.defaultValidateMessages.types.array"
+msgstr "${label} no és un ${type} vàlid"
+
+msgid "language"
+msgstr "ca_ES"
+
+# traslated
+msgid "User.Setting.lastnamePlaceholder"
+msgstr "Cognom"
+
+# traslated
+msgid "TabsField.delete"
+msgstr "esborrar"
+
+msgid "Form.defaultValidateMessages.default"
+msgstr "Error de validació del camp ${label}"
+
+msgid "Calendar.lang.previousYear"
+msgstr "Any anterior (Control + left)"

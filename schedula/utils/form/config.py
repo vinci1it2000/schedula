@@ -95,8 +95,26 @@ class Config:
 
     BABEL_DEFAULT_LOCALE = 'en_US'
     BABEL_LANGUAGES = {
+        'af_ZA': {"icon": "🇿🇦", "label": "Afrikaans"},
+        'ca_ES': {"icon": "🇪🇸", "label": "Català"},
+        'da_DK': {"icon": "🇩🇰", "label": "Dansk"},
+        'de_DE': {"icon": "🇩🇪", "label": "Deutsch"},
         'en_US': {"icon": "🇺🇸", "label": "English"},
-        'it_IT': {"icon": "🇮🇹", "label": "Italiano"}
+        'es_ES': {"icon": "🇪🇸", "label": "Español"},
+        'eu_ES': {"icon": "🇪🇸", "label": "Euskara"},
+        'fr_FR': {"icon": "🇫🇷", "label": "Français"},
+        'hu_HU': {"icon": "🇭🇺", "label": "Magyar"},
+        'hy_AM': {"icon": "🇦🇲", "label": "Հայերեն"},
+        'is_IS': {"icon": "🇮🇸", "label": "Íslenska"},
+        'it_IT': {"icon": "🇮🇹", "label": "Italiano"},
+        'ja_JP': {"icon": "🇯🇵", "label": "日本語"},
+        'nl_NL': {"icon": "🇳🇱", "label": "Nederlands"},
+        'pl_PL': {"icon": "🇵🇱", "label": "Polski"},
+        'pt_BR': {"icon": "🇧🇷", "label": "Português (Brasil)"},
+        'pt_PT': {"icon": "🇵🇹", "label": "Português (Portugal)"},
+        'ru_RU': {"icon": "🇷🇺", "label": "Русский"},
+        'tr_TR': {"icon": "🇹🇷", "label": "Türkçe"},
+        'zh_Hans_CN': {"icon": "🇨🇳", "label": "中文（简体）"}
     }
 
     # have session and remember cookie be samesite (flask/flask_login)

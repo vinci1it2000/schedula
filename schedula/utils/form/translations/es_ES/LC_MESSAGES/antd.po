@@ -1,0 +1,1355 @@
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: 1.0\n"
+"Report-Msgid-Bugs-To: vinci1it2000@gmail.com\n"
+"PO-Revision-Date: 2023-11-18 08:55+0000\n"
+"Last-Translator: Vincenzo Arcidiacono <vinci1it2000@gmail.com>\n"
+"Language-Team: English <vinci1it2000@gmail.com>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+# traslated
+msgid "Contact.errorTitle"
+msgstr "Operaciones... ¡Algo salió mal!"
+
+# traslated
+msgid "ColorPicker.presetEmpty"
+msgstr "Vacío"
+
+msgid "Table.filterReset"
+msgstr "Reiniciar"
+
+# traslated
+msgid "User.Register.login"
+msgstr "¡Iniciar sesión!"
+
+# traslated
+msgid "TableField.addItemTooltip"
+msgstr "Añadir artículo"
+
+# traslated
+msgid "CloudUploadField.buttonDownload"
+msgstr "Servidor"
+
+# traslated
+msgid "User.Logout.submitButton"
+msgstr "Cerrar sesión"
+
+msgid "Calendar.lang.dateFormat"
+msgstr "D/M/YYYY"
+
+msgid "Calendar.lang.dateSelect"
+msgstr "Seleccionar fecha"
+
+# traslated
+msgid "User.Confirm.errorTitle"
+msgstr "Operaciones... ¡Algo salió mal!"
+
+# traslated
+msgid "TabsField.moveup"
+msgstr "desplazar hacia arriba"
+
+msgid "Modal.justOkText"
+msgstr "Aceptar"
+
+# traslated
+msgid "PDFField.titleSectionSelection"
+msgstr "Secciones"
+
+msgid "Calendar.lang.previousCentury"
+msgstr "Siglo anterior"
+
+# traslated
+msgid "User.ResetPassword.passwordPlaceholder"
+msgstr "Nueva contraseña"
+
+# traslated
+msgid "User.loginTooltip"
+msgstr "Iniciar sesión"
+
+msgid "Form.defaultValidateMessages.whitespace"
+msgstr "${label} no puede ser un carácter en blanco"
+
+msgid "Pagination.prev_page"
+msgstr "Página anterior"
+
+# traslated
+msgid "QRCode.expired"
+msgstr "El código QR ha caducado"
+
+# traslated
+msgid "FileWidget.errorNotUploaded"
+msgstr "Operaciones... Archivo no cargado"
+
+msgid "Form.defaultValidateMessages.string.max"
+msgstr "${label} debe tener hasta ${max} caracteres"
+
+# traslated
+msgid "User.Confirm.submitButton"
+msgstr "Enviar instrucciones"
+
+msgid "Form.defaultValidateMessages.types.hex"
+msgstr "${label} no es un ${type} válido"
+
+# traslated
+msgid "Contact.submitButton"
+msgstr "Enviar"
+
+msgid "Table.expand"
+msgstr "Expandir fila"
+
+# traslated
+msgid "App.restoreDifferences"
+msgstr "Mostrar diferencias con respecto a los datos actuales"
+
+msgid "Pagination.jump_to_confirm"
+msgstr "confirmar"
+
+# traslated
+msgid "User.ResetPassword.submitButton"
+msgstr "Restablecer contraseña"
+
+msgid "Transfer.itemUnit"
+msgstr "elemento"
+
+msgid "global.placeholder"
+msgstr "Seleccione"
+
+# traslated
+msgid "DatePicker.lang.rangeMonthPlaceholder"
+msgstr "§[\"Mes de inicio\",\"Fin de mes\"]"
+
+# traslated
+msgid "User.titleResetPassword"
+msgstr "Restablecer contraseña"
+
+# traslated
+msgid "Contact.emailPlaceholder"
+msgstr "Correo electrónico"
+
+msgid "Table.triggerAsc"
+msgstr "Click para ordenar en orden ascendente"
+
+# traslated
+msgid "User.Register.usernameRequired"
+msgstr "¡Por favor, introduzca su nombre de usuario!"
+
+# traslated
+msgid "User.titleLogout"
+msgstr "¿Seguro que vas a cerrar la sesión?"
+
+# traslated
+msgid "ArrayCopy.titleCopyButton"
+msgstr "Seleccione dónde copiar los datos."
+
+msgid "Popconfirm.cancelText"
+msgstr "Cancelar"
+
+# traslated
+msgid "User.titleConfirm"
+msgstr "Enviar correo electrónico de confirmación"
+
+msgid "Form.defaultValidateMessages.array.range"
+msgstr "El monto de ${label} debe estar entre ${min}-${max}"
+
+# traslated
+msgid "User.ResetPassword.login"
+msgstr "¡Iniciar sesión!"
+
+# traslated
+msgid "Calendar.lang.rangeQuarterPlaceholder"
+msgstr "§[\"Trimestre inicial\",\"Trimestre final\"]"
+
+# traslated
+msgid "PDFField.previewFile"
+msgstr "Archivo de vista previa"
+
+# traslated
+msgid "Contact.subjectPlaceholder"
+msgstr "Asunto del correo"
+
+# traslated
+msgid "User.titleInfo"
+msgstr "Información del usuario"
+
+# traslated
+msgid "App.cloudDownloadButton"
+msgstr "Importación"
+
+msgid "Form.defaultValidateMessages.types.float"
+msgstr "${label} no es un ${type} válido"
+
+# traslated
+msgid "App.runButton"
+msgstr "Correr"
+
+# traslated
+msgid "User.Register.emailInvalid"
+msgstr "¡Correo electrónico no válido!"
+
+msgid "Modal.cancelText"
+msgstr "Cancelar"
+
+msgid "DatePicker.lang.nextCentury"
+msgstr "Siglo siguiente"
+
+msgid "Upload.removeFile"
+msgstr "Eliminar archivo"
+
+# traslated
+msgid "FileWidget.errorToolTip"
+msgstr "Error de carga"
+
+# traslated
+msgid "TableField.deleteAllConfirm"
+msgstr "¿Seguro que eliminarás todo el contenido?"
+
+msgid "Form.defaultValidateMessages.number.range"
+msgstr "${label} debe estar entre ${min}-${max}"
+
+msgid "Form.defaultValidateMessages.date.format"
+msgstr "El formato de fecha de ${label} es inválido"
+
+msgid "Form.defaultValidateMessages.types.string"
+msgstr "${label} no es un ${type} válido"
+
+msgid "Transfer.selectInvert"
+msgstr "Invertir página actual"
+
+# traslated
+msgid "ErrorListTemplate.tooltipFloatButton"
+msgstr "Mensajes de error abiertos"
+
+msgid "DatePicker.lang.dateSelect"
+msgstr "Seleccionar fecha"
+
+msgid "Table.emptyText"
+msgstr "Sin datos"
+
+msgid "DatePicker.lang.backToToday"
+msgstr "Volver a hoy"
+
+msgid "DatePicker.lang.dayFormat"
+msgstr "D"
+
+# traslated
+msgid "User.Forgot.emailInvalid"
+msgstr "¡Correo electrónico no válido!"
+
+# default
+msgid "DatePicker.lang.shortMonths"
+msgstr "§undefined"
+
+# traslated
+msgid "User.ResetPassword.passwordRequired"
+msgstr "¡Por favor, introduzca su nueva contraseña!"
+
+# traslated
+msgid "User.Register.lastnamePlaceholder"
+msgstr "Apellido"
+
+# traslated
+msgid "CloudUploadField.titleName"
+msgstr "Nombre"
+
+# traslated
+msgid "Contact.title"
+msgstr "Contáctenos"
+
+msgid "Calendar.lang.nextCentury"
+msgstr "Siglo siguiente"
+
+msgid "Form.defaultValidateMessages.string.min"
+msgstr "${label} debe tener al menos ${min} caracteres"
+
+msgid "Modal.okText"
+msgstr "Aceptar"
+
+# traslated
+msgid "User.Register.emailRequired"
+msgstr "¡Por favor, introduzca su correo electrónico!"
+
+msgid "Table.collapse"
+msgstr "Colapsar fila"
+
+msgid "Pagination.prev_5"
+msgstr "5 páginas previas"
+
+# traslated
+msgid "ArrayAccordion.titleCopyButton"
+msgstr "Seleccione dónde copiar los datos."
+
+msgid "Calendar.lang.previousMonth"
+msgstr "Mes anterior (PageUp)"
+
+msgid "Transfer.removeCurrent"
+msgstr "Remover página actual"
+
+msgid "Form.defaultValidateMessages.array.max"
+msgstr "A lo mucho ${max} ${label}"
+
+# traslated
+msgid "App.cloudUploadTooltip"
+msgstr "Guardar datos en la nube"
+
+# traslated
+msgid "CloudDownloadField.buttonCancel"
+msgstr "Cancelar"
+
+# traslated
+msgid "Contact.emailRequired"
+msgstr "¡Por favor, introduzca su correo electrónico!"
+
+msgid "Calendar.lang.monthBeforeYear"
+msgstr "§true"
+
+# traslated
+msgid "User.Confirm.emailInvalid"
+msgstr "¡Correo electrónico no válido!"
+
+# traslated
+msgid "User.ResetPassword.passwordConfirmError"
+msgstr "¡Las dos contraseñas que ingresó no coinciden!"
+
+# traslated
+msgid "CloudUploadField.titleSaveNew"
+msgstr "Guardar datos actuales"
+
+# traslated
+msgid "User.Register.lastnameRequired"
+msgstr "¡Por favor, introduzca su apellido!"
+
+# traslated
+msgid "User.settingButton"
+msgstr "Configuración"
+
+msgid "Pagination.next_3"
+msgstr "3 páginas siguientes"
+
+msgid "Transfer.remove"
+msgstr "Eliminar"
+
+msgid "DatePicker.lang.yearFormat"
+msgstr "YYYY"
+
+# traslated
+msgid "User.Login.passwordPlaceholder"
+msgstr "Contraseña"
+
+msgid "DatePicker.lang.placeholder"
+msgstr "Seleccionar fecha"
+
+# traslated
+msgid "User.titleForgot"
+msgstr "Recuperar contraseña"
+
+# traslated
+msgid "Calendar.lang.quarterPlaceholder"
+msgstr "Seleccionar trimestre"
+
+msgid "DatePicker.lang.previousCentury"
+msgstr "Siglo anterior"
+
+# traslated
+msgid "App.restoreButton"
+msgstr "Restaurar"
+
+# default
+msgid "DatePicker.lang.shortWeekDays"
+msgstr "§undefined"
+
+# traslated
+msgid "User.logoutButton"
+msgstr "Cerrar sesión"
+
+# traslated
+msgid "User.buttonTooltip"
+msgstr "Iniciar sesión"
+
+# traslated
+msgid "DatePicker.lang.rangeYearPlaceholder"
+msgstr "§[\"Año de inicio\",\"Fin de año\"]"
+
+msgid "Pagination.page_size"
+msgstr "tamaño de página"
+
+# traslated
+msgid "Calendar.lang.weekSelect"
+msgstr "Escoge una semana"
+
+msgid "Form.defaultValidateMessages.date.invalid"
+msgstr "${label} es una fecha inválida"
+
+# traslated
+msgid "App.restoreCloseButton"
+msgstr "Cerrar"
+
+# traslated
+msgid "User.Forgot.submitButton"
+msgstr "Recuperar contraseña"
+
+msgid "Transfer.selectCurrent"
+msgstr "Seleccionar página actual"
+
+# traslated
+msgid "User.Register.usernamePlaceholder"
+msgstr "Nombre de usuario"
+
+# traslated
+msgid "App.filesButton"
+msgstr "Archivos"
+
+# traslated
+msgid "TabsField.moveright"
+msgstr "Muévete a la derecha"
+
+# traslated
+msgid "DatePicker.lang.weekSelect"
+msgstr "Escoge una semana"
+
+# traslated
+msgid "Calendar.lang.rangeMonthPlaceholder"
+msgstr "§[\"Mes de inicio\",\"Fin de mes\"]"
+
+msgid "Table.filterTitle"
+msgstr "Filtrar menú"
+
+# traslated
+msgid "App.restoreTooltip"
+msgstr "Restaurar datos"
+
+msgid "Upload.downloadFile"
+msgstr "Descargar archivo"
+
+msgid "Calendar.lang.yearSelect"
+msgstr "Elegir un año"
+
+msgid "Text.copy"
+msgstr "Copiar"
+
+# traslated
+msgid "User.ResetPassword.errorTitle"
+msgstr "Operaciones... ¡Algo salió mal!"
+
+# traslated
+msgid "Tour.Finish"
+msgstr "Terminar"
+
+msgid "Form.defaultValidateMessages.number.len"
+msgstr "${label} debe ser igual a ${len}"
+
+# traslated
+msgid "CloudDownloadField.titleSaveNew"
+msgstr "Guardar datos actuales"
+
+# traslated
+msgid "CloudUploadField.confirmDelete"
+msgstr "¿Seguro que lo eliminarás?"
+
+# traslated
+msgid "PDFField.uploading"
+msgstr "Cargar..."
+
+msgid "Transfer.removeAll"
+msgstr "Eliminar todos los datos"
+
+# traslated
+msgid "Calendar.timePickerLocale.rangePlaceholder"
+msgstr "§[\"Hora de comienzo\",\"Hora de finalización\"]"
+
+# traslated
+msgid "User.Forgot.errorTitle"
+msgstr "Operaciones... ¡Algo salió mal!"
+
+msgid "Table.filterEmptyText"
+msgstr "Sin filtros"
+
+# traslated
+msgid "PDFField.removeFile"
+msgstr "Eliminar archivo"
+
+# traslated
+msgid "User.Login.sendConfirmMail"
+msgstr "Volver a enviar el correo electrónico de confirmación"
+
+msgid "Pagination.next_5"
+msgstr "5 páginas siguientes"
+
+# traslated
+msgid "ErrorListTemplate.descriptionFloatButton"
+msgstr "ERRAR"
+
+# traslated
+msgid "PDFField.preview"
+msgstr "Vista previa"
+
+msgid "Form.defaultValidateMessages.enum"
+msgstr "${label} debe ser uno de [${enum}]"
+
+# traslated
+msgid "Contact.nameRequired"
+msgstr "¡Por favor, introduzca su nombre!"
+
+# traslated
+msgid "ErrorListTemplate.titleModal"
+msgstr "Errores"
+
+msgid "Form.defaultValidateMessages.number.min"
+msgstr "${label} valor mínimo es ${min}"
+
+# traslated
+msgid "User.Register.firstnamePlaceholder"
+msgstr "Nombre"
+
+msgid "Calendar.lang.dayFormat"
+msgstr "D"
+
+msgid "DatePicker.lang.yearSelect"
+msgstr "Elegir un año"
+
+# traslated
+msgid "User.Register.submitButton"
+msgstr "Registro"
+
+msgid "Calendar.lang.backToToday"
+msgstr "Volver a hoy"
+
+# traslated
+msgid "User.Login.rememberMe"
+msgstr "Recuérdame"
+
+# traslated
+msgid "CloudDownloadField.buttonDownload"
+msgstr "Servidor"
+
+# traslated
+msgid "ArrayAccordion.tooltipExtra"
+msgstr "Copiar datos sobre"
+
+msgid "Calendar.timePickerLocale.placeholder"
+msgstr "Seleccionar hora"
+
+msgid "Calendar.lang.year"
+msgstr "Año"
+
+# traslated
+msgid "User.Register.passwordConfirmRequired"
+msgstr "¡Por favor, confirme su contraseña!"
+
+# traslated
+msgid "App.disableFullscreen"
+msgstr "Desactivar pantalla completa"
+
+# traslated
+msgid "CloudDownloadField.createdAt"
+msgstr "Creado"
+
+# traslated
+msgid "App.downloadTooltip"
+msgstr "Exportar datos como JSON"
+
+# traslated
+msgid "App.autoSaveTooltip"
+msgstr "Habilitar el guardado automático"
+
+msgid "DatePicker.lang.today"
+msgstr "Hoy"
+
+# traslated
+msgid "Tour.Previous"
+msgstr "Anterior"
+
+msgid "Pagination.jump_to"
+msgstr "Ir a"
+
+# traslated
+msgid "User.ResetPassword.or"
+msgstr "O"
+
+# traslated
+msgid "User.Register.passwordPlaceholder"
+msgstr "Contraseña"
+
+msgid "Table.selectAll"
+msgstr "Seleccionar todo"
+
+# traslated
+msgid "CloudUploadField.buttonOverwrite"
+msgstr "Sobrescribir"
+
+# traslated
+msgid "CloudDownloadField.updatedAt"
+msgstr "Actualizado"
+
+# traslated
+msgid "User.Login.or"
+msgstr "O"
+
+# traslated
+msgid "DebugTemplate.titleModal"
+msgstr "Flujo de trabajo de depuración"
+
+msgid "Calendar.lang.rangePlaceholder"
+msgstr "§[\"Fecha inicial\",\"Fecha final\"]"
+
+msgid "Text.edit"
+msgstr "Editar"
+
+msgid "DatePicker.lang.previousMonth"
+msgstr "Mes anterior (PageUp)"
+
+# traslated
+msgid "App.autoSaveButton"
+msgstr "Guardado automático"
+
+# traslated
+msgid "CloudDownloadField.buttonOverwrite"
+msgstr "Sobrescribir"
+
+# traslated
+msgid "FileWidget.errorOnlyOneItem"
+msgstr "¡Puedes subir un máximo de un archivo!"
+
+msgid "Pagination.prev_3"
+msgstr "3 páginas previas"
+
+# traslated
+msgid "User.Login.emailRequired"
+msgstr "¡Por favor, introduzca su correo electrónico!"
+
+# traslated
+msgid "CloudDownloadField.confirmDelete"
+msgstr "¿Seguro que lo eliminarás?"
+
+# traslated
+msgid "User.Register.passwordRequired"
+msgstr "¡Por favor, introduzca su contraseña!"
+
+# traslated
+msgid "TimePicker.rangePlaceholder"
+msgstr "§[\"Hora de comienzo\",\"Hora de finalización\"]"
+
+# traslated
+msgid "FileWidget.errorMaxItems"
+msgstr "¡Puede cargar el máximo de archivos {maxItems}!"
+
+msgid "Calendar.lang.dateTimeFormat"
+msgstr "D/M/YYYY HH:mm:ss"
+
+# traslated
+msgid "User.Confirm.or"
+msgstr "O"
+
+# traslated
+msgid "Contact.messagePlaceholder"
+msgstr "Su mensaje"
+
+msgid "Form.defaultValidateMessages.string.len"
+msgstr "${label} debe tener ${len} caracteres"
+
+# traslated
+msgid "ArrayCopy.tooltip"
+msgstr "Copiar datos sobre"
+
+# traslated
+msgid "DatePicker.lang.monthPlaceholder"
+msgstr "Seleccionar mes"
+
+msgid "Calendar.lang.today"
+msgstr "Hoy"
+
+msgid "Transfer.itemsUnit"
+msgstr "elementos"
+
+msgid "Table.filterSearchPlaceholder"
+msgstr "Buscar en filtros"
+
+# default
+msgid "DatePicker.lang.monthFormat"
+msgstr "§undefined"
+
+# traslated
+msgid "CloudDownloadField.dataSwitchChecked"
+msgstr "actual"
+
+msgid "Transfer.selectAll"
+msgstr "Seleccionar todos los datos"
+
+msgid "Image.preview"
+msgstr "Previsualización"
+
+msgid "Table.triggerDesc"
+msgstr "Click para ordenar en orden descendente"
+
+msgid "DatePicker.lang.dateTimeFormat"
+msgstr "D/M/YYYY HH:mm:ss"
+
+# traslated
+msgid "CloudUploadField.errorTitle"
+msgstr "Operaciones... ¡Algo salió mal!"
+
+# traslated
+msgid "DatePicker.timePickerLocale.rangePlaceholder"
+msgstr "§[\"Hora de comienzo\",\"Hora de finalización\"]"
+
+# traslated
+msgid "App.enableFullscreen"
+msgstr "Habilitar pantalla completa"
+
+msgid "DatePicker.lang.clear"
+msgstr "Limpiar"
+
+msgid "Calendar.lang.nextDecade"
+msgstr "Década siguiente"
+
+# traslated
+msgid "User.Register.emailPlaceholder"
+msgstr "Correo electrónico"
+
+# traslated
+msgid "App.cloudButton"
+msgstr "Nube"
+
+# traslated
+msgid "App.autoSavingTooltip"
+msgstr "Desactivar el guardado automático"
+
+msgid "Form.defaultValidateMessages.date.parse"
+msgstr "${label} no se puede convertir a una fecha"
+
+msgid "Form.defaultValidateMessages.pattern.mismatch"
+msgstr "${label} no coincide con el patrón ${pattern}"
+
+msgid "Form.defaultValidateMessages.types.regexp"
+msgstr "${label} no es un ${type} válido"
+
+msgid "Text.expand"
+msgstr "Expandir"
+
+# traslated
+msgid "User.Login.forgotPassword"
+msgstr "Olvidé mi contraseña"
+
+msgid "Form.defaultValidateMessages.number.max"
+msgstr "${label} valor máximo es ${max}"
+
+# traslated
+msgid "CloudUploadField.dataSwitchUnChecked"
+msgstr "Servidor"
+
+# traslated
+msgid "App.cleanConfirm"
+msgstr "¿Seguro que vas a eliminar estos datos?"
+
+# traslated
+msgid "CloudUploadField.buttonSaveNew"
+msgstr "Nuevo récord"
+
+msgid "DatePicker.lang.nextMonth"
+msgstr "Mes siguiente (PageDown)"
+
+msgid "Table.selectInvert"
+msgstr "Invertir selección"
+
+# traslated
+msgid "App.restoreConfirm"
+msgstr "¿Seguro que restaurará estos datos?"
+
+# traslated
+msgid "DatePicker.lang.weekPlaceholder"
+msgstr "Seleccionar semana"
+
+# traslated
+msgid "Calendar.lang.monthPlaceholder"
+msgstr "Seleccionar mes"
+
+# traslated
+msgid "User.Login.errorTitle"
+msgstr "Operaciones... ¡Algo salió mal!"
+
+msgid "Form.defaultValidateMessages.array.min"
+msgstr "Al menos ${min} ${label}"
+
+# traslated
+msgid "TabsField.select"
+msgstr "escoger"
+
+# traslated
+msgid "TabsField.movedown"
+msgstr "desplazar hacia abajo"
+
+msgid "DatePicker.lang.monthSelect"
+msgstr "Elegir un mes"
+
+# traslated
+msgid "App.autoSavingButton"
+msgstr "Guardado automático"
+
+msgid "Calendar.lang.previousDecade"
+msgstr "Década anterior"
+
+msgid "Calendar.lang.ok"
+msgstr "Aceptar"
+
+# traslated
+msgid "User.Confirm.emailRequired"
+msgstr "¡Por favor, introduzca su correo electrónico!"
+
+# traslated
+msgid "User.Setting.firstnameRequired"
+msgstr "¡Por favor, introduzca su nombre!"
+
+# default
+msgid "Calendar.lang.monthFormat"
+msgstr "§undefined"
+
+# traslated
+msgid "User.Setting.submitButton"
+msgstr "Salvar"
+
+# traslated
+msgid "Tour.Next"
+msgstr "Siguiente"
+
+# traslated
+msgid "Calendar.lang.rangeWeekPlaceholder"
+msgstr "§[\"Semana de inicio\",\"Fin de semana\"]"
+
+# traslated
+msgid "CloudDownloadField.errorTitle"
+msgstr "Operaciones... ¡Algo salió mal!"
+
+# traslated
+msgid "User.Confirm.login"
+msgstr "¡Iniciar sesión!"
+
+# traslated
+msgid "User.ResetPassword.passwordConfirmPlaceholder"
+msgstr "Confirmar nueva contraseña"
+
+msgid "DatePicker.lang.now"
+msgstr "Ahora"
+
+msgid "Calendar.lang.nextYear"
+msgstr "Año siguiente (Control + right)"
+
+msgid "Form.defaultValidateMessages.types.date"
+msgstr "${label} no es un ${type} válido"
+
+# traslated
+msgid "User.Register.or"
+msgstr "O"
+
+msgid "DatePicker.lang.previousDecade"
+msgstr "Década anterior"
+
+# traslated
+msgid "App.branchesButton"
+msgstr "Ramas"
+
+msgid "Form.defaultValidateMessages.types.email"
+msgstr "${label} no es un ${type} válido"
+
+msgid "Pagination.next_page"
+msgstr "Página siguiente"
+
+msgid "Icon.icon"
+msgstr "ícono"
+
+msgid "Form.defaultValidateMessages.types.method"
+msgstr "${label} no es un ${type} válido"
+
+msgid "DatePicker.lang.locale"
+msgstr "es_ES"
+
+msgid "Calendar.lang.clear"
+msgstr "Limpiar"
+
+msgid "Calendar.lang.yearFormat"
+msgstr "YYYY"
+
+msgid "Form.defaultValidateMessages.required"
+msgstr "Por favor ingresar ${label}"
+
+# traslated
+msgid "App.debugButton"
+msgstr "Depurar"
+
+msgid "locale"
+msgstr "es"
+
+msgid "DatePicker.lang.ok"
+msgstr "Aceptar"
+
+msgid "Table.cancelSort"
+msgstr "Click para cancelar ordenamiento"
+
+# traslated
+msgid "Calendar.lang.rangeYearPlaceholder"
+msgstr "§[\"Año de inicio\",\"Fin de año\"]"
+
+# traslated
+msgid "User.Setting.errorTitle"
+msgstr "Operaciones... ¡Algo salió mal!"
+
+# traslated
+msgid "Contact.namePlaceholder"
+msgstr "Te llamas"
+
+msgid "Calendar.lang.placeholder"
+msgstr "Seleccionar fecha"
+
+# traslated
+msgid "App.restoreEraseButton"
+msgstr "Borrar almacenamiento"
+
+# traslated
+msgid "User.Login.passwordRequired"
+msgstr "¡Por favor, introduzca su contraseña!"
+
+# traslated
+msgid "User.Forgot.or"
+msgstr "O"
+
+msgid "Form.defaultValidateMessages.types.boolean"
+msgstr "${label} no es un ${type} válido"
+
+# traslated
+msgid "DatePicker.lang.rangeWeekPlaceholder"
+msgstr "§[\"Semana de inicio\",\"Fin de semana\"]"
+
+# traslated
+msgid "App.cleanButton"
+msgstr "Limpio"
+
+msgid "Form.defaultValidateMessages.types.integer"
+msgstr "${label} no es un ${type} válido"
+
+msgid "Empty.description"
+msgstr "No hay datos"
+
+# default
+msgid "Calendar.lang.shortMonths"
+msgstr "§undefined"
+
+# traslated
+msgid "DebugTemplate.tooltipFloatButton"
+msgstr "Abrir flujo de trabajo de depuración"
+
+msgid "Calendar.lang.decadeSelect"
+msgstr "Elegir una década"
+
+msgid "Upload.uploadError"
+msgstr "Error al subir el archivo"
+
+# traslated
+msgid "User.Login.submitButton"
+msgstr "Iniciar sesión"
+
+# traslated
+msgid "User.Register.errorTitle"
+msgstr "Operaciones... ¡Algo salió mal!"
+
+msgid "DatePicker.lang.timeSelect"
+msgstr "Seleccionar hora"
+
+# traslated
+msgid "App.uploadButton"
+msgstr "Subir"
+
+# traslated
+msgid "User.Register.passwordConfirmPlaceholder"
+msgstr "Confirmar contraseña"
+
+# traslated
+msgid "CloudDownloadField.fieldErrors.name"
+msgstr "¡Por favor, introduzca el nombre!"
+
+# traslated
+msgid "CloudUploadField.fieldErrors.name"
+msgstr "¡Por favor, introduzca el nombre!"
+
+# traslated
+msgid "TableField.exportTooltip"
+msgstr "Exportar tabla en CSV"
+
+# traslated
+msgid "User.Login.registerNow"
+msgstr "¡Regístrese ahora!"
+
+# traslated
+msgid "User.Login.emailInvalid"
+msgstr "¡Correo electrónico no válido!"
+
+# traslated
+msgid "User.Forgot.login"
+msgstr "¡Iniciar sesión!"
+
+msgid "Pagination.items_per_page"
+msgstr "/ página"
+
+# traslated
+msgid "CloudDownloadField.buttonSave"
+msgstr "Salvar"
+
+# traslated
+msgid "User.titleRegister"
+msgstr "Nuevo registro"
+
+msgid "Calendar.lang.now"
+msgstr "Ahora"
+
+# traslated
+msgid "Contact.buttonTooltip"
+msgstr "Contacto"
+
+msgid "Form.optional"
+msgstr "(opcional)"
+
+# traslated
+msgid "App.restoreTitleDifferences"
+msgstr "Diferencias"
+
+msgid "DatePicker.lang.monthBeforeYear"
+msgstr "§true"
+
+msgid "DatePicker.lang.rangePlaceholder"
+msgstr "§[\"Fecha inicial\",\"Fecha final\"]"
+
+# traslated
+msgid "User.Confirm.emailPlaceholder"
+msgstr "Correo electrónico"
+
+msgid "DatePicker.lang.nextDecade"
+msgstr "Década siguiente"
+
+# traslated
+msgid "Errors.title"
+msgstr "Errores de validación"
+
+# traslated
+msgid "DatePicker.lang.yearPlaceholder"
+msgstr "Seleccionar año"
+
+# traslated
+msgid "FileWidget.errorFileType"
+msgstr "¡Solo puedes subir el archivo {fileTypes}!"
+
+# traslated
+msgid "PDFField.uploadError"
+msgstr "Error de carga"
+
+# traslated
+msgid "DatePicker.lang.rangeQuarterPlaceholder"
+msgstr "§[\"Trimestre inicial\",\"Trimestre final\"]"
+
+# traslated
+msgid "App.restoreCurrent"
+msgstr "actual"
+
+# traslated
+msgid "ArrayAccordion.placeholder"
+msgstr "Por favor, seleccione"
+
+# traslated
+msgid "Calendar.lang.weekPlaceholder"
+msgstr "Seleccionar semana"
+
+# traslated
+msgid "User.Register.firstnameRequired"
+msgstr "¡Por favor, introduzca su nombre!"
+
+# traslated
+msgid "User.Setting.revertButton"
+msgstr "Revertir"
+
+# traslated
+msgid "App.fullscreenButton"
+msgstr "Pantalla completa"
+
+# traslated
+msgid "CloudDownloadField.buttonSaveNew"
+msgstr "Nuevo récord"
+
+msgid "DatePicker.lang.month"
+msgstr "Mes"
+
+msgid "Calendar.lang.nextMonth"
+msgstr "Mes siguiente (PageDown)"
+
+# traslated
+msgid "TableField.deleteItemConfirm"
+msgstr "¿Seguro que lo eliminarás?"
+
+msgid "Form.defaultValidateMessages.array.len"
+msgstr "Debe ser ${len} ${label}"
+
+msgid "Table.filterConfirm"
+msgstr "Aceptar"
+
+# traslated
+msgid "User.Setting.firstnamePlaceholder"
+msgstr "Nombre"
+
+# traslated
+msgid "App.autoSavingErrorTitle"
+msgstr "Operaciones... Deshabilitar el guardado automático"
+
+msgid "TimePicker.placeholder"
+msgstr "Seleccionar hora"
+
+# traslated
+msgid "DatePicker.lang.quarterPlaceholder"
+msgstr "Seleccionar trimestre"
+
+# traslated
+msgid "User.ResetPassword.passwordConfirmRequired"
+msgstr "¡Por favor, confirme su nueva contraseña!"
+
+# traslated
+msgid "CloudDownloadField.dataSwitchUnChecked"
+msgstr "Servidor"
+
+msgid "Table.selectNone"
+msgstr "Vacíe todo"
+
+msgid "Form.defaultValidateMessages.types.url"
+msgstr "${label} no es un ${type} válido"
+
+msgid "Pagination.page"
+msgstr "Página"
+
+# traslated
+msgid "User.titleSetting"
+msgstr "Editar configuración"
+
+# traslated
+msgid "User.Forgot.emailRequired"
+msgstr "¡Por favor, introduzca su correo electrónico!"
+
+msgid "Table.selectionAll"
+msgstr "Seleccionar todos los datos"
+
+msgid "Form.defaultValidateMessages.string.range"
+msgstr "${label} debe tener entre ${min}-${max} caracteres"
+
+# traslated
+msgid "User.Login.emailPlaceholder"
+msgstr "Correo electrónico"
+
+# traslated
+msgid "TabsField.moveleft"
+msgstr "Muévete a la izquierda"
+
+# traslated
+msgid "App.cloudUploadButton"
+msgstr "Salvar"
+
+# traslated
+msgid "User.Forgot.emailPlaceholder"
+msgstr "Correo electrónico"
+
+# traslated
+msgid "PDFField.downloadFile"
+msgstr "Descargar archivo"
+
+msgid "DatePicker.timePickerLocale.placeholder"
+msgstr "Seleccionar hora"
+
+# traslated
+msgid "Contact.messageRequired"
+msgstr "¡Por favor, introduzca su mensaje!"
+
+# traslated
+msgid "User.Setting.lastnameRequired"
+msgstr "¡Por favor, introduzca su apellido!"
+
+# traslated
+msgid "CloudUploadField.buttonCancel"
+msgstr "Cancelar"
+
+# traslated
+msgid "App.downloadButton"
+msgstr "Descargar"
+
+msgid "DatePicker.lang.dateFormat"
+msgstr "D/M/YYYY"
+
+# traslated
+msgid "Contact.subjectRequired"
+msgstr "¡Por favor, introduzca el asunto del correo!"
+
+# default
+msgid "Calendar.lang.shortWeekDays"
+msgstr "§undefined"
+
+msgid "Calendar.lang.locale"
+msgstr "es_ES"
+
+# traslated
+msgid "CloudDownloadField.titleName"
+msgstr "Nombre"
+
+msgid "Transfer.searchPlaceholder"
+msgstr "Buscar aquí"
+
+# traslated
+msgid "CloudUploadField.createdAt"
+msgstr "Creado"
+
+# traslated
+msgid "Contact.emailInvalid"
+msgstr "¡Correo electrónico no válido!"
+
+# traslated
+msgid "User.infoButton"
+msgstr "Perfil"
+
+# traslated
+msgid "User.Register.passwordConfirmError"
+msgstr "¡Las dos contraseñas que ingresó no coinciden!"
+
+# traslated
+msgid "CloudUploadField.dataSwitchChecked"
+msgstr "actual"
+
+# traslated
+msgid "TabsField.clone"
+msgstr "clon"
+
+msgid "Transfer.titles"
+msgstr "§[\"\",\"\"]"
+
+# traslated
+msgid "QRCode.refresh"
+msgstr "Actualizar"
+
+# traslated
+msgid "TableField.importTooltip"
+msgstr "Importar tabla desde CSV"
+
+# traslated
+msgid "App.uploadTooltip"
+msgstr "Importar datos como JSON"
+
+msgid "DatePicker.lang.decadeSelect"
+msgstr "Elegir una década"
+
+# traslated
+msgid "App.restoreModalTitle"
+msgstr "Restaurar datos"
+
+msgid "Table.sortTitle"
+msgstr "Ordenar"
+
+msgid "DatePicker.lang.year"
+msgstr "Año"
+
+# traslated
+msgid "App.restoreRestoreButton"
+msgstr "Restaurar"
+
+msgid "Form.defaultValidateMessages.types.number"
+msgstr "${label} no es un ${type} válido"
+
+# traslated
+msgid "Calendar.lang.yearPlaceholder"
+msgstr "Seleccionar año"
+
+msgid "Popconfirm.okText"
+msgstr "Aceptar"
+
+# traslated
+msgid "CloudDownloadField.titleData"
+msgstr "Fuente de datos"
+
+# traslated
+msgid "ArrayCopy.placeholder"
+msgstr "Por favor, seleccione"
+
+msgid "Upload.uploading"
+msgstr "Subiendo..."
+
+# traslated
+msgid "CloudUploadField.titleData"
+msgstr "Fuente de datos"
+
+msgid "Text.copied"
+msgstr "Copiado"
+
+# traslated
+msgid "App.cloudDownloadTooltip"
+msgstr "Importar datos desde la nube"
+
+# traslated
+msgid "FileWidget.dropMessage"
+msgstr "Arrastre el archivo aquí o haga clic para navegar"
+
+msgid "Calendar.lang.month"
+msgstr "Mes"
+
+msgid "Form.defaultValidateMessages.types.object"
+msgstr "${label} no es un ${type} válido"
+
+msgid "PageHeader.back"
+msgstr "Volver"
+
+msgid "DatePicker.lang.nextYear"
+msgstr "Año siguiente (Control + right)"
+
+# traslated
+msgid "User.titleLogin"
+msgstr "Iniciar sesión"
+
+msgid "Table.filterCheckall"
+msgstr "Seleccionar todo"
+
+msgid "DatePicker.lang.previousYear"
+msgstr "Año anterior (Control + left)"
+
+msgid "Upload.previewFile"
+msgstr "Vista previa"
+
+# traslated
+msgid "CloudUploadField.updatedAt"
+msgstr "Actualizado"
+
+msgid "Calendar.lang.timeSelect"
+msgstr "Seleccionar hora"
+
+# traslated
+msgid "CloudUploadField.buttonSave"
+msgstr "Salvar"
+
+# traslated
+msgid "TabsField.selectItem"
+msgstr "Seleccionar artículo"
+
+# traslated
+msgid "FileWidget.errorSameFile"
+msgstr "¡El archivo {filename} ya se ha cargado!"
+
+msgid "Calendar.lang.monthSelect"
+msgstr "Elegir un mes"
+
+msgid "Form.defaultValidateMessages.types.array"
+msgstr "${label} no es un ${type} válido"
+
+msgid "language"
+msgstr "es_ES"
+
+# traslated
+msgid "User.Setting.lastnamePlaceholder"
+msgstr "Apellido"
+
+# traslated
+msgid "TabsField.delete"
+msgstr "borrar"
+
+msgid "Form.defaultValidateMessages.default"
+msgstr "Error de validación del campo ${label}"
+
+msgid "Calendar.lang.previousYear"
+msgstr "Año anterior (Control + left)"

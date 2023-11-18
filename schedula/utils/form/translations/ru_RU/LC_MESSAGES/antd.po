@@ -1,0 +1,1333 @@
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: 1.0\n"
+"Report-Msgid-Bugs-To: vinci1it2000@gmail.com\n"
+"PO-Revision-Date: 2023-11-18 08:55+0000\n"
+"Last-Translator: Vincenzo Arcidiacono <vinci1it2000@gmail.com>\n"
+"Language-Team: English <vinci1it2000@gmail.com>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+# traslated
+msgid "Contact.errorTitle"
+msgstr "Опс... Что-то пошло не так!"
+
+# traslated
+msgid "ColorPicker.presetEmpty"
+msgstr "Пустой"
+
+msgid "Table.filterReset"
+msgstr "Сбросить"
+
+# traslated
+msgid "User.Register.login"
+msgstr "логин!"
+
+# traslated
+msgid "TableField.addItemTooltip"
+msgstr "Добавить товар"
+
+# traslated
+msgid "CloudUploadField.buttonDownload"
+msgstr "Сервер"
+
+# traslated
+msgid "User.Logout.submitButton"
+msgstr "Выход"
+
+msgid "Calendar.lang.dateFormat"
+msgstr "D-M-YYYY"
+
+msgid "Calendar.lang.dateSelect"
+msgstr "Выбрать дату"
+
+# traslated
+msgid "User.Confirm.errorTitle"
+msgstr "Опс... Что-то пошло не так!"
+
+# traslated
+msgid "TabsField.moveup"
+msgstr "придвигаться"
+
+msgid "Modal.justOkText"
+msgstr "OK"
+
+# traslated
+msgid "PDFField.titleSectionSelection"
+msgstr "Сортовое железо"
+
+msgid "Calendar.lang.previousCentury"
+msgstr "Предыдущий век"
+
+# traslated
+msgid "User.ResetPassword.passwordPlaceholder"
+msgstr "Новый пароль"
+
+# traslated
+msgid "User.loginTooltip"
+msgstr "Логин"
+
+msgid "Form.defaultValidateMessages.whitespace"
+msgstr "${label} не может быть пустым"
+
+msgid "Pagination.prev_page"
+msgstr "Назад"
+
+msgid "QRCode.expired"
+msgstr "QR-код устарел"
+
+# traslated
+msgid "FileWidget.errorNotUploaded"
+msgstr "Опс... Файл не загружен"
+
+msgid "Form.defaultValidateMessages.string.max"
+msgstr "${label} должна быть меньше или равна ${max} символов"
+
+# traslated
+msgid "User.Confirm.submitButton"
+msgstr "Отправить инструкцию"
+
+msgid "Form.defaultValidateMessages.types.hex"
+msgstr "${label} не является типом ${type}"
+
+# traslated
+msgid "Contact.submitButton"
+msgstr "Отправить"
+
+msgid "Table.expand"
+msgstr "Развернуть строку"
+
+# traslated
+msgid "App.restoreDifferences"
+msgstr "Показать отличия от текущих данных"
+
+msgid "Pagination.jump_to_confirm"
+msgstr "подтвердить"
+
+# traslated
+msgid "User.ResetPassword.submitButton"
+msgstr "Сброс пароля"
+
+msgid "Transfer.itemUnit"
+msgstr "элем."
+
+msgid "global.placeholder"
+msgstr "Пожалуйста выберите"
+
+msgid "DatePicker.lang.rangeMonthPlaceholder"
+msgstr "§[\"Начальный месяц\",\"Конечный месяц\"]"
+
+# traslated
+msgid "User.titleResetPassword"
+msgstr "Сброс пароля"
+
+# traslated
+msgid "Contact.emailPlaceholder"
+msgstr "Отправить по электронной почте"
+
+msgid "Table.triggerAsc"
+msgstr "Нажмите для сортировки по возрастанию"
+
+# traslated
+msgid "User.Register.usernameRequired"
+msgstr "Пожалуйста, введите Ваше имя пользователя!"
+
+# traslated
+msgid "User.titleLogout"
+msgstr "Обязательно выйдете из системы?"
+
+# traslated
+msgid "ArrayCopy.titleCopyButton"
+msgstr "Пожалуйста, выберите, куда копировать данные?"
+
+msgid "Popconfirm.cancelText"
+msgstr "Отмена"
+
+# traslated
+msgid "User.titleConfirm"
+msgstr "Отправить электронное письмо с подтверждением"
+
+msgid "Form.defaultValidateMessages.array.range"
+msgstr "Количество элементов ${label} должно быть между ${min} и ${max}"
+
+# traslated
+msgid "User.ResetPassword.login"
+msgstr "логин!"
+
+# traslated
+msgid "Calendar.lang.rangeQuarterPlaceholder"
+msgstr "§[\"Стартовый квартал\",\"Конец квартала\"]"
+
+# traslated
+msgid "PDFField.previewFile"
+msgstr "Предварительный просмотр файла"
+
+# traslated
+msgid "Contact.subjectPlaceholder"
+msgstr "Тема письма"
+
+# traslated
+msgid "User.titleInfo"
+msgstr "Информация о пользователе"
+
+# traslated
+msgid "App.cloudDownloadButton"
+msgstr "Импорт"
+
+msgid "Form.defaultValidateMessages.types.float"
+msgstr "${label} не является типом ${type}"
+
+# traslated
+msgid "App.runButton"
+msgstr "Бежать"
+
+# traslated
+msgid "User.Register.emailInvalid"
+msgstr "Неверный адрес электронной почты!"
+
+msgid "Modal.cancelText"
+msgstr "Отмена"
+
+msgid "DatePicker.lang.nextCentury"
+msgstr "Следующий век"
+
+msgid "Upload.removeFile"
+msgstr "Удалить файл"
+
+# traslated
+msgid "FileWidget.errorToolTip"
+msgstr "Ошибка загрузки"
+
+# traslated
+msgid "TableField.deleteAllConfirm"
+msgstr "Хотите удалить весь контент?"
+
+msgid "Form.defaultValidateMessages.number.range"
+msgstr "${label} должна быть между ${min}-${max}"
+
+msgid "Form.defaultValidateMessages.date.format"
+msgstr "${label} не правильный формат даты"
+
+msgid "Form.defaultValidateMessages.types.string"
+msgstr "${label} не является типом ${type}"
+
+msgid "Transfer.selectInvert"
+msgstr "Инвертировать выбор"
+
+# traslated
+msgid "ErrorListTemplate.tooltipFloatButton"
+msgstr "Открытые сообщения об ошибках"
+
+msgid "DatePicker.lang.dateSelect"
+msgstr "Выбрать дату"
+
+msgid "Table.emptyText"
+msgstr "Нет данных"
+
+msgid "DatePicker.lang.backToToday"
+msgstr "Текущая дата"
+
+msgid "DatePicker.lang.dayFormat"
+msgstr "D"
+
+# traslated
+msgid "User.Forgot.emailInvalid"
+msgstr "Неверный адрес электронной почты!"
+
+# default
+msgid "DatePicker.lang.shortMonths"
+msgstr "§undefined"
+
+# traslated
+msgid "User.ResetPassword.passwordRequired"
+msgstr "Пожалуйста, введите Ваш новый пароль!"
+
+# traslated
+msgid "User.Register.lastnamePlaceholder"
+msgstr "Фамилия"
+
+# traslated
+msgid "CloudUploadField.titleName"
+msgstr "Имя"
+
+# traslated
+msgid "Contact.title"
+msgstr "Свяжитесь с нами"
+
+msgid "Calendar.lang.nextCentury"
+msgstr "Следующий век"
+
+msgid "Form.defaultValidateMessages.string.min"
+msgstr "${label} должна быть больше или равна ${min} символов"
+
+msgid "Modal.okText"
+msgstr "OK"
+
+# traslated
+msgid "User.Register.emailRequired"
+msgstr "Пожалуйста, введите свой адрес электронной почты!"
+
+msgid "Table.collapse"
+msgstr "Свернуть строку"
+
+msgid "Pagination.prev_5"
+msgstr "Предыдущие 5"
+
+# traslated
+msgid "ArrayAccordion.titleCopyButton"
+msgstr "Пожалуйста, выберите, куда копировать данные?"
+
+msgid "Calendar.lang.previousMonth"
+msgstr "Предыдущий месяц (PageUp)"
+
+msgid "Transfer.removeCurrent"
+msgstr "Удалить текущую страницу"
+
+msgid "Form.defaultValidateMessages.array.max"
+msgstr "Количество элементов ${label} должно быть меньше или равно ${max}"
+
+# traslated
+msgid "App.cloudUploadTooltip"
+msgstr "Сохранение данных в облаке"
+
+# traslated
+msgid "CloudDownloadField.buttonCancel"
+msgstr "Отмена"
+
+# traslated
+msgid "Contact.emailRequired"
+msgstr "Пожалуйста, введите свой адрес электронной почты!"
+
+msgid "Calendar.lang.monthBeforeYear"
+msgstr "§true"
+
+# traslated
+msgid "User.Confirm.emailInvalid"
+msgstr "Неверный адрес электронной почты!"
+
+# traslated
+msgid "User.ResetPassword.passwordConfirmError"
+msgstr "Два пароля, которые вы ввели, не совпадают!"
+
+# traslated
+msgid "CloudUploadField.titleSaveNew"
+msgstr "Сохранение текущих данных"
+
+# traslated
+msgid "User.Register.lastnameRequired"
+msgstr "Пожалуйста, введите Вашу фамилию!"
+
+# traslated
+msgid "User.settingButton"
+msgstr "Параметры"
+
+msgid "Pagination.next_3"
+msgstr "Следующие 3"
+
+msgid "Transfer.remove"
+msgstr "Удалить"
+
+msgid "DatePicker.lang.yearFormat"
+msgstr "YYYY"
+
+# traslated
+msgid "User.Login.passwordPlaceholder"
+msgstr "Пароль"
+
+msgid "DatePicker.lang.placeholder"
+msgstr "Выберите дату"
+
+# traslated
+msgid "User.titleForgot"
+msgstr "Восстановление пароля"
+
+msgid "Calendar.lang.quarterPlaceholder"
+msgstr "Выберите квартал"
+
+msgid "DatePicker.lang.previousCentury"
+msgstr "Предыдущий век"
+
+# traslated
+msgid "App.restoreButton"
+msgstr "Восстанавливать"
+
+# default
+msgid "DatePicker.lang.shortWeekDays"
+msgstr "§undefined"
+
+# traslated
+msgid "User.logoutButton"
+msgstr "Выход"
+
+# traslated
+msgid "User.buttonTooltip"
+msgstr "Логин"
+
+msgid "DatePicker.lang.rangeYearPlaceholder"
+msgstr "§[\"Начальный год\",\"Год окончания\"]"
+
+msgid "Pagination.page_size"
+msgstr "размер страницы"
+
+# traslated
+msgid "Calendar.lang.weekSelect"
+msgstr "Выберите неделю"
+
+msgid "Form.defaultValidateMessages.date.invalid"
+msgstr "${label} не является корректной датой"
+
+# traslated
+msgid "App.restoreCloseButton"
+msgstr "Закрывать"
+
+# traslated
+msgid "User.Forgot.submitButton"
+msgstr "Восстановление пароля"
+
+msgid "Transfer.selectCurrent"
+msgstr "Выбрать текущую страницу"
+
+# traslated
+msgid "User.Register.usernamePlaceholder"
+msgstr "Имя пользователя"
+
+# traslated
+msgid "App.filesButton"
+msgstr "Файлы"
+
+# traslated
+msgid "TabsField.moveright"
+msgstr "Двигайтесь вправо"
+
+# traslated
+msgid "DatePicker.lang.weekSelect"
+msgstr "Выберите неделю"
+
+msgid "Calendar.lang.rangeMonthPlaceholder"
+msgstr "§[\"Начальный месяц\",\"Конечный месяц\"]"
+
+msgid "Table.filterTitle"
+msgstr "Фильтр"
+
+# traslated
+msgid "App.restoreTooltip"
+msgstr "Восстановление данных"
+
+msgid "Upload.downloadFile"
+msgstr "Загрузить файл"
+
+msgid "Calendar.lang.yearSelect"
+msgstr "Выбрать год"
+
+msgid "Text.copy"
+msgstr "Копировать"
+
+# traslated
+msgid "User.ResetPassword.errorTitle"
+msgstr "Опс... Что-то пошло не так!"
+
+msgid "Tour.Finish"
+msgstr "Завершить"
+
+msgid "Form.defaultValidateMessages.number.len"
+msgstr "${label} должна быть равна ${len}"
+
+# traslated
+msgid "CloudDownloadField.titleSaveNew"
+msgstr "Сохранение текущих данных"
+
+# traslated
+msgid "CloudUploadField.confirmDelete"
+msgstr "Обязательно удалите?"
+
+# traslated
+msgid "PDFField.uploading"
+msgstr "Загрузки..."
+
+msgid "Transfer.removeAll"
+msgstr "Удалить все данные"
+
+msgid "Calendar.timePickerLocale.rangePlaceholder"
+msgstr "§[\"Время начала\",\"Время окончания\"]"
+
+# traslated
+msgid "User.Forgot.errorTitle"
+msgstr "Опс... Что-то пошло не так!"
+
+msgid "Table.filterEmptyText"
+msgstr "Без фильтров"
+
+# traslated
+msgid "PDFField.removeFile"
+msgstr "Удалить файл"
+
+# traslated
+msgid "User.Login.sendConfirmMail"
+msgstr "Повторная отправка письма с подтверждением"
+
+msgid "Pagination.next_5"
+msgstr "Следующие 5"
+
+# traslated
+msgid "ErrorListTemplate.descriptionFloatButton"
+msgstr "ЗАБЛУЖДАТЬСЯ"
+
+# traslated
+msgid "PDFField.preview"
+msgstr "Предварительный просмотр"
+
+msgid "Form.defaultValidateMessages.enum"
+msgstr "${label} должен быть одним из [${enum}]"
+
+# traslated
+msgid "Contact.nameRequired"
+msgstr "Пожалуйста, введите Ваше имя!"
+
+# traslated
+msgid "ErrorListTemplate.titleModal"
+msgstr "Ошибки"
+
+msgid "Form.defaultValidateMessages.number.min"
+msgstr "${label} должна быть больше или равна ${min}"
+
+# traslated
+msgid "User.Register.firstnamePlaceholder"
+msgstr "Имя"
+
+msgid "Calendar.lang.dayFormat"
+msgstr "D"
+
+msgid "DatePicker.lang.yearSelect"
+msgstr "Выбрать год"
+
+# traslated
+msgid "User.Register.submitButton"
+msgstr "Регистрировать"
+
+msgid "Calendar.lang.backToToday"
+msgstr "Текущая дата"
+
+# traslated
+msgid "User.Login.rememberMe"
+msgstr "Запомнить меня"
+
+# traslated
+msgid "CloudDownloadField.buttonDownload"
+msgstr "Сервер"
+
+# traslated
+msgid "ArrayAccordion.tooltipExtra"
+msgstr "Копирование данных поверх"
+
+msgid "Calendar.timePickerLocale.placeholder"
+msgstr "Выберите время"
+
+msgid "Calendar.lang.year"
+msgstr "Год"
+
+# traslated
+msgid "User.Register.passwordConfirmRequired"
+msgstr "Пожалуйста, подтвердите свой пароль!"
+
+# traslated
+msgid "App.disableFullscreen"
+msgstr "Отключить полноэкранный режим"
+
+# traslated
+msgid "CloudDownloadField.createdAt"
+msgstr "Созданный"
+
+# traslated
+msgid "App.downloadTooltip"
+msgstr "Экспорт данных в формате JSON"
+
+# traslated
+msgid "App.autoSaveTooltip"
+msgstr "Включить автосохранение"
+
+msgid "DatePicker.lang.today"
+msgstr "Сегодня"
+
+msgid "Tour.Previous"
+msgstr "Назад"
+
+msgid "Pagination.jump_to"
+msgstr "Перейти"
+
+# traslated
+msgid "User.ResetPassword.or"
+msgstr "Или"
+
+# traslated
+msgid "User.Register.passwordPlaceholder"
+msgstr "Пароль"
+
+msgid "Table.selectAll"
+msgstr "Выбрать всё"
+
+# traslated
+msgid "CloudUploadField.buttonOverwrite"
+msgstr "Перезаписать"
+
+# traslated
+msgid "CloudDownloadField.updatedAt"
+msgstr "Обновлено"
+
+# traslated
+msgid "User.Login.or"
+msgstr "Или"
+
+# traslated
+msgid "DebugTemplate.titleModal"
+msgstr "Рабочий процесс отладки"
+
+msgid "Calendar.lang.rangePlaceholder"
+msgstr "§[\"Начальная дата\",\"Конечная дата\"]"
+
+msgid "Text.edit"
+msgstr "Редактировать"
+
+msgid "DatePicker.lang.previousMonth"
+msgstr "Предыдущий месяц (PageUp)"
+
+# traslated
+msgid "App.autoSaveButton"
+msgstr "Автосохранение"
+
+# traslated
+msgid "CloudDownloadField.buttonOverwrite"
+msgstr "Перезаписать"
+
+# traslated
+msgid "FileWidget.errorOnlyOneItem"
+msgstr "Вы можете загрузить максимум один файл!"
+
+msgid "Pagination.prev_3"
+msgstr "Предыдущие 3"
+
+# traslated
+msgid "User.Login.emailRequired"
+msgstr "Пожалуйста, введите свой адрес электронной почты!"
+
+# traslated
+msgid "CloudDownloadField.confirmDelete"
+msgstr "Обязательно удалите?"
+
+# traslated
+msgid "User.Register.passwordRequired"
+msgstr "Пожалуйста, введите свой пароль!"
+
+msgid "TimePicker.rangePlaceholder"
+msgstr "§[\"Время начала\",\"Время окончания\"]"
+
+# traslated
+msgid "FileWidget.errorMaxItems"
+msgstr "Вы можете загрузить максимум {maxItems} файлов!"
+
+msgid "Calendar.lang.dateTimeFormat"
+msgstr "D-M-YYYY HH:mm:ss"
+
+# traslated
+msgid "User.Confirm.or"
+msgstr "Или"
+
+# traslated
+msgid "Contact.messagePlaceholder"
+msgstr "Ваше сообщение"
+
+msgid "Form.defaultValidateMessages.string.len"
+msgstr "${label} должна быть ${len} символов"
+
+# traslated
+msgid "ArrayCopy.tooltip"
+msgstr "Копирование данных поверх"
+
+msgid "DatePicker.lang.monthPlaceholder"
+msgstr "Выберите месяц"
+
+msgid "Calendar.lang.today"
+msgstr "Сегодня"
+
+msgid "Transfer.itemsUnit"
+msgstr "элем."
+
+msgid "Table.filterSearchPlaceholder"
+msgstr "Поиск в фильтрах"
+
+# default
+msgid "DatePicker.lang.monthFormat"
+msgstr "§undefined"
+
+# traslated
+msgid "CloudDownloadField.dataSwitchChecked"
+msgstr "текущий"
+
+msgid "Transfer.selectAll"
+msgstr "Выбрать все данные"
+
+msgid "Image.preview"
+msgstr "Предпросмотр"
+
+msgid "Table.triggerDesc"
+msgstr "Нажмите для сортировки по убыванию"
+
+msgid "DatePicker.lang.dateTimeFormat"
+msgstr "D-M-YYYY HH:mm:ss"
+
+# traslated
+msgid "CloudUploadField.errorTitle"
+msgstr "Опс... Что-то пошло не так!"
+
+msgid "DatePicker.timePickerLocale.rangePlaceholder"
+msgstr "§[\"Время начала\",\"Время окончания\"]"
+
+# traslated
+msgid "App.enableFullscreen"
+msgstr "Включить полноэкранный режим"
+
+msgid "DatePicker.lang.clear"
+msgstr "Очистить"
+
+msgid "Calendar.lang.nextDecade"
+msgstr "Следущее десятилетие"
+
+# traslated
+msgid "User.Register.emailPlaceholder"
+msgstr "Отправить по электронной почте"
+
+# traslated
+msgid "App.cloudButton"
+msgstr "Облако"
+
+# traslated
+msgid "App.autoSavingTooltip"
+msgstr "Отключить автосохранение"
+
+msgid "Form.defaultValidateMessages.date.parse"
+msgstr "${label} не может быть преобразовано в дату"
+
+msgid "Form.defaultValidateMessages.pattern.mismatch"
+msgstr "${label} не соответствует шаблону ${pattern}"
+
+msgid "Form.defaultValidateMessages.types.regexp"
+msgstr "${label} не является типом ${type}"
+
+msgid "Text.expand"
+msgstr "Раскрыть"
+
+# traslated
+msgid "User.Login.forgotPassword"
+msgstr "Забыли пароль"
+
+msgid "Form.defaultValidateMessages.number.max"
+msgstr "${label} должна быть меньше или равна ${max}"
+
+# traslated
+msgid "CloudUploadField.dataSwitchUnChecked"
+msgstr "сервер"
+
+# traslated
+msgid "App.cleanConfirm"
+msgstr "Хотите удалить эти данные?"
+
+# traslated
+msgid "CloudUploadField.buttonSaveNew"
+msgstr "Новый рекорд"
+
+msgid "DatePicker.lang.nextMonth"
+msgstr "Следующий месяц (PageDown)"
+
+msgid "Table.selectInvert"
+msgstr "Инвертировать выбор"
+
+# traslated
+msgid "App.restoreConfirm"
+msgstr "Уверены, что восстановите эти данные?"
+
+msgid "DatePicker.lang.weekPlaceholder"
+msgstr "Выберите неделю"
+
+msgid "Calendar.lang.monthPlaceholder"
+msgstr "Выберите месяц"
+
+# traslated
+msgid "User.Login.errorTitle"
+msgstr "Опс... Что-то пошло не так!"
+
+msgid "Form.defaultValidateMessages.array.min"
+msgstr "Количество элементов ${label} должно быть больше или равно ${min}"
+
+# traslated
+msgid "TabsField.select"
+msgstr "выбирать"
+
+# traslated
+msgid "TabsField.movedown"
+msgstr "Переместиться вниз"
+
+msgid "DatePicker.lang.monthSelect"
+msgstr "Выбрать месяц"
+
+# traslated
+msgid "App.autoSavingButton"
+msgstr "Автосохранение"
+
+msgid "Calendar.lang.previousDecade"
+msgstr "Предыдущее десятилетие"
+
+msgid "Calendar.lang.ok"
+msgstr "ОК"
+
+# traslated
+msgid "User.Confirm.emailRequired"
+msgstr "Пожалуйста, введите свой адрес электронной почты!"
+
+# traslated
+msgid "User.Setting.firstnameRequired"
+msgstr "Пожалуйста, введите Ваше имя!"
+
+# default
+msgid "Calendar.lang.monthFormat"
+msgstr "§undefined"
+
+# traslated
+msgid "User.Setting.submitButton"
+msgstr "Спасать"
+
+msgid "Tour.Next"
+msgstr "Далее"
+
+msgid "Calendar.lang.rangeWeekPlaceholder"
+msgstr "§[\"Начальная неделя\",\"Конечная неделя\"]"
+
+# traslated
+msgid "CloudDownloadField.errorTitle"
+msgstr "Опс... Что-то пошло не так!"
+
+# traslated
+msgid "User.Confirm.login"
+msgstr "логин!"
+
+# traslated
+msgid "User.ResetPassword.passwordConfirmPlaceholder"
+msgstr "Подтвердите новый пароль"
+
+msgid "DatePicker.lang.now"
+msgstr "Сейчас"
+
+msgid "Calendar.lang.nextYear"
+msgstr "Следующий год (Control + right)"
+
+msgid "Form.defaultValidateMessages.types.date"
+msgstr "${label} не является типом ${type}"
+
+# traslated
+msgid "User.Register.or"
+msgstr "Или"
+
+msgid "DatePicker.lang.previousDecade"
+msgstr "Предыдущее десятилетие"
+
+# traslated
+msgid "App.branchesButton"
+msgstr "Ветви"
+
+msgid "Form.defaultValidateMessages.types.email"
+msgstr "${label} не является типом ${type}"
+
+msgid "Pagination.next_page"
+msgstr "Вперед"
+
+msgid "Icon.icon"
+msgstr "иконка"
+
+msgid "Form.defaultValidateMessages.types.method"
+msgstr "${label} не является типом ${type}"
+
+msgid "DatePicker.lang.locale"
+msgstr "ru_RU"
+
+msgid "Calendar.lang.clear"
+msgstr "Очистить"
+
+msgid "Calendar.lang.yearFormat"
+msgstr "YYYY"
+
+msgid "Form.defaultValidateMessages.required"
+msgstr "Пожалуйста, введите ${label}"
+
+# traslated
+msgid "App.debugButton"
+msgstr "Отлаживать"
+
+msgid "locale"
+msgstr "ru"
+
+msgid "DatePicker.lang.ok"
+msgstr "ОК"
+
+msgid "Table.cancelSort"
+msgstr "Нажмите, чтобы отменить сортировку"
+
+msgid "Calendar.lang.rangeYearPlaceholder"
+msgstr "§[\"Начальный год\",\"Год окончания\"]"
+
+# traslated
+msgid "User.Setting.errorTitle"
+msgstr "Опс... Что-то пошло не так!"
+
+# traslated
+msgid "Contact.namePlaceholder"
+msgstr "Ваше имя"
+
+msgid "Calendar.lang.placeholder"
+msgstr "Выберите дату"
+
+# traslated
+msgid "App.restoreEraseButton"
+msgstr "Стирание хранилища"
+
+# traslated
+msgid "User.Login.passwordRequired"
+msgstr "Пожалуйста, введите свой пароль!"
+
+# traslated
+msgid "User.Forgot.or"
+msgstr "Или"
+
+msgid "Form.defaultValidateMessages.types.boolean"
+msgstr "${label} не является типом ${type}"
+
+msgid "DatePicker.lang.rangeWeekPlaceholder"
+msgstr "§[\"Начальная неделя\",\"Конечная неделя\"]"
+
+# traslated
+msgid "App.cleanButton"
+msgstr "Чистый"
+
+msgid "Form.defaultValidateMessages.types.integer"
+msgstr "${label} не является типом ${type}"
+
+msgid "Empty.description"
+msgstr "Нет данных"
+
+# default
+msgid "Calendar.lang.shortMonths"
+msgstr "§undefined"
+
+# traslated
+msgid "DebugTemplate.tooltipFloatButton"
+msgstr "Открыть рабочий процесс отладки"
+
+msgid "Calendar.lang.decadeSelect"
+msgstr "Выбрать десятилетие"
+
+msgid "Upload.uploadError"
+msgstr "При загрузке произошла ошибка"
+
+# traslated
+msgid "User.Login.submitButton"
+msgstr "Логин"
+
+# traslated
+msgid "User.Register.errorTitle"
+msgstr "Опс... Что-то пошло не так!"
+
+msgid "DatePicker.lang.timeSelect"
+msgstr "Выбрать время"
+
+# traslated
+msgid "App.uploadButton"
+msgstr "Закачать"
+
+# traslated
+msgid "User.Register.passwordConfirmPlaceholder"
+msgstr "Подтвердите пароль"
+
+# traslated
+msgid "CloudDownloadField.fieldErrors.name"
+msgstr "Пожалуйста, введите имя!"
+
+# traslated
+msgid "CloudUploadField.fieldErrors.name"
+msgstr "Пожалуйста, введите имя!"
+
+# traslated
+msgid "TableField.exportTooltip"
+msgstr "Экспорт таблицы в CSV"
+
+# traslated
+msgid "User.Login.registerNow"
+msgstr "Зарегистрируйтесь!"
+
+# traslated
+msgid "User.Login.emailInvalid"
+msgstr "Неверный адрес электронной почты!"
+
+# traslated
+msgid "User.Forgot.login"
+msgstr "логин!"
+
+msgid "Pagination.items_per_page"
+msgstr "/ стр."
+
+# traslated
+msgid "CloudDownloadField.buttonSave"
+msgstr "Спасать"
+
+# traslated
+msgid "User.titleRegister"
+msgstr "Новая регистрация"
+
+msgid "Calendar.lang.now"
+msgstr "Сейчас"
+
+# traslated
+msgid "Contact.buttonTooltip"
+msgstr "Контакт"
+
+msgid "Form.optional"
+msgstr "(необязательно)"
+
+# traslated
+msgid "App.restoreTitleDifferences"
+msgstr "Различия"
+
+msgid "DatePicker.lang.monthBeforeYear"
+msgstr "§true"
+
+msgid "DatePicker.lang.rangePlaceholder"
+msgstr "§[\"Начальная дата\",\"Конечная дата\"]"
+
+# traslated
+msgid "User.Confirm.emailPlaceholder"
+msgstr "Отправить по электронной почте"
+
+msgid "DatePicker.lang.nextDecade"
+msgstr "Следущее десятилетие"
+
+# traslated
+msgid "Errors.title"
+msgstr "Ошибки валидации"
+
+msgid "DatePicker.lang.yearPlaceholder"
+msgstr "Выберите год"
+
+# traslated
+msgid "FileWidget.errorFileType"
+msgstr "Вы можете загрузить только файл {fileTypes}!"
+
+# traslated
+msgid "PDFField.uploadError"
+msgstr "Ошибка загрузки"
+
+# traslated
+msgid "DatePicker.lang.rangeQuarterPlaceholder"
+msgstr "§[\"Стартовый квартал\",\"Конец квартала\"]"
+
+# traslated
+msgid "App.restoreCurrent"
+msgstr "текущий"
+
+# traslated
+msgid "ArrayAccordion.placeholder"
+msgstr "Пожалуйста, выберите"
+
+msgid "Calendar.lang.weekPlaceholder"
+msgstr "Выберите неделю"
+
+# traslated
+msgid "User.Register.firstnameRequired"
+msgstr "Пожалуйста, введите Ваше имя!"
+
+# traslated
+msgid "User.Setting.revertButton"
+msgstr "Возвращаться"
+
+# traslated
+msgid "App.fullscreenButton"
+msgstr "Полноэкранный режим"
+
+# traslated
+msgid "CloudDownloadField.buttonSaveNew"
+msgstr "Новый рекорд"
+
+msgid "DatePicker.lang.month"
+msgstr "Месяц"
+
+msgid "Calendar.lang.nextMonth"
+msgstr "Следующий месяц (PageDown)"
+
+# traslated
+msgid "TableField.deleteItemConfirm"
+msgstr "Обязательно удалите?"
+
+msgid "Form.defaultValidateMessages.array.len"
+msgstr "Количество элементов ${label} должно быть равно ${len}"
+
+msgid "Table.filterConfirm"
+msgstr "OK"
+
+# traslated
+msgid "User.Setting.firstnamePlaceholder"
+msgstr "Имя"
+
+# traslated
+msgid "App.autoSavingErrorTitle"
+msgstr "Опс... Отключение автосохранения"
+
+msgid "TimePicker.placeholder"
+msgstr "Выберите время"
+
+msgid "DatePicker.lang.quarterPlaceholder"
+msgstr "Выберите квартал"
+
+# traslated
+msgid "User.ResetPassword.passwordConfirmRequired"
+msgstr "Пожалуйста, подтвердите свой новый пароль!"
+
+# traslated
+msgid "CloudDownloadField.dataSwitchUnChecked"
+msgstr "сервер"
+
+msgid "Table.selectNone"
+msgstr "Очистить все данные"
+
+msgid "Form.defaultValidateMessages.types.url"
+msgstr "${label} не является типом ${type}"
+
+msgid "Pagination.page"
+msgstr "Страница"
+
+# traslated
+msgid "User.titleSetting"
+msgstr "Редактирование настроек"
+
+# traslated
+msgid "User.Forgot.emailRequired"
+msgstr "Пожалуйста, введите свой адрес электронной почты!"
+
+msgid "Table.selectionAll"
+msgstr "Выбрать все данные"
+
+msgid "Form.defaultValidateMessages.string.range"
+msgstr "Длина ${label} должна быть между ${min}-${max} символами"
+
+# traslated
+msgid "User.Login.emailPlaceholder"
+msgstr "Отправить по электронной почте"
+
+# traslated
+msgid "TabsField.moveleft"
+msgstr "Движение влево"
+
+# traslated
+msgid "App.cloudUploadButton"
+msgstr "Спасать"
+
+# traslated
+msgid "User.Forgot.emailPlaceholder"
+msgstr "Отправить по электронной почте"
+
+# traslated
+msgid "PDFField.downloadFile"
+msgstr "Скачать файл"
+
+msgid "DatePicker.timePickerLocale.placeholder"
+msgstr "Выберите время"
+
+# traslated
+msgid "Contact.messageRequired"
+msgstr "Пожалуйста, введите Ваше сообщение!"
+
+# traslated
+msgid "User.Setting.lastnameRequired"
+msgstr "Пожалуйста, введите Вашу фамилию!"
+
+# traslated
+msgid "CloudUploadField.buttonCancel"
+msgstr "Отмена"
+
+# traslated
+msgid "App.downloadButton"
+msgstr "Загружать"
+
+msgid "DatePicker.lang.dateFormat"
+msgstr "D-M-YYYY"
+
+# traslated
+msgid "Contact.subjectRequired"
+msgstr "Пожалуйста, введите тему письма!"
+
+# default
+msgid "Calendar.lang.shortWeekDays"
+msgstr "§undefined"
+
+msgid "Calendar.lang.locale"
+msgstr "ru_RU"
+
+# traslated
+msgid "CloudDownloadField.titleName"
+msgstr "Имя"
+
+msgid "Transfer.searchPlaceholder"
+msgstr "Поиск"
+
+# traslated
+msgid "CloudUploadField.createdAt"
+msgstr "Созданный"
+
+# traslated
+msgid "Contact.emailInvalid"
+msgstr "Неверный адрес электронной почты!"
+
+# traslated
+msgid "User.infoButton"
+msgstr "Профиль"
+
+# traslated
+msgid "User.Register.passwordConfirmError"
+msgstr "Два пароля, которые вы ввели, не совпадают!"
+
+# traslated
+msgid "CloudUploadField.dataSwitchChecked"
+msgstr "текущий"
+
+# traslated
+msgid "TabsField.clone"
+msgstr "клон"
+
+msgid "Transfer.titles"
+msgstr "§[\"\",\"\"]"
+
+msgid "QRCode.refresh"
+msgstr "Обновить"
+
+# traslated
+msgid "TableField.importTooltip"
+msgstr "Импорт таблицы из CSV"
+
+# traslated
+msgid "App.uploadTooltip"
+msgstr "Импорт данных в формате JSON"
+
+msgid "DatePicker.lang.decadeSelect"
+msgstr "Выбрать десятилетие"
+
+# traslated
+msgid "App.restoreModalTitle"
+msgstr "Восстановление данных"
+
+msgid "Table.sortTitle"
+msgstr "Сортировка"
+
+msgid "DatePicker.lang.year"
+msgstr "Год"
+
+# traslated
+msgid "App.restoreRestoreButton"
+msgstr "Восстанавливать"
+
+msgid "Form.defaultValidateMessages.types.number"
+msgstr "${label} не является типом ${type}"
+
+msgid "Calendar.lang.yearPlaceholder"
+msgstr "Выберите год"
+
+msgid "Popconfirm.okText"
+msgstr "OK"
+
+# traslated
+msgid "CloudDownloadField.titleData"
+msgstr "Источник данных"
+
+# traslated
+msgid "ArrayCopy.placeholder"
+msgstr "Пожалуйста, выберите"
+
+msgid "Upload.uploading"
+msgstr "Загрузка..."
+
+# traslated
+msgid "CloudUploadField.titleData"
+msgstr "Источник данных"
+
+msgid "Text.copied"
+msgstr "Скопировано"
+
+# traslated
+msgid "App.cloudDownloadTooltip"
+msgstr "Импорт данных из облака"
+
+# traslated
+msgid "FileWidget.dropMessage"
+msgstr "Перетащите файл сюда или нажмите, чтобы просмотреть"
+
+msgid "Calendar.lang.month"
+msgstr "Месяц"
+
+msgid "Form.defaultValidateMessages.types.object"
+msgstr "${label} не является типом ${type}"
+
+msgid "PageHeader.back"
+msgstr "Назад"
+
+msgid "DatePicker.lang.nextYear"
+msgstr "Следующий год (Control + right)"
+
+# traslated
+msgid "User.titleLogin"
+msgstr "Логин"
+
+msgid "Table.filterCheckall"
+msgstr "Выбрать все элементы"
+
+msgid "DatePicker.lang.previousYear"
+msgstr "Предыдущий год (Control + left)"
+
+msgid "Upload.previewFile"
+msgstr "Предпросмотр файла"
+
+# traslated
+msgid "CloudUploadField.updatedAt"
+msgstr "Обновлено"
+
+msgid "Calendar.lang.timeSelect"
+msgstr "Выбрать время"
+
+# traslated
+msgid "CloudUploadField.buttonSave"
+msgstr "Спасать"
+
+# traslated
+msgid "TabsField.selectItem"
+msgstr "Выберите товар"
+
+# traslated
+msgid "FileWidget.errorSameFile"
+msgstr "Файл {filename} уже загружен!"
+
+msgid "Calendar.lang.monthSelect"
+msgstr "Выбрать месяц"
+
+msgid "Form.defaultValidateMessages.types.array"
+msgstr "${label} не является типом ${type}"
+
+msgid "language"
+msgstr "ru_RU"
+
+# traslated
+msgid "User.Setting.lastnamePlaceholder"
+msgstr "Фамилия"
+
+# traslated
+msgid "TabsField.delete"
+msgstr "удалить"
+
+msgid "Form.defaultValidateMessages.default"
+msgstr "Ошибка проверки поля ${label}"
+
+msgid "Calendar.lang.previousYear"
+msgstr "Предыдущий год (Control + left)"

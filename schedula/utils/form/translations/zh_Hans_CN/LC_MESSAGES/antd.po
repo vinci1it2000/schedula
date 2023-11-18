@@ -1,0 +1,1331 @@
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: 1.0\n"
+"Report-Msgid-Bugs-To: vinci1it2000@gmail.com\n"
+"PO-Revision-Date: 2023-11-18 08:55+0000\n"
+"Last-Translator: Vincenzo Arcidiacono <vinci1it2000@gmail.com>\n"
+"Language-Team: English <vinci1it2000@gmail.com>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+# traslated
+msgid "Contact.errorTitle"
+msgstr "老年 退休金 计划。。。出了点问题！"
+
+msgid "ColorPicker.presetEmpty"
+msgstr "暂无"
+
+msgid "Table.filterReset"
+msgstr "重置"
+
+# traslated
+msgid "User.Register.login"
+msgstr "登录！"
+
+# traslated
+msgid "TableField.addItemTooltip"
+msgstr "添加项目"
+
+# traslated
+msgid "CloudUploadField.buttonDownload"
+msgstr "服务器"
+
+# traslated
+msgid "User.Logout.submitButton"
+msgstr "注销"
+
+msgid "Calendar.lang.dateFormat"
+msgstr "YYYY年M月D日"
+
+msgid "Calendar.lang.dateSelect"
+msgstr "选择日期"
+
+# traslated
+msgid "User.Confirm.errorTitle"
+msgstr "老年 退休金 计划。。。出了点问题！"
+
+# traslated
+msgid "TabsField.moveup"
+msgstr "上升"
+
+msgid "Modal.justOkText"
+msgstr "知道了"
+
+# traslated
+msgid "PDFField.titleSectionSelection"
+msgstr "部分"
+
+msgid "Calendar.lang.previousCentury"
+msgstr "上一世纪"
+
+# traslated
+msgid "User.ResetPassword.passwordPlaceholder"
+msgstr "新密码"
+
+# traslated
+msgid "User.loginTooltip"
+msgstr "登录"
+
+msgid "Form.defaultValidateMessages.whitespace"
+msgstr "${label}不能为空字符"
+
+msgid "Pagination.prev_page"
+msgstr "上一页"
+
+msgid "QRCode.expired"
+msgstr "二维码过期"
+
+# traslated
+msgid "FileWidget.errorNotUploaded"
+msgstr "老年 退休金 计划。。。文件未上传"
+
+msgid "Form.defaultValidateMessages.string.max"
+msgstr "${label}最多${max}个字符"
+
+# traslated
+msgid "User.Confirm.submitButton"
+msgstr "发送指令"
+
+msgid "Form.defaultValidateMessages.types.hex"
+msgstr "${label}不是一个有效的${type}"
+
+# traslated
+msgid "Contact.submitButton"
+msgstr "发送"
+
+msgid "Table.expand"
+msgstr "展开行"
+
+# traslated
+msgid "App.restoreDifferences"
+msgstr "显示与当前数据的差异"
+
+msgid "Pagination.jump_to_confirm"
+msgstr "确定"
+
+# traslated
+msgid "User.ResetPassword.submitButton"
+msgstr "重置密码"
+
+msgid "Transfer.itemUnit"
+msgstr "项"
+
+msgid "global.placeholder"
+msgstr "请选择"
+
+msgid "DatePicker.lang.rangeMonthPlaceholder"
+msgstr "§[\"开始月份\",\"结束月份\"]"
+
+# traslated
+msgid "User.titleResetPassword"
+msgstr "重置密码"
+
+# traslated
+msgid "Contact.emailPlaceholder"
+msgstr "电子邮件"
+
+msgid "Table.triggerAsc"
+msgstr "点击升序"
+
+# traslated
+msgid "User.Register.usernameRequired"
+msgstr "请输入您的用户名！"
+
+# traslated
+msgid "User.titleLogout"
+msgstr "确定要注销？"
+
+# traslated
+msgid "ArrayCopy.titleCopyButton"
+msgstr "请选择将数据复制到何处？"
+
+msgid "Popconfirm.cancelText"
+msgstr "取消"
+
+# traslated
+msgid "User.titleConfirm"
+msgstr "发送确认电子邮件"
+
+msgid "Form.defaultValidateMessages.array.range"
+msgstr "${label}数量须在${min}-${max}之间"
+
+# traslated
+msgid "User.ResetPassword.login"
+msgstr "登录！"
+
+msgid "Calendar.lang.rangeQuarterPlaceholder"
+msgstr "§[\"开始季度\",\"结束季度\"]"
+
+# traslated
+msgid "PDFField.previewFile"
+msgstr "预览文件"
+
+# traslated
+msgid "Contact.subjectPlaceholder"
+msgstr "邮件主题"
+
+# traslated
+msgid "User.titleInfo"
+msgstr "用户信息"
+
+# traslated
+msgid "App.cloudDownloadButton"
+msgstr "进口"
+
+msgid "Form.defaultValidateMessages.types.float"
+msgstr "${label}不是一个有效的${type}"
+
+# traslated
+msgid "App.runButton"
+msgstr "跑"
+
+# traslated
+msgid "User.Register.emailInvalid"
+msgstr "无效的电子邮件！"
+
+msgid "Modal.cancelText"
+msgstr "取消"
+
+msgid "DatePicker.lang.nextCentury"
+msgstr "下一世纪"
+
+msgid "Upload.removeFile"
+msgstr "删除文件"
+
+# traslated
+msgid "FileWidget.errorToolTip"
+msgstr "上传错误"
+
+# traslated
+msgid "TableField.deleteAllConfirm"
+msgstr "确定删除所有内容？"
+
+msgid "Form.defaultValidateMessages.number.range"
+msgstr "${label}须在${min}-${max}之间"
+
+msgid "Form.defaultValidateMessages.date.format"
+msgstr "${label}日期格式无效"
+
+msgid "Form.defaultValidateMessages.types.string"
+msgstr "${label}不是一个有效的${type}"
+
+msgid "Transfer.selectInvert"
+msgstr "反选当页"
+
+# traslated
+msgid "ErrorListTemplate.tooltipFloatButton"
+msgstr "打开错误消息"
+
+msgid "DatePicker.lang.dateSelect"
+msgstr "选择日期"
+
+# traslated
+msgid "Table.emptyText"
+msgstr "暂无内容"
+
+msgid "DatePicker.lang.backToToday"
+msgstr "返回今天"
+
+msgid "DatePicker.lang.dayFormat"
+msgstr "D日"
+
+# traslated
+msgid "User.Forgot.emailInvalid"
+msgstr "无效的电子邮件！"
+
+# default
+msgid "DatePicker.lang.shortMonths"
+msgstr "§undefined"
+
+# traslated
+msgid "User.ResetPassword.passwordRequired"
+msgstr "请输入您的新密码！"
+
+# traslated
+msgid "User.Register.lastnamePlaceholder"
+msgstr "姓"
+
+# traslated
+msgid "CloudUploadField.titleName"
+msgstr "名字"
+
+# traslated
+msgid "Contact.title"
+msgstr "联系我们"
+
+msgid "Calendar.lang.nextCentury"
+msgstr "下一世纪"
+
+msgid "Form.defaultValidateMessages.string.min"
+msgstr "${label}最少${min}个字符"
+
+msgid "Modal.okText"
+msgstr "确定"
+
+# traslated
+msgid "User.Register.emailRequired"
+msgstr "请输入您的电子邮件！"
+
+msgid "Table.collapse"
+msgstr "关闭行"
+
+msgid "Pagination.prev_5"
+msgstr "向前 5 页"
+
+# traslated
+msgid "ArrayAccordion.titleCopyButton"
+msgstr "请选择将数据复制到何处？"
+
+msgid "Calendar.lang.previousMonth"
+msgstr "上个月 (翻页上键)"
+
+msgid "Transfer.removeCurrent"
+msgstr "删除当页"
+
+msgid "Form.defaultValidateMessages.array.max"
+msgstr "最多${max}个${label}"
+
+# traslated
+msgid "App.cloudUploadTooltip"
+msgstr "将数据保存到云端"
+
+# traslated
+msgid "CloudDownloadField.buttonCancel"
+msgstr "取消"
+
+# traslated
+msgid "Contact.emailRequired"
+msgstr "请输入您的电子邮件！"
+
+# default
+msgid "Calendar.lang.monthBeforeYear"
+msgstr "§true"
+
+# traslated
+msgid "User.Confirm.emailInvalid"
+msgstr "无效的电子邮件！"
+
+# traslated
+msgid "User.ResetPassword.passwordConfirmError"
+msgstr "您输入的两个密码不匹配！"
+
+# traslated
+msgid "CloudUploadField.titleSaveNew"
+msgstr "保存当前数据"
+
+# traslated
+msgid "User.Register.lastnameRequired"
+msgstr "请输入您的姓氏！"
+
+# traslated
+msgid "User.settingButton"
+msgstr "设置"
+
+msgid "Pagination.next_3"
+msgstr "向后 3 页"
+
+msgid "Transfer.remove"
+msgstr "删除"
+
+msgid "DatePicker.lang.yearFormat"
+msgstr "YYYY年"
+
+# traslated
+msgid "User.Login.passwordPlaceholder"
+msgstr "密码"
+
+msgid "DatePicker.lang.placeholder"
+msgstr "请选择日期"
+
+# traslated
+msgid "User.titleForgot"
+msgstr "找回密码"
+
+msgid "Calendar.lang.quarterPlaceholder"
+msgstr "请选择季度"
+
+msgid "DatePicker.lang.previousCentury"
+msgstr "上一世纪"
+
+# traslated
+msgid "App.restoreButton"
+msgstr "恢复"
+
+# default
+msgid "DatePicker.lang.shortWeekDays"
+msgstr "§undefined"
+
+# traslated
+msgid "User.logoutButton"
+msgstr "注销"
+
+# traslated
+msgid "User.buttonTooltip"
+msgstr "登录"
+
+msgid "DatePicker.lang.rangeYearPlaceholder"
+msgstr "§[\"开始年份\",\"结束年份\"]"
+
+msgid "Pagination.page_size"
+msgstr "页码"
+
+msgid "Calendar.lang.weekSelect"
+msgstr "选择周"
+
+msgid "Form.defaultValidateMessages.date.invalid"
+msgstr "${label}是一个无效日期"
+
+# traslated
+msgid "App.restoreCloseButton"
+msgstr "关闭"
+
+# traslated
+msgid "User.Forgot.submitButton"
+msgstr "找回密码"
+
+msgid "Transfer.selectCurrent"
+msgstr "全选当页"
+
+# traslated
+msgid "User.Register.usernamePlaceholder"
+msgstr "用户名"
+
+# traslated
+msgid "App.filesButton"
+msgstr "文件"
+
+# traslated
+msgid "TabsField.moveright"
+msgstr "向右移动"
+
+msgid "DatePicker.lang.weekSelect"
+msgstr "选择周"
+
+msgid "Calendar.lang.rangeMonthPlaceholder"
+msgstr "§[\"开始月份\",\"结束月份\"]"
+
+msgid "Table.filterTitle"
+msgstr "筛选"
+
+# traslated
+msgid "App.restoreTooltip"
+msgstr "恢复数据"
+
+msgid "Upload.downloadFile"
+msgstr "下载文件"
+
+msgid "Calendar.lang.yearSelect"
+msgstr "选择年份"
+
+msgid "Text.copy"
+msgstr "复制"
+
+# traslated
+msgid "User.ResetPassword.errorTitle"
+msgstr "老年 退休金 计划。。。出了点问题！"
+
+msgid "Tour.Finish"
+msgstr "结束导览"
+
+msgid "Form.defaultValidateMessages.number.len"
+msgstr "${label}必须等于${len}"
+
+# traslated
+msgid "CloudDownloadField.titleSaveNew"
+msgstr "保存当前数据"
+
+# traslated
+msgid "CloudUploadField.confirmDelete"
+msgstr "一定要删除吗？"
+
+# traslated
+msgid "PDFField.uploading"
+msgstr "上传。。。"
+
+msgid "Transfer.removeAll"
+msgstr "删除全部"
+
+msgid "Calendar.timePickerLocale.rangePlaceholder"
+msgstr "§[\"开始时间\",\"结束时间\"]"
+
+# traslated
+msgid "User.Forgot.errorTitle"
+msgstr "老年 退休金 计划。。。出了点问题！"
+
+msgid "Table.filterEmptyText"
+msgstr "无筛选项"
+
+# traslated
+msgid "PDFField.removeFile"
+msgstr "删除文件"
+
+# traslated
+msgid "User.Login.sendConfirmMail"
+msgstr "重新发送确认电子邮件"
+
+msgid "Pagination.next_5"
+msgstr "向后 5 页"
+
+# traslated
+msgid "ErrorListTemplate.descriptionFloatButton"
+msgstr "犯 错"
+
+# traslated
+msgid "PDFField.preview"
+msgstr "预览"
+
+msgid "Form.defaultValidateMessages.enum"
+msgstr "${label}必须是其中一个[${enum}]"
+
+# traslated
+msgid "Contact.nameRequired"
+msgstr "请输入您的姓名！"
+
+# traslated
+msgid "ErrorListTemplate.titleModal"
+msgstr "错误"
+
+msgid "Form.defaultValidateMessages.number.min"
+msgstr "${label}最小值为${min}"
+
+# traslated
+msgid "User.Register.firstnamePlaceholder"
+msgstr "名字"
+
+msgid "Calendar.lang.dayFormat"
+msgstr "D日"
+
+msgid "DatePicker.lang.yearSelect"
+msgstr "选择年份"
+
+# traslated
+msgid "User.Register.submitButton"
+msgstr "注册"
+
+msgid "Calendar.lang.backToToday"
+msgstr "返回今天"
+
+# traslated
+msgid "User.Login.rememberMe"
+msgstr "记住我"
+
+# traslated
+msgid "CloudDownloadField.buttonDownload"
+msgstr "服务器"
+
+# traslated
+msgid "ArrayAccordion.tooltipExtra"
+msgstr "复制数据"
+
+msgid "Calendar.timePickerLocale.placeholder"
+msgstr "请选择时间"
+
+msgid "Calendar.lang.year"
+msgstr "年"
+
+# traslated
+msgid "User.Register.passwordConfirmRequired"
+msgstr "请确认您的密码！"
+
+# traslated
+msgid "App.disableFullscreen"
+msgstr "禁用全屏"
+
+# traslated
+msgid "CloudDownloadField.createdAt"
+msgstr "创建"
+
+# traslated
+msgid "App.downloadTooltip"
+msgstr "将数据导出为 JSON"
+
+# traslated
+msgid "App.autoSaveTooltip"
+msgstr "启用自动保存"
+
+msgid "DatePicker.lang.today"
+msgstr "今天"
+
+msgid "Tour.Previous"
+msgstr "上一步"
+
+msgid "Pagination.jump_to"
+msgstr "跳至"
+
+# traslated
+msgid "User.ResetPassword.or"
+msgstr "或"
+
+# traslated
+msgid "User.Register.passwordPlaceholder"
+msgstr "密码"
+
+msgid "Table.selectAll"
+msgstr "全选当页"
+
+# traslated
+msgid "CloudUploadField.buttonOverwrite"
+msgstr "改写"
+
+# traslated
+msgid "CloudDownloadField.updatedAt"
+msgstr "更新"
+
+# traslated
+msgid "User.Login.or"
+msgstr "或"
+
+# traslated
+msgid "DebugTemplate.titleModal"
+msgstr "调试工作流"
+
+msgid "Calendar.lang.rangePlaceholder"
+msgstr "§[\"开始日期\",\"结束日期\"]"
+
+msgid "Text.edit"
+msgstr "编辑"
+
+msgid "DatePicker.lang.previousMonth"
+msgstr "上个月 (翻页上键)"
+
+# traslated
+msgid "App.autoSaveButton"
+msgstr "自动保存"
+
+# traslated
+msgid "CloudDownloadField.buttonOverwrite"
+msgstr "改写"
+
+# traslated
+msgid "FileWidget.errorOnlyOneItem"
+msgstr "您最多可以上传一个文件！"
+
+msgid "Pagination.prev_3"
+msgstr "向前 3 页"
+
+# traslated
+msgid "User.Login.emailRequired"
+msgstr "请输入您的电子邮件！"
+
+# traslated
+msgid "CloudDownloadField.confirmDelete"
+msgstr "一定要删除吗？"
+
+# traslated
+msgid "User.Register.passwordRequired"
+msgstr "请输入您的密码！"
+
+msgid "TimePicker.rangePlaceholder"
+msgstr "§[\"开始时间\",\"结束时间\"]"
+
+# traslated
+msgid "FileWidget.errorMaxItems"
+msgstr "您可以上传最大 {maxItems} 文件！"
+
+msgid "Calendar.lang.dateTimeFormat"
+msgstr "YYYY年M月D日 HH时mm分ss秒"
+
+# traslated
+msgid "User.Confirm.or"
+msgstr "或"
+
+# traslated
+msgid "Contact.messagePlaceholder"
+msgstr "您的留言"
+
+msgid "Form.defaultValidateMessages.string.len"
+msgstr "${label}须为${len}个字符"
+
+# traslated
+msgid "ArrayCopy.tooltip"
+msgstr "复制数据"
+
+msgid "DatePicker.lang.monthPlaceholder"
+msgstr "请选择月份"
+
+msgid "Calendar.lang.today"
+msgstr "今天"
+
+msgid "Transfer.itemsUnit"
+msgstr "项"
+
+msgid "Table.filterSearchPlaceholder"
+msgstr "在筛选项中搜索"
+
+# default
+msgid "DatePicker.lang.monthFormat"
+msgstr "§undefined"
+
+# traslated
+msgid "CloudDownloadField.dataSwitchChecked"
+msgstr "当前"
+
+msgid "Transfer.selectAll"
+msgstr "全选所有"
+
+msgid "Image.preview"
+msgstr "预览"
+
+msgid "Table.triggerDesc"
+msgstr "点击降序"
+
+msgid "DatePicker.lang.dateTimeFormat"
+msgstr "YYYY年M月D日 HH时mm分ss秒"
+
+# traslated
+msgid "CloudUploadField.errorTitle"
+msgstr "老年 退休金 计划。。。出了点问题！"
+
+msgid "DatePicker.timePickerLocale.rangePlaceholder"
+msgstr "§[\"开始时间\",\"结束时间\"]"
+
+# traslated
+msgid "App.enableFullscreen"
+msgstr "启用全屏"
+
+msgid "DatePicker.lang.clear"
+msgstr "清除"
+
+msgid "Calendar.lang.nextDecade"
+msgstr "下一年代"
+
+# traslated
+msgid "User.Register.emailPlaceholder"
+msgstr "电子邮件"
+
+# traslated
+msgid "App.cloudButton"
+msgstr "云"
+
+# traslated
+msgid "App.autoSavingTooltip"
+msgstr "禁用自动保存"
+
+msgid "Form.defaultValidateMessages.date.parse"
+msgstr "${label}不能转换为日期"
+
+msgid "Form.defaultValidateMessages.pattern.mismatch"
+msgstr "${label}与模式不匹配${pattern}"
+
+msgid "Form.defaultValidateMessages.types.regexp"
+msgstr "${label}不是一个有效的${type}"
+
+msgid "Text.expand"
+msgstr "展开"
+
+# traslated
+msgid "User.Login.forgotPassword"
+msgstr "忘记密码"
+
+msgid "Form.defaultValidateMessages.number.max"
+msgstr "${label}最大值为${max}"
+
+# traslated
+msgid "CloudUploadField.dataSwitchUnChecked"
+msgstr "服务器"
+
+# traslated
+msgid "App.cleanConfirm"
+msgstr "一定要删除这些数据吗？"
+
+# traslated
+msgid "CloudUploadField.buttonSaveNew"
+msgstr "新纪录"
+
+msgid "DatePicker.lang.nextMonth"
+msgstr "下个月 (翻页下键)"
+
+msgid "Table.selectInvert"
+msgstr "反选当页"
+
+# traslated
+msgid "App.restoreConfirm"
+msgstr "确定要恢复此数据？"
+
+msgid "DatePicker.lang.weekPlaceholder"
+msgstr "请选择周"
+
+msgid "Calendar.lang.monthPlaceholder"
+msgstr "请选择月份"
+
+# traslated
+msgid "User.Login.errorTitle"
+msgstr "老年 退休金 计划。。。出了点问题！"
+
+msgid "Form.defaultValidateMessages.array.min"
+msgstr "最少${min}个${label}"
+
+# traslated
+msgid "TabsField.select"
+msgstr "选择"
+
+# traslated
+msgid "TabsField.movedown"
+msgstr "下移"
+
+msgid "DatePicker.lang.monthSelect"
+msgstr "选择月份"
+
+# traslated
+msgid "App.autoSavingButton"
+msgstr "自动保存"
+
+msgid "Calendar.lang.previousDecade"
+msgstr "上一年代"
+
+msgid "Calendar.lang.ok"
+msgstr "确定"
+
+# traslated
+msgid "User.Confirm.emailRequired"
+msgstr "请输入您的电子邮件！"
+
+# traslated
+msgid "User.Setting.firstnameRequired"
+msgstr "请输入您的姓名！"
+
+# default
+msgid "Calendar.lang.monthFormat"
+msgstr "§undefined"
+
+# traslated
+msgid "User.Setting.submitButton"
+msgstr "救"
+
+msgid "Tour.Next"
+msgstr "下一步"
+
+msgid "Calendar.lang.rangeWeekPlaceholder"
+msgstr "§[\"开始周\",\"结束周\"]"
+
+# traslated
+msgid "CloudDownloadField.errorTitle"
+msgstr "老年 退休金 计划。。。出了点问题！"
+
+# traslated
+msgid "User.Confirm.login"
+msgstr "登录！"
+
+# traslated
+msgid "User.ResetPassword.passwordConfirmPlaceholder"
+msgstr "确认新密码"
+
+msgid "DatePicker.lang.now"
+msgstr "此刻"
+
+msgid "Calendar.lang.nextYear"
+msgstr "下一年 (Control键加右方向键)"
+
+msgid "Form.defaultValidateMessages.types.date"
+msgstr "${label}不是一个有效的${type}"
+
+# traslated
+msgid "User.Register.or"
+msgstr "或"
+
+msgid "DatePicker.lang.previousDecade"
+msgstr "上一年代"
+
+# traslated
+msgid "App.branchesButton"
+msgstr "分支"
+
+msgid "Form.defaultValidateMessages.types.email"
+msgstr "${label}不是一个有效的${type}"
+
+msgid "Pagination.next_page"
+msgstr "下一页"
+
+msgid "Icon.icon"
+msgstr "图标"
+
+msgid "Form.defaultValidateMessages.types.method"
+msgstr "${label}不是一个有效的${type}"
+
+msgid "DatePicker.lang.locale"
+msgstr "zh_CN"
+
+msgid "Calendar.lang.clear"
+msgstr "清除"
+
+msgid "Calendar.lang.yearFormat"
+msgstr "YYYY年"
+
+msgid "Form.defaultValidateMessages.required"
+msgstr "请输入${label}"
+
+# traslated
+msgid "App.debugButton"
+msgstr "调试"
+
+msgid "locale"
+msgstr "zh-cn"
+
+msgid "DatePicker.lang.ok"
+msgstr "确定"
+
+msgid "Table.cancelSort"
+msgstr "取消排序"
+
+msgid "Calendar.lang.rangeYearPlaceholder"
+msgstr "§[\"开始年份\",\"结束年份\"]"
+
+# traslated
+msgid "User.Setting.errorTitle"
+msgstr "老年 退休金 计划。。。出了点问题！"
+
+# traslated
+msgid "Contact.namePlaceholder"
+msgstr "您的姓名"
+
+msgid "Calendar.lang.placeholder"
+msgstr "请选择日期"
+
+# traslated
+msgid "App.restoreEraseButton"
+msgstr "抹掉存储"
+
+# traslated
+msgid "User.Login.passwordRequired"
+msgstr "请输入您的密码！"
+
+# traslated
+msgid "User.Forgot.or"
+msgstr "或"
+
+msgid "Form.defaultValidateMessages.types.boolean"
+msgstr "${label}不是一个有效的${type}"
+
+msgid "DatePicker.lang.rangeWeekPlaceholder"
+msgstr "§[\"开始周\",\"结束周\"]"
+
+# traslated
+msgid "App.cleanButton"
+msgstr "干净"
+
+msgid "Form.defaultValidateMessages.types.integer"
+msgstr "${label}不是一个有效的${type}"
+
+msgid "Empty.description"
+msgstr "暂无数据"
+
+# default
+msgid "Calendar.lang.shortMonths"
+msgstr "§undefined"
+
+# traslated
+msgid "DebugTemplate.tooltipFloatButton"
+msgstr "打开调试工作流"
+
+msgid "Calendar.lang.decadeSelect"
+msgstr "选择年代"
+
+msgid "Upload.uploadError"
+msgstr "上传错误"
+
+# traslated
+msgid "User.Login.submitButton"
+msgstr "登录"
+
+# traslated
+msgid "User.Register.errorTitle"
+msgstr "老年 退休金 计划。。。出了点问题！"
+
+msgid "DatePicker.lang.timeSelect"
+msgstr "选择时间"
+
+# traslated
+msgid "App.uploadButton"
+msgstr "上传"
+
+# traslated
+msgid "User.Register.passwordConfirmPlaceholder"
+msgstr "确认密码"
+
+# traslated
+msgid "CloudDownloadField.fieldErrors.name"
+msgstr "请输入姓名！"
+
+# traslated
+msgid "CloudUploadField.fieldErrors.name"
+msgstr "请输入姓名！"
+
+# traslated
+msgid "TableField.exportTooltip"
+msgstr "以 CSV 格式导出表格"
+
+# traslated
+msgid "User.Login.registerNow"
+msgstr "立即注册！"
+
+# traslated
+msgid "User.Login.emailInvalid"
+msgstr "无效的电子邮件！"
+
+# traslated
+msgid "User.Forgot.login"
+msgstr "登录！"
+
+msgid "Pagination.items_per_page"
+msgstr "条/页"
+
+# traslated
+msgid "CloudDownloadField.buttonSave"
+msgstr "救"
+
+# traslated
+msgid "User.titleRegister"
+msgstr "新注册"
+
+msgid "Calendar.lang.now"
+msgstr "此刻"
+
+# traslated
+msgid "Contact.buttonTooltip"
+msgstr "联系"
+
+msgid "Form.optional"
+msgstr "（可选）"
+
+# traslated
+msgid "App.restoreTitleDifferences"
+msgstr "差异"
+
+# default
+msgid "DatePicker.lang.monthBeforeYear"
+msgstr "§true"
+
+msgid "DatePicker.lang.rangePlaceholder"
+msgstr "§[\"开始日期\",\"结束日期\"]"
+
+# traslated
+msgid "User.Confirm.emailPlaceholder"
+msgstr "电子邮件"
+
+msgid "DatePicker.lang.nextDecade"
+msgstr "下一年代"
+
+# traslated
+msgid "Errors.title"
+msgstr "验证错误"
+
+msgid "DatePicker.lang.yearPlaceholder"
+msgstr "请选择年份"
+
+# traslated
+msgid "FileWidget.errorFileType"
+msgstr "您只能上传{fileTypes}文件！"
+
+# traslated
+msgid "PDFField.uploadError"
+msgstr "上传错误"
+
+msgid "DatePicker.lang.rangeQuarterPlaceholder"
+msgstr "§[\"开始季度\",\"结束季度\"]"
+
+# traslated
+msgid "App.restoreCurrent"
+msgstr "当前"
+
+# traslated
+msgid "ArrayAccordion.placeholder"
+msgstr "请选择"
+
+msgid "Calendar.lang.weekPlaceholder"
+msgstr "请选择周"
+
+# traslated
+msgid "User.Register.firstnameRequired"
+msgstr "请输入您的姓名！"
+
+# traslated
+msgid "User.Setting.revertButton"
+msgstr "恢复"
+
+# traslated
+msgid "App.fullscreenButton"
+msgstr "全屏"
+
+# traslated
+msgid "CloudDownloadField.buttonSaveNew"
+msgstr "新纪录"
+
+msgid "DatePicker.lang.month"
+msgstr "月"
+
+msgid "Calendar.lang.nextMonth"
+msgstr "下个月 (翻页下键)"
+
+# traslated
+msgid "TableField.deleteItemConfirm"
+msgstr "一定要删除吗？"
+
+msgid "Form.defaultValidateMessages.array.len"
+msgstr "须为${len}个${label}"
+
+msgid "Table.filterConfirm"
+msgstr "确定"
+
+# traslated
+msgid "User.Setting.firstnamePlaceholder"
+msgstr "名字"
+
+# traslated
+msgid "App.autoSavingErrorTitle"
+msgstr "老年 退休金 计划。。。禁用自动保存"
+
+msgid "TimePicker.placeholder"
+msgstr "请选择时间"
+
+msgid "DatePicker.lang.quarterPlaceholder"
+msgstr "请选择季度"
+
+# traslated
+msgid "User.ResetPassword.passwordConfirmRequired"
+msgstr "请确认您的新密码！"
+
+# traslated
+msgid "CloudDownloadField.dataSwitchUnChecked"
+msgstr "服务器"
+
+msgid "Table.selectNone"
+msgstr "清空所有"
+
+msgid "Form.defaultValidateMessages.types.url"
+msgstr "${label}不是一个有效的${type}"
+
+msgid "Pagination.page"
+msgstr "页"
+
+# traslated
+msgid "User.titleSetting"
+msgstr "编辑设置"
+
+# traslated
+msgid "User.Forgot.emailRequired"
+msgstr "请输入您的电子邮件！"
+
+msgid "Table.selectionAll"
+msgstr "全选所有"
+
+msgid "Form.defaultValidateMessages.string.range"
+msgstr "${label}须在${min}-${max}字符之间"
+
+# traslated
+msgid "User.Login.emailPlaceholder"
+msgstr "电子邮件"
+
+# traslated
+msgid "TabsField.moveleft"
+msgstr "向左移动"
+
+# traslated
+msgid "App.cloudUploadButton"
+msgstr "救"
+
+# traslated
+msgid "User.Forgot.emailPlaceholder"
+msgstr "电子邮件"
+
+# traslated
+msgid "PDFField.downloadFile"
+msgstr "下载文件"
+
+msgid "DatePicker.timePickerLocale.placeholder"
+msgstr "请选择时间"
+
+# traslated
+msgid "Contact.messageRequired"
+msgstr "请输入您的留言！"
+
+# traslated
+msgid "User.Setting.lastnameRequired"
+msgstr "请输入您的姓氏！"
+
+# traslated
+msgid "CloudUploadField.buttonCancel"
+msgstr "取消"
+
+# traslated
+msgid "App.downloadButton"
+msgstr "下载"
+
+msgid "DatePicker.lang.dateFormat"
+msgstr "YYYY年M月D日"
+
+# traslated
+msgid "Contact.subjectRequired"
+msgstr "请输入邮件主题！"
+
+# default
+msgid "Calendar.lang.shortWeekDays"
+msgstr "§undefined"
+
+msgid "Calendar.lang.locale"
+msgstr "zh_CN"
+
+# traslated
+msgid "CloudDownloadField.titleName"
+msgstr "名字"
+
+msgid "Transfer.searchPlaceholder"
+msgstr "请输入搜索内容"
+
+# traslated
+msgid "CloudUploadField.createdAt"
+msgstr "创建"
+
+# traslated
+msgid "Contact.emailInvalid"
+msgstr "无效的电子邮件！"
+
+# traslated
+msgid "User.infoButton"
+msgstr "轮廓"
+
+# traslated
+msgid "User.Register.passwordConfirmError"
+msgstr "您输入的两个密码不匹配！"
+
+# traslated
+msgid "CloudUploadField.dataSwitchChecked"
+msgstr "当前"
+
+# traslated
+msgid "TabsField.clone"
+msgstr "克隆"
+
+msgid "Transfer.titles"
+msgstr "§[\"\",\"\"]"
+
+msgid "QRCode.refresh"
+msgstr "点击刷新"
+
+# traslated
+msgid "TableField.importTooltip"
+msgstr "从 CSV 导入表格"
+
+# traslated
+msgid "App.uploadTooltip"
+msgstr "以 JSON 格式导入数据"
+
+msgid "DatePicker.lang.decadeSelect"
+msgstr "选择年代"
+
+# traslated
+msgid "App.restoreModalTitle"
+msgstr "恢复数据"
+
+msgid "Table.sortTitle"
+msgstr "排序"
+
+msgid "DatePicker.lang.year"
+msgstr "年"
+
+# traslated
+msgid "App.restoreRestoreButton"
+msgstr "恢复"
+
+msgid "Form.defaultValidateMessages.types.number"
+msgstr "${label}不是一个有效的${type}"
+
+msgid "Calendar.lang.yearPlaceholder"
+msgstr "请选择年份"
+
+msgid "Popconfirm.okText"
+msgstr "确定"
+
+# traslated
+msgid "CloudDownloadField.titleData"
+msgstr "数据源"
+
+# traslated
+msgid "ArrayCopy.placeholder"
+msgstr "请选择"
+
+msgid "Upload.uploading"
+msgstr "文件上传中"
+
+# traslated
+msgid "CloudUploadField.titleData"
+msgstr "数据源"
+
+msgid "Text.copied"
+msgstr "复制成功"
+
+# traslated
+msgid "App.cloudDownloadTooltip"
+msgstr "从云导入数据"
+
+# traslated
+msgid "FileWidget.dropMessage"
+msgstr "将文件拖到此处或单击以浏览"
+
+msgid "Calendar.lang.month"
+msgstr "月"
+
+msgid "Form.defaultValidateMessages.types.object"
+msgstr "${label}不是一个有效的${type}"
+
+msgid "PageHeader.back"
+msgstr "返回"
+
+msgid "DatePicker.lang.nextYear"
+msgstr "下一年 (Control键加右方向键)"
+
+# traslated
+msgid "User.titleLogin"
+msgstr "登录"
+
+msgid "Table.filterCheckall"
+msgstr "全选"
+
+msgid "DatePicker.lang.previousYear"
+msgstr "上一年 (Control键加左方向键)"
+
+msgid "Upload.previewFile"
+msgstr "预览文件"
+
+# traslated
+msgid "CloudUploadField.updatedAt"
+msgstr "更新"
+
+msgid "Calendar.lang.timeSelect"
+msgstr "选择时间"
+
+# traslated
+msgid "CloudUploadField.buttonSave"
+msgstr "救"
+
+# traslated
+msgid "TabsField.selectItem"
+msgstr "选择项目"
+
+# traslated
+msgid "FileWidget.errorSameFile"
+msgstr "文件 {filename} 已上传！"
+
+msgid "Calendar.lang.monthSelect"
+msgstr "选择月份"
+
+msgid "Form.defaultValidateMessages.types.array"
+msgstr "${label}不是一个有效的${type}"
+
+msgid "language"
+msgstr "zh_CN"
+
+# traslated
+msgid "User.Setting.lastnamePlaceholder"
+msgstr "姓"
+
+# traslated
+msgid "TabsField.delete"
+msgstr "删除"
+
+msgid "Form.defaultValidateMessages.default"
+msgstr "字段验证错误${label}"
+
+msgid "Calendar.lang.previousYear"
+msgstr "上一年 (Control键加左方向键)"

@@ -1,0 +1,1353 @@
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: 1.0\n"
+"Report-Msgid-Bugs-To: vinci1it2000@gmail.com\n"
+"PO-Revision-Date: 2023-11-18 08:55+0000\n"
+"Last-Translator: Vincenzo Arcidiacono <vinci1it2000@gmail.com>\n"
+"Language-Team: English <vinci1it2000@gmail.com>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+# traslated
+msgid "Contact.errorTitle"
+msgstr "Eragiketak... Zerbait gaizki atera zen!"
+
+# traslated
+msgid "ColorPicker.presetEmpty"
+msgstr "Hutsik"
+
+msgid "Table.filterReset"
+msgstr "Berrasi"
+
+# traslated
+msgid "User.Register.login"
+msgstr "Saioa hasi!"
+
+# traslated
+msgid "TableField.addItemTooltip"
+msgstr "Artikulua gehitu"
+
+# traslated
+msgid "CloudUploadField.buttonDownload"
+msgstr "Zerbitzari"
+
+# traslated
+msgid "User.Logout.submitButton"
+msgstr "Saioa itxi"
+
+msgid "Calendar.lang.dateFormat"
+msgstr "YYYY/M/D"
+
+msgid "Calendar.lang.dateSelect"
+msgstr "Eguna aukeratu"
+
+# traslated
+msgid "User.Confirm.errorTitle"
+msgstr "Eragiketak... Zerbait gaizki atera zen!"
+
+# traslated
+msgid "TabsField.moveup"
+msgstr "gorantz mugitu"
+
+msgid "Modal.justOkText"
+msgstr "Onartu"
+
+# traslated
+msgid "PDFField.titleSectionSelection"
+msgstr "Atalak"
+
+msgid "Calendar.lang.previousCentury"
+msgstr "Aurreko mendea"
+
+# traslated
+msgid "User.ResetPassword.passwordPlaceholder"
+msgstr "Pasahitz berria"
+
+# traslated
+msgid "User.loginTooltip"
+msgstr "Saioa hasi"
+
+msgid "Form.defaultValidateMessages.whitespace"
+msgstr "${label} ezin da izan karaktere zuri bat"
+
+msgid "Pagination.prev_page"
+msgstr "Aurreko orrialdea"
+
+# traslated
+msgid "QRCode.expired"
+msgstr "QR kodea iraungi egin da"
+
+# traslated
+msgid "FileWidget.errorNotUploaded"
+msgstr "Eragiketak... Kargatu gabeko artxiboa"
+
+msgid "Form.defaultValidateMessages.string.max"
+msgstr "${label} gehienez ${max} karaktere izan behar ditu"
+
+# traslated
+msgid "User.Confirm.submitButton"
+msgstr "Argibideak bidali"
+
+msgid "Form.defaultValidateMessages.types.hex"
+msgstr "${label} ez da ${type} balioduna"
+
+# traslated
+msgid "Contact.submitButton"
+msgstr "Bidali"
+
+msgid "Table.expand"
+msgstr "Zabaldu ilera"
+
+# traslated
+msgid "App.restoreDifferences"
+msgstr "Egungo datuekiko aldeak erakutsi"
+
+msgid "Pagination.jump_to_confirm"
+msgstr "baieztatu"
+
+# traslated
+msgid "User.ResetPassword.submitButton"
+msgstr "Pasahitza berrezartzea"
+
+msgid "Transfer.itemUnit"
+msgstr "Elementu"
+
+msgid "global.placeholder"
+msgstr "Aukeratu"
+
+# traslated
+msgid "DatePicker.lang.rangeMonthPlaceholder"
+msgstr "§[\"Hasiera hilabetea\",\"Hilaren amaiera\"]"
+
+# traslated
+msgid "User.titleResetPassword"
+msgstr "Pasahitza berrezartzea"
+
+# traslated
+msgid "Contact.emailPlaceholder"
+msgstr "Posta elektroniko"
+
+msgid "Table.triggerAsc"
+msgstr "Klik goranzko ordenan ordenatzeko"
+
+# traslated
+msgid "User.Register.usernameRequired"
+msgstr "Mesedez, sartu zure erabiltzaile-izena!"
+
+# traslated
+msgid "User.titleLogout"
+msgstr "Ziur saioa itxiko duzula?"
+
+# traslated
+msgid "ArrayCopy.titleCopyButton"
+msgstr "Aukeratu datuak non kopiatu."
+
+msgid "Popconfirm.cancelText"
+msgstr "Ezeztatu"
+
+# traslated
+msgid "User.titleConfirm"
+msgstr "Berrespen-posta elektronikoa bidali"
+
+msgid "Form.defaultValidateMessages.array.range"
+msgstr "${label} kopuruak ${min}-${max} -ra bitartekoa izan behar du"
+
+# traslated
+msgid "User.ResetPassword.login"
+msgstr "Saioa hasi!"
+
+# traslated
+msgid "Calendar.lang.rangeQuarterPlaceholder"
+msgstr "§[\"Hasierako hiruhilekoa\",\"Azken hiruhilekoa\"]"
+
+# traslated
+msgid "PDFField.previewFile"
+msgstr "Aurretiazko ikustaldiaren artxiboa"
+
+# traslated
+msgid "Contact.subjectPlaceholder"
+msgstr "Postaren gaia"
+
+# traslated
+msgid "User.titleInfo"
+msgstr "Erabiltzailearen informazioa"
+
+# traslated
+msgid "App.cloudDownloadButton"
+msgstr "Inportazioa"
+
+msgid "Form.defaultValidateMessages.types.float"
+msgstr "${label} ez da ${type} balioduna"
+
+# traslated
+msgid "App.runButton"
+msgstr "Korrika egin"
+
+# traslated
+msgid "User.Register.emailInvalid"
+msgstr "Posta elektronikoa ez da baliozkoa!"
+
+msgid "Modal.cancelText"
+msgstr "Ezeztatu"
+
+msgid "DatePicker.lang.nextCentury"
+msgstr "Urrengo mendea"
+
+msgid "Upload.removeFile"
+msgstr "Fitxategi ezabatu"
+
+# traslated
+msgid "FileWidget.errorToolTip"
+msgstr "Karga-akatsa"
+
+# traslated
+msgid "TableField.deleteAllConfirm"
+msgstr "Eduki guztia ezabatuko duzu?"
+
+msgid "Form.defaultValidateMessages.number.range"
+msgstr "${label} -ren balioa ${min}-${max} -ren artean izan behar da"
+
+msgid "Form.defaultValidateMessages.date.format"
+msgstr "${label} dataren formatua baliogabea da"
+
+msgid "Form.defaultValidateMessages.types.string"
+msgstr "${label} ez da ${type} balioduna"
+
+msgid "Transfer.selectInvert"
+msgstr "Uneko orrialdea alderantzikatu"
+
+# traslated
+msgid "ErrorListTemplate.tooltipFloatButton"
+msgstr "Akats mezu irekiak"
+
+msgid "DatePicker.lang.dateSelect"
+msgstr "Eguna aukeratu"
+
+msgid "Table.emptyText"
+msgstr "Daturik gabe"
+
+msgid "DatePicker.lang.backToToday"
+msgstr "Gaur itzuli"
+
+msgid "DatePicker.lang.dayFormat"
+msgstr "D"
+
+# traslated
+msgid "User.Forgot.emailInvalid"
+msgstr "Posta elektronikoa ez da baliozkoa!"
+
+# default
+msgid "DatePicker.lang.shortMonths"
+msgstr "§undefined"
+
+# traslated
+msgid "User.ResetPassword.passwordRequired"
+msgstr "Mesedez, sartu pasahitz berria!"
+
+# traslated
+msgid "User.Register.lastnamePlaceholder"
+msgstr "Abizena"
+
+# traslated
+msgid "CloudUploadField.titleName"
+msgstr "Izena"
+
+# traslated
+msgid "Contact.title"
+msgstr "Jarri gurekin harremanetan"
+
+msgid "Calendar.lang.nextCentury"
+msgstr "Urrengo mendea"
+
+msgid "Form.defaultValidateMessages.string.min"
+msgstr "${label} gutxienez ${min} karaktere izan behar ditu"
+
+msgid "Modal.okText"
+msgstr "Onartu"
+
+# traslated
+msgid "User.Register.emailRequired"
+msgstr "Mesedez, sartu zure posta elektronikoa!"
+
+msgid "Table.collapse"
+msgstr "Ilera kolapsatu"
+
+msgid "Pagination.prev_5"
+msgstr "aurreko 5 orrialde"
+
+# traslated
+msgid "ArrayAccordion.titleCopyButton"
+msgstr "Aukeratu datuak non kopiatu."
+
+msgid "Calendar.lang.previousMonth"
+msgstr "Aurreko hilabetea (RePag)"
+
+msgid "Transfer.removeCurrent"
+msgstr "Uneko orria ezabatu"
+
+msgid "Form.defaultValidateMessages.array.max"
+msgstr "Gehienez ${max} ${label}"
+
+# traslated
+msgid "App.cloudUploadTooltip"
+msgstr "Datuak hodeian gorde"
+
+# traslated
+msgid "CloudDownloadField.buttonCancel"
+msgstr "Ezeztatu"
+
+# traslated
+msgid "Contact.emailRequired"
+msgstr "Mesedez, sartu zure posta elektronikoa!"
+
+msgid "Calendar.lang.monthBeforeYear"
+msgstr "§false"
+
+# traslated
+msgid "User.Confirm.emailInvalid"
+msgstr "Posta elektronikoa ez da baliozkoa!"
+
+# traslated
+msgid "User.ResetPassword.passwordConfirmError"
+msgstr "Sartu zituen bi pasahitzak ez datoz bat!"
+
+# traslated
+msgid "CloudUploadField.titleSaveNew"
+msgstr "Gorde egungo datuak"
+
+# traslated
+msgid "User.Register.lastnameRequired"
+msgstr "Mesedez, sartu zure deitura!"
+
+# traslated
+msgid "User.settingButton"
+msgstr "Konfigurazioa"
+
+msgid "Pagination.next_3"
+msgstr "hurrengo 3 orrialde"
+
+msgid "Transfer.remove"
+msgstr "Ezabatu"
+
+msgid "DatePicker.lang.yearFormat"
+msgstr "YYYY"
+
+# traslated
+msgid "User.Login.passwordPlaceholder"
+msgstr "Pasahitza"
+
+msgid "DatePicker.lang.placeholder"
+msgstr "Hautatu data"
+
+# traslated
+msgid "User.titleForgot"
+msgstr "Pasahitza berreskuratu"
+
+# traslated
+msgid "Calendar.lang.quarterPlaceholder"
+msgstr "Hiruhilekoa aukeratu"
+
+msgid "DatePicker.lang.previousCentury"
+msgstr "Aurreko mendea"
+
+# traslated
+msgid "App.restoreButton"
+msgstr "Zaharberritzea"
+
+# default
+msgid "DatePicker.lang.shortWeekDays"
+msgstr "§undefined"
+
+# traslated
+msgid "User.logoutButton"
+msgstr "Saioa itxi"
+
+# traslated
+msgid "User.buttonTooltip"
+msgstr "Saioa hasi"
+
+# traslated
+msgid "DatePicker.lang.rangeYearPlaceholder"
+msgstr "§[\"Hasiera urtea\",\"Urte amaiera\"]"
+
+msgid "Pagination.page_size"
+msgstr "orrien tamaina"
+
+msgid "Calendar.lang.weekSelect"
+msgstr "Astea aukeratu"
+
+msgid "Form.defaultValidateMessages.date.invalid"
+msgstr "${label} data baliogabea da"
+
+# traslated
+msgid "App.restoreCloseButton"
+msgstr "Itxi"
+
+# traslated
+msgid "User.Forgot.submitButton"
+msgstr "Pasahitza berreskuratu"
+
+msgid "Transfer.selectCurrent"
+msgstr "Hautatu uneko orria"
+
+# traslated
+msgid "User.Register.usernamePlaceholder"
+msgstr "Erabiltzaile-izena"
+
+# traslated
+msgid "App.filesButton"
+msgstr "Artxiboak"
+
+# traslated
+msgid "TabsField.moveright"
+msgstr "Mugitu eskuinetara"
+
+msgid "DatePicker.lang.weekSelect"
+msgstr "Astea aukeratu"
+
+# traslated
+msgid "Calendar.lang.rangeMonthPlaceholder"
+msgstr "§[\"Hasiera hilabetea\",\"Hilaren amaiera\"]"
+
+msgid "Table.filterTitle"
+msgstr "Iragazi menua"
+
+# traslated
+msgid "App.restoreTooltip"
+msgstr "Datuak berrezartzea"
+
+msgid "Upload.downloadFile"
+msgstr "Fitxategia deskargatu"
+
+msgid "Calendar.lang.yearSelect"
+msgstr "Urtea aukeratu"
+
+msgid "Text.copy"
+msgstr "Kopiatu"
+
+# traslated
+msgid "User.ResetPassword.errorTitle"
+msgstr "Eragiketak... Zerbait gaizki atera zen!"
+
+# traslated
+msgid "Tour.Finish"
+msgstr "Amaitu"
+
+msgid "Form.defaultValidateMessages.number.len"
+msgstr "${label} -ren balioa ${len} izan behar da"
+
+# traslated
+msgid "CloudDownloadField.titleSaveNew"
+msgstr "Gorde egungo datuak"
+
+# traslated
+msgid "CloudUploadField.confirmDelete"
+msgstr "Seguru ezabatuko duzula?"
+
+# traslated
+msgid "PDFField.uploading"
+msgstr "Kargatu..."
+
+msgid "Transfer.removeAll"
+msgstr "Ezabatu datu guztiak"
+
+# traslated
+msgid "Calendar.timePickerLocale.rangePlaceholder"
+msgstr "§[\"Hasiera ordua\",\"Amaiera ordua\"]"
+
+# traslated
+msgid "User.Forgot.errorTitle"
+msgstr "Eragiketak... Zerbait gaizki atera zen!"
+
+msgid "Table.filterEmptyText"
+msgstr "Iragazkirik gabe"
+
+# traslated
+msgid "PDFField.removeFile"
+msgstr "Artxiboa ezabatzea"
+
+# traslated
+msgid "User.Login.sendConfirmMail"
+msgstr "Berrespen mezu elektronikoa bidali"
+
+msgid "Pagination.next_5"
+msgstr "hurrengo 5 orrialde"
+
+# traslated
+msgid "ErrorListTemplate.descriptionFloatButton"
+msgstr "Errar"
+
+# traslated
+msgid "PDFField.preview"
+msgstr "Aurrebista"
+
+msgid "Form.defaultValidateMessages.enum"
+msgstr "${label} [${enum}] -tako bat izan behar da"
+
+# traslated
+msgid "Contact.nameRequired"
+msgstr "Mesedez, sartu zure izena!"
+
+# traslated
+msgid "ErrorListTemplate.titleModal"
+msgstr "Erroreak"
+
+msgid "Form.defaultValidateMessages.number.min"
+msgstr "${label} -ren balio minimoa ${min} da"
+
+# traslated
+msgid "User.Register.firstnamePlaceholder"
+msgstr "Izena"
+
+msgid "Calendar.lang.dayFormat"
+msgstr "D"
+
+msgid "DatePicker.lang.yearSelect"
+msgstr "Urtea aukeratu"
+
+# traslated
+msgid "User.Register.submitButton"
+msgstr "Erregistroa"
+
+msgid "Calendar.lang.backToToday"
+msgstr "Gaur itzuli"
+
+# traslated
+msgid "User.Login.rememberMe"
+msgstr "Gogora nazazu"
+
+# traslated
+msgid "CloudDownloadField.buttonDownload"
+msgstr "Zerbitzari"
+
+# traslated
+msgid "ArrayAccordion.tooltipExtra"
+msgstr "Kopiatuei buruzko datuak"
+
+msgid "Calendar.timePickerLocale.placeholder"
+msgstr "Aukeratu ordua"
+
+msgid "Calendar.lang.year"
+msgstr "Urte"
+
+# traslated
+msgid "User.Register.passwordConfirmRequired"
+msgstr "Mesedez, baiezta iezadazu zure pasahitza!"
+
+# traslated
+msgid "App.disableFullscreen"
+msgstr "Pantaila osoa desaktibatu"
+
+# traslated
+msgid "CloudDownloadField.createdAt"
+msgstr "Sortua"
+
+# traslated
+msgid "App.downloadTooltip"
+msgstr "JSON bezalako datuak esportatu"
+
+# traslated
+msgid "App.autoSaveTooltip"
+msgstr "Zaintza automatikoa gaitu"
+
+msgid "DatePicker.lang.today"
+msgstr "Gaur"
+
+# traslated
+msgid "Tour.Previous"
+msgstr "Aurrekoa"
+
+msgid "Pagination.jump_to"
+msgstr "-ra joan"
+
+# traslated
+msgid "User.ResetPassword.or"
+msgstr "O"
+
+# traslated
+msgid "User.Register.passwordPlaceholder"
+msgstr "Pasahitza"
+
+msgid "Table.selectAll"
+msgstr "Autatu dena"
+
+# traslated
+msgid "CloudUploadField.buttonOverwrite"
+msgstr "Gainkribatzea"
+
+# traslated
+msgid "CloudDownloadField.updatedAt"
+msgstr "Eguneratua"
+
+# traslated
+msgid "User.Login.or"
+msgstr "O"
+
+# traslated
+msgid "DebugTemplate.titleModal"
+msgstr "Arazketa-laneko fluxua"
+
+msgid "Calendar.lang.rangePlaceholder"
+msgstr "§[\"Hasierako data\",\"Amaiera data\"]"
+
+msgid "Text.edit"
+msgstr "Editatu"
+
+msgid "DatePicker.lang.previousMonth"
+msgstr "Aurreko hilabetea (RePag)"
+
+# traslated
+msgid "App.autoSaveButton"
+msgstr "Zaindari automatikoa"
+
+# traslated
+msgid "CloudDownloadField.buttonOverwrite"
+msgstr "Gainkribatzea"
+
+# traslated
+msgid "FileWidget.errorOnlyOneItem"
+msgstr "Artxibo bat igo dezakezu gehienez!"
+
+msgid "Pagination.prev_3"
+msgstr "aurreko 3 orrialde"
+
+# traslated
+msgid "User.Login.emailRequired"
+msgstr "Mesedez, sartu zure posta elektronikoa!"
+
+# traslated
+msgid "CloudDownloadField.confirmDelete"
+msgstr "Seguru ezabatuko duzula?"
+
+# traslated
+msgid "User.Register.passwordRequired"
+msgstr "Mesedez, sartu pasahitza!"
+
+# traslated
+msgid "TimePicker.rangePlaceholder"
+msgstr "§[\"Hasiera ordua\",\"Amaiera ordua\"]"
+
+# traslated
+msgid "FileWidget.errorMaxItems"
+msgstr "Ahalik eta artxibo gehien karga ditzakezu {maxItems}!!"
+
+msgid "Calendar.lang.dateTimeFormat"
+msgstr "YYYY/M/D HH:mm:ss"
+
+# traslated
+msgid "User.Confirm.or"
+msgstr "O"
+
+# traslated
+msgid "Contact.messagePlaceholder"
+msgstr "Bere mezua"
+
+msgid "Form.defaultValidateMessages.string.len"
+msgstr "${label} ${len} karaktere izan dehar ditu"
+
+# traslated
+msgid "ArrayCopy.tooltip"
+msgstr "Kopiatuei buruzko datuak"
+
+# traslated
+msgid "DatePicker.lang.monthPlaceholder"
+msgstr "Hilabetea aukeratu"
+
+msgid "Calendar.lang.today"
+msgstr "Gaur"
+
+msgid "Transfer.itemsUnit"
+msgstr "Elementuak"
+
+msgid "Table.filterSearchPlaceholder"
+msgstr "Bilatu iragazkietan"
+
+# default
+msgid "DatePicker.lang.monthFormat"
+msgstr "§undefined"
+
+# traslated
+msgid "CloudDownloadField.dataSwitchChecked"
+msgstr "gaur egun"
+
+msgid "Transfer.selectAll"
+msgstr "Datu guztiak hautatu"
+
+msgid "Image.preview"
+msgstr "Arruebista"
+
+msgid "Table.triggerDesc"
+msgstr "Klik beheranzko ordenan ordenatzeko"
+
+msgid "DatePicker.lang.dateTimeFormat"
+msgstr "YYYY/M/D HH:mm:ss"
+
+# traslated
+msgid "CloudUploadField.errorTitle"
+msgstr "Eragiketak... Zerbait gaizki atera zen!"
+
+# traslated
+msgid "DatePicker.timePickerLocale.rangePlaceholder"
+msgstr "§[\"Hasiera ordua\",\"Amaiera ordua\"]"
+
+# traslated
+msgid "App.enableFullscreen"
+msgstr "Pantaila osoa gaitu"
+
+msgid "DatePicker.lang.clear"
+msgstr "Garbitu"
+
+msgid "Calendar.lang.nextDecade"
+msgstr "Urrengo hamarkada"
+
+# traslated
+msgid "User.Register.emailPlaceholder"
+msgstr "Posta elektroniko"
+
+# traslated
+msgid "App.cloudButton"
+msgstr "Hodeia"
+
+# traslated
+msgid "App.autoSavingTooltip"
+msgstr "Zaintza automatikoa desaktibatu"
+
+msgid "Form.defaultValidateMessages.date.parse"
+msgstr "${label} ezin da data batera deitu"
+
+msgid "Form.defaultValidateMessages.pattern.mismatch"
+msgstr "${label} ez dator bat ${pattern} patroiarekin"
+
+msgid "Form.defaultValidateMessages.types.regexp"
+msgstr "${label} ez da ${type} balioduna"
+
+msgid "Text.expand"
+msgstr "Zabaldu"
+
+# traslated
+msgid "User.Login.forgotPassword"
+msgstr "Pasahitza ahaztu nuen"
+
+msgid "Form.defaultValidateMessages.number.max"
+msgstr "${label} -ren balio maximoa ${max} da"
+
+# traslated
+msgid "CloudUploadField.dataSwitchUnChecked"
+msgstr "zerbitzari"
+
+# traslated
+msgid "App.cleanConfirm"
+msgstr "Ziur datu horiek ezabatuko dituzula?"
+
+# traslated
+msgid "CloudUploadField.buttonSaveNew"
+msgstr "Marka berria"
+
+msgid "DatePicker.lang.nextMonth"
+msgstr "Urrengo hilabetea (AvPag)"
+
+msgid "Table.selectInvert"
+msgstr "Alderantzikatu hautaketa"
+
+# traslated
+msgid "App.restoreConfirm"
+msgstr "Ziur datu horiek berrezarriko dituela?"
+
+# traslated
+msgid "DatePicker.lang.weekPlaceholder"
+msgstr "Astea aukeratu"
+
+# traslated
+msgid "Calendar.lang.monthPlaceholder"
+msgstr "Hilabetea aukeratu"
+
+# traslated
+msgid "User.Login.errorTitle"
+msgstr "Eragiketak... Zerbait gaizki atera zen!"
+
+msgid "Form.defaultValidateMessages.array.min"
+msgstr "Gutxienez ${min} ${label}"
+
+# traslated
+msgid "TabsField.select"
+msgstr "aukeratu"
+
+# traslated
+msgid "TabsField.movedown"
+msgstr "beherantz mugitu"
+
+msgid "DatePicker.lang.monthSelect"
+msgstr "Hilabetea aukeratu"
+
+# traslated
+msgid "App.autoSavingButton"
+msgstr "Zaindari automatikoa"
+
+msgid "Calendar.lang.previousDecade"
+msgstr "Aurreko hamarkada"
+
+msgid "Calendar.lang.ok"
+msgstr "OK"
+
+# traslated
+msgid "User.Confirm.emailRequired"
+msgstr "Mesedez, sartu zure posta elektronikoa!"
+
+# traslated
+msgid "User.Setting.firstnameRequired"
+msgstr "Mesedez, sartu zure izena!"
+
+# default
+msgid "Calendar.lang.monthFormat"
+msgstr "§undefined"
+
+# traslated
+msgid "User.Setting.submitButton"
+msgstr "Salbatu"
+
+# traslated
+msgid "Tour.Next"
+msgstr "Hurrengo"
+
+# traslated
+msgid "Calendar.lang.rangeWeekPlaceholder"
+msgstr "§[\"Hasiera astea\",\"Asteburua\"]"
+
+# traslated
+msgid "CloudDownloadField.errorTitle"
+msgstr "Eragiketak... Zerbait gaizki atera zen!"
+
+# traslated
+msgid "User.Confirm.login"
+msgstr "Saioa hasi!"
+
+# traslated
+msgid "User.ResetPassword.passwordConfirmPlaceholder"
+msgstr "Pasahitz berria baieztatu"
+
+msgid "DatePicker.lang.now"
+msgstr "Orain"
+
+msgid "Calendar.lang.nextYear"
+msgstr "Urrento urtea (Control + eskuina)"
+
+msgid "Form.defaultValidateMessages.types.date"
+msgstr "${label} ez da ${type} balioduna"
+
+# traslated
+msgid "User.Register.or"
+msgstr "O"
+
+msgid "DatePicker.lang.previousDecade"
+msgstr "Aurreko hamarkada"
+
+# traslated
+msgid "App.branchesButton"
+msgstr "Adarrak"
+
+msgid "Form.defaultValidateMessages.types.email"
+msgstr "${label} ez da ${type} balioduna"
+
+msgid "Pagination.next_page"
+msgstr "Hurrengo orrialdea"
+
+msgid "Icon.icon"
+msgstr "ikono"
+
+msgid "Form.defaultValidateMessages.types.method"
+msgstr "${label} ez da ${type} balioduna"
+
+msgid "DatePicker.lang.locale"
+msgstr "eu_ES"
+
+msgid "Calendar.lang.clear"
+msgstr "Garbitu"
+
+msgid "Calendar.lang.yearFormat"
+msgstr "YYYY"
+
+msgid "Form.defaultValidateMessages.required"
+msgstr "Mesedez, sartu ${label}"
+
+# traslated
+msgid "App.debugButton"
+msgstr "Araztu"
+
+msgid "locale"
+msgstr "eu"
+
+msgid "DatePicker.lang.ok"
+msgstr "OK"
+
+msgid "Table.cancelSort"
+msgstr "Egin klik ordenamendua ezeztatzeko"
+
+# traslated
+msgid "Calendar.lang.rangeYearPlaceholder"
+msgstr "§[\"Hasiera urtea\",\"Urte amaiera\"]"
+
+# traslated
+msgid "User.Setting.errorTitle"
+msgstr "Eragiketak... Zerbait gaizki atera zen!"
+
+# traslated
+msgid "Contact.namePlaceholder"
+msgstr "Deitzen zara"
+
+msgid "Calendar.lang.placeholder"
+msgstr "Hautatu data"
+
+# traslated
+msgid "App.restoreEraseButton"
+msgstr "Biltegiratzea ezabatu"
+
+# traslated
+msgid "User.Login.passwordRequired"
+msgstr "Mesedez, sartu pasahitza!"
+
+# traslated
+msgid "User.Forgot.or"
+msgstr "O"
+
+msgid "Form.defaultValidateMessages.types.boolean"
+msgstr "${label} ez da ${type} balioduna"
+
+# traslated
+msgid "DatePicker.lang.rangeWeekPlaceholder"
+msgstr "§[\"Hasiera astea\",\"Asteburua\"]"
+
+# traslated
+msgid "App.cleanButton"
+msgstr "Limpio"
+
+msgid "Form.defaultValidateMessages.types.integer"
+msgstr "${label} ez da ${type} balioduna"
+
+msgid "Empty.description"
+msgstr "Ez dago daturik"
+
+# default
+msgid "Calendar.lang.shortMonths"
+msgstr "§undefined"
+
+# traslated
+msgid "DebugTemplate.tooltipFloatButton"
+msgstr "Arazketa-laneko fluxua irekitzea"
+
+msgid "Calendar.lang.decadeSelect"
+msgstr "Hamarkada aukeratu"
+
+msgid "Upload.uploadError"
+msgstr "Errore bat gertate da fitxategia igotzerakoan"
+
+# traslated
+msgid "User.Login.submitButton"
+msgstr "Saioa hasi"
+
+# traslated
+msgid "User.Register.errorTitle"
+msgstr "Eragiketak... Zerbait gaizki atera zen!"
+
+msgid "DatePicker.lang.timeSelect"
+msgstr "Ordua aukeratu"
+
+# traslated
+msgid "App.uploadButton"
+msgstr "Igo"
+
+# traslated
+msgid "User.Register.passwordConfirmPlaceholder"
+msgstr "Pasahitza berretsi"
+
+# traslated
+msgid "CloudDownloadField.fieldErrors.name"
+msgstr "Mesedez, sartu izena!"
+
+# traslated
+msgid "CloudUploadField.fieldErrors.name"
+msgstr "Mesedez, sartu izena!"
+
+# traslated
+msgid "TableField.exportTooltip"
+msgstr "CsVn taula esportatu"
+
+# traslated
+msgid "User.Login.registerNow"
+msgstr "Erregis orain!"
+
+# traslated
+msgid "User.Login.emailInvalid"
+msgstr "Posta elektronikoa ez da baliozkoa!"
+
+# traslated
+msgid "User.Forgot.login"
+msgstr "Saioa hasi!"
+
+msgid "Pagination.items_per_page"
+msgstr "/ orrialde"
+
+# traslated
+msgid "CloudDownloadField.buttonSave"
+msgstr "Salbatu"
+
+# traslated
+msgid "User.titleRegister"
+msgstr "Erregistro berria"
+
+msgid "Calendar.lang.now"
+msgstr "Orain"
+
+# traslated
+msgid "Contact.buttonTooltip"
+msgstr "Kontaktua"
+
+msgid "Form.optional"
+msgstr "(aukerakoa)"
+
+# traslated
+msgid "App.restoreTitleDifferences"
+msgstr "Diferentziak"
+
+msgid "DatePicker.lang.monthBeforeYear"
+msgstr "§false"
+
+msgid "DatePicker.lang.rangePlaceholder"
+msgstr "§[\"Hasierako data\",\"Amaiera data\"]"
+
+# traslated
+msgid "User.Confirm.emailPlaceholder"
+msgstr "Posta elektroniko"
+
+msgid "DatePicker.lang.nextDecade"
+msgstr "Urrengo hamarkada"
+
+# traslated
+msgid "Errors.title"
+msgstr "Balioztatze-akatsak"
+
+# traslated
+msgid "DatePicker.lang.yearPlaceholder"
+msgstr "Aukeratu urtea"
+
+# traslated
+msgid "FileWidget.errorFileType"
+msgstr "'fileTypes] artxiboa igo besterik ezin duzu egin!"
+
+# traslated
+msgid "PDFField.uploadError"
+msgstr "Karga-akatsa"
+
+# traslated
+msgid "DatePicker.lang.rangeQuarterPlaceholder"
+msgstr "§[\"Hasierako hiruhilekoa\",\"Azken hiruhilekoa\"]"
+
+# traslated
+msgid "App.restoreCurrent"
+msgstr "gaur egun"
+
+# traslated
+msgid "ArrayAccordion.placeholder"
+msgstr "Mesedez, aukeratu"
+
+# traslated
+msgid "Calendar.lang.weekPlaceholder"
+msgstr "Astea aukeratu"
+
+# traslated
+msgid "User.Register.firstnameRequired"
+msgstr "Mesedez, sartu zure izena!"
+
+# traslated
+msgid "User.Setting.revertButton"
+msgstr "Itzuli"
+
+# traslated
+msgid "App.fullscreenButton"
+msgstr "Pantaila osoa"
+
+# traslated
+msgid "CloudDownloadField.buttonSaveNew"
+msgstr "Marka berria"
+
+msgid "DatePicker.lang.month"
+msgstr "Hilabete"
+
+msgid "Calendar.lang.nextMonth"
+msgstr "Urrengo hilabetea (AvPag)"
+
+# traslated
+msgid "TableField.deleteItemConfirm"
+msgstr "Seguru ezabatuko duzula?"
+
+msgid "Form.defaultValidateMessages.array.len"
+msgstr "${len} ${label} izan behar du"
+
+msgid "Table.filterConfirm"
+msgstr "Onartu"
+
+# traslated
+msgid "User.Setting.firstnamePlaceholder"
+msgstr "Izena"
+
+# traslated
+msgid "App.autoSavingErrorTitle"
+msgstr "Eragiketak... Zaintza automatikoa desgaitu"
+
+msgid "TimePicker.placeholder"
+msgstr "Aukeratu ordua"
+
+# traslated
+msgid "DatePicker.lang.quarterPlaceholder"
+msgstr "Hiruhilekoa aukeratu"
+
+# traslated
+msgid "User.ResetPassword.passwordConfirmRequired"
+msgstr "Baiezta iezadazu, mesedez, zure pasahitz berria!"
+
+# traslated
+msgid "CloudDownloadField.dataSwitchUnChecked"
+msgstr "zerbitzari"
+
+msgid "Table.selectNone"
+msgstr "Hustu dena"
+
+msgid "Form.defaultValidateMessages.types.url"
+msgstr "${label} ez da ${type} balioduna"
+
+msgid "Pagination.page"
+msgstr "Orrialde"
+
+# traslated
+msgid "User.titleSetting"
+msgstr "Konfigurazioa editatu"
+
+# traslated
+msgid "User.Forgot.emailRequired"
+msgstr "Mesedez, sartu zure posta elektronikoa!"
+
+msgid "Table.selectionAll"
+msgstr "Autatu datu guztiak"
+
+msgid "Form.defaultValidateMessages.string.range"
+msgstr "${label} ${min}-${max} karaktere artean izan behar ditu"
+
+# traslated
+msgid "User.Login.emailPlaceholder"
+msgstr "Posta elektroniko"
+
+# traslated
+msgid "TabsField.moveleft"
+msgstr "Mugitu ezkerretara"
+
+# traslated
+msgid "App.cloudUploadButton"
+msgstr "Salbatu"
+
+# traslated
+msgid "User.Forgot.emailPlaceholder"
+msgstr "Posta elektroniko"
+
+# traslated
+msgid "PDFField.downloadFile"
+msgstr "Deskargatu fitxategia"
+
+msgid "DatePicker.timePickerLocale.placeholder"
+msgstr "Aukeratu ordua"
+
+# traslated
+msgid "Contact.messageRequired"
+msgstr "Mesedez, sartu zure mezua!"
+
+# traslated
+msgid "User.Setting.lastnameRequired"
+msgstr "Mesedez, sartu zure deitura!"
+
+# traslated
+msgid "CloudUploadField.buttonCancel"
+msgstr "Ezeztatu"
+
+# traslated
+msgid "App.downloadButton"
+msgstr "Deskargatu"
+
+msgid "DatePicker.lang.dateFormat"
+msgstr "YYYY/M/D"
+
+# traslated
+msgid "Contact.subjectRequired"
+msgstr "Mesedez, sartu postaren kontua!"
+
+# default
+msgid "Calendar.lang.shortWeekDays"
+msgstr "§undefined"
+
+msgid "Calendar.lang.locale"
+msgstr "eu_ES"
+
+# traslated
+msgid "CloudDownloadField.titleName"
+msgstr "Izena"
+
+msgid "Transfer.searchPlaceholder"
+msgstr "Bilatu hemen"
+
+# traslated
+msgid "CloudUploadField.createdAt"
+msgstr "Sortua"
+
+# traslated
+msgid "Contact.emailInvalid"
+msgstr "Posta elektronikoa ez da baliozkoa!"
+
+# traslated
+msgid "User.infoButton"
+msgstr "Profila"
+
+# traslated
+msgid "User.Register.passwordConfirmError"
+msgstr "Sartu zituen bi pasahitzak ez datoz bat!"
+
+# traslated
+msgid "CloudUploadField.dataSwitchChecked"
+msgstr "gaur egun"
+
+# traslated
+msgid "TabsField.clone"
+msgstr "klona"
+
+msgid "Transfer.titles"
+msgstr "§[\"\",\"\"]"
+
+# traslated
+msgid "QRCode.refresh"
+msgstr "Eguneratu"
+
+# traslated
+msgid "TableField.importTooltip"
+msgstr "CSVtik taula inportatu"
+
+# traslated
+msgid "App.uploadTooltip"
+msgstr "JSON bezalako datuak inportatzea"
+
+msgid "DatePicker.lang.decadeSelect"
+msgstr "Hamarkada aukeratu"
+
+# traslated
+msgid "App.restoreModalTitle"
+msgstr "Datuak berrezartzea"
+
+msgid "Table.sortTitle"
+msgstr "Ordenatu"
+
+msgid "DatePicker.lang.year"
+msgstr "Urte"
+
+# traslated
+msgid "App.restoreRestoreButton"
+msgstr "Zaharberritzea"
+
+msgid "Form.defaultValidateMessages.types.number"
+msgstr "${label} ez da ${type} balioduna"
+
+# traslated
+msgid "Calendar.lang.yearPlaceholder"
+msgstr "Aukeratu urtea"
+
+msgid "Popconfirm.okText"
+msgstr "Onartu"
+
+# traslated
+msgid "CloudDownloadField.titleData"
+msgstr "Datu-iturria"
+
+# traslated
+msgid "ArrayCopy.placeholder"
+msgstr "Mesedez, aukeratu"
+
+msgid "Upload.uploading"
+msgstr "Eguneratzen..."
+
+# traslated
+msgid "CloudUploadField.titleData"
+msgstr "Datu-iturria"
+
+msgid "Text.copied"
+msgstr "Kopiatuta"
+
+# traslated
+msgid "App.cloudDownloadTooltip"
+msgstr "Datuak hodeitik inportatzea"
+
+# traslated
+msgid "FileWidget.dropMessage"
+msgstr "Arrastu artxiboa hemen edo egin klik nabigatzeko"
+
+msgid "Calendar.lang.month"
+msgstr "Hilabete"
+
+msgid "Form.defaultValidateMessages.types.object"
+msgstr "${label} ez da ${type} balioduna"
+
+msgid "PageHeader.back"
+msgstr "Itzuli"
+
+msgid "DatePicker.lang.nextYear"
+msgstr "Urrento urtea (Control + eskuina)"
+
+# traslated
+msgid "User.titleLogin"
+msgstr "Saioa hasi"
+
+msgid "Table.filterCheckall"
+msgstr "Autatu dena"
+
+msgid "DatePicker.lang.previousYear"
+msgstr "Aurreko urtea (Control + ezkerra)"
+
+msgid "Upload.previewFile"
+msgstr "Aurrebista"
+
+# traslated
+msgid "CloudUploadField.updatedAt"
+msgstr "Eguneratua"
+
+msgid "Calendar.lang.timeSelect"
+msgstr "Ordua aukeratu"
+
+# traslated
+msgid "CloudUploadField.buttonSave"
+msgstr "Salbatu"
+
+# traslated
+msgid "TabsField.selectItem"
+msgstr "Artikulua aukeratu"
+
+# traslated
+msgid "FileWidget.errorSameFile"
+msgstr "{filename} artxiboa kargatu egin da!"
+
+msgid "Calendar.lang.monthSelect"
+msgstr "Hilabetea aukeratu"
+
+msgid "Form.defaultValidateMessages.types.array"
+msgstr "${label} ez da ${type} balioduna"
+
+msgid "language"
+msgstr "eu_ES"
+
+# traslated
+msgid "User.Setting.lastnamePlaceholder"
+msgstr "Abizena"
+
+# traslated
+msgid "TabsField.delete"
+msgstr "ezabatu"
+
+msgid "Form.defaultValidateMessages.default"
+msgstr "${label} eremuaren balidazio errore"
+
+msgid "Calendar.lang.previousYear"
+msgstr "Aurreko urtea (Control + ezkerra)"

@@ -97,8 +97,8 @@ if __name__ == '__main__':
     extras['all'] = sorted(functools.reduce(set.union, extras.values(), set()))
     extras['dev'] = extras['all'] + [
         'wheel', 'sphinx>=7.2', 'gitchangelog', 'mako', 'sphinx_rtd_theme',
-        'setuptools>=36.0.1', 'sphinxcontrib-restbuilder', 'coveralls',
-        'requests', 'readthedocs-sphinx-ext', 'twine', 'ddt'
+        'setuptools>=36.0.1', 'sphinxcontrib-restbuilder', 'coveralls', 'polib',
+        'requests', 'readthedocs-sphinx-ext', 'twine', 'ddt', 'translators',
     ]
     exclude = [
         'doc', 'doc.*',

@@ -1,0 +1,1414 @@
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: 1.0\n"
+"Report-Msgid-Bugs-To: vinci1it2000@gmail.com\n"
+"PO-Revision-Date: 2023-11-18 08:55+0000\n"
+"Last-Translator: Vincenzo Arcidiacono <vinci1it2000@gmail.com>\n"
+"Language-Team: English <vinci1it2000@gmail.com>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+# traslated
+msgid "Contact.errorTitle"
+msgstr "Ops... Valami hiba történt!"
+
+# traslated
+msgid "ColorPicker.presetEmpty"
+msgstr "Üres"
+
+msgid "Table.filterReset"
+msgstr "Visszaállítás"
+
+# traslated
+msgid "User.Register.login"
+msgstr "bejelentkezés!"
+
+# traslated
+msgid "TableField.addItemTooltip"
+msgstr "Elem hozzáadása"
+
+# traslated
+msgid "CloudUploadField.buttonDownload"
+msgstr "Kiszolgáló"
+
+# traslated
+msgid "User.Logout.submitButton"
+msgstr "Jel"
+
+msgid "Calendar.lang.dateFormat"
+msgstr "YYYY/MM/DD"
+
+msgid "Calendar.lang.dateSelect"
+msgstr "Dátum kiválasztása"
+
+# traslated
+msgid "User.Confirm.errorTitle"
+msgstr "Ops... Valami hiba történt!"
+
+# traslated
+msgid "TabsField.moveup"
+msgstr "Mozgás felfelé"
+
+msgid "Modal.justOkText"
+msgstr "Alkalmazás"
+
+# traslated
+msgid "PDFField.titleSectionSelection"
+msgstr "Szakaszok"
+
+msgid "Calendar.lang.previousCentury"
+msgstr "Múlt évszázad"
+
+# traslated
+msgid "User.ResetPassword.passwordPlaceholder"
+msgstr "Új jelszó"
+
+# traslated
+msgid "User.loginTooltip"
+msgstr "Bejelentkezés"
+
+# traslated
+msgid "Form.defaultValidateMessages.whitespace"
+msgstr "A ${label} nem lehet üres karakter"
+
+msgid "Pagination.prev_page"
+msgstr "Előző oldal"
+
+# traslated
+msgid "QRCode.expired"
+msgstr "A QR-kód lejárt"
+
+# traslated
+msgid "FileWidget.errorNotUploaded"
+msgstr "Ops... A fájl nincs feltöltve"
+
+# traslated
+msgid "Form.defaultValidateMessages.string.max"
+msgstr "A ${label} legfeljebb ${max} karakter hosszúságú lehet"
+
+# traslated
+msgid "User.Confirm.submitButton"
+msgstr "Utasítások küldése"
+
+# traslated
+msgid "Form.defaultValidateMessages.types.hex"
+msgstr "A ${label} nem érvényes ${type}"
+
+# traslated
+msgid "Contact.submitButton"
+msgstr "Küld"
+
+# traslated
+msgid "Table.expand"
+msgstr "Sor kibontása"
+
+# traslated
+msgid "App.restoreDifferences"
+msgstr "Eltérések megjelenítése az aktuális adatokhoz képest"
+
+msgid "Pagination.jump_to_confirm"
+msgstr "megerősít"
+
+# traslated
+msgid "User.ResetPassword.submitButton"
+msgstr "Jelszó visszaállítása"
+
+msgid "Transfer.itemUnit"
+msgstr "elem"
+
+# traslated
+msgid "global.placeholder"
+msgstr "Kérjük, válasszon"
+
+# traslated
+msgid "DatePicker.lang.rangeMonthPlaceholder"
+msgstr "§[\"Kezdő hónap\",\"Hónap vége\"]"
+
+# traslated
+msgid "User.titleResetPassword"
+msgstr "Jelszó visszaállítása"
+
+# traslated
+msgid "Contact.emailPlaceholder"
+msgstr "E-mail"
+
+# traslated
+msgid "Table.triggerAsc"
+msgstr "Kattintson a növekvő sorrendbe rendezéshez"
+
+# traslated
+msgid "User.Register.usernameRequired"
+msgstr "Kérjük, adja meg felhasználónevét!"
+
+# traslated
+msgid "User.titleLogout"
+msgstr "Biztosan kijelentkezik?"
+
+# traslated
+msgid "ArrayCopy.titleCopyButton"
+msgstr "Kérjük, válassza ki, hová szeretné másolni az adatokat?"
+
+msgid "Popconfirm.cancelText"
+msgstr "Visszavonás"
+
+# traslated
+msgid "User.titleConfirm"
+msgstr "Visszaigazoló e-mail küldése"
+
+# traslated
+msgid "Form.defaultValidateMessages.array.range"
+msgstr "A ${label} összegének ${min} és ${{max} között kell lennie"
+
+# traslated
+msgid "User.ResetPassword.login"
+msgstr "bejelentkezés!"
+
+# traslated
+msgid "Calendar.lang.rangeQuarterPlaceholder"
+msgstr "§[\"Negyedév eleje\",\"Negyedév vége\"]"
+
+# traslated
+msgid "PDFField.previewFile"
+msgstr "Fájl előnézete"
+
+# traslated
+msgid "Contact.subjectPlaceholder"
+msgstr "Levél tárgya"
+
+# traslated
+msgid "User.titleInfo"
+msgstr "Felhasználói adatok"
+
+# traslated
+msgid "App.cloudDownloadButton"
+msgstr "Importál"
+
+# traslated
+msgid "Form.defaultValidateMessages.types.float"
+msgstr "A ${label} nem érvényes ${type}"
+
+# traslated
+msgid "App.runButton"
+msgstr "Fut"
+
+# traslated
+msgid "User.Register.emailInvalid"
+msgstr "Érvénytelen e-mail!"
+
+msgid "Modal.cancelText"
+msgstr "Visszavonás"
+
+msgid "DatePicker.lang.nextCentury"
+msgstr "Jövő évszázad"
+
+msgid "Upload.removeFile"
+msgstr "Fájl eltávolítása"
+
+# traslated
+msgid "FileWidget.errorToolTip"
+msgstr "Feltöltési hiba"
+
+# traslated
+msgid "TableField.deleteAllConfirm"
+msgstr "Biztosan törli az összes tartalmat?"
+
+# traslated
+msgid "Form.defaultValidateMessages.number.range"
+msgstr "A ${label} értékének ${min} és ${max} között kell lennie"
+
+# traslated
+msgid "Form.defaultValidateMessages.date.format"
+msgstr "A ${label} dátumformátum érvénytelen"
+
+# traslated
+msgid "Form.defaultValidateMessages.types.string"
+msgstr "A ${label} nem érvényes ${type}"
+
+# traslated
+msgid "Transfer.selectInvert"
+msgstr "Az aktuális oldal megfordítása"
+
+# traslated
+msgid "ErrorListTemplate.tooltipFloatButton"
+msgstr "Hibaüzenetek megnyitása"
+
+msgid "DatePicker.lang.dateSelect"
+msgstr "Dátum kiválasztása"
+
+# traslated
+msgid "Table.emptyText"
+msgstr "Nincs adat"
+
+msgid "DatePicker.lang.backToToday"
+msgstr "Vissza a mai napra"
+
+msgid "DatePicker.lang.dayFormat"
+msgstr "DD"
+
+# traslated
+msgid "User.Forgot.emailInvalid"
+msgstr "Érvénytelen e-mail!"
+
+# default
+msgid "DatePicker.lang.shortMonths"
+msgstr "§undefined"
+
+# traslated
+msgid "User.ResetPassword.passwordRequired"
+msgstr "Kérjük, adja meg új jelszavát!"
+
+# traslated
+msgid "User.Register.lastnamePlaceholder"
+msgstr "Vezetéknév"
+
+# traslated
+msgid "CloudUploadField.titleName"
+msgstr "Név"
+
+# traslated
+msgid "Contact.title"
+msgstr "Kapcsolat"
+
+msgid "Calendar.lang.nextCentury"
+msgstr "Jövő évszázad"
+
+# traslated
+msgid "Form.defaultValidateMessages.string.min"
+msgstr "A ${label} legalább ${min} karakterből kell állnia"
+
+msgid "Modal.okText"
+msgstr "Alkalmazás"
+
+# traslated
+msgid "User.Register.emailRequired"
+msgstr "Kérjük, adja meg e-mail címét!"
+
+# traslated
+msgid "Table.collapse"
+msgstr "Sor összecsukása"
+
+msgid "Pagination.prev_5"
+msgstr "Előző 5 oldal"
+
+# traslated
+msgid "ArrayAccordion.titleCopyButton"
+msgstr "Kérjük, válassza ki, hová szeretné másolni az adatokat?"
+
+msgid "Calendar.lang.previousMonth"
+msgstr "Előző hónap (PageUp)"
+
+# traslated
+msgid "Transfer.removeCurrent"
+msgstr "Az aktuális oldal eltávolítása"
+
+# traslated
+msgid "Form.defaultValidateMessages.array.max"
+msgstr "Legfeljebb ${max} ${label}"
+
+# traslated
+msgid "App.cloudUploadTooltip"
+msgstr "Adatok mentése a felhőbe"
+
+# traslated
+msgid "CloudDownloadField.buttonCancel"
+msgstr "Érvénytelenít"
+
+# traslated
+msgid "Contact.emailRequired"
+msgstr "Kérjük, adja meg e-mail címét!"
+
+msgid "Calendar.lang.monthBeforeYear"
+msgstr "§true"
+
+# traslated
+msgid "User.Confirm.emailInvalid"
+msgstr "Érvénytelen e-mail!"
+
+# traslated
+msgid "User.ResetPassword.passwordConfirmError"
+msgstr "A megadott két jelszó nem egyezik!"
+
+# traslated
+msgid "CloudUploadField.titleSaveNew"
+msgstr "Aktuális adatok mentése"
+
+# traslated
+msgid "User.Register.lastnameRequired"
+msgstr "Kérjük, adja meg vezetéknevét!"
+
+# traslated
+msgid "User.settingButton"
+msgstr "Beállítások"
+
+msgid "Pagination.next_3"
+msgstr "Következő 3 oldal"
+
+# traslated
+msgid "Transfer.remove"
+msgstr "Eltávolít"
+
+msgid "DatePicker.lang.yearFormat"
+msgstr "YYYY"
+
+# traslated
+msgid "User.Login.passwordPlaceholder"
+msgstr "Jelszó"
+
+msgid "DatePicker.lang.placeholder"
+msgstr "Válasszon dátumot"
+
+# traslated
+msgid "User.titleForgot"
+msgstr "Jelszó helyreállítása"
+
+# traslated
+msgid "Calendar.lang.quarterPlaceholder"
+msgstr "Válassza ki a negyedévet"
+
+msgid "DatePicker.lang.previousCentury"
+msgstr "Múlt évszázad"
+
+# traslated
+msgid "App.restoreButton"
+msgstr "Visszaad"
+
+# default
+msgid "DatePicker.lang.shortWeekDays"
+msgstr "§undefined"
+
+# traslated
+msgid "User.logoutButton"
+msgstr "Jel"
+
+# traslated
+msgid "User.buttonTooltip"
+msgstr "Bejelentkezés"
+
+# traslated
+msgid "DatePicker.lang.rangeYearPlaceholder"
+msgstr "§[\"Kezdő év\",\"Év vége\"]"
+
+msgid "Pagination.page_size"
+msgstr "Page Size"
+
+# traslated
+msgid "Calendar.lang.weekSelect"
+msgstr "Válasszon egy hetet"
+
+# traslated
+msgid "Form.defaultValidateMessages.date.invalid"
+msgstr "A ${label} érvénytelen dátum"
+
+# traslated
+msgid "App.restoreCloseButton"
+msgstr "Bezár"
+
+# traslated
+msgid "User.Forgot.submitButton"
+msgstr "Jelszó helyreállítása"
+
+# traslated
+msgid "Transfer.selectCurrent"
+msgstr "Válassza ki az aktuális oldalt"
+
+# traslated
+msgid "User.Register.usernamePlaceholder"
+msgstr "Felhasználónév"
+
+# traslated
+msgid "App.filesButton"
+msgstr "Fájlokat"
+
+# traslated
+msgid "TabsField.moveright"
+msgstr "Mozgás jobbra"
+
+# traslated
+msgid "DatePicker.lang.weekSelect"
+msgstr "Válasszon egy hetet"
+
+# traslated
+msgid "Calendar.lang.rangeMonthPlaceholder"
+msgstr "§[\"Kezdő hónap\",\"Hónap vége\"]"
+
+msgid "Table.filterTitle"
+msgstr "Szűrők"
+
+# traslated
+msgid "App.restoreTooltip"
+msgstr "Adatok visszaállítása"
+
+msgid "Upload.downloadFile"
+msgstr "Fájl letöltése"
+
+msgid "Calendar.lang.yearSelect"
+msgstr "Év kiválasztása"
+
+# traslated
+msgid "Text.copy"
+msgstr "Másolat"
+
+# traslated
+msgid "User.ResetPassword.errorTitle"
+msgstr "Ops... Valami hiba történt!"
+
+# traslated
+msgid "Tour.Finish"
+msgstr "Befejez"
+
+# traslated
+msgid "Form.defaultValidateMessages.number.len"
+msgstr "A ${label} értékének egyenlőnek kell lennie ${len} értékkel"
+
+# traslated
+msgid "CloudDownloadField.titleSaveNew"
+msgstr "Aktuális adatok mentése"
+
+# traslated
+msgid "CloudUploadField.confirmDelete"
+msgstr "Biztosan törli?"
+
+# traslated
+msgid "PDFField.uploading"
+msgstr "Feltöltő..."
+
+# traslated
+msgid "Transfer.removeAll"
+msgstr "Az összes adat eltávolítása"
+
+# traslated
+msgid "Calendar.timePickerLocale.rangePlaceholder"
+msgstr "§[\"Kezdési idő\",\"Befejezési idő\"]"
+
+# traslated
+msgid "User.Forgot.errorTitle"
+msgstr "Ops... Valami hiba történt!"
+
+# traslated
+msgid "Table.filterEmptyText"
+msgstr "Nincs szűrő"
+
+# traslated
+msgid "PDFField.removeFile"
+msgstr "Fájl eltávolítása"
+
+# traslated
+msgid "User.Login.sendConfirmMail"
+msgstr "Megerősítő e-mail újraküldése"
+
+msgid "Pagination.next_5"
+msgstr "Következő 5 oldal"
+
+# traslated
+msgid "ErrorListTemplate.descriptionFloatButton"
+msgstr "TÉVED"
+
+# traslated
+msgid "PDFField.preview"
+msgstr "Előnézet"
+
+# traslated
+msgid "Form.defaultValidateMessages.enum"
+msgstr "A ${label} attribútumnak a [${enum}] egyikének kell lennie"
+
+# traslated
+msgid "Contact.nameRequired"
+msgstr "Kérjük, adja meg a nevét!"
+
+# traslated
+msgid "ErrorListTemplate.titleModal"
+msgstr "Hibák"
+
+# traslated
+msgid "Form.defaultValidateMessages.number.min"
+msgstr "A ${label} értékének legalább ${min}-nek kell lennie"
+
+# traslated
+msgid "User.Register.firstnamePlaceholder"
+msgstr "Név"
+
+msgid "Calendar.lang.dayFormat"
+msgstr "DD"
+
+msgid "DatePicker.lang.yearSelect"
+msgstr "Év kiválasztása"
+
+# traslated
+msgid "User.Register.submitButton"
+msgstr "Regisztráció"
+
+msgid "Calendar.lang.backToToday"
+msgstr "Vissza a mai napra"
+
+# traslated
+msgid "User.Login.rememberMe"
+msgstr "Emlékezz rám"
+
+# traslated
+msgid "CloudDownloadField.buttonDownload"
+msgstr "Kiszolgáló"
+
+# traslated
+msgid "ArrayAccordion.tooltipExtra"
+msgstr "Adatok másolása"
+
+msgid "Calendar.timePickerLocale.placeholder"
+msgstr "Válasszon időt"
+
+msgid "Calendar.lang.year"
+msgstr "Év"
+
+# traslated
+msgid "User.Register.passwordConfirmRequired"
+msgstr "Kérjük, erősítse meg jelszavát!"
+
+# traslated
+msgid "App.disableFullscreen"
+msgstr "Teljes képernyő letiltása"
+
+# traslated
+msgid "CloudDownloadField.createdAt"
+msgstr "Létrehozott"
+
+# traslated
+msgid "App.downloadTooltip"
+msgstr "Adatok exportálása JSON-ként"
+
+# traslated
+msgid "App.autoSaveTooltip"
+msgstr "Automatikus mentés engedélyezése"
+
+msgid "DatePicker.lang.today"
+msgstr "Ma"
+
+# traslated
+msgid "Tour.Previous"
+msgstr "Előző"
+
+msgid "Pagination.jump_to"
+msgstr "Ugrás"
+
+# traslated
+msgid "User.ResetPassword.or"
+msgstr "Vagy"
+
+# traslated
+msgid "User.Register.passwordPlaceholder"
+msgstr "Jelszó"
+
+msgid "Table.selectAll"
+msgstr "Jelenlegi oldal kiválasztása"
+
+# traslated
+msgid "CloudUploadField.buttonOverwrite"
+msgstr "Felülírja"
+
+# traslated
+msgid "CloudDownloadField.updatedAt"
+msgstr "Frissül"
+
+# traslated
+msgid "User.Login.or"
+msgstr "Vagy"
+
+# traslated
+msgid "DebugTemplate.titleModal"
+msgstr "Hibakeresési munkafolyamat"
+
+msgid "Calendar.lang.rangePlaceholder"
+msgstr "§[\"Kezdő dátum\",\"Befejezés dátuma\"]"
+
+# traslated
+msgid "Text.edit"
+msgstr "Szerkeszt"
+
+msgid "DatePicker.lang.previousMonth"
+msgstr "Előző hónap (PageUp)"
+
+# traslated
+msgid "App.autoSaveButton"
+msgstr "Automatikus mentés"
+
+# traslated
+msgid "CloudDownloadField.buttonOverwrite"
+msgstr "Felülírja"
+
+# traslated
+msgid "FileWidget.errorOnlyOneItem"
+msgstr "Maximum egy fájlt tölthetsz fel!"
+
+msgid "Pagination.prev_3"
+msgstr "Előző 3 oldal"
+
+# traslated
+msgid "User.Login.emailRequired"
+msgstr "Kérjük, adja meg e-mail címét!"
+
+# traslated
+msgid "CloudDownloadField.confirmDelete"
+msgstr "Biztosan törli?"
+
+# traslated
+msgid "User.Register.passwordRequired"
+msgstr "Kérjük, adja meg jelszavát!"
+
+# traslated
+msgid "TimePicker.rangePlaceholder"
+msgstr "§[\"Kezdési idő\",\"Befejezési idő\"]"
+
+# traslated
+msgid "FileWidget.errorMaxItems"
+msgstr "Maximum {maxItems} fájlt tölthet fel!"
+
+msgid "Calendar.lang.dateTimeFormat"
+msgstr "YYYY/MM/DD HH:mm:ss"
+
+# traslated
+msgid "User.Confirm.or"
+msgstr "Vagy"
+
+# traslated
+msgid "Contact.messagePlaceholder"
+msgstr "Az Ön üzenete"
+
+# traslated
+msgid "Form.defaultValidateMessages.string.len"
+msgstr "A ${label} karakternek ${len} karakternek kell lennie"
+
+# traslated
+msgid "ArrayCopy.tooltip"
+msgstr "Adatok másolása"
+
+# traslated
+msgid "DatePicker.lang.monthPlaceholder"
+msgstr "Hónap kiválasztása"
+
+msgid "Calendar.lang.today"
+msgstr "Ma"
+
+msgid "Transfer.itemsUnit"
+msgstr "elemek"
+
+# traslated
+msgid "Table.filterSearchPlaceholder"
+msgstr "Keresés a szűrőkben"
+
+# default
+msgid "DatePicker.lang.monthFormat"
+msgstr "§undefined"
+
+# traslated
+msgid "CloudDownloadField.dataSwitchChecked"
+msgstr "aktuális"
+
+# traslated
+msgid "Transfer.selectAll"
+msgstr "Az összes adat kijelölése"
+
+# traslated
+msgid "Image.preview"
+msgstr "Előnézet"
+
+# traslated
+msgid "Table.triggerDesc"
+msgstr "Kattintson ide a csökkenő rendezéshez"
+
+msgid "DatePicker.lang.dateTimeFormat"
+msgstr "YYYY/MM/DD HH:mm:ss"
+
+# traslated
+msgid "CloudUploadField.errorTitle"
+msgstr "Ops... Valami hiba történt!"
+
+# traslated
+msgid "DatePicker.timePickerLocale.rangePlaceholder"
+msgstr "§[\"Kezdési idő\",\"Befejezési idő\"]"
+
+# traslated
+msgid "App.enableFullscreen"
+msgstr "Teljes képernyő engedélyezése"
+
+msgid "DatePicker.lang.clear"
+msgstr "Törlés"
+
+msgid "Calendar.lang.nextDecade"
+msgstr "Következő évtized"
+
+# traslated
+msgid "User.Register.emailPlaceholder"
+msgstr "E-mail"
+
+# traslated
+msgid "App.cloudButton"
+msgstr "Felhő"
+
+# traslated
+msgid "App.autoSavingTooltip"
+msgstr "Az automatikus mentés letiltása"
+
+# traslated
+msgid "Form.defaultValidateMessages.date.parse"
+msgstr "A ${label} nem konvertálható dátummá"
+
+# traslated
+msgid "Form.defaultValidateMessages.pattern.mismatch"
+msgstr "A ${label} nem egyezik a mintával ${pattern}"
+
+# traslated
+msgid "Form.defaultValidateMessages.types.regexp"
+msgstr "A ${label} nem érvényes ${type}"
+
+# traslated
+msgid "Text.expand"
+msgstr "Kibővít"
+
+# traslated
+msgid "User.Login.forgotPassword"
+msgstr "Elfelejtett jelszó"
+
+# traslated
+msgid "Form.defaultValidateMessages.number.max"
+msgstr "A ${label} paraméternek legfeljebb ${max}-nak kell lennie"
+
+# traslated
+msgid "CloudUploadField.dataSwitchUnChecked"
+msgstr "kiszolgáló"
+
+# traslated
+msgid "App.cleanConfirm"
+msgstr "Biztosan törli ezeket az adatokat?"
+
+# traslated
+msgid "CloudUploadField.buttonSaveNew"
+msgstr "Új rekord"
+
+msgid "DatePicker.lang.nextMonth"
+msgstr "Következő hónap (PageDown)"
+
+msgid "Table.selectInvert"
+msgstr "Jelenlegi oldal inverze"
+
+# traslated
+msgid "App.restoreConfirm"
+msgstr "Biztosan visszaállítja ezeket az adatokat?"
+
+# traslated
+msgid "DatePicker.lang.weekPlaceholder"
+msgstr "Válassza ki a hetet"
+
+# traslated
+msgid "Calendar.lang.monthPlaceholder"
+msgstr "Hónap kiválasztása"
+
+# traslated
+msgid "User.Login.errorTitle"
+msgstr "Ops... Valami hiba történt!"
+
+# traslated
+msgid "Form.defaultValidateMessages.array.min"
+msgstr "Legalább ${min} ${label}"
+
+# traslated
+msgid "TabsField.select"
+msgstr "kiválaszt"
+
+# traslated
+msgid "TabsField.movedown"
+msgstr "Mozgás lefelé"
+
+msgid "DatePicker.lang.monthSelect"
+msgstr "Hónap kiválasztása"
+
+# traslated
+msgid "App.autoSavingButton"
+msgstr "Automatikus mentés"
+
+msgid "Calendar.lang.previousDecade"
+msgstr "Előző évtized"
+
+msgid "Calendar.lang.ok"
+msgstr "OK"
+
+# traslated
+msgid "User.Confirm.emailRequired"
+msgstr "Kérjük, adja meg e-mail címét!"
+
+# traslated
+msgid "User.Setting.firstnameRequired"
+msgstr "Kérjük, adja meg a nevét!"
+
+# default
+msgid "Calendar.lang.monthFormat"
+msgstr "§undefined"
+
+# traslated
+msgid "User.Setting.submitButton"
+msgstr "Megment"
+
+# traslated
+msgid "Tour.Next"
+msgstr "Következő"
+
+# traslated
+msgid "Calendar.lang.rangeWeekPlaceholder"
+msgstr "§[\"Hét kezdete\",\"Hét vége\"]"
+
+# traslated
+msgid "CloudDownloadField.errorTitle"
+msgstr "Ops... Valami hiba történt!"
+
+# traslated
+msgid "User.Confirm.login"
+msgstr "bejelentkezés!"
+
+# traslated
+msgid "User.ResetPassword.passwordConfirmPlaceholder"
+msgstr "Új jelszó megerősítése"
+
+msgid "DatePicker.lang.now"
+msgstr "Most"
+
+msgid "Calendar.lang.nextYear"
+msgstr "Jövő év (Control + right)"
+
+# traslated
+msgid "Form.defaultValidateMessages.types.date"
+msgstr "A ${label} nem érvényes ${type}"
+
+# traslated
+msgid "User.Register.or"
+msgstr "Vagy"
+
+msgid "DatePicker.lang.previousDecade"
+msgstr "Előző évtized"
+
+# traslated
+msgid "App.branchesButton"
+msgstr "Ágak"
+
+# traslated
+msgid "Form.defaultValidateMessages.types.email"
+msgstr "A ${label} nem érvényes ${type}"
+
+msgid "Pagination.next_page"
+msgstr "Következő oldal"
+
+# traslated
+msgid "Icon.icon"
+msgstr "ikon"
+
+# traslated
+msgid "Form.defaultValidateMessages.types.method"
+msgstr "A ${label} nem érvényes ${type}"
+
+msgid "DatePicker.lang.locale"
+msgstr "hu_HU"
+
+msgid "Calendar.lang.clear"
+msgstr "Törlés"
+
+msgid "Calendar.lang.yearFormat"
+msgstr "YYYY"
+
+# traslated
+msgid "Form.defaultValidateMessages.required"
+msgstr "Kérjük, írja be a következőt: ${label}"
+
+# traslated
+msgid "App.debugButton"
+msgstr "Debug"
+
+msgid "locale"
+msgstr "hu"
+
+msgid "DatePicker.lang.ok"
+msgstr "OK"
+
+# traslated
+msgid "Table.cancelSort"
+msgstr "Kattintson a rendezés megszakításához"
+
+# traslated
+msgid "Calendar.lang.rangeYearPlaceholder"
+msgstr "§[\"Kezdő év\",\"Év vége\"]"
+
+# traslated
+msgid "User.Setting.errorTitle"
+msgstr "Ops... Valami hiba történt!"
+
+# traslated
+msgid "Contact.namePlaceholder"
+msgstr "A neved"
+
+msgid "Calendar.lang.placeholder"
+msgstr "Válasszon dátumot"
+
+# traslated
+msgid "App.restoreEraseButton"
+msgstr "Tárhely törlése"
+
+# traslated
+msgid "User.Login.passwordRequired"
+msgstr "Kérjük, adja meg jelszavát!"
+
+# traslated
+msgid "User.Forgot.or"
+msgstr "Vagy"
+
+# traslated
+msgid "Form.defaultValidateMessages.types.boolean"
+msgstr "A ${label} nem érvényes ${type}"
+
+# traslated
+msgid "DatePicker.lang.rangeWeekPlaceholder"
+msgstr "§[\"Hét kezdete\",\"Hét vége\"]"
+
+# traslated
+msgid "App.cleanButton"
+msgstr "Tiszta"
+
+# traslated
+msgid "Form.defaultValidateMessages.types.integer"
+msgstr "A ${label} nem érvényes ${type}"
+
+msgid "Empty.description"
+msgstr "Nincs adat"
+
+# default
+msgid "Calendar.lang.shortMonths"
+msgstr "§undefined"
+
+# traslated
+msgid "DebugTemplate.tooltipFloatButton"
+msgstr "Hibakeresési munkafolyamat megnyitása"
+
+msgid "Calendar.lang.decadeSelect"
+msgstr "Évtized kiválasztása"
+
+msgid "Upload.uploadError"
+msgstr "Feltöltési hiba"
+
+# traslated
+msgid "User.Login.submitButton"
+msgstr "Bejelentkezés"
+
+# traslated
+msgid "User.Register.errorTitle"
+msgstr "Ops... Valami hiba történt!"
+
+msgid "DatePicker.lang.timeSelect"
+msgstr "Időpont kiválasztása"
+
+# traslated
+msgid "App.uploadButton"
+msgstr "Feltölt"
+
+# traslated
+msgid "User.Register.passwordConfirmPlaceholder"
+msgstr "Jelszó megerősítése"
+
+# traslated
+msgid "CloudDownloadField.fieldErrors.name"
+msgstr "Kérjük, adja meg a nevét!"
+
+# traslated
+msgid "CloudUploadField.fieldErrors.name"
+msgstr "Kérjük, adja meg a nevét!"
+
+# traslated
+msgid "TableField.exportTooltip"
+msgstr "Táblázat exportálása CSV-fájlban"
+
+# traslated
+msgid "User.Login.registerNow"
+msgstr "Regisztráljon most!"
+
+# traslated
+msgid "User.Login.emailInvalid"
+msgstr "Érvénytelen e-mail!"
+
+# traslated
+msgid "User.Forgot.login"
+msgstr "bejelentkezés!"
+
+msgid "Pagination.items_per_page"
+msgstr "/ oldal"
+
+# traslated
+msgid "CloudDownloadField.buttonSave"
+msgstr "Megment"
+
+# traslated
+msgid "User.titleRegister"
+msgstr "Új regisztráció"
+
+msgid "Calendar.lang.now"
+msgstr "Most"
+
+# traslated
+msgid "Contact.buttonTooltip"
+msgstr "Érintkezés"
+
+# traslated
+msgid "Form.optional"
+msgstr "(Nem kötelező)"
+
+# traslated
+msgid "App.restoreTitleDifferences"
+msgstr "Különbségek"
+
+msgid "DatePicker.lang.monthBeforeYear"
+msgstr "§true"
+
+msgid "DatePicker.lang.rangePlaceholder"
+msgstr "§[\"Kezdő dátum\",\"Befejezés dátuma\"]"
+
+# traslated
+msgid "User.Confirm.emailPlaceholder"
+msgstr "E-mail"
+
+msgid "DatePicker.lang.nextDecade"
+msgstr "Következő évtized"
+
+# traslated
+msgid "Errors.title"
+msgstr "Érvényesítési hibák"
+
+# traslated
+msgid "DatePicker.lang.yearPlaceholder"
+msgstr "Válassza ki az évet"
+
+# traslated
+msgid "FileWidget.errorFileType"
+msgstr "Csak {fileTypes} fájlt tölthet fel!"
+
+# traslated
+msgid "PDFField.uploadError"
+msgstr "Feltöltési hiba"
+
+# traslated
+msgid "DatePicker.lang.rangeQuarterPlaceholder"
+msgstr "§[\"Negyedév eleje\",\"Negyedév vége\"]"
+
+# traslated
+msgid "App.restoreCurrent"
+msgstr "aktuális"
+
+# traslated
+msgid "ArrayAccordion.placeholder"
+msgstr "Kérjük, válasszon"
+
+# traslated
+msgid "Calendar.lang.weekPlaceholder"
+msgstr "Válassza ki a hetet"
+
+# traslated
+msgid "User.Register.firstnameRequired"
+msgstr "Kérjük, adja meg a nevét!"
+
+# traslated
+msgid "User.Setting.revertButton"
+msgstr "Visszatér"
+
+# traslated
+msgid "App.fullscreenButton"
+msgstr "Teljes képernyő"
+
+# traslated
+msgid "CloudDownloadField.buttonSaveNew"
+msgstr "Új rekord"
+
+msgid "DatePicker.lang.month"
+msgstr "Hónap"
+
+msgid "Calendar.lang.nextMonth"
+msgstr "Következő hónap (PageDown)"
+
+# traslated
+msgid "TableField.deleteItemConfirm"
+msgstr "Biztosan törli?"
+
+# traslated
+msgid "Form.defaultValidateMessages.array.len"
+msgstr "${len} ${label} kell lennie"
+
+msgid "Table.filterConfirm"
+msgstr "Alkalmazás"
+
+# traslated
+msgid "User.Setting.firstnamePlaceholder"
+msgstr "Név"
+
+# traslated
+msgid "App.autoSavingErrorTitle"
+msgstr "Ops... Az automatikus mentés letiltása"
+
+msgid "TimePicker.placeholder"
+msgstr "Válasszon időt"
+
+# traslated
+msgid "DatePicker.lang.quarterPlaceholder"
+msgstr "Válassza ki a negyedévet"
+
+# traslated
+msgid "User.ResetPassword.passwordConfirmRequired"
+msgstr "Kérjük, erősítse meg új jelszavát!"
+
+# traslated
+msgid "CloudDownloadField.dataSwitchUnChecked"
+msgstr "kiszolgáló"
+
+# traslated
+msgid "Table.selectNone"
+msgstr "Az összes adat törlése"
+
+# traslated
+msgid "Form.defaultValidateMessages.types.url"
+msgstr "A ${label} nem érvényes ${type}"
+
+msgid "Pagination.page"
+msgstr ""
+
+# traslated
+msgid "User.titleSetting"
+msgstr "Beállítások szerkesztése"
+
+# traslated
+msgid "User.Forgot.emailRequired"
+msgstr "Kérjük, adja meg e-mail címét!"
+
+# traslated
+msgid "Table.selectionAll"
+msgstr "Az összes adat kijelölése"
+
+# traslated
+msgid "Form.defaultValidateMessages.string.range"
+msgstr "A ${label} paraméternek ${min}–${max} karakter között kell lennie"
+
+# traslated
+msgid "User.Login.emailPlaceholder"
+msgstr "E-mail"
+
+# traslated
+msgid "TabsField.moveleft"
+msgstr "Mozgás balra"
+
+# traslated
+msgid "App.cloudUploadButton"
+msgstr "Megment"
+
+# traslated
+msgid "User.Forgot.emailPlaceholder"
+msgstr "E-mail"
+
+# traslated
+msgid "PDFField.downloadFile"
+msgstr "Fájl letöltése"
+
+msgid "DatePicker.timePickerLocale.placeholder"
+msgstr "Válasszon időt"
+
+# traslated
+msgid "Contact.messageRequired"
+msgstr "Kérjük, írja be üzenetét!"
+
+# traslated
+msgid "User.Setting.lastnameRequired"
+msgstr "Kérjük, adja meg vezetéknevét!"
+
+# traslated
+msgid "CloudUploadField.buttonCancel"
+msgstr "Érvénytelenít"
+
+# traslated
+msgid "App.downloadButton"
+msgstr "Letöltés"
+
+msgid "DatePicker.lang.dateFormat"
+msgstr "YYYY/MM/DD"
+
+# traslated
+msgid "Contact.subjectRequired"
+msgstr "Kérjük, adja meg a levél tárgyát!"
+
+# default
+msgid "Calendar.lang.shortWeekDays"
+msgstr "§undefined"
+
+msgid "Calendar.lang.locale"
+msgstr "hu_HU"
+
+# traslated
+msgid "CloudDownloadField.titleName"
+msgstr "Név"
+
+msgid "Transfer.searchPlaceholder"
+msgstr "Keresés"
+
+# traslated
+msgid "CloudUploadField.createdAt"
+msgstr "Létrehozott"
+
+# traslated
+msgid "Contact.emailInvalid"
+msgstr "Érvénytelen e-mail!"
+
+# traslated
+msgid "User.infoButton"
+msgstr "Profil"
+
+# traslated
+msgid "User.Register.passwordConfirmError"
+msgstr "A megadott két jelszó nem egyezik!"
+
+# traslated
+msgid "CloudUploadField.dataSwitchChecked"
+msgstr "aktuális"
+
+# traslated
+msgid "TabsField.clone"
+msgstr "klón"
+
+msgid "Transfer.titles"
+msgstr "§[\"\",\"\"]"
+
+# traslated
+msgid "QRCode.refresh"
+msgstr "Felfrissít"
+
+# traslated
+msgid "TableField.importTooltip"
+msgstr "Táblázat importálása CSV-fájlból"
+
+# traslated
+msgid "App.uploadTooltip"
+msgstr "Adatok importálása JSON-ként"
+
+msgid "DatePicker.lang.decadeSelect"
+msgstr "Évtized kiválasztása"
+
+# traslated
+msgid "App.restoreModalTitle"
+msgstr "Adatok visszaállítása"
+
+msgid "Table.sortTitle"
+msgstr "Rendezés"
+
+msgid "DatePicker.lang.year"
+msgstr "Év"
+
+# traslated
+msgid "App.restoreRestoreButton"
+msgstr "Visszaad"
+
+# traslated
+msgid "Form.defaultValidateMessages.types.number"
+msgstr "A ${label} nem érvényes ${type}"
+
+# traslated
+msgid "Calendar.lang.yearPlaceholder"
+msgstr "Válassza ki az évet"
+
+msgid "Popconfirm.okText"
+msgstr "Alkalmazás"
+
+# traslated
+msgid "CloudDownloadField.titleData"
+msgstr "Adatforrás"
+
+# traslated
+msgid "ArrayCopy.placeholder"
+msgstr "Kérjük, válasszon"
+
+msgid "Upload.uploading"
+msgstr "Feltöltés..."
+
+# traslated
+msgid "CloudUploadField.titleData"
+msgstr "Adatforrás"
+
+# traslated
+msgid "Text.copied"
+msgstr "Másolt"
+
+# traslated
+msgid "App.cloudDownloadTooltip"
+msgstr "Adatok importálása a felhőből"
+
+# traslated
+msgid "FileWidget.dropMessage"
+msgstr "Húzza ide a fájlt, vagy kattintson a tallózáshoz"
+
+msgid "Calendar.lang.month"
+msgstr "Hónap"
+
+# traslated
+msgid "Form.defaultValidateMessages.types.object"
+msgstr "A ${label} nem érvényes ${type}"
+
+# traslated
+msgid "PageHeader.back"
+msgstr "Hát"
+
+msgid "DatePicker.lang.nextYear"
+msgstr "Jövő év (Control + right)"
+
+# traslated
+msgid "User.titleLogin"
+msgstr "Bejelentkezés"
+
+# traslated
+msgid "Table.filterCheckall"
+msgstr "Az összes elem kijelölése"
+
+msgid "DatePicker.lang.previousYear"
+msgstr "Múlt év (Control + left)"
+
+msgid "Upload.previewFile"
+msgstr "Fájl előnézet"
+
+# traslated
+msgid "CloudUploadField.updatedAt"
+msgstr "Frissül"
+
+msgid "Calendar.lang.timeSelect"
+msgstr "Időpont kiválasztása"
+
+# traslated
+msgid "CloudUploadField.buttonSave"
+msgstr "Megment"
+
+# traslated
+msgid "TabsField.selectItem"
+msgstr "Elem kiválasztása"
+
+# traslated
+msgid "FileWidget.errorSameFile"
+msgstr "A(z) {fájlnév} fájl már fel van töltve!"
+
+msgid "Calendar.lang.monthSelect"
+msgstr "Hónap kiválasztása"
+
+# traslated
+msgid "Form.defaultValidateMessages.types.array"
+msgstr "A ${label} nem érvényes ${type}"
+
+msgid "language"
+msgstr "hu_HU"
+
+# traslated
+msgid "User.Setting.lastnamePlaceholder"
+msgstr "Vezetéknév"
+
+# traslated
+msgid "TabsField.delete"
+msgstr "töröl"
+
+# traslated
+msgid "Form.defaultValidateMessages.default"
+msgstr "Mezőérvényesítési hiba a következőhöz: ${label}"
+
+msgid "Calendar.lang.previousYear"
+msgstr "Múlt év (Control + left)"

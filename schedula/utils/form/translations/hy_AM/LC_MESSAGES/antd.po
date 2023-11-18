@@ -1,0 +1,1404 @@
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: 1.0\n"
+"Report-Msgid-Bugs-To: vinci1it2000@gmail.com\n"
+"PO-Revision-Date: 2023-11-18 08:55+0000\n"
+"Last-Translator: Vincenzo Arcidiacono <vinci1it2000@gmail.com>\n"
+"Language-Team: English <vinci1it2000@gmail.com>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+# traslated
+msgid "Contact.errorTitle"
+msgstr "Ops... ինչ-որ բան սխալվեց!"
+
+# traslated
+msgid "ColorPicker.presetEmpty"
+msgstr "Դատարկ"
+
+msgid "Table.filterReset"
+msgstr "Զրոյացնել"
+
+# traslated
+msgid "User.Register.login"
+msgstr "login!"
+
+# traslated
+msgid "TableField.addItemTooltip"
+msgstr "Ավելացնել իրը"
+
+# traslated
+msgid "CloudUploadField.buttonDownload"
+msgstr "Սերվեր"
+
+# traslated
+msgid "User.Logout.submitButton"
+msgstr "Լոգաուուտ"
+
+msgid "Calendar.lang.dateFormat"
+msgstr "DD/MM//YYYY"
+
+msgid "Calendar.lang.dateSelect"
+msgstr "ընտրեք ամսաթիվը"
+
+# traslated
+msgid "User.Confirm.errorTitle"
+msgstr "Ops... ինչ-որ բան սխալվեց!"
+
+# traslated
+msgid "TabsField.moveup"
+msgstr "շարժվեք դեպի վեր"
+
+msgid "Modal.justOkText"
+msgstr "Օկ"
+
+# traslated
+msgid "PDFField.titleSectionSelection"
+msgstr "Բաժիններ"
+
+msgid "Calendar.lang.previousCentury"
+msgstr "Անցած դար"
+
+# traslated
+msgid "User.ResetPassword.passwordPlaceholder"
+msgstr "Նոր գաղտնաբառ"
+
+# traslated
+msgid "User.loginTooltip"
+msgstr "Մուտք"
+
+# traslated
+msgid "Form.defaultValidateMessages.whitespace"
+msgstr "${պիտակ} չի կարող լինել դատարկ կերպար"
+
+msgid "Pagination.prev_page"
+msgstr "Նախորդ Էջ"
+
+# traslated
+msgid "QRCode.expired"
+msgstr "QR կոդի ժամկետը լրացել է"
+
+# traslated
+msgid "FileWidget.errorNotUploaded"
+msgstr "Ops... ֆայլը չի վերբեռնվում"
+
+# traslated
+msgid "Form.defaultValidateMessages.string.max"
+msgstr "${պիտակ}-ը պետք է լինի մինչեւ ${max} տառերը"
+
+# traslated
+msgid "User.Confirm.submitButton"
+msgstr "Ուղարկել հրահանգները"
+
+# traslated
+msgid "Form.defaultValidateMessages.types.hex"
+msgstr "${պիտակ}-ը վավերական ${type} չէ"
+
+# traslated
+msgid "Contact.submitButton"
+msgstr "Ուղարկել"
+
+msgid "Table.expand"
+msgstr "Ընդլայնեք տողը"
+
+# traslated
+msgid "App.restoreDifferences"
+msgstr "Ցույց տալ տարբերությունները ընթացիկ տվյալներից"
+
+msgid "Pagination.jump_to_confirm"
+msgstr "հաստատել"
+
+# traslated
+msgid "User.ResetPassword.submitButton"
+msgstr "Reset ծածկագիրը"
+
+msgid "Transfer.itemUnit"
+msgstr "պարագան"
+
+msgid "global.placeholder"
+msgstr "Ընտրեք"
+
+# traslated
+msgid "DatePicker.lang.rangeMonthPlaceholder"
+msgstr "§[\"Սկիզբ ամիս\",\"Ավարտ ամիս\"]"
+
+# traslated
+msgid "User.titleResetPassword"
+msgstr "Reset ծածկագիրը"
+
+# traslated
+msgid "Contact.emailPlaceholder"
+msgstr "Էլ. փոստ"
+
+# traslated
+msgid "Table.triggerAsc"
+msgstr "Սեղմեք տեսակավորելու բարձրանալը"
+
+# traslated
+msgid "User.Register.usernameRequired"
+msgstr "Խնդրում ենք մուտքագրել Ձեր Username!"
+
+# traslated
+msgid "User.titleLogout"
+msgstr "Անպայման logout?"
+
+# traslated
+msgid "ArrayCopy.titleCopyButton"
+msgstr "Խնդրում ենք ընտրել, թե որտեղ պատճենել տվյալները:"
+
+msgid "Popconfirm.cancelText"
+msgstr "Մերժել"
+
+# traslated
+msgid "User.titleConfirm"
+msgstr "Ուղարկել հաստատման էլփոստ"
+
+# traslated
+msgid "Form.defaultValidateMessages.array.range"
+msgstr "${պիտակի} գումարը պետք է լինի ${min}-${max} միջեւ"
+
+# traslated
+msgid "User.ResetPassword.login"
+msgstr "login!"
+
+# traslated
+msgid "Calendar.lang.rangeQuarterPlaceholder"
+msgstr "§[\"Սկիզբ քառորդ\",\"Վերջ քառորդ\"]"
+
+# traslated
+msgid "PDFField.previewFile"
+msgstr "Նախադիտման ֆայլ"
+
+# traslated
+msgid "Contact.subjectPlaceholder"
+msgstr "Փոստային ենթակայք"
+
+# traslated
+msgid "User.titleInfo"
+msgstr "Օգտվողի ինֆո"
+
+# traslated
+msgid "App.cloudDownloadButton"
+msgstr "Ներմուծում"
+
+# traslated
+msgid "Form.defaultValidateMessages.types.float"
+msgstr "${պիտակ}-ը վավերական ${type} չէ"
+
+# traslated
+msgid "App.runButton"
+msgstr "Վազել"
+
+# traslated
+msgid "User.Register.emailInvalid"
+msgstr "Անհամարժեք էլփոստ!"
+
+msgid "Modal.cancelText"
+msgstr "Չեղարկել"
+
+msgid "DatePicker.lang.nextCentury"
+msgstr "Մյուս դար"
+
+msgid "Upload.removeFile"
+msgstr "Հեռացնել ֆայլը"
+
+# traslated
+msgid "FileWidget.errorToolTip"
+msgstr "Վերբեռնել սխալը"
+
+# traslated
+msgid "TableField.deleteAllConfirm"
+msgstr "Անպայման ջնջե՞լ բոլոր բովանդակությունը:"
+
+# traslated
+msgid "Form.defaultValidateMessages.number.range"
+msgstr "${պիտակ} պետք է լինի ${min}-${max} միջեւ"
+
+# traslated
+msgid "Form.defaultValidateMessages.date.format"
+msgstr "${պիտակ} ամսաթվի ձեւաչափն անվավեր է"
+
+# traslated
+msgid "Form.defaultValidateMessages.types.string"
+msgstr "${պիտակ}-ը վավերական ${type} չէ"
+
+# traslated
+msgid "Transfer.selectInvert"
+msgstr "Invert ընթացիկ էջը"
+
+# traslated
+msgid "ErrorListTemplate.tooltipFloatButton"
+msgstr "Բաց սխալի հաղորդագրություններ"
+
+msgid "DatePicker.lang.dateSelect"
+msgstr "ընտրեք ամսաթիվը"
+
+# traslated
+msgid "Table.emptyText"
+msgstr "Ոչ մի տվյալ"
+
+msgid "DatePicker.lang.backToToday"
+msgstr "Վերադառնալ այսօր"
+
+msgid "DatePicker.lang.dayFormat"
+msgstr "DD"
+
+# traslated
+msgid "User.Forgot.emailInvalid"
+msgstr "Անհամարժեք էլփոստ!"
+
+# default
+msgid "DatePicker.lang.shortMonths"
+msgstr "§undefined"
+
+# traslated
+msgid "User.ResetPassword.passwordRequired"
+msgstr "Խնդրում ենք մուտքագրել Ձեր Նոր Գաղտնաբառը!"
+
+# traslated
+msgid "User.Register.lastnamePlaceholder"
+msgstr "Ազգանուն"
+
+# traslated
+msgid "CloudUploadField.titleName"
+msgstr "Անուն"
+
+# traslated
+msgid "Contact.title"
+msgstr "Կապվեք մեզ հետ"
+
+msgid "Calendar.lang.nextCentury"
+msgstr "Մյուս դար"
+
+# traslated
+msgid "Form.defaultValidateMessages.string.min"
+msgstr "${պիտակ} պետք է լինեն առնվազն ${min} տառերը"
+
+msgid "Modal.okText"
+msgstr "Օկ"
+
+# traslated
+msgid "User.Register.emailRequired"
+msgstr "Խնդրում ենք մուտքագրել Ձեր Էլփոստը!"
+
+msgid "Table.collapse"
+msgstr "Կրճատել տողը"
+
+msgid "Pagination.prev_5"
+msgstr "Նախորդ 5 Էջերը"
+
+# traslated
+msgid "ArrayAccordion.titleCopyButton"
+msgstr "Խնդրում ենք ընտրել, թե որտեղ պատճենել տվյալները:"
+
+msgid "Calendar.lang.previousMonth"
+msgstr "Անցած ամիս (PageUp)"
+
+# traslated
+msgid "Transfer.removeCurrent"
+msgstr "Հեռացնել ընթացիկ էջը"
+
+# traslated
+msgid "Form.defaultValidateMessages.array.max"
+msgstr "Ամենաշատ ${max} ${պիտակ}"
+
+# traslated
+msgid "App.cloudUploadTooltip"
+msgstr "Պահպանել տվյալները Cloud-ին"
+
+# traslated
+msgid "CloudDownloadField.buttonCancel"
+msgstr "Չեղարկել"
+
+# traslated
+msgid "Contact.emailRequired"
+msgstr "Խնդրում ենք մուտքագրել Ձեր Էլփոստը!"
+
+msgid "Calendar.lang.monthBeforeYear"
+msgstr "§true"
+
+# traslated
+msgid "User.Confirm.emailInvalid"
+msgstr "Անհամարժեք էլփոստ!"
+
+# traslated
+msgid "User.ResetPassword.passwordConfirmError"
+msgstr "Երկու գաղտնաբառերը, որոնք մուտք եք գործել, չեն համապատասխանում!"
+
+# traslated
+msgid "CloudUploadField.titleSaveNew"
+msgstr "Պահպանել ընթացիկ տվյալները"
+
+# traslated
+msgid "User.Register.lastnameRequired"
+msgstr "Խնդրում ենք մուտքագրել Ձեր Ազգանունը!"
+
+# traslated
+msgid "User.settingButton"
+msgstr "Պարամետրեր"
+
+msgid "Pagination.next_3"
+msgstr "Հաջորդ 3 Էջերը"
+
+# traslated
+msgid "Transfer.remove"
+msgstr "Հեռացնել"
+
+msgid "DatePicker.lang.yearFormat"
+msgstr "YYYY"
+
+# traslated
+msgid "User.Login.passwordPlaceholder"
+msgstr "Անձնագիր"
+
+msgid "DatePicker.lang.placeholder"
+msgstr "Ընտրեք ամսաթիվը"
+
+# traslated
+msgid "User.titleForgot"
+msgstr "Վերականգնել գաղտնաբառը"
+
+# traslated
+msgid "Calendar.lang.quarterPlaceholder"
+msgstr "Ընտրեք քառորդը"
+
+msgid "DatePicker.lang.previousCentury"
+msgstr "Անցած դար"
+
+# traslated
+msgid "App.restoreButton"
+msgstr "Վերականգնել"
+
+# default
+msgid "DatePicker.lang.shortWeekDays"
+msgstr "§undefined"
+
+# traslated
+msgid "User.logoutButton"
+msgstr "Լոգաուուտ"
+
+# traslated
+msgid "User.buttonTooltip"
+msgstr "Մուտք"
+
+# traslated
+msgid "DatePicker.lang.rangeYearPlaceholder"
+msgstr "§[\"Սկսեք տարին\",\"Տարեվերջին\"]"
+
+# traslated
+msgid "Pagination.page_size"
+msgstr "Էջի չափսը"
+
+msgid "Calendar.lang.weekSelect"
+msgstr "Ընտրեք շաբաթը"
+
+# traslated
+msgid "Form.defaultValidateMessages.date.invalid"
+msgstr "${պիտակ} -ն անվավեր ամսաթիվ է"
+
+# traslated
+msgid "App.restoreCloseButton"
+msgstr "Փակ"
+
+# traslated
+msgid "User.Forgot.submitButton"
+msgstr "Վերահասցնեք գաղտնաբառը"
+
+# traslated
+msgid "Transfer.selectCurrent"
+msgstr "Ընտրեք ընթացիկ էջը"
+
+# traslated
+msgid "User.Register.usernamePlaceholder"
+msgstr "Username"
+
+# traslated
+msgid "App.filesButton"
+msgstr "Ֆայլեր"
+
+# traslated
+msgid "TabsField.moveright"
+msgstr "շարժվեք աջ"
+
+msgid "DatePicker.lang.weekSelect"
+msgstr "Ընտրեք շաբաթը"
+
+# traslated
+msgid "Calendar.lang.rangeMonthPlaceholder"
+msgstr "§[\"Սկիզբ ամիս\",\"Ավարտ ամիս\"]"
+
+msgid "Table.filterTitle"
+msgstr "ֆիլտրի ընտրացանկ"
+
+# traslated
+msgid "App.restoreTooltip"
+msgstr "Վերականգնել տվյալները"
+
+msgid "Upload.downloadFile"
+msgstr "Ներբեռնել ֆայլը"
+
+msgid "Calendar.lang.yearSelect"
+msgstr "Ընտրեք տարին"
+
+msgid "Text.copy"
+msgstr "Պատճենել"
+
+# traslated
+msgid "User.ResetPassword.errorTitle"
+msgstr "Ops... ինչ-որ բան սխալվեց!"
+
+# traslated
+msgid "Tour.Finish"
+msgstr "Ավարտ"
+
+# traslated
+msgid "Form.defaultValidateMessages.number.len"
+msgstr "${պիտակ}-ը պետք է հավասար լինի ${len}"
+
+# traslated
+msgid "CloudDownloadField.titleSaveNew"
+msgstr "Պահպանել ընթացիկ տվյալները"
+
+# traslated
+msgid "CloudUploadField.confirmDelete"
+msgstr "Անպայման ջնջե՞լ"
+
+# traslated
+msgid "PDFField.uploading"
+msgstr "Վերբեռնում..."
+
+# traslated
+msgid "Transfer.removeAll"
+msgstr "Հեռացնել բոլոր տվյալները"
+
+# traslated
+msgid "Calendar.timePickerLocale.rangePlaceholder"
+msgstr "§[\"Սկսեք ժամանակը\",\"Ավարտի՛ր ժամանակը\"]"
+
+# traslated
+msgid "User.Forgot.errorTitle"
+msgstr "Ops... ինչ-որ բան սխալվեց!"
+
+# traslated
+msgid "Table.filterEmptyText"
+msgstr "Ոչ ֆիլտրեր"
+
+# traslated
+msgid "PDFField.removeFile"
+msgstr "Հեռացնել ֆայլը"
+
+# traslated
+msgid "User.Login.sendConfirmMail"
+msgstr "resend հաստատման էլփոստ"
+
+msgid "Pagination.next_5"
+msgstr "Հաջորդ 5 Էջերը"
+
+# traslated
+msgid "ErrorListTemplate.descriptionFloatButton"
+msgstr "Էրր"
+
+# traslated
+msgid "PDFField.preview"
+msgstr "Նախադիտում"
+
+# traslated
+msgid "Form.defaultValidateMessages.enum"
+msgstr "${պիտակ}-ը պետք է լինի [${enum}]"
+
+# traslated
+msgid "Contact.nameRequired"
+msgstr "Խնդրում ենք մուտքագրել Ձեր Անունը!"
+
+# traslated
+msgid "ErrorListTemplate.titleModal"
+msgstr "Սխալներ"
+
+# traslated
+msgid "Form.defaultValidateMessages.number.min"
+msgstr "${պիտակ} պետք է լինի նվազագույնը ${min}"
+
+# traslated
+msgid "User.Register.firstnamePlaceholder"
+msgstr "Անուն"
+
+msgid "Calendar.lang.dayFormat"
+msgstr "DD"
+
+msgid "DatePicker.lang.yearSelect"
+msgstr "Ընտրեք տարին"
+
+# traslated
+msgid "User.Register.submitButton"
+msgstr "Գրանցվել"
+
+msgid "Calendar.lang.backToToday"
+msgstr "Վերադառնալ այսօր"
+
+# traslated
+msgid "User.Login.rememberMe"
+msgstr "Հիշիր ինձ"
+
+# traslated
+msgid "CloudDownloadField.buttonDownload"
+msgstr "Սերվեր"
+
+# traslated
+msgid "ArrayAccordion.tooltipExtra"
+msgstr "Պատճենեք տվյալները ավելի"
+
+msgid "Calendar.timePickerLocale.placeholder"
+msgstr "Ընտրեք ժամը"
+
+msgid "Calendar.lang.year"
+msgstr "Տարի"
+
+# traslated
+msgid "User.Register.passwordConfirmRequired"
+msgstr "Խնդրում ենք հաստատել Ձեր Գաղտնաբառը!"
+
+# traslated
+msgid "App.disableFullscreen"
+msgstr "Անջատել Fullscreen"
+
+# traslated
+msgid "CloudDownloadField.createdAt"
+msgstr "Ստեղծվել է"
+
+# traslated
+msgid "App.downloadTooltip"
+msgstr "Արտահանման տվյալները որպես JSON"
+
+# traslated
+msgid "App.autoSaveTooltip"
+msgstr "Հնարավորություն autoSaving"
+
+msgid "DatePicker.lang.today"
+msgstr "Այսօր"
+
+# traslated
+msgid "Tour.Previous"
+msgstr "Նախորդ"
+
+msgid "Pagination.jump_to"
+msgstr "Գնալ"
+
+# traslated
+msgid "User.ResetPassword.or"
+msgstr "Կամ"
+
+# traslated
+msgid "User.Register.passwordPlaceholder"
+msgstr "Անձնագիր"
+
+msgid "Table.selectAll"
+msgstr "Ընտրեք ընթացիկ էջը"
+
+# traslated
+msgid "CloudUploadField.buttonOverwrite"
+msgstr "Օվերգր"
+
+# traslated
+msgid "CloudDownloadField.updatedAt"
+msgstr "Թարմացված"
+
+# traslated
+msgid "User.Login.or"
+msgstr "Կամ"
+
+# traslated
+msgid "DebugTemplate.titleModal"
+msgstr "Դեբուգի աշխատանքային հոսք"
+
+msgid "Calendar.lang.rangePlaceholder"
+msgstr "§[\"Մեկնարկի ամսաթիվ\",\"Ավարտի ամսաթիվը\"]"
+
+msgid "Text.edit"
+msgstr "Խմբագրել"
+
+msgid "DatePicker.lang.previousMonth"
+msgstr "Անցած ամիս (PageUp)"
+
+# traslated
+msgid "App.autoSaveButton"
+msgstr "Ավտոսավ"
+
+# traslated
+msgid "CloudDownloadField.buttonOverwrite"
+msgstr "Օվերգր"
+
+# traslated
+msgid "FileWidget.errorOnlyOneItem"
+msgstr "Դուք կարող եք վերբեռնել առավելագույնը մեկ ֆայլ!"
+
+msgid "Pagination.prev_3"
+msgstr "Նախորդ 3 Էջերը"
+
+# traslated
+msgid "User.Login.emailRequired"
+msgstr "Խնդրում ենք մուտքագրել Ձեր Էլփոստը!"
+
+# traslated
+msgid "CloudDownloadField.confirmDelete"
+msgstr "Անպայման ջնջե՞լ"
+
+# traslated
+msgid "User.Register.passwordRequired"
+msgstr "Խնդրում ենք մուտքագրել Ձեր Գաղտնաբառը!"
+
+# traslated
+msgid "TimePicker.rangePlaceholder"
+msgstr "§[\"Սկսեք ժամանակը\",\"Ավարտի՛ր ժամանակը\"]"
+
+# traslated
+msgid "FileWidget.errorMaxItems"
+msgstr "Դուք կարող եք բեռնել առավելագույն {maxItems} ֆայլեր!"
+
+msgid "Calendar.lang.dateTimeFormat"
+msgstr "DD/MM//YYYY HH:mm:ss"
+
+# traslated
+msgid "User.Confirm.or"
+msgstr "Կամ"
+
+# traslated
+msgid "Contact.messagePlaceholder"
+msgstr "Ձեր հաղորդագրությունը"
+
+# traslated
+msgid "Form.defaultValidateMessages.string.len"
+msgstr "${պիտակ} պետք է լինի ${len} տառերը"
+
+# traslated
+msgid "ArrayCopy.tooltip"
+msgstr "Պատճենեք տվյալները ավելի"
+
+# traslated
+msgid "DatePicker.lang.monthPlaceholder"
+msgstr "Ընտրեք ամիսը"
+
+msgid "Calendar.lang.today"
+msgstr "Այսօր"
+
+msgid "Transfer.itemsUnit"
+msgstr "պարագաները"
+
+# traslated
+msgid "Table.filterSearchPlaceholder"
+msgstr "Որոնել ֆիլտրերում"
+
+# default
+msgid "DatePicker.lang.monthFormat"
+msgstr "§undefined"
+
+# traslated
+msgid "CloudDownloadField.dataSwitchChecked"
+msgstr "ընթացիկ"
+
+# traslated
+msgid "Transfer.selectAll"
+msgstr "Ընտրեք բոլոր տվյալները"
+
+# traslated
+msgid "Image.preview"
+msgstr "Նախադիտում"
+
+# traslated
+msgid "Table.triggerDesc"
+msgstr "Սեղմեք տեսակավորելու համար իջեցումը"
+
+msgid "DatePicker.lang.dateTimeFormat"
+msgstr "DD/MM//YYYY HH:mm:ss"
+
+# traslated
+msgid "CloudUploadField.errorTitle"
+msgstr "Ops... ինչ-որ բան սխալվեց!"
+
+# traslated
+msgid "DatePicker.timePickerLocale.rangePlaceholder"
+msgstr "§[\"Սկսեք ժամանակը\",\"Ավարտի՛ր ժամանակը\"]"
+
+# traslated
+msgid "App.enableFullscreen"
+msgstr "Հնարավորություն տալ Fullscreen"
+
+msgid "DatePicker.lang.clear"
+msgstr "Մաքրել"
+
+msgid "Calendar.lang.nextDecade"
+msgstr "Մյուս տասնամյակ"
+
+# traslated
+msgid "User.Register.emailPlaceholder"
+msgstr "Էլ. փոստ"
+
+# traslated
+msgid "App.cloudButton"
+msgstr "Ամպամած"
+
+# traslated
+msgid "App.autoSavingTooltip"
+msgstr "Անջատել AutoSaving"
+
+# traslated
+msgid "Form.defaultValidateMessages.date.parse"
+msgstr "${պիտակ} չի կարող փոխակերպվել ամսաթվի"
+
+# traslated
+msgid "Form.defaultValidateMessages.pattern.mismatch"
+msgstr "${պիտակ}}-ը չի համապատասխանում ${pattern} կաղապարին"
+
+# traslated
+msgid "Form.defaultValidateMessages.types.regexp"
+msgstr "${պիտակ}-ը վավերական ${type} չէ"
+
+msgid "Text.expand"
+msgstr "Տեսնել ավելին"
+
+# traslated
+msgid "User.Login.forgotPassword"
+msgstr "Մոռացել է գաղտնաբառը"
+
+# traslated
+msgid "Form.defaultValidateMessages.number.max"
+msgstr "${պիտակ} պետք է լինի առավելագույն ${max}"
+
+# traslated
+msgid "CloudUploadField.dataSwitchUnChecked"
+msgstr "սերվեր"
+
+# traslated
+msgid "App.cleanConfirm"
+msgstr "Անպայման ջնջե՞լ այս տվյալները:"
+
+# traslated
+msgid "CloudUploadField.buttonSaveNew"
+msgstr "Նոր ռեկորդ"
+
+msgid "DatePicker.lang.nextMonth"
+msgstr "Մյուս ամիս (PageDown)"
+
+msgid "Table.selectInvert"
+msgstr "Փոխարկել ընթացիկ էջը"
+
+# traslated
+msgid "App.restoreConfirm"
+msgstr "Անպայման վերականգնե՞լ այս տվյալները:"
+
+# traslated
+msgid "DatePicker.lang.weekPlaceholder"
+msgstr "Ընտրեք շաբաթը"
+
+# traslated
+msgid "Calendar.lang.monthPlaceholder"
+msgstr "Ընտրեք ամիսը"
+
+# traslated
+msgid "User.Login.errorTitle"
+msgstr "Ops... ինչ-որ բան սխալվեց!"
+
+# traslated
+msgid "Form.defaultValidateMessages.array.min"
+msgstr "Առնվազն ${min} ${պիտակ}"
+
+# traslated
+msgid "TabsField.select"
+msgstr "ընտրել"
+
+# traslated
+msgid "TabsField.movedown"
+msgstr "շարժվեք ներքեւ"
+
+msgid "DatePicker.lang.monthSelect"
+msgstr "Ընտրեք ամիսը"
+
+# traslated
+msgid "App.autoSavingButton"
+msgstr "Ավտոսավինգ"
+
+msgid "Calendar.lang.previousDecade"
+msgstr "Անցած տասնամյակ"
+
+msgid "Calendar.lang.ok"
+msgstr "Օկ"
+
+# traslated
+msgid "User.Confirm.emailRequired"
+msgstr "Խնդրում ենք մուտքագրել Ձեր Էլփոստը!"
+
+# traslated
+msgid "User.Setting.firstnameRequired"
+msgstr "Խնդրում ենք մուտքագրել Ձեր Անունը!"
+
+# default
+msgid "Calendar.lang.monthFormat"
+msgstr "§undefined"
+
+# traslated
+msgid "User.Setting.submitButton"
+msgstr "Խնայել"
+
+# traslated
+msgid "Tour.Next"
+msgstr "Հաջորդը"
+
+# traslated
+msgid "Calendar.lang.rangeWeekPlaceholder"
+msgstr "§[\"Սկսեք շաբաթ\",\"Վերջին շաբաթ\"]"
+
+# traslated
+msgid "CloudDownloadField.errorTitle"
+msgstr "Ops... ինչ-որ բան սխալվեց!"
+
+# traslated
+msgid "User.Confirm.login"
+msgstr "login!"
+
+# traslated
+msgid "User.ResetPassword.passwordConfirmPlaceholder"
+msgstr "Հաստատել նոր գաղտնաբառը"
+
+msgid "DatePicker.lang.now"
+msgstr "Հիմա"
+
+msgid "Calendar.lang.nextYear"
+msgstr "Մյուս տարի (Control + right)"
+
+# traslated
+msgid "Form.defaultValidateMessages.types.date"
+msgstr "${պիտակ}-ը վավերական ${type} չէ"
+
+# traslated
+msgid "User.Register.or"
+msgstr "Կամ"
+
+msgid "DatePicker.lang.previousDecade"
+msgstr "Անցած տասնամյակ"
+
+# traslated
+msgid "App.branchesButton"
+msgstr "Մասնաճյուղեր"
+
+# traslated
+msgid "Form.defaultValidateMessages.types.email"
+msgstr "${պիտակ}-ը վավերական ${type} չէ"
+
+msgid "Pagination.next_page"
+msgstr "Հաջորդ Էջ"
+
+msgid "Icon.icon"
+msgstr "պատկեր"
+
+# traslated
+msgid "Form.defaultValidateMessages.types.method"
+msgstr "${պիտակ}-ը վավերական ${type} չէ"
+
+msgid "DatePicker.lang.locale"
+msgstr "hy-am"
+
+msgid "Calendar.lang.clear"
+msgstr "Մաքրել"
+
+msgid "Calendar.lang.yearFormat"
+msgstr "YYYY"
+
+# traslated
+msgid "Form.defaultValidateMessages.required"
+msgstr "Խնդրում ենք մուտք գործել ${պիտակ}"
+
+# traslated
+msgid "App.debugButton"
+msgstr "Դեբուգ"
+
+msgid "locale"
+msgstr "hy-am"
+
+msgid "DatePicker.lang.ok"
+msgstr "Օկ"
+
+# traslated
+msgid "Table.cancelSort"
+msgstr "Սեղմեք տեսակավորումը չեղարկելու համար"
+
+# traslated
+msgid "Calendar.lang.rangeYearPlaceholder"
+msgstr "§[\"Սկսեք տարին\",\"Տարեվերջին\"]"
+
+# traslated
+msgid "User.Setting.errorTitle"
+msgstr "Ops... ինչ-որ բան սխալվեց!"
+
+# traslated
+msgid "Contact.namePlaceholder"
+msgstr "Անունդ"
+
+msgid "Calendar.lang.placeholder"
+msgstr "Ընտրեք ամսաթիվը"
+
+# traslated
+msgid "App.restoreEraseButton"
+msgstr "Երինջների պահեստավորում"
+
+# traslated
+msgid "User.Login.passwordRequired"
+msgstr "Խնդրում ենք մուտքագրել Ձեր Գաղտնաբառը!"
+
+# traslated
+msgid "User.Forgot.or"
+msgstr "Կամ"
+
+# traslated
+msgid "Form.defaultValidateMessages.types.boolean"
+msgstr "${պիտակ}-ը վավերական ${type} չէ"
+
+# traslated
+msgid "DatePicker.lang.rangeWeekPlaceholder"
+msgstr "§[\"Սկսեք շաբաթ\",\"Վերջին շաբաթ\"]"
+
+# traslated
+msgid "App.cleanButton"
+msgstr "Մաքուր"
+
+# traslated
+msgid "Form.defaultValidateMessages.types.integer"
+msgstr "${պիտակ}-ը վավերական ${type} չէ"
+
+msgid "Empty.description"
+msgstr "Տվյալներ չկան"
+
+# default
+msgid "Calendar.lang.shortMonths"
+msgstr "§undefined"
+
+# traslated
+msgid "DebugTemplate.tooltipFloatButton"
+msgstr "Բաց Debug Workflow"
+
+msgid "Calendar.lang.decadeSelect"
+msgstr "Ընտրեք տասնամյակը"
+
+msgid "Upload.uploadError"
+msgstr "Ներբեռնման սխալ"
+
+# traslated
+msgid "User.Login.submitButton"
+msgstr "Մուտք"
+
+# traslated
+msgid "User.Register.errorTitle"
+msgstr "Ops... ինչ-որ բան սխալվեց!"
+
+msgid "DatePicker.lang.timeSelect"
+msgstr "ընտրեք ժամը"
+
+# traslated
+msgid "App.uploadButton"
+msgstr "Վերբեռնել"
+
+# traslated
+msgid "User.Register.passwordConfirmPlaceholder"
+msgstr "Հաստատել գաղտնաբառը"
+
+# traslated
+msgid "CloudDownloadField.fieldErrors.name"
+msgstr "Խնդրում եմ մուտքանունը!"
+
+# traslated
+msgid "CloudUploadField.fieldErrors.name"
+msgstr "Խնդրում եմ մուտքանունը!"
+
+# traslated
+msgid "TableField.exportTooltip"
+msgstr "Արտահանման սեղան CSV-ում"
+
+# traslated
+msgid "User.Login.registerNow"
+msgstr "գրանցվեք հիմա!"
+
+# traslated
+msgid "User.Login.emailInvalid"
+msgstr "Անհամարժեք էլփոստ!"
+
+# traslated
+msgid "User.Forgot.login"
+msgstr "login!"
+
+msgid "Pagination.items_per_page"
+msgstr "/ էջ"
+
+# traslated
+msgid "CloudDownloadField.buttonSave"
+msgstr "Խնայել"
+
+# traslated
+msgid "User.titleRegister"
+msgstr "Նոր գրանցում"
+
+msgid "Calendar.lang.now"
+msgstr "Հիմա"
+
+# traslated
+msgid "Contact.buttonTooltip"
+msgstr "Կապ"
+
+# traslated
+msgid "Form.optional"
+msgstr "(կամընտիր)"
+
+# traslated
+msgid "App.restoreTitleDifferences"
+msgstr "Տարբերություններ"
+
+msgid "DatePicker.lang.monthBeforeYear"
+msgstr "§true"
+
+msgid "DatePicker.lang.rangePlaceholder"
+msgstr "§[\"Մեկնարկի ամսաթիվ\",\"Ավարտի ամսաթիվը\"]"
+
+# traslated
+msgid "User.Confirm.emailPlaceholder"
+msgstr "Էլ. փոստ"
+
+msgid "DatePicker.lang.nextDecade"
+msgstr "Մյուս տասնամյակ"
+
+# traslated
+msgid "Errors.title"
+msgstr "Վավերացման սխալները"
+
+# traslated
+msgid "DatePicker.lang.yearPlaceholder"
+msgstr "Ընտրեք տարին"
+
+# traslated
+msgid "FileWidget.errorFileType"
+msgstr "Դուք կարող եք բեռնել միայն {fileTypes} ֆայլը!"
+
+# traslated
+msgid "PDFField.uploadError"
+msgstr "Վերբեռնել սխալը"
+
+# traslated
+msgid "DatePicker.lang.rangeQuarterPlaceholder"
+msgstr "§[\"Սկիզբ քառորդ\",\"Վերջ քառորդ\"]"
+
+# traslated
+msgid "App.restoreCurrent"
+msgstr "ընթացիկ"
+
+# traslated
+msgid "ArrayAccordion.placeholder"
+msgstr "Խնդրում ենք ընտրել"
+
+# traslated
+msgid "Calendar.lang.weekPlaceholder"
+msgstr "Ընտրեք շաբաթը"
+
+# traslated
+msgid "User.Register.firstnameRequired"
+msgstr "Խնդրում ենք մուտքագրել Ձեր Անունը!"
+
+# traslated
+msgid "User.Setting.revertButton"
+msgstr "Revert"
+
+# traslated
+msgid "App.fullscreenButton"
+msgstr "Ֆուլսքրեյն"
+
+# traslated
+msgid "CloudDownloadField.buttonSaveNew"
+msgstr "Նոր ռեկորդ"
+
+msgid "DatePicker.lang.month"
+msgstr "Ամիս"
+
+msgid "Calendar.lang.nextMonth"
+msgstr "Մյուս ամիս (PageDown)"
+
+# traslated
+msgid "TableField.deleteItemConfirm"
+msgstr "Անպայման ջնջե՞լ"
+
+# traslated
+msgid "Form.defaultValidateMessages.array.len"
+msgstr "Պետք է լինի ${len} ${պիտակ}"
+
+msgid "Table.filterConfirm"
+msgstr "ֆիլտրել"
+
+# traslated
+msgid "User.Setting.firstnamePlaceholder"
+msgstr "Անուն"
+
+# traslated
+msgid "App.autoSavingErrorTitle"
+msgstr "Ops... ավտոմատի խնայողություն անող"
+
+msgid "TimePicker.placeholder"
+msgstr "Ընտրեք ժամը"
+
+# traslated
+msgid "DatePicker.lang.quarterPlaceholder"
+msgstr "Ընտրեք քառորդը"
+
+# traslated
+msgid "User.ResetPassword.passwordConfirmRequired"
+msgstr "Խնդրում ենք հաստատել Ձեր Նոր Գաղտնաբառը!"
+
+# traslated
+msgid "CloudDownloadField.dataSwitchUnChecked"
+msgstr "սերվեր"
+
+# traslated
+msgid "Table.selectNone"
+msgstr "Մաքրել բոլոր տվյալները"
+
+# traslated
+msgid "Form.defaultValidateMessages.types.url"
+msgstr "${պիտակ}-ը վավերական ${type} չէ"
+
+msgid "Pagination.page"
+msgstr ""
+
+# traslated
+msgid "User.titleSetting"
+msgstr "ԿարգավորումներԽմբագրել"
+
+# traslated
+msgid "User.Forgot.emailRequired"
+msgstr "Խնդրում ենք մուտքագրել Ձեր Էլփոստը!"
+
+# traslated
+msgid "Table.selectionAll"
+msgstr "Ընտրեք բոլոր տվյալները"
+
+# traslated
+msgid "Form.defaultValidateMessages.string.range"
+msgstr "${պիտակ} պետք է լինի ${min}-${max} տառերի միջեւ"
+
+# traslated
+msgid "User.Login.emailPlaceholder"
+msgstr "Էլ. փոստ"
+
+# traslated
+msgid "TabsField.moveleft"
+msgstr "շարժումը ձախ"
+
+# traslated
+msgid "App.cloudUploadButton"
+msgstr "Խնայել"
+
+# traslated
+msgid "User.Forgot.emailPlaceholder"
+msgstr "Էլ. փոստ"
+
+# traslated
+msgid "PDFField.downloadFile"
+msgstr "Ներբեռնել ֆայլը"
+
+msgid "DatePicker.timePickerLocale.placeholder"
+msgstr "Ընտրեք ժամը"
+
+# traslated
+msgid "Contact.messageRequired"
+msgstr "Խնդրում ենք մուտք գործել Ձեր հաղորդագրությունը!"
+
+# traslated
+msgid "User.Setting.lastnameRequired"
+msgstr "Խնդրում ենք մուտքագրել Ձեր Ազգանունը!"
+
+# traslated
+msgid "CloudUploadField.buttonCancel"
+msgstr "Չեղարկել"
+
+# traslated
+msgid "App.downloadButton"
+msgstr "Ներբեռնել"
+
+msgid "DatePicker.lang.dateFormat"
+msgstr "DD/MM//YYYY"
+
+# traslated
+msgid "Contact.subjectRequired"
+msgstr "Խնդրում ենք մուտք գործել փոստային թեմա!"
+
+# default
+msgid "Calendar.lang.shortWeekDays"
+msgstr "§undefined"
+
+msgid "Calendar.lang.locale"
+msgstr "hy-am"
+
+# traslated
+msgid "CloudDownloadField.titleName"
+msgstr "Անուն"
+
+msgid "Transfer.searchPlaceholder"
+msgstr "Որոնեք այստեղ"
+
+# traslated
+msgid "CloudUploadField.createdAt"
+msgstr "Ստեղծվել է"
+
+# traslated
+msgid "Contact.emailInvalid"
+msgstr "Անհամարժեք էլփոստ!"
+
+# traslated
+msgid "User.infoButton"
+msgstr "Պրոֆիլ"
+
+# traslated
+msgid "User.Register.passwordConfirmError"
+msgstr "Երկու գաղտնաբառերը, որոնք մուտք եք գործել, չեն համապատասխանում!"
+
+# traslated
+msgid "CloudUploadField.dataSwitchChecked"
+msgstr "ընթացիկ"
+
+# traslated
+msgid "TabsField.clone"
+msgstr "կլոն"
+
+msgid "Transfer.titles"
+msgstr "§[\"\",\"\"]"
+
+# traslated
+msgid "QRCode.refresh"
+msgstr "Թարմություն"
+
+# traslated
+msgid "TableField.importTooltip"
+msgstr "Ներմուծման սեղան CSV-ից"
+
+# traslated
+msgid "App.uploadTooltip"
+msgstr "Ներմուծման տվյալները որպես JSON"
+
+msgid "DatePicker.lang.decadeSelect"
+msgstr "Ընտրեք տասնամյակը"
+
+# traslated
+msgid "App.restoreModalTitle"
+msgstr "Վերականգնել տվյալները"
+
+msgid "Table.sortTitle"
+msgstr "Տեսակավորել"
+
+msgid "DatePicker.lang.year"
+msgstr "Տարի"
+
+# traslated
+msgid "App.restoreRestoreButton"
+msgstr "Վերականգնել"
+
+# traslated
+msgid "Form.defaultValidateMessages.types.number"
+msgstr "${պիտակ}-ը վավերական ${type} չէ"
+
+# traslated
+msgid "Calendar.lang.yearPlaceholder"
+msgstr "Ընտրեք տարին"
+
+msgid "Popconfirm.okText"
+msgstr "Հաստատել"
+
+# traslated
+msgid "CloudDownloadField.titleData"
+msgstr "Տվյալների աղբյուր"
+
+# traslated
+msgid "ArrayCopy.placeholder"
+msgstr "Խնդրում ենք ընտրել"
+
+msgid "Upload.uploading"
+msgstr "Ներբեռնում..."
+
+# traslated
+msgid "CloudUploadField.titleData"
+msgstr "Տվյալների աղբյուր"
+
+msgid "Text.copied"
+msgstr "Պատճենվել է"
+
+# traslated
+msgid "App.cloudDownloadTooltip"
+msgstr "Ներմուծման տվյալներ Cloud-ից"
+
+# traslated
+msgid "FileWidget.dropMessage"
+msgstr "Drag ֆայլը այստեղ կամ սեղմեք Browse"
+
+msgid "Calendar.lang.month"
+msgstr "Ամիս"
+
+# traslated
+msgid "Form.defaultValidateMessages.types.object"
+msgstr "${պիտակ}-ը վավերական ${type} չէ"
+
+msgid "PageHeader.back"
+msgstr "Հետ"
+
+msgid "DatePicker.lang.nextYear"
+msgstr "Մյուս տարի (Control + right)"
+
+# traslated
+msgid "User.titleLogin"
+msgstr "Մուտք"
+
+# traslated
+msgid "Table.filterCheckall"
+msgstr "Ընտրեք բոլոր իրերը"
+
+msgid "DatePicker.lang.previousYear"
+msgstr "Անցած տարի (Control + left)"
+
+msgid "Upload.previewFile"
+msgstr "Դիտել ֆայլը"
+
+# traslated
+msgid "CloudUploadField.updatedAt"
+msgstr "Թարմացված"
+
+msgid "Calendar.lang.timeSelect"
+msgstr "ընտրեք ժամը"
+
+# traslated
+msgid "CloudUploadField.buttonSave"
+msgstr "Խնայել"
+
+# traslated
+msgid "TabsField.selectItem"
+msgstr "Ընտրել առարկան"
+
+# traslated
+msgid "FileWidget.errorSameFile"
+msgstr "File {filename} արդեն վերբեռնված!"
+
+msgid "Calendar.lang.monthSelect"
+msgstr "Ընտրեք ամիսը"
+
+# traslated
+msgid "Form.defaultValidateMessages.types.array"
+msgstr "${պիտակ}-ը վավերական ${type} չէ"
+
+msgid "language"
+msgstr "hy_AM"
+
+# traslated
+msgid "User.Setting.lastnamePlaceholder"
+msgstr "Ազգանուն"
+
+# traslated
+msgid "TabsField.delete"
+msgstr "ջնջել"
+
+# traslated
+msgid "Form.defaultValidateMessages.default"
+msgstr "${պիտակի համար արտի վավերացման սխալը}"
+
+msgid "Calendar.lang.previousYear"
+msgstr "Անցած տարի (Control + left)"

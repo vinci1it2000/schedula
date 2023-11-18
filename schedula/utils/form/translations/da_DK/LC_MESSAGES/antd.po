@@ -1,0 +1,1402 @@
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: 1.0\n"
+"Report-Msgid-Bugs-To: vinci1it2000@gmail.com\n"
+"PO-Revision-Date: 2023-11-18 08:55+0000\n"
+"Last-Translator: Vincenzo Arcidiacono <vinci1it2000@gmail.com>\n"
+"Language-Team: English <vinci1it2000@gmail.com>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+# traslated
+msgid "Contact.errorTitle"
+msgstr "Ops... Noget gik galt!"
+
+# traslated
+msgid "ColorPicker.presetEmpty"
+msgstr "Tom"
+
+msgid "Table.filterReset"
+msgstr "Nulstil"
+
+# traslated
+msgid "User.Register.login"
+msgstr "Login!"
+
+# traslated
+msgid "TableField.addItemTooltip"
+msgstr "Tilføj element"
+
+# traslated
+msgid "CloudUploadField.buttonDownload"
+msgstr "Server"
+
+# traslated
+msgid "User.Logout.submitButton"
+msgstr "Logout"
+
+msgid "Calendar.lang.dateFormat"
+msgstr "D/M/YYYY"
+
+msgid "Calendar.lang.dateSelect"
+msgstr "Vælg dato"
+
+# traslated
+msgid "User.Confirm.errorTitle"
+msgstr "Ops... Noget gik galt!"
+
+# traslated
+msgid "TabsField.moveup"
+msgstr "Flyt op"
+
+msgid "Modal.justOkText"
+msgstr "OK"
+
+# traslated
+msgid "PDFField.titleSectionSelection"
+msgstr "Sektioner"
+
+msgid "Calendar.lang.previousCentury"
+msgstr "Forrige århundrede"
+
+# traslated
+msgid "User.ResetPassword.passwordPlaceholder"
+msgstr "Ny adgangskode"
+
+# traslated
+msgid "User.loginTooltip"
+msgstr "Login"
+
+# traslated
+msgid "Form.defaultValidateMessages.whitespace"
+msgstr "${label} må ikke være et tomt tegn"
+
+msgid "Pagination.prev_page"
+msgstr "Forrige Side"
+
+# traslated
+msgid "QRCode.expired"
+msgstr "QR-kode udløbet"
+
+# traslated
+msgid "FileWidget.errorNotUploaded"
+msgstr "Ops... Filen er ikke uploadet"
+
+# traslated
+msgid "Form.defaultValidateMessages.string.max"
+msgstr "${label} skal være på op til ${max} tegn"
+
+# traslated
+msgid "User.Confirm.submitButton"
+msgstr "Send instruktioner"
+
+# traslated
+msgid "Form.defaultValidateMessages.types.hex"
+msgstr "${label} er ikke en gyldig ${type}"
+
+# traslated
+msgid "Contact.submitButton"
+msgstr "Sende"
+
+msgid "Table.expand"
+msgstr "Udvid række"
+
+# traslated
+msgid "App.restoreDifferences"
+msgstr "Vis forskelle i forhold til aktuelle data"
+
+msgid "Pagination.jump_to_confirm"
+msgstr "bekræft"
+
+# traslated
+msgid "User.ResetPassword.submitButton"
+msgstr "Nulstil adgangskode"
+
+msgid "Transfer.itemUnit"
+msgstr "element"
+
+# traslated
+msgid "global.placeholder"
+msgstr "Vælg venligst"
+
+# traslated
+msgid "DatePicker.lang.rangeMonthPlaceholder"
+msgstr "§[\"Start måned\",\"Slut måned\"]"
+
+# traslated
+msgid "User.titleResetPassword"
+msgstr "Nulstil adgangskode"
+
+# traslated
+msgid "Contact.emailPlaceholder"
+msgstr "E-mail"
+
+msgid "Table.triggerAsc"
+msgstr "Klik for at sortere stigende"
+
+# traslated
+msgid "User.Register.usernameRequired"
+msgstr "Indtast venligst dit brugernavn!"
+
+# traslated
+msgid "User.titleLogout"
+msgstr "Sikker på at logge ud?"
+
+# traslated
+msgid "ArrayCopy.titleCopyButton"
+msgstr "Vælg venligst, hvor du vil kopiere data?"
+
+msgid "Popconfirm.cancelText"
+msgstr "Afbryd"
+
+# traslated
+msgid "User.titleConfirm"
+msgstr "Send bekræftelses-e-mail"
+
+# traslated
+msgid "Form.defaultValidateMessages.array.range"
+msgstr "Beløbet på ${label} skal være mellem ${min}-${max}"
+
+# traslated
+msgid "User.ResetPassword.login"
+msgstr "Login!"
+
+# traslated
+msgid "Calendar.lang.rangeQuarterPlaceholder"
+msgstr "§[\"Start kvartal\",\"Slutningen kvartal\"]"
+
+# traslated
+msgid "PDFField.previewFile"
+msgstr "Forhåndsvisning af fil"
+
+# traslated
+msgid "Contact.subjectPlaceholder"
+msgstr "Mail Emne"
+
+# traslated
+msgid "User.titleInfo"
+msgstr "Brugeroplysninger"
+
+# traslated
+msgid "App.cloudDownloadButton"
+msgstr "Import"
+
+# traslated
+msgid "Form.defaultValidateMessages.types.float"
+msgstr "${label} er ikke en gyldig ${type}"
+
+# traslated
+msgid "App.runButton"
+msgstr "Løbe"
+
+# traslated
+msgid "User.Register.emailInvalid"
+msgstr "Ugyldig e-mail!"
+
+msgid "Modal.cancelText"
+msgstr "Afbryd"
+
+msgid "DatePicker.lang.nextCentury"
+msgstr "Næste århundrede"
+
+msgid "Upload.removeFile"
+msgstr "Fjern fil"
+
+# traslated
+msgid "FileWidget.errorToolTip"
+msgstr "Upload fejl"
+
+# traslated
+msgid "TableField.deleteAllConfirm"
+msgstr "Vil du slette alt indhold?"
+
+# traslated
+msgid "Form.defaultValidateMessages.number.range"
+msgstr "${label} skal være mellem ${min}-${max}"
+
+# traslated
+msgid "Form.defaultValidateMessages.date.format"
+msgstr "Datoformatet ${label} er ugyldigt"
+
+# traslated
+msgid "Form.defaultValidateMessages.types.string"
+msgstr "${label} er ikke en gyldig ${type}"
+
+# traslated
+msgid "Transfer.selectInvert"
+msgstr "Inverter aktuel side"
+
+# traslated
+msgid "ErrorListTemplate.tooltipFloatButton"
+msgstr "Åbn fejlmeddelelser"
+
+msgid "DatePicker.lang.dateSelect"
+msgstr "Vælg dato"
+
+msgid "Table.emptyText"
+msgstr "Ingen data"
+
+msgid "DatePicker.lang.backToToday"
+msgstr "Gå til i dag"
+
+msgid "DatePicker.lang.dayFormat"
+msgstr "D"
+
+# traslated
+msgid "User.Forgot.emailInvalid"
+msgstr "Ugyldig e-mail!"
+
+# default
+msgid "DatePicker.lang.shortMonths"
+msgstr "§undefined"
+
+# traslated
+msgid "User.ResetPassword.passwordRequired"
+msgstr "Indtast venligst din nye adgangskode!"
+
+# traslated
+msgid "User.Register.lastnamePlaceholder"
+msgstr "Efternavn"
+
+# traslated
+msgid "CloudUploadField.titleName"
+msgstr "Navn"
+
+# traslated
+msgid "Contact.title"
+msgstr "Kontakt os"
+
+msgid "Calendar.lang.nextCentury"
+msgstr "Næste århundrede"
+
+# traslated
+msgid "Form.defaultValidateMessages.string.min"
+msgstr "${label} skal være på mindst ${min} tegn"
+
+msgid "Modal.okText"
+msgstr "OK"
+
+# traslated
+msgid "User.Register.emailRequired"
+msgstr "Indtast venligst din e-mail!"
+
+msgid "Table.collapse"
+msgstr "Flet række"
+
+msgid "Pagination.prev_5"
+msgstr "Forrige 5 Sider"
+
+# traslated
+msgid "ArrayAccordion.titleCopyButton"
+msgstr "Vælg venligst, hvor du vil kopiere data?"
+
+msgid "Calendar.lang.previousMonth"
+msgstr "Forrige måned (Page Up)"
+
+# traslated
+msgid "Transfer.removeCurrent"
+msgstr "Fjern aktuel side"
+
+# traslated
+msgid "Form.defaultValidateMessages.array.max"
+msgstr "Højst ${max} ${label}"
+
+# traslated
+msgid "App.cloudUploadTooltip"
+msgstr "Gem data i skyen"
+
+# traslated
+msgid "CloudDownloadField.buttonCancel"
+msgstr "Aflyse"
+
+# traslated
+msgid "Contact.emailRequired"
+msgstr "Indtast venligst din e-mail!"
+
+msgid "Calendar.lang.monthBeforeYear"
+msgstr "§true"
+
+# traslated
+msgid "User.Confirm.emailInvalid"
+msgstr "Ugyldig e-mail!"
+
+# traslated
+msgid "User.ResetPassword.passwordConfirmError"
+msgstr "De to adgangskoder, du indtastede, stemmer ikke overens!"
+
+# traslated
+msgid "CloudUploadField.titleSaveNew"
+msgstr "Gem aktuelle data"
+
+# traslated
+msgid "User.Register.lastnameRequired"
+msgstr "Indtast venligst dit efternavn!"
+
+# traslated
+msgid "User.settingButton"
+msgstr "Indstillinger"
+
+msgid "Pagination.next_3"
+msgstr "Næste 3 Sider"
+
+# traslated
+msgid "Transfer.remove"
+msgstr "Fjerne"
+
+msgid "DatePicker.lang.yearFormat"
+msgstr "YYYY"
+
+# traslated
+msgid "User.Login.passwordPlaceholder"
+msgstr "Kodeord"
+
+msgid "DatePicker.lang.placeholder"
+msgstr "Vælg dato"
+
+# traslated
+msgid "User.titleForgot"
+msgstr "Gendan adgangskode"
+
+# traslated
+msgid "Calendar.lang.quarterPlaceholder"
+msgstr "Vælg kvartal"
+
+msgid "DatePicker.lang.previousCentury"
+msgstr "Forrige århundrede"
+
+# traslated
+msgid "App.restoreButton"
+msgstr "Genskabe"
+
+# default
+msgid "DatePicker.lang.shortWeekDays"
+msgstr "§undefined"
+
+# traslated
+msgid "User.logoutButton"
+msgstr "Logout"
+
+# traslated
+msgid "User.buttonTooltip"
+msgstr "Login"
+
+# traslated
+msgid "DatePicker.lang.rangeYearPlaceholder"
+msgstr "§[\"Startår\",\"Slutår\"]"
+
+msgid "Pagination.page_size"
+msgstr "sidestørrelse"
+
+# traslated
+msgid "Calendar.lang.weekSelect"
+msgstr "Vælg en uge"
+
+# traslated
+msgid "Form.defaultValidateMessages.date.invalid"
+msgstr "${label} er en ugyldig dato"
+
+# traslated
+msgid "App.restoreCloseButton"
+msgstr "Lukke"
+
+# traslated
+msgid "User.Forgot.submitButton"
+msgstr "Gendan adgangskode"
+
+# traslated
+msgid "Transfer.selectCurrent"
+msgstr "Vælg aktuel side"
+
+# traslated
+msgid "User.Register.usernamePlaceholder"
+msgstr "Brugernavn"
+
+# traslated
+msgid "App.filesButton"
+msgstr "ﬁler"
+
+# traslated
+msgid "TabsField.moveright"
+msgstr "Flyt til højre"
+
+# traslated
+msgid "DatePicker.lang.weekSelect"
+msgstr "Vælg en uge"
+
+# traslated
+msgid "Calendar.lang.rangeMonthPlaceholder"
+msgstr "§[\"Start måned\",\"Slut måned\"]"
+
+msgid "Table.filterTitle"
+msgstr "Filtermenu"
+
+# traslated
+msgid "App.restoreTooltip"
+msgstr "Gendan data"
+
+msgid "Upload.downloadFile"
+msgstr "Download fil"
+
+msgid "Calendar.lang.yearSelect"
+msgstr "Vælg år"
+
+# traslated
+msgid "Text.copy"
+msgstr "Eksemplar"
+
+# traslated
+msgid "User.ResetPassword.errorTitle"
+msgstr "Ops... Noget gik galt!"
+
+# traslated
+msgid "Tour.Finish"
+msgstr "Finish"
+
+# traslated
+msgid "Form.defaultValidateMessages.number.len"
+msgstr "${label} skal være lig med ${len}"
+
+# traslated
+msgid "CloudDownloadField.titleSaveNew"
+msgstr "Gem aktuelle data"
+
+# traslated
+msgid "CloudUploadField.confirmDelete"
+msgstr "Vil du slette?"
+
+# traslated
+msgid "PDFField.uploading"
+msgstr "Uploade..."
+
+# traslated
+msgid "Transfer.removeAll"
+msgstr "Fjern alle data"
+
+msgid "Calendar.timePickerLocale.rangePlaceholder"
+msgstr "§[\"Starttidspunkt\",\"Sluttidspunkt\"]"
+
+# traslated
+msgid "User.Forgot.errorTitle"
+msgstr "Ops... Noget gik galt!"
+
+msgid "Table.filterEmptyText"
+msgstr "Ingen filtre"
+
+# traslated
+msgid "PDFField.removeFile"
+msgstr "Fjern fil"
+
+# traslated
+msgid "User.Login.sendConfirmMail"
+msgstr "Send bekræftelses-e-mail igen"
+
+msgid "Pagination.next_5"
+msgstr "Næste 5 Sider"
+
+# traslated
+msgid "ErrorListTemplate.descriptionFloatButton"
+msgstr "Tage fejl"
+
+# traslated
+msgid "PDFField.preview"
+msgstr "Preview"
+
+# traslated
+msgid "Form.defaultValidateMessages.enum"
+msgstr "${label} skal være en af [${enum}]"
+
+# traslated
+msgid "Contact.nameRequired"
+msgstr "Indtast venligst dit navn!"
+
+# traslated
+msgid "ErrorListTemplate.titleModal"
+msgstr "Fejl"
+
+# traslated
+msgid "Form.defaultValidateMessages.number.min"
+msgstr "${label} skal være minimum ${min}"
+
+# traslated
+msgid "User.Register.firstnamePlaceholder"
+msgstr "Navn"
+
+msgid "Calendar.lang.dayFormat"
+msgstr "D"
+
+msgid "DatePicker.lang.yearSelect"
+msgstr "Vælg år"
+
+# traslated
+msgid "User.Register.submitButton"
+msgstr "Registrer"
+
+msgid "Calendar.lang.backToToday"
+msgstr "Gå til i dag"
+
+# traslated
+msgid "User.Login.rememberMe"
+msgstr "Husk mig"
+
+# traslated
+msgid "CloudDownloadField.buttonDownload"
+msgstr "Server"
+
+# traslated
+msgid "ArrayAccordion.tooltipExtra"
+msgstr "Kopiere data over"
+
+msgid "Calendar.timePickerLocale.placeholder"
+msgstr "Vælg tid"
+
+msgid "Calendar.lang.year"
+msgstr "År"
+
+# traslated
+msgid "User.Register.passwordConfirmRequired"
+msgstr "Bekræft venligst din adgangskode!"
+
+# traslated
+msgid "App.disableFullscreen"
+msgstr "Deaktiver fuld skærm"
+
+# traslated
+msgid "CloudDownloadField.createdAt"
+msgstr "Lavet"
+
+# traslated
+msgid "App.downloadTooltip"
+msgstr "Eksportere data som JSON"
+
+# traslated
+msgid "App.autoSaveTooltip"
+msgstr "Aktivér automatisk lagring"
+
+msgid "DatePicker.lang.today"
+msgstr "I dag"
+
+# traslated
+msgid "Tour.Previous"
+msgstr "Tidligere"
+
+msgid "Pagination.jump_to"
+msgstr "Gå til"
+
+# traslated
+msgid "User.ResetPassword.or"
+msgstr "Eller"
+
+# traslated
+msgid "User.Register.passwordPlaceholder"
+msgstr "Kodeord"
+
+msgid "Table.selectAll"
+msgstr "Vælg alle"
+
+# traslated
+msgid "CloudUploadField.buttonOverwrite"
+msgstr "Overskrive"
+
+# traslated
+msgid "CloudDownloadField.updatedAt"
+msgstr "Opdateret"
+
+# traslated
+msgid "User.Login.or"
+msgstr "Eller"
+
+# traslated
+msgid "DebugTemplate.titleModal"
+msgstr "Arbejdsproces til fejlfinding"
+
+msgid "Calendar.lang.rangePlaceholder"
+msgstr "§[\"Startdato\",\"Slutdato\"]"
+
+# traslated
+msgid "Text.edit"
+msgstr "Redigere"
+
+msgid "DatePicker.lang.previousMonth"
+msgstr "Forrige måned (Page Up)"
+
+# traslated
+msgid "App.autoSaveButton"
+msgstr "Automatisk lagring"
+
+# traslated
+msgid "CloudDownloadField.buttonOverwrite"
+msgstr "Overskrive"
+
+# traslated
+msgid "FileWidget.errorOnlyOneItem"
+msgstr "Du kan uploade maksimalt én fil!"
+
+msgid "Pagination.prev_3"
+msgstr "Forrige 3 Sider"
+
+# traslated
+msgid "User.Login.emailRequired"
+msgstr "Indtast venligst din e-mail!"
+
+# traslated
+msgid "CloudDownloadField.confirmDelete"
+msgstr "Vil du slette?"
+
+# traslated
+msgid "User.Register.passwordRequired"
+msgstr "Indtast venligst din adgangskode!"
+
+msgid "TimePicker.rangePlaceholder"
+msgstr "§[\"Starttidspunkt\",\"Sluttidspunkt\"]"
+
+# traslated
+msgid "FileWidget.errorMaxItems"
+msgstr "Du kan uploade maksimalt {maxItems} filer!"
+
+msgid "Calendar.lang.dateTimeFormat"
+msgstr "D/M/YYYY HH:mm:ss"
+
+# traslated
+msgid "User.Confirm.or"
+msgstr "Eller"
+
+# traslated
+msgid "Contact.messagePlaceholder"
+msgstr "Din besked"
+
+# traslated
+msgid "Form.defaultValidateMessages.string.len"
+msgstr "${label} skal være ${len} tegn"
+
+# traslated
+msgid "ArrayCopy.tooltip"
+msgstr "Kopiere data over"
+
+# traslated
+msgid "DatePicker.lang.monthPlaceholder"
+msgstr "Vælg måned"
+
+msgid "Calendar.lang.today"
+msgstr "I dag"
+
+msgid "Transfer.itemsUnit"
+msgstr "elementer"
+
+# traslated
+msgid "Table.filterSearchPlaceholder"
+msgstr "Søg i filtre"
+
+# default
+msgid "DatePicker.lang.monthFormat"
+msgstr "§undefined"
+
+# traslated
+msgid "CloudDownloadField.dataSwitchChecked"
+msgstr "strøm"
+
+# traslated
+msgid "Transfer.selectAll"
+msgstr "Vælg alle data"
+
+# traslated
+msgid "Image.preview"
+msgstr "Preview"
+
+msgid "Table.triggerDesc"
+msgstr "Klik for at sortere faldende"
+
+msgid "DatePicker.lang.dateTimeFormat"
+msgstr "D/M/YYYY HH:mm:ss"
+
+# traslated
+msgid "CloudUploadField.errorTitle"
+msgstr "Ops... Noget gik galt!"
+
+msgid "DatePicker.timePickerLocale.rangePlaceholder"
+msgstr "§[\"Starttidspunkt\",\"Sluttidspunkt\"]"
+
+# traslated
+msgid "App.enableFullscreen"
+msgstr "Aktivér fuld skærm"
+
+msgid "DatePicker.lang.clear"
+msgstr "Ryd"
+
+msgid "Calendar.lang.nextDecade"
+msgstr "Næste årti"
+
+# traslated
+msgid "User.Register.emailPlaceholder"
+msgstr "E-mail"
+
+# traslated
+msgid "App.cloudButton"
+msgstr "Sky"
+
+# traslated
+msgid "App.autoSavingTooltip"
+msgstr "Deaktiver automatisk lagring"
+
+# traslated
+msgid "Form.defaultValidateMessages.date.parse"
+msgstr "${label} kan ikke konverteres til en dato"
+
+# traslated
+msgid "Form.defaultValidateMessages.pattern.mismatch"
+msgstr "${label} stemmer ikke overens med mønsteret ${pattern}"
+
+# traslated
+msgid "Form.defaultValidateMessages.types.regexp"
+msgstr "${label} er ikke en gyldig ${type}"
+
+# traslated
+msgid "Text.expand"
+msgstr "Ekspandere"
+
+# traslated
+msgid "User.Login.forgotPassword"
+msgstr "Glemt adgangskode"
+
+# traslated
+msgid "Form.defaultValidateMessages.number.max"
+msgstr "${label} må maksimalt være ${max}"
+
+# traslated
+msgid "CloudUploadField.dataSwitchUnChecked"
+msgstr "server"
+
+# traslated
+msgid "App.cleanConfirm"
+msgstr "Sørg for at slette disse data?"
+
+# traslated
+msgid "CloudUploadField.buttonSaveNew"
+msgstr "Ny rekord"
+
+msgid "DatePicker.lang.nextMonth"
+msgstr "Næste måned (Page Down)"
+
+msgid "Table.selectInvert"
+msgstr "Invertér valg"
+
+# traslated
+msgid "App.restoreConfirm"
+msgstr "Sørg for at gendanne disse data?"
+
+# traslated
+msgid "DatePicker.lang.weekPlaceholder"
+msgstr "Vælg uge"
+
+# traslated
+msgid "Calendar.lang.monthPlaceholder"
+msgstr "Vælg måned"
+
+# traslated
+msgid "User.Login.errorTitle"
+msgstr "Ops... Noget gik galt!"
+
+# traslated
+msgid "Form.defaultValidateMessages.array.min"
+msgstr "Mindst ${min} ${label}"
+
+# traslated
+msgid "TabsField.select"
+msgstr "markere"
+
+# traslated
+msgid "TabsField.movedown"
+msgstr "Flyt ned"
+
+msgid "DatePicker.lang.monthSelect"
+msgstr "Vælg måned"
+
+# traslated
+msgid "App.autoSavingButton"
+msgstr "Automatisk lagring"
+
+msgid "Calendar.lang.previousDecade"
+msgstr "Forrige årti"
+
+msgid "Calendar.lang.ok"
+msgstr "OK"
+
+# traslated
+msgid "User.Confirm.emailRequired"
+msgstr "Indtast venligst din e-mail!"
+
+# traslated
+msgid "User.Setting.firstnameRequired"
+msgstr "Indtast venligst dit navn!"
+
+# default
+msgid "Calendar.lang.monthFormat"
+msgstr "§undefined"
+
+# traslated
+msgid "User.Setting.submitButton"
+msgstr "Spare"
+
+# traslated
+msgid "Tour.Next"
+msgstr "Næste"
+
+# traslated
+msgid "Calendar.lang.rangeWeekPlaceholder"
+msgstr "§[\"Start uge\",\"Slut uge\"]"
+
+# traslated
+msgid "CloudDownloadField.errorTitle"
+msgstr "Ops... Noget gik galt!"
+
+# traslated
+msgid "User.Confirm.login"
+msgstr "Login!"
+
+# traslated
+msgid "User.ResetPassword.passwordConfirmPlaceholder"
+msgstr "Bekræft ny adgangskode"
+
+msgid "DatePicker.lang.now"
+msgstr "Nu"
+
+msgid "Calendar.lang.nextYear"
+msgstr "Næste år (Ctrl-højre pil)"
+
+# traslated
+msgid "Form.defaultValidateMessages.types.date"
+msgstr "${label} er ikke en gyldig ${type}"
+
+# traslated
+msgid "User.Register.or"
+msgstr "Eller"
+
+msgid "DatePicker.lang.previousDecade"
+msgstr "Forrige årti"
+
+# traslated
+msgid "App.branchesButton"
+msgstr "Grene"
+
+# traslated
+msgid "Form.defaultValidateMessages.types.email"
+msgstr "${label} er ikke en gyldig ${type}"
+
+msgid "Pagination.next_page"
+msgstr "Næste Side"
+
+# traslated
+msgid "Icon.icon"
+msgstr "ikon"
+
+# traslated
+msgid "Form.defaultValidateMessages.types.method"
+msgstr "${label} er ikke en gyldig ${type}"
+
+msgid "DatePicker.lang.locale"
+msgstr "da_DK"
+
+msgid "Calendar.lang.clear"
+msgstr "Ryd"
+
+msgid "Calendar.lang.yearFormat"
+msgstr "YYYY"
+
+# traslated
+msgid "Form.defaultValidateMessages.required"
+msgstr "Indtast venligst ${label}"
+
+# traslated
+msgid "App.debugButton"
+msgstr "Debug"
+
+msgid "locale"
+msgstr "da"
+
+msgid "DatePicker.lang.ok"
+msgstr "OK"
+
+msgid "Table.cancelSort"
+msgstr "Klik for at annullere sortering"
+
+# traslated
+msgid "Calendar.lang.rangeYearPlaceholder"
+msgstr "§[\"Startår\",\"Slutår\"]"
+
+# traslated
+msgid "User.Setting.errorTitle"
+msgstr "Ops... Noget gik galt!"
+
+# traslated
+msgid "Contact.namePlaceholder"
+msgstr "Dit navn"
+
+msgid "Calendar.lang.placeholder"
+msgstr "Vælg dato"
+
+# traslated
+msgid "App.restoreEraseButton"
+msgstr "Slet lagerplads"
+
+# traslated
+msgid "User.Login.passwordRequired"
+msgstr "Indtast venligst din adgangskode!"
+
+# traslated
+msgid "User.Forgot.or"
+msgstr "Eller"
+
+# traslated
+msgid "Form.defaultValidateMessages.types.boolean"
+msgstr "${label} er ikke en gyldig ${type}"
+
+# traslated
+msgid "DatePicker.lang.rangeWeekPlaceholder"
+msgstr "§[\"Start uge\",\"Slut uge\"]"
+
+# traslated
+msgid "App.cleanButton"
+msgstr "Ren"
+
+# traslated
+msgid "Form.defaultValidateMessages.types.integer"
+msgstr "${label} er ikke en gyldig ${type}"
+
+msgid "Empty.description"
+msgstr "Ingen data"
+
+# default
+msgid "Calendar.lang.shortMonths"
+msgstr "§undefined"
+
+# traslated
+msgid "DebugTemplate.tooltipFloatButton"
+msgstr "Åbn fejlfindingsarbejdsproces"
+
+msgid "Calendar.lang.decadeSelect"
+msgstr "Vælg årti"
+
+msgid "Upload.uploadError"
+msgstr "Fejl ved upload"
+
+# traslated
+msgid "User.Login.submitButton"
+msgstr "Login"
+
+# traslated
+msgid "User.Register.errorTitle"
+msgstr "Ops... Noget gik galt!"
+
+msgid "DatePicker.lang.timeSelect"
+msgstr "Vælg tidspunkt"
+
+# traslated
+msgid "App.uploadButton"
+msgstr "Uploade"
+
+# traslated
+msgid "User.Register.passwordConfirmPlaceholder"
+msgstr "Bekræft adgangskode"
+
+# traslated
+msgid "CloudDownloadField.fieldErrors.name"
+msgstr "Indtast venligst navn!"
+
+# traslated
+msgid "CloudUploadField.fieldErrors.name"
+msgstr "Indtast venligst navn!"
+
+# traslated
+msgid "TableField.exportTooltip"
+msgstr "Eksportér tabel i CSV"
+
+# traslated
+msgid "User.Login.registerNow"
+msgstr "Tilmeld dig nu!"
+
+# traslated
+msgid "User.Login.emailInvalid"
+msgstr "Ugyldig e-mail!"
+
+# traslated
+msgid "User.Forgot.login"
+msgstr "Login!"
+
+msgid "Pagination.items_per_page"
+msgstr "/ side"
+
+# traslated
+msgid "CloudDownloadField.buttonSave"
+msgstr "Spare"
+
+# traslated
+msgid "User.titleRegister"
+msgstr "Ny registrering"
+
+msgid "Calendar.lang.now"
+msgstr "Nu"
+
+# traslated
+msgid "Contact.buttonTooltip"
+msgstr "Kontakt"
+
+# traslated
+msgid "Form.optional"
+msgstr "(valgfrit)"
+
+# traslated
+msgid "App.restoreTitleDifferences"
+msgstr "Forskelle"
+
+msgid "DatePicker.lang.monthBeforeYear"
+msgstr "§true"
+
+msgid "DatePicker.lang.rangePlaceholder"
+msgstr "§[\"Startdato\",\"Slutdato\"]"
+
+# traslated
+msgid "User.Confirm.emailPlaceholder"
+msgstr "E-mail"
+
+msgid "DatePicker.lang.nextDecade"
+msgstr "Næste årti"
+
+# traslated
+msgid "Errors.title"
+msgstr "Valideringsfejl"
+
+# traslated
+msgid "DatePicker.lang.yearPlaceholder"
+msgstr "Vælg år"
+
+# traslated
+msgid "FileWidget.errorFileType"
+msgstr "Du kan kun uploade {fileTypes} fil!"
+
+# traslated
+msgid "PDFField.uploadError"
+msgstr "Upload fejl"
+
+# traslated
+msgid "DatePicker.lang.rangeQuarterPlaceholder"
+msgstr "§[\"Start kvartal\",\"Slutningen kvartal\"]"
+
+# traslated
+msgid "App.restoreCurrent"
+msgstr "strøm"
+
+# traslated
+msgid "ArrayAccordion.placeholder"
+msgstr "Vælg venligst"
+
+# traslated
+msgid "Calendar.lang.weekPlaceholder"
+msgstr "Vælg uge"
+
+# traslated
+msgid "User.Register.firstnameRequired"
+msgstr "Indtast venligst dit navn!"
+
+# traslated
+msgid "User.Setting.revertButton"
+msgstr "Vende tilbage"
+
+# traslated
+msgid "App.fullscreenButton"
+msgstr "Fuld skærm"
+
+# traslated
+msgid "CloudDownloadField.buttonSaveNew"
+msgstr "Ny rekord"
+
+msgid "DatePicker.lang.month"
+msgstr "Måned"
+
+msgid "Calendar.lang.nextMonth"
+msgstr "Næste måned (Page Down)"
+
+# traslated
+msgid "TableField.deleteItemConfirm"
+msgstr "Vil du slette?"
+
+# traslated
+msgid "Form.defaultValidateMessages.array.len"
+msgstr "Skal være ${len} ${label}"
+
+msgid "Table.filterConfirm"
+msgstr "OK"
+
+# traslated
+msgid "User.Setting.firstnamePlaceholder"
+msgstr "Navn"
+
+# traslated
+msgid "App.autoSavingErrorTitle"
+msgstr "Ops... Deaktivering af automatisk lagring"
+
+msgid "TimePicker.placeholder"
+msgstr "Vælg tid"
+
+# traslated
+msgid "DatePicker.lang.quarterPlaceholder"
+msgstr "Vælg kvartal"
+
+# traslated
+msgid "User.ResetPassword.passwordConfirmRequired"
+msgstr "Bekræft venligst din nye adgangskode!"
+
+# traslated
+msgid "CloudDownloadField.dataSwitchUnChecked"
+msgstr "server"
+
+msgid "Table.selectNone"
+msgstr "Ryd alt data"
+
+# traslated
+msgid "Form.defaultValidateMessages.types.url"
+msgstr "${label} er ikke en gyldig ${type}"
+
+msgid "Pagination.page"
+msgstr "Side"
+
+# traslated
+msgid "User.titleSetting"
+msgstr "Rediger indstillinger"
+
+# traslated
+msgid "User.Forgot.emailRequired"
+msgstr "Indtast venligst din e-mail!"
+
+msgid "Table.selectionAll"
+msgstr "Vælg alt data"
+
+# traslated
+msgid "Form.defaultValidateMessages.string.range"
+msgstr "${label} skal være mellem ${min}-${max} tegn"
+
+# traslated
+msgid "User.Login.emailPlaceholder"
+msgstr "E-mail"
+
+# traslated
+msgid "TabsField.moveleft"
+msgstr "Flyt til venstre"
+
+# traslated
+msgid "App.cloudUploadButton"
+msgstr "Spare"
+
+# traslated
+msgid "User.Forgot.emailPlaceholder"
+msgstr "E-mail"
+
+# traslated
+msgid "PDFField.downloadFile"
+msgstr "Download fil"
+
+msgid "DatePicker.timePickerLocale.placeholder"
+msgstr "Vælg tid"
+
+# traslated
+msgid "Contact.messageRequired"
+msgstr "Indtast venligst din besked!"
+
+# traslated
+msgid "User.Setting.lastnameRequired"
+msgstr "Indtast venligst dit efternavn!"
+
+# traslated
+msgid "CloudUploadField.buttonCancel"
+msgstr "Aflyse"
+
+# traslated
+msgid "App.downloadButton"
+msgstr "Downloade"
+
+msgid "DatePicker.lang.dateFormat"
+msgstr "D/M/YYYY"
+
+# traslated
+msgid "Contact.subjectRequired"
+msgstr "Indtast venligst mailemne!"
+
+# default
+msgid "Calendar.lang.shortWeekDays"
+msgstr "§undefined"
+
+msgid "Calendar.lang.locale"
+msgstr "da_DK"
+
+# traslated
+msgid "CloudDownloadField.titleName"
+msgstr "Navn"
+
+msgid "Transfer.searchPlaceholder"
+msgstr "Søg her"
+
+# traslated
+msgid "CloudUploadField.createdAt"
+msgstr "Lavet"
+
+# traslated
+msgid "Contact.emailInvalid"
+msgstr "Ugyldig e-mail!"
+
+# traslated
+msgid "User.infoButton"
+msgstr "Profil"
+
+# traslated
+msgid "User.Register.passwordConfirmError"
+msgstr "De to adgangskoder, du indtastede, stemmer ikke overens!"
+
+# traslated
+msgid "CloudUploadField.dataSwitchChecked"
+msgstr "strøm"
+
+# traslated
+msgid "TabsField.clone"
+msgstr "klon"
+
+msgid "Transfer.titles"
+msgstr "§[\"\",\"\"]"
+
+# traslated
+msgid "QRCode.refresh"
+msgstr "Opdatere"
+
+# traslated
+msgid "TableField.importTooltip"
+msgstr "Importér tabel fra CSV"
+
+# traslated
+msgid "App.uploadTooltip"
+msgstr "Importere data som JSON"
+
+msgid "DatePicker.lang.decadeSelect"
+msgstr "Vælg årti"
+
+# traslated
+msgid "App.restoreModalTitle"
+msgstr "Gendan data"
+
+msgid "Table.sortTitle"
+msgstr "Sortér"
+
+msgid "DatePicker.lang.year"
+msgstr "År"
+
+# traslated
+msgid "App.restoreRestoreButton"
+msgstr "Genskabe"
+
+# traslated
+msgid "Form.defaultValidateMessages.types.number"
+msgstr "${label} er ikke en gyldig ${type}"
+
+# traslated
+msgid "Calendar.lang.yearPlaceholder"
+msgstr "Vælg år"
+
+msgid "Popconfirm.okText"
+msgstr "OK"
+
+# traslated
+msgid "CloudDownloadField.titleData"
+msgstr "Datakilde"
+
+# traslated
+msgid "ArrayCopy.placeholder"
+msgstr "Vælg venligst"
+
+msgid "Upload.uploading"
+msgstr "Uploader..."
+
+# traslated
+msgid "CloudUploadField.titleData"
+msgstr "Datakilde"
+
+# traslated
+msgid "Text.copied"
+msgstr "Kopieres"
+
+# traslated
+msgid "App.cloudDownloadTooltip"
+msgstr "Importér data fra skyen"
+
+# traslated
+msgid "FileWidget.dropMessage"
+msgstr "Træk filen hertil, eller klik for at gennemse"
+
+msgid "Calendar.lang.month"
+msgstr "Måned"
+
+# traslated
+msgid "Form.defaultValidateMessages.types.object"
+msgstr "${label} er ikke en gyldig ${type}"
+
+# traslated
+msgid "PageHeader.back"
+msgstr "Ryg"
+
+msgid "DatePicker.lang.nextYear"
+msgstr "Næste år (Ctrl-højre pil)"
+
+# traslated
+msgid "User.titleLogin"
+msgstr "Login"
+
+# traslated
+msgid "Table.filterCheckall"
+msgstr "Vælg alle elementer"
+
+msgid "DatePicker.lang.previousYear"
+msgstr "Forrige år (Ctrl-venstre pil)"
+
+msgid "Upload.previewFile"
+msgstr "Forhåndsvisning"
+
+# traslated
+msgid "CloudUploadField.updatedAt"
+msgstr "Opdateret"
+
+msgid "Calendar.lang.timeSelect"
+msgstr "Vælg tidspunkt"
+
+# traslated
+msgid "CloudUploadField.buttonSave"
+msgstr "Spare"
+
+# traslated
+msgid "TabsField.selectItem"
+msgstr "Vælg element"
+
+# traslated
+msgid "FileWidget.errorSameFile"
+msgstr "Fil {filnavn} allerede uploadet!"
+
+msgid "Calendar.lang.monthSelect"
+msgstr "Vælg måned"
+
+# traslated
+msgid "Form.defaultValidateMessages.types.array"
+msgstr "${label} er ikke en gyldig ${type}"
+
+msgid "language"
+msgstr "da_DK"
+
+# traslated
+msgid "User.Setting.lastnamePlaceholder"
+msgstr "Efternavn"
+
+# traslated
+msgid "TabsField.delete"
+msgstr "slette"
+
+# traslated
+msgid "Form.defaultValidateMessages.default"
+msgstr "Feltvalideringsfejl for ${label}"
+
+msgid "Calendar.lang.previousYear"
+msgstr "Forrige år (Ctrl-venstre pil)"

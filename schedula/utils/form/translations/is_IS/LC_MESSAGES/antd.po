@@ -1,0 +1,1415 @@
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: 1.0\n"
+"Report-Msgid-Bugs-To: vinci1it2000@gmail.com\n"
+"PO-Revision-Date: 2023-11-18 08:55+0000\n"
+"Last-Translator: Vincenzo Arcidiacono <vinci1it2000@gmail.com>\n"
+"Language-Team: English <vinci1it2000@gmail.com>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+# traslated
+msgid "Contact.errorTitle"
+msgstr "Ops... Eitthvað fór úrskeiðis!"
+
+# traslated
+msgid "ColorPicker.presetEmpty"
+msgstr "Tómur"
+
+msgid "Table.filterReset"
+msgstr "Núllstilla"
+
+# traslated
+msgid "User.Register.login"
+msgstr "innskráning!"
+
+# traslated
+msgid "TableField.addItemTooltip"
+msgstr "Bæta við vöru"
+
+# traslated
+msgid "CloudUploadField.buttonDownload"
+msgstr "Netþjónn"
+
+# traslated
+msgid "User.Logout.submitButton"
+msgstr "Nafnplata"
+
+msgid "Calendar.lang.dateFormat"
+msgstr "D/M/YYYY"
+
+msgid "Calendar.lang.dateSelect"
+msgstr "Velja dag"
+
+# traslated
+msgid "User.Confirm.errorTitle"
+msgstr "Ops... Eitthvað fór úrskeiðis!"
+
+# traslated
+msgid "TabsField.moveup"
+msgstr "Færa upp"
+
+msgid "Modal.justOkText"
+msgstr "Í lagi"
+
+# traslated
+msgid "PDFField.titleSectionSelection"
+msgstr "Hluta"
+
+msgid "Calendar.lang.previousCentury"
+msgstr "Fyrri öld"
+
+# traslated
+msgid "User.ResetPassword.passwordPlaceholder"
+msgstr "Nýtt aðgangsorð"
+
+# traslated
+msgid "User.loginTooltip"
+msgstr "Innskráning"
+
+# traslated
+msgid "Form.defaultValidateMessages.whitespace"
+msgstr "${label} má ekki vera auður stafur"
+
+msgid "Pagination.prev_page"
+msgstr "Fyrri síða"
+
+# traslated
+msgid "QRCode.expired"
+msgstr "QR-kóði er útrunninn"
+
+# traslated
+msgid "FileWidget.errorNotUploaded"
+msgstr "Ops... Skrá ekki hlaðið upp"
+
+# traslated
+msgid "Form.defaultValidateMessages.string.max"
+msgstr "${label} verður að vera allt að ${max} stafir"
+
+# traslated
+msgid "User.Confirm.submitButton"
+msgstr "Senda fyrirmæli"
+
+# traslated
+msgid "Form.defaultValidateMessages.types.hex"
+msgstr "${label} er ekki gilt ${type}"
+
+# traslated
+msgid "Contact.submitButton"
+msgstr "Senda"
+
+# traslated
+msgid "Table.expand"
+msgstr "Opna línu"
+
+# traslated
+msgid "App.restoreDifferences"
+msgstr "Sýna mismun frá núverandi gögnum"
+
+msgid "Pagination.jump_to_confirm"
+msgstr "staðfest"
+
+# traslated
+msgid "User.ResetPassword.submitButton"
+msgstr "Endurstilla aðgangsorð"
+
+msgid "Transfer.itemUnit"
+msgstr "færsla"
+
+# traslated
+msgid "global.placeholder"
+msgstr "Vinsamlegast veldu"
+
+# traslated
+msgid "DatePicker.lang.rangeMonthPlaceholder"
+msgstr "§[\"Upphafsmánuður\",\"Lokamánuður\"]"
+
+# traslated
+msgid "User.titleResetPassword"
+msgstr "Endurstilla aðgangsorð"
+
+# traslated
+msgid "Contact.emailPlaceholder"
+msgstr "Tölvupóstur"
+
+# traslated
+msgid "Table.triggerAsc"
+msgstr "Smelltu til að raða hækkandi"
+
+# traslated
+msgid "User.Register.usernameRequired"
+msgstr "Vinsamlegast sláðu inn notandanafnið þitt!"
+
+# traslated
+msgid "User.titleLogout"
+msgstr "Ertu viss um að skrá þig út?"
+
+# traslated
+msgid "ArrayCopy.titleCopyButton"
+msgstr "Veldu hvar á að afrita gögn?"
+
+msgid "Popconfirm.cancelText"
+msgstr "Hætta við"
+
+# traslated
+msgid "User.titleConfirm"
+msgstr "Senda staðfestingarpóst"
+
+# traslated
+msgid "Form.defaultValidateMessages.array.range"
+msgstr "Upphæðin ${label} verður að vera á milli ${min}-${max}"
+
+# traslated
+msgid "User.ResetPassword.login"
+msgstr "innskráning!"
+
+# traslated
+msgid "Calendar.lang.rangeQuarterPlaceholder"
+msgstr "§[\"Upphafsfjórðungur\",\"Lokafjórðungur\"]"
+
+# traslated
+msgid "PDFField.previewFile"
+msgstr "Forskoða skrá"
+
+# traslated
+msgid "Contact.subjectPlaceholder"
+msgstr "Efni pósts"
+
+# traslated
+msgid "User.titleInfo"
+msgstr "Upplýsingar um notanda"
+
+# traslated
+msgid "App.cloudDownloadButton"
+msgstr "Innflutningur"
+
+# traslated
+msgid "Form.defaultValidateMessages.types.float"
+msgstr "${label} er ekki gilt ${type}"
+
+# traslated
+msgid "App.runButton"
+msgstr "Hlaupa"
+
+# traslated
+msgid "User.Register.emailInvalid"
+msgstr "Ógilt netfang!"
+
+msgid "Modal.cancelText"
+msgstr "Hætta við"
+
+msgid "DatePicker.lang.nextCentury"
+msgstr "Næsta öld"
+
+msgid "Upload.removeFile"
+msgstr "Fjarlægja skrá"
+
+# traslated
+msgid "FileWidget.errorToolTip"
+msgstr "Villa við upphleðslu"
+
+# traslated
+msgid "TableField.deleteAllConfirm"
+msgstr "Ertu viss um að eyða öllu efni?"
+
+# traslated
+msgid "Form.defaultValidateMessages.number.range"
+msgstr "${label} verður að vera á milli ${min}-${max}"
+
+# traslated
+msgid "Form.defaultValidateMessages.date.format"
+msgstr "${label} dagsetningarsniðið er ógilt"
+
+# traslated
+msgid "Form.defaultValidateMessages.types.string"
+msgstr "${label} er ekki gilt ${type}"
+
+# traslated
+msgid "Transfer.selectInvert"
+msgstr "Snúa þessari síðu við"
+
+# traslated
+msgid "ErrorListTemplate.tooltipFloatButton"
+msgstr "Opna villuboð"
+
+msgid "DatePicker.lang.dateSelect"
+msgstr "Velja dag"
+
+# traslated
+msgid "Table.emptyText"
+msgstr "Engin gögn"
+
+msgid "DatePicker.lang.backToToday"
+msgstr "Til baka til dagsins í dag"
+
+msgid "DatePicker.lang.dayFormat"
+msgstr "D"
+
+# traslated
+msgid "User.Forgot.emailInvalid"
+msgstr "Ógilt netfang!"
+
+# default
+msgid "DatePicker.lang.shortMonths"
+msgstr "§undefined"
+
+# traslated
+msgid "User.ResetPassword.passwordRequired"
+msgstr "Vinsamlegast sláðu inn nýja lykilorðið þitt!"
+
+# traslated
+msgid "User.Register.lastnamePlaceholder"
+msgstr "Eftirnafn"
+
+# traslated
+msgid "CloudUploadField.titleName"
+msgstr "Nafn"
+
+# traslated
+msgid "Contact.title"
+msgstr "Hafa samband"
+
+msgid "Calendar.lang.nextCentury"
+msgstr "Næsta öld"
+
+# traslated
+msgid "Form.defaultValidateMessages.string.min"
+msgstr "${label} verður að vera minnst ${min} stafir"
+
+msgid "Modal.okText"
+msgstr "Áfram"
+
+# traslated
+msgid "User.Register.emailRequired"
+msgstr "Vinsamlegast sláðu inn netfangið þitt!"
+
+# traslated
+msgid "Table.collapse"
+msgstr "Fella saman röð"
+
+msgid "Pagination.prev_5"
+msgstr "Til baka 5 síður"
+
+# traslated
+msgid "ArrayAccordion.titleCopyButton"
+msgstr "Veldu hvar á að afrita gögn?"
+
+msgid "Calendar.lang.previousMonth"
+msgstr "Fyrri mánuður (PageUp)"
+
+# traslated
+msgid "Transfer.removeCurrent"
+msgstr "Fjarlægja núgildandi síðu"
+
+# traslated
+msgid "Form.defaultValidateMessages.array.max"
+msgstr "Í mesta lagi ${max} ${label}"
+
+# traslated
+msgid "App.cloudUploadTooltip"
+msgstr "Vista gögn í skýi"
+
+# traslated
+msgid "CloudDownloadField.buttonCancel"
+msgstr "Afturkalla"
+
+# traslated
+msgid "Contact.emailRequired"
+msgstr "Vinsamlegast sláðu inn netfangið þitt!"
+
+msgid "Calendar.lang.monthBeforeYear"
+msgstr "§true"
+
+# traslated
+msgid "User.Confirm.emailInvalid"
+msgstr "Ógilt netfang!"
+
+# traslated
+msgid "User.ResetPassword.passwordConfirmError"
+msgstr "Aðgangsorðin tvö sem færð voru inn passa ekki saman!"
+
+# traslated
+msgid "CloudUploadField.titleSaveNew"
+msgstr "Vista núverandi gögn"
+
+# traslated
+msgid "User.Register.lastnameRequired"
+msgstr "Vinsamlegast sláðu inn eftirnafnið þitt!"
+
+# traslated
+msgid "User.settingButton"
+msgstr "Stillingar"
+
+msgid "Pagination.next_3"
+msgstr "Áfram 3 síður"
+
+# traslated
+msgid "Transfer.remove"
+msgstr "Fjarlægja"
+
+msgid "DatePicker.lang.yearFormat"
+msgstr "YYYY"
+
+# traslated
+msgid "User.Login.passwordPlaceholder"
+msgstr "Aðgangsorð"
+
+msgid "DatePicker.lang.placeholder"
+msgstr "Veldu dag"
+
+# traslated
+msgid "User.titleForgot"
+msgstr "Endurheimta lykilorð"
+
+# traslated
+msgid "Calendar.lang.quarterPlaceholder"
+msgstr "Velja ársfjórðung"
+
+msgid "DatePicker.lang.previousCentury"
+msgstr "Fyrri öld"
+
+# traslated
+msgid "App.restoreButton"
+msgstr "Endurheimta"
+
+# default
+msgid "DatePicker.lang.shortWeekDays"
+msgstr "§undefined"
+
+# traslated
+msgid "User.logoutButton"
+msgstr "Nafnplata"
+
+# traslated
+msgid "User.buttonTooltip"
+msgstr "Innskráning"
+
+# traslated
+msgid "DatePicker.lang.rangeYearPlaceholder"
+msgstr "§[\"Byrja ár\",\"Lok árs\"]"
+
+msgid "Pagination.page_size"
+msgstr "Page Size"
+
+# traslated
+msgid "Calendar.lang.weekSelect"
+msgstr "Veldu viku"
+
+# traslated
+msgid "Form.defaultValidateMessages.date.invalid"
+msgstr "${label} er ógild dagsetning"
+
+# traslated
+msgid "App.restoreCloseButton"
+msgstr "Loka"
+
+# traslated
+msgid "User.Forgot.submitButton"
+msgstr "Endurheimta lykilorð"
+
+# traslated
+msgid "Transfer.selectCurrent"
+msgstr "Velja þessa síðu"
+
+# traslated
+msgid "User.Register.usernamePlaceholder"
+msgstr "Notandanafn"
+
+# traslated
+msgid "App.filesButton"
+msgstr "Skrár"
+
+# traslated
+msgid "TabsField.moveright"
+msgstr "færa til hægri"
+
+# traslated
+msgid "DatePicker.lang.weekSelect"
+msgstr "Veldu viku"
+
+# traslated
+msgid "Calendar.lang.rangeMonthPlaceholder"
+msgstr "§[\"Upphafsmánuður\",\"Lokamánuður\"]"
+
+msgid "Table.filterTitle"
+msgstr "Afmarkanir"
+
+# traslated
+msgid "App.restoreTooltip"
+msgstr "Endurheimta gögn"
+
+msgid "Upload.downloadFile"
+msgstr "Hlaða niður skrá"
+
+msgid "Calendar.lang.yearSelect"
+msgstr "Velja ár"
+
+# traslated
+msgid "Text.copy"
+msgstr "Afrit"
+
+# traslated
+msgid "User.ResetPassword.errorTitle"
+msgstr "Ops... Eitthvað fór úrskeiðis!"
+
+# traslated
+msgid "Tour.Finish"
+msgstr "Enda"
+
+# traslated
+msgid "Form.defaultValidateMessages.number.len"
+msgstr "${label} verður að vera jafnt og ${len}"
+
+# traslated
+msgid "CloudDownloadField.titleSaveNew"
+msgstr "Vista núverandi gögn"
+
+# traslated
+msgid "CloudUploadField.confirmDelete"
+msgstr "Ertu viss um að eyða?"
+
+# traslated
+msgid "PDFField.uploading"
+msgstr "Senda..."
+
+# traslated
+msgid "Transfer.removeAll"
+msgstr "Fjarlægja öll gögn"
+
+# traslated
+msgid "Calendar.timePickerLocale.rangePlaceholder"
+msgstr "§[\"Tími ræsingar\",\"Lokatími\"]"
+
+# traslated
+msgid "User.Forgot.errorTitle"
+msgstr "Ops... Eitthvað fór úrskeiðis!"
+
+# traslated
+msgid "Table.filterEmptyText"
+msgstr "Engar síur"
+
+# traslated
+msgid "PDFField.removeFile"
+msgstr "Fjarlægja skrá"
+
+# traslated
+msgid "User.Login.sendConfirmMail"
+msgstr "Senda staðfestingartölvupóst aftur"
+
+msgid "Pagination.next_5"
+msgstr "Áfram 5 síður"
+
+# traslated
+msgid "ErrorListTemplate.descriptionFloatButton"
+msgstr "SKJÁTLAST"
+
+# traslated
+msgid "PDFField.preview"
+msgstr "Forsýning"
+
+# traslated
+msgid "Form.defaultValidateMessages.enum"
+msgstr "${label} verður að vera eitt af [${enum}]"
+
+# traslated
+msgid "Contact.nameRequired"
+msgstr "Vinsamlegast sláðu inn nafnið þitt!"
+
+# traslated
+msgid "ErrorListTemplate.titleModal"
+msgstr "Villur"
+
+# traslated
+msgid "Form.defaultValidateMessages.number.min"
+msgstr "${label} verður að vera lágmark ${min}"
+
+# traslated
+msgid "User.Register.firstnamePlaceholder"
+msgstr "Nafn"
+
+msgid "Calendar.lang.dayFormat"
+msgstr "D"
+
+msgid "DatePicker.lang.yearSelect"
+msgstr "Velja ár"
+
+# traslated
+msgid "User.Register.submitButton"
+msgstr "Skrá"
+
+msgid "Calendar.lang.backToToday"
+msgstr "Til baka til dagsins í dag"
+
+# traslated
+msgid "User.Login.rememberMe"
+msgstr "Mundu eftir mér"
+
+# traslated
+msgid "CloudDownloadField.buttonDownload"
+msgstr "Netþjónn"
+
+# traslated
+msgid "ArrayAccordion.tooltipExtra"
+msgstr "Afrita gögn yfir"
+
+msgid "Calendar.timePickerLocale.placeholder"
+msgstr "Velja tíma"
+
+msgid "Calendar.lang.year"
+msgstr "Ár"
+
+# traslated
+msgid "User.Register.passwordConfirmRequired"
+msgstr "Vinsamlegast staðfestu lykilorðið þitt!"
+
+# traslated
+msgid "App.disableFullscreen"
+msgstr "Gera skjáfylli óvirkt"
+
+# traslated
+msgid "CloudDownloadField.createdAt"
+msgstr "Stofnuð"
+
+# traslated
+msgid "App.downloadTooltip"
+msgstr "Flytja út gögn sem JSON"
+
+# traslated
+msgid "App.autoSaveTooltip"
+msgstr "Gera sjálfvirka vistun virka"
+
+msgid "DatePicker.lang.today"
+msgstr "Í dag"
+
+# traslated
+msgid "Tour.Previous"
+msgstr "Fyrri"
+
+msgid "Pagination.jump_to"
+msgstr "Síða"
+
+# traslated
+msgid "User.ResetPassword.or"
+msgstr "Eða"
+
+# traslated
+msgid "User.Register.passwordPlaceholder"
+msgstr "Aðgangsorð"
+
+msgid "Table.selectAll"
+msgstr "Velja allt"
+
+# traslated
+msgid "CloudUploadField.buttonOverwrite"
+msgstr "Yfirskrifa"
+
+# traslated
+msgid "CloudDownloadField.updatedAt"
+msgstr "Uppfærður"
+
+# traslated
+msgid "User.Login.or"
+msgstr "Eða"
+
+# traslated
+msgid "DebugTemplate.titleModal"
+msgstr "Kemba verkflæði"
+
+msgid "Calendar.lang.rangePlaceholder"
+msgstr "§[\"Upphafsdagur\",\"Lokadagur\"]"
+
+# traslated
+msgid "Text.edit"
+msgstr "Klippa"
+
+msgid "DatePicker.lang.previousMonth"
+msgstr "Fyrri mánuður (PageUp)"
+
+# traslated
+msgid "App.autoSaveButton"
+msgstr "Vista sjálfvirkt"
+
+# traslated
+msgid "CloudDownloadField.buttonOverwrite"
+msgstr "Yfirskrifa"
+
+# traslated
+msgid "FileWidget.errorOnlyOneItem"
+msgstr "Þú getur hlaðið upp að hámarki einni skrá!"
+
+msgid "Pagination.prev_3"
+msgstr "Til baka 3 síður"
+
+# traslated
+msgid "User.Login.emailRequired"
+msgstr "Vinsamlegast sláðu inn netfangið þitt!"
+
+# traslated
+msgid "CloudDownloadField.confirmDelete"
+msgstr "Ertu viss um að eyða?"
+
+# traslated
+msgid "User.Register.passwordRequired"
+msgstr "Vinsamlegast sláðu inn lykilorðið þitt!"
+
+# traslated
+msgid "TimePicker.rangePlaceholder"
+msgstr "§[\"Tími ræsingar\",\"Lokatími\"]"
+
+# traslated
+msgid "FileWidget.errorMaxItems"
+msgstr "Þú getur hlaðið upp hámarks {maxItems} skrám!"
+
+msgid "Calendar.lang.dateTimeFormat"
+msgstr "D/M/YYYY HH:mm:ss"
+
+# traslated
+msgid "User.Confirm.or"
+msgstr "Eða"
+
+# traslated
+msgid "Contact.messagePlaceholder"
+msgstr "Skilaboð þín"
+
+# traslated
+msgid "Form.defaultValidateMessages.string.len"
+msgstr "${label} verður að vera ${len} stafir"
+
+# traslated
+msgid "ArrayCopy.tooltip"
+msgstr "Afrita gögn yfir"
+
+# traslated
+msgid "DatePicker.lang.monthPlaceholder"
+msgstr "Velja mánuð"
+
+msgid "Calendar.lang.today"
+msgstr "Í dag"
+
+msgid "Transfer.itemsUnit"
+msgstr "færslur"
+
+# traslated
+msgid "Table.filterSearchPlaceholder"
+msgstr "Leita í síum"
+
+# default
+msgid "DatePicker.lang.monthFormat"
+msgstr "§undefined"
+
+# traslated
+msgid "CloudDownloadField.dataSwitchChecked"
+msgstr "núverandi"
+
+# traslated
+msgid "Transfer.selectAll"
+msgstr "Velja öll gögn"
+
+# traslated
+msgid "Image.preview"
+msgstr "Forsýning"
+
+# traslated
+msgid "Table.triggerDesc"
+msgstr "Smelltu til að raða lækkandi"
+
+msgid "DatePicker.lang.dateTimeFormat"
+msgstr "D/M/YYYY HH:mm:ss"
+
+# traslated
+msgid "CloudUploadField.errorTitle"
+msgstr "Ops... Eitthvað fór úrskeiðis!"
+
+# traslated
+msgid "DatePicker.timePickerLocale.rangePlaceholder"
+msgstr "§[\"Tími ræsingar\",\"Lokatími\"]"
+
+# traslated
+msgid "App.enableFullscreen"
+msgstr "Gera skjáfylli virkt"
+
+msgid "DatePicker.lang.clear"
+msgstr "Hreinsa"
+
+msgid "Calendar.lang.nextDecade"
+msgstr "Næsti áratugur"
+
+# traslated
+msgid "User.Register.emailPlaceholder"
+msgstr "Tölvupóstur"
+
+# traslated
+msgid "App.cloudButton"
+msgstr "Ský"
+
+# traslated
+msgid "App.autoSavingTooltip"
+msgstr "Slökkva á sjálfvirkri vistun"
+
+# traslated
+msgid "Form.defaultValidateMessages.date.parse"
+msgstr "Ekki er hægt að breyta ${label} í dagsetningu"
+
+# traslated
+msgid "Form.defaultValidateMessages.pattern.mismatch"
+msgstr "${label} passar ekki við mynstrið ${pattern}"
+
+# traslated
+msgid "Form.defaultValidateMessages.types.regexp"
+msgstr "${label} er ekki gilt ${type}"
+
+# traslated
+msgid "Text.expand"
+msgstr "Rýmka"
+
+# traslated
+msgid "User.Login.forgotPassword"
+msgstr "Gleymt lykilorð"
+
+# traslated
+msgid "Form.defaultValidateMessages.number.max"
+msgstr "${label} verður að vera hámark ${max}"
+
+# traslated
+msgid "CloudUploadField.dataSwitchUnChecked"
+msgstr "netþjónn"
+
+# traslated
+msgid "App.cleanConfirm"
+msgstr "Ertu viss um að eyða þessum gögnum?"
+
+# traslated
+msgid "CloudUploadField.buttonSaveNew"
+msgstr "Ný færsla"
+
+msgid "DatePicker.lang.nextMonth"
+msgstr "Næsti mánuður (PageDown)"
+
+msgid "Table.selectInvert"
+msgstr "Viðsnúa vali"
+
+# traslated
+msgid "App.restoreConfirm"
+msgstr "Ertu viss um að endurheimta þessi gögn?"
+
+# traslated
+msgid "DatePicker.lang.weekPlaceholder"
+msgstr "Velja viku"
+
+# traslated
+msgid "Calendar.lang.monthPlaceholder"
+msgstr "Velja mánuð"
+
+# traslated
+msgid "User.Login.errorTitle"
+msgstr "Ops... Eitthvað fór úrskeiðis!"
+
+# traslated
+msgid "Form.defaultValidateMessages.array.min"
+msgstr "Að minnsta kosti ${min} ${label}"
+
+# traslated
+msgid "TabsField.select"
+msgstr "velja"
+
+# traslated
+msgid "TabsField.movedown"
+msgstr "Færa niður"
+
+msgid "DatePicker.lang.monthSelect"
+msgstr "Velja mánuð"
+
+# traslated
+msgid "App.autoSavingButton"
+msgstr "Sjálfvirk vistun"
+
+msgid "Calendar.lang.previousDecade"
+msgstr "Fyrri áratugur"
+
+msgid "Calendar.lang.ok"
+msgstr "Í lagi"
+
+# traslated
+msgid "User.Confirm.emailRequired"
+msgstr "Vinsamlegast sláðu inn netfangið þitt!"
+
+# traslated
+msgid "User.Setting.firstnameRequired"
+msgstr "Vinsamlegast sláðu inn nafnið þitt!"
+
+# default
+msgid "Calendar.lang.monthFormat"
+msgstr "§undefined"
+
+# traslated
+msgid "User.Setting.submitButton"
+msgstr "Spara"
+
+# traslated
+msgid "Tour.Next"
+msgstr "Næstur"
+
+# traslated
+msgid "Calendar.lang.rangeWeekPlaceholder"
+msgstr "§[\"Byrja viku\",\"Loka viku\"]"
+
+# traslated
+msgid "CloudDownloadField.errorTitle"
+msgstr "Ops... Eitthvað fór úrskeiðis!"
+
+# traslated
+msgid "User.Confirm.login"
+msgstr "innskráning!"
+
+# traslated
+msgid "User.ResetPassword.passwordConfirmPlaceholder"
+msgstr "Staðfesta nýtt aðgangsorð"
+
+msgid "DatePicker.lang.now"
+msgstr "Núna"
+
+msgid "Calendar.lang.nextYear"
+msgstr "Næsta ár (Control + right)"
+
+# traslated
+msgid "Form.defaultValidateMessages.types.date"
+msgstr "${label} er ekki gilt ${type}"
+
+# traslated
+msgid "User.Register.or"
+msgstr "Eða"
+
+msgid "DatePicker.lang.previousDecade"
+msgstr "Fyrri áratugur"
+
+# traslated
+msgid "App.branchesButton"
+msgstr "Greinum"
+
+# traslated
+msgid "Form.defaultValidateMessages.types.email"
+msgstr "${label} er ekki gilt ${type}"
+
+msgid "Pagination.next_page"
+msgstr "Næsta síða"
+
+# traslated
+msgid "Icon.icon"
+msgstr "teikn"
+
+# traslated
+msgid "Form.defaultValidateMessages.types.method"
+msgstr "${label} er ekki gilt ${type}"
+
+msgid "DatePicker.lang.locale"
+msgstr "is_IS"
+
+msgid "Calendar.lang.clear"
+msgstr "Hreinsa"
+
+msgid "Calendar.lang.yearFormat"
+msgstr "YYYY"
+
+# traslated
+msgid "Form.defaultValidateMessages.required"
+msgstr "Vinsamlegast sláðu inn ${label}"
+
+# traslated
+msgid "App.debugButton"
+msgstr "Kemba"
+
+msgid "locale"
+msgstr "is"
+
+msgid "DatePicker.lang.ok"
+msgstr "Í lagi"
+
+# traslated
+msgid "Table.cancelSort"
+msgstr "Smelltu til að hætta við röðun"
+
+# traslated
+msgid "Calendar.lang.rangeYearPlaceholder"
+msgstr "§[\"Byrja ár\",\"Lok árs\"]"
+
+# traslated
+msgid "User.Setting.errorTitle"
+msgstr "Ops... Eitthvað fór úrskeiðis!"
+
+# traslated
+msgid "Contact.namePlaceholder"
+msgstr "Nafnið þitt"
+
+msgid "Calendar.lang.placeholder"
+msgstr "Veldu dag"
+
+# traslated
+msgid "App.restoreEraseButton"
+msgstr "Eyða geymslu"
+
+# traslated
+msgid "User.Login.passwordRequired"
+msgstr "Vinsamlegast sláðu inn lykilorðið þitt!"
+
+# traslated
+msgid "User.Forgot.or"
+msgstr "Eða"
+
+# traslated
+msgid "Form.defaultValidateMessages.types.boolean"
+msgstr "${label} er ekki gilt ${type}"
+
+# traslated
+msgid "DatePicker.lang.rangeWeekPlaceholder"
+msgstr "§[\"Byrja viku\",\"Loka viku\"]"
+
+# traslated
+msgid "App.cleanButton"
+msgstr "Hreinn"
+
+# traslated
+msgid "Form.defaultValidateMessages.types.integer"
+msgstr "${label} er ekki gilt ${type}"
+
+msgid "Empty.description"
+msgstr "Engin gögn"
+
+# default
+msgid "Calendar.lang.shortMonths"
+msgstr "§undefined"
+
+# traslated
+msgid "DebugTemplate.tooltipFloatButton"
+msgstr "Opna kembiverkflæði"
+
+msgid "Calendar.lang.decadeSelect"
+msgstr "Velja áratug"
+
+msgid "Upload.uploadError"
+msgstr "Villa við að hlaða upp"
+
+# traslated
+msgid "User.Login.submitButton"
+msgstr "Innskráning"
+
+# traslated
+msgid "User.Register.errorTitle"
+msgstr "Ops... Eitthvað fór úrskeiðis!"
+
+msgid "DatePicker.lang.timeSelect"
+msgstr "Velja tíma"
+
+# traslated
+msgid "App.uploadButton"
+msgstr "Upphal"
+
+# traslated
+msgid "User.Register.passwordConfirmPlaceholder"
+msgstr "Staðfesta aðgangsorð"
+
+# traslated
+msgid "CloudDownloadField.fieldErrors.name"
+msgstr "Vinsamlegast sláðu inn nafn!"
+
+# traslated
+msgid "CloudUploadField.fieldErrors.name"
+msgstr "Vinsamlegast sláðu inn nafn!"
+
+# traslated
+msgid "TableField.exportTooltip"
+msgstr "Flytja út töflu í CSV"
+
+# traslated
+msgid "User.Login.registerNow"
+msgstr "Skráðu þig núna!"
+
+# traslated
+msgid "User.Login.emailInvalid"
+msgstr "Ógilt netfang!"
+
+# traslated
+msgid "User.Forgot.login"
+msgstr "innskráning!"
+
+msgid "Pagination.items_per_page"
+msgstr "/ síðu"
+
+# traslated
+msgid "CloudDownloadField.buttonSave"
+msgstr "Spara"
+
+# traslated
+msgid "User.titleRegister"
+msgstr "Nýskráning"
+
+msgid "Calendar.lang.now"
+msgstr "Núna"
+
+# traslated
+msgid "Contact.buttonTooltip"
+msgstr "Samband"
+
+# traslated
+msgid "Form.optional"
+msgstr "(valfrjálst)"
+
+# traslated
+msgid "App.restoreTitleDifferences"
+msgstr "Mismunur"
+
+msgid "DatePicker.lang.monthBeforeYear"
+msgstr "§true"
+
+msgid "DatePicker.lang.rangePlaceholder"
+msgstr "§[\"Upphafsdagur\",\"Lokadagur\"]"
+
+# traslated
+msgid "User.Confirm.emailPlaceholder"
+msgstr "Tölvupóstur"
+
+msgid "DatePicker.lang.nextDecade"
+msgstr "Næsti áratugur"
+
+# traslated
+msgid "Errors.title"
+msgstr "Prófunarvillur"
+
+# traslated
+msgid "DatePicker.lang.yearPlaceholder"
+msgstr "Velja ár"
+
+# traslated
+msgid "FileWidget.errorFileType"
+msgstr "Þú getur aðeins hlaðið upp {fileTypes} skrá!"
+
+# traslated
+msgid "PDFField.uploadError"
+msgstr "Villa við upphleðslu"
+
+# traslated
+msgid "DatePicker.lang.rangeQuarterPlaceholder"
+msgstr "§[\"Upphafsfjórðungur\",\"Lokafjórðungur\"]"
+
+# traslated
+msgid "App.restoreCurrent"
+msgstr "núverandi"
+
+# traslated
+msgid "ArrayAccordion.placeholder"
+msgstr "Vinsamlegast veldu"
+
+# traslated
+msgid "Calendar.lang.weekPlaceholder"
+msgstr "Velja viku"
+
+# traslated
+msgid "User.Register.firstnameRequired"
+msgstr "Vinsamlegast sláðu inn nafnið þitt!"
+
+# traslated
+msgid "User.Setting.revertButton"
+msgstr "Bakfæra"
+
+# traslated
+msgid "App.fullscreenButton"
+msgstr "Fylla skjáinn"
+
+# traslated
+msgid "CloudDownloadField.buttonSaveNew"
+msgstr "Ný færsla"
+
+msgid "DatePicker.lang.month"
+msgstr "Mánuður"
+
+msgid "Calendar.lang.nextMonth"
+msgstr "Næsti mánuður (PageDown)"
+
+# traslated
+msgid "TableField.deleteItemConfirm"
+msgstr "Ertu viss um að eyða?"
+
+# traslated
+msgid "Form.defaultValidateMessages.array.len"
+msgstr "Verður að vera ${len} ${label}"
+
+msgid "Table.filterConfirm"
+msgstr "Staðfesta"
+
+# traslated
+msgid "User.Setting.firstnamePlaceholder"
+msgstr "Nafn"
+
+# traslated
+msgid "App.autoSavingErrorTitle"
+msgstr "Ops... gera sjálfvirka vistun óvirka"
+
+msgid "TimePicker.placeholder"
+msgstr "Velja tíma"
+
+# traslated
+msgid "DatePicker.lang.quarterPlaceholder"
+msgstr "Velja ársfjórðung"
+
+# traslated
+msgid "User.ResetPassword.passwordConfirmRequired"
+msgstr "Vinsamlegast staðfestu nýja lykilorðið þitt!"
+
+# traslated
+msgid "CloudDownloadField.dataSwitchUnChecked"
+msgstr "netþjónn"
+
+# traslated
+msgid "Table.selectNone"
+msgstr "Hreinsa öll gögn"
+
+# traslated
+msgid "Form.defaultValidateMessages.types.url"
+msgstr "${label} er ekki gilt ${type}"
+
+msgid "Pagination.page"
+msgstr ""
+
+# traslated
+msgid "User.titleSetting"
+msgstr "Breyta stillingum"
+
+# traslated
+msgid "User.Forgot.emailRequired"
+msgstr "Vinsamlegast sláðu inn netfangið þitt!"
+
+# traslated
+msgid "Table.selectionAll"
+msgstr "Velja öll gögn"
+
+# traslated
+msgid "Form.defaultValidateMessages.string.range"
+msgstr "${label} verður að vera á milli ${min}-${max} stafir"
+
+# traslated
+msgid "User.Login.emailPlaceholder"
+msgstr "Tölvupóstur"
+
+# traslated
+msgid "TabsField.moveleft"
+msgstr "Færa til vinstri"
+
+# traslated
+msgid "App.cloudUploadButton"
+msgstr "Spara"
+
+# traslated
+msgid "User.Forgot.emailPlaceholder"
+msgstr "Tölvupóstur"
+
+# traslated
+msgid "PDFField.downloadFile"
+msgstr "Sækja skrá"
+
+msgid "DatePicker.timePickerLocale.placeholder"
+msgstr "Velja tíma"
+
+# traslated
+msgid "Contact.messageRequired"
+msgstr "Vinsamlegast sláðu inn skilaboðin þín!"
+
+# traslated
+msgid "User.Setting.lastnameRequired"
+msgstr "Vinsamlegast sláðu inn eftirnafnið þitt!"
+
+# traslated
+msgid "CloudUploadField.buttonCancel"
+msgstr "Afturkalla"
+
+# traslated
+msgid "App.downloadButton"
+msgstr "Hlaða niður"
+
+msgid "DatePicker.lang.dateFormat"
+msgstr "D/M/YYYY"
+
+# traslated
+msgid "Contact.subjectRequired"
+msgstr "Vinsamlegast sláðu inn póstefni!"
+
+# default
+msgid "Calendar.lang.shortWeekDays"
+msgstr "§undefined"
+
+msgid "Calendar.lang.locale"
+msgstr "is_IS"
+
+# traslated
+msgid "CloudDownloadField.titleName"
+msgstr "Nafn"
+
+msgid "Transfer.searchPlaceholder"
+msgstr "Leita hér"
+
+# traslated
+msgid "CloudUploadField.createdAt"
+msgstr "Stofnuð"
+
+# traslated
+msgid "Contact.emailInvalid"
+msgstr "Ógilt netfang!"
+
+# traslated
+msgid "User.infoButton"
+msgstr "Vangasvipur"
+
+# traslated
+msgid "User.Register.passwordConfirmError"
+msgstr "Aðgangsorðin tvö sem færð voru inn passa ekki saman!"
+
+# traslated
+msgid "CloudUploadField.dataSwitchChecked"
+msgstr "núverandi"
+
+# traslated
+msgid "TabsField.clone"
+msgstr "klón"
+
+msgid "Transfer.titles"
+msgstr "§[\"\",\"\"]"
+
+# traslated
+msgid "QRCode.refresh"
+msgstr "Hressa"
+
+# traslated
+msgid "TableField.importTooltip"
+msgstr "Flytja inn töflu úr CSV"
+
+# traslated
+msgid "App.uploadTooltip"
+msgstr "Flytja inn gögn sem JSON"
+
+msgid "DatePicker.lang.decadeSelect"
+msgstr "Velja áratug"
+
+# traslated
+msgid "App.restoreModalTitle"
+msgstr "Endurheimta gögn"
+
+# traslated
+msgid "Table.sortTitle"
+msgstr "Raða"
+
+msgid "DatePicker.lang.year"
+msgstr "Ár"
+
+# traslated
+msgid "App.restoreRestoreButton"
+msgstr "Endurheimta"
+
+# traslated
+msgid "Form.defaultValidateMessages.types.number"
+msgstr "${label} er ekki gilt ${type}"
+
+# traslated
+msgid "Calendar.lang.yearPlaceholder"
+msgstr "Velja ár"
+
+msgid "Popconfirm.okText"
+msgstr "Áfram"
+
+# traslated
+msgid "CloudDownloadField.titleData"
+msgstr "Gagnagjafi"
+
+# traslated
+msgid "ArrayCopy.placeholder"
+msgstr "Vinsamlegast veldu"
+
+msgid "Upload.uploading"
+msgstr "Hleð upp..."
+
+# traslated
+msgid "CloudUploadField.titleData"
+msgstr "Gagnagjafi"
+
+# traslated
+msgid "Text.copied"
+msgstr "Afritað"
+
+# traslated
+msgid "App.cloudDownloadTooltip"
+msgstr "Flytja inn gögn úr Cloud"
+
+# traslated
+msgid "FileWidget.dropMessage"
+msgstr "Dragðu skrána hingað eða smelltu til að fletta"
+
+msgid "Calendar.lang.month"
+msgstr "Mánuður"
+
+# traslated
+msgid "Form.defaultValidateMessages.types.object"
+msgstr "${label} er ekki gilt ${type}"
+
+# traslated
+msgid "PageHeader.back"
+msgstr "Bak"
+
+msgid "DatePicker.lang.nextYear"
+msgstr "Næsta ár (Control + right)"
+
+# traslated
+msgid "User.titleLogin"
+msgstr "Innskráning"
+
+# traslated
+msgid "Table.filterCheckall"
+msgstr "Velja öll atriði"
+
+msgid "DatePicker.lang.previousYear"
+msgstr "Fyrra ár (Control + left)"
+
+msgid "Upload.previewFile"
+msgstr "Forskoða skrá"
+
+# traslated
+msgid "CloudUploadField.updatedAt"
+msgstr "Uppfærður"
+
+msgid "Calendar.lang.timeSelect"
+msgstr "Velja tíma"
+
+# traslated
+msgid "CloudUploadField.buttonSave"
+msgstr "Spara"
+
+# traslated
+msgid "TabsField.selectItem"
+msgstr "Velja vöru"
+
+# traslated
+msgid "FileWidget.errorSameFile"
+msgstr "Skrá {filename} hefur þegar verið hlaðið upp!"
+
+msgid "Calendar.lang.monthSelect"
+msgstr "Velja mánuð"
+
+# traslated
+msgid "Form.defaultValidateMessages.types.array"
+msgstr "${label} er ekki gilt ${type}"
+
+msgid "language"
+msgstr "is_IS"
+
+# traslated
+msgid "User.Setting.lastnamePlaceholder"
+msgstr "Eftirnafn"
+
+# traslated
+msgid "TabsField.delete"
+msgstr "Eyða"
+
+# traslated
+msgid "Form.defaultValidateMessages.default"
+msgstr "Villa í svæðisprófun fyrir ${label}"
+
+msgid "Calendar.lang.previousYear"
+msgstr "Fyrra ár (Control + left)"

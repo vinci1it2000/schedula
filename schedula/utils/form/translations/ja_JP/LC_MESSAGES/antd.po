@@ -1,0 +1,1371 @@
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: 1.0\n"
+"Report-Msgid-Bugs-To: vinci1it2000@gmail.com\n"
+"PO-Revision-Date: 2023-11-18 08:55+0000\n"
+"Last-Translator: Vincenzo Arcidiacono <vinci1it2000@gmail.com>\n"
+"Language-Team: English <vinci1it2000@gmail.com>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+# traslated
+msgid "Contact.errorTitle"
+msgstr "オプス...問題が発生しました。"
+
+# traslated
+msgid "ColorPicker.presetEmpty"
+msgstr "空"
+
+msgid "Table.filterReset"
+msgstr "リセット"
+
+# traslated
+msgid "User.Register.login"
+msgstr "ログイン！"
+
+# traslated
+msgid "TableField.addItemTooltip"
+msgstr "アイテムを追加"
+
+# traslated
+msgid "CloudUploadField.buttonDownload"
+msgstr "サーバー"
+
+# traslated
+msgid "User.Logout.submitButton"
+msgstr "ログアウト"
+
+msgid "Calendar.lang.dateFormat"
+msgstr "YYYY年M月D日"
+
+msgid "Calendar.lang.dateSelect"
+msgstr "日時を選択"
+
+# traslated
+msgid "User.Confirm.errorTitle"
+msgstr "オプス...問題が発生しました。"
+
+# traslated
+msgid "TabsField.moveup"
+msgstr "上に移動"
+
+msgid "Modal.justOkText"
+msgstr "OK"
+
+# traslated
+msgid "PDFField.titleSectionSelection"
+msgstr "セクション"
+
+msgid "Calendar.lang.previousCentury"
+msgstr "前の世紀"
+
+# traslated
+msgid "User.ResetPassword.passwordPlaceholder"
+msgstr "新しいパスワード"
+
+# traslated
+msgid "User.loginTooltip"
+msgstr "ログイン"
+
+msgid "Form.defaultValidateMessages.whitespace"
+msgstr "${label}は空白文字にすることはできません"
+
+msgid "Pagination.prev_page"
+msgstr "前のページ"
+
+# traslated
+msgid "QRCode.expired"
+msgstr "QRコードの有効期限が切れています"
+
+# traslated
+msgid "FileWidget.errorNotUploaded"
+msgstr "オプス...ファイルがアップロードされていません"
+
+msgid "Form.defaultValidateMessages.string.max"
+msgstr "${label}は${max}文字以下である必要があります"
+
+# traslated
+msgid "User.Confirm.submitButton"
+msgstr "指示の送信"
+
+msgid "Form.defaultValidateMessages.types.hex"
+msgstr "${label}は有効な${type}ではありません"
+
+# traslated
+msgid "Contact.submitButton"
+msgstr "送信"
+
+msgid "Table.expand"
+msgstr "展開する"
+
+# traslated
+msgid "App.restoreDifferences"
+msgstr "現在のデータとの差分を表示する"
+
+msgid "Pagination.jump_to_confirm"
+msgstr "確認する"
+
+# traslated
+msgid "User.ResetPassword.submitButton"
+msgstr "パスワードのリセット"
+
+msgid "Transfer.itemUnit"
+msgstr "アイテム"
+
+# traslated
+msgid "global.placeholder"
+msgstr "選択してください"
+
+# traslated
+msgid "DatePicker.lang.rangeMonthPlaceholder"
+msgstr "§[\"開始月\",\"月末\"]"
+
+# traslated
+msgid "User.titleResetPassword"
+msgstr "パスワードのリセット"
+
+# traslated
+msgid "Contact.emailPlaceholder"
+msgstr "電子メール"
+
+msgid "Table.triggerAsc"
+msgstr "クリックで昇順にソート"
+
+# traslated
+msgid "User.Register.usernameRequired"
+msgstr "ユーザー名を入力してください!"
+
+# traslated
+msgid "User.titleLogout"
+msgstr "ログアウトしても確実ですか?"
+
+# traslated
+msgid "ArrayCopy.titleCopyButton"
+msgstr "データのコピー先を選択してください。"
+
+msgid "Popconfirm.cancelText"
+msgstr "キャンセル"
+
+# traslated
+msgid "User.titleConfirm"
+msgstr "確認メールの送信"
+
+msgid "Form.defaultValidateMessages.array.range"
+msgstr "${label}の合計は${min}-${max}の範囲である必要があります"
+
+# traslated
+msgid "User.ResetPassword.login"
+msgstr "ログイン！"
+
+# traslated
+msgid "Calendar.lang.rangeQuarterPlaceholder"
+msgstr "§[\"開始四半期\",\"四半期末\"]"
+
+# traslated
+msgid "PDFField.previewFile"
+msgstr "ファイルのプレビュー"
+
+# traslated
+msgid "Contact.subjectPlaceholder"
+msgstr "メールの件名"
+
+# traslated
+msgid "User.titleInfo"
+msgstr "ユーザー情報"
+
+# traslated
+msgid "App.cloudDownloadButton"
+msgstr "輸入"
+
+msgid "Form.defaultValidateMessages.types.float"
+msgstr "${label}は有効な${type}ではありません"
+
+# traslated
+msgid "App.runButton"
+msgstr "走る"
+
+# traslated
+msgid "User.Register.emailInvalid"
+msgstr "無効なメールです。"
+
+msgid "Modal.cancelText"
+msgstr "キャンセル"
+
+msgid "DatePicker.lang.nextCentury"
+msgstr "次の世紀"
+
+msgid "Upload.removeFile"
+msgstr "ファイルを削除"
+
+# traslated
+msgid "FileWidget.errorToolTip"
+msgstr "アップロードエラー"
+
+# traslated
+msgid "TableField.deleteAllConfirm"
+msgstr "すべてのコンテンツを削除してもよろしいですか?"
+
+msgid "Form.defaultValidateMessages.number.range"
+msgstr "${label}は${min}-${max}の範囲である必要があります"
+
+msgid "Form.defaultValidateMessages.date.format"
+msgstr "${label}の日付形式は不正です"
+
+msgid "Form.defaultValidateMessages.types.string"
+msgstr "${label}は有効な${type}ではありません"
+
+# traslated
+msgid "Transfer.selectInvert"
+msgstr "現在のページを反転"
+
+# traslated
+msgid "ErrorListTemplate.tooltipFloatButton"
+msgstr "未解決のエラーメッセージ"
+
+msgid "DatePicker.lang.dateSelect"
+msgstr "日時を選択"
+
+# traslated
+msgid "Table.emptyText"
+msgstr "データなし"
+
+msgid "DatePicker.lang.backToToday"
+msgstr "今日に戻る"
+
+msgid "DatePicker.lang.dayFormat"
+msgstr "D日"
+
+# traslated
+msgid "User.Forgot.emailInvalid"
+msgstr "無効なメールです。"
+
+# default
+msgid "DatePicker.lang.shortMonths"
+msgstr "§undefined"
+
+# traslated
+msgid "User.ResetPassword.passwordRequired"
+msgstr "新しいパスワードを入力してください。"
+
+# traslated
+msgid "User.Register.lastnamePlaceholder"
+msgstr "名字"
+
+# traslated
+msgid "CloudUploadField.titleName"
+msgstr "名前"
+
+# traslated
+msgid "Contact.title"
+msgstr "お 問い合わせ"
+
+msgid "Calendar.lang.nextCentury"
+msgstr "次の世紀"
+
+msgid "Form.defaultValidateMessages.string.min"
+msgstr "${label}は${min}文字以上である必要があります"
+
+msgid "Modal.okText"
+msgstr "OK"
+
+# traslated
+msgid "User.Register.emailRequired"
+msgstr "メールアドレスを入力してください!"
+
+msgid "Table.collapse"
+msgstr "折り畳む"
+
+msgid "Pagination.prev_5"
+msgstr "前 5ページ"
+
+# traslated
+msgid "ArrayAccordion.titleCopyButton"
+msgstr "データのコピー先を選択してください。"
+
+msgid "Calendar.lang.previousMonth"
+msgstr "前月 (ページアップキー)"
+
+# traslated
+msgid "Transfer.removeCurrent"
+msgstr "現在のページを削除"
+
+msgid "Form.defaultValidateMessages.array.max"
+msgstr "${label}の最大は${max}です"
+
+# traslated
+msgid "App.cloudUploadTooltip"
+msgstr "クラウドにデータを保存"
+
+# traslated
+msgid "CloudDownloadField.buttonCancel"
+msgstr "キャンセル"
+
+# traslated
+msgid "Contact.emailRequired"
+msgstr "メールアドレスを入力してください!"
+
+# default
+msgid "Calendar.lang.monthBeforeYear"
+msgstr "§true"
+
+# traslated
+msgid "User.Confirm.emailInvalid"
+msgstr "無効なメールです。"
+
+# traslated
+msgid "User.ResetPassword.passwordConfirmError"
+msgstr "入力した 2 つのパスワードが一致しません。"
+
+# traslated
+msgid "CloudUploadField.titleSaveNew"
+msgstr "現在のデータを保存する"
+
+# traslated
+msgid "User.Register.lastnameRequired"
+msgstr "苗字を入力してください!"
+
+# traslated
+msgid "User.settingButton"
+msgstr "設定"
+
+msgid "Pagination.next_3"
+msgstr "次 3ページ"
+
+# traslated
+msgid "Transfer.remove"
+msgstr "取り去る"
+
+msgid "DatePicker.lang.yearFormat"
+msgstr "YYYY年"
+
+# traslated
+msgid "User.Login.passwordPlaceholder"
+msgstr "パスワード"
+
+msgid "DatePicker.lang.placeholder"
+msgstr "日付を選択"
+
+# traslated
+msgid "User.titleForgot"
+msgstr "パスワードの回復"
+
+# traslated
+msgid "Calendar.lang.quarterPlaceholder"
+msgstr "四半期を選択"
+
+msgid "DatePicker.lang.previousCentury"
+msgstr "前の世紀"
+
+# traslated
+msgid "App.restoreButton"
+msgstr "戻す"
+
+# default
+msgid "DatePicker.lang.shortWeekDays"
+msgstr "§undefined"
+
+# traslated
+msgid "User.logoutButton"
+msgstr "ログアウト"
+
+# traslated
+msgid "User.buttonTooltip"
+msgstr "ログイン"
+
+# traslated
+msgid "DatePicker.lang.rangeYearPlaceholder"
+msgstr "§[\"開始年\",\"終了年\"]"
+
+msgid "Pagination.page_size"
+msgstr "ページサイズ"
+
+msgid "Calendar.lang.weekSelect"
+msgstr "週を選択"
+
+msgid "Form.defaultValidateMessages.date.invalid"
+msgstr "${label}は不正な日付です"
+
+# traslated
+msgid "App.restoreCloseButton"
+msgstr "閉める"
+
+# traslated
+msgid "User.Forgot.submitButton"
+msgstr "パスワードの回復"
+
+# traslated
+msgid "Transfer.selectCurrent"
+msgstr "現在のページを選択"
+
+# traslated
+msgid "User.Register.usernamePlaceholder"
+msgstr "ユーザー名"
+
+# traslated
+msgid "App.filesButton"
+msgstr "ファイル"
+
+# traslated
+msgid "TabsField.moveright"
+msgstr "右に移動"
+
+msgid "DatePicker.lang.weekSelect"
+msgstr "週を選択"
+
+# traslated
+msgid "Calendar.lang.rangeMonthPlaceholder"
+msgstr "§[\"開始月\",\"月末\"]"
+
+msgid "Table.filterTitle"
+msgstr "フィルター"
+
+# traslated
+msgid "App.restoreTooltip"
+msgstr "データの復元"
+
+msgid "Upload.downloadFile"
+msgstr "ダウンロードファイル"
+
+msgid "Calendar.lang.yearSelect"
+msgstr "年を選択"
+
+# traslated
+msgid "Text.copy"
+msgstr "写し"
+
+# traslated
+msgid "User.ResetPassword.errorTitle"
+msgstr "オプス...問題が発生しました。"
+
+# traslated
+msgid "Tour.Finish"
+msgstr "終える"
+
+msgid "Form.defaultValidateMessages.number.len"
+msgstr "${label}は${len}と等しい必要があります"
+
+# traslated
+msgid "CloudDownloadField.titleSaveNew"
+msgstr "現在のデータを保存する"
+
+# traslated
+msgid "CloudUploadField.confirmDelete"
+msgstr "削除しておしまいますか?"
+
+# traslated
+msgid "PDFField.uploading"
+msgstr "アップロード。。。"
+
+# traslated
+msgid "Transfer.removeAll"
+msgstr "すべてのデータを削除する"
+
+msgid "Calendar.timePickerLocale.rangePlaceholder"
+msgstr "§[\"開始時間\",\"終了時間\"]"
+
+# traslated
+msgid "User.Forgot.errorTitle"
+msgstr "オプス...問題が発生しました。"
+
+msgid "Table.filterEmptyText"
+msgstr "フィルターなし"
+
+# traslated
+msgid "PDFField.removeFile"
+msgstr "ファイルを削除"
+
+# traslated
+msgid "User.Login.sendConfirmMail"
+msgstr "確認メールの再送信"
+
+msgid "Pagination.next_5"
+msgstr "次 5ページ"
+
+# traslated
+msgid "ErrorListTemplate.descriptionFloatButton"
+msgstr "誤る"
+
+# traslated
+msgid "PDFField.preview"
+msgstr "プレビュー"
+
+msgid "Form.defaultValidateMessages.enum"
+msgstr "${label}は[${enum}]のいずれかである必要があります"
+
+# traslated
+msgid "Contact.nameRequired"
+msgstr "お名前をご入力ください。"
+
+# traslated
+msgid "ErrorListTemplate.titleModal"
+msgstr "エラー"
+
+msgid "Form.defaultValidateMessages.number.min"
+msgstr "${label}の最小値は${min}です"
+
+# traslated
+msgid "User.Register.firstnamePlaceholder"
+msgstr "名前"
+
+msgid "Calendar.lang.dayFormat"
+msgstr "D日"
+
+msgid "DatePicker.lang.yearSelect"
+msgstr "年を選択"
+
+# traslated
+msgid "User.Register.submitButton"
+msgstr "登録する"
+
+msgid "Calendar.lang.backToToday"
+msgstr "今日に戻る"
+
+# traslated
+msgid "User.Login.rememberMe"
+msgstr "Remember me (私を記憶する)"
+
+# traslated
+msgid "CloudDownloadField.buttonDownload"
+msgstr "サーバー"
+
+# traslated
+msgid "ArrayAccordion.tooltipExtra"
+msgstr "データのコピー"
+
+msgid "Calendar.timePickerLocale.placeholder"
+msgstr "時間を選択"
+
+msgid "Calendar.lang.year"
+msgstr "年"
+
+# traslated
+msgid "User.Register.passwordConfirmRequired"
+msgstr "パスワードを確認してください。"
+
+# traslated
+msgid "App.disableFullscreen"
+msgstr "全画面表示を無効にする"
+
+# traslated
+msgid "CloudDownloadField.createdAt"
+msgstr "作成"
+
+# traslated
+msgid "App.downloadTooltip"
+msgstr "データを JSON としてエクスポート"
+
+# traslated
+msgid "App.autoSaveTooltip"
+msgstr "自動保存を有効にする"
+
+msgid "DatePicker.lang.today"
+msgstr "今日"
+
+# traslated
+msgid "Tour.Previous"
+msgstr "先の"
+
+msgid "Pagination.jump_to"
+msgstr "移動"
+
+# traslated
+msgid "User.ResetPassword.or"
+msgstr "又は"
+
+# traslated
+msgid "User.Register.passwordPlaceholder"
+msgstr "パスワード"
+
+msgid "Table.selectAll"
+msgstr "ページ単位で選択"
+
+# traslated
+msgid "CloudUploadField.buttonOverwrite"
+msgstr "上書き"
+
+# traslated
+msgid "CloudDownloadField.updatedAt"
+msgstr "更新"
+
+# traslated
+msgid "User.Login.or"
+msgstr "又は"
+
+# traslated
+msgid "DebugTemplate.titleModal"
+msgstr "デバッグ ワークフロー"
+
+msgid "Calendar.lang.rangePlaceholder"
+msgstr "§[\"開始日付\",\"終了日付\"]"
+
+# traslated
+msgid "Text.edit"
+msgstr "編集"
+
+msgid "DatePicker.lang.previousMonth"
+msgstr "前月 (ページアップキー)"
+
+# traslated
+msgid "App.autoSaveButton"
+msgstr "自動保存"
+
+# traslated
+msgid "CloudDownloadField.buttonOverwrite"
+msgstr "上書き"
+
+# traslated
+msgid "FileWidget.errorOnlyOneItem"
+msgstr "最大1つのファイルをアップロードできます。"
+
+msgid "Pagination.prev_3"
+msgstr "前 3ページ"
+
+# traslated
+msgid "User.Login.emailRequired"
+msgstr "メールアドレスを入力してください!"
+
+# traslated
+msgid "CloudDownloadField.confirmDelete"
+msgstr "削除しておしまいますか?"
+
+# traslated
+msgid "User.Register.passwordRequired"
+msgstr "パスワードを入力してください!"
+
+msgid "TimePicker.rangePlaceholder"
+msgstr "§[\"開始時間\",\"終了時間\"]"
+
+# traslated
+msgid "FileWidget.errorMaxItems"
+msgstr "最大数の{maxItems}ファイルをアップロードできます。"
+
+msgid "Calendar.lang.dateTimeFormat"
+msgstr "YYYY年M月D日 HH時mm分ss秒"
+
+# traslated
+msgid "User.Confirm.or"
+msgstr "又は"
+
+# traslated
+msgid "Contact.messagePlaceholder"
+msgstr "あなたのメッセージ"
+
+msgid "Form.defaultValidateMessages.string.len"
+msgstr "${label}は${len}文字である必要があります"
+
+# traslated
+msgid "ArrayCopy.tooltip"
+msgstr "データのコピー"
+
+# traslated
+msgid "DatePicker.lang.monthPlaceholder"
+msgstr "月を選択"
+
+msgid "Calendar.lang.today"
+msgstr "今日"
+
+msgid "Transfer.itemsUnit"
+msgstr "アイテム"
+
+# traslated
+msgid "Table.filterSearchPlaceholder"
+msgstr "フィルターで検索する"
+
+# default
+msgid "DatePicker.lang.monthFormat"
+msgstr "§undefined"
+
+# traslated
+msgid "CloudDownloadField.dataSwitchChecked"
+msgstr "現在の"
+
+# traslated
+msgid "Transfer.selectAll"
+msgstr "すべてのデータを選択"
+
+# traslated
+msgid "Image.preview"
+msgstr "プレビュー"
+
+msgid "Table.triggerDesc"
+msgstr "クリックで降順にソート"
+
+msgid "DatePicker.lang.dateTimeFormat"
+msgstr "YYYY年M月D日 HH時mm分ss秒"
+
+# traslated
+msgid "CloudUploadField.errorTitle"
+msgstr "オプス...問題が発生しました。"
+
+msgid "DatePicker.timePickerLocale.rangePlaceholder"
+msgstr "§[\"開始時間\",\"終了時間\"]"
+
+# traslated
+msgid "App.enableFullscreen"
+msgstr "フルスクリーンを有効にする"
+
+msgid "DatePicker.lang.clear"
+msgstr "クリア"
+
+msgid "Calendar.lang.nextDecade"
+msgstr "次の年代"
+
+# traslated
+msgid "User.Register.emailPlaceholder"
+msgstr "電子メール"
+
+# traslated
+msgid "App.cloudButton"
+msgstr "雲"
+
+# traslated
+msgid "App.autoSavingTooltip"
+msgstr "自動保存を無効にする"
+
+msgid "Form.defaultValidateMessages.date.parse"
+msgstr "${label}は日付に変換できません"
+
+msgid "Form.defaultValidateMessages.pattern.mismatch"
+msgstr "${label}はパターン${pattern}と一致しません"
+
+msgid "Form.defaultValidateMessages.types.regexp"
+msgstr "${label}は有効な${type}ではありません"
+
+# traslated
+msgid "Text.expand"
+msgstr "膨らむ"
+
+# traslated
+msgid "User.Login.forgotPassword"
+msgstr "パスワードを忘れた場合"
+
+msgid "Form.defaultValidateMessages.number.max"
+msgstr "${label}の最大値は${max}です"
+
+# traslated
+msgid "CloudUploadField.dataSwitchUnChecked"
+msgstr "サーバー"
+
+# traslated
+msgid "App.cleanConfirm"
+msgstr "このデータを削除してもよろしいですか?"
+
+# traslated
+msgid "CloudUploadField.buttonSaveNew"
+msgstr "新記録"
+
+msgid "DatePicker.lang.nextMonth"
+msgstr "翌月 (ページダウンキー)"
+
+msgid "Table.selectInvert"
+msgstr "ページ単位で反転"
+
+# traslated
+msgid "App.restoreConfirm"
+msgstr "このデータを復元しますか?"
+
+# traslated
+msgid "DatePicker.lang.weekPlaceholder"
+msgstr "週を選択"
+
+# traslated
+msgid "Calendar.lang.monthPlaceholder"
+msgstr "月を選択"
+
+# traslated
+msgid "User.Login.errorTitle"
+msgstr "オプス...問題が発生しました。"
+
+msgid "Form.defaultValidateMessages.array.min"
+msgstr "${label}の最小は${min}です"
+
+# traslated
+msgid "TabsField.select"
+msgstr "選ぶ"
+
+# traslated
+msgid "TabsField.movedown"
+msgstr "移動 下へ移動"
+
+msgid "DatePicker.lang.monthSelect"
+msgstr "月を選択"
+
+# traslated
+msgid "App.autoSavingButton"
+msgstr "自動保存"
+
+msgid "Calendar.lang.previousDecade"
+msgstr "前の年代"
+
+msgid "Calendar.lang.ok"
+msgstr "決定"
+
+# traslated
+msgid "User.Confirm.emailRequired"
+msgstr "メールアドレスを入力してください!"
+
+# traslated
+msgid "User.Setting.firstnameRequired"
+msgstr "お名前をご入力ください。"
+
+# default
+msgid "Calendar.lang.monthFormat"
+msgstr "§undefined"
+
+# traslated
+msgid "User.Setting.submitButton"
+msgstr "セーブ"
+
+# traslated
+msgid "Tour.Next"
+msgstr "次に"
+
+# traslated
+msgid "Calendar.lang.rangeWeekPlaceholder"
+msgstr "§[\"開始週\",\"週の終わり\"]"
+
+# traslated
+msgid "CloudDownloadField.errorTitle"
+msgstr "オプス...問題が発生しました。"
+
+# traslated
+msgid "User.Confirm.login"
+msgstr "ログイン！"
+
+# traslated
+msgid "User.ResetPassword.passwordConfirmPlaceholder"
+msgstr "新しいパスワードの確認"
+
+msgid "DatePicker.lang.now"
+msgstr "現在時刻"
+
+msgid "Calendar.lang.nextYear"
+msgstr "翌年 (Controlを押しながら右キー)"
+
+msgid "Form.defaultValidateMessages.types.date"
+msgstr "${label}は有効な${type}ではありません"
+
+# traslated
+msgid "User.Register.or"
+msgstr "又は"
+
+msgid "DatePicker.lang.previousDecade"
+msgstr "前の年代"
+
+# traslated
+msgid "App.branchesButton"
+msgstr "枝"
+
+msgid "Form.defaultValidateMessages.types.email"
+msgstr "${label}は有効な${type}ではありません"
+
+msgid "Pagination.next_page"
+msgstr "次のページ"
+
+# traslated
+msgid "Icon.icon"
+msgstr "アイコン"
+
+msgid "Form.defaultValidateMessages.types.method"
+msgstr "${label}は有効な${type}ではありません"
+
+msgid "DatePicker.lang.locale"
+msgstr "ja_JP"
+
+msgid "Calendar.lang.clear"
+msgstr "クリア"
+
+msgid "Calendar.lang.yearFormat"
+msgstr "YYYY年"
+
+msgid "Form.defaultValidateMessages.required"
+msgstr "${label}を入力してください"
+
+# traslated
+msgid "App.debugButton"
+msgstr "デバッグ"
+
+msgid "locale"
+msgstr "ja"
+
+msgid "DatePicker.lang.ok"
+msgstr "決定"
+
+msgid "Table.cancelSort"
+msgstr "ソートをキャンセル"
+
+# traslated
+msgid "Calendar.lang.rangeYearPlaceholder"
+msgstr "§[\"開始年\",\"終了年\"]"
+
+# traslated
+msgid "User.Setting.errorTitle"
+msgstr "オプス...問題が発生しました。"
+
+# traslated
+msgid "Contact.namePlaceholder"
+msgstr "お名前 *"
+
+msgid "Calendar.lang.placeholder"
+msgstr "日付を選択"
+
+# traslated
+msgid "App.restoreEraseButton"
+msgstr "ストレージの消去"
+
+# traslated
+msgid "User.Login.passwordRequired"
+msgstr "パスワードを入力してください!"
+
+# traslated
+msgid "User.Forgot.or"
+msgstr "又は"
+
+msgid "Form.defaultValidateMessages.types.boolean"
+msgstr "${label}は有効な${type}ではありません"
+
+# traslated
+msgid "DatePicker.lang.rangeWeekPlaceholder"
+msgstr "§[\"開始週\",\"週の終わり\"]"
+
+# traslated
+msgid "App.cleanButton"
+msgstr "綺麗"
+
+msgid "Form.defaultValidateMessages.types.integer"
+msgstr "${label}は有効な${type}ではありません"
+
+msgid "Empty.description"
+msgstr "データがありません"
+
+# default
+msgid "Calendar.lang.shortMonths"
+msgstr "§undefined"
+
+# traslated
+msgid "DebugTemplate.tooltipFloatButton"
+msgstr "デバッグ ワークフローを開く"
+
+msgid "Calendar.lang.decadeSelect"
+msgstr "年代を選択"
+
+msgid "Upload.uploadError"
+msgstr "アップロードエラー"
+
+# traslated
+msgid "User.Login.submitButton"
+msgstr "ログイン"
+
+# traslated
+msgid "User.Register.errorTitle"
+msgstr "オプス...問題が発生しました。"
+
+msgid "DatePicker.lang.timeSelect"
+msgstr "時間を選択"
+
+# traslated
+msgid "App.uploadButton"
+msgstr "アップロード"
+
+# traslated
+msgid "User.Register.passwordConfirmPlaceholder"
+msgstr "パスワードの確認"
+
+# traslated
+msgid "CloudDownloadField.fieldErrors.name"
+msgstr "お名前を入力してください!"
+
+# traslated
+msgid "CloudUploadField.fieldErrors.name"
+msgstr "お名前を入力してください!"
+
+# traslated
+msgid "TableField.exportTooltip"
+msgstr "テーブルをCSVでエクスポート"
+
+# traslated
+msgid "User.Login.registerNow"
+msgstr "今すぐご登録ください!"
+
+# traslated
+msgid "User.Login.emailInvalid"
+msgstr "無効なメールです。"
+
+# traslated
+msgid "User.Forgot.login"
+msgstr "ログイン！"
+
+msgid "Pagination.items_per_page"
+msgstr "件 / ページ"
+
+# traslated
+msgid "CloudDownloadField.buttonSave"
+msgstr "セーブ"
+
+# traslated
+msgid "User.titleRegister"
+msgstr "新規登録"
+
+msgid "Calendar.lang.now"
+msgstr "現在時刻"
+
+# traslated
+msgid "Contact.buttonTooltip"
+msgstr "接触"
+
+# traslated
+msgid "Form.optional"
+msgstr "(オプション)"
+
+# traslated
+msgid "App.restoreTitleDifferences"
+msgstr "違い"
+
+# default
+msgid "DatePicker.lang.monthBeforeYear"
+msgstr "§true"
+
+msgid "DatePicker.lang.rangePlaceholder"
+msgstr "§[\"開始日付\",\"終了日付\"]"
+
+# traslated
+msgid "User.Confirm.emailPlaceholder"
+msgstr "電子メール"
+
+msgid "DatePicker.lang.nextDecade"
+msgstr "次の年代"
+
+# traslated
+msgid "Errors.title"
+msgstr "検証エラー"
+
+# traslated
+msgid "DatePicker.lang.yearPlaceholder"
+msgstr "年を選択"
+
+# traslated
+msgid "FileWidget.errorFileType"
+msgstr "アップロードできるのは {fileTypes} ファイルのみです。"
+
+# traslated
+msgid "PDFField.uploadError"
+msgstr "アップロードエラー"
+
+# traslated
+msgid "DatePicker.lang.rangeQuarterPlaceholder"
+msgstr "§[\"開始四半期\",\"四半期末\"]"
+
+# traslated
+msgid "App.restoreCurrent"
+msgstr "現在の"
+
+# traslated
+msgid "ArrayAccordion.placeholder"
+msgstr "選択してください"
+
+# traslated
+msgid "Calendar.lang.weekPlaceholder"
+msgstr "週を選択"
+
+# traslated
+msgid "User.Register.firstnameRequired"
+msgstr "お名前をご入力ください。"
+
+# traslated
+msgid "User.Setting.revertButton"
+msgstr "戻す"
+
+# traslated
+msgid "App.fullscreenButton"
+msgstr "全画面表示"
+
+# traslated
+msgid "CloudDownloadField.buttonSaveNew"
+msgstr "新記録"
+
+msgid "DatePicker.lang.month"
+msgstr "月"
+
+msgid "Calendar.lang.nextMonth"
+msgstr "翌月 (ページダウンキー)"
+
+# traslated
+msgid "TableField.deleteItemConfirm"
+msgstr "削除しておしまいますか?"
+
+msgid "Form.defaultValidateMessages.array.len"
+msgstr "${label}は${len}である必要があります"
+
+msgid "Table.filterConfirm"
+msgstr "OK"
+
+# traslated
+msgid "User.Setting.firstnamePlaceholder"
+msgstr "名前"
+
+# traslated
+msgid "App.autoSavingErrorTitle"
+msgstr "オプス...自動保存の無効化"
+
+msgid "TimePicker.placeholder"
+msgstr "時間を選択"
+
+# traslated
+msgid "DatePicker.lang.quarterPlaceholder"
+msgstr "四半期を選択"
+
+# traslated
+msgid "User.ResetPassword.passwordConfirmRequired"
+msgstr "新しいパスワードを確認してください。"
+
+# traslated
+msgid "CloudDownloadField.dataSwitchUnChecked"
+msgstr "サーバー"
+
+# traslated
+msgid "Table.selectNone"
+msgstr "すべてのデータを消去する"
+
+msgid "Form.defaultValidateMessages.types.url"
+msgstr "${label}は有効な${type}ではありません"
+
+msgid "Pagination.page"
+msgstr "ページ"
+
+# traslated
+msgid "User.titleSetting"
+msgstr "設定の編集"
+
+# traslated
+msgid "User.Forgot.emailRequired"
+msgstr "メールアドレスを入力してください!"
+
+msgid "Table.selectionAll"
+msgstr "すべてを選択"
+
+msgid "Form.defaultValidateMessages.string.range"
+msgstr "${label}は${min}-${max}文字の範囲である必要があります"
+
+# traslated
+msgid "User.Login.emailPlaceholder"
+msgstr "電子メール"
+
+# traslated
+msgid "TabsField.moveleft"
+msgstr "左に移動"
+
+# traslated
+msgid "App.cloudUploadButton"
+msgstr "セーブ"
+
+# traslated
+msgid "User.Forgot.emailPlaceholder"
+msgstr "電子メール"
+
+# traslated
+msgid "PDFField.downloadFile"
+msgstr "ファイルをダウンロード"
+
+msgid "DatePicker.timePickerLocale.placeholder"
+msgstr "時間を選択"
+
+# traslated
+msgid "Contact.messageRequired"
+msgstr "メッセージをご入力ください!"
+
+# traslated
+msgid "User.Setting.lastnameRequired"
+msgstr "苗字を入力してください!"
+
+# traslated
+msgid "CloudUploadField.buttonCancel"
+msgstr "キャンセル"
+
+# traslated
+msgid "App.downloadButton"
+msgstr "ダウンロード"
+
+msgid "DatePicker.lang.dateFormat"
+msgstr "YYYY年M月D日"
+
+# traslated
+msgid "Contact.subjectRequired"
+msgstr "メールの件名を入力してください。"
+
+# default
+msgid "Calendar.lang.shortWeekDays"
+msgstr "§undefined"
+
+msgid "Calendar.lang.locale"
+msgstr "ja_JP"
+
+# traslated
+msgid "CloudDownloadField.titleName"
+msgstr "名前"
+
+msgid "Transfer.searchPlaceholder"
+msgstr "ここを検索"
+
+# traslated
+msgid "CloudUploadField.createdAt"
+msgstr "作成"
+
+# traslated
+msgid "Contact.emailInvalid"
+msgstr "無効なメールです。"
+
+# traslated
+msgid "User.infoButton"
+msgstr "プロフィール"
+
+# traslated
+msgid "User.Register.passwordConfirmError"
+msgstr "入力した 2 つのパスワードが一致しません。"
+
+# traslated
+msgid "CloudUploadField.dataSwitchChecked"
+msgstr "現在の"
+
+# traslated
+msgid "TabsField.clone"
+msgstr "クローン"
+
+msgid "Transfer.titles"
+msgstr "§[\"\",\"\"]"
+
+# traslated
+msgid "QRCode.refresh"
+msgstr "リフレッシュ"
+
+# traslated
+msgid "TableField.importTooltip"
+msgstr "CSVからテーブルをインポート"
+
+# traslated
+msgid "App.uploadTooltip"
+msgstr "データを JSON としてインポートする"
+
+msgid "DatePicker.lang.decadeSelect"
+msgstr "年代を選択"
+
+# traslated
+msgid "App.restoreModalTitle"
+msgstr "データの復元"
+
+msgid "Table.sortTitle"
+msgstr "ソート"
+
+msgid "DatePicker.lang.year"
+msgstr "年"
+
+# traslated
+msgid "App.restoreRestoreButton"
+msgstr "戻す"
+
+msgid "Form.defaultValidateMessages.types.number"
+msgstr "${label}は有効な${type}ではありません"
+
+# traslated
+msgid "Calendar.lang.yearPlaceholder"
+msgstr "年を選択"
+
+msgid "Popconfirm.okText"
+msgstr "OK"
+
+# traslated
+msgid "CloudDownloadField.titleData"
+msgstr "データソース"
+
+# traslated
+msgid "ArrayCopy.placeholder"
+msgstr "選択してください"
+
+msgid "Upload.uploading"
+msgstr "アップロード中..."
+
+# traslated
+msgid "CloudUploadField.titleData"
+msgstr "データソース"
+
+# traslated
+msgid "Text.copied"
+msgstr "コピー"
+
+# traslated
+msgid "App.cloudDownloadTooltip"
+msgstr "クラウドからのデータのインポート"
+
+# traslated
+msgid "FileWidget.dropMessage"
+msgstr "ファイルをここにドラッグするか、クリックして参照します"
+
+msgid "Calendar.lang.month"
+msgstr "月"
+
+msgid "Form.defaultValidateMessages.types.object"
+msgstr "${label}は有効な${type}ではありません"
+
+# traslated
+msgid "PageHeader.back"
+msgstr "戻る"
+
+msgid "DatePicker.lang.nextYear"
+msgstr "翌年 (Controlを押しながら右キー)"
+
+# traslated
+msgid "User.titleLogin"
+msgstr "ログイン"
+
+# traslated
+msgid "Table.filterCheckall"
+msgstr "すべての項目を選択"
+
+msgid "DatePicker.lang.previousYear"
+msgstr "前年 (Controlを押しながら左キー)"
+
+msgid "Upload.previewFile"
+msgstr "ファイルをプレビュー"
+
+# traslated
+msgid "CloudUploadField.updatedAt"
+msgstr "更新"
+
+msgid "Calendar.lang.timeSelect"
+msgstr "時間を選択"
+
+# traslated
+msgid "CloudUploadField.buttonSave"
+msgstr "セーブ"
+
+# traslated
+msgid "TabsField.selectItem"
+msgstr "アイテムを選択"
+
+# traslated
+msgid "FileWidget.errorSameFile"
+msgstr "ファイル {filename} は既にアップロードされています。"
+
+msgid "Calendar.lang.monthSelect"
+msgstr "月を選択"
+
+msgid "Form.defaultValidateMessages.types.array"
+msgstr "${label}は有効な${type}ではありません"
+
+msgid "language"
+msgstr "ja_JP"
+
+# traslated
+msgid "User.Setting.lastnamePlaceholder"
+msgstr "名字"
+
+# traslated
+msgid "TabsField.delete"
+msgstr "削除"
+
+msgid "Form.defaultValidateMessages.default"
+msgstr "${label}のフィールド検証エラー"
+
+msgid "Calendar.lang.previousYear"
+msgstr "前年 (Controlを押しながら左キー)"

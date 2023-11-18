@@ -1,0 +1,1506 @@
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: 1.0\n"
+"Report-Msgid-Bugs-To: vinci1it2000@gmail.com\n"
+"PO-Revision-Date: 2023-11-18 08:55+0000\n"
+"Last-Translator: Vincenzo Arcidiacono <vinci1it2000@gmail.com>\n"
+"Language-Team: English <vinci1it2000@gmail.com>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+# traslated
+msgid "Contact.errorTitle"
+msgstr "Ops... iets het verkeerd geloop!"
+
+# traslated
+msgid "ColorPicker.presetEmpty"
+msgstr "Leë"
+
+# traslated
+msgid "Table.filterReset"
+msgstr "Terugstel"
+
+# traslated
+msgid "User.Register.login"
+msgstr "Aanteken!"
+
+# traslated
+msgid "TableField.addItemTooltip"
+msgstr "Voeg item by"
+
+# traslated
+msgid "CloudUploadField.buttonDownload"
+msgstr "Bediener"
+
+# traslated
+msgid "User.Logout.submitButton"
+msgstr "Afmelding"
+
+# traslated
+msgid "Calendar.lang.dateFormat"
+msgstr "M/D/YYYY"
+
+# traslated
+msgid "Calendar.lang.dateSelect"
+msgstr "kies datum"
+
+# traslated
+msgid "User.Confirm.errorTitle"
+msgstr "Ops... iets het verkeerd geloop!"
+
+# traslated
+msgid "TabsField.moveup"
+msgstr "beweeg op"
+
+# traslated
+msgid "Modal.justOkText"
+msgstr "OUKEI"
+
+# traslated
+msgid "PDFField.titleSectionSelection"
+msgstr "Afdelings"
+
+# traslated
+msgid "Calendar.lang.previousCentury"
+msgstr "Laaste eeu"
+
+# traslated
+msgid "User.ResetPassword.passwordPlaceholder"
+msgstr "Nuwe wagwoord"
+
+# traslated
+msgid "User.loginTooltip"
+msgstr "Aanteken"
+
+# traslated
+msgid "Form.defaultValidateMessages.whitespace"
+msgstr "${label} kan nie 'n leë karakter wees nie"
+
+# traslated
+msgid "Pagination.prev_page"
+msgstr "Vorige bladsy"
+
+# traslated
+msgid "QRCode.expired"
+msgstr "QR-kode verval"
+
+# traslated
+msgid "FileWidget.errorNotUploaded"
+msgstr "Ops... lêer nie opgelaai nie"
+
+# traslated
+msgid "Form.defaultValidateMessages.string.max"
+msgstr "${label} moet tot ${max} karakters wees"
+
+# traslated
+msgid "User.Confirm.submitButton"
+msgstr "Stuur instruksies"
+
+# traslated
+msgid "Form.defaultValidateMessages.types.hex"
+msgstr "${label} is nie 'n geldige ${type} nie"
+
+# traslated
+msgid "Contact.submitButton"
+msgstr "Stuur"
+
+# traslated
+msgid "Table.expand"
+msgstr "Brei ry uit"
+
+# traslated
+msgid "App.restoreDifferences"
+msgstr "Toon verskille van huidige data"
+
+# traslated
+msgid "Pagination.jump_to_confirm"
+msgstr "Bevestig"
+
+# traslated
+msgid "User.ResetPassword.submitButton"
+msgstr "Stel wagwoord terug"
+
+# traslated
+msgid "Transfer.itemUnit"
+msgstr "Item"
+
+# traslated
+msgid "global.placeholder"
+msgstr "Kies asseblief"
+
+# traslated
+msgid "DatePicker.lang.rangeMonthPlaceholder"
+msgstr "§[\"Begin maand\",\"Einde maand\"]"
+
+# traslated
+msgid "User.titleResetPassword"
+msgstr "Stel wagwoord terug"
+
+# traslated
+msgid "Contact.emailPlaceholder"
+msgstr "E-pos"
+
+# traslated
+msgid "Table.triggerAsc"
+msgstr "Klik om stygende te sorteer"
+
+# traslated
+msgid "User.Register.usernameRequired"
+msgstr "Voer asseblief jou gebruikersnaam in!"
+
+# traslated
+msgid "User.titleLogout"
+msgstr "Seker om af te meld?"
+
+# traslated
+msgid "ArrayCopy.titleCopyButton"
+msgstr "Kies asseblief waar om data te kopieer?"
+
+# traslated
+msgid "Popconfirm.cancelText"
+msgstr "Kanselleer"
+
+# traslated
+msgid "User.titleConfirm"
+msgstr "Stuur bevestigings-e-pos"
+
+# traslated
+msgid "Form.defaultValidateMessages.array.range"
+msgstr "Die bedrag van ${label} moet tussen ${min}-${max} wees."
+
+# traslated
+msgid "User.ResetPassword.login"
+msgstr "Aanteken!"
+
+# traslated
+msgid "Calendar.lang.rangeQuarterPlaceholder"
+msgstr "§[\"Begin kwartaal\",\"Einde kwartaal\"]"
+
+# traslated
+msgid "PDFField.previewFile"
+msgstr "Voorskou lêer"
+
+# traslated
+msgid "Contact.subjectPlaceholder"
+msgstr "Pos onderwerp"
+
+# traslated
+msgid "User.titleInfo"
+msgstr "Gebruiker inligting"
+
+# traslated
+msgid "App.cloudDownloadButton"
+msgstr "Invoer"
+
+# traslated
+msgid "Form.defaultValidateMessages.types.float"
+msgstr "${label} is nie 'n geldige ${type} nie"
+
+# traslated
+msgid "App.runButton"
+msgstr "Loop"
+
+# traslated
+msgid "User.Register.emailInvalid"
+msgstr "Ongeldige e-pos!"
+
+# traslated
+msgid "Modal.cancelText"
+msgstr "Kanselleer"
+
+# traslated
+msgid "DatePicker.lang.nextCentury"
+msgstr "Volgende eeu"
+
+# traslated
+msgid "Upload.removeFile"
+msgstr "Verwyder lêer"
+
+# traslated
+msgid "FileWidget.errorToolTip"
+msgstr "Laai fout op"
+
+# traslated
+msgid "TableField.deleteAllConfirm"
+msgstr "Seker om alle inhoud uit te vee?"
+
+# traslated
+msgid "Form.defaultValidateMessages.number.range"
+msgstr "${label} moet tussen ${min}-${max} wees"
+
+# traslated
+msgid "Form.defaultValidateMessages.date.format"
+msgstr "${label} datumformaat is ongeldig"
+
+# traslated
+msgid "Form.defaultValidateMessages.types.string"
+msgstr "${label} is nie 'n geldige ${type} nie"
+
+# traslated
+msgid "Transfer.selectInvert"
+msgstr "Omkeer huidige bladsy"
+
+# traslated
+msgid "ErrorListTemplate.tooltipFloatButton"
+msgstr "Maak foutboodskappe oop"
+
+# traslated
+msgid "DatePicker.lang.dateSelect"
+msgstr "kies datum"
+
+# traslated
+msgid "Table.emptyText"
+msgstr "Geen data nie"
+
+# traslated
+msgid "DatePicker.lang.backToToday"
+msgstr "Terug na vandag"
+
+# traslated
+msgid "DatePicker.lang.dayFormat"
+msgstr "D"
+
+# traslated
+msgid "User.Forgot.emailInvalid"
+msgstr "Ongeldige e-pos!"
+
+# default
+msgid "DatePicker.lang.shortMonths"
+msgstr "§undefined"
+
+# traslated
+msgid "User.ResetPassword.passwordRequired"
+msgstr "Voer asseblief jou nuwe wagwoord in!"
+
+# traslated
+msgid "User.Register.lastnamePlaceholder"
+msgstr "Van"
+
+# traslated
+msgid "CloudUploadField.titleName"
+msgstr "Naam"
+
+# traslated
+msgid "Contact.title"
+msgstr "Kontak Ons"
+
+# traslated
+msgid "Calendar.lang.nextCentury"
+msgstr "Volgende eeu"
+
+# traslated
+msgid "Form.defaultValidateMessages.string.min"
+msgstr "${label} moet ten minste ${min} karakters wees"
+
+# traslated
+msgid "Modal.okText"
+msgstr "OUKEI"
+
+# traslated
+msgid "User.Register.emailRequired"
+msgstr "Voer asseblief jou e-pos in!"
+
+# traslated
+msgid "Table.collapse"
+msgstr "Vou ry in"
+
+# traslated
+msgid "Pagination.prev_5"
+msgstr "Vorige 5 bladsye"
+
+# traslated
+msgid "ArrayAccordion.titleCopyButton"
+msgstr "Kies asseblief waar om data te kopieer?"
+
+# traslated
+msgid "Calendar.lang.previousMonth"
+msgstr "Vorige maand (PageUp)"
+
+# traslated
+msgid "Transfer.removeCurrent"
+msgstr "Verwyder huidige bladsy"
+
+# traslated
+msgid "Form.defaultValidateMessages.array.max"
+msgstr "Hoogstens ${max} ${label}"
+
+# traslated
+msgid "App.cloudUploadTooltip"
+msgstr "Stoor data in die wolk"
+
+# traslated
+msgid "CloudDownloadField.buttonCancel"
+msgstr "Kanselleer"
+
+# traslated
+msgid "Contact.emailRequired"
+msgstr "Voer asseblief jou e-pos in!"
+
+# default
+msgid "Calendar.lang.monthBeforeYear"
+msgstr "§true"
+
+# traslated
+msgid "User.Confirm.emailInvalid"
+msgstr "Ongeldige e-pos!"
+
+# traslated
+msgid "User.ResetPassword.passwordConfirmError"
+msgstr "Die twee wagwoorde wat u ingevoer het, stem nie ooreen nie!"
+
+# traslated
+msgid "CloudUploadField.titleSaveNew"
+msgstr "Stoor huidige data"
+
+# traslated
+msgid "User.Register.lastnameRequired"
+msgstr "Voer asseblief jou Van in!"
+
+# traslated
+msgid "User.settingButton"
+msgstr "Instellings"
+
+# traslated
+msgid "Pagination.next_3"
+msgstr "Volgende 3 bladsye"
+
+# traslated
+msgid "Transfer.remove"
+msgstr "Verwyder"
+
+# traslated
+msgid "DatePicker.lang.yearFormat"
+msgstr "JJJJ"
+
+# traslated
+msgid "User.Login.passwordPlaceholder"
+msgstr "Wagwoord"
+
+# traslated
+msgid "DatePicker.lang.placeholder"
+msgstr "Kies datum"
+
+# traslated
+msgid "User.titleForgot"
+msgstr "Herstel wagwoord"
+
+# traslated
+msgid "Calendar.lang.quarterPlaceholder"
+msgstr "Kies kwartaal"
+
+# traslated
+msgid "DatePicker.lang.previousCentury"
+msgstr "Laaste eeu"
+
+# traslated
+msgid "App.restoreButton"
+msgstr "Herstel"
+
+# default
+msgid "DatePicker.lang.shortWeekDays"
+msgstr "§undefined"
+
+# traslated
+msgid "User.logoutButton"
+msgstr "Afmelding"
+
+# traslated
+msgid "User.buttonTooltip"
+msgstr "Aanteken"
+
+# traslated
+msgid "DatePicker.lang.rangeYearPlaceholder"
+msgstr "§[\"Begin jaar\",\"Eindjaar\"]"
+
+# traslated
+msgid "Pagination.page_size"
+msgstr "Bladsy grootte"
+
+# traslated
+msgid "Calendar.lang.weekSelect"
+msgstr "Kies 'n week"
+
+# traslated
+msgid "Form.defaultValidateMessages.date.invalid"
+msgstr "${label} is 'n ongeldige datum"
+
+# traslated
+msgid "App.restoreCloseButton"
+msgstr "Sluit"
+
+# traslated
+msgid "User.Forgot.submitButton"
+msgstr "Herstel wagwoord"
+
+# traslated
+msgid "Transfer.selectCurrent"
+msgstr "Kies huidige bladsy"
+
+# traslated
+msgid "User.Register.usernamePlaceholder"
+msgstr "Gebruikersnaam"
+
+# traslated
+msgid "App.filesButton"
+msgstr "Lêers"
+
+# traslated
+msgid "TabsField.moveright"
+msgstr "beweeg regs"
+
+# traslated
+msgid "DatePicker.lang.weekSelect"
+msgstr "Kies 'n week"
+
+# traslated
+msgid "Calendar.lang.rangeMonthPlaceholder"
+msgstr "§[\"Begin maand\",\"Einde maand\"]"
+
+# traslated
+msgid "Table.filterTitle"
+msgstr "Filter spyskaart"
+
+# traslated
+msgid "App.restoreTooltip"
+msgstr "Herstel data"
+
+# traslated
+msgid "Upload.downloadFile"
+msgstr "Laai lêer af"
+
+# traslated
+msgid "Calendar.lang.yearSelect"
+msgstr "Kies 'n jaar"
+
+# traslated
+msgid "Text.copy"
+msgstr "Kopieer"
+
+# traslated
+msgid "User.ResetPassword.errorTitle"
+msgstr "Ops... iets het verkeerd geloop!"
+
+# traslated
+msgid "Tour.Finish"
+msgstr "Klaar"
+
+# traslated
+msgid "Form.defaultValidateMessages.number.len"
+msgstr "${label} moet gelyk wees aan ${len}"
+
+# traslated
+msgid "CloudDownloadField.titleSaveNew"
+msgstr "Stoor huidige data"
+
+# traslated
+msgid "CloudUploadField.confirmDelete"
+msgstr "Seker om te verwyder?"
+
+# traslated
+msgid "PDFField.uploading"
+msgstr "Oplaai..."
+
+# traslated
+msgid "Transfer.removeAll"
+msgstr "Verwyder alle data"
+
+# traslated
+msgid "Calendar.timePickerLocale.rangePlaceholder"
+msgstr "§[\"Begin tyd\",\"Eindtyd\"]"
+
+# traslated
+msgid "User.Forgot.errorTitle"
+msgstr "Ops... iets het verkeerd geloop!"
+
+# traslated
+msgid "Table.filterEmptyText"
+msgstr "Geen filters nie"
+
+# traslated
+msgid "PDFField.removeFile"
+msgstr "Verwyder lêer"
+
+# traslated
+msgid "User.Login.sendConfirmMail"
+msgstr "stuur bevestigings-e-pos weer"
+
+# traslated
+msgid "Pagination.next_5"
+msgstr "Volgende 5 bladsye"
+
+# traslated
+msgid "ErrorListTemplate.descriptionFloatButton"
+msgstr "ERR"
+
+# traslated
+msgid "PDFField.preview"
+msgstr "Voorskou"
+
+# traslated
+msgid "Form.defaultValidateMessages.enum"
+msgstr "${label} moet een van [${enum}] wees."
+
+# traslated
+msgid "Contact.nameRequired"
+msgstr "Voer asseblief jou naam in!"
+
+# traslated
+msgid "ErrorListTemplate.titleModal"
+msgstr "Foute"
+
+# traslated
+msgid "Form.defaultValidateMessages.number.min"
+msgstr "${label} moet minimum ${min} wees"
+
+# traslated
+msgid "User.Register.firstnamePlaceholder"
+msgstr "Naam"
+
+# traslated
+msgid "Calendar.lang.dayFormat"
+msgstr "D"
+
+# traslated
+msgid "DatePicker.lang.yearSelect"
+msgstr "Kies 'n jaar"
+
+# traslated
+msgid "User.Register.submitButton"
+msgstr "Register"
+
+# traslated
+msgid "Calendar.lang.backToToday"
+msgstr "Terug na vandag"
+
+# traslated
+msgid "User.Login.rememberMe"
+msgstr "Onthou my"
+
+# traslated
+msgid "CloudDownloadField.buttonDownload"
+msgstr "Bediener"
+
+# traslated
+msgid "ArrayAccordion.tooltipExtra"
+msgstr "Kopieer data oor"
+
+# traslated
+msgid "Calendar.timePickerLocale.placeholder"
+msgstr "Kies tyd"
+
+# traslated
+msgid "Calendar.lang.year"
+msgstr "Jaar"
+
+# traslated
+msgid "User.Register.passwordConfirmRequired"
+msgstr "Bevestig asseblief jou wagwoord!"
+
+# traslated
+msgid "App.disableFullscreen"
+msgstr "Skakel volskerm uit"
+
+# traslated
+msgid "CloudDownloadField.createdAt"
+msgstr "Geskep"
+
+# traslated
+msgid "App.downloadTooltip"
+msgstr "Voer data uit as JSON"
+
+# traslated
+msgid "App.autoSaveTooltip"
+msgstr "Aktiveer outosaving"
+
+# traslated
+msgid "DatePicker.lang.today"
+msgstr "Vandag"
+
+# traslated
+msgid "Tour.Previous"
+msgstr "Vorige"
+
+# traslated
+msgid "Pagination.jump_to"
+msgstr "Gaan na"
+
+# traslated
+msgid "User.ResetPassword.or"
+msgstr "Of"
+
+# traslated
+msgid "User.Register.passwordPlaceholder"
+msgstr "Wagwoord"
+
+# traslated
+msgid "Table.selectAll"
+msgstr "Kies huidige bladsy"
+
+# traslated
+msgid "CloudUploadField.buttonOverwrite"
+msgstr "Oorheenskryf"
+
+# traslated
+msgid "CloudDownloadField.updatedAt"
+msgstr "Bygewerk"
+
+# traslated
+msgid "User.Login.or"
+msgstr "Of"
+
+# traslated
+msgid "DebugTemplate.titleModal"
+msgstr "Ontfout werkvloei"
+
+# traslated
+msgid "Calendar.lang.rangePlaceholder"
+msgstr "§[\"Begin datum\",\"Einddatum\"]"
+
+# traslated
+msgid "Text.edit"
+msgstr "Redigeer"
+
+# traslated
+msgid "DatePicker.lang.previousMonth"
+msgstr "Vorige maand (PageUp)"
+
+# traslated
+msgid "App.autoSaveButton"
+msgstr "Outostoor"
+
+# traslated
+msgid "CloudDownloadField.buttonOverwrite"
+msgstr "Oorheenskryf"
+
+# traslated
+msgid "FileWidget.errorOnlyOneItem"
+msgstr "U kan maksimum een lêer oplaai!"
+
+# traslated
+msgid "Pagination.prev_3"
+msgstr "Vorige 3 bladsye"
+
+# traslated
+msgid "User.Login.emailRequired"
+msgstr "Voer asseblief jou e-pos in!"
+
+# traslated
+msgid "CloudDownloadField.confirmDelete"
+msgstr "Seker om te verwyder?"
+
+# traslated
+msgid "User.Register.passwordRequired"
+msgstr "Voer asseblief jou wagwoord in!"
+
+# traslated
+msgid "TimePicker.rangePlaceholder"
+msgstr "§[\"Begin tyd\",\"Eindtyd\"]"
+
+# traslated
+msgid "FileWidget.errorMaxItems"
+msgstr "U kan maksimum {maxItems} lêers oplaai!"
+
+# traslated
+msgid "Calendar.lang.dateTimeFormat"
+msgstr "M/D/YYYY HH:mm:ss"
+
+# traslated
+msgid "User.Confirm.or"
+msgstr "Of"
+
+# traslated
+msgid "Contact.messagePlaceholder"
+msgstr "Jou boodskap"
+
+# traslated
+msgid "Form.defaultValidateMessages.string.len"
+msgstr "${label} moet ${len} karakters wees"
+
+# traslated
+msgid "ArrayCopy.tooltip"
+msgstr "Kopieer data oor"
+
+# traslated
+msgid "DatePicker.lang.monthPlaceholder"
+msgstr "Kies maand"
+
+# traslated
+msgid "Calendar.lang.today"
+msgstr "Vandag"
+
+# traslated
+msgid "Transfer.itemsUnit"
+msgstr "Items"
+
+# traslated
+msgid "Table.filterSearchPlaceholder"
+msgstr "Soek in filters"
+
+# default
+msgid "DatePicker.lang.monthFormat"
+msgstr "§undefined"
+
+# traslated
+msgid "CloudDownloadField.dataSwitchChecked"
+msgstr "Huidige"
+
+# traslated
+msgid "Transfer.selectAll"
+msgstr "Kies alle data"
+
+# traslated
+msgid "Image.preview"
+msgstr "Voorskou"
+
+# traslated
+msgid "Table.triggerDesc"
+msgstr "Klik om dalende te sorteer"
+
+# traslated
+msgid "DatePicker.lang.dateTimeFormat"
+msgstr "M/D/YYYY HH:mm:ss"
+
+# traslated
+msgid "CloudUploadField.errorTitle"
+msgstr "Ops... iets het verkeerd geloop!"
+
+# traslated
+msgid "DatePicker.timePickerLocale.rangePlaceholder"
+msgstr "§[\"Begin tyd\",\"Eindtyd\"]"
+
+# traslated
+msgid "App.enableFullscreen"
+msgstr "Aktiveer volskerm"
+
+# traslated
+msgid "DatePicker.lang.clear"
+msgstr "Duidelik"
+
+# traslated
+msgid "Calendar.lang.nextDecade"
+msgstr "Volgende dekade"
+
+# traslated
+msgid "User.Register.emailPlaceholder"
+msgstr "E-pos"
+
+# traslated
+msgid "App.cloudButton"
+msgstr "Wolk"
+
+# traslated
+msgid "App.autoSavingTooltip"
+msgstr "Deaktiveer outostoor"
+
+# traslated
+msgid "Form.defaultValidateMessages.date.parse"
+msgstr "${label} kan nie omgeskakel word na 'n datum nie"
+
+# traslated
+msgid "Form.defaultValidateMessages.pattern.mismatch"
+msgstr "${label} stem nie ooreen met die patroon ${patroon} nie"
+
+# traslated
+msgid "Form.defaultValidateMessages.types.regexp"
+msgstr "${label} is nie 'n geldige ${type} nie"
+
+# traslated
+msgid "Text.expand"
+msgstr "Brei"
+
+# traslated
+msgid "User.Login.forgotPassword"
+msgstr "Wagwoord vergeet"
+
+# traslated
+msgid "Form.defaultValidateMessages.number.max"
+msgstr "${label} moet maksimum ${max} wees"
+
+# traslated
+msgid "CloudUploadField.dataSwitchUnChecked"
+msgstr "Bediener"
+
+# traslated
+msgid "App.cleanConfirm"
+msgstr "Seker om hierdie data uit te vee?"
+
+# traslated
+msgid "CloudUploadField.buttonSaveNew"
+msgstr "Nuwe rekord"
+
+# traslated
+msgid "DatePicker.lang.nextMonth"
+msgstr "Volgende maand (PageDown)"
+
+# traslated
+msgid "Table.selectInvert"
+msgstr "Omkeer huidige bladsy"
+
+# traslated
+msgid "App.restoreConfirm"
+msgstr "Herstel u hierdie data seker?"
+
+# traslated
+msgid "DatePicker.lang.weekPlaceholder"
+msgstr "Kies week"
+
+# traslated
+msgid "Calendar.lang.monthPlaceholder"
+msgstr "Kies maand"
+
+# traslated
+msgid "User.Login.errorTitle"
+msgstr "Ops... iets het verkeerd geloop!"
+
+# traslated
+msgid "Form.defaultValidateMessages.array.min"
+msgstr "Ten minste ${min} ${label}"
+
+# traslated
+msgid "TabsField.select"
+msgstr "Kies"
+
+# traslated
+msgid "TabsField.movedown"
+msgstr "beweeg af"
+
+# traslated
+msgid "DatePicker.lang.monthSelect"
+msgstr "Kies 'n maand"
+
+# traslated
+msgid "App.autoSavingButton"
+msgstr "Outosaving"
+
+# traslated
+msgid "Calendar.lang.previousDecade"
+msgstr "Laaste dekade"
+
+# traslated
+msgid "Calendar.lang.ok"
+msgstr "OUKEI"
+
+# traslated
+msgid "User.Confirm.emailRequired"
+msgstr "Voer asseblief jou e-pos in!"
+
+# traslated
+msgid "User.Setting.firstnameRequired"
+msgstr "Voer asseblief jou naam in!"
+
+# default
+msgid "Calendar.lang.monthFormat"
+msgstr "§undefined"
+
+# traslated
+msgid "User.Setting.submitButton"
+msgstr "Stoor"
+
+# traslated
+msgid "Tour.Next"
+msgstr "Volgende"
+
+# traslated
+msgid "Calendar.lang.rangeWeekPlaceholder"
+msgstr "§[\"Begin week\",\"Einde week\"]"
+
+# traslated
+msgid "CloudDownloadField.errorTitle"
+msgstr "Ops... iets het verkeerd geloop!"
+
+# traslated
+msgid "User.Confirm.login"
+msgstr "Aanteken!"
+
+# traslated
+msgid "User.ResetPassword.passwordConfirmPlaceholder"
+msgstr "Bevestig nuwe wagwoord"
+
+# traslated
+msgid "DatePicker.lang.now"
+msgstr "Nou"
+
+# traslated
+msgid "Calendar.lang.nextYear"
+msgstr "Volgende jaar (Beheer + regs)"
+
+# traslated
+msgid "Form.defaultValidateMessages.types.date"
+msgstr "${label} is nie 'n geldige ${type} nie"
+
+# traslated
+msgid "User.Register.or"
+msgstr "Of"
+
+# traslated
+msgid "DatePicker.lang.previousDecade"
+msgstr "Laaste dekade"
+
+# traslated
+msgid "App.branchesButton"
+msgstr "Takke"
+
+# traslated
+msgid "Form.defaultValidateMessages.types.email"
+msgstr "${label} is nie 'n geldige ${type} nie"
+
+# traslated
+msgid "Pagination.next_page"
+msgstr "Volgende bladsy"
+
+# traslated
+msgid "Icon.icon"
+msgstr "Ikoon"
+
+# traslated
+msgid "Form.defaultValidateMessages.types.method"
+msgstr "${label} is nie 'n geldige ${type} nie"
+
+# traslated
+msgid "DatePicker.lang.locale"
+msgstr "en_US"
+
+# traslated
+msgid "Calendar.lang.clear"
+msgstr "Duidelik"
+
+# traslated
+msgid "Calendar.lang.yearFormat"
+msgstr "JJJJ"
+
+# traslated
+msgid "Form.defaultValidateMessages.required"
+msgstr "Voer asseblief ${label} in"
+
+# traslated
+msgid "App.debugButton"
+msgstr "Ontfout"
+
+# traslated
+msgid "locale"
+msgstr "en"
+
+# traslated
+msgid "DatePicker.lang.ok"
+msgstr "OUKEI"
+
+# traslated
+msgid "Table.cancelSort"
+msgstr "Klik om sortering te kanselleer"
+
+# traslated
+msgid "Calendar.lang.rangeYearPlaceholder"
+msgstr "§[\"Begin jaar\",\"Eindjaar\"]"
+
+# traslated
+msgid "User.Setting.errorTitle"
+msgstr "Ops... iets het verkeerd geloop!"
+
+# traslated
+msgid "Contact.namePlaceholder"
+msgstr "Jou naam"
+
+# traslated
+msgid "Calendar.lang.placeholder"
+msgstr "Kies datum"
+
+# traslated
+msgid "App.restoreEraseButton"
+msgstr "Vee berging uit"
+
+# traslated
+msgid "User.Login.passwordRequired"
+msgstr "Voer asseblief jou wagwoord in!"
+
+# traslated
+msgid "User.Forgot.or"
+msgstr "Of"
+
+# traslated
+msgid "Form.defaultValidateMessages.types.boolean"
+msgstr "${label} is nie 'n geldige ${type} nie"
+
+# traslated
+msgid "DatePicker.lang.rangeWeekPlaceholder"
+msgstr "§[\"Begin week\",\"Einde week\"]"
+
+# traslated
+msgid "App.cleanButton"
+msgstr "Skoon"
+
+# traslated
+msgid "Form.defaultValidateMessages.types.integer"
+msgstr "${label} is nie 'n geldige ${type} nie"
+
+# traslated
+msgid "Empty.description"
+msgstr "Geen data nie"
+
+# default
+msgid "Calendar.lang.shortMonths"
+msgstr "§undefined"
+
+# traslated
+msgid "DebugTemplate.tooltipFloatButton"
+msgstr "Maak ontfout-werkvloei oop"
+
+# traslated
+msgid "Calendar.lang.decadeSelect"
+msgstr "Kies 'n dekade"
+
+# traslated
+msgid "Upload.uploadError"
+msgstr "Laai fout op"
+
+# traslated
+msgid "User.Login.submitButton"
+msgstr "Aanteken"
+
+# traslated
+msgid "User.Register.errorTitle"
+msgstr "Ops... iets het verkeerd geloop!"
+
+# traslated
+msgid "DatePicker.lang.timeSelect"
+msgstr "Kies Tyd"
+
+# traslated
+msgid "App.uploadButton"
+msgstr "Oplaai"
+
+# traslated
+msgid "User.Register.passwordConfirmPlaceholder"
+msgstr "Bevestig wagwoord"
+
+# traslated
+msgid "CloudDownloadField.fieldErrors.name"
+msgstr "Voer asseblief naam in!"
+
+# traslated
+msgid "CloudUploadField.fieldErrors.name"
+msgstr "Voer asseblief naam in!"
+
+# traslated
+msgid "TableField.exportTooltip"
+msgstr "Uitvoer tabel in CSV"
+
+# traslated
+msgid "User.Login.registerNow"
+msgstr "Registreer nou!"
+
+# traslated
+msgid "User.Login.emailInvalid"
+msgstr "Ongeldige e-pos!"
+
+# traslated
+msgid "User.Forgot.login"
+msgstr "Aanteken!"
+
+# traslated
+msgid "Pagination.items_per_page"
+msgstr "/Bladsy"
+
+# traslated
+msgid "CloudDownloadField.buttonSave"
+msgstr "Stoor"
+
+# traslated
+msgid "User.titleRegister"
+msgstr "Nuwe registrasie"
+
+# traslated
+msgid "Calendar.lang.now"
+msgstr "Nou"
+
+# traslated
+msgid "Contact.buttonTooltip"
+msgstr "Kontak"
+
+# traslated
+msgid "Form.optional"
+msgstr "(opsioneel)"
+
+# traslated
+msgid "App.restoreTitleDifferences"
+msgstr "Verskille"
+
+# default
+msgid "DatePicker.lang.monthBeforeYear"
+msgstr "§true"
+
+# traslated
+msgid "DatePicker.lang.rangePlaceholder"
+msgstr "§[\"Begin datum\",\"Einddatum\"]"
+
+# traslated
+msgid "User.Confirm.emailPlaceholder"
+msgstr "E-pos"
+
+# traslated
+msgid "DatePicker.lang.nextDecade"
+msgstr "Volgende dekade"
+
+# traslated
+msgid "Errors.title"
+msgstr "Valideringsfoute"
+
+# traslated
+msgid "DatePicker.lang.yearPlaceholder"
+msgstr "Kies jaar"
+
+# traslated
+msgid "FileWidget.errorFileType"
+msgstr "U kan slegs {fileTypes} lêer oplaai!"
+
+# traslated
+msgid "PDFField.uploadError"
+msgstr "Laai fout op"
+
+# traslated
+msgid "DatePicker.lang.rangeQuarterPlaceholder"
+msgstr "§[\"Begin kwartaal\",\"Einde kwartaal\"]"
+
+# traslated
+msgid "App.restoreCurrent"
+msgstr "Huidige"
+
+# traslated
+msgid "ArrayAccordion.placeholder"
+msgstr "Kies asseblief"
+
+# traslated
+msgid "Calendar.lang.weekPlaceholder"
+msgstr "Kies week"
+
+# traslated
+msgid "User.Register.firstnameRequired"
+msgstr "Voer asseblief jou naam in!"
+
+# traslated
+msgid "User.Setting.revertButton"
+msgstr "Keer terug"
+
+# traslated
+msgid "App.fullscreenButton"
+msgstr "Volskerm"
+
+# traslated
+msgid "CloudDownloadField.buttonSaveNew"
+msgstr "Nuwe rekord"
+
+# traslated
+msgid "DatePicker.lang.month"
+msgstr "Maand"
+
+# traslated
+msgid "Calendar.lang.nextMonth"
+msgstr "Volgende maand (PageDown)"
+
+# traslated
+msgid "TableField.deleteItemConfirm"
+msgstr "Seker om te verwyder?"
+
+# traslated
+msgid "Form.defaultValidateMessages.array.len"
+msgstr "Moet ${len} ${label} wees"
+
+# traslated
+msgid "Table.filterConfirm"
+msgstr "OUKEI"
+
+# traslated
+msgid "User.Setting.firstnamePlaceholder"
+msgstr "Naam"
+
+# traslated
+msgid "App.autoSavingErrorTitle"
+msgstr "Ops... Deaktiveer outobesparing"
+
+# traslated
+msgid "TimePicker.placeholder"
+msgstr "Kies tyd"
+
+# traslated
+msgid "DatePicker.lang.quarterPlaceholder"
+msgstr "Kies kwartaal"
+
+# traslated
+msgid "User.ResetPassword.passwordConfirmRequired"
+msgstr "Bevestig asseblief jou nuwe wagwoord!"
+
+# traslated
+msgid "CloudDownloadField.dataSwitchUnChecked"
+msgstr "Bediener"
+
+# traslated
+msgid "Table.selectNone"
+msgstr "Vee alle data uit"
+
+# traslated
+msgid "Form.defaultValidateMessages.types.url"
+msgstr "${label} is nie 'n geldige ${type} nie"
+
+# traslated
+msgid "Pagination.page"
+msgstr "Bladsy"
+
+# traslated
+msgid "User.titleSetting"
+msgstr "Wysig instellings"
+
+# traslated
+msgid "User.Forgot.emailRequired"
+msgstr "Voer asseblief jou e-pos in!"
+
+# traslated
+msgid "Table.selectionAll"
+msgstr "Kies alle data"
+
+# traslated
+msgid "Form.defaultValidateMessages.string.range"
+msgstr "${label} moet tussen ${min}-${max} karakters wees"
+
+# traslated
+msgid "User.Login.emailPlaceholder"
+msgstr "E-pos"
+
+# traslated
+msgid "TabsField.moveleft"
+msgstr "beweeg links"
+
+# traslated
+msgid "App.cloudUploadButton"
+msgstr "Stoor"
+
+# traslated
+msgid "User.Forgot.emailPlaceholder"
+msgstr "E-pos"
+
+# traslated
+msgid "PDFField.downloadFile"
+msgstr "Laai lêer af"
+
+# traslated
+msgid "DatePicker.timePickerLocale.placeholder"
+msgstr "Kies tyd"
+
+# traslated
+msgid "Contact.messageRequired"
+msgstr "Voer asseblief jou boodskap in!"
+
+# traslated
+msgid "User.Setting.lastnameRequired"
+msgstr "Voer asseblief jou Van in!"
+
+# traslated
+msgid "CloudUploadField.buttonCancel"
+msgstr "Kanselleer"
+
+# traslated
+msgid "App.downloadButton"
+msgstr "Aflaai"
+
+# traslated
+msgid "DatePicker.lang.dateFormat"
+msgstr "M/D/YYYY"
+
+# traslated
+msgid "Contact.subjectRequired"
+msgstr "Voer asseblief posonderwerp in!"
+
+# default
+msgid "Calendar.lang.shortWeekDays"
+msgstr "§undefined"
+
+# traslated
+msgid "Calendar.lang.locale"
+msgstr "en_US"
+
+# traslated
+msgid "CloudDownloadField.titleName"
+msgstr "Naam"
+
+# traslated
+msgid "Transfer.searchPlaceholder"
+msgstr "Soek hier"
+
+# traslated
+msgid "CloudUploadField.createdAt"
+msgstr "Geskep"
+
+# traslated
+msgid "Contact.emailInvalid"
+msgstr "Ongeldige e-pos!"
+
+# traslated
+msgid "User.infoButton"
+msgstr "Profiel"
+
+# traslated
+msgid "User.Register.passwordConfirmError"
+msgstr "Die twee wagwoorde wat u ingevoer het, stem nie ooreen nie!"
+
+# traslated
+msgid "CloudUploadField.dataSwitchChecked"
+msgstr "Huidige"
+
+# traslated
+msgid "TabsField.clone"
+msgstr "kloon"
+
+# traslated
+msgid "Transfer.titles"
+msgstr "§[\"\",\"\"]"
+
+# traslated
+msgid "QRCode.refresh"
+msgstr "Verfris"
+
+# traslated
+msgid "TableField.importTooltip"
+msgstr "Voer tabel vanaf CSV in"
+
+# traslated
+msgid "App.uploadTooltip"
+msgstr "Voer data in as JSON"
+
+# traslated
+msgid "DatePicker.lang.decadeSelect"
+msgstr "Kies 'n dekade"
+
+# traslated
+msgid "App.restoreModalTitle"
+msgstr "Herstel data"
+
+# traslated
+msgid "Table.sortTitle"
+msgstr "Rangskik"
+
+# traslated
+msgid "DatePicker.lang.year"
+msgstr "Jaar"
+
+# traslated
+msgid "App.restoreRestoreButton"
+msgstr "Herstel"
+
+# traslated
+msgid "Form.defaultValidateMessages.types.number"
+msgstr "${label} is nie 'n geldige ${type} nie"
+
+# traslated
+msgid "Calendar.lang.yearPlaceholder"
+msgstr "Kies jaar"
+
+# traslated
+msgid "Popconfirm.okText"
+msgstr "OUKEI"
+
+# traslated
+msgid "CloudDownloadField.titleData"
+msgstr "Data bron"
+
+# traslated
+msgid "ArrayCopy.placeholder"
+msgstr "Kies asseblief"
+
+# traslated
+msgid "Upload.uploading"
+msgstr "Oplaai..."
+
+# traslated
+msgid "CloudUploadField.titleData"
+msgstr "Data bron"
+
+# traslated
+msgid "Text.copied"
+msgstr "Gekopieer"
+
+# traslated
+msgid "App.cloudDownloadTooltip"
+msgstr "Voer data vanaf Cloud in"
+
+# traslated
+msgid "FileWidget.dropMessage"
+msgstr "Sleep lêer hier of klik om te blaai"
+
+# traslated
+msgid "Calendar.lang.month"
+msgstr "Maand"
+
+# traslated
+msgid "Form.defaultValidateMessages.types.object"
+msgstr "${label} is nie 'n geldige ${type} nie"
+
+# traslated
+msgid "PageHeader.back"
+msgstr "Terug"
+
+# traslated
+msgid "DatePicker.lang.nextYear"
+msgstr "Volgende jaar (Beheer + regs)"
+
+# traslated
+msgid "User.titleLogin"
+msgstr "Aanteken"
+
+# traslated
+msgid "Table.filterCheckall"
+msgstr "Kies alle items"
+
+# traslated
+msgid "DatePicker.lang.previousYear"
+msgstr "Verlede jaar (Beheer + links)"
+
+# traslated
+msgid "Upload.previewFile"
+msgstr "Voorskou lêer"
+
+# traslated
+msgid "CloudUploadField.updatedAt"
+msgstr "Bygewerk"
+
+# traslated
+msgid "Calendar.lang.timeSelect"
+msgstr "Kies Tyd"
+
+# traslated
+msgid "CloudUploadField.buttonSave"
+msgstr "Stoor"
+
+# traslated
+msgid "TabsField.selectItem"
+msgstr "Kies item"
+
+# traslated
+msgid "FileWidget.errorSameFile"
+msgstr "Lêer {lêernaam} reeds opgelaai!"
+
+# traslated
+msgid "Calendar.lang.monthSelect"
+msgstr "Kies 'n maand"
+
+# traslated
+msgid "Form.defaultValidateMessages.types.array"
+msgstr "${label} is nie 'n geldige ${type} nie"
+
+msgid "language"
+msgstr "af_ZA"
+
+# traslated
+msgid "User.Setting.lastnamePlaceholder"
+msgstr "Van"
+
+# traslated
+msgid "TabsField.delete"
+msgstr "Skrap"
+
+# traslated
+msgid "Form.defaultValidateMessages.default"
+msgstr "Veldvalideringsfout vir ${label}"
+
+# traslated
+msgid "Calendar.lang.previousYear"
+msgstr "Verlede jaar (Beheer + links)"
