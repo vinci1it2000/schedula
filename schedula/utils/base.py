@@ -337,6 +337,10 @@ class Base:
             Pool executor to render object.
         :type executor: str, optional
 
+        :param run:
+            Run the backend server?
+        :type run: bool, optional
+
         :return:
             A SiteMap or a Site if .
         :rtype: schedula.utils.drw.SiteMap

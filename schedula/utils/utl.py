@@ -1,3 +1,16 @@
+#!/usr/bin/env python
+# -*- coding: UTF-8 -*-
+#
+# Copyright 2015-2023, Vincenzo Arcidiacono;
+# Licensed under the EUPL (the 'Licence');
+# You may not use this work except in compliance with the Licence.
+# You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
+
+"""
+It provides some utility functions.
+"""
+
+
 def dict_diff(adict: dict, excluded: set) -> dict:
     if excluded:
         return {k: v for k, v in adict.items() if k not in excluded}
