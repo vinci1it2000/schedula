@@ -2,6 +2,28 @@ Changelog
 =========
 
 
+v1.5.2 (2023-11-19)
+-------------------
+
+Feat
+~~~~
+- (form): Update static code.
+
+- (form): Add `antd` translations.
+
+- (test): Update coverage python version.
+
+
+Fix
+~~~
+- (drw): Correct broken link when same object is rendered twice.
+
+- (asy): Ensure all processes are well closed.
+
+- (form): Correct language selector bugs and uniform translation
+  handling.
+
+
 v1.5.1 (2023-11-11)
 -------------------
 
