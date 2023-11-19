@@ -159,15 +159,23 @@ def site_view(
         'alive_url': 'alive' in app.view_functions and app.url_for('alive')
     }
     render_ctx.update(app.jinja_env.globals)
-    if not osp.isfile(osp.join(static_folder, filepath)):
-        if filepath not in rules:
+    fpath = osp.join(static_folder, filepath)
+    if not osp.isfile(fpath):
+        try:
+            node = rules[filepath]
+        except KeyError:
             from flask import abort
             return abort(404)
+        rend, expected = cached_view(
+            node, static_folder, context, rendered, viz, executor, **render_ctx
+        )
+        for k, v in rend.items():
+            fpath_rendered = v.result()
+            fpath_expected = expected[k]
+            if fpath_rendered != fpath_expected:
+                os.makedirs(osp.dirname(fpath_expected), exist_ok=True)
+                shutil.copy(fpath_rendered, fpath_expected)
 
-        for v in cached_view(
-                rules[filepath], static_folder, context, rendered, viz,
-                executor, **render_ctx).values():
-            v.result()
     return app.send_static_file(filepath)
 
 
@@ -207,10 +215,7 @@ class SiteNode:
 
     @property
     def name(self):
-        try:
-            return parent_func(self.item).__name__
-        except AttributeError:
-            return self.node_id
+        return self.node_id
 
     @property
     def view_id(self):
@@ -1820,7 +1825,11 @@ def cached_view(node, directory, context, rendered, viz=False, executor='async',
                 **render_ctx):
     n_id = node.view_id
     rend = {k: v for k, v in rendered.items() if k[0] == n_id}
-    expected = {(n_id, e): f for (n, e), f in context.items() if n == node}
+    expected = {
+        (n_id, e): uncpath(osp.join(directory, f))
+        for (n, e), f in context.items()
+        if n == node
+    }
     res = {k: Future() for k in expected if k not in rendered}
     if res:
         rendered.update(res)
@@ -1831,7 +1840,7 @@ def cached_view(node, directory, context, rendered, viz=False, executor='async',
             _set_rendered, res, expected=expected
         ))
     rend.update(res)
-    return rend
+    return rend, expected
 
 
 def _compile_subs(o, n):
