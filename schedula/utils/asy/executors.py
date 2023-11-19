@@ -9,6 +9,7 @@
 """
 It defines the executors classes.
 """
+import time
 import functools
 from ..cst import EMPTY
 from . import _process_funcs
@@ -68,10 +69,15 @@ class Executor:
             _wait_fut(tasks)
         for fut, task in tasks.items():
             _safe_set_exception(fut, ExecutorShutdown)
-            try:
-                task.terminate()
-            except AttributeError:
-                pass
+            for _ in range(100):
+                try:
+                    hasattr(task, 'terminate') and task.terminate()
+                    break
+                except AttributeError:
+                    time.sleep(0.01)
+                    pass
+            else:
+                raise ValueError('Task could not terminate!')
         return tasks
 
     def submit(self, func, *args, **kwargs):
