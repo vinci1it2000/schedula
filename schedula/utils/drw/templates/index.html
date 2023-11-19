@@ -17,7 +17,7 @@
             const alive_url = "{{ alive_url }}";
             const alive_period = {{ (alive_period or 600) * 1000 }};
             let response, fail = 0;
-            while (alive_url){
+            while (alive_url) {
                 await new Promise(resolve => setTimeout(resolve, alive_period));
                 response = await fetch(alive_url);
                 if (response.status == 200) {
@@ -33,6 +33,7 @@
                 if (fail === 5) break;
             }
         }
+
         imAlive();
     </script>
     {% endif %}
@@ -70,10 +71,10 @@
 
     let dsp_UID = 0;
 
-    function Dispatcher (data, icicle) {
+    function Dispatcher(data, icicle) {
         let self = {};
-            self.id = '{{pid|safe}}' + dsp_UID;
-            dsp_UID++;
+        self.id = '{{pid|safe}}' + dsp_UID;
+        dsp_UID++;
         self.data = data,
             setIframe = function (src) {
                 if (src)
@@ -345,6 +346,7 @@
                 document.removeEventListener("mousemove", resize);
             });
         });
+
         function resize(e) {
             e.preventDefault();
             e.stopPropagation();
@@ -390,7 +392,9 @@
             .width(el.clientWidth)
             .height(el.clientHeight)
             .data(json)
-            .color(function(d, parent) {return color(parent ? parent.data.name : null)})
+            .color(function (d, parent) {
+                return color(parent ? parent.data.name : null)
+            })
             .minSliceAngle(.4)
             .maxLevels(3)
             .showLabels(true)
@@ -399,10 +403,14 @@
                 let stack = getNodeStack(node);
                 return $('<div/>').text(stack
                     .slice(stack.length > 1 ? 1 : 0)
-                    .map(function(d){return d.data.name})
+                    .map(function (d) {
+                        return d.data.name
+                    })
                     .join(' → ')).html()
             })
-            .tooltipContent(function(d, node){return 'Time: <i>'+d.duration+'</i> s'})
+            .tooltipContent(function (d, node) {
+                return 'Time: <i>' + d.duration + '</i> s'
+            })
             (el)
     }
 

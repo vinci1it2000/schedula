@@ -99,7 +99,7 @@
             const alive_url = "{{ alive_url }}";
             const alive_period = {{ (alive_period or 600) * 1000 }};
             let response, fail = 0;
-            while (alive_url){
+            while (alive_url) {
                 await new Promise(resolve => setTimeout(resolve, alive_period));
                 response = await fetch(alive_url);
                 if (response.status == 200) {
@@ -115,6 +115,7 @@
                 if (fail === 5) break;
             }
         }
+
         imAlive();
     </script>
     {% endif %}

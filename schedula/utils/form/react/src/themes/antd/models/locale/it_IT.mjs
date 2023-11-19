@@ -1,4 +1,5 @@
 import it_IT from 'antd/locale/it_IT.js';
+
 const it = it_IT.default
 export const locale = {
     ...it,

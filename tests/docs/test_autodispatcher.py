@@ -216,7 +216,8 @@ class TestDispatcherDirective(unittest.TestCase):
             assert len(_warnings) == 0, _warnings
             assert_equal_items(self, items)
 
-        directive.env.ref_context['py:module'] = 'tests.docs.test_autodispatcher'
+        ref_context = directive.env.ref_context
+        ref_context['py:module'] = 'tests.docs.test_autodispatcher'
 
         res = [
             '',
@@ -253,12 +254,14 @@ class TestDispatcherDirective(unittest.TestCase):
 
         res[1] = '.. py:data:: dsp_1'
         res[5] = 'Docstring 2'
-        res[9] = '.. dsp:: _build/_dispatchers/dispatcher-f4a8eeea5aeabee7398423c3e0d2cde1c19667f4/Pippo.gv'
+        res[
+            9] = '.. dsp:: _build/_dispatchers/dispatcher-f4a8eeea5aeabee7398423c3e0d2cde1c19667f4/Pippo.gv'
         assert_result(self, res, 'dsp_1')
 
         res[1] = '.. py:data:: dsp_2'
         res[5] = 'Docstring 3'
-        res[9] = '.. dsp:: _build/_dispatchers/dispatcher-18bc3d5e4a4c20576cd56e64681c4ca48528ac2e/Pippo.gv'
+        res[
+            9] = '.. dsp:: _build/_dispatchers/dispatcher-18bc3d5e4a4c20576cd56e64681c4ca48528ac2e/Pippo.gv'
         assert_result(self, res, 'dsp_2')
 
     def test_build(self):

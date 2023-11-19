@@ -164,6 +164,7 @@ class FormMap(WebMap):
         try:
             return render_template(template, **context)
         except TemplateNotFound:
+            # noinspection PyUnresolvedReferences
             return render_template('schedula/base.html', **context)
 
     def _csrf_token(self):

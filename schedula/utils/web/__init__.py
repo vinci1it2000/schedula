@@ -116,7 +116,8 @@ class WebMap(SiteMap):
         if request.headers.get('Content-Encoding') == 'gzip':
             request.stream = gzip.GzipFile(fileobj=request.stream)
 
-    def after_request(self, response):
+    @staticmethod
+    def after_request(response):
         from flask import request, current_app, get_flashed_messages
         messages = get_flashed_messages(with_categories=True)
         if messages:

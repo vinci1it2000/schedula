@@ -1,5 +1,6 @@
 import en_US from 'antd/locale/en_US.js';
 import merge from "lodash/merge.js";
+
 const en = en_US.default
 export const locale = merge({}, en, {
     App: {

@@ -380,6 +380,7 @@ class TestSubDispatchFunction(unittest.TestCase):
         self.assertEqual(fun({'x': 3}), 3)
         self.assertRaises(TypeError, fun, {'x': 2}, x=2)
 
+
 class TestSubDispatchPipe(unittest.TestCase):
     def setUp(self):
         dsp_1 = sh.BlueDispatcher()

@@ -13,7 +13,7 @@ It contains basic algorithms, numerical tricks, and data processing tasks.
 import collections
 from .gen import counter
 from .cst import EMPTY, NONE
-from .dsp import SubDispatch, bypass, selector, stlp, parent_func, NoSub, inf
+from .dsp import SubDispatch, bypass, stlp, parent_func, NoSub, inf
 
 __author__ = 'Vincenzo Arcidiacono <vinci1it2000@gmail.com>'
 

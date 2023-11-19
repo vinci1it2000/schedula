@@ -51,7 +51,9 @@
       "title": "output",
       "type": "object"
     },
-    "hash": {"type": "string"}
+    "hash": {
+      "type": "string"
+    }
   },
   "definitions": {
   }

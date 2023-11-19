@@ -8,7 +8,6 @@
 import os
 import unittest
 
-
 EXTRAS = os.environ.get('EXTRAS', 'all')
 
 

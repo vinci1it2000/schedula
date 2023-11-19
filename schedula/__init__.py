@@ -129,6 +129,7 @@ if sys.version_info[:2] < (3, 7) or os.environ.get('IMPORT_ALL') == 'True':
     )
     from .utils.gen import Token, counter
     from .utils.graph import DiGraph
+
     try:
         from .utils.io import (
             load_default_values, load_dispatcher, load_map, save_default_values,

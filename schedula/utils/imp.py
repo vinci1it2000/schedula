@@ -26,6 +26,7 @@ except ImportError:  # MicroPython.
     class Lock:
         pass
 
+
     # noinspection PyUnusedLocal
     def finalize(*args, **kwargs):
         pass

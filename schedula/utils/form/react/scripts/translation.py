@@ -100,7 +100,8 @@ def _compile_po(lang, d, default=None):
     def t(text):
         if text not in cache:
             cache[text] = ts.translate_text(
-                text, to_language=lang[:2], from_language='en'#, translator='alibaba'
+                text, to_language=lang[:2], from_language='en'
+                # , translator='alibaba'
             )
         return cache[text]
 
@@ -130,5 +131,3 @@ default_po = _compile_po('en_US', data['en_US'], pot)
 for lang, d in sorted(data.items()):
     print(lang)
     _compile_po(lang, d, default_po)
-
-data

@@ -1,5 +1,5 @@
 import fs from 'fs';
-import merge  from "lodash/merge";
+import merge from "lodash/merge";
 
 let key = process.argv[2], module
 if (fs.existsSync(`./src/themes/antd/models/locale/${key}.mjs`)) {
