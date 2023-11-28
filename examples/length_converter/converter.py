@@ -1,5 +1,4 @@
 import schedula as sh
-
 from models.imperial import imperial
 from models.metric import metric
 

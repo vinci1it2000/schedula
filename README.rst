@@ -3,8 +3,8 @@
 #######################################################################
 schedula: A smart function scheduler for dynamic flow-based programming
 #######################################################################
-|pypi_ver| |test_status| |cover_status| |docs_status|
-|github_issues| |python_ver| |proj_license| |binder|
+|pypi_ver| |test_status| |cover_status| |docs_status| |downloads|
+|month_downloads| |github_issues| |python_ver| |proj_license| |binder|
 
 :release:       1.5.2
 :date:          2023-11-19 17:30:00
@@ -532,5 +532,13 @@ processes::
 .. |binder| image:: https://mybinder.org/badge_logo.svg
     :target: https://mybinder.org/v2/gh/vinci1it2000/schedula/master?urlpath=lab/tree/examples
     :alt: Live Demo
+
+.. |downloads| image:: https://static.pepy.tech/badge/schedula
+    :target: https://pepy.tech/project/schedula
+    :alt: Total Downloads
+
+.. |month_downloads| image:: https://static.pepy.tech/badge/schedula/month
+    :target: https://pepy.tech/project/schedula
+    :alt: Downloads per Month
 
 .. _end-badges:
