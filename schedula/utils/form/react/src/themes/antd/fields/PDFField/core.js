@@ -99,7 +99,7 @@ export default function PDFField({idSchema, uiSchema, formData, ...props}) {
                     setUrl(null)
                     setValidSections(nextSections)
                 }}>{locale.previewFile}</Button>] : [])]}
-            bodyStyle={{height: 'calc(100vh - 200px)'}}
+            styles={{body: {height: 'calc(100vh - 200px)'}}}
             width={'calc(100% - 100px)'}
             title={locale.preview}
             centered

@@ -183,7 +183,7 @@ export default function PDFMarkdown(
                 <Text style={getStyle('h6', styles)}>{children}</Text>
             ),
             p: ({children}) => {
-                if (children.every(v => (typeof v === 'string' && (v === '\n' || v === '\\')) || get(v, 'props.node.tagName') === 'br'))
+                if (Array.isArray(children) && children.every(v => (typeof v === 'string' && (v === '\n' || v === '\\')) || get(v, 'props.node.tagName') === 'br'))
                     return children.map(v => (typeof v === 'string' && v === '\\' ?
                         <Text style={getStyle('br', styles)}/> : v))
                 return <Text style={getStyle('p', styles)}>{children}</Text>
