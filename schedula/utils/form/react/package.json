@@ -60,6 +60,11 @@
     "source-map-explorer": "^2.5.3",
     "uglify-js": "^3.17.4"
   },
+  "browser": {
+    "fs": false,
+    "os": false,
+    "path": false
+  },
   "scripts": {
     "analyze": "source-map-explorer 'build/static/schedula/js/*.js'",
     "start": "react-app-rewired start",

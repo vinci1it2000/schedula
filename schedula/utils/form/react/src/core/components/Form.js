@@ -91,24 +91,24 @@ export default class Form extends BaseForm {
         }, () => {
             i18n.changeLanguage(language, (err, t) => {
                 console.log(err)
-                const validator = defineValidator(language)
                 const schema = this.t(this.state.rootSchema)
-                const uiSchema = this.t(this.state.rootUiSchema)
-                const experimental_defaultFormStateBehavior = this.props.experimental_defaultFormStateBehavior
-                this.setState({
-                    ...this.state,
-                    loading: false,
-                    language,
-                    schema,
-                    uiSchema,
-                    schemaUtils: customCreateSchemaUtils(validator, schema, experimental_defaultFormStateBehavior)
-                }, () => {
-                    if (callback) {
-                        callback(this)
-                    }
-                    this.validateForm()
+                defineValidator(language, schema, this.props.nonce).then(validator => {
+                    const uiSchema = this.t(this.state.rootUiSchema)
+                    const experimental_defaultFormStateBehavior = this.props.experimental_defaultFormStateBehavior
+                    this.setState({
+                        ...this.state,
+                        loading: false,
+                        language,
+                        schema,
+                        uiSchema,
+                        schemaUtils: customCreateSchemaUtils(validator, schema, experimental_defaultFormStateBehavior)
+                    }, () => {
+                        if (callback) {
+                            callback(this)
+                        }
+                        this.validateForm()
+                    })
                 })
-
             })
         })
     }

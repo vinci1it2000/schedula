@@ -9,7 +9,7 @@
 """
 It provides functions to build the base form flask app.
 """
-
+import secrets
 import datetime
 import os.path as osp
 import schedula as sh
@@ -45,6 +45,15 @@ def basic_app(sitemap, app):
     app.config.from_object(Config)
     if getattr(sitemap, 'basic_app_config'):
         app.config.from_object(sitemap.basic_app_config)
+
+    @app.after_request
+    def add_security_headers(resp):
+        from flask import session
+        nonce = session.get('nonce')
+        if not nonce:
+            session['nonce'] = nonce = secrets.token_urlsafe(16)
+        resp.headers['Content-Security-Policy'] = f"script-src 'nonce-{nonce}'"
+        return resp
 
     # Create database connection object
     db = SQLAlchemy(app)

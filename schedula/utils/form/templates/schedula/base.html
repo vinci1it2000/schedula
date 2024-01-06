@@ -128,7 +128,8 @@
                     formData,
                     editOnChange,
                     preSubmit,
-                    postSubmit
+                    postSubmit,
+                    nonce: "{{ session['nonce'] | tojson | safe }}"
                 })
             });
         }

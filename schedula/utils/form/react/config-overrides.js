@@ -5,5 +5,6 @@ module.exports = function override(config, env) {
     config.output.assetModuleFilename = 'static/schedula/media/[name].[hash][ext]'
     config.plugins[5].options.filename = 'static/schedula/css/[name].[contenthash:8].css'
     config.plugins[5].options.chunkFilename = 'static/schedula/css/[name].[contenthash:8].chunk.css'
+    config.resolve.fallback = {fs: false}
     return config;
 }

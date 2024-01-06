@@ -1,6 +1,6 @@
 import {withTheme} from './components/Form';
 import {HoxRoot} from "hox";
-import React, {useMemo} from 'react'
+import {useEffect, useState, createRef} from 'react'
 import defineValidator from "./components/validator";
 import {getUiOptions} from "@rjsf/utils";
 
@@ -15,25 +15,28 @@ function Form(
         removeReturnOnChange = true,
         theme,
         liveValidate = true,
+        nonce,
         ...props
     }
 ) {
     const language = getUiOptions("uiSchema" in props ? props.uiSchema : {}).language || ("language" in props ? props.language : 'en_US')
-    const validator = useMemo(() => {
-        return defineValidator(language)
-    }, [language])
+    let [validator, setValidator] = useState(null);
+    useEffect(() => {
+        defineValidator(language, schema, nonce).then(setValidator);
+    },[]);
     const BaseForm = withTheme(theme);
-    const rootRef = React.createRef()
+    const rootRef = createRef()
     return <HoxRoot key={name}>
-        <BaseForm
+        {validator?<BaseForm
             rootRef={rootRef}
-            language="en_US"
+            language={language}
             csrf_token={csrf_token}
             refresh_csrf={refresh_csrf}
             name={name}
             id={name}
             schema={schema}
             url={url}
+            nonce={nonce}
             uiSchema={uiSchema}
             showErrorList={false}
             omitExtraData={true}
@@ -49,7 +52,7 @@ function Form(
                 emptyObjectFields: 'populateAllDefaults'
             }}
             {...props}
-        />
+        />: <div>loading...</div>}
     </HoxRoot>
 }
 
