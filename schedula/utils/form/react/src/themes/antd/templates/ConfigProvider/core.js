@@ -1,5 +1,4 @@
 import {ConfigProvider as BaseConfigProvider, notification, theme} from 'antd';
-import 'ant-design-draggable-modal/dist/index.css'
 import {useQueryStore} from '../../models/query'
 import {useEffect} from "react";
 

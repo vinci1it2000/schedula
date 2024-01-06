@@ -7,23 +7,23 @@ import {
 import {useLocaleStore} from '../../models/locale'
 
 const Debug = ({src, name, ...props}) => {
-    const [visible, setVisible] = useState(false)
-    const onOk = useCallback(() => setVisible(true), [])
-    const onCancel = useCallback(() => setVisible(false), [])
-    const onToggle = useCallback(() => setVisible(v => !v), [])
+    const [open, setOpen] = useState(false)
+    const onOk = useCallback(() => setOpen(true), [])
+    const onCancel = useCallback(() => setOpen(false), [])
+    const onToggle = useCallback(() => setOpen(v => !v), [])
     const {getLocale} = useLocaleStore()
     const locale = getLocale('DebugTemplate')
     return (<>
             <FloatButton
                 tooltip={locale.tooltipFloatButton}
-                icon={visible ? <CloseCircleOutlined/> :
+                icon={open ? <CloseCircleOutlined/> :
                     <QuestionCircleOutlined/>}
                 type="error"
                 style={{right: 24}}
                 size="small"
                 onClick={onToggle}/>
             <DraggableModal
-                locale={getLocale('Modal')} open={visible}
+                locale={getLocale('Modal')} open={open}
                 onOk={onOk} onCancel={onCancel}
                 title={locale.titleModal}>
                 <iframe
