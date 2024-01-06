@@ -216,6 +216,9 @@
                 },
                 "18": {
                   "header": "Pricing"
+                },
+                "19": {
+                  "header": "Static"
                 }
               }
             },
@@ -868,6 +871,13 @@
                     ]
                   }
                 ]
+              },
+              {
+                "component": "Static",
+                "props": {
+                  "url": "/static.html"
+                },
+                "force_render": true
               }
             ]
           },

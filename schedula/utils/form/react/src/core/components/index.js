@@ -6,6 +6,7 @@ const DiffViewer = React.lazy(() => import('./DiffViewer'));
 const Domain = React.lazy(() => import('./Domain'));
 const Element = React.lazy(() => import('./Element'));
 const FlexLayout = React.lazy(() => import('./FlexLayout'));
+const Static = React.lazy(() => import('./Static'));
 const Title = React.lazy(() => import('./Title'));
 
 
@@ -16,6 +17,7 @@ export function generateComponents() {
         Domain,
         Element,
         FlexLayout,
+        Static,
         Title
     }
 }
