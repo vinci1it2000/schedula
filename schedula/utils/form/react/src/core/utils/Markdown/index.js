@@ -21,23 +21,17 @@ env.addFilter('n', function (val, lang, options) {
     }).format(val))
 });
 
-env.addFilter('table', function (val, header, {
-    empty = ' ',
-    footerEmpty = ' ',
-    footer = false,
-    removeEmpty = false,
-    format,
-    footerFormat,
-    ...options
-}) {
+env.addFilter('table', function (val, header, kw = {}) {
+    let {
+        empty = ' ',
+        footerEmpty = ' ',
+        footer = false,
+        removeEmpty = false,
+        format,
+        footerFormat,
+        ...options
+    } = kw
     try {
-        console.log('0', val, header, empty,
-            footerEmpty,
-            footer,
-            removeEmpty,
-            format,
-            footerFormat,
-            options)
         if (!Array.isArray(val)) {
             console.log(`Error in rendering table: wrong type ${typeof val}`)
             return null
@@ -55,11 +49,9 @@ env.addFilter('table', function (val, header, {
             })
         }
 
-        console.log('1', headerMap, header)
         if (footerFormat === true) {
             footerFormat = format
         }
-        console.log('2', footerFormat)
         if (!header) {
             header = new Set(val.reduce((a, v) => [...a, ...Object.keys(v)], []))
             header = Array.from(header).sort()
@@ -68,7 +60,6 @@ env.addFilter('table', function (val, header, {
             })
         } else if (removeEmpty) {
             let keys = val.reduce((a, v) => [...a, ...Object.keys(v)], [])
-            console.log('3', keys)
             if (footer && footer !== true && !Array.isArray(footer)) {
                 Object.keys(footer).forEach(k => {
                     keys.push(k)
@@ -76,15 +67,12 @@ env.addFilter('table', function (val, header, {
                 footer = header.map(k => get(footer, k, footerEmpty))
             }
             keys = new Set(keys)
-            console.log('4', keys, footer)
             let mask = header.map(k => keys.has(k))
-            console.log('5', mask)
             header = header.filter((k, i) => mask[i])
 
             if (Array.isArray(footer)) {
                 footer = footer.filter((k, i) => mask[i])
             }
-            console.log('6', footer, header)
         }
         if (format) {
             let defaultFormat = get(format, 'DEFAULT')
@@ -99,10 +87,8 @@ env.addFilter('table', function (val, header, {
                 }
                 return get(d, k, empty)
             })))
-            console.log('7', val, defaultFormat)
         } else {
             val = val.map(d => (header.map(k => (get(d, k, empty)))))
-            console.log('7', val)
         }
 
         if (footer === true) {
@@ -123,7 +109,6 @@ env.addFilter('table', function (val, header, {
                 return v
             })
 
-            console.log('8', footer, defaultFormat)
         }
         let table = markdownTable([header.map(k => headerMap[k]), ...val], options);
         if (footer) {

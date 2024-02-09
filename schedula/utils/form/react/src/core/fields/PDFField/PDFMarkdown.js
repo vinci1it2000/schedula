@@ -163,6 +163,7 @@ export default function PDFMarkdown(
         key={key}
         children={formatMd({children, formData, formContext, form, ...props})}
         remarkPlugins={[remarkGfm]}
+        urlTransform={uri => uri}
         components={{
             h1: ({children}) => (
                 <Text style={getStyle('h1', styles)}>{children}</Text>
