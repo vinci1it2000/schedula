@@ -219,6 +219,9 @@
                 },
                 "19": {
                   "header": "Static"
+                },
+                "20": {
+                  "header": "Mentions"
                 }
               }
             },
@@ -300,9 +303,6 @@
                         "c"
                       ]
                     }
-                  },
-                  {
-                    "path": "cascader"
                   }
                 ]
               },
@@ -878,6 +878,32 @@
                   "url": "/static.html"
                 },
                 "force_render": true
+              },
+              {
+                "component": "div",
+                "children": [
+                  {
+                    "path": "mentions",
+                    "uiSchema": {
+                      "ui:widget": "MentionsWidget",
+                      "ui:mentions": [
+                        "A",
+                        "B"
+                      ],
+                      "ui:prefix": [
+                        "+",
+                        "-",
+                        "*",
+                        "/",
+                        " ",
+                        "="
+                      ]
+                    }
+                  },
+                  {
+                    "path": "mentions"
+                  }
+                ]
               }
             ]
           },

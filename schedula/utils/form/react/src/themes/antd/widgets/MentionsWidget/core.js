@@ -1,6 +1,6 @@
 import React from "react";
 import {Mentions} from "antd";
-import {ariaDescribedByIds, labelValue} from "@rjsf/utils";
+import {ariaDescribedByIds} from "@rjsf/utils";
 
 export default function MentionsWidget(props) {
     const {
@@ -17,8 +17,7 @@ export default function MentionsWidget(props) {
     } = props;
     const {readonlyAsDisabled = true} = formContext;
 
-    const handleChange = ({nextValue}) =>
-        onChange(nextValue);
+    const handleChange = (nextValue) => onChange(nextValue);
 
     const handleBlur = () => onBlur(id, value);
 
