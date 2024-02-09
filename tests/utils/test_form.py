@@ -123,3 +123,19 @@ class TestDispatcherForm(unittest.TestCase):
             _run('debug-button')
             self.assertTrue(_btn('debug-button', 'ant-menu-item-disabled'))
             _clean()
+
+    def test_form_stripe(self):
+        import subprocess
+        process = subprocess.Popen(["stripe-mock", "-http-port", "8420"])
+
+        import stripe
+        stripe.api_base = 'http://localhost:8420'
+        product_id = stripe.Product.create(
+            name="Schedula Credit", api_key='sk_test_12345'
+        ).id
+        price = stripe.Price.create(
+            product=product_id, unit_amount=1000, currency="eur",
+            api_key='sk_test_12345'
+        ).id
+
+        process.terminate()
