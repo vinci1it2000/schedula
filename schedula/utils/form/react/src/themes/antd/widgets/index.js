@@ -3,6 +3,7 @@ import {generateWidgets as antdGenerateWidgets} from "@rjsf/antd";
 import ButtonWidget from "./ButtonWidget";
 import CheckboxWidget from './CheckboxWidget'
 import DateRangeWidget from './DateRangeWidget'
+import DraggerFileWidget from './DraggerFileWidget'
 import FileWidget from "./FileWidget";
 import MentionsWidget from "./MentionsWidget";
 import RangeWidget from "./RangeWidget";
@@ -17,6 +18,7 @@ export function generateWidgets() {
         ButtonWidget,
         CheckboxWidget,
         DateRangeWidget,
+        DraggerFileWidget,
         FileWidget,
         MentionsWidget,
         RangeWidget,

@@ -1,13 +1,14 @@
-import {UploadOutlined} from '@ant-design/icons';
-import {Button, Tooltip, notification, Upload} from 'antd';
+import {Tooltip, notification, Upload} from 'antd';
 import update from 'immutability-helper';
 import {useCallback, useRef, useState, useEffect} from 'react';
 import {DndProvider, useDrag, useDrop} from 'react-dnd';
-import {HTML5Backend} from 'react-dnd-html5-backend';
-import './FileWidget.css'
+import {InboxOutlined} from '@ant-design/icons';
 import isEqual from "lodash/isEqual";
 import format from 'python-format-js'
+import './DraggerFileWidget.css'
+
 import {useLocaleStore} from '../../models/locale'
+import {HTML5Backend} from "react-dnd-html5-backend";
 
 const type = 'DraggableUploadList';
 const DraggableUploadListItem = (
@@ -71,7 +72,7 @@ function dataURLtoFile(dataurl) {
 }
 
 
-const FileWidget = (
+const DraggerFileWidget = (
     {
         multiple,
         id,
@@ -229,20 +230,17 @@ const FileWidget = (
         props.maxCount = 1
     }
 
-    return (
-        <DndProvider key={id + '-DndProvider'} backend={HTML5Backend}>
-            <Upload key={id + '-Upload'} {...props}>
-                {readonly || disabled ? null :
-                    <Button
-                        key={id + '-Button'}
-                        icon={<UploadOutlined/>}
-                        danger={!!rawErrors}>
-                        {locale.dropMessage}
-                    </Button>}
-            </Upload>
-        </DndProvider>
-    );
+
+    const {Dragger} = Upload;
+
+    return <DndProvider key={id + '-DndProvider'} backend={HTML5Backend}>
+        <Dragger danger={!!rawErrors}
+                 disabled={readonly || disabled} {...props}>
+            <p className="ant-upload-drag-icon"><InboxOutlined/></p>
+            <p className="ant-upload-text">{locale.dropMessage}</p>
+        </Dragger>
+    </DndProvider>
+
 };
 
-
-export default FileWidget;
+export default DraggerFileWidget;

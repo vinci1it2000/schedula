@@ -222,6 +222,9 @@
                 },
                 "20": {
                   "header": "Mentions"
+                },
+                "21": {
+                  "header": "DraggerFileWidget"
                 }
               }
             },
@@ -902,6 +905,36 @@
                   },
                   {
                     "path": "mentions"
+                  }
+                ]
+              },
+              {
+                "path": "input/kwargs/inputs",
+                "component": "div",
+                "children": [
+                  {
+                    "path": "file",
+                    "uiSchema": {
+                      "ui:widget": "DraggerFileWidget",
+                      "ui:options": {
+                        "accept": [
+                          "png",
+                          "jpeg"
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "path": "files",
+                    "uiSchema": {
+                      "ui:widget": "DraggerFileWidget",
+                      "ui:options": {
+                        "accept": [
+                          "png",
+                          "jpeg"
+                        ]
+                      }
+                    }
                   }
                 ]
               }
