@@ -1,7 +1,7 @@
 import React from "react";
 import dayjs from "dayjs";
 import {ariaDescribedByIds} from "@rjsf/utils";
-import DatePicker from "./DatePicker";
+import {DatePicker} from "antd";
 import utc from 'dayjs/plugin/utc';
 import {useLocaleStore} from '../../models/locale'
 
