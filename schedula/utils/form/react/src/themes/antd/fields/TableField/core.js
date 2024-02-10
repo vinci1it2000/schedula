@@ -82,6 +82,7 @@ export default class TableField extends ArrayField {
                 removable = true,
                 filename = name,
                 expandable = false,
+                editOnClose = true,
                 uploadable = true,
                 downloadable = true,
                 removeEmpty = false,
@@ -137,8 +138,8 @@ export default class TableField extends ArrayField {
                                 "uiSchema": {
                                     "ui:label": '',
                                     "ui:onlyChildren": true,
-                                    "ui:disabled": disabled || !!expandable,
-                                    "ui:readonly": readonly || !!expandable,
+                                    "ui:disabled": disabled || (!editOnClose && !!expandable),
+                                    "ui:readonly": readonly || (!editOnClose && !!expandable),
                                     ...field.uiSchema
                                 }
                             },
