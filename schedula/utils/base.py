@@ -212,7 +212,7 @@ class Base:
                 if '/' not in d and '/index' in d:
                     d['/'] = d['/index']
                 elif not d:
-                    methods[k] = sh.NONE
+                    methods[k] = NONE
         methods.update({
             'get_form_context': get_context,
             'get_form_data': get_data
