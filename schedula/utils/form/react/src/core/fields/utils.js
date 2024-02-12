@@ -51,13 +51,13 @@ export function createLayoutElement({key, layout, render, isArray}) {
     if (Object.keys(fothers).length) {
         others = cloneDeep(others)
         Object.entries(fothers).forEach(([path, func]) => {
-            set(others, path, form.compileFunc(func).bind(null, render))
+            set(others, path, form.compileFunc(func).bind(null, render, layout))
         });
     }
     if (Object.keys(vothers).length) {
         others = cloneDeep(others)
         Object.entries(vothers).forEach(([path, func]) => {
-            set(others, path, form.compileFunc(func)(render))
+            set(others, path, form.compileFunc(func)(render, layout))
         });
     }
     if (Object.keys(eprops).length) {
@@ -75,13 +75,13 @@ export function createLayoutElement({key, layout, render, isArray}) {
     if (Object.keys(fprops).length) {
         props = cloneDeep(props)
         Object.entries(fprops).forEach(([path, func]) => {
-            set(props, path, form.compileFunc(func).bind(null, render))
+            set(props, path, form.compileFunc(func).bind(null, render, layout))
         });
     }
     if (Object.keys(vprops).length) {
         props = cloneDeep(props)
         Object.entries(vprops).forEach(([path, func]) => {
-            set(props, path, form.compileFunc(func)(render))
+            set(props, path, form.compileFunc(func)(render, layout))
         });
     }
 
