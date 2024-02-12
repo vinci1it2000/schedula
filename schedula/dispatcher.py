@@ -895,7 +895,12 @@ class Dispatcher(Base):
 
         if outputs_prefix:
             outputs = {k: f'{outputs_prefix}{v}' for k, v in outputs.items()}
-
+        inputs = {
+            k: v if isinstance(v, str) else tuple(v) for k, v in inputs.items()
+        }
+        outputs = {
+            k: v if isinstance(v, str) else tuple(v) for k, v in outputs.items()
+        }
         # Set zero as default input distances.
         # noinspection PyTypeChecker
         _weight_from = dict.fromkeys(inputs.keys(), 0.0)

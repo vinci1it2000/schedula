@@ -341,9 +341,10 @@ export default class Form extends BaseForm {
             // Check for user provided errors and update state accordingly.
             const errorSchema = extraErrors || {}
             const errors = extraErrors ? toErrorList(extraErrors) : []
+            const {input} = newFormData
 
-            const input = this.preSubmit({
-                input: newFormData.input, formData: newFormData
+            const data = this.preSubmit({
+                input, formData: newFormData
             });
             let state = {
                 formData: newFormData,
@@ -363,7 +364,7 @@ export default class Form extends BaseForm {
                 () => {
                     postData({
                         url: this.props.url || '/',
-                        data: input,
+                        data,
                         form: this,
                         method: 'POST',
                         headers: {},
