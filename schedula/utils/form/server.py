@@ -9,8 +9,10 @@
 """
 It provides functions to build the base form flask app.
 """
+import logging
 import secrets
 import datetime
+import collections
 import os.path as osp
 import schedula as sh
 from .mail import Mail
@@ -33,11 +35,14 @@ from flask_security import (
     Security, SQLAlchemyUserDatastore, current_user as cu, auth_required
 )
 
+log = logging.getLogger(__name__)
+
 
 def default_get_form_context():
     return {
         'userInfo': getattr(cu, "get_security_payload", lambda: {})(),
-        'reCAPTCHA': current_app.config.get('RECAPTCHA_PUBLIC_KEY')
+        'reCAPTCHA': current_app.config.get('RECAPTCHA_PUBLIC_KEY'),
+        'stripeKey': current_app.config.get('STRIPE_PUBLISHABLE_KEY')
     }
 
 
@@ -45,15 +50,6 @@ def basic_app(sitemap, app):
     app.config.from_object(Config)
     if getattr(sitemap, 'basic_app_config'):
         app.config.from_object(sitemap.basic_app_config)
-
-    @app.after_request
-    def add_security_headers(resp):
-        from flask import session
-        nonce = session.get('nonce')
-        if not nonce:
-            session['nonce'] = nonce = secrets.token_urlsafe(16)
-        resp.headers['Content-Security-Policy'] = f"script-src 'nonce-{nonce}'"
-        return resp
 
     # Create database connection object
     db = SQLAlchemy(app)
@@ -165,6 +161,7 @@ def basic_app(sitemap, app):
 
         def get_security_payload(self):
             return {k: v for k, v in {
+                'id': self.id,
                 'email': self.email,
                 'username': self.username,
                 'firstname': self.firstname,
@@ -267,4 +264,98 @@ def basic_app(sitemap, app):
 
     Babel(app, locale_selector=get_locale)
     mail = Mail(app)
+
+    @app.route('/stripe/create-checkout-session', methods=['POST'])
+    def create_payment():
+        import stripe
+        try:
+            data = request.get_json() if request.is_json else dict(request.form)
+            if not isinstance(data, list):
+                data = data,
+            lookup_keys = collections.OrderedDict()
+            api_key = current_app.config.get('STRIPE_SECRET_KEY')
+            for i, d in enumerate(data):
+                if 'lookup_key' in d:
+                    sh.get_nested_dicts(
+                        lookup_keys, d['lookup_key'], default=list
+                    ).append(i)
+            if lookup_keys:
+                for price, it in zip(stripe.Price.list(
+                        api_key=api_key,
+                        lookup_keys=list(lookup_keys.keys()),
+                        expand=['data.product']
+                ).data, lookup_keys.values()):
+                    for i in it:
+                        data[i].update({'price': price.id})
+            session = stripe.checkout.Session.create(
+                api_key=api_key,
+                ui_mode='embedded',
+                line_items=data,
+                mode='payment',
+                automatic_tax={'enabled': True},
+                redirect_on_completion='never',
+                metadata={
+                    f'customer_{k}': getattr(cu, k)
+                    for k in ('id', 'firstname', 'lastname')
+                    if hasattr(cu, k)
+                }
+            )
+        except Exception as e:
+            return jsonify(error=str(e))
+
+        return jsonify(
+            clientSecret=session.client_secret, sessionId=session.id
+        )
+
+    @app.route('/stripe/session-status', methods=['GET'])
+    def session_status():
+        import stripe
+        session = stripe.checkout.Session.retrieve(
+            request.args.get('session_id'),
+            api_key=current_app.config.get('STRIPE_SECRET_KEY')
+        )
+        status = session.status
+        if status == "complete":
+            msg = 'Payment succeeded!'
+            category = 'success'
+        elif status == "processing":
+            msg = 'Your payment is processing.'
+            category = 'success'
+        elif status == "requires_payment_method":
+            msg = 'Your payment was not successful, please try again.'
+            category = 'success'
+        else:
+            msg = 'Something went wrong.'
+            category = 'success'
+        flash(str(lazy_gettext(msg)), category)
+        return jsonify(
+            status=status,
+            customer_email=session.customer_details.email,
+            userInfo=getattr(cu, "get_security_payload", lambda: {})()
+        )
+
+    @app.route('/stripe/webhook', methods=['POST'])
+    def stripe_webhook():
+        import stripe
+        stripe.api_key = current_app.config.get('STRIPE_SECRET_KEY')
+        payload = request.data
+        sig_header = request.headers['STRIPE_SIGNATURE']
+
+        try:
+            event = stripe.Webhook.construct_event(
+                payload, sig_header,
+                current_app.config.get('STRIPE_WEBHOOK_SECRET_KEY'),
+                tolerance=None
+            )
+        except ValueError as e:
+            # Invalid payload
+            raise e
+        except stripe.error.SignatureVerificationError as e:
+            # Invalid signature
+            raise e
+        sitemap.stripe_event_handler(event)
+
+        return jsonify(success=True)
+
+    stripe_webhook.csrf_exempt = True
     return app

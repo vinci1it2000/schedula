@@ -1,1 +1,39 @@
-{"ui:configProvider": {"dark": false, "local": "en", "theme": {"token": {"sizeUnit": 2}, "components": {"Table": {"fontWeightStrong": 700}}}}, "ui:layout": {"component": "App", "props": {"theme": "dark", "languages": false}, "children": [{"force_render": true, "component": "Stripe", "props": {"urlCreateCheckoutSession": "/stripe/create-checkout-session", "urlCreateCheckoutStatus": "/stripe/session-status", "items": [{"price": "price_1OIUXqJAYIcurulPrv1OcUOU", "quantity": 1}]}}]}}
+{
+  "ui:configProvider": {
+    "dark": false,
+    "local": "en",
+    "theme": {
+      "token": {
+        "sizeUnit": 2
+      },
+      "components": {
+        "Table": {
+          "fontWeightStrong": 700
+        }
+      }
+    }
+  },
+  "ui:layout": {
+    "component": "App",
+    "props": {
+      "theme": "dark",
+      "languages": false
+    },
+    "children": [
+      {
+        "force_render": true,
+        "component": "Stripe",
+        "props": {
+          "urlCreateCheckoutSession": "/stripe/create-checkout-session",
+          "urlCreateCheckoutStatus": "/stripe/session-status",
+          "items": [
+            {
+              "price": "price_1OIUXqJAYIcurulPrv1OcUOU",
+              "quantity": 1
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

@@ -8,7 +8,7 @@ rm -r ../static/schedula/css
 mkdir "../static/schedula/css"
 rm -r ../static/schedula/media
 mkdir "../static/schedula/media"
-
+sudo n stable
 echo "Installing dependencies..."
 npm i --force
 echo "Bundle index..."

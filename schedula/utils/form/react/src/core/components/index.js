@@ -7,6 +7,7 @@ const Domain = React.lazy(() => import('./Domain'));
 const Element = React.lazy(() => import('./Element'));
 const FlexLayout = React.lazy(() => import('./FlexLayout'));
 const Static = React.lazy(() => import('./Static'));
+const Stripe = React.lazy(() => import('./Stripe'));
 const Title = React.lazy(() => import('./Title'));
 
 
@@ -18,6 +19,7 @@ export function generateComponents() {
         Element,
         FlexLayout,
         Static,
+        Stripe,
         Title
     }
 }

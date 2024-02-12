@@ -10,3 +10,4 @@ sqlalchemy
 flask-mail
 rst2txt
 docutils
+stripe

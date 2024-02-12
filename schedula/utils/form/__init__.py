@@ -312,8 +312,9 @@ class FormMap(WebMap):
         else:
             if app.secret_key is None:
                 app.secret_key = secrets.token_hex(32)
-            for endpoint in app.view_functions:
-                self._csrf_protected.add(('view', endpoint))
+            for endpoint, func in app.view_functions.items():
+                if not getattr(func, 'csrf_exempt', False):
+                    self._csrf_protected.add(('view', endpoint))
         return app
 
     def app(self, root_path=None, depth=1, mute=False, blueprint_name=None,

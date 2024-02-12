@@ -120,7 +120,8 @@ class Base:
              edit_on_change='./static/schedula/onChange/*.js',
              pre_submit='./static/schedula/preSubmit/*.js',
              post_submit='./static/schedula/postSubmit/*.js',
-             subsite_idle_timeout=600, basic_app_config=None):
+             subsite_idle_timeout=600, basic_app_config=None,
+             stripe_event_handler=lambda event: None):
         """
         Creates a dispatcher Form Flask app.
 
@@ -181,6 +182,10 @@ class Base:
             Flask app config object.
         :type basic_app_config: object, optional
 
+        :param stripe_event_handler:
+            Stripe event handler function.
+        :type stripe_event_handler: function, optional
+
         :return:
             A FormMap or a Site if `sites is None` and `run or view is True`.
         :rtype: ~schedula.utils.form.FormMap | ~schedula.utils.drw.Site
@@ -198,6 +203,7 @@ class Base:
         formmap.directory = directory
         formmap.idle_timeout = subsite_idle_timeout
         formmap.basic_app_config = basic_app_config
+        formmap.stripe_event_handler = stripe_event_handler
         methods = {
             'get_edit_on_change_func': edit_on_change,
             'get_pre_submit_func': pre_submit,

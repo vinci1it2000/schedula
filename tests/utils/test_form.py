@@ -5,7 +5,6 @@
 # Licensed under the EUPL (the 'Licence');
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
-
 import os
 import platform
 import time
@@ -35,17 +34,25 @@ class TestDispatcherForm(unittest.TestCase):
             display.start()
 
         chromedriver_autoinstaller.install()
-        cls.driver = webdriver.Chrome()
-        cls.driver.implicitly_wait(2)
+        options = webdriver.ChromeOptions()
+        options.add_argument("--incognito")
+        cls.driver = driver = webdriver.Chrome(options=options)
+        driver.implicitly_wait(60)
         cls.form_dir = form_dir = osp.abspath(osp.join(
             osp.dirname(__file__), '..', '..', 'examples', 'length_converter'
         ))
         sys.path.insert(0, form_dir)
 
+        cls.stripe_form_dir = stripe_form_dir = osp.abspath(osp.join(
+            osp.dirname(__file__), 'form'
+        ))
+        sys.path.insert(0, stripe_form_dir)
+
     def setUp(self):
         from examples.length_converter.form import form as dsp
         self.dsp = dsp.register()
         self.site = None
+        self.stripe_site = None
 
     @classmethod
     def tearDownClass(cls):
@@ -57,12 +64,16 @@ class TestDispatcherForm(unittest.TestCase):
     def tearDown(self):
         if self.site:
             self.site.shutdown()
+        if self.stripe_site:
+            self.stripe_site.shutdown()
 
         sh.shutdown_executors(False)
 
     def test_form1(self):
         from selenium.webdriver.common.by import By
+        from selenium.webdriver.support.ui import WebDriverWait
         from selenium.common.exceptions import NoSuchElementException
+        from selenium.webdriver.support import expected_conditions as EC
         sites = set()
         self.dsp.form(
             directory=self.form_dir, run=True, sites=sites, view=False,
@@ -101,8 +112,11 @@ class TestDispatcherForm(unittest.TestCase):
 
         def _clean():
             _btn('clean-button').click()
-            time.sleep(1)
-            driver.find_element(By.XPATH, "//span[text()='OK']").click()
+            WebDriverWait(driver, 30).until(
+                EC.visibility_of_element_located((
+                    By.XPATH, "//span[text()='OK']"
+                ))
+            ).click()
             time.sleep(1)
             with self.assertRaises(NoSuchElementException):
                 _btn('run-button', 'ant-menu-item-disabled')
@@ -124,18 +138,65 @@ class TestDispatcherForm(unittest.TestCase):
             self.assertTrue(_btn('debug-button', 'ant-menu-item-disabled'))
             _clean()
 
+    @unittest.skipIf(
+        'STRIPE_SECRET_KEY' not in os.environ, 'Stripe keys not configured.'
+    )
     def test_form_stripe(self):
-        import subprocess
-        process = subprocess.Popen(["stripe-mock", "-http-port", "8420"])
+        from selenium.webdriver.common.by import By
+        from selenium.webdriver.support.ui import WebDriverWait
+        from selenium.webdriver.support import expected_conditions as EC
+        status = [False]
 
-        import stripe
-        stripe.api_base = 'http://localhost:8420'
-        product_id = stripe.Product.create(
-            name="Schedula Credit", api_key='sk_test_12345'
-        ).id
-        price = stripe.Price.create(
-            product=product_id, unit_amount=1000, currency="eur",
-            api_key='sk_test_12345'
-        ).id
+        def stripe_event_handler(event):
+            if event['type'] == 'payment_intent.created':
+                status[0] = True
 
-        process.terminate()
+        self.stripe_site = sh.Dispatcher().form(
+            directory=self.stripe_form_dir, run=False, view=False,
+            stripe_event_handler=stripe_event_handler
+        ).site().run(port=5009)
+
+        driver = self.driver
+        driver.get('%s/' % self.stripe_site.url)
+
+        def send_payment(card):
+            driver.switch_to.frame(WebDriverWait(driver, 30).until(
+                EC.visibility_of_element_located((
+                    By.NAME, 'embedded-checkout'
+                ))
+            ))
+            driver.find_element(By.ID, 'email').send_keys('schedula@gmail.com')
+            driver.find_element(By.ID, 'cardNumber').send_keys(card)
+            driver.find_element(By.ID, 'cardExpiry').send_keys('1225')
+            driver.find_element(By.ID, 'cardCvc').send_keys('123')
+            driver.find_element(By.ID, 'billingName').send_keys('Schedula User')
+            driver.find_element(
+                By.XPATH,
+                '//button[@data-testid="hosted-payment-submit-button"]'
+            ).click()
+
+        for card in ('4000000000000002',):
+            send_payment(card)
+            self.assertTrue(bool(WebDriverWait(driver, 60).until(
+                EC.visibility_of_element_located((
+                    By.XPATH,
+                    '//input[contains(@class, "CheckoutInput--invalid")]'
+                ))
+            )))
+            driver.get('%s/' % self.stripe_site.url)
+            driver.switch_to.alert.accept()
+        send_payment('4242424242424242')
+        import requests
+        fp = osp.join(osp.dirname(__file__), 'form', 'webhook.json')
+        with open(fp, 'rb') as f:
+            payload = f.read()
+        resp = requests.post(
+            self.stripe_site.url + '/stripe/webhook', data=payload,
+            headers={
+                'STRIPE-SIGNATURE': (
+                    't=1710289463,v1=349b804a6deab4c867dc598b8f277abc7e9bd4bcd756b896d086570bbc311d13,v0=e44e68f09d9b568184155abd7fbb8589438c0d0a817fe1db74d120d1ffcd3515'
+                )
+            }
+        )
+        self.assertTrue(resp.json()['success'])
+        self.assertTrue(status[0])

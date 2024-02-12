@@ -1,0 +1,83 @@
+{
+  "id": "evt_3OtfcHJAYIcurulP1V8Jho5T",
+  "object": "event",
+  "api_version": "2018-09-06",
+  "created": 1710289461,
+  "data": {
+    "object": {
+      "id": "pi_3OtfcHJAYIcurulP1gLqiNhz",
+      "object": "payment_intent",
+      "allowed_source_types": [
+        "card"
+      ],
+      "amount": 9760,
+      "amount_capturable": 0,
+      "amount_details": {
+        "tip": {
+        }
+      },
+      "amount_received": 0,
+      "application": null,
+      "application_fee_amount": null,
+      "automatic_payment_methods": null,
+      "canceled_at": null,
+      "cancellation_reason": null,
+      "capture_method": "automatic",
+      "charges": {
+        "object": "list",
+        "data": [
+
+        ],
+        "has_more": false,
+        "total_count": 0,
+        "url": "/v1/charges?payment_intent=pi_3OtfcHJAYIcurulP1gLqiNhz"
+      },
+      "client_secret": "pi_3OtfcHJAYIcurulP1gLqiNhz_secret_WAsbDbfbvH1HbHcev3SzS0NY4",
+      "confirmation_method": "automatic",
+      "created": 1710289461,
+      "currency": "eur",
+      "customer": null,
+      "description": null,
+      "invoice": null,
+      "last_payment_error": null,
+      "latest_charge": null,
+      "livemode": false,
+      "metadata": {
+      },
+      "next_action": null,
+      "next_source_action": null,
+      "on_behalf_of": null,
+      "payment_method": null,
+      "payment_method_configuration_details": null,
+      "payment_method_options": {
+        "card": {
+          "installments": null,
+          "mandate_options": null,
+          "network": null,
+          "request_three_d_secure": "automatic"
+        }
+      },
+      "payment_method_types": [
+        "card"
+      ],
+      "processing": null,
+      "receipt_email": null,
+      "review": null,
+      "setup_future_usage": null,
+      "shipping": null,
+      "source": null,
+      "statement_descriptor": null,
+      "statement_descriptor_suffix": null,
+      "status": "requires_source",
+      "transfer_data": null,
+      "transfer_group": null
+    }
+  },
+  "livemode": false,
+  "pending_webhooks": 2,
+  "request": {
+    "id": "req_JT2ZXOVllRjlEe",
+    "idempotency_key": "d5a143dc-ac9c-4b09-8f63-d0fa5dd32488"
+  },
+  "type": "payment_intent.created"
+}

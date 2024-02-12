@@ -23,6 +23,10 @@ jobs:
       ACTION: "true"
       EXTRAS: ${{ matrix.extra }}
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+      STRIPE_PUBLISHABLE_KEY: ${{ secrets.STRIPE_PUBLISHABLE_KEY }}
+      STRIPE_WEBHOOK_SECRET_KEY: ${{ secrets.STRIPE_WEBHOOK_SECRET_KEY }}
+
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v3
