@@ -39,6 +39,9 @@ class Config:
     SECURITY_PASSWORD_SALT = os.environ.get(
         "SECURITY_PASSWORD_SALT", secrets.SystemRandom().getrandbits(128)
     )
+    SECURITY_BLUEPRINT_NAME = os.environ.get(
+        "SECURITY_BLUEPRINT_NAME", 'security'
+    )
     SECURITY_URL_PREFIX = os.environ.get("SECURITY_URL_PREFIX", '/user')
     SECURITY_CONFIRMABLE = os.environ.get(
         "SECURITY_CONFIRMABLE", 'true'

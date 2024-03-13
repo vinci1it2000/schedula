@@ -181,9 +181,12 @@ def basic_app(sitemap, app):
 
     user_datastore = SQLAlchemyUserDatastore(db, User, Role)
     app.security = Security(
-        app, user_datastore, confirm_register_form=ExtendedConfirmRegisterForm
+        app, user_datastore, confirm_register_form=ExtendedConfirmRegisterForm,
+        register_blueprint=True
     )
-    sitemap.add2csrf_protected(item=('bp', app.security.blueprint_name))
+    sitemap.add2csrf_protected(item=(
+        'bp', app.config.get('SECURITY_BLUEPRINT_NAME')
+    ))
 
     @app.route('/locales/<language>/<namespace>', methods=['GET'])
     def locales(language, namespace):
