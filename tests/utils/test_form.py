@@ -37,7 +37,7 @@ class TestDispatcherForm(unittest.TestCase):
         options = webdriver.ChromeOptions()
         options.add_argument("--incognito")
         cls.driver = driver = webdriver.Chrome(options=options)
-        driver.implicitly_wait(60)
+        driver.implicitly_wait(2)
         cls.form_dir = form_dir = osp.abspath(osp.join(
             osp.dirname(__file__), '..', '..', 'examples', 'length_converter'
         ))
