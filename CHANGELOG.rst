@@ -2,6 +2,59 @@ Changelog
 =========
 
 
+v1.5.3 (2024-03-14)
+-------------------
+
+Feat
+~~~~
+- (doc): Update copyright.
+
+- (form): Update resources.
+
+- (form): Update dependencies.
+
+- (form): Add stripe component.
+
+- (react): Add layout to function rendering.
+
+- (form): Add auto loader for js files.
+
+- (form,antd): Add option to edit when row is close.
+
+- (form, antd): Add `DraggerFileWidget`.
+
+- (form): Correct PDF rendering.
+
+- (form,antd): Add `Mentions` widget.
+
+- (form,antd): Add `Flex` component.
+
+- (react): Add Static component to add html content using also
+  dompurify.
+
+- (form): Make pre-compiling validator dynamically.
+
+- (doc): Add download badges.
+
+
+Fix
+~~~
+- (requirements): Add missing `stripe` requirement.
+
+- (form): Correct error for missing `blueprint_name` for `Flask-
+  Security-Too`.
+
+- (form): Correct typo in auto loader for js files.
+
+- (react): Correct handling of preSubmit input.
+
+- (form): Correct DateRangeWidget.
+
+- (form, antd): Correct mentions.
+
+- (form): Correct PDF paragraph rendering.
+
+
 v1.5.2 (2023-11-19)
 -------------------
 
