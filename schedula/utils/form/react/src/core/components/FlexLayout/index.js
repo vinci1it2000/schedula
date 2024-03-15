@@ -2,7 +2,9 @@ import {useMemo, useState} from "react";
 import {Layout, Model} from "flexlayout-react";
 import 'flexlayout-react/style/light.css'
 import './FlexLayout.css'
-import isEqual from 'lodash/isEqual'
+import isEqualWith from 'lodash/isEqualWith'
+import get from 'lodash/get'
+import omit from 'lodash/omit'
 
 
 const parseModel = (render, items, element, key = '0') => {
@@ -18,6 +20,21 @@ const parseModel = (render, items, element, key = '0') => {
         return items[component] ? {id: key, ...element} : null
     }
     return children.length ? {id: key, ...element, children} : null
+}
+const removeSkipEqual = (element) => {
+    let {children = null, skipEqual = false} = element;
+
+    if (children) {
+        children = children.map(removeSkipEqual).filter(ele => ele !== null)
+    }
+    if (!skipEqual) {
+        return {...element}
+    }
+    return children.length ? {...element, children} : null
+}
+const customizer = (objValue, othValue, key, object, other, stack) => {
+    if (get(objValue, 'skipEqual', false) || get(othValue, 'skipEqual', false))
+        return true
 }
 
 const FlexLayout = ({children, render, model: rawJSONModel, ...props}) => {
@@ -35,7 +52,16 @@ const FlexLayout = ({children, render, model: rawJSONModel, ...props}) => {
     }
 
     const [JSONModel, setJSONModel] = useState(newJSONModel)
-    if (!isEqual(JSONModel, newJSONModel)) {
+
+    if (!(isEqualWith({
+        layout: removeSkipEqual(JSONModel.layout),
+        borders: JSONModel.borders.map(removeSkipEqual).filter(ele => ele !== null),
+        ...omit(JSONModel, ['layout', 'borders'])
+    }, {
+        layout: removeSkipEqual(newJSONModel.layout),
+        borders: newJSONModel.borders.map(removeSkipEqual).filter(ele => ele !== null),
+        ...omit(newJSONModel, ['layout', 'borders'])
+    }, customizer))) {
         setJSONModel(newJSONModel)
     }
     const model = useMemo(() => {
