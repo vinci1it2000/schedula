@@ -1,3 +1,4 @@
+import {useState, useEffect} from 'react'
 import Input from 'antd/lib/input';
 import InputNumber from './number';
 import {
@@ -32,25 +33,47 @@ export default function BaseInputTemplate(props) {
     }, type, options, false);
     const {format, inputProps: extraInputProps} = options
     const {readonlyAsDisabled = true} = formContext;
+    const [editedValue, setEditedValue] = useState(undefined)
 
+    const textChange = ({target: {value}}) => onChange(value === '' ? options.emptyValue : value);
 
-    const handleNumberChange = (nextValue) => onChange(nextValue);
-    const handleTextChange = onChangeOverride
-        ? onChangeOverride
-        : ({target}) => onChange(target.value === '' ? options.emptyValue : target.value);
-
-    const handleBlur = ({target}) => onBlur(id, target.value);
-
-    const handleFocus = ({target}) => {
-        onFocus(id, target.value)
+    const _onChange = () => {
+        if (editedValue !== undefined) {
+            if (inputType === 'number' || inputType === 'integer') {
+                onChange(editedValue)
+            } else {
+                (onChangeOverride || textChange)({target: {value: editedValue}})
+            }
+        }
     };
-    const input = inputType === 'number' || inputType === 'integer' ?
-        <InputNumber
+    const [timeoutId, setTimeoutId] = useState(undefined)
+    useEffect(() => {
+        if (timeoutId !== undefined)
+            clearTimeout(timeoutId)
+        setTimeoutId(setTimeout(() => {
+            _onChange()
+        }, 500));
+    }, [editedValue])
+
+    const handleBlur = ({target: {value}}) => {
+        _onChange();
+        setEditedValue(undefined)
+        onBlur(id, value)
+    };
+    const handleFocus = ({target: {value}}) => {
+        onFocus(id, value)
+    };
+    const handleChange = ({target: {value}}) => {
+        setEditedValue(value === '' ? options.emptyValue : value);
+    }
+    let input;
+    if (inputType === 'number' || inputType === 'integer') {
+        input = <InputNumber
             disabled={disabled || (readonlyAsDisabled && readonly)}
             id={id}
             name={id}
             onBlur={!readonly ? handleBlur : undefined}
-            onChange={!readonly ? handleNumberChange : undefined}
+            onChange={!readonly ? (nextValue => handleChange({target: {value: nextValue}})) : undefined}
             onFocus={!readonly ? handleFocus : undefined}
             placeholder={placeholder}
             format={format}
@@ -59,15 +82,15 @@ export default function BaseInputTemplate(props) {
             list={schema.examples ? examplesId(id) : undefined}
             {...inputProps}
             {...extraInputProps}
-            value={value}
+            value={editedValue === undefined ? value : editedValue}
             aria-describedby={ariaDescribedByIds(id, !!schema.examples)}/>
-        :
-        <Input
+    } else {
+        input = <Input
             disabled={disabled || (readonlyAsDisabled && readonly)}
             id={id}
             name={id}
             onBlur={!readonly ? handleBlur : undefined}
-            onChange={!readonly ? handleTextChange : undefined}
+            onChange={!readonly ? handleChange : undefined}
             onFocus={!readonly ? handleFocus : undefined}
             placeholder={placeholder}
             style={INPUT_STYLE}
@@ -75,8 +98,9 @@ export default function BaseInputTemplate(props) {
             type={inputType}
             {...inputProps}
             {...extraInputProps}
-            value={value}
+            value={editedValue === undefined ? value : editedValue}
             aria-describedby={ariaDescribedByIds(id, !!schema.examples)}/>;
+    }
     return <>
         {input}
         {Array.isArray(schema.examples) && (
