@@ -31,11 +31,11 @@ export default function BaseInputTemplate(props) {
         ...schema,
         type: Array.isArray(schema.type) ? schema.type[0] : schema.type
     }, type, options, false);
-    const {format, inputProps: extraInputProps} = options
+    const {format, inputProps: extraInputProps, emptyValue = ''} = options
     const {readonlyAsDisabled = true} = formContext;
     const [editedValue, setEditedValue] = useState(undefined)
 
-    const textChange = ({target: {value}}) => onChange(value === '' ? options.emptyValue : value);
+    const textChange = ({target: {value}}) => onChange(value === '' ? emptyValue : value);
 
     const _onChange = () => {
         if (editedValue !== undefined) {
@@ -64,7 +64,7 @@ export default function BaseInputTemplate(props) {
         onFocus(id, value)
     };
     const handleChange = ({target: {value}}) => {
-        setEditedValue(value === '' ? options.emptyValue : value);
+        setEditedValue(value === '' ? emptyValue : value);
     }
     let input;
     if (inputType === 'number' || inputType === 'integer') {
