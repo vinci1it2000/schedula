@@ -263,12 +263,13 @@
                     "uiSchema": {
                       "ui:fieldReplacesAnyOrOneOf": true,
                       "ui:field": "CascaderField",
-                      "ui:label": "",
-                      "ui:names": [
-                        "a",
-                        "b",
-                        "c"
-                      ]
+                      "ui:cascaderProps": {
+                        "names": [
+                          "a",
+                          "b",
+                          "c"
+                        ]
+                      }
                     }
                   }
                 ]

@@ -31,12 +31,12 @@ function buildOptions(schema, names) {
 }
 
 export default function CascaderField(
-    {schema, uiSchema, formData = {}, onChange}
+    {schema, uiSchema, formData = {}, onChange, registry, ...props}
 ) {
     const {getLocale} = useLocaleStore()
     const locale = getLocale('global')
     const uiOptions = getUiOptions(uiSchema),
-        {names, label, fieldReplacesAnyOrOneOf, ...props} = uiOptions,
+        {cascaderProps: {names, ...cascaderProps}} = uiOptions,
         valueOptions = useMemo(
             () => buildOptions(schema, names), [schema, names]
         );
@@ -63,12 +63,20 @@ export default function CascaderField(
     const filter = (inputValue, path) => path.some(
         (option) => String(option.label).toLowerCase().indexOf(String(inputValue).toLowerCase()) > -1
     );
-    return <Cascader
-        value={value}
-        options={valueOptions}
-        onChange={handleOnChange}
-        placeholder={locale.placeholder}
-        showSearch={{filter}}
-        {...props}
-    />
+    const {fields: {BaseField}} = registry
+    return <BaseField
+        schema={schema} uiSchema={{displayLabel: true, ...uiSchema}}
+        formData={formData}
+        registry={registry}
+        {...props}>
+        <Cascader
+            style={{width: '100%'}}
+            value={value}
+            options={valueOptions}
+            onChange={handleOnChange}
+            placeholder={locale.placeholder}
+            showSearch={{filter}}
+            {...cascaderProps}
+        />
+    </BaseField>
 }
