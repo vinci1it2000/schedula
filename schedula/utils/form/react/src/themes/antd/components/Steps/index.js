@@ -12,7 +12,8 @@ const Steps = ({children, render, items, ...props}) => {
     return <div style={{
         height: "100%",
         display: "flex",
-        flexDirection: "column"
+        flexDirection: "column",
+        overflowY: "hidden"
     }}>
         <BaseSteps
             type="navigation"
@@ -24,7 +25,7 @@ const Steps = ({children, render, items, ...props}) => {
             {...props}
         />
         <div style={{
-            overflowY: 'auto',
+            overflowY: 'hidden',
             flexGrow: 1,
             paddingTop: 6,
             paddingBottom: 6

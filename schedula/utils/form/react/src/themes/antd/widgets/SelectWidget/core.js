@@ -5,6 +5,7 @@ import {
     enumOptionsValueForIndex
 } from '@rjsf/utils';
 import isString from 'lodash/isString';
+import './SelectWidget.css'
 
 const SELECT_STYLE = {
     width: '100%',
@@ -32,7 +33,7 @@ export default function SelectWidget(
     }) {
     const {readonlyAsDisabled = true} = formContext;
 
-    const {enumOptions, enumDisabled, emptyValue} = options;
+    const {enumOptions, enumDisabled, emptyValue, ...props} = options;
 
     const handleChange = (nextValue) => onChange(enumOptionsValueForIndex(nextValue, enumOptions, emptyValue));
 
@@ -54,7 +55,8 @@ export default function SelectWidget(
     // Antd's typescript definitions do not contain the following props that are actually necessary and, if provided,
     // they are used, so hacking them in via by spreading `extraProps` on the component to avoid typescript errors
     const extraProps = {
-        name: id,
+        ...props,
+        name: id
     };
     return <Select
         autoFocus={autofocus}
@@ -69,9 +71,9 @@ export default function SelectWidget(
         placeholder={placeholder}
         style={SELECT_STYLE}
         value={selectedIndexes}
-        {...extraProps}
         filterOption={filterOption}
         aria-describedby={ariaDescribedByIds(id)}
+        {...extraProps}
     >
         {Array.isArray(enumOptions) &&
             enumOptions.map(({

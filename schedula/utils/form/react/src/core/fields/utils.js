@@ -318,7 +318,7 @@ export function createLayoutElement({key, layout, render, isArray}) {
                 ...layout,
                 "path": fieldPath
             }
-            contentProps.uiSchema["ui:onlyChildren"] = (!!fieldPath || name === '.')
+            contentProps.uiSchema["ui:onlyChildren"] = (!!fieldPath || name === '.' || (children ||[]).length)
         } else {
             contentProps = assign(contentProps, others)
         }
