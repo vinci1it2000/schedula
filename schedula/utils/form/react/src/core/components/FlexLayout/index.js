@@ -30,7 +30,7 @@ const removeSkipEqual = (element) => {
     if (!skipEqual) {
         return {...element}
     }
-    return children.length ? {...element, children} : null
+    return children !== null && children.length ? {...element, children} : null
 }
 const customizer = (objValue, othValue, key, object, other, stack) => {
     if (get(objValue, 'skipEqual', false) || get(othValue, 'skipEqual', false))

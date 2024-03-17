@@ -1,0 +1,1 @@
+/*! For license information please see plotly-cartesian.min.js.LICENSE.txt */
