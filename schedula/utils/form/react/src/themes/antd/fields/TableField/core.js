@@ -21,6 +21,15 @@ import get from "lodash/get";
 import has from "lodash/has";
 import {useLocaleStore} from "../../models/locale";
 import ArrayField from "../../../../core/fields/ArrayField";
+import {MenuOutlined} from '@ant-design/icons';
+import {DndContext} from '@dnd-kit/core';
+import {restrictToVerticalAxis} from '@dnd-kit/modifiers';
+import {
+    SortableContext,
+    useSortable,
+    verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import {CSS} from '@dnd-kit/utilities';
 
 const {useToken} = theme;
 
@@ -81,6 +90,7 @@ export default class TableField extends ArrayField {
                 title = schema.title === undefined ? name : schema.title,
                 removable = true,
                 filename = name,
+                orderable = false,
                 expandable = false,
                 editOnClose = true,
                 uploadable = true,
@@ -90,12 +100,61 @@ export default class TableField extends ArrayField {
                 ...props
             } = uiOptions;
             const _schemaItems = schema.items;
-            const formData = keyedToPlainFormData(this.state.keyedFormData);
-            const canAdd = this.canAddItem(formData);
-            const availableKeys = new Set(formData.reduce((a, v) => [...a, ...Object.keys(v)], []))
-            const tableColumns = columns.filter((column) => (
-                !removeEmpty || column.render || availableKeys.has(column.dataIndex) || formData.some(d => has(d, column.dataIndex.replace('/', '.')))
-            )).map((column) => ({
+            const canAdd = this.canAddItem(this.state.keyedFormData)
+            const _Row = ({children, ...props}) => {
+                const {
+                    attributes,
+                    listeners,
+                    setNodeRef,
+                    setActivatorNodeRef,
+                    transform,
+                    transition,
+                    isDragging,
+                } = useSortable({
+                    id: props['data-row-key'],
+                });
+                const style = {
+                    ...props.style,
+                    transform: CSS.Transform.toString(
+                        transform && {
+                            ...transform,
+                            scaleY: 1,
+                        },
+                    ),
+                    transition,
+                    ...(isDragging ? {
+                        position: 'relative',
+                        zIndex: 999999999999999999,
+                    } : {}),
+                };
+                return (
+                    <tr {...props} ref={setNodeRef}
+                        style={style} {...attributes}>
+                        {React.Children.map(children, (child) => {
+                            if (child.key === 'sort') {
+                                return React.cloneElement(child, {
+                                    children: (
+                                        <MenuOutlined
+                                            ref={setActivatorNodeRef}
+                                            style={{
+                                                touchAction: 'none',
+                                                cursor: 'move',
+                                            }}
+                                            {...listeners}
+                                        />
+                                    ),
+                                });
+                            }
+                            return child;
+                        })}
+                    </tr>
+                );
+            }
+            const orderableProps = (orderable && !(readonly || disabled)) ? {
+                components: {body: {row: _Row}},
+                rowKey: "key"
+            } : null
+            let tableStaticColumns = columns.map((column) => ({
                 key: column.dataIndex,
                 title: get(_schemaItems, ['properties', column.dataIndex, 'title']),
                 ...column,
@@ -163,12 +222,11 @@ export default class TableField extends ArrayField {
                         rawErrors={rawErrors}
                     />
                 }
-            }));
-            const {token} = useToken();
-            if (removable && !(readonly || disabled)) {
-                tableColumns.push({
+            }))
+            if (removable && !(readonly || disabled))
+                tableStaticColumns.push({
                     title: () => {
-                        return formData.length >= 1 ? (
+                        return this.state.keyedFormData.length >= 1 ? (
                             <Popconfirm
                                 title={locale.deleteAllConfirm}
                                 placement="left"
@@ -203,7 +261,7 @@ export default class TableField extends ArrayField {
                     width: 33,
                     render: (_, record, index) => {
                         const {removable: removableRow = true} = rows[String(index)] || {}
-                        return formData.length >= 1 && removableRow ? (
+                        return this.state.keyedFormData.length >= 1 && removableRow ? (
                             <Popconfirm
                                 title={locale.deleteItemConfirm}
                                 placement="left"
@@ -233,13 +291,30 @@ export default class TableField extends ArrayField {
                         ) : null
                     }
                 })
+            if (orderable && !(readonly || disabled)) {
+                tableStaticColumns = [{key: 'sort'}, ...tableStaticColumns]
             }
+            let tableColumns
+            if (removeEmpty) {
+                const availableKeys = new Set(this.state.keyedFormData.reduce((a, {item}) => [...a, ...Object.keys(item)], []))
+                const addIndex = orderable && !(readonly || disabled) ? 1 : 0
+                const maxIndex = columns.length + addIndex
+                tableColumns = tableStaticColumns.filter((func, index) => {
+                    if (index < addIndex || index >= maxIndex)
+                        return true
+                    const column = columns[index + addIndex]
+                    return column.render || availableKeys.has(column.dataIndex) || this.state.keyedFormData.some(({item}) => has(item, column.dataIndex.replace('/', '.')))
+                })
+            } else {
+                tableColumns = tableStaticColumns
+            }
+            const {token} = useToken();
             const {labelAlign = "right", rowGutter = 24} = formContext;
             const ArrayFieldDescriptionTemplate = getTemplate("ArrayFieldDescriptionTemplate", registry, uiOptions);
             const ArrayFieldTitleTemplate = getTemplate("ArrayFieldTitleTemplate", registry, uiOptions);
             const handleTableChange = (pagination, filters, sorter) => {
                 this.setState({...this.state, pagination})
-            };
+            }
             const expandedRowRender = (record, index) => {
                 const {pagination, keyedFormData} = this.state
                 index = index + (pagination.current - 1) * pagination.pageSize
@@ -289,6 +364,7 @@ export default class TableField extends ArrayField {
                         icon={expanded ? <UpOutlined/> : <EditOutlined/>}
                         onClick={e => onExpand(record, e)}/>
             )
+
             let summary;
             if (rowSummary !== null) {
                 let summaryItems = form.compileFunc(rowSummary)(this)
@@ -298,7 +374,8 @@ export default class TableField extends ArrayField {
                         fontWeight: get(token, 'Table.fontWeightStrong', token.fontWeightStrong)
                     }}>
                         {expandable ?
-                            <Table.Summary.Cell key={-1} index={-1}/> : null}
+                            <Table.Summary.Cell key={-1}
+                                                index={-1}/> : null}
                         {tableColumns.map(({dataIndex}, index) => {
                             return <Table.Summary.Cell
                                 key={index}
@@ -308,6 +385,7 @@ export default class TableField extends ArrayField {
                         })}
                     </Table.Summary.Row>)
             }
+
             return <ConfigConsumer key={idSchema.$id}>
                 {(configProps) => {
                     const {getPrefixCls} = configProps;
@@ -317,144 +395,164 @@ export default class TableField extends ArrayField {
                         labelClsBasic,
                         labelAlign === "left" && `${labelClsBasic}-left`,
                         'ant-table-label-custom'
-                        //labelCol.className,
                     );
-                    return (
-                        <Table
-                            locale={getLocale('Table')}
-                            caption={
-                                <Row justify="space-between"
-                                     align="middle">
-                                    <Col>
-                                        <Row gutter={rowGutter}>
-                                            {title && (
-                                                <Col
-                                                    className={labelColClassName}
-                                                    span={24}>
-                                                    <ArrayFieldTitleTemplate
-                                                        idSchema={idSchema}
-                                                        required={required}
-                                                        title={title}
-                                                        schema={schema}
-                                                        uiSchema={uiSchema}
-                                                        registry={registry}
-                                                    />
-                                                </Col>
-                                            )}
-                                            {(description || schema.description) && (
-                                                <Col span={24}
-                                                     style={{paddingBottom: "8px",}}>
-                                                    <ArrayFieldDescriptionTemplate
-                                                        description={description || schema.description || ""}
-                                                        idSchema={idSchema}
-                                                        schema={schema}
-                                                        uiSchema={uiSchema}
-                                                        registry={registry}
-                                                    />
-                                                </Col>
-                                            )}
-                                        </Row>
-                                    </Col>
-                                    <Col>
-                                        <Space.Compact
-                                            block size={'small'}
-                                            style={{padding: 8}}>
-                                            {readonly || disabled || !uploadable ? null :
-                                                <Upload
-                                                    locale={getLocale('Upload')}
-                                                    accept=".csv"
-                                                    disabled={!!(disabled || readonly)}
-                                                    beforeUpload={(file) => {
-                                                        const reader = new FileReader()
-                                                        reader.onload = ({target}) => {
-                                                            let parsedData = Papa.parse(target.result, {header: false}).data,
-                                                                header,
-                                                                columnsFields = columns.map(v => v.dataIndex),
-                                                                columnsHeaderNames = columns.map(v => v.title);
-                                                            if (parsedData[0].every(v => columnsFields.includes(v))) {
-                                                                header = parsedData[0]
-                                                                parsedData = parsedData.slice(1)
-                                                            } else if (parsedData[0].every(v => columnsHeaderNames.includes(v))) {
-                                                                header = parsedData[0].map(v => (columns.find(e => (e.headerName === v)).field))
-                                                                parsedData = parsedData.slice(1)
-                                                            } else {
-                                                                header = columns.map(v => (v.field))
-                                                            }
-                                                            this.props.onChange(parsedData.map(r => (r.reduce((res, v, i) => {
-                                                                let key = header[i]
-                                                                res[key] = v
-                                                                return res
-                                                            }, {}))))
+                    const table = <Table
+                        locale={getLocale('Table')}
+                        caption={
+                            <Row justify="space-between"
+                                 align="middle">
+                                <Col>
+                                    <Row gutter={rowGutter}>
+                                        {title && (
+                                            <Col
+                                                className={labelColClassName}
+                                                span={24}>
+                                                <ArrayFieldTitleTemplate
+                                                    idSchema={idSchema}
+                                                    required={required}
+                                                    title={title}
+                                                    schema={schema}
+                                                    uiSchema={uiSchema}
+                                                    registry={registry}
+                                                />
+                                            </Col>
+                                        )}
+                                        {(description || schema.description) && (
+                                            <Col span={24}
+                                                 style={{paddingBottom: "8px",}}>
+                                                <ArrayFieldDescriptionTemplate
+                                                    description={description || schema.description || ""}
+                                                    idSchema={idSchema}
+                                                    schema={schema}
+                                                    uiSchema={uiSchema}
+                                                    registry={registry}
+                                                />
+                                            </Col>
+                                        )}
+                                    </Row>
+                                </Col>
+                                <Col>
+                                    <Space.Compact
+                                        block size={'small'}
+                                        style={{padding: 8}}>
+                                        {readonly || disabled || !uploadable ? null :
+                                            <Upload
+                                                locale={getLocale('Upload')}
+                                                accept=".csv"
+                                                disabled={!!(disabled || readonly)}
+                                                beforeUpload={(file) => {
+                                                    const reader = new FileReader()
+                                                    reader.onload = ({target}) => {
+                                                        let parsedData = Papa.parse(target.result, {header: false}).data,
+                                                            header,
+                                                            columnsFields = columns.map(v => v.dataIndex),
+                                                            columnsHeaderNames = columns.map(v => v.title);
+                                                        if (parsedData[0].every(v => columnsFields.includes(v))) {
+                                                            header = parsedData[0]
+                                                            parsedData = parsedData.slice(1)
+                                                        } else if (parsedData[0].every(v => columnsHeaderNames.includes(v))) {
+                                                            header = parsedData[0].map(v => (columns.find(e => (e.headerName === v)).field))
+                                                            parsedData = parsedData.slice(1)
+                                                        } else {
+                                                            header = columns.map(v => (v.field))
                                                         }
-                                                        reader.readAsText(file);
-                                                        return Upload.LIST_IGNORE
-                                                    }}>
-                                                    <Tooltip
-                                                        title={locale.importTooltip}
-                                                        placement="bottom">
-                                                        <Button
-                                                            type="primary"
-                                                            shape="circle"
-                                                            ghost
-                                                            disabled={!!(disabled || readonly)}
-                                                            icon={
-                                                                <UploadOutlined/>}/>
-                                                    </Tooltip>
-                                                </Upload>}
-                                            {downloadable ? <CSVLink
-                                                filename={`${filename}.csv`}
-                                                data={formData}>
+                                                        this.props.onChange(parsedData.map(r => (r.reduce((res, v, i) => {
+                                                            let key = header[i]
+                                                            res[key] = v
+                                                            return res
+                                                        }, {}))))
+                                                    }
+                                                    reader.readAsText(file);
+                                                    return Upload.LIST_IGNORE
+                                                }}>
                                                 <Tooltip
-                                                    title={locale.exportTooltip}
+                                                    title={locale.importTooltip}
                                                     placement="bottom">
                                                     <Button
                                                         type="primary"
                                                         shape="circle"
                                                         ghost
+                                                        disabled={!!(disabled || readonly)}
                                                         icon={
-                                                            <DownloadOutlined/>}/>
+                                                            <UploadOutlined/>}/>
                                                 </Tooltip>
-                                            </CSVLink> : null}
-                                            {canAdd && !(disabled || readonly) && (
-                                                <Tooltip
-                                                    title={locale.addItemTooltip}
-                                                    placement="bottom">
-                                                    <Button
-                                                        type="primary"
-                                                        shape="circle"
-                                                        ghost
-                                                        icon={<PlusOutlined/>}
-                                                        onClick={(e) => {
-                                                            this.onAddClick(e)
-                                                            const {
-                                                                pagination,
-                                                                keyedFormData
-                                                            } = this.state
-                                                            this.setState({
-                                                                ...this.state,
-                                                                pagination: {
-                                                                    ...pagination,
-                                                                    current: 1 + Math.floor(keyedFormData.length / pagination.pageSize)
-                                                                }
-                                                            })
-                                                        }}/>
-                                                </Tooltip>
-                                            )}
-                                        </Space.Compact>
-                                    </Col>
-                                </Row>}
-                            key={idSchema.$id}
-                            size="small"
-                            expandable={expandable ? {
-                                expandedRowRender, expandIcon
-                            } : {}}
-                            summary={formData.length ? summary : undefined}
-                            columns={formData.length ? tableColumns : []}
-                            dataSource={formData.map((data, index) => ({key: index, ...data}))}
-                            pagination={this.state.pagination}
-                            onChange={handleTableChange}
-                            {...props}/>
-                    );
+                                            </Upload>}
+                                        {downloadable ? <CSVLink
+                                            filename={`${filename}.csv`}
+                                            data={keyedToPlainFormData(this.state.keyedFormData)}>
+                                            <Tooltip
+                                                title={locale.exportTooltip}
+                                                placement="bottom">
+                                                <Button
+                                                    type="primary"
+                                                    shape="circle"
+                                                    ghost
+                                                    icon={
+                                                        <DownloadOutlined/>}/>
+                                            </Tooltip>
+                                        </CSVLink> : null}
+                                        {canAdd && !(disabled || readonly) && (
+                                            <Tooltip
+                                                title={locale.addItemTooltip}
+                                                placement="bottom">
+                                                <Button
+                                                    type="primary"
+                                                    shape="circle"
+                                                    ghost
+                                                    icon={<PlusOutlined/>}
+                                                    onClick={(e) => {
+                                                        this.onAddClick(e)
+                                                        const {
+                                                            pagination,
+                                                            keyedFormData
+                                                        } = this.state
+                                                        this.setState({
+                                                            ...this.state,
+                                                            pagination: {
+                                                                ...pagination,
+                                                                current: 1 + Math.floor(keyedFormData.length / pagination.pageSize)
+                                                            }
+                                                        })
+                                                    }}/>
+                                            </Tooltip>
+                                        )}
+                                    </Space.Compact>
+                                </Col>
+                            </Row>}
+                        key={idSchema.$id}
+                        size="small"
+                        expandable={expandable ? {
+                            expandedRowRender, expandIcon
+                        } : {}}
+                        summary={this.state.keyedFormData.length ? summary : undefined}
+                        columns={this.state.keyedFormData.length ? tableColumns : []}
+                        dataSource={this.state.keyedFormData}
+                        pagination={this.state.pagination}
+                        onChange={handleTableChange}
+                        {...orderableProps}
+                        {...props}/>
+                    if (orderable && !(readonly || disabled)) {
+                        const onDragEnd = ({active, over}) => {
+                            if (active.id !== over?.id) {
+                                const activeIndex = this.state.keyedFormData.findIndex((i) => i.key === active.id);
+                                const overIndex = this.state.keyedFormData.findIndex((i) => i.key === over?.id);
+                                this.onReorderClick(activeIndex, overIndex)()
+                            }
+                        };
+                        return <DndContext
+                            key={`DndContext-${idSchema.$id}`}
+                            modifiers={[restrictToVerticalAxis]}
+                            onDragEnd={onDragEnd}>
+                            <SortableContext
+                                key={`SortableContext-${idSchema.$id}`}
+                                items={this.state.keyedFormData.map((i) => i.key)}
+                                strategy={verticalListSortingStrategy}>
+                                {table}
+                            </SortableContext>
+                        </DndContext>
+                    } else {
+                        return table;
+                    }
                 }}
             </ConfigConsumer>
         }}</Store>

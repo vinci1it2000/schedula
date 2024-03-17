@@ -339,6 +339,7 @@
                 "uiSchema": {
                   "ui:info": "If you enter anything here then billing_address will become required.",
                   "ui:field": "TableField",
+                  "ui:orderable": true,
                   "ui:summary": "function (table){const summary = (table.state.keyedFormData ||[]).map(({item}) => item).reduce((r, v) => ({a: (r.a || 0) + (v.c ? v.a : 0), b: (r.b || '') + (v.c ? v.b : '')}), {}); return summary}",
                   "ui:expandable": {
                     "ui:layout": {
