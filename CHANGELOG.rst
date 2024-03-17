@@ -2,6 +2,31 @@ Changelog
 =========
 
 
+v1.5.4 (2024-03-17)
+-------------------
+
+Feat
+~~~~
+- (form): Update resources.
+
+- (form): Add `ImageFileWidget`.
+
+- (form): Make table field orderable.
+
+- (form): Add Base template to cascader.
+
+- (form): Add flexlayout to `App`.
+
+
+Fix
+~~~
+- (form): Improve widget aspect.
+
+- (form): Improve behaviour of InputTemplate.
+
+- (form): Improve behaviour of Flex layout.
+
+
 v1.5.3 (2024-03-14)
 -------------------
 
