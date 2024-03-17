@@ -171,10 +171,14 @@ const DraggerFileWidget = (
         onChange: (info) => {
             if (info.file.status === 'done') {
                 setFileList((fileList) => {
-                    const index = fileList.map(file => file.uid).indexOf(info.file.uid);
-                    const newFileList = fileList.slice();
-                    newFileList[index] = info.file
-                    return newFileList
+                    if (multiple) {
+                        const index = fileList.map(file => file.uid).indexOf(info.file.uid);
+                        const newFileList = fileList.slice();
+                        newFileList[index] = info.file
+                        return newFileList
+                    } else {
+                        return [info.file]
+                    }
                 })
             }
         },

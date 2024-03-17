@@ -5,6 +5,7 @@ import CheckboxWidget from './CheckboxWidget'
 import DateRangeWidget from './DateRangeWidget'
 import DraggerFileWidget from './DraggerFileWidget'
 import FileWidget from "./FileWidget";
+import ImageFileWidget from "./ImageFileWidget";
 import MentionsWidget from "./MentionsWidget";
 import RangeWidget from "./RangeWidget";
 import RateWidget from "./RateWidget";
@@ -20,6 +21,7 @@ export function generateWidgets() {
         DateRangeWidget,
         DraggerFileWidget,
         FileWidget,
+        ImageFileWidget,
         MentionsWidget,
         RangeWidget,
         RateWidget,

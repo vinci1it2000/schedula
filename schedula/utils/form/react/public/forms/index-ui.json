@@ -189,6 +189,9 @@
                 },
                 "21": {
                   "header": "DraggerFileWidget"
+                },
+                "22": {
+                  "header": "ImageFileWidget"
                 }
               }
             },
@@ -894,6 +897,36 @@
                     "path": "files",
                     "uiSchema": {
                       "ui:widget": "DraggerFileWidget",
+                      "ui:options": {
+                        "accept": [
+                          "png",
+                          "jpeg"
+                        ]
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "path": "input/kwargs/inputs",
+                "component": "div",
+                "children": [
+                  {
+                    "path": "file",
+                    "uiSchema": {
+                      "ui:widget": "ImageFileWidget",
+                      "ui:options": {
+                        "accept": [
+                          "png",
+                          "jpeg"
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "path": "files",
+                    "uiSchema": {
+                      "ui:widget": "ImageFileWidget",
                       "ui:options": {
                         "accept": [
                           "png",
