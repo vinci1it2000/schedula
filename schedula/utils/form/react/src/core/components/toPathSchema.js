@@ -18,7 +18,7 @@ import {
     retrieveSchema
 } from "@rjsf/utils"
 
-function getFirstMatchingOption(
+export function getFirstMatchingOption(
     validator,
     rootSchema,
     formData,

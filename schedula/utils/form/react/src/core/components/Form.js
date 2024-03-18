@@ -19,6 +19,7 @@ import defineValidator from "./validator";
 import i18n from "./translator";
 import isString from "lodash/isString";
 import toPathSchema from './toPathSchema'
+import retrieveSchema from './retrieveSchema'
 import BaseForm from "@rjsf/core"
 
 function translateJSON(t, data, options) {
@@ -41,12 +42,18 @@ function translateJSON(t, data, options) {
     }
 }
 
-function customCreateSchemaUtils(validator, schema, experimental_defaultFormStateBehavior) {
-    let schemaUtils = createSchemaUtils(validator, schema, experimental_defaultFormStateBehavior)
+function patchSchemaUtils(schemaUtils) {
     schemaUtils.toPathSchema = (schema, name, formData) => {
         return toPathSchema(schemaUtils.validator, schema, name, schemaUtils.rootSchema, formData);
     }
+    schemaUtils.retrieveSchema = (schema, formData) => {
+        return retrieveSchema(schemaUtils.validator, schema, schemaUtils.rootSchema, formData);
+    }
     return schemaUtils
+}
+
+function customCreateSchemaUtils(validator, schema, experimental_defaultFormStateBehavior) {
+    return patchSchemaUtils(createSchemaUtils(validator, schema, experimental_defaultFormStateBehavior))
 }
 
 /** The `Form` component renders the outer form and all the fields defined in the `schema` */
@@ -134,10 +141,7 @@ export default class Form extends BaseForm {
             schema,
             uiSchema
         }, inputFormData)
-        let schemaUtils = state.schemaUtils
-        state.schemaUtils.toPathSchema = (schema, name, formData) => {
-            return toPathSchema(schemaUtils.validator, schema, name, schemaUtils.rootSchema, formData);
-        }
+        patchSchemaUtils(state.schemaUtils)
         const csrf_token = "csrf_token" in state ? state.csrf_token : ("csrf_token" in props ? props.csrf_token : this.props.csrf_token)
         const submitCount = "submitCount" in state ? state.submitCount : 0
         const {formContext = {}} = props
