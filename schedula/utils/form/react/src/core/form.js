@@ -19,7 +19,7 @@ function Form(
         ...props
     }
 ) {
-    const language = getUiOptions("uiSchema" in props ? props.uiSchema : {}).language || ("language" in props ? props.language : 'en_US')
+    const language = getUiOptions(uiSchema).language || ("language" in props ? props.language : 'en_US')
     let [validator, setValidator] = useState(null);
     useEffect(() => {
         defineValidator(language, schema, nonce).then(setValidator);
