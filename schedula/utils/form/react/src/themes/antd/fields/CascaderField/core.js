@@ -4,6 +4,7 @@ import {getUiOptions} from "@rjsf/utils";
 import {useLocaleStore} from "../../models/locale";
 import get from 'lodash/get'
 import has from 'lodash/has'
+import './CascaderField.css'
 
 function buildOptions(schema, names) {
     const name = names[0], nextNames = names.slice(1),
@@ -36,7 +37,14 @@ export default function CascaderField(
     const {getLocale} = useLocaleStore()
     const locale = getLocale('global')
     const uiOptions = getUiOptions(uiSchema),
-        {cascaderProps: {names, ...cascaderProps}} = uiOptions,
+        {
+            cascaderProps: {
+                names,
+                placement = "bottomLeft",
+                showSearch,
+                ...cascaderProps
+            }
+        } = uiOptions,
         valueOptions = useMemo(
             () => buildOptions(schema, names), [schema, names]
         );
@@ -74,8 +82,14 @@ export default function CascaderField(
             value={value}
             options={valueOptions}
             onChange={handleOnChange}
+            placement={placement}
+            dropdownMatchSelectWidth={true}
             placeholder={locale.placeholder}
-            showSearch={{filter}}
+            showSearch={{
+                filter,
+                matchInputWidth: true,
+                limit: 20, ...showSearch
+            }}
             {...cascaderProps}
         />
     </BaseField>

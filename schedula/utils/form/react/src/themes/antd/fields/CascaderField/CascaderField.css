@@ -1,0 +1,7 @@
+.ant-cascader-menu {
+    min-width: unset !important;
+}
+
+.ant-cascader-dropdown > div {
+    overflow-y: auto
+}
