@@ -280,25 +280,32 @@ class FormMap(WebMap):
         filename = f'schedula/{filename}'.split('/')
         download_name = filename[-1]
         kw = {
+            'conditional': True,
             'download_name': download_name,
             'max_age': current_app.get_send_file_max_age(download_name)
         }
         gzipped = 'gzip' in request.headers.get('Accept-Encoding', '').lower()
-        for sdir in (current_app.static_folder, static_dir):
+        for i, sdir in enumerate((current_app.static_folder, static_dir)):
             sdir = osp.join(sdir, *filename[:-1])
             for ext in ('.gz', '')[::gzipped and 1 or -1]:
                 fn = f'{download_name}{ext}'
                 fp = osp.join(sdir, fn)
                 if osp.exists(fp):
-                    if gzipped != bool(ext):
-                        with open(fp, "rb") as f:
+                    with open(fp, "rb") as f:
+                        if gzipped != bool(ext):
                             func = gzipped and gzip.compress or gzip.decompress
                             f = io.BytesIO(func(f.read()))
                             fn = gzipped and f'{fn}.gz' or download_name
-                    else:
-                        f = open(fp, "rb")
+                        else:
+                            f = io.BytesIO(f.read())
+                    kw['last_modified'] = os.stat(fp).st_mtime
                     mimetype, encoding = mimetypes.guess_type(fn)
+
                     response = send_file(f, **kw)
+                    if i:
+                        response.cache_control.immutable = True
+                        response.cache_control.public = True
+                        response.cache_control.max_age = 946080000  # 30 years.
                     response.content_type = mimetype
                     response.content_encoding = encoding
                     return response
