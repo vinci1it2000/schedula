@@ -1,6 +1,6 @@
 import get from 'lodash/get';
 import set from 'lodash/set';
-import find from 'lodash/find';
+import defaultsDeep from 'lodash/defaultsDeep';
 import has from "lodash/has"
 import isEqual from "lodash/isEqual"
 import {
@@ -104,6 +104,21 @@ export function getFirstMatchingOption(
     return 0
 }
 
+function cascaderFind(p, v) {
+    if (has(p, 'const')) {
+        return p.const === v
+    } else if (has(p, 'enum')) {
+        return p.enum.includes(v)
+    } else if (has(p, 'oneOf')) {
+        let oneOf = p.oneOf
+        for (let i = 0; i < oneOf.length; i++) {
+            let r = cascaderFind(oneOf[i], v)
+            if (r !== null)
+                return r
+        }
+    }
+    return null
+}
 
 /** An internal helper that generates an `PathSchema` object for the `schema`, recursively with protection against
  * infinite recursion
@@ -145,11 +160,22 @@ function toPathSchemaInternal(
         [NAME_KEY]: name.replace(/^\./, "")
     }
     if (schema.cascader) {
-        const _schema = formData !== undefined ? schema.cascader.reduce((s, k) => {
-            let v = {properties: {}}
-            v.properties[k] = {const: formData[k]}
-            return find(s.oneOf, v)
-        }, schema) : {properties: schema.properties};
+        let _schema
+        if (formData !== undefined) {
+            _schema = schema.cascader.reduce(({schema, properties}, k) => {
+                let v = formData[k],
+                    s = get(schema, 'oneOf', [schema]).find(({properties}) => {
+                        return cascaderFind(properties[k], v) || false
+                    })
+                return {
+                    schema: s,
+                    properties: defaultsDeep(properties, s.properties)
+                }
+            }, {schema, properties: schema.properties}).properties
+        } else {
+            _schema = {properties: schema.properties};
+        }
+
         pathSchema = {
             ...pathSchema,
             ...toPathSchemaInternal(
@@ -193,16 +219,49 @@ function toPathSchemaInternal(
         }
 
         if (ITEMS_KEY in schema && Array.isArray(formData)) {
-            formData.forEach((element, i) => {
-                pathSchema[i] = toPathSchemaInternal(
-                    validator,
-                    schema.items,
-                    `${name}.${i}`,
-                    rootSchema,
-                    element,
-                    _recurseList
-                )
-            })
+            const {
+                items: schemaItems,
+                additionalItems: schemaAdditionalItems
+            } = schema
+
+            if (Array.isArray(schemaItems)) {
+                formData.forEach((element, i) => {
+                    if (schemaItems[i]) {
+                        pathSchema[i] = toPathSchemaInternal(
+                            validator,
+                            schemaItems[i],
+                            `${name}.${i}`,
+                            rootSchema,
+                            element,
+                            _recurseList
+                        )
+                    } else if (schemaAdditionalItems) {
+                        pathSchema[i] = toPathSchemaInternal(
+                            validator,
+                            schemaAdditionalItems,
+                            `${name}.${i}`,
+                            rootSchema,
+                            element,
+                            _recurseList
+                        )
+                    } else {
+                        console.warn(
+                            `Unable to generate path schema for "${name}.${i}". No schema defined for it`
+                        )
+                    }
+                })
+            } else {
+                formData.forEach((element, i) => {
+                    pathSchema[i] = toPathSchemaInternal(
+                        validator,
+                        schemaItems,
+                        `${name}.${i}`,
+                        rootSchema,
+                        element,
+                        _recurseList
+                    )
+                })
+            }
         } else if (PROPERTIES_KEY in schema) {
             for (const property in schema.properties) {
                 const field = get(schema, [PROPERTIES_KEY, property])
