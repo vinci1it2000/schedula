@@ -31,7 +31,7 @@ export default function BaseInputTemplate(props) {
         ...schema,
         type: Array.isArray(schema.type) ? schema.type[0] : schema.type
     }, type, options, false);
-    const {format, inputProps: extraInputProps, emptyValue = ''} = options
+    const {format, emptyValue = '', ...extraInputProps} = options
     const {readonlyAsDisabled = true} = formContext;
     const [editedValue, setEditedValue] = useState(undefined)
 
