@@ -11,46 +11,16 @@ import {
     UI_GLOBAL_OPTIONS_KEY
 } from "@rjsf/utils"
 import _ from "lodash"
+import get from "lodash/get";
 import cloneDeep from "lodash/cloneDeep";
 import isEqual from "lodash/isEqual"
 import debounce from "lodash/debounce";
 import postData from "../utils/fetch";
 import defineValidator from "./validator";
-import i18n from "./translator";
-import isString from "lodash/isString";
-import toPathSchema from './toPathSchema'
-import retrieveSchema from './retrieveSchema'
+import i18n, {translateJSON} from "./translator";
+import patchSchemaUtils from './patchSchemaUtils'
 import BaseForm from "@rjsf/core"
 
-function translateJSON(t, data, options) {
-    if (isString(data)) {
-        let newData = t(data, options)
-        if (newData.startsWith('§')) {
-            newData = eval(newData.slice(1))
-        }
-        return newData
-    } else if (Array.isArray(data)) {
-        return data.map(v => translateJSON(t, v, options))
-    } else if (isObject(data)) {
-        let newData = {}
-        Object.entries(data).forEach(([k, v]) => {
-            newData[k] = translateJSON(t, v, options)
-        })
-        return newData
-    } else {
-        return data
-    }
-}
-
-function patchSchemaUtils(schemaUtils) {
-    schemaUtils.toPathSchema = (schema, name, formData) => {
-        return toPathSchema(schemaUtils.validator, schema, name, schemaUtils.rootSchema, formData);
-    }
-    schemaUtils.retrieveSchema = (schema, formData) => {
-        return retrieveSchema(schemaUtils.validator, schema, schemaUtils.rootSchema, formData);
-    }
-    return schemaUtils
-}
 
 function customCreateSchemaUtils(validator, schema, experimental_defaultFormStateBehavior) {
     return patchSchemaUtils(createSchemaUtils(validator, schema, experimental_defaultFormStateBehavior))
@@ -74,9 +44,7 @@ export default class Form extends BaseForm {
     n(number, options) {
         let {scale = 1, ...opt} = options || {}
         return new Intl.NumberFormat(this.state.language.replace('_', '-'), {
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 20,
-            ...opt
+            minimumFractionDigits: 0, maximumFractionDigits: 20, ...opt
         }).format(number * scale);
     }
 
@@ -93,13 +61,12 @@ export default class Form extends BaseForm {
 
     updateLanguage(language, callback) {
         this.setState({
-            ...this.state,
-            loading: true
+            ...this.state, loading: true
         }, () => {
             i18n.changeLanguage(language, (err, t) => {
                 console.log(err)
                 const schema = this.t(this.state.rootSchema)
-                defineValidator(language, schema, this.props.nonce).then(validator => {
+                defineValidator(this.props.precompiledValidator, language, schema, this.props.nonce).then(validator => {
                     const uiSchema = this.t(this.state.rootUiSchema)
                     const experimental_defaultFormStateBehavior = this.props.experimental_defaultFormStateBehavior
                     this.setState({
@@ -126,22 +93,18 @@ export default class Form extends BaseForm {
      *
      * @param props - The props passed to the `Form`
      * @param inputFormData - The new or current data for the `Form`
+     * @param retrievedSchema - An expanded schema, if not provided, it will be retrieved from the `schema` and `formData`.
+     * @param isSchemaChanged - A flag indicating whether the schema has changed.
      * @returns - The new state for the `Form`
      */
-    getStateFromProps(props, inputFormData) {
-        const rootSchema = "schema" in props ? props.schema : this.props.schema
-        const rootUiSchema = ("uiSchema" in props ? props.uiSchema : this.props.uiSchema) || {}
-        const schema = this.t(cloneDeep(rootSchema))
-        const uiSchema = this.t(cloneDeep(rootUiSchema))
-        const options = getUiOptions(rootUiSchema)
-        const language = options.language || ("language" in props ? props.language : this.props.language) || 'en_US'
-        i18n.changeLanguage(language)
+    getStateFromProps(props, inputFormData, retrievedSchema, isSchemaChanged = false) {
         let state = super.getStateFromProps({
-            ...props,
-            schema,
-            uiSchema
-        }, inputFormData)
+            ...props
+        }, inputFormData, retrievedSchema, isSchemaChanged)
         patchSchemaUtils(state.schemaUtils)
+        const rootSchema = get(props, "rootSchema", this.props.schema)
+        const rootUiSchema = get(props, "rootUiSchema", this.props.uiSchema) || {}
+        const language = get(props, "language", this.props.language) || 'en_US'
         const csrf_token = "csrf_token" in state ? state.csrf_token : ("csrf_token" in props ? props.csrf_token : this.props.csrf_token)
         const submitCount = "submitCount" in state ? state.submitCount : 0
         const {formContext = {}} = props
@@ -181,13 +144,7 @@ export default class Form extends BaseForm {
         const resolvedSchema = schemaUtils.retrieveSchema(schema, formData)
         return schemaUtils
             .getValidator()
-            .validateFormData(
-                formData,
-                resolvedSchema,
-                customValidate,
-                transformErrors,
-                uiSchema
-            )
+            .validateFormData(formData, resolvedSchema, customValidate, transformErrors, uiSchema)
     }
 
     debounceValidate = debounce(() => {
@@ -236,31 +193,31 @@ export default class Form extends BaseForm {
             debounceValidate,
             onChange
         } = this.props
+        const {schemaUtils, schema, retrievedSchema} = this.state;
         if (isObject(formData) || Array.isArray(formData)) {
-            const newState = this.getStateFromProps(this.props, formData)
+            const newState = this.getStateFromProps(
+                this.props, formData, retrievedSchema
+            )
             formData = newState.formData
         }
-        const {schemaUtils, schema} = this.state
         formData = this.editOnChange(formData, id)
         const mustValidate = !noValidate && liveValidate
 
         let state = {formData, schema, debugUrl: ""}
 
-        let newFormData = formData
-
+        let newFormData = formData, _retrievedSchema;
         if (omitExtraData === true && liveOmit === true) {
-            const retrievedSchema = schemaUtils.retrieveSchema(schema, formData)
+            _retrievedSchema = schemaUtils.retrieveSchema(schema, formData)
             const pathSchema = schemaUtils.toPathSchema(retrievedSchema, "", formData)
             const fieldNames = this.getFieldNames(pathSchema, formData)
 
             newFormData = this.getUsedFormData(formData, fieldNames)
             state = {
-                ...state,
-                formData: newFormData
+                ...state, formData: newFormData
             }
         }
         if (mustValidate) {
-            const schemaValidation = this.validate(newFormData)
+            const schemaValidation = this.validate(newFormData, schema, schemaUtils, retrievedSchema);
             let errors = schemaValidation.errors
             let errorSchema = schemaValidation.errorSchema
             const schemaValidationErrors = errors
@@ -279,9 +236,7 @@ export default class Form extends BaseForm {
                 schemaValidationErrorSchema
             }
         } else if (!noValidate && newErrorSchema) {
-            const errorSchema = extraErrors
-                ? mergeObjects(newErrorSchema, extraErrors, "preventDuplicates")
-                : newErrorSchema
+            const errorSchema = extraErrors ? mergeObjects(newErrorSchema, extraErrors, "preventDuplicates") : newErrorSchema
 
             const {errors: prevErrors} = this.state
             const errors = toErrorList(errorSchema)
@@ -296,13 +251,13 @@ export default class Form extends BaseForm {
             runnable: runnable,
             debuggable: runnable || this.state.debuggable || !state.debugUrl,
         }
-        this.setState(
-            state,
-            () => {
-                onChange && onChange({...this.state, ...state}, id)
-                debounceValidate && this.debounceValidate()
-            }
-        )
+        if (_retrievedSchema) {
+            state.retrievedSchema = _retrievedSchema;
+        }
+        this.setState(state, () => {
+            onChange && onChange({...this.state, ...state}, id)
+            debounceValidate && this.debounceValidate()
+        })
     }, 50)
 
     /** Function to handle changes made to a field in the `Form`. This handler receives an entirely new copy of the
@@ -322,10 +277,7 @@ export default class Form extends BaseForm {
 
     debounceSubmit = debounce((event, detail) => {
         const {
-            omitExtraData,
-            extraErrors,
-            noValidate,
-            onSubmit
+            omitExtraData, extraErrors, noValidate, onSubmit
         } = this.props
         let {formData: newFormData} = this.state
         const {schema, schemaUtils} = this.state
@@ -359,70 +311,60 @@ export default class Form extends BaseForm {
                 debugUrl: ""
             }
             let newState = {
-                loading: false,
-                submitCount: this.state.submitCount + 1
+                loading: false, submitCount: this.state.submitCount + 1
             }
 
-            this.setState(
-                state,
-                () => {
-                    postData({
-                        url: this.props.url || '/',
-                        data,
-                        form: this,
-                        method: 'POST',
-                        headers: {},
-                        ...detail
-                    }).then(
-                        ({data, debugUrl}) => {
-                            if (this.props.notify)
-                                (data.messages || []).forEach(([type, message]) => {
-                                    this.props.notify({type, message})
-                                })
-                            return {
-                                debugUrl,
-                                ...this.postSubmit({
-                                    data,
-                                    input,
-                                    formData: newFormData
-                                })
-                            }
-                        }).then(({data, debugUrl, state: fetchState}) => {
-                        if (debugUrl) {
-                            newState = {...newState, debugUrl}
-                        }
-                        if (!data.hasOwnProperty('error')) {
-                            newState = {
-                                ...newState,
-                                formData: {input, ...data},
-                                runnable: false,
-                                debuggable: !newState.debugUrl
-                            }
-                        }
-                        newState = {...newState, ...fetchState}
-                        this.setState({...this.state, ...state, ...newState}, () => {
-                            if (data.hasOwnProperty('error')) {
-                                this.props.notify({message: data.error})
-                            } else {
-                                if (onSubmit) {
-                                    onSubmit({
-                                        ...this.state,
-                                        formData: newFormData,
-                                        status: "submitted"
-                                    }, event)
-                                }
-                            }
-                            this.validateForm()
+            this.setState(state, () => {
+                postData({
+                    url: this.props.url || '/',
+                    data,
+                    form: this,
+                    method: 'POST',
+                    headers: {}, ...detail
+                }).then(({data, debugUrl}) => {
+                    if (this.props.notify) (data.messages || []).forEach(([type, message]) => {
+                        this.props.notify({type, message})
+                    })
+                    return {
+                        debugUrl, ...this.postSubmit({
+                            data, input, formData: newFormData
                         })
-                    }).catch(error => {
-                        this.setState({
-                            ...this.state, ...state, ...newState
-                        }, () => {
-                            this.props.notify({message: error.message})
-                        })
-                    });
-                }
-            )
+                    }
+                }).then(({data, debugUrl, state: fetchState}) => {
+                    if (debugUrl) {
+                        newState = {...newState, debugUrl}
+                    }
+                    if (!data.hasOwnProperty('error')) {
+                        newState = {
+                            ...newState,
+                            formData: {input, ...data},
+                            runnable: false,
+                            debuggable: !newState.debugUrl
+                        }
+                    }
+                    newState = {...newState, ...fetchState}
+                    this.setState({...this.state, ...state, ...newState}, () => {
+                        if (data.hasOwnProperty('error')) {
+                            this.props.notify({message: data.error})
+                        } else {
+                            if (onSubmit) {
+                                onSubmit({
+                                    ...this.state,
+                                    formData: newFormData,
+                                    status: "submitted"
+                                }, event)
+                            }
+                        }
+                        this.validateForm()
+                    })
+                }).catch(error => {
+                    this.setState({
+                        ...this.state, ...state, ...newState
+                    }, () => {
+                        this.props.notify({message: error.message})
+                    })
+                });
+            })
         } else {
             this.setState({...this.state, loading: false})
         }
@@ -445,7 +387,8 @@ export default class Form extends BaseForm {
             event.persist()
         }
         this.setState({
-            ...this.state, loading: true,
+            ...this.state,
+            loading: true,
             errors: [],
             errorSchema: {},
             schemaValidationErrors: [],
@@ -472,28 +415,20 @@ export default class Form extends BaseForm {
      */
     validateForm() {
         const {
-            extraErrors,
-            extraErrorsBlockSubmit,
-            focusOnFirstError,
-            onError
+            extraErrors, extraErrorsBlockSubmit, focusOnFirstError, onError
         } = this.props
         const {
-            formData,
-            errors: prevErrors
+            formData, errors: prevErrors
         } = this.state
         const schemaValidation = this.validate(formData)
         let errors = schemaValidation.errors
         let errorSchema = schemaValidation.errorSchema
         const schemaValidationErrors = errors
         const schemaValidationErrorSchema = errorSchema
-        const hasError =
-            errors.length > 0 || (extraErrors && extraErrorsBlockSubmit)
+        const hasError = errors.length > 0 || (extraErrors && extraErrorsBlockSubmit)
         if (hasError) {
             if (extraErrors) {
-                const merged = validationDataMerge(
-                    schemaValidation,
-                    extraErrors
-                )
+                const merged = validationDataMerge(schemaValidation, extraErrors)
                 errorSchema = merged.errorSchema
                 errors = merged.errors
             }
@@ -511,21 +446,18 @@ export default class Form extends BaseForm {
                     schemaValidationErrors: [],
                     schemaValidationErrorSchema: {}
                 }, () => {
-                    this.setState(
-                        {
-                            errors,
-                            errorSchema,
-                            schemaValidationErrors,
-                            schemaValidationErrorSchema
-                        },
-                        () => {
-                            if (onError) {
-                                onError(errors)
-                            } else {
-                                console.error("Form validation failed", errors)
-                            }
+                    this.setState({
+                        errors,
+                        errorSchema,
+                        schemaValidationErrors,
+                        schemaValidationErrorSchema
+                    }, () => {
+                        if (onError) {
+                            onError(errors)
+                        } else {
+                            console.error("Form validation failed", errors)
                         }
-                    )
+                    })
                 })
             }
         } else if (prevErrors.length > 0) {
@@ -564,13 +496,8 @@ export default class Form extends BaseForm {
             _internalFormWrapper,
             showDebug = false
         } = this.props;
-
         const {
-            schema,
-            uiSchema,
-            formData,
-            errorSchema,
-            idSchema
+            schema, uiSchema, formData, errorSchema, idSchema
         } = this.state;
         const registry = this.getRegistry();
         const {SchemaField} = registry.fields;
@@ -636,26 +563,21 @@ export default class Form extends BaseForm {
 
 
 export function withTheme(themeProps) {
-    return forwardRef(
-        ({fields, widgets, templates, ...directProps}, ref) => {
-            fields = {...themeProps?.fields, ...fields};
-            widgets = {...themeProps?.widgets, ...widgets};
-            templates = {
-                ...themeProps?.templates,
-                ...templates,
-                ButtonTemplates: {
-                    ...themeProps?.templates?.ButtonTemplates,
-                    ...templates?.ButtonTemplates,
-                },
-            };
-            return <Form
-                {...themeProps}
-                {...directProps}
-                fields={fields}
-                widgets={widgets}
-                templates={templates}
-                ref={ref}
-            />
-        }
-    );
+    return forwardRef(({fields, widgets, templates, ...directProps}, ref) => {
+        fields = {...themeProps?.fields, ...fields};
+        widgets = {...themeProps?.widgets, ...widgets};
+        templates = {
+            ...themeProps?.templates, ...templates, ButtonTemplates: {
+                ...themeProps?.templates?.ButtonTemplates, ...templates?.ButtonTemplates,
+            },
+        };
+        return <Form
+            {...themeProps}
+            {...directProps}
+            fields={fields}
+            widgets={widgets}
+            templates={templates}
+            ref={ref}
+        />
+    });
 }

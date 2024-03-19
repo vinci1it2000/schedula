@@ -1,13 +1,16 @@
 import localizer from "ajv-i18n";
-import {createPrecompiledValidator} from '@rjsf/validator-ajv8';
+import {
+    customizeValidator,
+    createPrecompiledValidator
+} from '@rjsf/validator-ajv8';
 import {
     compileSchemaValidatorsCode
 } from '@rjsf/validator-ajv8/dist/compileSchemaValidators';
 import {evaluateValidator} from './precompile'
 import hash from "object-hash";
 
-function defineValidator(language, schema, nonce) {
-    const code = compileSchemaValidatorsCode(schema, {
+function defineValidator(precompiledValidator, language, schema, nonce) {
+    const options = {
         $data: true,
         useDefaults: true,
         coerceTypes: true,
@@ -15,10 +18,16 @@ function defineValidator(language, schema, nonce) {
         code: {
             optimize: false
         }
-    });
-    return evaluateValidator(hash(schema), code, nonce).then((precompiledValidator) => createPrecompiledValidator(
-        precompiledValidator, schema, localizer[language.split('_')[0]] || localizer.en
-    ))
+    }, local = localizer[language.split('_')[0]] || localizer.en
+    if (precompiledValidator) {
+        const code = compileSchemaValidatorsCode(schema, options);
+        return evaluateValidator(hash(schema), code, nonce).then((precompiledValidator) => createPrecompiledValidator(
+            precompiledValidator, schema, local
+        ))
+    } else {
+        return new Promise((resolve) => resolve(customizeValidator(options, local)))
+    }
+
 }
 
 export {defineValidator as default};

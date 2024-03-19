@@ -3,41 +3,56 @@ import {HoxRoot} from "hox";
 import {useEffect, useState, createRef} from 'react'
 import defineValidator from "./components/validator";
 import {getUiOptions} from "@rjsf/utils";
+import i18n, {translateJSON} from './components/translator'
 
 function Form(
     {
-        schema,
+        schema: rootSchema,
         csrf_token,
         refresh_csrf,
-        uiSchema = {},
+        uiSchema: rootUiSchema = {},
         url = '/',
         name = "form",
         removeReturnOnChange = true,
         theme,
         liveValidate = true,
         nonce,
+        language: _language = 'en_US',
+        precompiledValidator: _precompiledValidator = true,
         ...props
     }
 ) {
-    const language = getUiOptions(uiSchema).language || ("language" in props ? props.language : 'en_US')
-    let [validator, setValidator] = useState(null);
+    const {
+        language = _language,
+        precompiledValidator = _precompiledValidator,
+        ...optionsProps
+    } = getUiOptions(rootUiSchema).props || {}
+
+    let [futureProps, setFutureProps] = useState(null);
     useEffect(() => {
-        defineValidator(language, schema, nonce).then(setValidator);
-    },[]);
+        i18n.changeLanguage(language, (err, t) => {
+            console.log(err)
+            const schema = translateJSON(t, rootSchema)
+            defineValidator(precompiledValidator, language, schema, nonce).then(validator => {
+                const uiSchema = translateJSON(t, rootUiSchema)
+                setFutureProps({schema, uiSchema, validator})
+            })
+        })
+    }, []);
     const BaseForm = withTheme(theme);
     const rootRef = createRef()
     return <HoxRoot key={name}>
-        {validator?<BaseForm
+        {futureProps ? <BaseForm
             rootRef={rootRef}
             language={language}
             csrf_token={csrf_token}
             refresh_csrf={refresh_csrf}
             name={name}
             id={name}
-            schema={schema}
+            rootSchema={rootSchema}
+            rootUiSchema={rootUiSchema}
             url={url}
             nonce={nonce}
-            uiSchema={uiSchema}
             showErrorList={false}
             omitExtraData={true}
             editOnChange={null}
@@ -45,14 +60,17 @@ function Form(
             postSubmit={null}
             showDebug={false}
             liveValidate={false}
-            validator={validator}
             debounceValidate={liveValidate}
             experimental_defaultFormStateBehavior={{
-                arrayMinItems: 'populate',
-                emptyObjectFields: 'populateAllDefaults'
+                arrayMinItems: {populate: 'all'},
+                emptyObjectFields: 'populateAllDefaults',
+                allOf: 'populateDefaults',
             }}
+            {...futureProps}
             {...props}
-        />: <div>loading...</div>}
+
+            {...optionsProps}
+        /> : <div>loading...</div>}
     </HoxRoot>
 }
 
