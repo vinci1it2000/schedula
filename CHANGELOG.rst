@@ -2,6 +2,35 @@ Changelog
 =========
 
 
+v1.5.5 (2024-03-19)
+-------------------
+
+Feat
+~~~~
+- (form): Update resources.
+
+
+Fix
+~~~
+- (form): Enable caching of files on browser.
+
+- (form): Correct toPathSchema for cascader.
+
+- (form): Harmonize the extraInputProps of InputTemplate.
+
+- (form): Correct Table reordering.
+
+- (form): Improve performance of Form rendering.
+
+- (form): Improve performances of retrieve schema.
+
+- (form): Correct default language selection.
+
+- (form): Correct Cascader Layout.
+
+- (form): Correct emptyValue behaviour of `BaseInputTemplate`.
+
+
 v1.5.4 (2024-03-17)
 -------------------
 
