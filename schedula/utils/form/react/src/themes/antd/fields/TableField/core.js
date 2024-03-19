@@ -21,7 +21,7 @@ import get from "lodash/get";
 import has from "lodash/has";
 import {useLocaleStore} from "../../models/locale";
 import ArrayField from "../../../../core/fields/ArrayField";
-import {MenuOutlined} from '@ant-design/icons';
+import {HolderOutlined} from '@ant-design/icons';
 import {DndContext} from '@dnd-kit/core';
 import {restrictToVerticalAxis} from '@dnd-kit/modifiers';
 import {
@@ -155,7 +155,7 @@ export default class TableField extends ArrayField {
                             if (child.key === 'sort') {
                                 return React.cloneElement(child, {
                                     children: (
-                                        <MenuOutlined
+                                        <HolderOutlined
                                             ref={setActivatorNodeRef}
                                             style={{
                                                 touchAction: 'none',

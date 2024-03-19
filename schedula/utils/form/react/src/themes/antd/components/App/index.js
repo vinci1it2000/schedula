@@ -3,7 +3,7 @@ import {
     UploadOutlined,
     CaretRightOutlined,
     BugOutlined,
-    SaveOutlined,
+    LaptopOutlined,
     CompressOutlined,
     DownloadOutlined,
     ReloadOutlined,
@@ -382,7 +382,7 @@ const {Header, Content, Footer, Sider} = Layout,
                                     }
                                 ]
                             } : null, hideFiles ? null : {
-                                icon: <SaveOutlined/>,
+                                icon: <LaptopOutlined/>,
                                 key: 'files',
                                 className: 'files-button',
                                 label: locale.filesButton,
