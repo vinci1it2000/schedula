@@ -56,6 +56,27 @@ export default class TableField extends ArrayField {
         }
     }
 
+    onReorderClick = (index, newIndex) => {
+        return (event) => {
+            if (event) {
+                event.preventDefault();
+                event.currentTarget.blur();
+            }
+            const {keyedFormData} = this.state;
+            const {onChange, errorSchema} = this.props;
+            let newErrorSchema;
+            if (errorSchema) {
+                newErrorSchema = {...errorSchema};
+                newErrorSchema[index] = errorSchema[newIndex]
+                newErrorSchema[newIndex] = errorSchema[index]
+            }
+            const newKeyedFormData = keyedFormData.slice()
+            newKeyedFormData.splice(index, 1);
+            newKeyedFormData.splice(newIndex, 0, keyedFormData[index]);
+            onChange(keyedToPlainFormData(newKeyedFormData), newErrorSchema)
+        };
+    }
+
     renderNormalArray() {
         return <Store>{({getLocale}) => {
             const locale = getLocale('TableField')
