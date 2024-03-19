@@ -28,7 +28,7 @@ export function Store({children}) {
 
 
 export default class VTableField extends ArrayField {
-    renderNormalArray() {
+    render() {
         return <Store>{({getLocale}) => {
             const {
                 schema,

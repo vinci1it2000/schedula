@@ -77,7 +77,7 @@ export default class TableField extends ArrayField {
         };
     }
 
-    renderNormalArray() {
+    render() {
         return <Store>{({getLocale}) => {
             const locale = getLocale('TableField')
             const {

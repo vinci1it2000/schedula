@@ -41,7 +41,7 @@ export default class TabField extends ArrayField {
         this.state.collapsed = collapsed
     }
 
-    renderNormalArray() {
+    render() {
         return <Store>
             {({getLocale}) => {
                 const locale = getLocale('TabsField')
