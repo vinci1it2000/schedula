@@ -13,7 +13,7 @@ export default function Stripe(
         type,
         urlCreateCheckoutSession = "/stripe/create-checkout-session",
         urlCreateCheckoutStatus = "/stripe/session-status",
-        items,
+        checkoutProps,
         options,
         ...props
     }) {
@@ -22,25 +22,29 @@ export default function Stripe(
     const [sessionId, setSessionId] = useState('');
     const {form, stripeKey} = render.formContext
     const {stripe} = form.state
-    const setItems = () => post({
+    const initCheckout = () => post({
         url: urlCreateCheckoutSession,
-        data: items,
+        data: checkoutProps,
         form
     }).then(({data}) => {
+        if (data.error) {
+            form.props.notify({type: 'error', message: data.error})
+        } else {
         setClientSecret(data.clientSecret)
         setSessionId(data.sessionId)
+        }
     });
     useEffect(() => {
         if (stripe) {
-            setItems()
+            initCheckout()
         } else {
             loadStripe(stripeKey).then(stripe => {
                 form.setState({...form.state, stripe}, () => {
-                    setItems()
+                    initCheckout()
                 })
             });
         }
-    }, [items]);
+    }, [checkoutProps]);
     const onComplete = () => {
         post({
             url: `${urlCreateCheckoutStatus}?session_id=${sessionId}`,

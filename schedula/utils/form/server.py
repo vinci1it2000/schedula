@@ -10,12 +10,12 @@
 It provides functions to build the base form flask app.
 """
 import logging
-import secrets
 import datetime
 import collections
 import os.path as osp
 import schedula as sh
 from .mail import Mail
+from . import json_secrets
 from .config import Config
 from flask_sqlalchemy import SQLAlchemy
 from flask_babel import Babel, lazy_gettext
@@ -270,35 +270,44 @@ def basic_app(sitemap, app):
         import stripe
         try:
             data = request.get_json() if request.is_json else dict(request.form)
-            if not isinstance(data, list):
-                data = data,
-            lookup_keys = collections.OrderedDict()
+            data = json_secrets.secrets(data, False)
             api_key = current_app.config.get('STRIPE_SECRET_KEY')
-            for i, d in enumerate(data):
-                if 'lookup_key' in d:
-                    sh.get_nested_dicts(
-                        lookup_keys, d['lookup_key'], default=list
-                    ).append(i)
-            if lookup_keys:
-                for price, it in zip(stripe.Price.list(
-                        api_key=api_key,
-                        lookup_keys=list(lookup_keys.keys()),
-                        expand=['data.product']
-                ).data, lookup_keys.values()):
-                    for i in it:
-                        data[i].update({'price': price.id})
+            if 'line_items' in data:
+                line_items = data['line_items']
+                if not isinstance(line_items, list):
+                    line_items = line_items,
+                lookup_keys = collections.OrderedDict()
+
+                for i, d in enumerate(line_items):
+                    lookup_key = d.pop('lookup_key')
+                    if lookup_key:
+                        sh.get_nested_dicts(
+                            lookup_keys, lookup_key, default=list
+                        ).append(i)
+                if lookup_keys:
+                    for price, it in zip(stripe.Price.list(
+                            api_key=api_key,
+                            lookup_keys=list(lookup_keys.keys()),
+                            expand=['data.product']
+                    ).data, lookup_keys.values()):
+                        for i in it:
+                            line_items[i].update({'price': price.id})
+                data['line_items'] = line_items
+
             session = stripe.checkout.Session.create(
-                api_key=api_key,
-                ui_mode='embedded',
-                line_items=data,
-                mode='payment',
-                automatic_tax={'enabled': True},
-                redirect_on_completion='never',
-                metadata={
-                    f'customer_{k}': getattr(cu, k)
-                    for k in ('id', 'firstname', 'lastname')
-                    if hasattr(cu, k)
-                }
+                api_key=current_app.config.get('STRIPE_SECRET_KEY'),
+                **sh.combine_nested_dicts(json_secrets.secrets(
+                    data, False
+                ), base={
+                    'ui_mode': 'embedded',
+                    'automatic_tax': {'enabled': True},
+                    'redirect_on_completion': 'never',
+                    'metadata': {
+                        f'customer_{k}': getattr(cu, k)
+                        for k in ('id', 'firstname', 'lastname')
+                        if hasattr(cu, k)
+                    }
+                })
             )
         except Exception as e:
             return jsonify(error=str(e))

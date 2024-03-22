@@ -26,12 +26,17 @@
         "props": {
           "urlCreateCheckoutSession": "/stripe/create-checkout-session",
           "urlCreateCheckoutStatus": "/stripe/session-status",
-          "items": [
-            {
-              "price": "price_1OIUXqJAYIcurulPrv1OcUOU",
-              "quantity": 1
+          "checkoutProps": {
+            "$secret": {
+              "mode": "payment",
+              "line_items": [
+                {
+                  "lookup_key": "one_off_base_price",
+                  "quantity": 1
+                }
+              ]
             }
-          ]
+          }
         }
       }
     ]

@@ -26,6 +26,7 @@ import os
 import gzip
 import glob
 import hmac
+import json
 import secrets
 import hashlib
 import datetime
@@ -33,6 +34,7 @@ import mimetypes
 import webbrowser
 import os.path as osp
 from ..web import WebMap
+from . import json_secrets
 from urllib.parse import urlparse
 from jinja2 import TemplateNotFound
 from werkzeug.exceptions import NotFound
@@ -277,6 +279,7 @@ class FormMap(WebMap):
 
     @staticmethod
     def send_static_file(filename):
+        is_form = filename.startswith('forms')
         filename = f'schedula/{filename}'.split('/')
         download_name = filename[-1]
         kw = {
@@ -292,12 +295,16 @@ class FormMap(WebMap):
                 fp = osp.join(sdir, fn)
                 if osp.exists(fp):
                     with open(fp, "rb") as f:
-                        if gzipped != bool(ext):
-                            func = gzipped and gzip.compress or gzip.decompress
-                            f = io.BytesIO(func(f.read()))
-                            fn = gzipped and f'{fn}.gz' or download_name
+                        if is_form:
+                            data = json_secrets.dumps(json.load(f)).encode()
                         else:
-                            f = io.BytesIO(f.read())
+                            data = f.read()
+                    if gzipped != bool(ext):
+                        func = gzipped and gzip.compress or gzip.decompress
+                        f = io.BytesIO(func(data))
+                        fn = gzipped and f'{fn}.gz' or download_name
+                    else:
+                        f = io.BytesIO(data)
                     kw['last_modified'] = os.stat(fp).st_mtime
                     mimetype, encoding = mimetypes.guess_type(fn)
 
