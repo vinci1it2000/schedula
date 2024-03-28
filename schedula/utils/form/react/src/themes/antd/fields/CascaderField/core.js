@@ -73,7 +73,10 @@ export default function CascaderField(
     );
     const {fields: {BaseField}} = registry
     return <BaseField
-        schema={schema} uiSchema={{displayLabel: true, ...uiSchema}}
+        schema={schema} uiSchema={{
+        displayLabel: true,
+        "ui:classNames": ['unset-height'], ...uiSchema
+    }}
         formData={formData}
         registry={registry}
         {...props}>
