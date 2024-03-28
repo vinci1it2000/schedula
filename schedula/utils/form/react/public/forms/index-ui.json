@@ -57,6 +57,10 @@
           "key": 1
         },
         {
+          "label": "LAYOUT",
+          "key": 2
+        },
+        {
           "label": "OUTPUT",
           "children": [
             {
@@ -1091,6 +1095,41 @@
             "path": "number",
             "uiSchema": {
               "ui:widget": "RateWidget"
+            }
+          }
+        ]
+      },
+      {
+        "component": "GridLayout",
+        "children": [
+          {
+            "path": "number",
+            "uiSchema": {
+              "ui:widget": "RateWidget"
+            }
+          },
+          {
+            "path": "number",
+            "uiSchema": {
+              "ui:info": "If you enter anything here then billing_address will become required.",
+              "ui:widget": "range",
+              "ui:marks": {
+                "0": "0°C",
+                "100": "100°C"
+              }
+            }
+          },
+          {
+            "path": "number",
+            "uiSchema": {
+              "ui:readonly": true
+            }
+          },
+          {
+            "path": "input/kwargs/inputs/plot",
+            "uiSchema": {
+              "ui:onlyChildren": true,
+              "ui:field": "PlotlyField"
             }
           }
         ]

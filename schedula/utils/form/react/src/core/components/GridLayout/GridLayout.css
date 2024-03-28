@@ -1,0 +1,195 @@
+.react-grid-layout {
+    position: relative;
+    transition: height 200ms ease;
+}
+
+.react-grid-item {
+    padding: 5px;
+    transition: all 200ms ease;
+    transition-property: left, top, width, height;
+}
+
+.react-grid-item img {
+    pointer-events: none;
+    user-select: none;
+}
+
+.react-grid-item.cssTransforms {
+    transition-property: transform, width, height;
+}
+
+.react-grid-item.resizing {
+    transition: none;
+    z-index: 1;
+    will-change: width, height;
+}
+
+.react-grid-item.react-draggable-dragging {
+    transition: none;
+    z-index: 3;
+    will-change: transform;
+}
+
+.react-grid-item.dropping {
+    visibility: hidden;
+}
+
+.react-grid-item.react-grid-placeholder {
+    background: rgb(128, 128, 128);
+    opacity: 0.2;
+    transition-duration: 100ms;
+    z-index: 2;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    -o-user-select: none;
+    user-select: none;
+}
+
+.react-grid-item.react-grid-placeholder.placeholder-resizing {
+    transition: none;
+}
+
+.react-grid-item > .react-resizable-handle {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+}
+
+.react-grid-item > .react-resizable-handle::after {
+    content: "";
+    position: absolute;
+    right: 3px;
+    bottom: 3px;
+    width: 5px;
+    height: 5px;
+    border-right: 2px solid rgba(0, 0, 0, 0.4);
+    border-bottom: 2px solid rgba(0, 0, 0, 0.4);
+}
+
+.react-resizable-hide > .react-resizable-handle {
+    display: none;
+}
+
+.react-grid-item > .react-resizable-handle.react-resizable-handle-sw {
+    bottom: 0;
+    left: 0;
+    cursor: sw-resize;
+    transform: rotate(90deg);
+}
+
+.react-grid-item > .react-resizable-handle.react-resizable-handle-se {
+    bottom: 0;
+    right: 0;
+    cursor: se-resize;
+}
+
+.react-grid-item > .react-resizable-handle.react-resizable-handle-nw {
+    top: 0;
+    left: 0;
+    cursor: nw-resize;
+    transform: rotate(180deg);
+}
+
+.react-grid-item > .react-resizable-handle.react-resizable-handle-ne {
+    top: 0;
+    right: 0;
+    cursor: ne-resize;
+    transform: rotate(270deg);
+}
+
+.react-grid-item > .react-resizable-handle.react-resizable-handle-w,
+.react-grid-item > .react-resizable-handle.react-resizable-handle-e {
+    top: 50%;
+    margin-top: -10px;
+    cursor: ew-resize;
+}
+
+.react-grid-item > .react-resizable-handle.react-resizable-handle-w {
+    left: 0;
+    transform: rotate(135deg);
+}
+
+.react-grid-item > .react-resizable-handle.react-resizable-handle-e {
+    right: 0;
+    transform: rotate(315deg);
+}
+
+.react-grid-item > .react-resizable-handle.react-resizable-handle-n,
+.react-grid-item > .react-resizable-handle.react-resizable-handle-s {
+    left: 50%;
+    margin-left: -10px;
+    cursor: ns-resize;
+}
+
+.react-grid-item > .react-resizable-handle.react-resizable-handle-n {
+    top: 0;
+    transform: rotate(225deg);
+}
+
+.react-grid-item > .react-resizable-handle.react-resizable-handle-s {
+    bottom: 0;
+    transform: rotate(45deg);
+}
+
+
+.react-grid-item-border {
+    position: absolute;
+}
+
+.react-grid-item-border.top {
+    top: -5px;
+    left: -5px;
+    right: -5px;
+    height: 10px;
+}
+
+.react-grid-item-border.bottom {
+    bottom: -5px;
+    left: -5px;
+    right: -5px;
+    height: 10px;
+}
+
+.react-grid-item-border.left {
+    top: 5px;
+    left: -5px;
+    width: 10px;
+    bottom: 5px;
+}
+
+.react-grid-item-border.right {
+    top: 5px;
+    right: -5px;
+    width: 10px;
+    bottom: 5px;
+}
+
+.react-grid-item > .child-container {
+    top: 10px;
+    right: 10px;
+    bottom: 10px;
+    left: 10px;
+    position: absolute;
+}
+
+.react-grid-item > .child-container > .form-group:not(.field-object) {
+    height: unset;
+}
+
+.react-grid-item.react-draggable:has(.react-grid-item-border:hover) > .react-grid-item-border {
+    background-color: rgba(128, 128, 128, 0.2);
+}
+
+.react-grid-item.react-draggable > .react-grid-item-border {
+    cursor: grab;
+}
+
+.react-grid-item.react-draggable-dragging > .react-grid-item-border {
+    cursor: grabbing;
+    background-color: rgba(128, 128, 128, 0.5) !important;
+}
+
+.react-grid-layout:has(.react-grid-item.react-draggable-dragging) > .react-grid-item > .react-grid-item-border {
+    background-color: rgba(128, 128, 128, 0.2);
+}
