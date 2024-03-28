@@ -10,7 +10,7 @@ rm -r ../static/schedula/media
 mkdir "../static/schedula/media"
 sudo n stable
 echo "Installing dependencies..."
-npm i --force
+npm i
 echo "Bundle index..."
 npm run build
 echo "Moving files $f..."

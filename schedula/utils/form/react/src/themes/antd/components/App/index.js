@@ -41,7 +41,7 @@ import {
 } from "../../../../core/utils/Autosave"
 import CloudDownloadField from '../../fields/CloudDownloadField'
 import CloudUploadField from '../../fields/CloudUploadField'
-import {DraggableModal} from "ant-design-draggable-modal";
+import {DraggableModal} from "ant-design-draggable-modal/packages/ant-design-draggable-modal";
 import {useLocaleStore} from "../../models/locale";
 import './App.css'
 import isEmpty from "lodash/isEmpty";
