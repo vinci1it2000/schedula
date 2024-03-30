@@ -171,7 +171,7 @@ function toPathSchemaInternal(
                     schema: s,
                     properties: defaultsDeep(properties, s.properties)
                 }
-            }, {schema, properties: schema.properties}).properties
+            }, {schema, properties: schema.properties})
         } else {
             _schema = {properties: schema.properties};
         }
