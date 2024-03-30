@@ -1,57 +1,10 @@
 import {UploadOutlined} from '@ant-design/icons';
-import {Button, Tooltip, notification, Upload} from 'antd';
-import update from 'immutability-helper';
-import {useCallback, useRef, useState, useEffect} from 'react';
-import {DndProvider, useDrag, useDrop} from 'react-dnd';
-import {HTML5Backend} from 'react-dnd-html5-backend';
+import {Button, notification, Upload} from 'antd';
+import {useState, useEffect} from 'react';
 import './FileWidget.css'
-import isEqual from "lodash/isEqual";
 import format from 'python-format-js'
 import {useLocaleStore} from '../../models/locale'
 
-const type = 'DraggableUploadList';
-const DraggableUploadListItem = (
-    {originNode, moveRow, file, fileList, locale}) => {
-    const ref = useRef(null);
-    const index = fileList.indexOf(file);
-    const [{isOver, dropClassName}, drop] = useDrop({
-        accept: type,
-        collect: (monitor) => {
-            const {index: dragIndex} = monitor.getItem() || {};
-            if (dragIndex === index) {
-                return {};
-            }
-            return {
-                isOver: monitor.isOver(),
-                dropClassName: dragIndex < index ? ' drop-over-downward' : ' drop-over-upward',
-            };
-        },
-        drop: (item) => {
-            moveRow(item.index, index);
-        },
-    });
-    const [, drag] = useDrag({
-        type,
-        item: {
-            index,
-        },
-        collect: (monitor) => ({
-            isDragging: monitor.isDragging(),
-        }),
-    });
-    drop(drag(ref));
-    const errorNode = <Tooltip title={locale.errorToolTip}>
-        {originNode.props.children}
-    </Tooltip>;
-    return (
-        <div
-            ref={ref}
-            className={`ant-upload-draggable-list-item ${isOver ? dropClassName : ''}`}
-            style={{cursor: 'move'}}>
-            {file.status === 'error' ? errorNode : originNode}
-        </div>
-    );
-};
 
 function dataURLtoFile(dataurl) {
     let arr = dataurl.split(','),
@@ -85,41 +38,27 @@ const FileWidget = (
     }) => {
     const {getLocale} = useLocaleStore()
     const locale = getLocale('FileWidget')
-    const [fileList, setFileList] = useState((value ? (multiple ? value : [value]) : []).filter(
-        v => !!v
-    ).map(dataURLtoFile))
-
+    const [fileList, setFileList] = useState([])
+    const newValue = value ? (multiple ? value : [value]) : []
     let nFiles = fileList.length
     useEffect(() => {
-        if (!fileList.some(file => file.status === 'uploading')) {
-            let objFiles = fileList.filter(file => file.status === 'done').map(file => file.response),
-                files = (value ? (multiple ? value : [value]) : []).filter(v => !!v);
-            if (!isEqual(files, objFiles))
-                onChange(multiple ? objFiles : objFiles[0])
-        }
-    }, [fileList, multiple, onChange, value])
-
-    const moveRow = useCallback(
-        (dragIndex, hoverIndex) => {
-            const dragRow = fileList[dragIndex];
-            setFileList(update(fileList, {
-                $splice: [
-                    [dragIndex, 1],
-                    [hoverIndex, 0, dragRow],
-                ],
-            }));
-        },
-        [fileList, setFileList],
-    );
+        setFileList((value ? (multiple ? value : [value]) : []).filter(
+            v => !!v
+        ).map(dataURLtoFile))
+    }, [value, multiple])
     const {accept, ...opt} = options;
-
-    let props = {
-        onRemove: (file) => {
+    const onRemove = (file) => {
+        if (!multiple) {
+            onChange(undefined)
+        } else {
             const index = fileList.indexOf(file);
-            const newFileList = fileList.slice();
-            newFileList.splice(index, 1);
-            setFileList(newFileList)
-        },
+            const newValue = value.slice();
+            newValue.splice(index, 1);
+            onChange(newValue)
+        }
+    }
+    let props = {
+        onRemove,
         beforeUpload: (file) => {
             let fn = file.name.split('.'),
                 ext = fn[fn.length - 1].toLowerCase(),
@@ -167,29 +106,38 @@ const FileWidget = (
             a.dispatchEvent(clickEvt)
             a.remove()
         },
-        onChange: (info) => {
-            if (info.file.status === 'done') {
-                setFileList((fileList) => {
-                    if (multiple) {
-                        const index = fileList.map(file => file.uid).indexOf(info.file.uid);
-                        const newFileList = fileList.slice();
-                        newFileList[index] = info.file
-                        return newFileList
-                    } else {
-                        return [info.file]
-                    }
-                })
+        onChange: ({file, fileList: newFileList}) => {
+            if (file.status === 'done') {
+                if (multiple) {
+                    newValue.push(file.response)
+                    onChange(newValue)
+                } else {
+                    onChange(file.response)
+                }
+                setFileList(newFileList)
+            } else if (file.status === 'error') {
+                onRemove(file)
+            } else if (file.status === 'uploading') {
+                setFileList(newFileList)
             }
         },
-        customRequest: async (
-            {onProgress, onError, onSuccess, file}) => {
+        customRequest: async ({onProgress, onError, onSuccess, file}) => {
             const reader = new FileReader();
             reader.readAsDataURL(file);
             reader.onload = () => {
                 let url = reader.result.replace(
                     ";base64", `;name=${encodeURIComponent(file.name)};base64`
                 )
-                onSuccess(url)
+                if (fileList.some(v => v.response === url)) {
+                    notification.error({
+                        message: locale.errorNotUploaded,
+                        description: format(locale.errorSameFile, {filename: file.name}),
+                        placement: 'top'
+                    });
+                    onError(url)
+                } else {
+                    onSuccess(url)
+                }
             };
             reader.onerror = error => onError(error);
             reader.onprogress = function progress(e) {
@@ -198,7 +146,6 @@ const FileWidget = (
                 }
                 onProgress(e);
             };
-            setFileList((fileList) => [...fileList, file])
             return {
                 abort() {
                     reader.abort()
@@ -217,15 +164,6 @@ const FileWidget = (
         props.accept = `.${accept.join(',.')}`
     }
     if (multiple) {
-        props.itemRender = (originNode, file, currFileList) => (
-            <DraggableUploadListItem
-                locale={locale}
-                originNode={originNode}
-                file={file}
-                fileList={currFileList}
-                moveRow={moveRow}
-            />
-        )
         if (schema.maxItems) {
             props.maxCount = schema.maxItems
         }
@@ -233,19 +171,16 @@ const FileWidget = (
         props.maxCount = 1
     }
 
-    return (
-        <DndProvider key={id + '-DndProvider'} backend={HTML5Backend}>
-            <Upload key={id + '-Upload'} {...props}>
-                {readonly || disabled ? null :
-                    <Button
-                        key={id + '-Button'}
-                        icon={<UploadOutlined/>}
-                        danger={!!rawErrors}>
-                        {locale.dropMessage}
-                    </Button>}
-            </Upload>
-        </DndProvider>
-    );
+    return <Upload key={id + '-Upload'} {...props}>
+        {readonly || disabled ? null :
+            <Button
+                key={id + '-Button'}
+                icon={<UploadOutlined/>}
+                danger={!!rawErrors}>
+                {locale.dropMessage}
+            </Button>}
+    </Upload>
+
 };
 
 

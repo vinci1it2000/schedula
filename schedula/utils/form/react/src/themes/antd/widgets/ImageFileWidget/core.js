@@ -1,6 +1,5 @@
 import {notification, Upload, Modal} from 'antd';
 import {useState, useEffect} from 'react';
-import isEqual from "lodash/isEqual";
 import format from 'python-format-js'
 import {useLocaleStore} from '../../models/locale'
 import ImgCrop from 'antd-img-crop';
@@ -44,27 +43,24 @@ const ImageFileWidget = (
     const [previewOpen, setPreviewOpen] = useState(false);
     const [previewImage, setPreviewImage] = useState('');
     const [previewTitle, setPreviewTitle] = useState('');
-
-    const [fileList, setFileList] = useState((value ? (multiple ? value : [value]) : []).filter(
-        v => !!v
-    ).map(dataURLtoFile))
-
+    const [fileList, setFileList] = useState([])
     let nFiles = fileList.length
+    const newValue = value ? (multiple ? value : [value]) : []
     useEffect(() => {
-        if (!fileList.some(file => file.status === 'uploading')) {
-            let objFiles = fileList.filter(file => file.status === 'done').map(file => file.response),
-                files = (value ? (multiple ? value : [value]) : []).filter(v => !!v);
-            if (!isEqual(files, objFiles))
-                onChange(multiple ? objFiles : objFiles[0])
-        }
-    }, [fileList, value])
+        setFileList((value ? (multiple ? value : [value]) : []).filter(
+            v => !!v
+        ).map(dataURLtoFile))
+    }, [value, multiple])
     const handleCancelPreview = () => setPreviewOpen(false);
 
     const onRemove = (file) => {
-        const index = fileList.indexOf(file);
-        const newFileList = fileList.slice();
-        newFileList.splice(index, 1);
-        setFileList(newFileList)
+        if (!multiple) {
+            onChange(undefined)
+        } else {
+            const index = fileList.indexOf(file);
+            newValue.splice(index, 1);
+            onChange(newValue)
+        }
     }
     let props = {
         onRemove,
@@ -110,16 +106,13 @@ const ImageFileWidget = (
         },
         onChange: ({file, fileList: newFileList}) => {
             if (file.status === 'done') {
-                setFileList((fileList) => {
-                    if (multiple) {
-                        const index = fileList.map(file => file.uid).indexOf(file.uid);
-                        const newFileList = fileList.slice();
-                        newFileList[index] = file
-                        return newFileList
-                    } else {
-                        return [file]
-                    }
-                })
+                if (multiple) {
+                    newValue.push(file.response)
+                    onChange(newValue)
+                } else {
+                    onChange(file.response)
+                }
+                setFileList(newFileList)
             } else if (file.status === 'error') {
                 onRemove(file)
             } else if (file.status === 'uploading') {
@@ -143,7 +136,6 @@ const ImageFileWidget = (
                 } else {
                     onSuccess(url)
                 }
-
             };
             reader.onerror = error => onError(error);
             reader.onprogress = function progress(e) {
@@ -188,6 +180,7 @@ const ImageFileWidget = (
             <Upload
                 key={id + '-Upload'}
                 listType="picture-card"
+                danger={!!rawErrors}
                 {...props}>
                 {readonly || disabled || nFiles >= (props.maxCount || Infinity) ? null : locale.dropMessage}
             </Upload>
