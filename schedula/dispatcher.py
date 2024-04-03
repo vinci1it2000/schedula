@@ -1194,7 +1194,7 @@ class Dispatcher(Base):
     def get_sub_dsp_from_workflow(
             self, sources, graph=None, reverse=False, add_missing=False,
             check_inputs=True, blockers=None, wildcard=False,
-            _update_links=True):
+            _update_links=True, avoid_cycles=False):
         """
         Returns the sub-dispatcher induced by the workflow from sources.
 
@@ -1361,6 +1361,10 @@ class Dispatcher(Base):
                         return node_attr['type'] == 'data'
                     except KeyError:
                         return True
+                if avoid_cycles:
+                    node_attr = dmap_nodes[c]
+                    if node_attr['type'] == 'function':
+                        return any(k in family for k in node_attr['inputs'])
                 return False
 
         from collections import deque
@@ -1386,7 +1390,7 @@ class Dispatcher(Base):
                 queue.append(n)
 
         # Set initial node attributes.
-        for s in sources:
+        for s in sorted(sources):
             if s in dmap_nodes and s in graph.nodes:
                 _set_node_attr(s, block=not (wildcard and s in blockers))
 
