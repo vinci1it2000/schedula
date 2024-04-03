@@ -59,12 +59,12 @@ while true; do
       echo "Do you wish to publish on TestPyPI ('n' for PyPI)?[Y/n]"
       read yn
       case ${yn} in
-      [Nn] | "")
+      [Nn])
         twine upload dist/*
         exit
         ;;
 
-      [Yy])
+      [Yy] | "")
         twine upload --repository testpypi dist/*
         while true; do
           echo "Do you wish to publish on PyPI?[Y/n]"
