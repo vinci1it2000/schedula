@@ -61,6 +61,10 @@
           "key": 2
         },
         {
+          "label": "EXCEL",
+          "key": 3
+        },
+        {
           "label": "OUTPUT",
           "children": [
             {
@@ -1130,6 +1134,20 @@
             "uiSchema": {
               "ui:onlyChildren": true,
               "ui:field": "PlotlyField"
+            }
+          }
+        ]
+      },
+      {
+        "component": "div",
+        "children": [
+          {
+            "path": "xlsx"
+          },
+          {
+            "path": "xlsx",
+            "uiSchema": {
+              "ui:widget": "ExcelPreviewWidget"
             }
           }
         ]

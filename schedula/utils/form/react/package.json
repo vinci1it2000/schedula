@@ -18,7 +18,6 @@
     "ahooks": "^3.7.10",
     "ajv-i18n": "^4.2.0",
     "ant-design-draggable-modal": "git+https://github.com/thunkable/ant-design-draggable-modal-v5.git",
-    "react-uid": "^2.3.3",
     "antd": "^5.15.3",
     "antd-img-crop": "^4.21.0",
     "classnames": "^2.5.1",
@@ -50,15 +49,15 @@
     "react": "^18.2.0",
     "react-antdown": "^1.0.11",
     "react-csv": "^2.2.2",
-    "react-dnd": "^16.0.1",
-    "react-dnd-html5-backend": "^16.0.1",
     "react-dom": "^18.2.0",
     "react-google-recaptcha": "^3.1.0",
     "react-grid-layout": "^1.4.4",
     "react-markdown": "^9.0.1",
     "react-plotly.js": "^2.6.0",
     "react-resize-detector": "^10.0.1",
-    "remark-gfm": "^4.0.0"
+    "react-uid": "^2.3.3",
+    "remark-gfm": "^4.0.0",
+    "xlsx-preview": "^1.0.4"
   },
   "devDependencies": {
     "@babel/cli": "^7.23.9",

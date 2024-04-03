@@ -3,6 +3,11 @@
   "title": "Schedula Form",
   "type": "object",
   "properties": {
+    "xlsx": {
+      "title": "File",
+      "type": "string",
+      "format": "data-url"
+    },
     "number": {
       "type": "number",
       "minimum": 0,
