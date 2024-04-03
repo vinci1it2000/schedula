@@ -117,9 +117,9 @@ class Base:
 
     def form(self, depth=1, node_data=NONE, node_function=NONE, directory=None,
              sites=None, run=True, view=True, get_context=NONE, get_data=NONE,
-             edit_on_change='./static/schedula/onChange/*.js',
-             pre_submit='./static/schedula/preSubmit/*.js',
-             post_submit='./static/schedula/postSubmit/*.js',
+             edit_on_change='static/schedula/onChange/*.js',
+             pre_submit='static/schedula/preSubmit/*.js',
+             post_submit='static/schedula/postSubmit/*.js',
              subsite_idle_timeout=600, basic_app_config=None,
              stripe_event_handler=lambda event: None):
         """
@@ -212,6 +212,7 @@ class Base:
         for k, v in methods.items():
             if isinstance(v, str):
                 methods[k] = d = {}
+                v = osp.join(directory or '.', *v.replace('\\', '/').split('/'))
                 for fpath in glob.glob(v):
                     with open(fpath) as f:
                         d[f'/{osp.splitext(osp.basename(fpath))[0]}'] = f.read()
