@@ -163,6 +163,7 @@ class TestDispatcherForm(unittest.TestCase):
         ).site().run(port=5009)
 
         driver = self.driver
+        driver.get('%s/' % self.stripe_site.url)
 
         def send_payment(card):
             driver.switch_to.frame(WebDriverWait(driver, 30).until(
@@ -184,7 +185,6 @@ class TestDispatcherForm(unittest.TestCase):
 
         for card in ('4000000000000002',):
             for _ in range(3):
-                driver.get('%s/' % self.stripe_site.url)
                 try:
                     send_payment(card)
                     self.assertTrue(bool(WebDriverWait(driver, 30).until(
@@ -197,9 +197,11 @@ class TestDispatcherForm(unittest.TestCase):
                     continue
                 break
             else:
-                self.assertTrue(False)
+                self.assertTrue(
+                    False, 'Stripe CheckoutInput--invalid TimeoutException'
+                )
+            driver.get('%s/' % self.stripe_site.url)
             driver.switch_to.alert.accept()
-        driver.get('%s/' % self.stripe_site.url)
         send_payment('4242424242424242')
         import requests
         fp = osp.join(osp.dirname(__file__), 'form', 'webhook.json')
