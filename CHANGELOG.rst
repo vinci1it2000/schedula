@@ -2,6 +2,43 @@ Changelog
 =========
 
 
+v1.5.6 (2024-04-03)
+-------------------
+
+Feat
+~~~~
+- (form): Update resources.
+
+- (form): Add `ExcelPreviewWidget` and `ExcelPreview` components.
+
+- (form): Change behaviour of `edit_on_change`, `pre_submit` and
+  `post_submit` optional paths.
+
+- (dsp): Add option to avoid cycles when extracting dsp from reverse
+  graph.
+
+- (form): Add `ResponsiveGridLayout` component.
+
+- (form): Update `ant-design-draggable-modal` for antd v5.
+
+- (form): Secure secrets data of payments.
+
+- (form): Change icons of TableField and App component.
+
+- (form): Improve rendering of tables.
+
+
+Fix
+~~~
+- (test): Ensure timing for testcases.
+
+- (form): Correct Cascader properties in omit.
+
+- (form): Correct FileWidgets behaviours.
+
+- (form): Correct CascaderField layout.
+
+
 v1.5.5 (2024-03-19)
 -------------------
 
