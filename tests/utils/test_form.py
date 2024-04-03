@@ -106,14 +106,19 @@ class TestDispatcherForm(unittest.TestCase):
         driver = self.driver
         driver.get('%s/' % self.site.url)
 
-        def _btn(*classes):
+        def _btn(*classes, clickable=False):
             classes = ' and '.join(f'contains(@class, "{v}")' for v in classes)
-            return driver.find_element(By.XPATH, f'//li[{classes}]')
+            args = (By.XPATH, f'//li[{classes}]')
+            if clickable:
+                return WebDriverWait(driver, 30).until(
+                    EC.element_to_be_clickable(args)
+                )
+            return driver.find_element(*args)
 
         def _clean():
-            _btn('clean-button').click()
+            _btn('clean-button', clickable=True).click()
             WebDriverWait(driver, 30).until(
-                EC.visibility_of_element_located((
+                EC.element_to_be_clickable((
                     By.XPATH, "//span[text()='OK']"
                 ))
             ).click()
@@ -124,7 +129,7 @@ class TestDispatcherForm(unittest.TestCase):
                 _btn('debug-button', 'ant-menu-item-disabled')
 
         def _run(btn):
-            _btn(btn).click()
+            _btn(btn, clickable=True).click()
             self.assertTrue(_btn('run-button', 'ant-menu-item-disabled'))
 
         self.assertTrue(_btn('run-button', 'ant-menu-item-disabled'))
@@ -145,6 +150,7 @@ class TestDispatcherForm(unittest.TestCase):
         from selenium.webdriver.common.by import By
         from selenium.webdriver.support.ui import WebDriverWait
         from selenium.webdriver.support import expected_conditions as EC
+        from selenium.common.exceptions import TimeoutException
         status = [False]
 
         def stripe_event_handler(event):
@@ -157,7 +163,6 @@ class TestDispatcherForm(unittest.TestCase):
         ).site().run(port=5009)
 
         driver = self.driver
-        driver.get('%s/' % self.stripe_site.url)
 
         def send_payment(card):
             driver.switch_to.frame(WebDriverWait(driver, 30).until(
@@ -170,21 +175,31 @@ class TestDispatcherForm(unittest.TestCase):
             driver.find_element(By.ID, 'cardExpiry').send_keys('1225')
             driver.find_element(By.ID, 'cardCvc').send_keys('123')
             driver.find_element(By.ID, 'billingName').send_keys('Schedula User')
-            driver.find_element(
-                By.XPATH,
-                '//button[@data-testid="hosted-payment-submit-button"]'
+            WebDriverWait(driver, 30).until(
+                EC.element_to_be_clickable((
+                    By.XPATH,
+                    '//button[@data-testid="hosted-payment-submit-button"]'
+                ))
             ).click()
 
         for card in ('4000000000000002',):
-            send_payment(card)
-            self.assertTrue(bool(WebDriverWait(driver, 60).until(
-                EC.visibility_of_element_located((
-                    By.XPATH,
-                    '//input[contains(@class, "CheckoutInput--invalid")]'
-                ))
-            )))
-            driver.get('%s/' % self.stripe_site.url)
+            for _ in range(3):
+                driver.get('%s/' % self.stripe_site.url)
+                try:
+                    send_payment(card)
+                    self.assertTrue(bool(WebDriverWait(driver, 30).until(
+                        EC.visibility_of_element_located((
+                            By.XPATH,
+                            '//input[contains(@class, "CheckoutInput--invalid")]'
+                        ))
+                    )))
+                except TimeoutException:
+                    continue
+                break
+            else:
+                self.assertTrue(False)
             driver.switch_to.alert.accept()
+        driver.get('%s/' % self.stripe_site.url)
         send_payment('4242424242424242')
         import requests
         fp = osp.join(osp.dirname(__file__), 'form', 'webhook.json')
@@ -192,11 +207,9 @@ class TestDispatcherForm(unittest.TestCase):
             payload = f.read()
         resp = requests.post(
             self.stripe_site.url + '/stripe/webhook', data=payload,
-            headers={
-                'STRIPE-SIGNATURE': (
-                    't=1710289463,v1=349b804a6deab4c867dc598b8f277abc7e9bd4bcd756b896d086570bbc311d13,v0=e44e68f09d9b568184155abd7fbb8589438c0d0a817fe1db74d120d1ffcd3515'
-                )
-            }
+            headers={'STRIPE-SIGNATURE': (
+                't=1710289463,v1=349b804a6deab4c867dc598b8f277abc7e9bd4bcd756b896d086570bbc311d13,v0=e44e68f09d9b568184155abd7fbb8589438c0d0a817fe1db74d120d1ffcd3515'
+            )}
         )
         self.assertTrue(resp.json()['success'])
         self.assertTrue(status[0])
