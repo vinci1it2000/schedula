@@ -33,6 +33,7 @@ const Export = React.lazy(() => import('./Export'));
 const Flex = React.lazy(() => import('./Flex'));
 const Grid_Col = React.lazy(() => import('./Grid/Col'));
 const Grid_Row = React.lazy(() => import('./Grid/Row'));
+const Icon = React.lazy(() => import('./Icon'));
 const Image_PreviewGroup = React.lazy(() => import('./Image/PreviewGroup'));
 const Import = React.lazy(() => import('./Import'));
 const Layout = React.lazy(() => import('./Layout'));
@@ -92,6 +93,7 @@ export function generateComponents(register = true, registerDomains = true) {
         Flex,
         "Grid.Col": Grid_Col,
         "Grid.Row": Grid_Row,
+        Icon,
         "Image.PreviewGroup": Image_PreviewGroup,
         Import,
         Layout,
