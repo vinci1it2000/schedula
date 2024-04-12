@@ -381,10 +381,7 @@ export default class Form extends BaseForm {
     onSubmit = (event, detail = {}) => {
         if (event) {
             event.preventDefault()
-            if (event.target !== event.currentTarget) {
-                return
-            }
-            event.persist()
+            return
         }
         this.setState({
             ...this.state,

@@ -6,5 +6,10 @@ module.exports = function override(config, env) {
     config.plugins[5].options.filename = 'static/schedula/css/[name].[contenthash:8].css'
     config.plugins[5].options.chunkFilename = 'static/schedula/css/[name].[contenthash:8].chunk.css'
     config.resolve.fallback = {fs: false}
+    config.devServer = {
+        client: {
+            overlay: false
+        }
+    }
     return config;
 }

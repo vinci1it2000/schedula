@@ -1,13 +1,17 @@
 import {Button} from 'antd';
 
 
-const SubmitDebug = ({children, render, ...props}) => (
-    <Button
-        htmlType="submit"
-        formMethod="POST"
+const SubmitDebug = ({children, render, ...props}) => {
+    const {formContext} = render
+    const {form} = formContext
+    return <Button
         type="primary"
-        headers={JSON.stringify({'Debug': 'true'})} {...props}>
+        onClick={() => {
+            form.onSubmit(null, {headers: {Debug: true}})
+        }} {...props}>
         {children || "debug"}
-    </Button>);
+    </Button>
+}
+
 
 export default SubmitDebug;

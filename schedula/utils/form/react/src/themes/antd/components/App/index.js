@@ -299,7 +299,7 @@ const {Header, Content, Footer, Sider} = Layout,
                             selectable={false}
                             onClick={({key}) => {
                                 if (key === 'run') {
-                                    form.submit()
+                                    form.onSubmit(null, {})
                                 } else if (key === 'debug') {
                                     form.onSubmit(null, {headers: {'Debug': 'true'}})
                                 } else if (key === 'clean') {

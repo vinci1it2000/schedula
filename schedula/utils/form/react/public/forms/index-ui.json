@@ -1140,15 +1140,38 @@
       },
       {
         "component": "div",
+        "props": {
+          "style": {
+            "height": "100%",
+            "display": "flex",
+            "flexFlow": "column"
+          }
+        },
         "children": [
           {
-            "path": "xlsx"
+            "component": "div",
+            "children": [
+              {
+                "path": "xlsx"
+              }
+            ]
           },
           {
-            "path": "xlsx",
-            "uiSchema": {
-              "ui:widget": "ExcelPreviewWidget"
-            }
+            "component": "div",
+            "props": {
+              "style": {
+                "flexGrow": 1
+              }
+            },
+            "children": [
+              {
+                "path": "xlsx",
+                "uiSchema": {
+                  "ui:widget": "ExcelPreviewWidget",
+                  "ui:onlyChildren": true
+                }
+              }
+            ]
           }
         ]
       }
