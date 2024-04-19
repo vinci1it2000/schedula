@@ -17,7 +17,7 @@ EXTRAS = os.environ.get('EXTRAS', 'all')
 PLATFORM = platform.system().lower()
 
 
-@unittest.skipIf(EXTRAS not in ('all', 'form'), 'Not for extra %s.' % EXTRAS)
+@unittest.skipIf(EXTRAS not in ('form',), 'Not for extra %s.' % EXTRAS)
 @unittest.skipIf(PLATFORM not in ('darwin', 'linux'),
                  'Not for platform %s.' % PLATFORM)
 class TestDispatcherForm(unittest.TestCase):
@@ -161,7 +161,18 @@ class TestDispatcherForm(unittest.TestCase):
             directory=self.stripe_form_dir, run=False, view=False,
             stripe_event_handler=stripe_event_handler
         ).site().run(port=5009)
-
+        import requests
+        fp = osp.join(osp.dirname(__file__), 'form', 'webhook.json')
+        with open(fp, 'rb') as f:
+            payload = f.read()
+        resp = requests.post(
+            self.stripe_site.url + '/stripe/webhook', data=payload,
+            headers={'STRIPE-SIGNATURE': (
+                't=1710289463,v1=349b804a6deab4c867dc598b8f277abc7e9bd4bcd756b896d086570bbc311d13,v0=e44e68f09d9b568184155abd7fbb8589438c0d0a817fe1db74d120d1ffcd3515'
+            )}
+        )
+        self.assertTrue(resp.json()['success'])
+        self.assertTrue(status[0])
         driver = self.driver
         driver.get('%s/' % self.stripe_site.url)
 
@@ -203,15 +214,3 @@ class TestDispatcherForm(unittest.TestCase):
             driver.get('%s/' % self.stripe_site.url)
             driver.switch_to.alert.accept()
         send_payment('4242424242424242')
-        import requests
-        fp = osp.join(osp.dirname(__file__), 'form', 'webhook.json')
-        with open(fp, 'rb') as f:
-            payload = f.read()
-        resp = requests.post(
-            self.stripe_site.url + '/stripe/webhook', data=payload,
-            headers={'STRIPE-SIGNATURE': (
-                't=1710289463,v1=349b804a6deab4c867dc598b8f277abc7e9bd4bcd756b896d086570bbc311d13,v0=e44e68f09d9b568184155abd7fbb8589438c0d0a817fe1db74d120d1ffcd3515'
-            )}
-        )
-        self.assertTrue(resp.json()['success'])
-        self.assertTrue(status[0])
