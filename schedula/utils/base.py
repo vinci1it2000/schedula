@@ -117,9 +117,6 @@ class Base:
 
     def form(self, depth=1, node_data=NONE, node_function=NONE, directory=None,
              sites=None, run=True, view=True, get_context=NONE, get_data=NONE,
-             edit_on_change='static/schedula/onChange/*.js',
-             pre_submit='static/schedula/preSubmit/*.js',
-             post_submit='static/schedula/postSubmit/*.js',
              subsite_idle_timeout=600, basic_app_config=None,
              stripe_event_handler=lambda event: None):
         """
@@ -162,18 +159,6 @@ class Base:
             Function to initialize the formdata.
         :type get_data: function | dict, optional
 
-        :param edit_on_change:
-            JS function to edit on the browser the formdata when value change.
-        :type edit_on_change: str | dict[str], optional
-
-        :param pre_submit:
-            JS function to edit on the browser the formdata before submitting.
-        :type pre_submit: str | dict[str], optional
-
-        :param post_submit:
-            JS function to edit on the browser server response after submision.
-        :type post_submit: str | dict[str], optional
-
         :param subsite_idle_timeout:
             Idle timeout of a debug subsite in seconds.
         :type subsite_idle_timeout: int, optional
@@ -205,25 +190,9 @@ class Base:
         formmap.basic_app_config = basic_app_config
         formmap.stripe_event_handler = stripe_event_handler
         methods = {
-            'get_edit_on_change_func': edit_on_change,
-            'get_pre_submit_func': pre_submit,
-            'get_post_submit_func': post_submit
-        }
-        for k, v in methods.items():
-            if isinstance(v, str):
-                methods[k] = d = {}
-                v = osp.join(directory or '.', *v.replace('\\', '/').split('/'))
-                for fpath in glob.glob(v):
-                    with open(fpath) as f:
-                        d[f'/{osp.splitext(osp.basename(fpath))[0]}'] = f.read()
-                if '/' not in d and '/index' in d:
-                    d['/'] = d['/index']
-                elif not d:
-                    methods[k] = NONE
-        methods.update({
             'get_form_context': get_context,
             'get_form_data': get_data
-        })
+        }
         for k, v in methods.items():
             if v is not NONE:
                 setattr(formmap, f'_{k}', v)

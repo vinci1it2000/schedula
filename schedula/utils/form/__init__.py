@@ -17,7 +17,10 @@ Sub-Modules:
     :nosignatures:
     :toctree: form/
 
+    cli
     config
+    gapp
+    json_secrets
     mail
     server
 """
@@ -62,38 +65,7 @@ static_context = {
 
 
 class FormMap(WebMap):
-    _get_edit_on_change_func = """
-    ({
-         formData,
-         formContext,
-         schema,
-         uiSchema,
-         csrf_token,
-         setFormData,
-         ...props
-    }) => (formData)
-    """
-    _get_pre_submit_func = """
-    ({
-         input,
-         formContext,
-         schema,
-         uiSchema,
-         csrf_token,
-         ...props
-    }) => (input)
-    """
-    _get_post_submit_func = """
-    ({
-         data,
-         input,
-         formContext,
-         schema,
-         uiSchema,
-         csrf_token,
-         ...props
-    }) => ({data})
-    """
+
     _get_basic_app_config = Config
 
     def get_form_context(self):

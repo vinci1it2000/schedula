@@ -11,12 +11,20 @@ import set from "lodash/set";
 import assign from "lodash/assign";
 
 
-export function getComponents() {
-    return components
+export function getComponents({render, component}) {
+    return get(
+        get(render || {}, 'formContext', {}),
+        `componets.${component}`,
+        components[component]
+    )
 }
 
-export function getComponentDomains() {
-    return domains
+export function getComponentDomains({render, component}) {
+    return get(
+        get(render || {}, 'formContext', {}),
+        `domains.${component}`,
+        domains[component]
+    )
 }
 
 export function createLayoutElement({key, layout, render, isArray}) {
@@ -318,7 +326,7 @@ export function createLayoutElement({key, layout, render, isArray}) {
                 ...layout,
                 "path": fieldPath
             }
-            contentProps.uiSchema["ui:onlyChildren"] = (!!fieldPath || name === '.' || (children ||[]).length)
+            contentProps.uiSchema["ui:onlyChildren"] = (!!fieldPath || name === '.' || (children || []).length)
         } else {
             contentProps = assign(contentProps, others)
         }
@@ -333,8 +341,8 @@ export function createLayoutElement({key, layout, render, isArray}) {
                 }
                 return element
             }),
-            type = getComponents()[component],
-            domain = getComponentDomains()[component];
+            type = getComponents({render, component}),
+            domain = getComponentDomains({render, component});
 
         props.key = key
         if (type) {
@@ -357,7 +365,6 @@ export function createLayoutElement({key, layout, render, isArray}) {
             return null
         }
     }
-
 }
 
 

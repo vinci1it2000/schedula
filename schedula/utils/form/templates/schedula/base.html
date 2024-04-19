@@ -10,6 +10,7 @@
     {% endblock %}
     {% block js %}
     <script src="{{ url_for('schedula.static', filename=main_js) }}"></script>
+    <script src="{{ url_for('schedula.static', filename='props/js/' + form_id + '.js') }}"></script>
     {% endblock %}
     {% block css %}
     <link href="{{ url_for('schedula.static', filename=main_css) }}"
@@ -45,62 +46,20 @@
     {% endif %}
     {% endblock %}
 
-    {% block edit_on_change_func %}
-    <script>
-        const editOnChange = {{ form.get_edit_on_change_func() | safe }};
-        /*({
-             formData,
-             formContext,
-             schema,
-             uiSchema,
-             csrf_token,
-             setFormData,
-             ...props
-         }) => (formData)
-        */
-    </script>
-    {% endblock %}
-
-    {% block pre_submit_func %}
-    <script>
-        const preSubmit = {{ form.get_pre_submit_func() | safe }};
-        /*({
-             input,
-             formContext,
-             schema,
-             uiSchema,
-             csrf_token,
-             ...props
-         }) => (input)
-        */
-    </script>
-    {% endblock %}
-
-    {% block post_submit_func %}
-    <script>
-        const postSubmit = {{ form.get_post_submit_func() | safe }};
-        /*({
-             data,
-             input,
-             formContext,
-             schema,
-             uiSchema,
-             csrf_token,
-             ...props
-         }) => (data)
-        */
-    </script>
-    {% endblock %}
     {% block js_onload %}
     <script defer="defer">
         function onLoad() {
             let name = "{{ form_id or 'index' }}",
                 url = "{{ url_for('api') }}",
+                {formContext: _formContext, ..._schedulaProps} = schedulaProps,
                 element = document.getElementById('root'),
                 forms_url = "{{ url_for('schedula.static', filename='forms') }}",
                 csrf_token = "{{ form.generate_csrf() }}",
-                formContext = JSON.parse('{{ form.get_form_context() | tojson | safe}}'),
                 formData = JSON.parse('{{ form.get_form_data() | tojson | safe}}');
+            let formContext = {
+                ..._formContext,
+                ...JSON.parse('{{ form.get_form_context() | tojson | safe}}')
+            }
             Promise.all([
                 fetch(`${forms_url}/${name}-schema.json`, {
                     headers: {
@@ -124,11 +83,9 @@
                     schema,
                     uiSchema,
                     csrf_token,
-                    formContext,
                     formData,
-                    editOnChange,
-                    preSubmit,
-                    postSubmit
+                    formContext,
+                    ..._schedulaProps
                 })
             });
         }

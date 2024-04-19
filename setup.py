@@ -91,7 +91,7 @@ if __name__ == '__main__':
     extras['form'] = extras['web'] + [
         'itsdangerous', 'rst2txt', 'flask-sqlalchemy', 'sqlalchemy', 'docutils',
         'flask-babel', 'flask-wtf', 'flask-principal', 'flask-security-too',
-        'flask-mail', 'stripe'
+        'flask-mail', 'stripe', 'click', 'click_log'
     ]
     extras['sphinx'] = ['sphinx>=7.2'] + extras['plot']
     extras['all'] = sorted(functools.reduce(set.union, extras.values(), set()))
@@ -99,6 +99,7 @@ if __name__ == '__main__':
         'wheel', 'sphinx>=7.2', 'gitchangelog', 'mako', 'sphinx_rtd_theme',
         'setuptools>=36.0.1', 'sphinxcontrib-restbuilder', 'coveralls', 'polib',
         'requests', 'readthedocs-sphinx-ext', 'twine', 'ddt', 'translators',
+        'livereload>=2.6.3'
     ]
     exclude = [
         'doc', 'doc.*',
@@ -107,6 +108,11 @@ if __name__ == '__main__':
         'micropython', 'micropython.*',
         'requirements', 'binder', 'bin'
     ]
+    kw = {'entry_points': {
+        'console_scripts': [
+            '%(p)s = %(p)s.cli:cli' % {'p': name},
+        ]
+    }}
     if core:
         exclude.extend([
             'schedula.ext', 'schedula.ext.*',
@@ -115,9 +121,11 @@ if __name__ == '__main__':
             'schedula.utils.web', 'schedula.utils.web.*',
             'schedula.utils.form', 'schedula.utils.form.*',
             'schedula.utils.des', 'schedula.utils.des.*',
+            'schedula.cli',
         ])
         name = '%s-core' % name
         extras = {}
+        kw.pop('entry_points')
     long_description = ''
     if os.environ.get('ENABLE_SETUP_LONG_DESCRIPTION') == 'TRUE':
         try:
@@ -183,5 +191,6 @@ if __name__ == '__main__':
                 'templates/schedula/*',
                 'templates/schedula/email/*'
             ]
-        }
+        },
+        **kw
     )

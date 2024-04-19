@@ -21,6 +21,7 @@ Modules:
     ~dispatcher
     ~utils
     ~ext
+    ~cli
 """
 import os
 import sys
