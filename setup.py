@@ -184,12 +184,14 @@ if __name__ == '__main__':
                 'templates/*', 'index/js/*', 'index/css/*', 'viz/*'
             ],
             'schedula.utils.form': [
-                'templates/schedula/*', 'static/schedula/js/*.js.gz',
-                'static/schedula/css/*.css.gz',
-                'static/schedula/media/*.gz',
                 'static/schedula/forms/*',
-                'templates/schedula/*',
-                'templates/schedula/email/*'
+                'static/schedula/**/*.gz',
+                'static/schedula/**/*.LICENSE.txt',
+                'templates/**/*',
+                'sample/.babelrc',
+                'sample/*.*',
+                'sample/src/**/*',
+                'translations/**/*'
             ]
         },
         **kw
