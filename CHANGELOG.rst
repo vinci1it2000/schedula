@@ -2,6 +2,33 @@ Changelog
 =========
 
 
+v1.5.7 (2024-04-19)
+-------------------
+
+Feat
+~~~~
+- (form): Update resources.
+
+- (form): Add cmd to generate a sample project and update the mode of
+  passing `edit_on_change`, `pre_submit`, and `post_submit` options.
+
+- (form): Remove `ExcelPreview` component and widget.
+
+- (form): Add cmd to generate a sample project and update the mode of
+  passing `edit_on_change`, `pre_submit`, and `post_submit` options.
+
+- (form): Add Icon component.
+
+- (form): Replace `xlsx-preview` with `univerjs`.
+
+
+Fix
+~~~
+- (bin): Correct default option of `publish.sh`.
+
+- (test): Correct order of selenium execution.
+
+
 v1.5.6 (2024-04-03)
 -------------------
 
