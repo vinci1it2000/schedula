@@ -51,7 +51,7 @@
         function onLoad() {
             let name = "{{ form_id or 'index' }}",
                 url = "{{ url_for('api') }}",
-                {formContext: _formContext, ..._schedulaProps} = schedulaProps,
+                {formContext: _formContext, ..._schedulaProps} = window.schedulaProps || {},
                 element = document.getElementById('root'),
                 forms_url = "{{ url_for('schedula.static', filename='forms') }}",
                 csrf_token = "{{ form.generate_csrf() }}",

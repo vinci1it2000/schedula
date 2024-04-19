@@ -11,3 +11,4 @@ sphinx_rtd_theme
 readthedocs-sphinx-ext
 setuptools>=36.0.1
 sphinxcontrib-restbuilder
+livereload>=2.6.3

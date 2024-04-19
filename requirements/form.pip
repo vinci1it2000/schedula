@@ -11,3 +11,6 @@ flask-mail
 rst2txt
 docutils
 stripe
+click
+click_log
+gunicorn
