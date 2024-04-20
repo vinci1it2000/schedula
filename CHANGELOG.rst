@@ -2,6 +2,14 @@ Changelog
 =========
 
 
+v1.5.9 (2024-04-21)
+-------------------
+
+Fix
+~~~
+- (form): Correct bug when copying files in cmd line.
+
+
 v1.5.8 (2024-04-20)
 -------------------
 
