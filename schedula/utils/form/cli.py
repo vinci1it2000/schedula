@@ -83,7 +83,7 @@ def sample(folder='.'):
             dst = osp.join(folder, osp.relpath(f, sample_dir))
             if osp.isfile(f) and not osp.isfile(dst):
                 os.makedirs(osp.dirname(dst), exist_ok=True)
-                shutil.copy(fp, dst)
+                shutil.copy(f, dst)
 
 
 @cli.command('build', short_help='Build main folder `src` files.')
