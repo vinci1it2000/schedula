@@ -14,7 +14,7 @@ import assign from "lodash/assign";
 export function getComponents({render, component}) {
     return get(
         get(render || {}, 'formContext', {}),
-        `componets.${component}`,
+        `components.${component}`,
         components[component]
     )
 }
