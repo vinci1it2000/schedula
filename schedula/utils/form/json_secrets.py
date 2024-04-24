@@ -40,7 +40,6 @@ def secrets(obj, dumps=True):
             for k, v in obj.items() if '$secret' != k
         }
         if '$secret' in obj:
-            res = {}
             if dumps:
                 res['$secret'] = dumps_secret(obj['$secret'])
             else:
@@ -49,7 +48,6 @@ def secrets(obj, dumps=True):
                     res.update(obj)
                 else:
                     res = obj
-
         return res
     return obj
 
