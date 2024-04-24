@@ -1,6 +1,11 @@
 import React, {Suspense} from 'react';
 import Form from './form'
-import {registerComponent, registerComponentDomain} from "./fields/utils";
+import {
+    registerComponent,
+    registerComponentDomain,
+    getComponents,
+    getComponentDomains
+} from "./fields/utils";
 import ReactDOM from 'react-dom/client'
 
 async function renderForm(
@@ -42,4 +47,10 @@ async function renderForm(
     });
 }
 
-export {renderForm as default, registerComponent, registerComponentDomain}
+export {
+    renderForm as default,
+    registerComponent,
+    registerComponentDomain,
+    getComponents,
+    getComponentDomains
+}
