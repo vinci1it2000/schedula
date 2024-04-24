@@ -26,6 +26,8 @@ import {
 import {getUiOptions} from "@rjsf/utils";
 import post from "../../../../core/utils/fetch";
 import isEqual from "lodash/isEqual";
+import isArray from "lodash/isArray";
+import get from "lodash/get";
 import exportJSON from "../../../../core/utils/Export";
 
 
@@ -34,15 +36,17 @@ export default function CloudDownloadField(
     const {form} = formContext
     const {getLocale} = useLocaleStore()
     const locale = getLocale('CloudDownloadField')
-    const {
+    let {
         cloudUrl = '/item',
         modal,
         button = false,
         onSelect,
         postGet,
+        objectItems,
         currentKey: _currentKey,
         ...props
     } = getUiOptions(uiSchema);
+
     const [_form] = Form.useForm();
     const [editingKey, setEditingKey] = useState('');
     const [currentKey, setCurrentKey] = useState(null);
@@ -53,6 +57,11 @@ export default function CloudDownloadField(
     const cancel = () => {
         setEditingKey('');
     };
+    if (isArray(objectItems))
+        objectItems = objectItems.reduce((r, k) => {
+            r[k] = k;
+            return r
+        }, {})
     const [tableParams, setTableParams] = useState({
         pagination: {
             current: 1,
@@ -190,6 +199,7 @@ export default function CloudDownloadField(
                     if (onSelect)
                         onSelect({id, name, data: formData})
                 }
+                fetchData()
             }
         }).catch(error => {
             setLoading(false)
@@ -201,21 +211,25 @@ export default function CloudDownloadField(
     }
     const handleUpdate = async (id) => {
         cancel()
+        let data = formData
+        if (objectItems) {
+            data = Object.entries(objectItems).reduce((res, [pathFrom, pathTo]) => {
+                res[pathTo] = get(formData, pathFrom)
+                return res
+            }, {})
+        }
         try {
             const row = await _form.validateFields();
-            let success
             if (id !== undefined) {
                 if (row.data) {  //put
-                    postUpdate(formData, 'PUT', row.name, id)
+                    postUpdate(data, 'PUT', row.name, id)
                 } else {  //patch
                     postUpdate({}, 'PATCH', row.name, id)
                 }
-                if (success)
-                    fetchData()
             } else if (openSave === 2) {
-                postUpdate(formData, 'PUT', row['new-name'], currentKey.id, true)
+                postUpdate(data, 'PUT', row['new-name'], currentKey.id, true)
             } else {  // post
-                postUpdate(formData, 'POST', row['new-name'], undefined, true)
+                postUpdate(data, 'POST', row['new-name'], undefined, true)
             }
         } catch (errInfo) {
         }
@@ -240,7 +254,7 @@ export default function CloudDownloadField(
                     description: (data.errors || [data.error]).join('\n'),
                 })
             } else {
-                const {
+                let {
                     id,
                     name,
                     data: _data
@@ -248,6 +262,12 @@ export default function CloudDownloadField(
                     ...data,
                     formData
                 }) : data
+                if (objectItems) {
+                    _data = Object.entries(objectItems).reduce((res, [pathFrom, pathTo]) => {
+                        res[pathFrom] = get(_data, pathTo)
+                        return res
+                    }, {...formData})
+                }
                 setCurrentKey({id, name})
                 onChange(_data)
                 setOpenModal(false)
@@ -307,7 +327,10 @@ export default function CloudDownloadField(
             fixed: 'left',
             render: (_, record) => (<Button
                 type="primary" shape="circle" icon={<SelectOutlined/>} ghost
-                onClick={() => handleGet(record.id)}/>),
+                onClick={(event) => {
+                    event.stopPropagation();
+                    handleGet(record.id)
+                }}/>),
             width: 48,
         }, {
             title: '#',
@@ -333,7 +356,10 @@ export default function CloudDownloadField(
             width: 120,
             render: (_, record) => (<Button
                 type="primary" icon={<DownloadOutlined/>}
-                onClick={() => handleDownload(record.id)} ghost>
+                onClick={(event) => {
+                    event.stopPropagation();
+                    handleDownload(record.id)
+                }} ghost>
                 {locale.buttonDownload}
             </Button>)
         }, {
@@ -342,14 +368,26 @@ export default function CloudDownloadField(
             dataIndex: 'operation',
             render: (_, record) => (isEditing(record) ? <Space>
                 <Button type="primary" shape="circle" icon={<CheckOutlined/>}
-                        onClick={() => handleUpdate(record.id)} ghost/>
+                        onClick={(event) => {
+                            event.stopPropagation();
+                            handleUpdate(record.id)
+                        }} ghost/>
                 <Button danger shape="circle" ghost
-                        icon={<CloseOutlined/>} onClick={cancel}/>
+                        icon={<CloseOutlined/>} onClick={(event) => {
+                    event.stopPropagation();
+                    cancel()
+                }}/>
             </Space> : <Space>
                 <Button type="primary" shape="circle" icon={<EditOutlined/>}
-                        onClick={() => edit(record)} ghost/>
+                        onClick={(event) => {
+                            event.stopPropagation();
+                            edit(record)
+                        }} ghost/>
                 <Popconfirm title={locale.confirmDelete}
-                            onConfirm={() => handleDelete(record.id)}>
+                            onConfirm={(event) => {
+                                event.stopPropagation();
+                                handleDelete(record.id)
+                            }}>
                     <Button danger shape="circle" ghost
                             icon={<DeleteOutlined/>}/>
                 </Popconfirm>
@@ -368,7 +406,8 @@ export default function CloudDownloadField(
             {currentKey ? <Space
                 key={'left'} style={{flex: "auto", minWidth: 0}}>
                 <Button type="primary" ghost icon={<SaveOutlined/>}
-                        onClick={() => {
+                        onClick={(event) => {
+                            event.stopPropagation();
                             setOpenSave(2);
                         }}>
                     {locale.buttonOverwrite}
@@ -380,7 +419,8 @@ export default function CloudDownloadField(
             <div style={{paddingLeft: '16px', paddingRight: '16px'}}>
                 <Space>
                     <Button type="primary" ghost
-                            icon={<PlusOutlined/>} onClick={() => {
+                            icon={<PlusOutlined/>} onClick={(event) => {
+                        event.stopPropagation();
                         setOpenSave(true);
                     }}>
                         {locale.buttonSaveNew}
@@ -402,7 +442,8 @@ export default function CloudDownloadField(
     if (modal || button) {
         content = <Modal
             key={'modal'} centered width={'90%'} footer={null} open={openModal}
-            onCancel={() => {
+            onCancel={(event) => {
+                event.stopPropagation()
                 setOpenModal(false)
             }} {...modal}>{content}</Modal>
     }
@@ -414,10 +455,12 @@ export default function CloudDownloadField(
             title={locale.titleSaveNew}
             okText={locale.buttonSave}
             cancelText={locale.buttonCancel}
-            onCancel={() => {
+            onCancel={(event) => {
+                event.stopPropagation();
                 setOpenSave(false)
             }}
-            onOk={() => {
+            onOk={(event) => {
+                event.stopPropagation();
                 handleUpdate()
             }}>
             <Form.Item
@@ -437,7 +480,10 @@ export default function CloudDownloadField(
         return [
             <Button key={'button'} icon={<CloudOutlined/>} type={'primary'}
                     shape="circle"
-                    onClick={() => setOpenModal(true)} {...button}/>,
+                    onClick={(event) => {
+                        event.stopPropagation();
+                        setOpenModal(true)
+                    }} {...button}/>,
             content
         ]
     } else {

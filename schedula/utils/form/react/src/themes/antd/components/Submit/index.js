@@ -6,7 +6,8 @@ const Submit = ({children, render, ...props}) => {
     const {form} = formContext
     return <Button
         type="primary"
-        onClick={() => {
+        onClick={(event) => {
+            event.preventDefault()
             form.onSubmit(null, {})
         }} {...props}>
         {children || "submit"}

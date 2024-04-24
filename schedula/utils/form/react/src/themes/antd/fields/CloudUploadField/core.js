@@ -96,7 +96,8 @@ export default function CloudUploadField({uiSchema, formData, formContext}) {
                     {currentKey ? <Space
                         key={'left'} style={{flex: "auto", minWidth: 0}}>
                         <Button type="primary" ghost icon={<SaveOutlined/>}
-                                onClick={() => {
+                                onClick={(event) => {
+                                    event.stopPropagation();
                                     handleUpdate(currentKey.id);
                                 }}>
                             {locale.buttonOverwrite}
@@ -108,12 +109,14 @@ export default function CloudUploadField({uiSchema, formData, formContext}) {
                     <div style={{paddingLeft: '16px'}}>
                         <Space>
                             <Button type="primary" ghost
-                                    icon={<PlusOutlined/>} onClick={() => {
+                                    icon={<PlusOutlined/>} onClick={(event) => {
+                                event.stopPropagation();
                                 handleUpdate()
                             }}>
                                 {locale.buttonSaveNew}
                             </Button>
-                            <Button type="primary" ghost onClick={() => {
+                            <Button type="primary" ghost onClick={(event) => {
+                                event.stopPropagation();
                                 props.onCancel()
                             }}>
                                 {locale.buttonCancel}
@@ -140,7 +143,10 @@ export default function CloudUploadField({uiSchema, formData, formContext}) {
             <Button key={'button'} icon={<CloudUploadOutlined/>}
                     type={'primary'}
                     shape="circle"
-                    onClick={() => setOpenSave(true)} {...button}/>,
+                    onClick={(event) => {
+                        event.stopPropagation();
+                        setOpenSave(true)
+                    }} {...button}/>,
             content
         ]
     } else {

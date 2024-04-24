@@ -15,7 +15,8 @@ import {
     CloudUploadOutlined,
     CloudDownloadOutlined,
     CloudOutlined,
-    BranchesOutlined
+    BranchesOutlined,
+    WarningOutlined
 } from '@ant-design/icons';
 import {
     Layout,
@@ -27,7 +28,7 @@ import {
     Popconfirm,
     Space,
     Modal,
-    Tabs,
+    Drawer,
     Typography
 } from 'antd';
 import {useFullscreen} from "ahooks";
@@ -41,13 +42,14 @@ import {
 } from "../../../../core/utils/Autosave"
 import CloudDownloadField from '../../fields/CloudDownloadField'
 import CloudUploadField from '../../fields/CloudUploadField'
-import {DraggableModal} from "ant-design-draggable-modal/packages/ant-design-draggable-modal";
+import {
+    DraggableModal
+} from "ant-design-draggable-modal/packages/ant-design-draggable-modal";
 import {useLocaleStore} from "../../models/locale";
 import './App.css'
 import isEmpty from "lodash/isEmpty";
 import {createLayoutElement} from "../../../../core/fields/utils";
-import FlexLayout from "../../../../core/components/FlexLayout";
-import Errors from "../Errors";
+import Errors from "../Errors/Drawer";
 import Debug from "../Debug";
 
 const DiffViewer = React.lazy(() => import("../../../../core/components/DiffViewer"))
@@ -94,6 +96,7 @@ const {Header, Content, Footer, Sider} = Layout,
         }] = useFullscreen(form.formElement);
         const storeKey = savingKey || (render ? 'schedula-' + form.props.$id + '-' + render.idSchema.$id + '-formData' : 'form')
         const [saving, setSaving] = useState(savingData);
+
         const {formData} = render;
         const [openRestore, setOpenRestore] = useState(false);
         const [dateDiffViewer, setDateDiffViewer] = useState(null);
@@ -142,69 +145,7 @@ const {Header, Content, Footer, Sider} = Layout,
                 setCurrentDataId(null)
             }
         }, [logged, currentDataId])
-        const model = useMemo(() => ({
-            "global": {
-                "borderEnableAutoHide": true,
-                "tabEnableClose": false
-            },
-            "borders": [
-                {
-                    "type": "border",
-                    "location": "left",
-                    "enableDrop": false,
-                    "size": 1200,
-                    "selected": 0,
-                    "children": [
-                        {
-                            "type": "tab",
-                            "enableClose": false,
-                            "enableDrag": false,
-                            "enableFloat": true,
-                            "name": "Debug",
-                            "component": 1
-                        }
-                    ]
-                },
-                {
-                    "type": "border",
-                    "location": "right",
-                    "enableDrop": false,
-                    "size": 400,
-                    "selected": 0,
-                    "children": [
-                        {
-                            "skipEqual": true,
-                            "type": "tab",
-                            "enableClose": false,
-                            "enableDrag": false,
-                            "enableFloat": false,
-                            "name": "Errors",
-                            "component": 0
-                        }
-                    ]
-                }
-            ],
-            "layout": {
-                "type": "row",
-                "children": [
-                    {
-                        "type": "tabset",
-                        "weight": 50,
-                        "height": 0,
-                        "headerHeight": 0,
-                        "tabStripHeight": 0,
-                        "children": [
-                            {
-                                "type": "tab",
-                                "name": "main",
-                                "contentClassName": "main-tab",
-                                "component": 2
-                            }
-                        ]
-                    }
-                ]
-            }
-        }), [])
+
         if (typeof footer === 'number')
             footer = children[footer]
         const [languageOptions, setLanguageOptions] = useState(languages !== true ? languages : null);
@@ -223,8 +164,15 @@ const {Header, Content, Footer, Sider} = Layout,
                     form.props.notify({message: error})
                 })
         }, [languages]);
-
-
+        const {errors} = form.state
+        const [openErrors, setOpenErrors] = useState(false);
+        const {debugUrl} = form.state
+        const [openDebug, setOpenDebug] = useState(!!debugUrl);
+        useEffect(() => {
+            if (!!debugUrl) {
+                setOpenDebug(true)
+            }
+        }, [debugUrl]);
         return <Layout style={{height: '100%'}}>
             {!hideNav || currentDataId || urlContact || languages || userProps || _items.length || logo ?
                 <Header
@@ -236,10 +184,9 @@ const {Header, Content, Footer, Sider} = Layout,
                         width: '100%',
                         padding: 0
                     }}>
-                    <div style={{display: "flex"}}>
+                    <div style={{display: "flex", height: "100%"}}>
                         <div key={'logo'} style={{
-                            height: 32,
-                            margin: 16,
+                            height: "100%",
                             textAlign: 'center',
                             lineHeight: 'normal'
                         }}>{logo ? createLayoutElement({
@@ -439,172 +386,184 @@ const {Header, Content, Footer, Sider} = Layout,
                                 ]
                             }].filter(v => v !== null)}/>
                     </Sider>}
-                <Layout>
-                    <Content style={{margin: '16px 16px'}} {...contentProps}>
-                        <FlexLayout
-                            key={'main-content'} render={render} model={model}
-                            children={[
-                                Errors({render, key: 'errors'}),
-                                Debug({render, key: 'debug'}),
-                                <>
-                                    {_items.length ? <Tabs
-                                        key={'tabs'}
-                                        activeKey={String(indexContent)}
-                                        items={children.map((child, index) => ({
-                                            key: String(index),
-                                            children: child,
-                                            style: {height: "100%"}
-                                        }))}
-                                        renderTabBar={() => null}
-                                        style={{height: '100%'}}
-                                    /> : children}
-                                    <FloatButton.BackTop key={'back'}/>
-                                    {cloudUrl ? <>
-                                        <CloudDownloadField
+                <Content style={{margin: '16px 16px'}} {...contentProps}>
+                    {_items.length ? children[indexContent] : children}
+                    <FloatButton.BackTop key={'back'}/>
+                    {cloudUrl ? <>
+                        <CloudDownloadField
 
-                                            key={'cloud'}
-                                            uiSchema={{
-                                                'ui:cloudUrl': cloudUrl,
-                                                'ui:modal': {
-                                                    open: openCloudDownload,
-                                                    onCancel: () => {
-                                                        setOpenCloudDownload(false)
+                            key={'cloud'}
+                            uiSchema={{
+                                'ui:cloudUrl': cloudUrl,
+                                'ui:modal': {
+                                    open: openCloudDownload,
+                                    onCancel: () => {
+                                        setOpenCloudDownload(false)
+                                    }
+                                },
+                                'ui:currentKey': currentDataId,
+                                'ui:onSelect': (data) => {
+                                    setOpenCloudDownload(false);
+                                    setCurrentDataId(data)
+                                }
+                            }}
+                            formData={form.state.formData}
+                            onChange={form.onChange}
+                            formContext={render.formContext}/>
+                        <CloudUploadField
+                            uiSchema={{
+                                'ui:cloudUrl': cloudUrl,
+                                'ui:currentKey': currentDataId,
+                                'ui:onSave': (data) => {
+                                    setOpenCloudUpload(false);
+                                    setCurrentDataId(data)
+                                },
+                                'ui:modal': {
+                                    open: openCloudUpload,
+                                    onCancel: () => {
+                                        setOpenCloudUpload(false)
+                                    }
+                                }
+                            }}
+                            formData={form.state.formData}
+                            onChange={form.onChange}
+                            formContext={render.formContext}/>
+                    </> : null}
+                    <DraggableModal
+                        key={'restore'}
+                        title={locale.restoreModalTitle}
+                        open={openRestore}
+                        onOk={() => {
+                            setOpenRestore(false)
+                        }}
+                        onCancel={() => {
+                            setOpenRestore(false)
+                        }}
+                        footer={[
+                            <Button key="erase"
+                                    onClick={() => {
+                                        setOpenRestore(false);
+                                        cleanStorage(storeKey)
+                                    }}>{locale.restoreEraseButton}</Button>,
+                            <Button key="close"
+                                    onClick={() => {
+                                        setOpenRestore(false);
+                                    }}>{locale.restoreCloseButton}</Button>
+                        ]}>
+                        <List
+                            size="small"
+                            dataSource={diffList}
+                            renderItem={(item) => (
+                                <List.Item>
+                                    <List.Item.Meta
+                                        avatar={
+                                            <Popconfirm
+                                                title={locale.restoreConfirm}
+                                                placement="top"
+                                                onConfirm={(event) => {
+                                                    if (event) {
+                                                        event.preventDefault();
                                                     }
-                                                },
-                                                'ui:currentKey': currentDataId,
-                                                'ui:onSelect': (data) => {
-                                                    setOpenCloudDownload(false);
-                                                    setCurrentDataId(data)
-                                                }
-                                            }}
-                                            formData={form.state.formData}
-                                            onChange={form.onChange}
-                                            formContext={render.formContext}/>
-                                        <CloudUploadField
-                                            uiSchema={{
-                                                'ui:cloudUrl': cloudUrl,
-                                                'ui:currentKey': currentDataId,
-                                                'ui:onSave': (data) => {
-                                                    setOpenCloudUpload(false);
-                                                    setCurrentDataId(data)
-                                                },
-                                                'ui:modal': {
-                                                    open: openCloudUpload,
-                                                    onCancel: () => {
-                                                        setOpenCloudUpload(false)
-                                                    }
-                                                }
-                                            }}
-                                            formData={form.state.formData}
-                                            onChange={form.onChange}
-                                            formContext={render.formContext}/>
-                                    </> : null}
-                                    <DraggableModal
-                                        key={'restore'}
-                                        title={locale.restoreModalTitle}
-                                        open={openRestore}
-                                        onOk={() => {
-                                            setOpenRestore(false)
-                                        }}
-                                        onCancel={() => {
-                                            setOpenRestore(false)
-                                        }}
-                                        footer={[
-                                            <Button key="erase"
-                                                    onClick={() => {
-                                                        setOpenRestore(false);
-                                                        cleanStorage(storeKey)
-                                                    }}>{locale.restoreEraseButton}</Button>,
-                                            <Button key="close"
-                                                    onClick={() => {
-                                                        setOpenRestore(false);
-                                                    }}>{locale.restoreCloseButton}</Button>
-                                        ]}>
-                                        <List
-                                            size="small"
-                                            dataSource={diffList}
-                                            renderItem={(item) => (
-                                                <List.Item>
-                                                    <List.Item.Meta
-                                                        avatar={
-                                                            <Popconfirm
-                                                                title={locale.restoreConfirm}
-                                                                placement="top"
-                                                                onConfirm={(event) => {
-                                                                    if (event) {
-                                                                        event.preventDefault();
-                                                                    }
-                                                                    render.parent.props.onChange(buildData(changes, item.date))
-                                                                    setOpenRestore(false)
-                                                                }}>
-                                                                <Button
-                                                                    type="primary"
-                                                                    shape="circle"
-                                                                    icon={
-                                                                        <ReloadOutlined/>}
-                                                                />
-                                                            </Popconfirm>
-                                                        }
-                                                        title={(new Date(item.date * 60000)).toLocaleString()}
-                                                    />
-                                                    {item.sameAsCurrent ? null :
-                                                        <Tooltip
-                                                            title={locale.restoreDifferences}
-                                                            placement="bottom">
-                                                            <Button
-                                                                type="primary"
-                                                                shape="circle"
-                                                                icon={
-                                                                    <DiffOutlined/>}
-                                                                onClick={() => {
-                                                                    setDateDiffViewer(item.date)
-                                                                }}/>
-                                                        </Tooltip>
-                                                    }
-                                                </List.Item>
-                                            )}
-                                        />
-                                    </DraggableModal>
-                                    <DraggableModal
-                                        key={'diff'}
-                                        title={locale.restoreTitleDifferences}
-                                        open={dateDiffViewer !== null}
-                                        onCancel={() => {
-                                            setDateDiffViewer(null)
-                                        }}
-                                        footer={[
-                                            <Button key="restore"
-                                                    onClick={() => {
-                                                        setOpenRestore(false);
-                                                        render.parent.props.onChange(oldFormData)
-                                                        setDateDiffViewer(null);
-                                                    }}>{locale.restoreRestoreButton}</Button>,
-                                            <Button key="close"
-                                                    onClick={() => {
-                                                        setDateDiffViewer(null);
-                                                    }}>{locale.restoreCloseButton}</Button>
-                                        ]}>
-                                        {dateDiffViewer ? <DiffViewer
-                                            rightTitle={(new Date(Math.floor(Date.now() / 60000) * 60000)).toLocaleString() + ` (${locale.restoreCurrent})`}
-                                            leftTitle={(new Date(dateDiffViewer * 60000)).toLocaleString()}
-                                            oldValue={oldFormData}
-                                            newValue={formData}/> : null}
-                                    </DraggableModal>
-                                </>]}/>
-                    </Content>
-                    {footer ? <Footer
-                        style={{
-                            position: 'sticky',
-                            bottom: 0,
-                            zIndex: 1,
-                            width: '100%',
-                            padding: '16px 50px',
-                            textAlign: 'center',
-                        }}>
-                        {footer}
-                    </Footer> : null}
-                </Layout>
+                                                    render.parent.props.onChange(buildData(changes, item.date))
+                                                    setOpenRestore(false)
+                                                }}>
+                                                <Button
+                                                    type="primary"
+                                                    shape="circle"
+                                                    icon={
+                                                        <ReloadOutlined/>}
+                                                />
+                                            </Popconfirm>
+                                        }
+                                        title={(new Date(item.date * 60000)).toLocaleString()}
+                                    />
+                                    {item.sameAsCurrent ? null :
+                                        <Tooltip
+                                            title={locale.restoreDifferences}
+                                            placement="bottom">
+                                            <Button
+                                                type="primary"
+                                                shape="circle"
+                                                icon={
+                                                    <DiffOutlined/>}
+                                                onClick={() => {
+                                                    setDateDiffViewer(item.date)
+                                                }}/>
+                                        </Tooltip>
+                                    }
+                                </List.Item>
+                            )}
+                        />
+                    </DraggableModal>
+                    <DraggableModal
+                        key={'diff'}
+                        title={locale.restoreTitleDifferences}
+                        open={dateDiffViewer !== null}
+                        onCancel={() => {
+                            setDateDiffViewer(null)
+                        }}
+                        footer={[
+                            <Button key="restore"
+                                    onClick={() => {
+                                        setOpenRestore(false);
+                                        render.parent.props.onChange(oldFormData)
+                                        setDateDiffViewer(null);
+                                    }}>{locale.restoreRestoreButton}</Button>,
+                            <Button key="close"
+                                    onClick={() => {
+                                        setDateDiffViewer(null);
+                                    }}>{locale.restoreCloseButton}</Button>
+                        ]}>
+                        {dateDiffViewer ? <DiffViewer
+                            rightTitle={(new Date(Math.floor(Date.now() / 60000) * 60000)).toLocaleString() + ` (${locale.restoreCurrent})`}
+                            leftTitle={(new Date(dateDiffViewer * 60000)).toLocaleString()}
+                            oldValue={oldFormData}
+                            newValue={formData}/> : null}
+                    </DraggableModal>
+                </Content>
             </Layout>
+            {footer ? <Footer
+                style={{
+                    position: 'sticky',
+                    bottom: 0,
+                    zIndex: 1,
+                    width: '100%',
+                    padding: '16px 50px',
+                    textAlign: 'center',
+                }}>
+                {footer}
+            </Footer> : null}
+            <FloatButton.Group>
+                {errors.length ? (openErrors ?
+                    <Errors render={render}
+                            onClose={() => {
+                                setOpenErrors(false)
+                            }}
+                            open={openErrors}/>
+                    : <FloatButton
+                        icon={<WarningOutlined/>}
+                        badge={{
+                            count: errors.length,
+                        }}
+                        onClick={() => {
+                            setOpenErrors(true)
+                        }}/>) : null}
+                {debugUrl ? (openDebug ? <Drawer
+                    closable
+                    placement="left"
+                    size="large"
+                    onClose={() => {
+                        setOpenDebug(false)
+                    }}
+                    open={openDebug}
+                    key={'debug'}>
+                    <Debug render={render}/>
+                </Drawer> : <FloatButton
+                    icon={<BugOutlined/>}
+                    onClick={() => {
+                        setOpenDebug(true)
+                    }}/>) : null}
+            </FloatButton.Group>
         </Layout>
     };
 export default App;

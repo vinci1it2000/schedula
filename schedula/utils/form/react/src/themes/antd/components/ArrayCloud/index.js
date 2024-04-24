@@ -25,7 +25,7 @@ const ArrayCloud = ({children, render, cloudUrl, ...props}) => {
                     uiSchema: {...layout.uiSchema, ...cloudUrl.uiSchema}
                 }
             }
-            return <Tooltip key={'cloud'} title={'ciao'}>
+            return <Tooltip key={'cloud'}>
                 <CloudOutlined onClick={(event) => {
                     event.stopPropagation();
                     instance = Modal.confirm({
