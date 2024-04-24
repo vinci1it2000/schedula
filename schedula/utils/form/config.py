@@ -37,7 +37,7 @@ class Config:
     # Bcrypt is set as default SECURITY_PASSWORD_HASH, which requires a salt
     # Generate a good salt using: secrets.SystemRandom().getrandbits(128)
     SECURITY_PASSWORD_SALT = os.environ.get(
-        "SECURITY_PASSWORD_SALT", secrets.SystemRandom().getrandbits(128)
+        "SECURITY_PASSWORD_SALT", f'{secrets.SystemRandom().getrandbits(128)}'
     )
     SECURITY_BLUEPRINT_NAME = os.environ.get(
         "SECURITY_BLUEPRINT_NAME", 'security'
@@ -58,6 +58,9 @@ class Config:
     SECURITY_REGISTERABLE = os.environ.get(
         "SECURITY_REGISTERABLE", 'true'
     ).lower() == 'true'
+    SECURITY_SEND_REGISTER_EMAIL = os.environ.get(
+        "SECURITY_SEND_REGISTER_EMAIL", 'true'
+    ).lower() == 'true'
     SECURITY_RECOVERABLE = os.environ.get(
         "SECURITY_RECOVERABLE", 'true'
     ).lower() == 'true'
@@ -73,12 +76,12 @@ class Config:
         "SECURITY_TRACKABLE", 'true'
     ).lower() == 'true'
 
-    MAIL_DEFAULT_SENDER = 'ProsaWeb <info@prosaweb.it>'
-    MAIL_SERVER = os.environ.get('MAIL_HOST', 'smtps.aruba.it')
+    MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER')
+    MAIL_SERVER = os.environ.get('MAIL_HOST')
     MAIL_PORT = int(os.environ.get('MAIL_PORT', 465))
     MAIL_USE_SSL = True
-    MAIL_USERNAME = os.environ.get('MAIL_USER', 'info@prosaweb.it')
-    MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD', 'prosaweb@123')
+    MAIL_USERNAME = os.environ.get('MAIL_USER')
+    MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
 
     SECURITY_I18N_DIRNAME = [
         "translations",
