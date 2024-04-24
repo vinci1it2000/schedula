@@ -272,33 +272,39 @@ def basic_app(sitemap, app):
             data = request.get_json() if request.is_json else dict(request.form)
             data = json_secrets.secrets(data, False)
             api_key = current_app.config.get('STRIPE_SECRET_KEY')
-            if 'line_items' in data:
-                line_items = data['line_items']
-                if not isinstance(line_items, list):
-                    line_items = line_items,
-                lookup_keys = collections.OrderedDict()
 
+            if 'line_items' in data:
+                it = data['line_items']
+                if not isinstance(it, list):
+                    it = [it]
+                line_items = []
+                for d in it:
+                    if 'tiers' in d:
+                        line_items.extend(compute_line_items(
+                            d['quantity'], **d.pop('tiers')
+                        ))
+                    else:
+                        line_items.append(d)
+                lookup_keys = {}
                 for i, d in enumerate(line_items):
-                    lookup_key = d.pop('lookup_key')
+                    lookup_key = d.pop('lookup_key', None)
                     if lookup_key:
                         sh.get_nested_dicts(
                             lookup_keys, lookup_key, default=list
                         ).append(i)
                 if lookup_keys:
-                    for price, it in zip(stripe.Price.list(
+                    for price in stripe.Price.list(
                             api_key=api_key,
                             lookup_keys=list(lookup_keys.keys()),
                             expand=['data.product']
-                    ).data, lookup_keys.values()):
-                        for i in it:
+                    ).data:
+                        for i in lookup_keys[price.lookup_key]:
                             line_items[i].update({'price': price.id})
                 data['line_items'] = line_items
 
             session = stripe.checkout.Session.create(
                 api_key=current_app.config.get('STRIPE_SECRET_KEY'),
-                **sh.combine_nested_dicts(json_secrets.secrets(
-                    data, False
-                ), base={
+                **sh.combine_nested_dicts(data, base={
                     'ui_mode': 'embedded',
                     'automatic_tax': {'enabled': True},
                     'redirect_on_completion': 'never',
@@ -368,3 +374,36 @@ def basic_app(sitemap, app):
 
     stripe_webhook.csrf_exempt = True
     return app
+
+
+def compute_line_items(quantity, tiers, type='graduated'):
+    tiers = sorted(tiers, key=lambda x: x.get('last_unit', float('inf')))
+    tiers[-1] = {k: v for k, v in tiers[-1].items() if k != 'last_unit'}
+    line_items = []
+    if type == 'volume':
+        tier = next((
+            tier for tier in tiers
+            if quantity > tier.get('last_unit', float('inf'))
+        ))
+        if tier.get('flat_fee'):
+            line_items.append({**tier['flat_fee'], 'quantity': 1})
+        if tier.get('per_unit'):
+            line_items.append({
+                **tier['per_unit'],
+                'quantity': quantity
+            })
+    else:
+        prev_unit = 0
+        for tier in tiers:
+            last_unit = tier.get('last_unit', float('inf'))
+            if tier.get('flat_fee'):
+                line_items.append({**tier['flat_fee'], 'quantity': 1})
+            if tier.get('per_unit'):
+                line_items.append({
+                    **tier['per_unit'],
+                    'quantity': (min(last_unit, quantity) - prev_unit)
+                })
+            if quantity <= last_unit:
+                break
+            prev_unit = tier['last_unit']
+    return line_items
