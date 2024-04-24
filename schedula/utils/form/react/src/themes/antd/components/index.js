@@ -29,6 +29,7 @@ const Descriptions = React.lazy(() => import('./Descriptions'));
 const Descriptions_Item = React.lazy(() => import('./Descriptions/Item'));
 const Divider = React.lazy(() => import('./Divider'));
 const Errors = React.lazy(() => import('./Errors'));
+const Errors_Drawer = React.lazy(() => import('./Errors/Drawer'));
 const Export = React.lazy(() => import('./Export'));
 const Flex = React.lazy(() => import('./Flex'));
 const Grid_Col = React.lazy(() => import('./Grid/Col'));
@@ -89,6 +90,7 @@ export function generateComponents(register = true, registerDomains = true) {
         "Descriptions.Item": Descriptions_Item,
         Divider,
         Errors,
+        "Errors.Drawer":Errors_Drawer,
         Export,
         Flex,
         "Grid.Col": Grid_Col,
