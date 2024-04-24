@@ -30,6 +30,7 @@ function customCreateSchemaUtils(validator, schema, experimental_defaultFormStat
 export default class Form extends BaseForm {
 
     componentDidMount() {
+        this.editOnChange(this.state.formData)
         this.debounceValidate()
     }
 
