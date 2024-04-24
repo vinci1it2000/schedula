@@ -2,6 +2,37 @@ Changelog
 =========
 
 
+v1.5.10 (2024-04-21)
+--------------------
+
+Feat
+~~~~
+- (form): Update resources.
+
+- (form): Add tiers calculation for stripe checkout.
+
+- (form): Update `App`, `ArrayCloud`, `Submit`, `CloudDownloadField`,
+  `CloudUploadField` components.
+
+- (form): Add `Errors.Drawer` component.
+
+- (form): Export `getComponents` and `getComponentDomains` in schedula
+  js package.
+
+- (form): Add `onCheckout` option to Stripe widget.
+
+
+Fix
+~~~
+- (form): Improve JSON secrets behaviour.
+
+- (form): Update server default config.
+
+- (form): Correct typos in `getComponents`.
+
+- (form): Run `editOnChange` after form `componentMount`.
+
+
 v1.5.9 (2024-04-21)
 -------------------
 
