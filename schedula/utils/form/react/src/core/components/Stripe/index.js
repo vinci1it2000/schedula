@@ -10,14 +10,13 @@ export default function Stripe(
     {
         children,
         render,
-        type,
         urlCreateCheckoutSession = "/stripe/create-checkout-session",
         urlCreateCheckoutStatus = "/stripe/session-status",
         checkoutProps,
         options,
+        onCheckout,
         ...props
     }) {
-    const [status, setStatus] = useState(null);
     const [clientSecret, setClientSecret] = useState('');
     const [sessionId, setSessionId] = useState('');
     const {form, stripeKey} = render.formContext
@@ -30,8 +29,8 @@ export default function Stripe(
         if (data.error) {
             form.props.notify({type: 'error', message: data.error})
         } else {
-        setClientSecret(data.clientSecret)
-        setSessionId(data.sessionId)
+            setClientSecret(data.clientSecret)
+            setSessionId(data.sessionId)
         }
     });
     useEffect(() => {
@@ -51,8 +50,9 @@ export default function Stripe(
             method: 'GET',
             form
         }).then(({data}) => {
-            setStatus(data.status);
             form.setState({...form.state, userInfo: data.userInfo})
+            if (onCheckout)
+                onCheckout(data)
         });
     }
     return <div className={'stripe-checkout'}
