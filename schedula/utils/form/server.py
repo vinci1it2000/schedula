@@ -264,7 +264,58 @@ def basic_app(sitemap, app):
 
     Babel(app, locale_selector=get_locale)
     mail = Mail(app)
+    """
+    account:
+    accountID
+    companyID(who
+    this
+    account
+    belongs
+    to)
+    balanceAmount
 
+    transactionType:
+    transactionTypeID
+    name(credit, debit, fee, etc.)
+    transactionType(either - 1 or 1)
+
+    transactionHistory:
+    postDate,
+    accountID,
+    transactionTypeID,
+    amount
+    cat_toy = db.Table(
+        "account_wallet_user",
+        db.Base.metadata,
+        Column('cat_id', ForeignKey('cats.id'), primary_key=True),
+        Column('toy_id', ForeignKey('toys.id'), primary_key=True)
+    )
+
+    class AccountWallet(db.Model):
+        __tablename__ = 'account_wallet'
+        id = Column(Integer, primary_key=True)
+        user_id = Column(Integer, ForeignKey('user.id'))
+        created_at = Column(DateTime(), default=datetime.datetime.utcnow)
+        updated_at = Column(DateTime(), onupdate=datetime.datetime.utcnow)
+
+        def payload(self, data=False):
+            res = {
+                'id': self.id,
+                'name': self.name,
+                'created_at': self.created_at,
+                'updated_at': self.updated_at
+            }
+            for k in ('created_at', 'updated_at'):
+                if res[k]:
+                    res[k] = res[k].isoformat()
+
+            if data:
+                res['data'] = self.data
+            return res
+
+        def __repr__(self):
+            return f'{self.category}-{self.id}-{self.user_id}'
+    """
     @app.route('/stripe/create-checkout-session', methods=['POST'])
     def create_payment():
         import stripe

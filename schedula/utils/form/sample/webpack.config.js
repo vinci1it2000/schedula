@@ -320,7 +320,9 @@ module.exports = function (_env, argv) {
         },
         externals: {
             'react': 'React',
-            'react-dom': 'ReactDOM'
+            'react-dom': 'ReactDOM',
+            'schedula': 'schedula',
+            'lodash': 'lodash'
         },
         plugins: [
             // This gives some necessary context to module not found errors, such as

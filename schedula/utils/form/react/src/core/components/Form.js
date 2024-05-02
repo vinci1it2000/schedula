@@ -35,7 +35,16 @@ export default class Form extends BaseForm {
     }
 
     compileFunc(func) {
-        return new Function('form', "return " + func)(this)
+        let locals = this.props.uiFunctions || {}, keys;
+        if (typeof func !== 'string') {
+            let {func: _func, locals: _locals = {}} = func;
+            locals = {...locals, ..._locals}
+            func = _func
+        }
+        keys = Object.keys(locals)
+        return new Function('form', "_", ...keys, "return " + func)(
+            this, _, ...keys.map(k => locals[k])
+        )
     }
 
     t(object, options, t) {
@@ -171,7 +180,7 @@ export default class Form extends BaseForm {
     postSubmit({data, input, formData}) {
         if (this.props.postSubmit) {
             const {postSubmit, ...props} = this.props
-            return postSubmit({...props, data, input, formData, _, form: this});
+            data = postSubmit({...props, data, input, formData, _, form: this});
         }
         return {data}
     }
