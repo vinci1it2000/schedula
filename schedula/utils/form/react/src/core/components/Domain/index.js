@@ -13,6 +13,12 @@ export default function Domain({children, render, domain, select, ...props}) {
     const func = useMemo(() => (form.compileFunc(domain)), [domain]);
     const index = func(render)
     const status = index > 0 || index === 0
-    return status ?
-        <div {...props}>{select ? children[index] : children}</div> : null
+    let element = null;
+    if (status) {
+        element = select ? children[index] : children
+        if (Object.keys(props).length) {
+            element = <div {...props}>{element}</div>
+        }
+    }
+    return element
 }
