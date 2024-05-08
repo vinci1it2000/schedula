@@ -122,7 +122,7 @@ export function createLayoutElement({key, layout, render, isArray}) {
                 idSeparator,
                 formContext,
                 schema,
-                uiSchema,
+                uiSchema: cloneDeep(uiSchema),
                 errorSchema,
                 idSchema,
                 formData,
@@ -157,7 +157,7 @@ export function createLayoutElement({key, layout, render, isArray}) {
                 idSeparator,
                 formContext,
                 schema,
-                uiSchema,
+                uiSchema: cloneDeep(uiSchema),
                 errorSchema,
                 idSchema,
                 formData,
@@ -174,26 +174,36 @@ export function createLayoutElement({key, layout, render, isArray}) {
                 readonly,
                 disabled,
                 idPrefix,
-                idSeparator,
-                formContext
-            } = form.props
+                idSeparator='_',
+                formContext,
+                idSchema
+            } = render
             const {
                 schema,
                 uiSchema,
                 formData,
-                errorSchema,
-                idSchema
+                errorSchema
             } = form.state;
             const registry = form.getRegistry();
+            const {schemaUtils} = registry
+            const itemIdPrefix = idSchema.$id + idSeparator + name;
+            const itemSchema = schemaUtils.retrieveSchema(schema, formData);
+            const itemIdSchema = schemaUtils.toIdSchema(
+                itemSchema,
+                itemIdPrefix,
+                formData,
+                `${name}-${idPrefix}`,
+                idSeparator
+            );
             contentProps = {
                 key: `${key}-${name}`,
                 idPrefix,
                 idSeparator,
                 formContext,
-                schema,
-                uiSchema,
-                errorSchema,
-                idSchema,
+                schema: cloneDeep(schema),
+                uiSchema: cloneDeep(uiSchema),
+                errorSchema: cloneDeep(errorSchema),
+                idSchema: itemIdSchema,
                 formData,
                 registry,
                 disabled,
@@ -214,7 +224,7 @@ export function createLayoutElement({key, layout, render, isArray}) {
                 registry,
                 errorSchema,
                 idPrefix,
-                idSeparator,
+                idSeparator='_',
                 hideError,
                 parent,
                 onBlur,
@@ -248,7 +258,7 @@ export function createLayoutElement({key, layout, render, isArray}) {
                 index,
                 required: parent.isItemRequired(itemSchema),
                 schema: itemSchema,
-                uiSchema: uiSchema.items || {},
+                uiSchema: cloneDeep(uiSchema.items || {}),
                 errorSchema: itemErrorSchema,
                 idSchema: itemIdSchema,
                 idPrefix,
@@ -298,7 +308,7 @@ export function createLayoutElement({key, layout, render, isArray}) {
                 name,
                 required: parent.isRequired(name),
                 schema: get(schema, [PROPERTIES_KEY, name], {}),
-                uiSchema: fieldUiSchema || {},
+                uiSchema: cloneDeep(fieldUiSchema || {}),
                 errorSchema: get(errorSchema, name),
                 idSchema: fieldIdSchema,
                 idPrefix,
