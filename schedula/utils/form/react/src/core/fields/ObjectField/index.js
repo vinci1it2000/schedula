@@ -42,8 +42,11 @@ class ObjectField extends BaseObjectField {
                     uiSchema,
                     schema,
                     formData,
-                    formContext,
-                    registry,
+                    formContext: {...formContext, parent: this},
+                    registry: {
+                        ...registry,
+                        formContext: {...formContext, parent: this}
+                    },
                     errorSchema,
                     idPrefix,
                     idSeparator,
