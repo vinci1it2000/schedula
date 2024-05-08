@@ -60,6 +60,7 @@ function Form(
             postSubmit={null}
             showDebug={false}
             liveValidate={false}
+            precompiledValidator={precompiledValidator}
             debounceValidate={liveValidate}
             experimental_defaultFormStateBehavior={{
                 arrayMinItems: {populate: 'all'},

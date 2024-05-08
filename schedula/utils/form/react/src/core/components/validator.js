@@ -11,12 +11,14 @@ import hash from "object-hash";
 
 function defineValidator(precompiledValidator, language, schema, nonce) {
     const options = {
-        $data: true,
-        useDefaults: true,
-        coerceTypes: true,
-        validateSchema: false,
-        code: {
-            optimize: false
+        ajvOptionsOverrides: {
+            $data: true,
+            useDefaults: true,
+            coerceTypes: true,
+            validateSchema: false,
+            code: {
+                optimize: false
+            }
         }
     }, local = localizer[language.split('_')[0]] || localizer.en
     if (precompiledValidator) {
