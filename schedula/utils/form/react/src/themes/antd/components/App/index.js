@@ -232,7 +232,7 @@ const {Header, Content, Footer, Sider} = Layout,
                 {hideSideMenu || (hideRun && hideDebug && hideClean && hideFullscreen && !cloudUrl && hideFiles && !savingData) ? null :
                     <Sider collapsible defaultCollapsed={true} style={{
                         overflowY: "auto",
-                        marginBottom: "48px"
+                        marginBottom: "44px"
                     }} theme={theme}>
                         <input
                             ref={impButton} accept={['json']}
