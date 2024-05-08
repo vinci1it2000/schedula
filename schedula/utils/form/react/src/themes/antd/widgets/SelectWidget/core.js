@@ -33,7 +33,19 @@ export default function SelectWidget(
     }) {
     const {readonlyAsDisabled = true} = formContext;
 
-    const {enumOptions, enumDisabled, emptyValue, ...props} = options;
+    let {
+        enumOptions,
+        enumDisabled,
+        emptyValue,
+        overwriteEnumOptions,
+        ...props
+    } = options;
+    if (overwriteEnumOptions)
+        enumOptions = overwriteEnumOptions.map((option) => {
+            if (typeof option === 'string')
+                return {value: option, label: option}
+            return option
+        })
 
     const handleChange = (nextValue) => onChange(enumOptionsValueForIndex(nextValue, enumOptions, emptyValue));
 
@@ -73,8 +85,7 @@ export default function SelectWidget(
         value={selectedIndexes}
         filterOption={filterOption}
         aria-describedby={ariaDescribedByIds(id)}
-        {...extraProps}
-    >
+        {...extraProps}>
         {Array.isArray(enumOptions) &&
             enumOptions.map(({
                                  value: optionValue,
@@ -83,8 +94,7 @@ export default function SelectWidget(
                 <Select.Option
                     disabled={Array.isArray(enumDisabled) && enumDisabled.indexOf(optionValue) !== -1}
                     key={String(index)}
-                    value={String(index)}
-                >
+                    value={String(index)}>
                     {optionLabel}
                 </Select.Option>
             ))}
