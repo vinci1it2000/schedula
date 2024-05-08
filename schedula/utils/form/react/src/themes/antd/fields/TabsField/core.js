@@ -205,12 +205,14 @@ export default class TabField extends ArrayField {
                                     onChangeActive(index)
                                 }} arrow>
                                 <Button
+                                    style={{width: "40px"}}
                                     type={index === activeKey ? "primary" : "text"}>
                                     {index + 1}
                                 </Button>
                             </Dropdown>
                         } else {
                             label = [<Button
+                                style={{width: "40px"}}
                                 key={`change-${index + 1}`}
                                 type={index === activeKey ? "primary" : "text"}
                                 onClick={(event) => {
@@ -220,7 +222,9 @@ export default class TabField extends ArrayField {
                                 {index + 1}
                             </Button>]
                         }
-                        label = <Space.Compact block size={"small"}>
+                        label = <Space.Compact
+                            className={`schedula-tabs-field-tab-label-${tabPosition}`}
+                            block size={"small"}>
                             {label}
                         </Space.Compact>
                     } else {
@@ -247,7 +251,13 @@ export default class TabField extends ArrayField {
                                             "ui:onlyChildren": true,
                                             "ui:disabled": disabled,
                                             "ui:readonly": readonly,
-                                            "ui:inputProps": {size: 'small'}
+                                            "ui:inputProps": {
+                                                size: 'small',
+                                                style: {
+                                                    borderRadius: 0,
+                                                    width: '100%'
+                                                }
+                                            }
                                         }
                                     },
                                     "ui:onlyChildren": true
@@ -274,6 +284,7 @@ export default class TabField extends ArrayField {
                             />
                             label = [
                                 <Button
+                                    style={{width: "40px"}}
                                     key={`change-${index + 1}`}
                                     type={index === activeKey ? "primary" : "text"}
                                     onClick={(event) => {
@@ -282,10 +293,16 @@ export default class TabField extends ArrayField {
                                     }}>
                                     {index + 1}
                                 </Button>,
-                                fieldItem
+                                <div style={{
+                                    maxWidth: "120px",
+                                    minWidth: "40px"
+                                }}>
+                                    {fieldItem}
+                                </div>
                             ];
                         } else {
                             label = <Button
+                                style={{width: "40px"}}
                                 type={index === activeKey ? "primary" : "text"}
                                 onClick={(event) => {
                                     event.preventDefault()
@@ -294,7 +311,9 @@ export default class TabField extends ArrayField {
                                 {(name && `${name}-${index}`) || `item-${index}`}
                             </Button>
                         }
-                        label = <Space.Compact block size={"small"}>
+                        label = <Space.Compact
+                            className={`schedula-tabs-field-tab-label-${tabPosition}`}
+                            block size={"small"}>
                             {label}
                             {actions.length ? <Dropdown
                                 placement="bottomRight"
@@ -333,6 +352,7 @@ export default class TabField extends ArrayField {
                                     onChangeActive(index)
                                 }} arrow>
                                 <Button
+                                    style={{width: "40px"}}
                                     type={index === activeKey ? "primary" : "text"}
                                     icon={<EllipsisOutlined/>}/>
                             </Dropdown> : null}
@@ -428,6 +448,7 @@ export default class TabField extends ArrayField {
                         })
                     }}/>
                 return <Tabs
+                    tabBarGutter={2}
                     key={idSchema.$id}
                     style={{height: '100%'}}
                     hideAdd={!(editable && canAdd)}
@@ -435,6 +456,8 @@ export default class TabField extends ArrayField {
                         "left": <Space.Compact
                             block size="small"
                             style={{
+                                width: (!collapsedTabMenu && ['left', 'right'].includes(tabPosition)) ? "195px" : "100%",
+                                padding: ['top', 'bottom'].includes(tabPosition) ? "0 8px" : "8px 0",
                                 justifyContent: collapsedTabMenu ? 'center' : (tabPosition === 'left' ? 'right' : (tabPosition === 'right' ? 'left' : 'center'))
                             }}>
                             {tabPosition === 'right' ? collapseButton : null}
@@ -449,9 +472,11 @@ export default class TabField extends ArrayField {
                     }}
                     tabPosition={tabPosition}
                     type="editable-card"
+                    className={'schedula-antd-tabs-field'}
                     activeKey={Math.min(activeKey, tabItems.length - 1)}
                     onEdit={onEdit}
                     items={tabItems}
+                    destroyInactiveTabPane={true}
                     {...props}
                 />
             }}
