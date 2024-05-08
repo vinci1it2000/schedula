@@ -48,11 +48,15 @@ export function Store({children}) {
 export default class TableField extends ArrayField {
     constructor(props) {
         super(props);
+        const {uiSchema = {}} = props
+        const {pagination = {}} = getUiOptions(uiSchema);
+
         this.state.pagination = {
             current: 1,
             pageSize: 10,
             showQuickJumper: true,
-            hideOnSinglePage: true
+            hideOnSinglePage: true,
+            ...pagination
         }
     }
 
@@ -118,6 +122,7 @@ export default class TableField extends ArrayField {
                 downloadable = true,
                 removeEmpty = false,
                 summary: rowSummary = null,
+                pagination = {},
                 ...props
             } = uiOptions;
             const _schemaItems = schema.items;
