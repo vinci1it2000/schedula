@@ -1,4 +1,5 @@
 {
+  "ui:onlyChildren": true,
   "ui:configProvider": {
     "dark": false,
     "local": "en",
