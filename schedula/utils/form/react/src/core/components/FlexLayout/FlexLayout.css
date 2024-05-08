@@ -1,4 +1,11 @@
 .flexlayout__layout {
+    --color-background: transparent;
+    --color-tabset-background-selected: transparent;
+    --color-tabset-background-maximized: transparent;
+    --color-splitter: #d9d9d9;
+}
+
+.flexlayout__layout {
     position: relative;
     height: 100%;
 }
