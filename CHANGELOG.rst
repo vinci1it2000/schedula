@@ -2,6 +2,43 @@ Changelog
 =========
 
 
+v1.5.11 (2024-05-08)
+--------------------
+
+Feat
+~~~~
+- (form): Update resources.
+
+- (form): Add option to `overwriteEnumOptions` in `SelectWidget`.
+
+- (form): FlexLayout remove background.
+
+- (form): Update Domain behaviour.
+
+- (form): Add custom functions.
+
+
+Fix
+~~~
+- (form): Update default `index-ui.json`.
+
+- (form): Remove `margin` of `#content`.
+
+- (form): Correct `extraInputProps` behaviour of `BaseInputTemplate`.
+
+- (form): Correct `pagination` of `TableField`.
+
+- (form): Update TabsField layout.
+
+- (form): Update TabsField layout.
+
+- (form): Correct App layout for sidebar.
+
+- (form): Add missing parent parameter in `formContext`.
+
+- (form): Correct validator options.
+
+
 v1.5.10 (2024-04-21)
 --------------------
 
