@@ -9,6 +9,9 @@
       "components": {
         "Table": {
           "fontWeightStrong": 700
+        },
+        "Tabs": {
+          "cardBg": "#d9d9d9"
         }
       }
     }
