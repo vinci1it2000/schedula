@@ -10,6 +10,7 @@ import {domainDebug} from './Debug'
 import {domainErrors} from "./Errors";
 
 const Accordion = React.lazy(() => import('./Accordion'));
+const Alert = React.lazy(() => import('./Alert'));
 const App = React.lazy(() => import('./App'));
 const ArrayAccordion = React.lazy(() => import('./ArrayAccordion'));
 const ArrayCopy = React.lazy(() => import('./ArrayCopy'));
@@ -28,6 +29,7 @@ const Debug = React.lazy(() => import('./Debug'));
 const Descriptions = React.lazy(() => import('./Descriptions'));
 const Descriptions_Item = React.lazy(() => import('./Descriptions/Item'));
 const Divider = React.lazy(() => import('./Divider'));
+const Drawer = React.lazy(() => import('./Drawer'));
 const Errors = React.lazy(() => import('./Errors'));
 const Errors_Drawer = React.lazy(() => import('./Errors/Drawer'));
 const Export = React.lazy(() => import('./Export'));
@@ -47,12 +49,17 @@ const List_Item = React.lazy(() => import('./List/Item'));
 const List_Item_Meta = React.lazy(() => import('./List/Item/Meta'));
 const Markdown = React.lazy(() => import('./Markdown'));
 const OverPack = React.lazy(() => import('./OverPack'));
+const Popconfirm = React.lazy(() => import('./Popconfirm'));
 const Popover = React.lazy(() => import('./Popover'));
 const Pricing = React.lazy(() => import('./Pricing'));
+const Progress = React.lazy(() => import('./Progress'));
 const QueueAnim = React.lazy(() => import('./QueueAnim'));
+const Result = React.lazy(() => import('./Result'));
 const Segmented = React.lazy(() => import('./Segmented'));
+const Skeleton = React.lazy(() => import('./Skeleton'));
 const Space = React.lazy(() => import('./Space'));
 const Space_Compact = React.lazy(() => import('./Space/Compact'));
+const Spin = React.lazy(() => import('./Spin'));
 const Steps = React.lazy(() => import('./Steps'));
 const Submit = React.lazy(() => import('./Submit'));
 const Submit_Debug = React.lazy(() => import('./Submit/Debug'));
@@ -65,12 +72,14 @@ const TweenOne = React.lazy(() => import('./TweenOne'));
 const Typography_Paragraph = React.lazy(() => import('./Typography/Paragraph'));
 const Typography_Text = React.lazy(() => import('./Typography/Text'));
 const Typography_Title = React.lazy(() => import('./Typography/Title'));
+const Watermark = React.lazy(() => import('./Watermark'));
 
 
 export function generateComponents(register = true, registerDomains = true) {
     const components = {
         ...coreGenerateComponents(),
         Accordion,
+        Alert,
         App,
         ArrayAccordion,
         ArrayCopy,
@@ -89,6 +98,7 @@ export function generateComponents(register = true, registerDomains = true) {
         Descriptions,
         "Descriptions.Item": Descriptions_Item,
         Divider,
+        Drawer,
         Errors,
         "Errors.Drawer":Errors_Drawer,
         Export,
@@ -108,12 +118,17 @@ export function generateComponents(register = true, registerDomains = true) {
         "List.Item.Meta": List_Item_Meta,
         Markdown,
         OverPack,
+        Popconfirm,
         Popover,
         Pricing,
+        Progress,
         QueueAnim,
+        Result,
         Segmented,
+        Skeleton,
         Space,
         "Space.Compact": Space_Compact,
+        Spin,
         Steps,
         Submit,
         "Submit.Debug": Submit_Debug,
@@ -126,6 +141,7 @@ export function generateComponents(register = true, registerDomains = true) {
         "Typography.Paragraph": Typography_Paragraph,
         "Typography.Text": Typography_Text,
         "Typography.Title": Typography_Title,
+        Watermark
     };
     const domains = {
         ...coreGenerateComponentsDomains(),

@@ -4,7 +4,8 @@
     "local": "en",
     "theme": {
       "token": {
-        "sizeUnit": 2
+        "sizeUnit": 2,
+        "colorBgLayout": "red"
       },
       "components": {
         "Table": {
@@ -488,6 +489,7 @@
                 "path": "tabs",
                 "uiSchema": {
                   "ui:field": "TabsField",
+                  "ui:tabPosition": "top",
                   "ui:label": "",
                   "items": {
                     "ui:layout": {
