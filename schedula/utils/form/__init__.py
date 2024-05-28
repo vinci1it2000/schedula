@@ -21,7 +21,6 @@ Sub-Modules:
     config
     gapp
     json_secrets
-    mail
     server
 """
 import io

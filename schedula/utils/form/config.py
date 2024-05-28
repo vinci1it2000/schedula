@@ -34,6 +34,9 @@ class Config:
 
     # Generate a nice key using secrets.token_urlsafe()
     SECRET_KEY = os.environ.get("SECRET_KEY", secrets.token_urlsafe())
+    SECURITY_ENABLED = os.environ.get(
+        "SECURITY_ENABLED", 'true'
+    ).lower() == 'true'
     # Bcrypt is set as default SECURITY_PASSWORD_HASH, which requires a salt
     # Generate a good salt using: secrets.SystemRandom().getrandbits(128)
     SECURITY_PASSWORD_SALT = os.environ.get(
@@ -75,7 +78,12 @@ class Config:
     SECURITY_TRACKABLE = os.environ.get(
         "SECURITY_TRACKABLE", 'true'
     ).lower() == 'true'
-
+    CONTACT_ENABLED = os.environ.get(
+        "SECURITY_ENABLED", 'true'
+    ).lower() == 'true'
+    ITEMS_STORAGE_ENABLED = os.environ.get(
+        "ITEMS_STORAGE_ENABLED", 'true'
+    ).lower() == 'true'
     MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER')
     MAIL_SERVER = os.environ.get('MAIL_HOST')
     MAIL_PORT = int(os.environ.get('MAIL_PORT', 465))
