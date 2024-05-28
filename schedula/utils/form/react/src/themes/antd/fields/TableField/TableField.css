@@ -2,7 +2,17 @@
     height: 100%;
 }
 
-.ant-table-fixed-header, .ant-table-fixed-header > .ant-table-container {
+.ant-table {
+    flex-direction: column;
+    display: flex;
+}
+
+.ant-table-container {
+    flex: 1;
+    height: 0;
+}
+
+.ant-table-fixed-header {
     height: 100%;
 }
 
