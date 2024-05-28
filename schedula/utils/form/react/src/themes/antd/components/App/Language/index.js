@@ -1,6 +1,7 @@
 import {useLocaleStore} from "../../../models/locale";
 import React, {useEffect} from 'react';
 import {Dropdown} from 'antd';
+import './Language.css'
 
 const LanguageNav = ({form, languages}) => {
     const {changeLocale, locale} = useLocaleStore()
@@ -8,10 +9,12 @@ const LanguageNav = ({form, languages}) => {
     useEffect(() => {
         if (locale.language !== language)
             changeLocale(form, language)
-    }, [language])
+    }, [language, changeLocale, locale, form])
     return <Dropdown
         key={'language-menu'}
+        overlayClassName={'language-menu'}
         menu={{
+            selectable: true,
             selectedKeys: [form.state.language],
             onClick: ({key}) => {
                 form.updateLanguage(key, () => {

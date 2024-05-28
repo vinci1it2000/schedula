@@ -21,12 +21,12 @@ import {
 import {
     Layout,
     Menu,
+    Flex,
     FloatButton,
     Button,
     List,
     Tooltip,
     Popconfirm,
-    Space,
     Modal,
     Drawer,
     Typography
@@ -113,7 +113,7 @@ const {Header, Content, Footer, Sider} = Layout,
                     })
                 }
             }
-        }, [storeKey, formData, saving, locale.autoSavingErrorTitle]);
+        }, [storeKey, formData, saving, locale.autoSavingErrorTitle, form.props]);
         const {changes, diffList} = useMemo(function updateDiffList() {
             if (openRestore) {
                 return readDiffList(storeKey, formData)
@@ -163,7 +163,7 @@ const {Header, Content, Footer, Sider} = Layout,
                     setLanguageOptions(null)
                     form.props.notify({message: error})
                 })
-        }, [languages]);
+        }, [languages, form.props]);
         const {errors} = form.state
         const [openErrors, setOpenErrors] = useState(false);
         const {debugUrl} = form.state
@@ -206,12 +206,13 @@ const {Header, Content, Footer, Sider} = Layout,
                             {...props}
                         /> : <div style={{flex: "auto", minWidth: 0}}/>}
                         {currentDataId || urlContact || languages || userProps ?
-                            <Space key={'right-element'}
-                                   style={{
-                                       paddingLeft: '16px',
-                                       paddingRight: '16px',
-                                       cursor: 'pointer'
-                                   }}>
+                            <Flex key={'right-element'}
+                                  style={{
+                                      paddingLeft: '16px',
+                                      paddingRight: '16px',
+                                      cursor: 'pointer'
+                                  }}
+                                  gap="middle">
                                 {currentDataId ? <Typography.Text keyboard>
                                     # {currentDataId.id} - {currentDataId.name}
                                 </Typography.Text> : null}
@@ -225,7 +226,7 @@ const {Header, Content, Footer, Sider} = Layout,
                                 {userProps ?
                                     <UserNav
                                         form={form} {...userProps}/> : null}
-                            </Space> : null}
+                            </Flex> : null}
                     </div>
                 </Header> : null}
             <Layout>

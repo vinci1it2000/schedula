@@ -1,0 +1,4 @@
+.language-menu > .ant-dropdown-menu {
+    max-height: 50vh;
+    overflow-y: auto;
+}

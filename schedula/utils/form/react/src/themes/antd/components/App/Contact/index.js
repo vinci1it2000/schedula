@@ -1,7 +1,7 @@
 import React, {Suspense, useState} from 'react';
 
 import {MessageOutlined} from "@ant-design/icons";
-import {Drawer, Spin, Tooltip} from "antd";
+import {Drawer, Spin, Tooltip, Button} from "antd";
 import {useLocaleStore} from "../../../models/locale";
 
 const ContactForm = React.lazy(() => import( "./Contact"))
@@ -14,7 +14,8 @@ const ContactNav = ({key, form, formContext, urlContact}) => {
     return <div key={key}>
         <Tooltip
             key={'btn'} title={locale.buttonTooltip} placement="bottomRight">
-            <MessageOutlined
+            <Button
+                shape="circle" icon={<MessageOutlined/>} ghost type="link"
                 onClick={() => {
                     setOpen(true)
                 }}
