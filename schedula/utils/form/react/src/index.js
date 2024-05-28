@@ -5,7 +5,8 @@ import renderForm, {
     registerComponent,
     registerComponentDomain,
     getComponents,
-    getComponentDomains
+    getComponentDomains,
+    createLayoutElement
 } from './core'
 import './main.css'
 
@@ -14,6 +15,7 @@ window.React = React
 window.ReactDOM = ReactDOM
 window.schedula = {
     renderForm,
+    createLayoutElement,
     registerComponent,
     registerComponentDomain,
     getComponents,

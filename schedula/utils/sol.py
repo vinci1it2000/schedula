@@ -20,7 +20,7 @@ from .dsp import stlp, get_nested_dicts, inf
 from .alg import get_full_pipe, _sort_sk_wait_in
 from .exc import DispatcherError, DispatcherAbort, SkipNode, ExecutorShutdown
 from .asy import async_thread, await_result, async_process, AsyncList, EXECUTORS
-from .utl import select_diff, dict_diff
+from .utl import select_diff
 
 log = logging.getLogger(__name__)
 
@@ -76,7 +76,9 @@ class Solution(Base, collections.OrderedDict):
         excluded = set(excluded_defaults)
         if self.no_call:
             # Set initial values.
-            initial_values = dict_diff(self.dsp.default_values, excluded)
+            initial_values = select_diff(
+                self.dsp.default_values, excluded, 'value'
+            )
 
             if inputs is not None:  # Update initial values with input values.
                 initial_values.update(dict.fromkeys(inputs, NONE))

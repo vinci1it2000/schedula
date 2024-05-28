@@ -4,7 +4,8 @@ import {
     registerComponent,
     registerComponentDomain,
     getComponents,
-    getComponentDomains
+    getComponentDomains,
+    createLayoutElement
 } from "./fields/utils";
 import ReactDOM from 'react-dom/client'
 
@@ -52,5 +53,6 @@ export {
     registerComponent,
     registerComponentDomain,
     getComponents,
-    getComponentDomains
+    getComponentDomains,
+    createLayoutElement
 }

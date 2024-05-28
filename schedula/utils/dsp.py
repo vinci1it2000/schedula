@@ -1470,7 +1470,8 @@ class SubDispatchPipe(SubDispatchFunction):
         self._sol.no_call = True
         self._sol._init_workflow()
         self._sol._run()
-        self._sol.no_call = False
+        for s in self._sol.sub_sol.values():
+            s.no_call = False
 
     def _set_pipe(self):
 

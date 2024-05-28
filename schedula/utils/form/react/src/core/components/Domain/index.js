@@ -10,7 +10,7 @@ export const domainDomain = ({children, render, select, domain, ...props}) => {
 }
 export default function Domain({children, render, domain, select, ...props}) {
     const {formContext: {form}} = render
-    const func = useMemo(() => (form.compileFunc(domain)), [domain]);
+    const func = useMemo(() => (form.compileFunc(domain)), [domain, form]);
     const index = func(render)
     const status = index > 0 || index === 0
     let element = null;

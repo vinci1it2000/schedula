@@ -11,12 +11,6 @@ It provides some utility functions.
 """
 
 
-def dict_diff(adict: dict, excluded: set) -> dict:
-    if excluded:
-        return {k: v for k, v in adict.items() if k not in excluded}
-    return adict.copy()
-
-
 def select_diff(adict: dict, excluded: set, key: str) -> dict:
     if excluded:
         return {k: v[key] for k, v in adict.items() if k not in excluded}

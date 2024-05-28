@@ -28,6 +28,10 @@ function customCreateSchemaUtils(validator, schema, experimental_defaultFormStat
 
 /** The `Form` component renders the outer form and all the fields defined in the `schema` */
 export default class Form extends BaseForm {
+    constructor(props) {
+        super(props);
+        this.state.FormContext = React.createContext({form: this})
+    }
 
     componentDidMount() {
         this.editOnChange(this.state.formData)
@@ -42,9 +46,7 @@ export default class Form extends BaseForm {
             func = _func
         }
         keys = Object.keys(locals)
-        return new Function('form', "_", ...keys, "return " + func)(
-            this, _, ...keys.map(k => locals[k])
-        )
+        return new Function('form', "_", ...keys, "return " + func)(this, _, ...keys.map(k => locals[k]))
     }
 
     t(object, options, t) {
@@ -205,9 +207,7 @@ export default class Form extends BaseForm {
         } = this.props
         const {schemaUtils, schema, retrievedSchema} = this.state;
         if (isObject(formData) || Array.isArray(formData)) {
-            const newState = this.getStateFromProps(
-                this.props, formData, retrievedSchema
-            )
+            const newState = this.getStateFromProps(this.props, formData, retrievedSchema)
             formData = newState.formData
         }
         formData = this.editOnChange(formData, id)
@@ -408,8 +408,9 @@ export default class Form extends BaseForm {
     /** Returns the registry for the form */
     getRegistry() {
         let registry = super.getRegistry()
-        const {uiSchema, schema} = this.state
+        const {uiSchema, schema, FormContext} = this.state
         registry.formContext.form = this
+        registry.formContext.FormContext = FormContext
         registry.rootSchema = schema
         registry.globalUiOptions = uiSchema[UI_GLOBAL_OPTIONS_KEY]
         return registry
@@ -517,54 +518,58 @@ export default class Form extends BaseForm {
         const ConfigProvider = getTemplate('ConfigProvider', registry, uiOptions);
         const Debug = getTemplate('Debug', registry, uiOptions);
         const {formContext} = registry
-        return <FormTag
-            className={className ? className : "rjsf"}
-            id={id}
-            name={name}
-            method={method}
-            target={target}
-            action={action}
-            autoComplete={autoComplete}
-            encType={enctype}
-            acceptCharset={acceptcharset}
-            noValidate={noHtml5Validate}
-            onSubmit={this.onSubmit}
-            as={as}
-            style={{height: '100%'}}
-            ref={this.formElement}>
-            <ConfigProvider {...propsConfigProvider}>
-                <Loader spinning={this.state.loading}>
-                    <ModalProvider>
-                        {showErrorList === "top" && this.renderErrors(registry)}
-                        <SchemaField
-                            name=""
-                            schema={schema}
-                            uiSchema={uiSchema}
-                            errorSchema={errorSchema}
-                            idSchema={idSchema}
-                            idPrefix={idPrefix}
-                            idSeparator={idSeparator}
-                            formContext={formContext}
-                            formData={formData}
-                            onChange={this.onChange}
-                            onBlur={this.onBlur}
-                            onFocus={this.onFocus}
-                            registry={registry}
-                            disabled={disabled}
-                            readonly={readonly}
-                            submitCount={this.state.submitCount}  // used to re-render
-                        />
-                        {children}
-                        {showDebug && this.state.debugUrl ? <Debug
-                            key={name + '-Debug'}
-                            id={name + '-Debug'}
-                            src={this.state.debugUrl}
-                            name={name}/> : null}
-                        {showErrorList === "bottom" && this.renderErrors(registry)}
-                    </ModalProvider>
-                </Loader>
-            </ConfigProvider>
-        </FormTag>
+        const {FormContext} = formContext
+        return <FormContext.Provider
+            value={{form: this, state: this.state, setState: this.setState}}>
+            <FormTag
+                className={className ? className : "rjsf"}
+                id={id}
+                name={name}
+                method={method}
+                target={target}
+                action={action}
+                autoComplete={autoComplete}
+                encType={enctype}
+                acceptCharset={acceptcharset}
+                noValidate={noHtml5Validate}
+                onSubmit={this.onSubmit}
+                as={as}
+                style={{height: '100%'}}
+                ref={this.formElement}>
+                <ConfigProvider {...propsConfigProvider}>
+                    <Loader spinning={this.state.loading}>
+                        <ModalProvider>
+                            {showErrorList === "top" && this.renderErrors(registry)}
+                            <SchemaField
+                                name=""
+                                schema={schema}
+                                uiSchema={uiSchema}
+                                errorSchema={errorSchema}
+                                idSchema={idSchema}
+                                idPrefix={idPrefix}
+                                idSeparator={idSeparator}
+                                formContext={formContext}
+                                formData={formData}
+                                onChange={this.onChange}
+                                onBlur={this.onBlur}
+                                onFocus={this.onFocus}
+                                registry={registry}
+                                disabled={disabled}
+                                readonly={readonly}
+                                submitCount={this.state.submitCount}  // used to re-render
+                            />
+                            {children}
+                            {showDebug && this.state.debugUrl ? <Debug
+                                key={name + '-Debug'}
+                                id={name + '-Debug'}
+                                src={this.state.debugUrl}
+                                name={name}/> : null}
+                            {showErrorList === "bottom" && this.renderErrors(registry)}
+                        </ModalProvider>
+                    </Loader>
+                </ConfigProvider>
+            </FormTag>
+        </FormContext.Provider>
     }
 }
 
