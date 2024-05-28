@@ -20,7 +20,6 @@ env.addFilter('n', function (val, lang, options) {
         ...options
     }).format(val))
 });
-
 env.addFilter('table', function (val, header, kw = {}) {
     let {
         empty = ' ',
@@ -143,15 +142,17 @@ export default function formatMd({children, formData, ...props}) {
     } else {
         kwargs = data
     }
+    if (isArray(children))
+        children = children.join('')
     try {
-        return format2(env.renderString(children.join(''), {
+        return format2(env.renderString(children, {
             data,
             props,
             window
         }), args, kwargs);
 
     } catch (e) {
-        console.log(`Error in formatting md ${children.join('')}`)
+        console.log(`Error in formatting md ${children}`)
         console.log(e)
         return null
     }
