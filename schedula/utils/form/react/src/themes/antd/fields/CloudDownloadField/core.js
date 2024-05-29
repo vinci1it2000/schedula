@@ -11,7 +11,7 @@ import {
 } from '@ant-design/icons';
 import {useLocaleStore} from "../../models/locale";
 import qs from 'qs';
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useState, useCallback} from 'react';
 import {
     Button,
     Form,
@@ -95,7 +95,7 @@ export default function CloudDownloadField(
         });
         setEditingKey(record.id);
     };
-    const fetchData = () => {
+    const fetchData = useCallback(() => {
         setLoading(true);
         const query = qs.stringify({
             page: tableParams.pagination.current || 1,
@@ -137,7 +137,7 @@ export default function CloudDownloadField(
                 description: error.message,
             })
         })
-    };
+    }, [cloudUrl, form, locale.errorTitle, tableParams]);
     const handleTableChange = (pagination, filters, sorter) => {
         let newParams = {
             pagination,
@@ -316,7 +316,7 @@ export default function CloudDownloadField(
     useEffect(() => {
         if (openModal || (modal || {}).open)
             fetchData();
-    }, [openModal, modal]);
+    }, [openModal, modal, fetchData]);
     useEffect(() => {
         if (!isEqual(_currentKey, currentKey))
             setCurrentKey(_currentKey)

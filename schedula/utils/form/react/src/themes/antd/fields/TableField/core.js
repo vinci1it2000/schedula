@@ -1,5 +1,15 @@
 import React from 'react';
-import {Table, Popconfirm, Tooltip, Button, Space, Upload, theme, Col, Row} from 'antd';
+import {
+    Table,
+    Popconfirm,
+    Tooltip,
+    Button,
+    Space,
+    Upload,
+    theme,
+    Col,
+    Row
+} from 'antd';
 import {getUiOptions, getTemplate} from "@rjsf/utils";
 import {ConfigConsumer} from "antd/lib/config-provider/context";
 import classNames from "classnames";
@@ -121,7 +131,7 @@ export default class TableField extends ArrayField {
                 downloadable = true,
                 removeEmpty = false,
                 summary: rowSummary = null,
-                pagination = {},
+                pagination,
                 ...props
             } = uiOptions;
             const _schemaItems = schema.items;

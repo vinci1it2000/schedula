@@ -60,7 +60,7 @@ export default function PDFField({idSchema, uiSchema, formData, ...props}) {
         if (validSections !== null) {
             renderPDF(idSchema, uiSchema, formData, permanentSections, validSections, setUrl, props)
         }
-    }, [idSchema, uiSchema, formData, permanentSections, validSections, props.formContext.form.state.language])
+    }, [idSchema, uiSchema, formData, permanentSections, validSections, props, props.formContext.form.state.language])
     return <div key={idSchema.$id}>
         <Tooltip title={locale.preview}><Button
             key={'button'}
