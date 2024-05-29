@@ -37,7 +37,7 @@ export default function InputNumberTemplate(
             }
         };
         return {
-            key: `${id}-${locale}-${focused}`,
+            key: `${id}-${locale}`,
             numberParser,
             numberFormatter
         }
