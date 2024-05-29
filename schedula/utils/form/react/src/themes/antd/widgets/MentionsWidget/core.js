@@ -1,6 +1,7 @@
-import React, {useEffect, useState} from "react";
+import React, {useMemo, useState} from "react";
 import {Mentions} from "antd";
 import {ariaDescribedByIds} from "@rjsf/utils";
+import debounce from "lodash/debounce";
 
 export default function MentionsWidget(props) {
     const {
@@ -17,29 +18,23 @@ export default function MentionsWidget(props) {
     } = props;
     const {readonlyAsDisabled = true} = formContext;
     const [editedValue, setEditedValue] = useState(undefined)
-    const textChange = (nextValue) => onChange(nextValue);
 
-    const _onChange = () => {
-        if (editedValue !== undefined)
-            textChange(editedValue)
-    };
-    const [timeoutId, setTimeoutId] = useState(undefined)
-    useEffect(() => {
-        if (timeoutId !== undefined)
-            clearTimeout(timeoutId)
-        setTimeoutId(setTimeout(() => {
-            _onChange()
-        }, 500));
-    }, [editedValue])
+    const textChange = useMemo(() => (debounce((nextValue) => {
+        onChange(nextValue)
+    }, 500)), [onChange]);
+
+    const _clean = useMemo(() => (debounce(() => {
+        setEditedValue(undefined)
+    }, 1000)), [setEditedValue]);
 
     const handleBlur = () => {
-        _onChange();
-        setEditedValue(undefined)
         onBlur(id, value)
+        _clean();
     };
 
     const handleChange = (nextValue) => {
         setEditedValue(nextValue);
+        textChange(nextValue);
     }
 
     const handleFocus = () => onFocus(id, value);
@@ -51,21 +46,19 @@ export default function MentionsWidget(props) {
         ...opt
     };
 
-    return (
-        <Mentions
-            autoFocus={autofocus}
-            value={editedValue === undefined ? value : editedValue}
-            disabled={disabled || (readonlyAsDisabled && readonly)}
-            id={id}
-            name={id}
-            onChange={!readonly ? handleChange : undefined}
-            options={mentions.map((value) => ({
-                key: value,
-                value,
-                label: value,
-            }))}
-            {...extraProps}
-            aria-describedby={ariaDescribedByIds(id)}>
-        </Mentions>
-    );
+    return <Mentions
+        autoFocus={autofocus}
+        value={editedValue === undefined ? value : editedValue}
+        disabled={disabled || (readonlyAsDisabled && readonly)}
+        id={id}
+        name={id}
+        onChange={!readonly ? handleChange : undefined}
+        options={mentions.map((value) => ({
+            key: value,
+            value,
+            label: value,
+        }))}
+        {...extraProps}
+        aria-describedby={ariaDescribedByIds(id)}>
+    </Mentions>
 }

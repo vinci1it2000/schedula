@@ -1,4 +1,4 @@
-import React, {useCallback, useState} from "react";
+import React, {useMemo, useState} from "react";
 import {Slider} from "antd";
 import {
     ariaDescribedByIds,
@@ -31,14 +31,19 @@ export default function RangeWidget(props) {
 
     const handleChange = (nextValue) => {
         setEditedValue(nextValue === "" ? emptyValue : nextValue);
+        _update(nextValue)
     }
 
-    const _clean = useCallback(debounce(() => {
+    const _clean = useMemo(() => (debounce(() => {
         setEditedValue(undefined)
-    }, 1000), [setEditedValue])
+    }, 1000)), [setEditedValue]);
+    const _update = useMemo(() => (debounce((nextValue) => {
+        onChange(nextValue)
+    }, 500)), [onChange]);
 
     const handleBlur = ({target: value}) => {
         onBlur(id, value)
+        _clean()
     };
     const handleChangeComplete = (nextValue) => {
         onChange(nextValue)

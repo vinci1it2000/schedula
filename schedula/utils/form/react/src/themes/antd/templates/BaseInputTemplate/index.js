@@ -1,4 +1,4 @@
-import {useState, useEffect} from 'react'
+import {useState, useMemo} from 'react'
 import {Input} from 'antd';
 import InputNumber from './number';
 import {
@@ -6,6 +6,7 @@ import {
     examplesId,
     getInputProps,
 } from '@rjsf/utils';
+import debounce from "lodash/debounce";
 
 const INPUT_STYLE = {
     width: '100%',
@@ -18,7 +19,6 @@ export default function BaseInputTemplate(props) {
         id,
         onBlur,
         onChange,
-        onChangeOverride,
         onFocus,
         options,
         placeholder,
@@ -41,36 +41,26 @@ export default function BaseInputTemplate(props) {
     const {readonlyAsDisabled = true} = formContext;
     const [editedValue, setEditedValue] = useState(undefined)
 
-    const textChange = ({target: {value}}) => onChange(value === '' ? emptyValue : value);
+    const textChange = useMemo(() => (debounce((value) => {
+        onChange(value)
+    }, 500)), [onChange]);
 
-    const _onChange = () => {
-        if (editedValue !== undefined) {
-            if (inputType === 'number' || inputType === 'integer') {
-                onChange(editedValue)
-            } else {
-                (onChangeOverride || textChange)({target: {value: editedValue}})
-            }
-        }
-    };
-    const [timeoutId, setTimeoutId] = useState(undefined)
-    useEffect(() => {
-        if (timeoutId !== undefined)
-            clearTimeout(timeoutId)
-        setTimeoutId(setTimeout(() => {
-            _onChange()
-        }, 500));
-    }, [editedValue])
+    const _clean = useMemo(() => (debounce(() => {
+        setEditedValue(undefined)
+    }, 1000)), [setEditedValue]);
+
 
     const handleBlur = ({target: {value}}) => {
-        _onChange();
-        setEditedValue(undefined)
         onBlur(id, value)
+        _clean()
     };
     const handleFocus = ({target: {value}}) => {
         onFocus(id, value)
     };
     const handleChange = ({target: {value}}) => {
-        setEditedValue(value === '' ? emptyValue : value);
+        let nextValue = value === '' ? emptyValue : value
+        setEditedValue(nextValue);
+        textChange(nextValue);
     }
     let input;
     if (inputType === 'number' || inputType === 'integer') {
