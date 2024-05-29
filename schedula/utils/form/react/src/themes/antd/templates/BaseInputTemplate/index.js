@@ -1,5 +1,5 @@
 import {useState, useEffect} from 'react'
-import Input from 'antd/lib/input';
+import {Input} from 'antd';
 import InputNumber from './number';
 import {
     ariaDescribedByIds,

@@ -1,4 +1,4 @@
-import Transfer from "antd/lib/transfer";
+import {Transfer} from "antd";
 import {
     ariaDescribedByIds,
     enumOptionsIndexForValue,

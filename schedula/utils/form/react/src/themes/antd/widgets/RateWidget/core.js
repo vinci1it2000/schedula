@@ -1,5 +1,5 @@
 import React from "react";
-import Rate from "antd/lib/rate";
+import {Rate} from "antd";
 import {
     ariaDescribedByIds,
     rangeSpec

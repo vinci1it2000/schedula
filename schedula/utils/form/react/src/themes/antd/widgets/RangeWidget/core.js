@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from "react";
-import Slider from "antd/lib/slider";
+import {Slider} from "antd";
 import {
     ariaDescribedByIds,
     rangeSpec
@@ -64,20 +64,18 @@ export default function RangeWidget(props) {
         ...options
     };
 
-    return (
-        <Slider
-            autoFocus={autofocus}
-            disabled={disabled || (readonlyAsDisabled && readonly)}
-            id={id}
-            max={max}
-            min={min}
-            onChangeComplete={!readonly ? handleChangeComplete : undefined}
-            onChange={!readonly ? handleChange : undefined}
-            range={range}
-            step={step}
-            value={editedValue === undefined ? value : editedValue}
-            {...extraProps}
-            aria-describedby={ariaDescribedByIds(id)}
-        />
-    );
+    return <Slider
+        autoFocus={autofocus}
+        disabled={disabled || (readonlyAsDisabled && readonly)}
+        id={id}
+        max={max}
+        min={min}
+        onChangeComplete={!readonly ? handleChangeComplete : undefined}
+        onChange={!readonly ? handleChange : undefined}
+        range={range}
+        step={step}
+        value={editedValue === undefined ? value : editedValue}
+        {...extraProps}
+        aria-describedby={ariaDescribedByIds(id)}
+    />
 }

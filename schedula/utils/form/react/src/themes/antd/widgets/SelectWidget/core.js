@@ -1,4 +1,4 @@
-import Select from 'antd/lib/select';
+import {Select} from 'antd';
 import {
     ariaDescribedByIds,
     enumOptionsIndexForValue,
@@ -75,8 +75,7 @@ export default function SelectWidget(
         disabled={disabled || (readonlyAsDisabled && readonly)}
         getPopupContainer={getPopupContainer}
         id={id}
-        showSearch
-        mode={typeof multiple !== 'undefined' ? 'multiple' : undefined}
+        mode={multiple ? 'multiple' : undefined}
         onBlur={!readonly ? handleBlur : undefined}
         onChange={!readonly ? handleChange : undefined}
         onFocus={!readonly ? handleFocus : undefined}
@@ -85,18 +84,19 @@ export default function SelectWidget(
         value={selectedIndexes}
         filterOption={filterOption}
         aria-describedby={ariaDescribedByIds(id)}
-        {...extraProps}>
-        {Array.isArray(enumOptions) &&
-            enumOptions.map(({
-                                 value: optionValue,
-                                 label: optionLabel
-                             }, index) => (
-                <Select.Option
-                    disabled={Array.isArray(enumDisabled) && enumDisabled.indexOf(optionValue) !== -1}
-                    key={String(index)}
-                    value={String(index)}>
-                    {optionLabel}
-                </Select.Option>
-            ))}
-    </Select>
+        {...extraProps}
+        options={
+            Array.isArray(enumOptions)
+                ? enumOptions.map(({
+                                       value: optionValue,
+                                       label: optionLabel
+                                   }, index) => ({
+                    disabled: Array.isArray(enumDisabled) && enumDisabled.indexOf(optionValue) !== -1,
+                    key: String(index),
+                    value: String(index),
+                    label: optionLabel,
+                }))
+                : undefined
+        }
+    />
 }

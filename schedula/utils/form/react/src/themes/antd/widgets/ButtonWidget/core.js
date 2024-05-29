@@ -17,17 +17,15 @@ export default function ButtonWidget(props) {
     } = props;
     const {readonlyAsDisabled = true} = formContext;
     const {editValue} = options;
-    return (
-        <Button
-            autoFocus={autofocus}
-            disabled={disabled || (readonlyAsDisabled && readonly)}
-            id={id}
-            name={id}
-            onClick={!readonly ? () => {
-                onChange(editValue(value))
-            } : undefined}
-            aria-describedby={ariaDescribedByIds(id)}>
-            {labelValue(options.hasOwnProperty('label') ? options.label : label, hideLabel, '')}
-        </Button>
-    );
+    return <Button
+        autoFocus={autofocus}
+        disabled={disabled || (readonlyAsDisabled && readonly)}
+        id={id}
+        name={id}
+        onClick={!readonly ? () => {
+            onChange(editValue(value))
+        } : undefined}
+        aria-describedby={ariaDescribedByIds(id)}>
+        {labelValue(options.hasOwnProperty('label') ? options.label : label, hideLabel, '')}
+    </Button>
 }

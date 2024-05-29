@@ -1,10 +1,8 @@
 import React from 'react';
-import {Table} from 'antd';
+import {Table, Col, Row} from 'antd';
 import {getUiOptions, getTemplate} from "@rjsf/utils";
 import {ConfigConsumer} from "antd/lib/config-provider/context";
 import classNames from "classnames";
-import Col from "antd/lib/col";
-import Row from "antd/lib/row";
 import './TableField.css'
 import {
     DownOutlined,

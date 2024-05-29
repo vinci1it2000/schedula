@@ -1,5 +1,5 @@
 import {useMemo, useState} from "react";
-import InputNumber from 'antd/lib/input-number';
+import {InputNumber} from 'antd';
 import {useLocaleStore} from "../../models/locale";
 
 
