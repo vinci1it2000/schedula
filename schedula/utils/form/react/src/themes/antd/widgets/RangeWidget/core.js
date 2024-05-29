@@ -1,9 +1,10 @@
-import React, {useEffect, useState} from "react";
+import React, {useCallback, useState} from "react";
 import {Slider} from "antd";
 import {
     ariaDescribedByIds,
     rangeSpec
 } from "@rjsf/utils";
+import debounce from "lodash/debounce";
 
 
 export default function RangeWidget(props) {
@@ -27,31 +28,21 @@ export default function RangeWidget(props) {
     const emptyValue = options.emptyValue || "";
 
     const [editedValue, setEditedValue] = useState(undefined)
-    const [timeoutId, setTimeoutId] = useState(undefined)
 
     const handleChange = (nextValue) => {
         setEditedValue(nextValue === "" ? emptyValue : nextValue);
     }
 
-    const _onChange = () => {
-        if (editedValue !== undefined)
-            onChange(editedValue)
-    };
-    useEffect(() => {
-        if (timeoutId !== undefined)
-            clearTimeout(timeoutId)
-        setTimeoutId(setTimeout(() => {
-            _onChange()
-        }, 1000));
-
-    }, [editedValue])
-    const handleBlur = ({target: value}) => {
-        _onChange();
+    const _clean = useCallback(debounce(() => {
         setEditedValue(undefined)
+    }, 1000), [setEditedValue])
+
+    const handleBlur = ({target: value}) => {
         onBlur(id, value)
     };
     const handleChangeComplete = (nextValue) => {
         onChange(nextValue)
+        _clean()
     }
     const handleFocus = ({target: value}) => {
         onFocus(id, value)
