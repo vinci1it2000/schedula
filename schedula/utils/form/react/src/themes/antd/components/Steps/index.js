@@ -7,7 +7,7 @@ const Steps = ({children, render, items, ...props}) => {
         setCurrent(value);
     };
     const _items = items.map((item, index) => (
-        {status: 'wait', ...item, ...(index === current ? {status: 'process'} : {})}
+        {key: index, ...item, ...(index === current ? {status: 'process'} : {})}
     ))
     return <div style={{
         height: "100%",
@@ -16,9 +16,6 @@ const Steps = ({children, render, items, ...props}) => {
         overflowY: "hidden"
     }}>
         <BaseSteps
-            type="navigation"
-            size="small"
-            style={{padding: 0}}
             current={current}
             onChange={onChange}
             items={_items}
