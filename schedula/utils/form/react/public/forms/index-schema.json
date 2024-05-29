@@ -8,6 +8,11 @@
       "type": "string",
       "format": "data-url"
     },
+    "number1": {
+      "type": "number",
+      "minimum": 0,
+      "default": 2
+    },
     "number": {
       "type": "number",
       "minimum": 0,

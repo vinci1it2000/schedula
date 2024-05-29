@@ -5,14 +5,26 @@
     "theme": {
       "token": {
         "sizeUnit": 2,
-        "colorBgLayout": "red"
+        "colorBgLayout": "#00000022",
+        "colorPrimary": "#000000",
+        "colorInfo": "#000000",
+        "colorSuccess": "#2e8c00",
+        "colorWarning": "#c78500",
+        "colorError": "#f5222d",
+        "borderRadius": 20
       },
       "components": {
         "Table": {
           "fontWeightStrong": 700
         },
+        "Card": {
+        },
         "Tabs": {
           "cardBg": "#d9d9d9"
+        },
+        "Collapse": {
+          "headerBg": "rgba(0, 0, 0, 0.8)",
+          "colorTextHeading": "rgb(255, 255, 255)"
         }
       }
     }
@@ -107,10 +119,6 @@
         {
           "label": "LAYOUT",
           "key": 2
-        },
-        {
-          "label": "EXCEL",
-          "key": 3
         },
         {
           "label": "OUTPUT",
@@ -254,6 +262,37 @@
             "children": [
               {
                 "children": [
+                  {
+                    "configProvider": {
+                      "theme": {
+                        "token": {
+                          "sizeUnit": 2,
+                          "colorBgLayout": "#00000022",
+                          "colorPrimary": "#000000",
+                          "colorInfo": "#000000",
+                          "colorSuccess": "#2e8c00",
+                          "colorWarning": "#c78500",
+                          "colorError": "#f5222d",
+                          "borderRadius": 0
+                        },
+                        "components": {
+                          "Table": {
+                            "fontWeightStrong": 700
+                          },
+                          "Card": {
+                          },
+                          "Tabs": {
+                            "cardBg": "#d9d9d9"
+                          },
+                          "Collapse": {
+                            "headerBg": "rgba(0, 0, 0, 0.8)",
+                            "colorTextHeading": "rgb(255, 255, 255)"
+                          }
+                        }
+                      }
+                    },
+                    "path": "number1"
+                  },
                   {
                     "path": "number",
                     "uiSchema": {
@@ -1184,43 +1223,6 @@
               "ui:onlyChildren": true,
               "ui:field": "PlotlyField"
             }
-          }
-        ]
-      },
-      {
-        "component": "div",
-        "props": {
-          "style": {
-            "height": "100%",
-            "display": "flex",
-            "flexFlow": "column"
-          }
-        },
-        "children": [
-          {
-            "component": "div",
-            "children": [
-              {
-                "path": "xlsx"
-              }
-            ]
-          },
-          {
-            "component": "div",
-            "props": {
-              "style": {
-                "flexGrow": 1
-              }
-            },
-            "children": [
-              {
-                "path": "xlsx",
-                "uiSchema": {
-                  "ui:widget": "ExcelPreviewWidget",
-                  "ui:onlyChildren": true
-                }
-              }
-            ]
           }
         ]
       }

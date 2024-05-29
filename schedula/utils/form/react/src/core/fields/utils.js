@@ -28,16 +28,25 @@ const customizerCloneDeep = (val) => {
 }
 
 export function createLayoutElement({key, layout, render, isArray}) {
-    const {path} = layout;
+    const {path, configProvider, ..._layout} = layout;
+    let element;
     if (path) {
-        return <LayoutComponent
-            key={key} id={key} layout={layout} render={render} isArray={isArray}
+        element = <LayoutComponent
+            key={key} id={key} layout={{path, ..._layout}} render={render}
+            isArray={isArray}
         />
     } else {
-        return <LayoutElement
-            key={key} id={key} layout={layout} render={render}
+        element = <LayoutElement
+            key={key} id={key} layout={_layout} render={render}
         />
     }
+    if (configProvider) {
+        const {registry: {templates: {ConfigProvider}}} = render
+        element= <ConfigProvider {...configProvider}>
+            {element}
+        </ConfigProvider>
+    }
+    return element;
 }
 
 export function LayoutComponent({id: key, layout, render, isArray}) {
