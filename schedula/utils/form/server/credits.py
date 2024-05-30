@@ -9,9 +9,8 @@
 """
 It provides functions to build the credit application services.
 """
-import datetime
 import json
-
+import datetime
 import schedula as sh
 from .extensions import db
 from .security import User
@@ -23,13 +22,6 @@ from flask import request, jsonify, current_app, flash, Blueprint
 from sqlalchemy import (
     Column, String, Integer, DateTime, ForeignKey, JSON, or_, event
 )
-
-bp = Blueprint('items', __name__)
-
-
-def default_name(context):
-    return f'Item {context.get_current_parameters()["id"]}'
-
 
 bp = Blueprint('schedula_credits', __name__)
 

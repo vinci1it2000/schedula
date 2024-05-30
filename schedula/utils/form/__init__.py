@@ -64,7 +64,6 @@ static_context = {
 
 
 class FormMap(WebMap):
-
     _get_basic_app_config = Config
 
     def get_form_context(self):
@@ -198,14 +197,16 @@ class FormMap(WebMap):
         return resp
 
     def validate_csrf(self):
-        if (not self._config('CSRF_ENABLED') or
-                request.method not in self._config('CSRF_METHODS') or
-                not request.endpoint or not (
-                        ('view', request.endpoint) in self._csrf_protected or
-                        ('bp', request.blueprint) in self._csrf_protected
-                )):
+        if not self._config('CSRF_ENABLED') or not request.endpoint:
             return
-
+        if request.method not in self._config('CSRF_METHODS'):
+            return
+        if ('view', request.endpoint) in self._csrf_protected:
+            pass
+        elif ('bp', request.blueprint) in self._csrf_protected:
+            if getattr(current_app.view_functions[request.endpoint],
+                       'csrf_exempt', False):
+                return
         token = self._csrf_token()
         if not token:
             return jsonify({'error': 'The CSRF token is missing.'})

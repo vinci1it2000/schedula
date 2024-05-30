@@ -166,11 +166,12 @@ class TestDispatcherForm(unittest.TestCase):
         with open(fp, 'rb') as f:
             payload = f.read()
         resp = requests.post(
-            self.stripe_site.url + '/stripe/webhook', data=payload,
+            self.stripe_site.url + '/stripe/webhooks', data=payload,
             headers={'STRIPE-SIGNATURE': (
                 't=1710289463,v1=349b804a6deab4c867dc598b8f277abc7e9bd4bcd756b896d086570bbc311d13,v0=e44e68f09d9b568184155abd7fbb8589438c0d0a817fe1db74d120d1ffcd3515'
             )}
         )
+        self.assertEqual(200, resp.status_code)
         self.assertTrue(resp.json()['success'])
         self.assertTrue(status[0])
         driver = self.driver
