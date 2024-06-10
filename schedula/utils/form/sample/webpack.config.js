@@ -209,6 +209,9 @@ module.exports = function (_env, argv) {
                                 cacheCompression: false,
                                 compact: isEnvProduction,
                             },
+                            resolve: {
+                                extensions: ['', '.js', '.jsx'],
+                            }
                         },
                         // "postcss" loader applies autoprefixer to our CSS.
                         // "css" loader resolves paths in CSS and adds assets as dependencies.
