@@ -121,14 +121,14 @@ export default function CloudDownloadField(
                 const {page, total, items} = data
                 setData(items);
                 setLoading(false);
-                setTableParams({
+                setTableParams((tableParams) => ({
                     ...tableParams,
                     pagination: {
                         ...tableParams.pagination,
                         total: total,
                         current: page
                     }
-                });
+                }));
             }
         }).catch(error => {
             setLoading(false)
@@ -137,7 +137,7 @@ export default function CloudDownloadField(
                 description: error.message,
             })
         })
-    }, [cloudUrl, form, locale.errorTitle, tableParams]);
+    }, [cloudUrl, form, locale.errorTitle]);
     const handleTableChange = (pagination, filters, sorter) => {
         let newParams = {
             pagination,
