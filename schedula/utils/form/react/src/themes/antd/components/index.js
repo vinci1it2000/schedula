@@ -68,6 +68,8 @@ const Table_Summary = React.lazy(() => import('./Table/Summary'));
 const Table_Summary_Col = React.lazy(() => import('./Table/Summary/Col'));
 const Table_Summary_Row = React.lazy(() => import('./Table/Summary/Row'));
 const Tabs = React.lazy(() => import('./Tabs'));
+const Tooltip = React.lazy(() => import('./Tooltip'));
+const Tour = React.lazy(() => import('./Tour'));
 const TweenOne = React.lazy(() => import('./TweenOne'));
 const Typography_Paragraph = React.lazy(() => import('./Typography/Paragraph'));
 const Typography_Text = React.lazy(() => import('./Typography/Text'));
@@ -100,7 +102,7 @@ export function generateComponents(register = true, registerDomains = true) {
         Divider,
         Drawer,
         Errors,
-        "Errors.Drawer":Errors_Drawer,
+        "Errors.Drawer": Errors_Drawer,
         Export,
         Flex,
         "Grid.Col": Grid_Col,
@@ -137,6 +139,8 @@ export function generateComponents(register = true, registerDomains = true) {
         "Table.Summary.Col": Table_Summary_Col,
         "Table.Summary.Row": Table_Summary_Row,
         Tabs,
+        Tooltip,
+        Tour,
         TweenOne,
         "Typography.Paragraph": Typography_Paragraph,
         "Typography.Text": Typography_Text,
