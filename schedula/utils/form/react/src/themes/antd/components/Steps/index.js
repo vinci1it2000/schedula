@@ -1,7 +1,24 @@
-import {Steps as BaseSteps} from 'antd';
-import {useState} from 'react';
+import {Steps as BaseSteps, Flex, Button, theme} from 'antd';
+import {useState, useContext} from 'react';
+import {useLocaleStore} from "../../models/locale";
+import get from 'lodash/get';
 
-const Steps = ({children, render, items, ...props}) => {
+const Steps = (
+    {
+        children,
+        render,
+        items,
+        controls = true,
+        data2verify,
+        doneButton,
+        ...props
+    }
+) => {
+    const {formContext: {FormContext}} = render
+    const {form: {state: {errorSchema}}} = useContext(FormContext)
+    const {getLocale} = useLocaleStore()
+    const locale = getLocale('Tour')
+    const {token} = theme.useToken();
     const [current, setCurrent] = useState(0);
     const onChange = (value) => {
         setCurrent(value);
@@ -9,24 +26,58 @@ const Steps = ({children, render, items, ...props}) => {
     const _items = items.map((item, index) => (
         {key: index, ...item, ...(index === current ? {status: 'process'} : {})}
     ))
-    return <div style={{
+    const contentStyle = {
+        color: token.colorTextTertiary,
+        backgroundColor: token.colorFillAlter,
+        borderRadius: token.borderRadiusLG,
+        border: `1px dashed ${token.colorBorder}`,
+        overflowY: 'hidden',
+        flexGrow: 1,
+        padding: 16
+    };
+    let kw = {}, hasErrors;
+    if (data2verify) {
+        hasErrors = (data2verify[current] || []).some(k => !!get(errorSchema, k, false))
+        kw.status = hasErrors ? 'error' : 'progress'
+    }
+    let _controls
+    if (controls) {
+        let nextBtn, isLastStep = current === _items.length - 1
+        if (isLastStep && doneButton) {
+            nextBtn = doneButton
+        } else {
+            nextBtn =
+                <Button
+                    type="primary"
+                    disabled={isLastStep || hasErrors}
+                    onClick={() => {
+                        setCurrent(current + 1);
+                    }}>
+                    {locale.Next}
+                </Button>
+        }
+        _controls = <Flex gap="middle" justify={'space-around'}>
+            <Button disabled={!(current > 0)} onClick={() => {
+                setCurrent(current - 1);
+            }}>
+                {locale.Previous}
+            </Button>
+            {nextBtn}
+        </Flex>
+    }
+    return <Flex gap="large" vertical style={{
         height: "100%",
-        display: "flex",
-        flexDirection: "column",
         overflowY: "hidden"
     }}>
         <BaseSteps
             current={current}
             onChange={onChange}
             items={_items}
+            {...kw}
             {...props}
         />
-        <div style={{
-            overflowY: 'hidden',
-            flexGrow: 1,
-            paddingTop: 6,
-            paddingBottom: 6
-        }}>{children[current]}</div>
-    </div>
+        <div style={contentStyle}>{children[current]}</div>
+        {_controls}
+    </Flex>
 };
 export default Steps;
