@@ -68,7 +68,31 @@ class WebMap(SiteMap):
             root_path, mute=mute, blueprint_name=blueprint_name, **kwargs
         )
         app.before_request(self.before_request)
+        app.after_request(self.after_request)
         return app
+
+    def api(self, depth=-1):
+        from flask import Blueprint
+        bp = Blueprint('api', __name__)
+        context = self.rules(depth=depth, index=False)
+        opt = {'methods': self.methods}
+        for i, ((node, extra), path) in enumerate(context.items()):
+            view = functools.partial(self._func_handler, node.obj)
+            if i:
+                bp.add_url_rule('/%s' % path, f'root_{path}', view, **opt)
+            else:
+                bp.add_url_rule('/', 'root', view, **opt)
+                bp.add_url_rule('/%s' % path, 'root', **opt)
+        return bp
+
+    def sub_site(self):
+        from flask import Blueprint
+        bp = Blueprint('subsite', __name__)
+        opt = {'methods': self.subsite_methods}
+        bp.add_url_rule('/<key>/', 'root', self._site_proxy, **opt)
+        bp.add_url_rule('/<key>/<path:path>', 'root', **opt)
+        bp.add_url_rule('/<key>/<string:path>', 'root', **opt)
+        return bp
 
     def app(self, root_path=None, depth=-1, mute=False, blueprint_name=None,
             **kwargs):
@@ -76,22 +100,8 @@ class WebMap(SiteMap):
         app = self.basic_app(
             root_path, mute=mute, blueprint_name=blueprint_name, **kwargs
         )
-        app.after_request(self.after_request)
-        context = self.rules(depth=depth, index=False)
-        opt = {'methods': self.methods}
-        for i, ((node, extra), path) in enumerate(context.items()):
-            view = functools.partial(self._func_handler, node.obj)
-            if i:
-                app.add_url_rule('/%s' % path, f'api_{path}', view, **opt)
-            else:
-                app.add_url_rule('/', 'api', view, **opt)
-                app.add_url_rule('/%s' % path, 'api', **opt)
-
-        opt = {'methods': self.subsite_methods}
-        app.add_url_rule('/subsite/<key>/', 'subsite', self._site_proxy, **opt)
-        app.add_url_rule('/subsite/<key>/<path:path>', 'subsite', **opt)
-        app.add_url_rule('/subsite/<key>/<string:path>', 'subsite', **opt)
-
+        app.register_blueprint(self.api(depth))
+        app.register_blueprint(self.sub_site(), url_prefix='/subsite')
         return app
 
     def render(self, *args, **kwargs):
@@ -102,7 +112,7 @@ class WebMap(SiteMap):
         from flask import url_for
         from string import ascii_lowercase, digits
         key = ''.join(random.choices(ascii_lowercase + digits, k=12))
-        upx = url_for('subsite', key=key)
+        upx = url_for('schedula.subsite.root', key=key)
         site = func.plot(workflow=True, view=False).site(
             index=True, url_prefix=upx, blueprint_name='debug',
             idle_timeout=self.idle_timeout

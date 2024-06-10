@@ -99,20 +99,7 @@ class FormMap(WebMap):
 
     def __init__(self):
         super(FormMap, self).__init__()
-        self._csrf_protected = set()
         self.url_prefix = os.environ.get('SCHEDULA_FORM_URL_PREFIX', '')
-
-    def _config(self, config_name):
-        value = current_app.config.get(
-            config_name, self.csrf_defaults[config_name]
-        )
-        if hasattr(value, '__call__'):
-            value = value()
-
-        if value is None and config_name in self.csrf_required:
-            raise RuntimeError(self.csrf_required[config_name])
-
-        return value
 
     def __getattr__(self, item):
         if item.startswith('get_') and hasattr(self, f'_{item}'):
@@ -138,116 +125,6 @@ class FormMap(WebMap):
         except TemplateNotFound:
             # noinspection PyUnresolvedReferences
             return render_template('schedula/base.html', **context)
-
-    def _csrf_token(self):
-        field_name = self._config('CSRF_FIELD_NAME')
-        base_token = request.form.get(field_name)
-
-        if base_token:
-            return base_token
-
-        # if the form has a prefix, the name will be {prefix}-csrf_token
-        for key in request.form:
-            if key.endswith(field_name):
-                csrf_token = request.form[key]
-
-                if csrf_token:
-                    return csrf_token
-
-        # find the token in the headers
-        for header_name in self._config('CSRF_HEADERS'):
-            csrf_token = request.headers.get(header_name)
-
-            if csrf_token:
-                return csrf_token
-
-        return None
-
-    def generate_csrf(self):
-        if self._config('CSRF_ENABLED'):
-            field_name = self._config('CSRF_FIELD_NAME')
-
-            if field_name not in g:
-                secret_key = self._config('CSRF_SECRET_KEY')
-                s = URLSafeTimedSerializer(secret_key, salt='csrf-token')
-
-                if field_name not in session:
-                    session[field_name] = hashlib.sha1(
-                        os.urandom(64)
-                    ).hexdigest()
-
-                try:
-                    token = s.dumps(session[field_name])
-                except TypeError:
-                    session[field_name] = hashlib.sha1(
-                        os.urandom(64)
-                    ).hexdigest()
-                    token = s.dumps(session[field_name])
-
-                setattr(g, field_name, token)
-
-            return g.get(field_name)
-
-    def add_headers(self, resp):
-        if g.get('csrf_refresh'):
-            token = self.generate_csrf()
-            g.csrf_refresh = False
-            if token:
-                resp.headers[self._config('CSRF_AUTO_REFRESH_HEADER')] = token
-        return resp
-
-    def validate_csrf(self):
-        if not self._config('CSRF_ENABLED') or not request.endpoint:
-            return
-        if request.method not in self._config('CSRF_METHODS'):
-            return
-        if ('view', request.endpoint) in self._csrf_protected:
-            pass
-        elif ('bp', request.blueprint) in self._csrf_protected:
-            if getattr(current_app.view_functions[request.endpoint],
-                       'csrf_exempt', False):
-                return
-        token = self._csrf_token()
-        if not token:
-            return jsonify({'error': 'The CSRF token is missing.'})
-
-        field_name = self._config('CSRF_FIELD_NAME')
-
-        if field_name not in session:
-            return jsonify({'error': 'The CSRF session token is missing.'})
-
-        secret_key = self._config('CSRF_SECRET_KEY')
-
-        s = URLSafeTimedSerializer(secret_key, salt='csrf-token')
-
-        try:
-            token, timestamp = s.loads(token, return_timestamp=True)
-        except BadData:
-            return jsonify({'error': 'The CSRF token is invalid.'})
-
-        if not hmac.compare_digest(session[field_name], token):
-            return jsonify({'error': 'The CSRF tokens do not match.'})
-
-        if request.is_secure and self._config('CSRF_SSL_STRICT'):
-            if not request.referrer:
-                return jsonify({'error': 'The referrer header is missing.'})
-
-            c = urlparse(request.referrer)
-            r = urlparse(f'https://{request.host}/')
-
-            if not all((
-                    c.scheme == r.scheme, c.hostname == r.hostname,
-                    c.port == r.port
-            )):
-                return jsonify({
-                    'error': 'The referrer does not match the host.'
-                })
-        time_limit = self._config('CSRF_TIME_LIMIT') or 0
-        if time_limit >= 0:
-            now = datetime.datetime.now(tz=datetime.timezone.utc)
-            if not (0 <= (now - timestamp).total_seconds() <= time_limit):
-                g.csrf_refresh = True
-        g.csrf_valid = True  # mark this request as CSRF valid
 
     @staticmethod
     def send_static_file(filename):
@@ -290,29 +167,11 @@ class FormMap(WebMap):
                     return response
         raise NotFound
 
-    def add2csrf_protected(self, app=None, item=None):
-        if item:
-            self._csrf_protected.add(item)
-        elif isinstance(app, Blueprint):
-            self._csrf_protected.add(('bp', app.name))
-        else:
-            if app.secret_key is None:
-                app.secret_key = secrets.token_hex(32)
-            for endpoint, func in app.view_functions.items():
-                if not getattr(func, 'csrf_exempt', False):
-                    self._csrf_protected.add(('view', endpoint))
-        return app
-
     def app(self, root_path=None, depth=1, mute=False, blueprint_name=None,
-            **kwargs):
-        app = super(FormMap, self).app(
-            root_path=root_path, depth=depth, mute=mute,
-            blueprint_name=blueprint_name, **kwargs
+            index=False, **kwargs):
+        app = self.basic_app(
+            root_path, mute=mute, blueprint_name=blueprint_name, **kwargs
         )
-        self.add2csrf_protected(app)
-
-        app.before_request(self.validate_csrf)
-        app.after_request(self.add_headers)
         bp = Blueprint(
             'schedula', __name__, template_folder='templates'
         )
@@ -323,6 +182,8 @@ class FormMap(WebMap):
             '/static/schedula/<path:filename>', 'static', self.send_static_file
         )
         bp.add_url_rule('/static/schedula/<string:filename>', 'static')
+        bp.register_blueprint(self.api(depth))
+        bp.register_blueprint(self.sub_site())
         app.register_blueprint(bp)
         return app
 

@@ -121,12 +121,15 @@ def item(category, id_item=None):
 
 
 class Items:
-    def __init__(self, app, sitemap, *args, **kwargs):
+    def __init__(self, app, *args, **kwargs):
         if app is not None:
-            self.init_app(app, sitemap, *args, **kwargs)
+            self.init_app(app, *args, **kwargs)
 
-    def init_app(self, app, sitemap, *args, **kwargs):
+    def init_app(self, app, *args, **kwargs):
         app.extensions = getattr(app, 'extensions', {})
         app.register_blueprint(bp, url_prefix='/item')
-        app.extensions['locates'] = self
-        sitemap.add2csrf_protected(item=('bp', 'items'))
+        app.extensions['item_storage'] = self
+        if 'schedula_admin' in app.extensions:
+            admin = app.extensions['schedula_admin']
+            for v in (Item,):
+                admin.add_model(v, category="Items")

@@ -26,7 +26,7 @@ from flask_security.utils import base_render_json, suppress_form_csrf
 from flask_security.forms import Required, StringField, Form, EmailField
 
 log = logging.getLogger(__name__)
-bp = Blueprint('contacts', __name__)
+bp = Blueprint('contact', __name__)
 
 
 def default_get_form_context():
@@ -109,15 +109,10 @@ def contact():
     return base_render_json(form)
 
 
-class Contact:
-    def __init__(self, app, sitemap, *args, **kwargs):
-        if app is not None:
-            self.init_app(app, sitemap, *args, **kwargs)
+class Contact(Mail):
+    def __init__(self, app):
+        super().__init__(app)
 
-    def init_app(self, app, sitemap, *args, **kwargs):
-        app.extensions = getattr(app, 'extensions', {})
-        mail = Mail(app)
+    def init_app(self, app):
+        super().init_app(app)
         app.register_blueprint(bp, url_prefix='/mail')
-        app.extensions['schedula_mail'] = mail
-        app.extensions['schedula_stripe'] = self
-        sitemap.add2csrf_protected(item=('bp', 'contacts'))

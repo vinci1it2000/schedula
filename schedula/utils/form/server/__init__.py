@@ -17,8 +17,10 @@ Sub-Modules:
     :nosignatures:
     :toctree: form/
 
+    admin
     contact
     credits
+    csrf
     extensions
     items
     locale
@@ -49,21 +51,29 @@ def basic_app(sitemap, app):
     # Create database connection object
     db.init_app(app)
 
-    if app.config['SCHEDULA_I18N_DIRNAME']:
+    if app.config['SCHEDULA_CSRF_ENABLED']:
+        from .csrf import csrf
+        csrf.init_app(app)
+
+    if app.config['SCHEDULA_LOCALE_ENABLED']:
         from .locale import Locales
         Locales(app)
 
     if app.config['SECURITY_ENABLED']:
         from .security import Security
-        Security(app, sitemap)
+        Security(app)
 
-    if app.config.get('STRIPE_SECRET_KEY'):
+    if app.config.get('ADMIN_ENABLED'):
+        from .admin import Admin
+        Admin(app)
+
+    if app.config.get('SCHEDULA_CREDITS_ENABLED'):
         from .credits import Credits
         Credits(app, sitemap)
 
     if app.config.get('CONTACT_ENABLED'):
         from .contact import Contact
-        Contact(app, sitemap)
+        Contact(app)
 
     if app.config.get('ITEMS_STORAGE_ENABLED'):
         from .items import Items

@@ -50,11 +50,11 @@
     <script defer="defer">
         function onLoad() {
             let name = "{{ form_id or 'index' }}",
-                url = "{{ url_for('api') }}",
+                url = "{{ url_for('schedula.api.root') }}",
                 {formContext: _formContext, ..._schedulaProps} = window.schedulaProps || {},
                 element = document.getElementById('root'),
                 forms_url = "{{ url_for('schedula.static', filename='forms') }}",
-                csrf_token = "{{ form.generate_csrf() }}",
+                csrf_token = "{{ csrf_token() }}",
                 formData = JSON.parse('{{ form.get_form_data() | tojson | safe}}');
             let formContext = {
                 ..._formContext,
