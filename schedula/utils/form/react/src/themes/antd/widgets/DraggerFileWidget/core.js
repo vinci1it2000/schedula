@@ -1,11 +1,12 @@
-import {notification, Upload} from 'antd';
+import {notification, Upload, theme, ConfigProvider} from 'antd';
 import {useState, useEffect} from 'react';
 import {InboxOutlined} from '@ant-design/icons';
 import format from 'python-format-js'
 import './DraggerFileWidget.css'
-
 import {useLocaleStore} from '../../models/locale'
 
+
+const {useToken} = theme;
 
 function dataURLtoFile(dataurl) {
     let arr = dataurl.split(','),
@@ -41,6 +42,7 @@ const DraggerFileWidget = (
     const locale = getLocale('FileWidget')
     const [fileList, setFileList] = useState([])
     const newValue = value ? (multiple ? value : [value]) : []
+    const {token} = useToken();
 
     let nFiles = fileList.length
     useEffect(() => {
@@ -174,12 +176,29 @@ const DraggerFileWidget = (
         props.maxCount = 1
     }
     const {Dragger} = Upload;
-
-    return <Dragger key={id} danger={!!rawErrors}
-                    disabled={readonly || disabled} {...props}>
-        <p className="ant-upload-drag-icon"><InboxOutlined/></p>
-        <p className="ant-upload-text">{locale.dropMessage}</p>
-    </Dragger>
+    let theme = {}
+    if (!!rawErrors) {
+        theme = {
+            components: {
+                "Upload": {
+                    "colorBorder": token.colorError,
+                    "colorText": token.colorError,
+                    "colorPrimary": token.colorError,
+                    "colorPrimaryBorder": token.colorError,
+                    "colorPrimaryHover": token.colorError,
+                    "colorTextDescription": token.colorError,
+                    "colorTextHeading": token.colorError
+                }
+            }
+        }
+    }
+    return <ConfigProvider theme={theme}>
+        <Dragger key={id}
+                 disabled={readonly || disabled} {...props}>
+            <p className="ant-upload-drag-icon"><InboxOutlined/></p>
+            <p className="ant-upload-text">{locale.dropMessage}</p>
+        </Dragger>
+    </ConfigProvider>
 
 };
 
