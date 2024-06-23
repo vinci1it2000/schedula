@@ -1,25 +1,31 @@
 import {loadStripe} from "@stripe/stripe-js";
-import React, {useState, useCallback, useMemo} from "react";
+import React, {useState, useCallback, useMemo, useEffect} from "react";
 import {
     EmbeddedCheckoutProvider,
     EmbeddedCheckout
 } from "@stripe/react-stripe-js";
 import post from "../../../core/utils/fetch";
+import {getTemplate, getUiOptions} from "@rjsf/utils";
 
 export default function Stripe(
     {
         children,
-        render,
+        render: {formContext: {form, stripeKey}, uiSchema, registry},
         urlCreateCheckoutSession = "/stripe/create-checkout-session",
         urlCreateCheckoutStatus = "/stripe/session-status",
         checkoutProps,
-        options,
+        options: {
+            clientSecret: clientSecret_ = undefined,
+            sessionId: sessionId_ = undefined,
+            ...options
+        } = {},
         onCheckout,
         ...props
     }) {
-
-    const [sessionId, setSessionId] = useState('');
-    const {form, stripeKey} = render.formContext
+    const uiOptions = getUiOptions(uiSchema);
+    const Skeleton = getTemplate('Skeleton', registry, uiOptions);
+    const [clientSecret, setClientSecret] = useState(clientSecret_);
+    const [sessionId, setSessionId] = useState(sessionId_);
 
     const stripe = useMemo(() => {
         const {stripe} = form.state
@@ -30,24 +36,25 @@ export default function Stripe(
             return stripe
         });
     }, [stripeKey, form]);
-    const fetchClientSecret = useCallback(() => {
-        // Create a Checkout Session
-        return post({
-            url: urlCreateCheckoutSession,
-            data: checkoutProps,
-            form
-        }).then(({data}) => {
-            if (data.error) {
-                form.props.notify({type: 'error', message: data.error})
-            } else {
-                setSessionId(data.sessionId)
-                return data.clientSecret
-            }
-        })
-    }, [checkoutProps, form, urlCreateCheckoutSession]);
+    useEffect(() => {
+        if (!clientSecret) {
+            post({
+                url: urlCreateCheckoutSession,
+                data: checkoutProps,
+                form
+            }).then(({data: {error, sessionId, clientSecret}}) => {
+                if (error) {
+                    form.props.notify({type: 'error', message: error})
+                } else {
+                    setSessionId(sessionId)
+                    setClientSecret(clientSecret)
+                }
+            })
+        }
+    }, [])
     const onComplete = useCallback(() => {
         post({
-            url: `${urlCreateCheckoutStatus}?session_id=${sessionId}`,
+            url: `${urlCreateCheckoutStatus}/${sessionId}`,
             method: 'GET',
             form
         }).then(({data}) => {
@@ -55,11 +62,13 @@ export default function Stripe(
             if (onCheckout)
                 onCheckout(data)
         });
-    }, [sessionId, form, onCheckout, urlCreateCheckoutStatus])
-    return <EmbeddedCheckoutProvider
-        stripe={stripe}
-        options={{onComplete, fetchClientSecret}}
-        {...props}>
-        {children ? children : <EmbeddedCheckout/>}
-    </EmbeddedCheckoutProvider>
+    }, [form, onCheckout, urlCreateCheckoutStatus, sessionId]);
+    return <Skeleton key="stripe" loading={!clientSecret}>
+        <EmbeddedCheckoutProvider
+            stripe={stripe}
+            options={{onComplete, clientSecret, ...options}}
+            {...props}>
+            {children ? children : <EmbeddedCheckout/>}
+        </EmbeddedCheckoutProvider>
+    </Skeleton>
 };
