@@ -29,6 +29,7 @@
       }
     }
   },
+  "ui:onlyChildren": true,
   "ui:layout": {
     "component": "App",
     "props": {

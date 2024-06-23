@@ -48,7 +48,7 @@ import {
 import {useLocaleStore} from "../../models/locale";
 import './App.css'
 import isEmpty from "lodash/isEmpty";
-import {createLayoutElement} from "../../../../core/fields/utils";
+import {createLayoutElement} from "../../../../core";
 import Errors from "../Errors/Drawer";
 import Debug from "../Debug";
 
@@ -70,6 +70,7 @@ const {Header, Content, Footer, Sider} = Layout,
                logo,
                userProps,
                cloudUrl,
+               hideErrors = false,
                hideNav = false,
                hideRun = false,
                hideDebug = false,
@@ -86,6 +87,7 @@ const {Header, Content, Footer, Sider} = Layout,
         const {getLocale} = useLocaleStore()
         const locale = getLocale('App')
         const impButton = useRef(null);
+        const mainLayout = useRef(null);
         const {formContext} = render
         const {form} = formContext
         const {userInfo = {}} = form.state
@@ -219,17 +221,22 @@ const {Header, Content, Footer, Sider} = Layout,
                                 {urlContact ? <ContactNav
                                     form={form}
                                     formContext={formContext}
+                                    containerRef={mainLayout}
                                     urlContact={urlContact}/> : null}
                                 {languageOptions ? <LanguageNav
                                     form={form}
                                     languages={languageOptions}/> : null}
                                 {userProps ?
                                     <UserNav
-                                        form={form} {...userProps}/> : null}
+                                        form={form}
+                                        containerRef={mainLayout}
+                                        {...userProps}/> : null}
                             </Flex> : null}
                     </div>
                 </Header> : null}
-            <Layout>
+            <Layout ref={mainLayout} style={{
+                position: 'relative'
+            }}>
                 {hideSideMenu || (hideRun && hideDebug && hideClean && hideFullscreen && !cloudUrl && hideFiles && !savingData) ? null :
                     <Sider collapsible defaultCollapsed={true} style={{
                         overflowY: "auto",
@@ -389,10 +396,8 @@ const {Header, Content, Footer, Sider} = Layout,
                     </Sider>}
                 <Content style={{margin: '16px 16px'}} {...contentProps}>
                     {_items.length ? children[indexContent] : children}
-                    <FloatButton.BackTop key={'back'}/>
                     {cloudUrl ? <>
                         <CloudDownloadField
-
                             key={'cloud'}
                             uiSchema={{
                                 'ui:cloudUrl': cloudUrl,
@@ -521,6 +526,7 @@ const {Header, Content, Footer, Sider} = Layout,
                             oldValue={oldFormData}
                             newValue={formData}/> : null}
                     </DraggableModal>
+
                 </Content>
             </Layout>
             {footer ? <Footer
@@ -535,7 +541,7 @@ const {Header, Content, Footer, Sider} = Layout,
                 {footer}
             </Footer> : null}
             <FloatButton.Group>
-                {errors.length ? (openErrors ?
+                {errors.length && !hideErrors ? (openErrors ?
                     <Errors render={render}
                             onClose={() => {
                                 setOpenErrors(false)

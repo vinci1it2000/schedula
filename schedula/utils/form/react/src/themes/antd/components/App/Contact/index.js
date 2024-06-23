@@ -5,7 +5,7 @@ import {Drawer, Spin, Tooltip, Button} from "antd";
 import {useLocaleStore} from "../../../models/locale";
 
 const ContactForm = React.lazy(() => import( "./Contact"))
-const ContactNav = ({key, form, formContext, urlContact}) => {
+const ContactNav = ({key, form, formContext, urlContact, containerRef}) => {
     const {getLocale} = useLocaleStore()
     const locale = getLocale('Contact')
     const page = window.location.hash.slice(1)
@@ -15,29 +15,31 @@ const ContactNav = ({key, form, formContext, urlContact}) => {
         <Tooltip
             key={'btn'} title={locale.buttonTooltip} placement="bottomRight">
             <Button
-                shape="circle" icon={<MessageOutlined/>} ghost type="link"
+                shape="circle" icon={<MessageOutlined/>}
                 onClick={() => {
                     setOpen(true)
                 }}
             />
         </Tooltip>
         <Drawer
+            rootStyle={{position: "absolute"}}
             title={locale.title}
             closable={!spinning}
             onClose={() => {
                 if (!spinning)
                     setOpen(false)
             }}
+            getContainer={containerRef.current}
             open={open}>
             <Spin key={'page'} spinning={spinning}>
                 <Suspense>
-                    <ContactForm
-                        key={'contact'}
-                        form={form}
-                        formContext={formContext}
-                        urlContact={urlContact}
-                        setSpinning={setSpinning}
-                        setOpen={setOpen}/>
+                <ContactForm
+                    key={'contact'}
+                    form={form}
+                    formContext={formContext}
+                    urlContact={urlContact}
+                    setSpinning={setSpinning}
+                    setOpen={setOpen}/>
                 </Suspense>
             </Spin>
         </Drawer>
