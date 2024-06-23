@@ -11,9 +11,9 @@ It provides functions to build the CSRF service.
 """
 import hmac
 import datetime
-from flask import current_app, session, g
+from flask import current_app, session, g, request
 from itsdangerous import URLSafeTimedSerializer
-from flask_wtf.csrf import CSRFProtect, CSRFError
+from flask_wtf.csrf import CSRFProtect, CSRFError, generate_csrf
 
 
 class CSRF(CSRFProtect):
@@ -43,8 +43,8 @@ class CSRF(CSRFProtect):
                 raise ex
 
     def add_auto_refresh_header(self, resp):
-        if g.get('csrf_refresh'):
-            token = self.generate_csrf()
+        if g.get('csrf_refresh') or request.endpoint == 'security.logout':
+            token = generate_csrf()
             g.csrf_refresh = False
             if token:
                 header = current_app.config['CSRF_AUTO_REFRESH_HEADER']
@@ -52,6 +52,9 @@ class CSRF(CSRFProtect):
         return resp
 
     def init_app(self, app):
+        app.config.setdefault("WTF_CSRF_HEADERS",
+                              ['X-CSRFToken', 'X-CSRF-Token', 'X-XSRF-Token',
+                               'X-Csrf-Token'])
         app.config.setdefault("CSRF_AUTO_REFRESH_HEADER", 'N-CSRF-Token')
         app.config.setdefault("WTF_CSRF_SECRET_KEY", app.secret_key)
         app.config.setdefault("WTF_CSRF_TIME_LIMIT", 3600)

@@ -27,25 +27,16 @@ import io
 import os
 import gzip
 import glob
-import hmac
 import json
-import secrets
-import hashlib
-import datetime
 import mimetypes
 import webbrowser
 import os.path as osp
 from ..web import WebMap
 from . import json_secrets
-from urllib.parse import urlparse
 from jinja2 import TemplateNotFound
 from werkzeug.exceptions import NotFound
-from itsdangerous import URLSafeTimedSerializer, BadData
-from .server import Config, basic_app, default_get_form_context
-from flask import (
-    render_template, Blueprint, current_app, session, g, request, send_file,
-    jsonify
-)
+from .server import basic_app, default_get_form_context
+from flask import render_template, Blueprint, current_app, request, send_file
 from flask_babel import get_locale
 
 __author__ = 'Vincenzo Arcidiacono <vinci1it2000@gmail.com>'
@@ -64,8 +55,6 @@ static_context = {
 
 
 class FormMap(WebMap):
-    _get_basic_app_config = Config
-
     def get_form_context(self):
         context = default_get_form_context().copy()
         if hasattr(self, '_get_form_context'):
@@ -78,24 +67,6 @@ class FormMap(WebMap):
     @staticmethod
     def _view(url, *args, **kwargs):
         webbrowser.open(url)
-
-    csrf_defaults = {
-        'CSRF_FIELD_NAME': 'CSRF_token',
-        'CSRF_SECRET_KEY': lambda: current_app.secret_key,
-        'CSRF_TIME_LIMIT': 3600,
-        'CSRF_HEADERS': {'X-CSRFToken', 'X-CSRF-Token'},
-        'CSRF_AUTO_REFRESH_HEADER': 'N-CSRF-Token',
-        'CSRF_ENABLED': True,
-        'CSRF_METHODS': {'POST', 'PUT', 'PATCH', 'DELETE'},
-        'CSRF_SSL_STRICT': True
-    }
-
-    csrf_required = {
-        'CSRF_FIELD_NAME': 'A field name is required to use CSRF.',
-        'CSRF_SECRET_KEY': 'A secret key is required to use CSRF.',
-        'CSRF_HEADERS': 'A valid headers is required to use CSRF.',
-        'CSRF_METHODS': 'A valid request methods is required to use CSRF.'
-    }
 
     def __init__(self):
         super(FormMap, self).__init__()

@@ -29,14 +29,6 @@ log = logging.getLogger(__name__)
 bp = Blueprint('contact', __name__)
 
 
-def default_get_form_context():
-    return {
-        'userInfo': getattr(cu, "get_security_payload", lambda: {})(),
-        'reCAPTCHA': current_app.config.get('RECAPTCHA_PUBLIC_KEY'),
-        'stripeKey': current_app.config.get('STRIPE_PUBLISHABLE_KEY')
-    }
-
-
 def prepare_message(boby, subject, recipients, reply_to=None, **kwargs):
     body = publish_string(boby, writer=rst2txt.Writer()).decode()
     html = publish_string(boby, writer_name='html').decode()

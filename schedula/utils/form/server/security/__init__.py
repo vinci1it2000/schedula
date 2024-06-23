@@ -16,8 +16,9 @@ import logging
 import flask_security
 import os.path as osp
 from ..extensions import db
-from sqlalchemy import Column, String, event
+from sqlalchemy import Column, String
 from werkzeug.datastructures import MultiDict
+from flask_principal import Permission, RoleNeed
 from flask_security.models import fsqla_v3 as fsqla
 from flask import after_this_request, request, Blueprint
 from flask_security.forms import (
@@ -38,6 +39,10 @@ log = logging.getLogger(__name__)
 fsqla.FsModels.set_db_info(db)
 
 
+def is_admin():
+    return Permission(RoleNeed('admin')).can()
+
+
 class Role(db.Model, fsqla.FsRoleMixin):
     pass
 
@@ -54,24 +59,6 @@ class User(db.Model, fsqla.FsUserMixin):
             'firstname': self.firstname,
             'lastname': self.lastname
         }.items() if v is not None}
-
-
-def insert_user(target, connection, **kw):
-    connection.execute(target.insert(), [{
-        'id': 1,
-        'fs_uniquifier': 'fs_uniquifier',
-        'active': True,
-        'password': 'vinci1it2000@gmail.com',
-        'username': 'vinci1it2000',
-        'firstname': 'Vincenzo',
-        'lastname': 'Arcidiacono',
-        'email': 'vinci1it2000@gmail.com'
-    }])
-
-
-event.listen(
-    User.__table__, 'after_create', insert_user
-)
 
 
 # Setup Flask-Security

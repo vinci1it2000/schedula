@@ -27,8 +27,8 @@ Sub-Modules:
     security
 """
 import logging
+import schedula as sh
 from .extensions import db
-from ..config import Config
 from flask import current_app
 from flask_security import current_user as cu
 
@@ -37,14 +37,18 @@ log = logging.getLogger(__name__)
 
 def default_get_form_context():
     return {
-        'userInfo': getattr(cu, "get_security_payload", lambda: {})(),
         'reCAPTCHA': current_app.config.get('RECAPTCHA_PUBLIC_KEY'),
-        'stripeKey': current_app.config.get('STRIPE_PUBLISHABLE_KEY')
+        'stripeKey': current_app.config.get('STRIPE_PUBLISHABLE_KEY'),
+        'userInfo': sh.combine_dicts(*(
+            getattr(cu, k, lambda: {})()
+            for k in ("get_security_payload",)
+        )),
     }
 
 
 def basic_app(sitemap, app):
-    app.config.from_object(Config)
+    from ..config import Config
+    app.config.from_object(Config())
     if getattr(sitemap, 'basic_app_config'):
         app.config.from_object(sitemap.basic_app_config)
 

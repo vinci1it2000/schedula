@@ -12,7 +12,7 @@ It provides functions to build the item storage service.
 import datetime
 import schedula as sh
 from .extensions import db
-from flask_principal import Permission, RoleNeed
+from .security import is_admin
 from flask import after_this_request, request, jsonify, Blueprint
 from sqlalchemy import (
     Column, String, Integer, DateTime, ForeignKey, JSON
@@ -26,9 +26,6 @@ bp = Blueprint('items', __name__)
 def default_name(context):
     return f'Item {context.get_current_parameters()["id"]}'
 
-
-def is_admin():
-    return Permission(RoleNeed('admin')).can()
 
 
 class Item(db.Model):

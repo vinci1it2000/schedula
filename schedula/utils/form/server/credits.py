@@ -17,15 +17,21 @@ from .csrf import csrf
 from .extensions import db
 from .security import User
 from .. import json_secrets
-from sqlalchemy.sql import func
+from .security import is_admin
 from heapq import heappop, heappush
 from flask_babel import lazy_gettext
+from sqlalchemy.sql import func, column
+from flask_security.utils import view_commit
 from flask_security import current_user as cu, auth_required, roles_required
-from flask import request, jsonify, current_app, flash, Blueprint
+from flask import (
+    request, jsonify, current_app, flash, Blueprint, after_this_request, abort
+)
+from multiprocessing import Lock
 from sqlalchemy import (
     Column, String, Integer, DateTime, JSON, or_, event, Boolean
 )
 
+lock = Lock()
 bp = Blueprint('schedula_credits', __name__)
 
 
@@ -41,9 +47,10 @@ class Wallet(db.Model):
     def balance(self, product=None, day=None):
         day = datetime.datetime.today() if day is None else day
         base = Txn.query.with_entities(
-            func.sum(Txn.credits).label('total_credits')
+            func.sum(Txn.credits).label('total_credits'), column('product')
         ).filter_by(
-            wallet=self.id, **({} if product is None else {"product": product})
+            wallet_id=self.id,
+            **({} if product is None else {"product": product})
         )
         alive_balance = {
             r.product: r.total_credits for r in base.filter(or_(
@@ -55,33 +62,26 @@ class Wallet(db.Model):
             for r in base.group_by(Txn.product).all()
         )}
         if product is not None:
-            balance = balance[product]
+            balance = balance.get(product, 0)
         return balance
 
-    def use(self, product, credits, id=None):
-        if id is None:
-            assert credits >= 0, 'Credits to be consumed have to be positive.'
-            assert self.balance(product) >= credits, 'Insufficient balance.'
-            t = Txn(
-                wallet=self.id, type=CHARGE, credits=-credits, product=product,
-                created_by=current_user.id
-            )
-        else:
-            t = Txn.query.filter_by(
-                id=id, wallet=self.id, type=CHARGE, product=product
-            ).one()
-            assert t, 'Charge transaction not in the DB.'
-            assert -t.credits >= credits, 'Credits update have to be lower than previous.'
-
+    def use(self, product, credits):
+        assert credits >= 0, 'Credits to be consumed have to be positive.'
+        assert self.balance(product) >= credits, 'Insufficient balance.'
+        t = Txn(
+            wallet_id=self.id, type_id=CHARGE, credits=-credits,
+            product=product, created_by=cu.id
+        )
         db.session.add(t)
-        db.session.commit()
+        db.session.flush()
         return t.id
 
     def charge(self, product, credits):
         assert credits >= 0, 'Credits to be added have to be positive.'
-        t = Txn(wallet=self.id, type=CHARGE, credits=credits, product=product)
+        t = Txn(wallet_id=self.id, type_id=CHARGE, credits=credits,
+                product=product)
         db.session.add(t)
-        db.session.commit()
+        db.session.flush()
         return t.id
 
     def transfer_to(self, product, credits, to_wallet):
@@ -89,15 +89,33 @@ class Wallet(db.Model):
         assert Wallet.query.get(to_wallet), 'Destination wallet not found.'
         assert self.balance(product) >= credits, 'Insufficient balance.'
         t = Txn(
-            wallet=self.id, type=TRANSFER, credits=-credits, product=product
+            wallet_id=self.id, type_id=TRANSFER, credits=-credits,
+            product=product
         )
         db.session.add(t)
         t = Txn(
-            wallet=to_wallet, type=TRANSFER, credits=credits, product=product
+            wallet_id=to_wallet, type_id=TRANSFER, credits=credits,
+            product=product
         )
         db.session.add(t)
-        db.session.commit()
+        db.session.flush()
         return t.id
+
+
+@bp.route('/balance', methods=['GET'])
+@bp.route('/balance/<int:wallet_id>', methods=['GET'])
+@auth_required()
+def get_balance(wallet_id=None):
+    user_id = request.args.get('user_id', cu.id)
+    kw = {'id': wallet_id, 'user_id': user_id}
+    if not is_admin() and cu.id != user_id:
+        abort(403)
+    if wallet_id is None:
+        kw.pop('id', None)
+    product = request.args.get('product')
+    return jsonify([
+        wallet.balance(product) for wallet in Wallet.query.filter_by(**kw).all()
+    ])
 
 
 class TxnType(db.Model):
@@ -145,11 +163,18 @@ class Txn(db.Model):
     )
     updated_by = db.Column(
         db.Integer, db.ForeignKey('user.id'), nullable=True,
-        onupdate=lambda: cu.id
+        onupdate=lambda: getattr(cu, 'id', None)
     )
 
     def __repr__(self):
         return f'Transaction - {self.id}'
+
+    def update_credits(self, credits):
+        assert credits >= 0, 'Credits update have to be positive.'
+        assert -self.credits >= credits, 'Credits update have to be lower than previous.'
+        self.credits = -credits
+        db.session.add(self)
+        db.session.flush()
 
 
 INF_DATE = datetime.datetime(9999, 12, 31, 23, 59)
@@ -391,24 +416,93 @@ def create_refund():
         for t in refunds:
             t.stripe_id = refund_id
         db.session.flush(refunds)
-        db.session.commit()
+        after_this_request(view_commit)
     except Exception as e:
         return jsonify(error=str(e))
 
     return jsonify(refundId=refund_id)
 
 
-@bp.route('/session-status', methods=['GET'])
-def session_status():
+def checkout_session_completed(session_id):
+    with lock:
+        if db.session.query(
+                Txn.query.filter_by(stripe_id=session_id).exists()
+        ).scalar():
+            return False
+        import stripe
+        from asteval import Interpreter
+        from dateutil.relativedelta import relativedelta
+        aeval = Interpreter(usersyms={
+            'now': datetime.datetime.now(),
+            'relativedelta': relativedelta
+        }, minimal=True)
+
+        session = stripe.checkout.Session.retrieve(
+            session_id,
+            api_key=current_app.config['STRIPE_SECRET_KEY'],
+            expand=['line_items.data.price.product']
+        )
+        customer_id = int(session.metadata.get('customer_id'))
+        if not customer_id:
+            customer_details = session.customer_details
+            user = User.query.filter_by(email=customer_details.email).first()
+            if not user:
+                user = current_app.security.datastore.create_user(
+                    email=customer_details.email,
+                    firstname=customer_details.name
+                )
+                db.session.flush([user])
+            customer_id = user.id
+
+        wallet = Wallet.query.filter_by(user_id=customer_id).first()
+        if not wallet:
+            wallet = Wallet(user_id=customer_id)
+            db.session.add(wallet)
+            db.session.flush([wallet])
+
+        line_items = json.loads(session.metadata.get('line_items', '[]'))
+        for i, item in enumerate(session.line_items.data):
+            price = item.price
+            expired_at = aeval(price.metadata.get(
+                'expires_at', price.product.metadata.get('expires_at', 'None')
+            ))
+            try:
+                credits = line_items[i].get('metadata', {})['credits']
+            except (IndexError, KeyError):
+                credits = item.quantity
+
+            transaction = Txn(
+                wallet_id=wallet.id,
+                type_id=PURCHASE,
+                credits=credits,
+                product=price.product.name,
+                subtotal=item.amount_subtotal,
+                discount=item.amount_discount,
+                tax=item.amount_tax,
+                total=item.amount_total,
+                currency=item.currency,
+                stripe_id=session_id,
+                expired_at=expired_at,
+                raw_data=item.to_dict_recursive(),
+                created_by=customer_id
+            )
+            db.session.add(transaction)
+        db.session.commit()
+        return True
+
+
+@bp.route('/session-status/<session_id>', methods=['GET'])
+def session_status(session_id):
     import stripe
     session = stripe.checkout.Session.retrieve(
-        request.args.get('session_id'),
+        session_id,
         api_key=current_app.config['STRIPE_SECRET_KEY']
     )
     status = session.status
     if status == "complete":
         msg = 'Payment succeeded!'
         category = 'success'
+        checkout_session_completed(session_id)
     elif status == "processing":
         msg = 'Your payment is processing.'
         category = 'info'
@@ -448,65 +542,7 @@ def stripe_webhook():
         raise e
 
     if event.type == 'checkout.session.completed':
-        from asteval import Interpreter
-        from dateutil.relativedelta import relativedelta
-        aeval = Interpreter(usersyms={
-            'now': datetime.datetime.now(),
-            'relativedelta': relativedelta
-        }, minimal=True)
-
-        customer_id = event.data.object.metadata.get('customer_id')
-        if not customer_id:
-            customer_details = event.data.object.customer_details
-            user = User.query.filter_by(email=customer_details.email).first()
-            if not user:
-                user = current_app.security.datastore.create_user(
-                    email=customer_details.email,
-                    firstname=customer_details.name
-                )
-                db.session.flush([user])
-            customer_id = user.id
-
-        wallet = Wallet.query.filter_by(user=customer_id).first()
-        if not wallet:
-            wallet = Wallet(user=customer_id)
-            db.session.add(wallet)
-            db.session.flush([wallet])
-
-        session_id = event.data.object.id
-        session = stripe.checkout.Session.retrieve(
-            session_id,
-            api_key=current_app.config['STRIPE_SECRET_KEY'],
-            expand=['line_items.data.price.product']
-        )
-        line_items = json.loads(session.metadata.get('line_items', '[]'))
-        for i, item in enumerate(session.line_items.data):
-            price = item.price
-            expired_at = aeval(price.metadata.get(
-                'expires_at', price.product.metadata.get('expires_at', 'None')
-            ))
-            try:
-                credits = line_items[i].get('metadata', {})['credits']
-            except (IndexError, KeyError):
-                credits = item.quantity
-
-            transaction = Txn(
-                wallet=wallet.id,
-                type=PURCHASE,
-                credits=credits,
-                product=price.product.name,
-                subtotal=item.amount_subtotal,
-                discount=item.amount_discount,
-                tax=item.amount_tax,
-                total=item.amount_total,
-                currency=item.currency,
-                stripe_id=session_id,
-                expired_at=expired_at,
-                raw_data=item.to_dict_recursive(),
-                created_by=customer_id
-            )
-            db.session.add(transaction)
-        db.session.commit()
+        checkout_session_completed(event.data.object.id)
     elif event.type == 'charge.refunded':
         api_key = current_app.config['STRIPE_SECRET_KEY']
         charge = stripe.Charge.retrieve(
@@ -519,7 +555,7 @@ def stripe_webhook():
                 {'refunded': True, 'updated_by': custumer_id},
                 synchronize_session='fetch'
             )
-        db.session.commit()
+        after_this_request(view_commit)
 
     current_app.stripe_event_handler(event)
     return jsonify(success=True)
