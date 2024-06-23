@@ -78,7 +78,8 @@ export default function LoginForm(
             }]}>
             <Input
                 prefix={<MailOutlined className="site-form-item-icon"/>}
-                placeholder={locale.emailPlaceholder} onChange={() => {
+                placeholder={locale.emailPlaceholder} autoComplete="username"
+                onChange={() => {
                 if (field_errors.email)
                     setFieldErrors({...field_errors, email: undefined})
             }}/>
@@ -95,6 +96,7 @@ export default function LoginForm(
             <Input
                 prefix={<LockOutlined className="site-form-item-icon"/>}
                 type="password" placeholder={locale.passwordPlaceholder}
+                autoComplete="current-password"
                 onChange={() => {
                     if (field_errors.password)
                         setFieldErrors({

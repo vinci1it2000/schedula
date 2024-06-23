@@ -112,10 +112,11 @@ export default function RegisterForm(
             }]}>
             <Input
                 prefix={<MailOutlined className="site-form-item-icon"/>}
-                placeholder={locale.emailPlaceholder} onChange={() => {
-                if (field_errors.email)
-                    setFieldErrors({...field_errors, email: undefined})
-            }}/>
+                placeholder={locale.emailPlaceholder} autoComplete="username"
+                onChange={() => {
+                    if (field_errors.email)
+                        setFieldErrors({...field_errors, email: undefined})
+                }}/>
         </Form.Item>
         <Form.Item
             name="password"
@@ -128,14 +129,13 @@ export default function RegisterForm(
             <Input
                 prefix={<LockOutlined className="site-form-item-icon"/>}
                 type="password" placeholder={locale.passwordPlaceholder}
-                onChange={() => {
-                    if (field_errors.password)
-                        setFieldErrors({
-                            ...field_errors,
-                            password: undefined
-                        })
-                }}
-            />
+                autoComplete="new-password" onChange={() => {
+                if (field_errors.password)
+                    setFieldErrors({
+                        ...field_errors,
+                        password: undefined
+                    })
+            }}/>
         </Form.Item>
         <Form.Item
             name="password_confirm"
@@ -158,14 +158,13 @@ export default function RegisterForm(
             <Input
                 prefix={<LockOutlined className="site-form-item-icon"/>}
                 type="password" placeholder={locale.passwordConfirmPlaceholder}
-                onChange={() => {
-                    if (field_errors.password_confirm)
-                        setFieldErrors({
-                            ...field_errors,
-                            password_confirm: undefined
-                        })
-                }}
-            />
+                autoComplete="new-password" onChange={() => {
+                if (field_errors.password_confirm)
+                    setFieldErrors({
+                        ...field_errors,
+                        password_confirm: undefined
+                    })
+            }}/>
         </Form.Item>
         <Form.Item>
             <Button type="primary" htmlType="submit"

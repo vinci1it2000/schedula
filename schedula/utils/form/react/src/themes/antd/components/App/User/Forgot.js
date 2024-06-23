@@ -61,7 +61,8 @@ export default function ForgotForm(
             }]}>
             <Input
                 prefix={<MailOutlined className="site-form-item-icon"/>}
-                placeholder={locale.emailPlaceholder} onChange={() => {
+                placeholder={locale.emailPlaceholder} autoComplete="username"
+                onChange={() => {
                 if (field_errors.email)
                     setFieldErrors({...field_errors, email: undefined})
             }}/>

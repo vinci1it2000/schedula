@@ -67,7 +67,7 @@ export default function ResetPasswordForm(
             <Input
                 prefix={<LockOutlined className="site-form-item-icon"/>}
                 type="password" placeholder={locale.passwordPlaceholder}
-                onChange={() => {
+                autoComplete="new-password" onChange={() => {
                     if (field_errors.password)
                         setFieldErrors({
                             ...field_errors,
@@ -97,7 +97,7 @@ export default function ResetPasswordForm(
             <Input
                 prefix={<LockOutlined className="site-form-item-icon"/>}
                 type="password" placeholder={locale.passwordConfirmPlaceholder}
-                onChange={() => {
+                autoComplete="new-password" onChange={() => {
                     if (field_errors.password_confirm)
                         setFieldErrors({
                             ...field_errors,
