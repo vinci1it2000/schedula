@@ -134,7 +134,9 @@ class WebMap(SiteMap):
             headers = {}
             messages = current_app.json.dumps(messages).encode('utf8')
             if 'gzip' in request.headers.get('Accept-Encoding', '').lower():
-                messages = base64.b64encode(gzip.compress(messages))
+                messages = base64.b64encode(
+                    gzip.compress(messages)
+                ).decode("utf-8")
                 headers['X-Flash-Messages-length'] = len(messages)
                 headers['X-Flash-Messages-Encoding'] = 'gzip'
             headers['X-Flash-Messages'] = messages
