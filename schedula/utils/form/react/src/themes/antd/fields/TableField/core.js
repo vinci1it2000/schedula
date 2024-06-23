@@ -21,7 +21,8 @@ import {
     PlusOutlined,
     EditOutlined,
     UpOutlined,
-    DeleteOutlined
+    DeleteOutlined,
+    DragOutlined
 } from '@ant-design/icons';
 import Papa from "papaparse";
 import isObject from "lodash/isObject";
@@ -29,7 +30,6 @@ import get from "lodash/get";
 import has from "lodash/has";
 import {useLocaleStore} from "../../models/locale";
 import ArrayField from "../../../../core/fields/ArrayField";
-import {HolderOutlined} from '@ant-design/icons';
 import {DndContext} from '@dnd-kit/core';
 import {restrictToVerticalAxis} from '@dnd-kit/modifiers';
 import {
@@ -169,9 +169,10 @@ export default class TableField extends ArrayField {
                             if (child.key === 'sort') {
                                 return React.cloneElement(child, {
                                     children: (
-                                        <HolderOutlined
+                                        <DragOutlined
                                             ref={setActivatorNodeRef}
                                             style={{
+
                                                 touchAction: 'none',
                                                 cursor: 'move',
                                             }}
@@ -297,6 +298,7 @@ export default class TableField extends ArrayField {
                         ) : null
                     },
                     width: 33,
+                    align: 'center',
                     render: (_, record, index) => {
                         const {removable: removableRow = true} = rows[String(index)] || {}
                         return this.state.keyedFormData.length >= 1 && removableRow ? (
@@ -335,7 +337,12 @@ export default class TableField extends ArrayField {
                     }
                 })
             if (orderable && !(readonly || disabled)) {
-                tableStaticColumns = [{key: 'sort'}, ...tableStaticColumns]
+                tableStaticColumns = [{
+                    key: 'sort',
+                    width: 33,
+                    align: 'center',
+                    fixed: 'left',
+                }, ...tableStaticColumns]
             }
             let tableColumns
             if (removeEmpty) {
