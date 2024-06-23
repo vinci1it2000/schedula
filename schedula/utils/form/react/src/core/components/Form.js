@@ -325,16 +325,7 @@ export default class Form extends BaseForm {
             }
 
             this.setState(state, () => {
-                postData({
-                    url: this.props.url || '/',
-                    data,
-                    form: this,
-                    method: 'POST',
-                    headers: {}, ...detail
-                }).then(({data, debugUrl}) => {
-                    if (this.props.notify) (data.messages || []).forEach(([type, message]) => {
-                        this.props.notify({type, message})
-                    })
+                this.postData({data, ...detail}).then(({data, debugUrl}) => {
                     return {
                         debugUrl, ...this.postSubmit({
                             data, input, formData: newFormData
@@ -379,6 +370,20 @@ export default class Form extends BaseForm {
             this.setState({...this.state, loading: false})
         }
     }, 50)
+
+    postData = (kwargs) => {
+        return postData({
+            url: this.props.url || '/',
+            form: this,
+            method: 'POST',
+            headers: {}, ...kwargs
+        }).then(({data, debugUrl}) => {
+            if (this.props.notify) (data.messages || []).forEach(([type, message]) => {
+                this.props.notify({type, message})
+            })
+            return {debugUrl, data}
+        })
+    }
 
     /** Callback function to handle when the form is submitted. First, it prevents the default event behavior. Nothing
      * happens if the target and currentTarget of the event are not the same. It will omit any extra data in the
@@ -462,8 +467,6 @@ export default class Form extends BaseForm {
                     }, () => {
                         if (onError) {
                             onError(errors)
-                        } else {
-                            console.error("Form validation failed", errors)
                         }
                     })
                 })
