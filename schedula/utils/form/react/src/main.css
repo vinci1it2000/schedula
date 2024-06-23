@@ -10,10 +10,6 @@ body {
     height: 100vh
 }
 
-.form-group, .ant-form-item, .ant-form-item-row, .ant-form-item-control-input, .ant-form-item-control-input-content {
-    height: 100%;
-}
-
 .ant-form-item .ant-form-item-label > label {
     height: unset;
 }
@@ -28,4 +24,8 @@ body {
 
 .ant-collapse > .ant-collapse-item > .ant-collapse-header .ant-collapse-header-text {
     font-weight: 700;
+}
+
+.ant-spin-nested-loading, .ant-spin-nested-loading > .ant-spin-container {
+    height: 100%;
 }
