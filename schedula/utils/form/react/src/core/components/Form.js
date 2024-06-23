@@ -539,7 +539,7 @@ export default class Form extends BaseForm {
                 as={as}
                 style={{height: '100%'}}
                 ref={this.formElement}>
-                <ConfigProvider {...propsConfigProvider}>
+                <ConfigProvider {...{...propsConfigProvider, form: this}}>
                     <Loader spinning={this.state.loading}>
                         <ModalProvider>
                             {showErrorList === "top" && this.renderErrors(registry)}

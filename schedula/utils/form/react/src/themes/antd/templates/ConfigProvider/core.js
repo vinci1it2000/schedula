@@ -1,11 +1,25 @@
 import {ConfigProvider as BaseConfigProvider, notification, theme} from 'antd';
 import {useQueryStore} from '../../models/query'
-import {useEffect} from "react";
+import React, {useEffect} from "react";
+import {useLocaleStore} from "../../models/locale";
 
 const ConfigProvider = (
-    {children, dark, compact, locale, theme: themeProps, ...props}) => {
+    {
+        children,
+        dark,
+        compact,
+        form,
+        theme: themeProps,
+        element = BaseConfigProvider,
+        ...props
+    }) => {
     const {defaultAlgorithm, darkAlgorithm, compactAlgorithm} = theme;
     const {setQuery} = useQueryStore()
+    const {state: {language}} = form
+    const {changeLocale, locale} = useLocaleStore()
+    useEffect(() => {
+        changeLocale(form, language)
+    }, [language])
     useEffect(() => {
         let params = {}
         const url = new URL(window.location.href);
@@ -25,13 +39,11 @@ const ConfigProvider = (
     let algorithm = [dark ? darkAlgorithm : defaultAlgorithm]
     if (compact)
         algorithm.push(compactAlgorithm)
-    return <BaseConfigProvider
-        locale={locale}
-        theme={{
+    return React.createElement(element, {
+        locale, theme: {
             algorithm,
             ...themeProps
-        }} {...props}>
-        {children}
-    </BaseConfigProvider>
+        }, ...props
+    }, children)
 };
 export default ConfigProvider;
