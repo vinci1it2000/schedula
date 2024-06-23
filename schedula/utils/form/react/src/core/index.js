@@ -8,6 +8,7 @@ import {
     createLayoutElement
 } from "./fields/utils";
 import ReactDOM from 'react-dom/client'
+import getTheme from '../themes'
 
 async function renderForm(
     {
@@ -17,22 +18,12 @@ async function renderForm(
         csrf_token,
         url = '/',
         name = "form",
-        theme = null,
+        theme = 'antd',
         formContext = {},
         ...props
     }
 ) {
-    return new Promise((resolve, reject) => {
-        if (theme) {
-            resolve(theme)
-        } else {
-            import("../themes/antd").then(({generateTheme}) => {
-                resolve(generateTheme(true))
-            }).catch(err => {
-                reject(err)
-            });
-        }
-    }).then(theme => {
+    return getTheme(theme).then(theme => {
         const root = ReactDOM.createRoot(element);
         root.render(<Suspense>
             <Form
