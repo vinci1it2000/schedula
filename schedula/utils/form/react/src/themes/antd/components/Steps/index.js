@@ -1,7 +1,8 @@
 import {Steps as BaseSteps, Flex, Button, theme} from 'antd';
-import {useState, useContext} from 'react';
+import {useState, useContext, isValidElement} from 'react';
 import {useLocaleStore} from "../../models/locale";
 import get from 'lodash/get';
+
 
 const Steps = (
     {
@@ -10,11 +11,13 @@ const Steps = (
         items,
         controls = true,
         data2verify,
-        doneButton,
+        finishButton = false,
+        previousButton = {},
+        nextButton = {},
         ...props
     }
 ) => {
-    const {formContext: {FormContext}} = render
+    const {formContext: {FormContext}, idSchema: {$id}, idPrefix} = render
     const {form: {state: {errorSchema}}} = useContext(FormContext)
     const {getLocale} = useLocaleStore()
     const locale = getLocale('Tour')
@@ -23,9 +26,7 @@ const Steps = (
     const onChange = (value) => {
         setCurrent(value);
     };
-    const _items = items.map((item, index) => (
-        {key: index, ...item, ...(index === current ? {status: 'process'} : {})}
-    ))
+    const _items = items.map((item, index) => ({key: index, ...item, ...(index === current ? {status: 'process'} : {})}))
     const contentStyle = {
         color: token.colorTextTertiary,
         backgroundColor: token.colorFillAlter,
@@ -37,47 +38,66 @@ const Steps = (
     };
     let kw = {}, hasErrors;
     if (data2verify) {
-        hasErrors = (data2verify[current] || []).some(k => !!get(errorSchema, k, false))
+        const regexPattern = new RegExp(`^${idPrefix}\\.?`);
+        hasErrors = (data2verify[current] || []).some(k => {
+            let path = (k.startsWith(idPrefix) ? k : $id + '.' + k).replace(regexPattern, '')
+            return !!get(errorSchema, path, false)
+        })
         kw.status = hasErrors ? 'error' : 'progress'
     }
     let _controls
     if (controls) {
-        let nextBtn, isLastStep = current === _items.length - 1
-        if (isLastStep && doneButton) {
-            nextBtn = doneButton
-        } else {
-            nextBtn =
-                <Button
-                    type="primary"
-                    disabled={isLastStep || hasErrors}
-                    onClick={() => {
-                        setCurrent(current + 1);
-                    }}>
-                    {locale.Next}
-                </Button>
+        let isLastStep = current === _items.length - 1,
+            previousBtn = previousButton,
+            nextBtn = isLastStep ? (finishButton === false ? {style: {display: "none"}} : finishButton) : nextButton;
+        if (!isValidElement(previousBtn)) {
+            previousBtn = <Button
+                key={'previous'}
+                disabled={current <= 0}
+                onClick={() => {
+                    setCurrent(current - 1)
+                }}
+                children={locale.Previous}
+                {...previousBtn}/>
+
         }
-        _controls = <Flex gap="middle" justify={'space-around'}>
-            <Button disabled={!(current > 0)} onClick={() => {
-                setCurrent(current - 1);
-            }}>
-                {locale.Previous}
-            </Button>
-            {nextBtn}
-        </Flex>
+        if (!isValidElement(nextBtn)) {
+            nextBtn = <Button
+                key={isLastStep ? 'finish' : 'next'}
+                disabled={hasErrors}
+                type={"primary"}
+                onClick={isLastStep ? null : () => {
+                    setCurrent(current + 1)
+                }}
+                children={isLastStep ? locale.Finish : locale.Next}
+                {...nextBtn}/>
+        }
+        _controls =
+            <Flex key={'controls'} gap="middle" justify={'space-around'}>
+                <div key={'left'} style={{
+                    width: '50%',
+                    textAlign: 'center'
+                }}>{previousBtn}</div>
+                <div key={'right'} style={{
+                    width: '50%',
+                    textAlign: 'center'
+                }}>{nextBtn}</div>
+            </Flex>
     }
     return <Flex gap="large" vertical style={{
-        height: "100%",
-        overflowY: "hidden"
+        height: "100%", overflowY: "hidden"
     }}>
         <BaseSteps
+            key={'step'}
             current={current}
             onChange={onChange}
             items={_items}
             {...kw}
             {...props}
         />
-        <div style={contentStyle}>{children[current]}</div>
+        <div key={'content'} style={contentStyle}>{children[current]}</div>
         {_controls}
+        <div key={'placeholder'}></div>
     </Flex>
 };
 export default Steps;
