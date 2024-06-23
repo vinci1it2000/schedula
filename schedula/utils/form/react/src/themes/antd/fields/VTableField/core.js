@@ -90,7 +90,7 @@ export default class VTableField extends ArrayField {
                                 itemSchema,
                                 itemIdPrefix,
                                 itemCast,
-                                `${i}-${idPrefix}`,
+                                idPrefix,
                                 idSeparator
                             );
                             const itemFormContext = {
@@ -125,7 +125,7 @@ export default class VTableField extends ArrayField {
                                 formData={itemCast}
                                 formContext={itemFormContext}
                                 errorSchema={itemErrorSchema}
-                                idPrefix={`${i}-${idPrefix}`}
+                                idPrefix={idPrefix}
                                 idSeparator={idSeparator}
                                 idSchema={itemIdSchema}
                                 required={field.isItemRequired(itemSchema)}

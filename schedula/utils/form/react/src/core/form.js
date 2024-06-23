@@ -49,6 +49,8 @@ function Form(
             refresh_csrf={refresh_csrf}
             name={name}
             id={name}
+            idPrefix={name}
+            idSeparator={'.'}
             rootSchema={rootSchema}
             rootUiSchema={rootUiSchema}
             url={url}

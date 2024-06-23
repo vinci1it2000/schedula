@@ -41,8 +41,11 @@ export function createLayoutElement({key, layout, render, isArray}) {
         />
     }
     if (configProvider) {
-        const {registry: {templates: {ConfigProvider}}} = render
-        element= <ConfigProvider {...configProvider}>
+        const {
+            registry: {templates: {ConfigProvider}},
+            formContext: {form}
+        } = render
+        element = <ConfigProvider form={form} {...configProvider}>
             {element}
         </ConfigProvider>
     }
@@ -181,7 +184,7 @@ export function LayoutComponent({id: key, layout, render, isArray}) {
             itemSchema,
             itemIdPrefix,
             formData,
-            `${name}-${idPrefix}`,
+            idPrefix,
             idSeparator
         );
         contentProps = {
@@ -235,7 +238,7 @@ export function LayoutComponent({id: key, layout, render, isArray}) {
             itemSchema,
             itemIdPrefix,
             itemCast,
-            `${index}-${idPrefix}`,
+            idPrefix,
             idSeparator
         );
         const itemFormContext = {...formContext, arrayItemIndex: index}

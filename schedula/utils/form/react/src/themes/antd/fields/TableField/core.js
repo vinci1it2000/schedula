@@ -210,7 +210,7 @@ export default class TableField extends ArrayField {
                         itemSchema,
                         itemIdPrefix,
                         itemCast,
-                        `${index}-${idPrefix}`,
+                        idPrefix,
                         idSeparator
                     );
                     const itemFormContext = {
@@ -245,7 +245,7 @@ export default class TableField extends ArrayField {
                         formData={itemCast}
                         formContext={itemFormContext}
                         errorSchema={itemErrorSchema}
-                        idPrefix={`${index}-${idPrefix}`}
+                        idPrefix={idPrefix}
                         idSeparator={idSeparator}
                         idSchema={itemIdSchema}
                         required={this.isItemRequired(itemSchema)}
@@ -375,7 +375,7 @@ export default class TableField extends ArrayField {
                     itemSchema,
                     itemIdPrefix,
                     itemCast,
-                    `${index}-${idPrefix}`,
+                    idPrefix,
                     idSeparator
                 );
                 const itemFormContext = {...formContext, arrayItemIndex: index}
