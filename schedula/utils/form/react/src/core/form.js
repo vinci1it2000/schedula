@@ -19,12 +19,14 @@ function Form(
         nonce,
         language: _language = 'en_US',
         precompiledValidator: _precompiledValidator = true,
+        formContext,
         ...props
     }
 ) {
     const {
         language = _language,
         precompiledValidator = _precompiledValidator,
+        formContext: optionsFormContext,
         ...optionsProps
     } = getUiOptions(rootUiSchema).props || {}
 
@@ -69,6 +71,7 @@ function Form(
                 emptyObjectFields: 'populateAllDefaults',
                 allOf: 'populateDefaults',
             }}
+            formContext={{...formContext, ...optionsFormContext}}
             {...futureProps}
             {...props}
             {...optionsProps}
