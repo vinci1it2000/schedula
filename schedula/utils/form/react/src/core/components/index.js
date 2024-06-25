@@ -10,10 +10,11 @@ const GridLayout = React.lazy(() => import('./GridLayout'));
 const Static = React.lazy(() => import('./Static'));
 const Stripe = React.lazy(() => import('./Stripe'));
 const Title = React.lazy(() => import('./Title'));
-
+const Form = React.lazy(() => import('../form'));
 
 export function generateComponents() {
     return {
+        Form,
         Description,
         DiffViewer,
         Domain,

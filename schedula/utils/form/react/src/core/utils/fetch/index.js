@@ -27,7 +27,7 @@ export default async function post(
         }
         if (response.headers.has('N-CSRF-Token')) {
             const csrf_token = response.headers.get('N-CSRF-Token')
-            form.setState({...form.state, csrf_token})
+            form.setState((state)=>({...state, csrf_token}))
         }
         if (response.redirected) {
             window.location.href = response.url;

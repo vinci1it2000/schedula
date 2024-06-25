@@ -1,6 +1,6 @@
 import {withTheme} from './components/Form';
 import {HoxRoot} from "hox";
-import {useEffect, useState, createRef} from 'react'
+import {useEffect, useState, createRef, useMemo} from 'react'
 import defineValidator from "./components/validator";
 import {getUiOptions} from "@rjsf/utils";
 import i18n, {translateJSON} from './components/translator'
@@ -41,7 +41,7 @@ function Form(
             })
         })
     }, []);
-    const BaseForm = withTheme(theme);
+    const BaseForm = useMemo(()=>(withTheme(theme)),[theme]);
     const rootRef = createRef()
     return <HoxRoot key={name}>
         {futureProps ? <BaseForm

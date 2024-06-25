@@ -32,7 +32,7 @@ export default function Stripe(
         if (stripe)
             return stripe;
         return loadStripe(stripeKey).then(stripe => {
-            form.setState({...form.state, stripe})
+            form.setState((state) => ({...state, stripe}))
             return stripe
         });
     }, [stripeKey, form]);
@@ -58,7 +58,7 @@ export default function Stripe(
             method: 'GET',
             form
         }).then(({data}) => {
-            form.setState({...form.state, userInfo: data.userInfo})
+            form.setState((state) => ({...state, userInfo: data.userInfo}))
             if (onCheckout)
                 onCheckout(data)
         });

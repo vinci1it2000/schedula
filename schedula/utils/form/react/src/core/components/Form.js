@@ -307,7 +307,7 @@ export default class Form extends BaseForm {
             // Check for user provided errors and update state accordingly.
             const errorSchema = extraErrors || {}
             const errors = extraErrors ? toErrorList(extraErrors) : []
-            const {input} = newFormData
+            const {input = {}} = newFormData
 
             const data = this.preSubmit({
                 input, formData: newFormData
@@ -351,7 +351,6 @@ export default class Form extends BaseForm {
                             if (onSubmit) {
                                 onSubmit({
                                     ...this.state,
-                                    formData: newFormData,
                                     status: "submitted"
                                 }, event)
                             }
@@ -561,7 +560,7 @@ export default class Form extends BaseForm {
                                 readonly={readonly}
                                 submitCount={this.state.submitCount}  // used to re-render
                             />
-                            {children}
+                            {typeof children === 'function' ? children(this) : children}
                             {showDebug && this.state.debugUrl ? <Debug
                                 key={name + '-Debug'}
                                 id={name + '-Debug'}
@@ -587,12 +586,12 @@ export function withTheme(themeProps) {
             },
         };
         return <Form
+            ref={ref}
             {...themeProps}
             {...directProps}
             fields={fields}
             widgets={widgets}
             templates={templates}
-            ref={ref}
         />
     });
 }
