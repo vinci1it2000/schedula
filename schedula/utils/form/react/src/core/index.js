@@ -1,4 +1,7 @@
-import React, {Suspense} from 'react';
+import React from 'react';
+import {
+    BrowserRouter
+} from 'react-router-dom';
 import Form from './form'
 import {
     registerComponent,
@@ -25,7 +28,7 @@ async function renderForm(
 ) {
     return getTheme(theme).then(theme => {
         const root = ReactDOM.createRoot(element);
-        root.render(<Suspense>
+        root.render(<BrowserRouter>
             <Form
                 csrf_token={csrf_token}
                 schema={schema}
@@ -35,12 +38,13 @@ async function renderForm(
                 theme={theme}
                 formContext={formContext}
                 {...props}/>
-        </Suspense>);
+        </BrowserRouter>);
     });
 }
 
 export {
     renderForm as default,
+    Form,
     registerComponent,
     registerComponentDomain,
     getComponents,

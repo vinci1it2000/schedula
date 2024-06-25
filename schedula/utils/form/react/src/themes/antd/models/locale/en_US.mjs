@@ -58,6 +58,7 @@ export const locale = merge({}, en, {
         titleInfo: "User info",
         titleLogin: "Login",
         titleLogout: "Sure to logout?",
+        titleChangePassword: "Change password",
         titleSetting: "Edit settings",
         titleForgot: "Recover password",
         titleRegister: "New registration",
@@ -65,6 +66,7 @@ export const locale = merge({}, en, {
         titleResetPassword: "Reset password",
         loginTooltip: 'Login',
         infoButton: 'Profile',
+        changePasswordButton: 'Change password',
         settingButton: 'Settings',
         logoutButton: 'Logout'
     },
@@ -101,6 +103,17 @@ export const locale = merge({}, en, {
         emailPlaceholder: "Email",
         emailRequired: "Please input your Email!",
         emailInvalid: "Invalid Email!",
+        errorTitle: 'Ops... something went wrong!'
+    },
+    "User.ChangePassword": {
+        submitButton: "Change Password",
+        currentPasswordRequired: "Please input your Current Password!",
+        currentPasswordPlaceholder: "Current password",
+        passwordPlaceholder: "New Password",
+        passwordRequired: "Please input your New Password!",
+        passwordConfirmPlaceholder: "Confirm New Password",
+        passwordConfirmRequired: "Please confirm your New Password!",
+        passwordConfirmError: 'The two passwords that you entered do not match!',
         errorTitle: 'Ops... something went wrong!'
     },
     "User.ResetPassword": {
@@ -142,6 +155,10 @@ export const locale = merge({}, en, {
         firstnameRequired: "Please input your Name!",
         lastnamePlaceholder: "Surname",
         lastnameRequired: "Please input your Surname!",
+    },
+    "User.Settings": {
+        submitButton: 'Save',
+        revertButton: 'Revert'
     },
     CloudDownloadField: {
         errorTitle: 'Ops... something went wrong!',

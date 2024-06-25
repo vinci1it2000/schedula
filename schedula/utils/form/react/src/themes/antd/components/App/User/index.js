@@ -4,15 +4,18 @@ import {
     Button,
     Spin,
     Space,
-    Dropdown
+    Dropdown,
+    Avatar,
+    Skeleton
 } from 'antd'
 import {
     LoginOutlined,
     LogoutOutlined,
     SettingOutlined,
-    UserOutlined
+    UserOutlined,
+    LockOutlined
 } from "@ant-design/icons";
-import React, {useState, Suspense, useEffect} from "react";
+import React, {useState, useEffect, useMemo, Suspense} from "react";
 import {useLocaleStore} from "../../../models/locale";
 import isEmpty from "lodash/isEmpty";
 
@@ -21,8 +24,9 @@ const RegisterForm = React.lazy(() => import( "./Register"))
 const ForgotForm = React.lazy(() => import( "./Forgot"))
 const ConfirmForm = React.lazy(() => import( "./Confirm"))
 const ResetForm = React.lazy(() => import( "./Reset"))
+const ChangePasswordForm = React.lazy(() => import( "./Change"))
 const InfoForm = React.lazy(() => import( "./Info"))
-const SettingForm = React.lazy(() => import( "./Setting"))
+const SettingsForm = React.lazy(() => import( "./Settings"))
 const LogoutForm = React.lazy(() => import( "./Logout"))
 
 export default function UserNav(
@@ -31,12 +35,16 @@ export default function UserNav(
         form,
         loginRequired,
         urlForgotPassword,
+        urlChangePassword,
         urlLogin,
         urlRegister,
         urlConfirmMail,
         urlResetPassword,
         urlLogout,
+        urlEdit,
         urlSettings,
+        settingProps,
+        formContext,
         containerRef
     }) {
     const {userInfo = {}} = form.state
@@ -46,7 +54,8 @@ export default function UserNav(
 
     const titles = logged ? {
         info: locale.titleInfo,
-        setting: locale.titleSetting,
+        'change-password': locale.titleChangePassword,
+        settings: locale.titleSetting,
         logout: locale.titleLogout,
     } : {
         login: locale.titleLogin,
@@ -55,7 +64,6 @@ export default function UserNav(
         confirm: locale.titleConfirm,
         reset: locale.titleResetPassword
     }
-
     const page = window.location.hash.slice(1)
     const [spinning, setSpinning] = useState(false);
     const [open, setOpen] = useState(titles.hasOwnProperty(page));
@@ -68,6 +76,88 @@ export default function UserNav(
             }
         }
     }, [logged, loginRequired])
+    const drawerContent = useMemo(() => {
+        if (!open) {
+            return null
+        }
+        switch (auth) {
+            case 'register':
+                return <RegisterForm
+                    key={auth}
+                    form={form}
+                    urlRegister={urlRegister}
+                    setAuth={setAuth}
+                    setSpinning={setSpinning}
+                    setOpen={setOpen}/>
+            case 'confirm':
+                return <ConfirmForm
+                    key={auth}
+                    form={form}
+                    urlConfirmMail={urlConfirmMail}
+                    setAuth={setAuth}
+                    setSpinning={setSpinning}
+                    setOpen={setOpen}/>
+            case 'login':
+                return <LoginForm
+                    key={auth}
+                    form={form}
+                    urlLogin={urlLogin}
+                    urlRegister={urlRegister}
+                    setAuth={setAuth}
+                    setSpinning={setSpinning}
+                    setOpen={setOpen}/>
+            case 'forgot':
+                return <ForgotForm
+                    key={auth}
+                    form={form}
+                    urlForgotPassword={urlForgotPassword}
+                    setAuth={setAuth}
+                    setSpinning={setSpinning}/>
+            case 'reset':
+                return <ResetForm
+                    key={auth}
+                    form={form}
+                    urlResetPassword={urlResetPassword}
+                    setAuth={setAuth}
+                    setSpinning={setSpinning}
+                    setOpen={setOpen}/>
+            case 'change-password':
+                return <ChangePasswordForm
+                    key={auth}
+                    form={form}
+                    urlResetPassword={urlChangePassword}
+                    setAuth={setAuth}
+                    setSpinning={setSpinning}
+                    setOpen={setOpen}/>
+            case 'logout':
+                return <LogoutForm
+                    key={auth}
+                    form={form}
+                    urlLogout={urlLogout}
+                    setSpinning={setSpinning}
+                    setAuth={setAuth}
+                    setOpen={setOpen}/>
+            case 'info':
+                return <InfoForm
+                    key={auth}
+                    form={form}
+                    userInfo={userInfo}
+                    urlEdit={urlEdit}
+                    setSpinning={setSpinning}/>
+            case 'settings':
+                return <SettingsForm
+                    key={auth}
+                    formContext={formContext}
+                    userInfo={userInfo}
+                    urlSettings={urlSettings}
+                    setAuth={setAuth}
+                    setSpinning={setSpinning}
+                    {...settingProps}
+                />
+            default:
+                return null
+        }
+    }, [auth, userInfo, open]);
     return <div key={key}>
         {logged ? <Dropdown key={'right-menu'} menu={{
             selectedKeys: [],
@@ -82,7 +172,12 @@ export default function UserNav(
                     label: locale.infoButton
                 },
                 {
-                    key: 'setting',
+                    key: 'change-password',
+                    icon: <LockOutlined/>,
+                    label: locale.changePasswordButton
+                },
+                {
+                    key: 'settings',
                     icon: <SettingOutlined/>,
                     label: locale.settingButton
                 },
@@ -97,13 +192,17 @@ export default function UserNav(
             ]
         }}>
             <Space>
-                <Button
-                    type="primary" shape="circle"
-                    icon={<UserOutlined/>}/>
+                {userInfo.avatar ?
+                    <Avatar src={userInfo.avatar}/>
+                    :
+                    <Button
+                        type="primary" shape="circle" icon={<UserOutlined/>}/>
+                }
                 {userInfo.username}
             </Space>
         </Dropdown> : <Tooltip
-            key={'btn'} title={locale.buttonTooltip} placement="bottomRight">
+            key={'btn'} title={locale.buttonTooltip}
+            placement="bottomRight">
             <Button
                 type="primary"
                 shape="circle"
@@ -121,73 +220,13 @@ export default function UserNav(
                 if (!spinning && !(loginRequired && !logged))
                     setOpen(false)
             }}
-            getContainer={containerRef.current}
+            getContainer={() => {
+                return containerRef.current
+            }}
             open={open}>
             <Spin key={'page'} spinning={spinning}>
-                <Suspense>
-                {auth === 'login' ?
-                    <LoginForm
-                        key={'login'}
-                        form={form}
-                        urlLogin={urlLogin}
-                        urlRegister={urlRegister}
-                        setAuth={setAuth}
-                        setSpinning={setSpinning}
-                        setOpen={setOpen}/> : null}
-                {auth === 'register' ?
-                    <RegisterForm
-                        key={'register'}
-                        form={form}
-                        urlLogin={urlLogin}
-                        urlRegister={urlRegister}
-                        setAuth={setAuth}
-                        setSpinning={setSpinning}
-                        setOpen={setOpen}/> : null}
-                {auth === 'forgot' ?
-                    <ForgotForm
-                        key={'forgot'}
-                        form={form}
-                        urlForgotPassword={urlForgotPassword}
-                        setAuth={setAuth}
-                        setSpinning={setSpinning}/> : null}
-                {auth === 'confirm' ?
-                    <ConfirmForm
-                        key={'confirm'}
-                        form={form}
-                        urlConfirmMail={urlConfirmMail}
-                        setAuth={setAuth}
-                        setSpinning={setSpinning}/> : null}
-                {auth === 'reset' ?
-                    <ResetForm
-                        key={'reset'}
-                        form={form}
-                        urlResetPassword={urlResetPassword}
-                        setAuth={setAuth}
-                        setSpinning={setSpinning}
-                        setOpen={setOpen}/> : null}
-                {auth === 'info' ?
-                    <InfoForm
-                        key={'info'}
-                        userInfo={userInfo}
-                        form={form}
-                        setAuth={setAuth}
-                        setSpinning={setSpinning}/> : null}
-                {auth === 'setting' ?
-                    <SettingForm
-                        key={'setting'}
-                        form={form}
-                        userInfo={userInfo}
-                        urlSettings={urlSettings}
-                        setSpinning={setSpinning}
-                        setOpen={setOpen}/> : null}
-                {auth === 'logout' ?
-                    <LogoutForm
-                        key={'logout'}
-                        form={form}
-                        urlLogout={urlLogout}
-                        setSpinning={setSpinning}
-                        setAuth={setAuth}
-                        setOpen={setOpen}/> : null}
+                <Suspense fallback={<Skeleton/>}>
+                    {open && drawerContent}
                 </Suspense>
             </Spin>
         </Drawer>

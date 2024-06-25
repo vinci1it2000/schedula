@@ -3,40 +3,34 @@ import {
     Form
 } from 'antd'
 import {useLocaleStore} from "../../../models/locale";
-import post from "../../../../../core/utils/fetch";
 
 export default function LogoutForm(
     {form, urlLogout, setOpen, setAuth, setSpinning}) {
     const onFinish = () => {
         setSpinning(true)
-        post({
+        form.postData({
             url: urlLogout,
             data: {},
-            form
-        }).then(({data, messages}) => {
+        }).then(({data: {error, errors}}) => {
             setSpinning(false)
-            if (messages)
-                messages.forEach(([type, message]) => {
-                    form.props.notify({type, message})
-                })
-            if (data.error) {
+            if (error) {
                 form.props.notify({
                     message: locale.errorTitle,
-                    description: (data.errors || [data.error]).join('\n'),
+                    description: (errors || [error]).join('\n'),
                 })
             } else {
-                form.setState({
-                    ...form.state, userInfo: {},
-                    submitCount: form.state.submitCount + 1
-                })
+                form.setState((state) => ({
+                    ...state, userInfo: {},
+                    submitCount: state.submitCount + 1
+                }))
                 setOpen(false)
                 setAuth('login')
             }
-        }).catch(error => {
+        }).catch(({message}) => {
             setSpinning(false)
             form.props.notify({
                 message: locale.errorTitle,
-                description: error.message,
+                description: message,
             })
         })
     }

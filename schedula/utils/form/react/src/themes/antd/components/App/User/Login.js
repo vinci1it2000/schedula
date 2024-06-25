@@ -7,7 +7,6 @@ import {
 import {useState} from "react";
 import {MailOutlined, LockOutlined} from '@ant-design/icons';
 import {useLocaleStore} from "../../../models/locale";
-import post from "../../../../../core/utils/fetch";
 
 export default function LoginForm(
     {
@@ -22,39 +21,33 @@ export default function LoginForm(
     const [field_errors, setFieldErrors] = useState({});
     const onFinish = ({email, password, remember}) => {
         setSpinning(true)
-        post({
+        form.postData({
             url: urlLogin,
             data: {email, password, remember},
-            form
-        }).then(({data, messages}) => {
+        }).then(({data: {error, errors, field_errors, response}}) => {
             setSpinning(false)
-            if (messages)
-                messages.forEach(([type, message]) => {
-                    form.props.notify({type, message})
-                })
-            if (data.error) {
+            if (error) {
                 form.props.notify({
                     message: locale.errorTitle,
-                    description: (data.errors || [data.error]).join('\n'),
+                    description: (errors || [error]).join('\n'),
                 })
-                if (data.field_errors) {
-                    setFieldErrors(data.field_errors || {})
+                if (field_errors) {
+                    setFieldErrors(field_errors || {})
                 }
             } else {
-                const {response = {}} = data
                 const {user = {}} = response
-                form.setState({
-                    ...form.state,
+                form.setState((state) => ({
+                    ...state,
                     userInfo: {email, ...user},
-                    submitCount: form.state.submitCount + 1
-                })
+                    submitCount: state.submitCount + 1
+                }))
                 setOpen(false)
             }
-        }).catch(error => {
+        }).catch(({message}) => {
             setSpinning(false)
             form.props.notify({
                 message: locale.errorTitle,
-                description: error.message,
+                description: message,
             })
         })
     }
@@ -80,9 +73,9 @@ export default function LoginForm(
                 prefix={<MailOutlined className="site-form-item-icon"/>}
                 placeholder={locale.emailPlaceholder} autoComplete="username"
                 onChange={() => {
-                if (field_errors.email)
-                    setFieldErrors({...field_errors, email: undefined})
-            }}/>
+                    if (field_errors.email)
+                        setFieldErrors({...field_errors, email: undefined})
+                }}/>
         </Form.Item>
         <Form.Item
             style={{marginBottom: 0}}

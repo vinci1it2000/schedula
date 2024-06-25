@@ -6,41 +6,34 @@ import {
 import {useState} from "react";
 import {MailOutlined} from '@ant-design/icons';
 import {useLocaleStore} from "../../../models/locale";
-import post from "../../../../../core/utils/fetch";
 
 export default function ForgotForm(
     {form, urlForgotPassword, setAuth, setSpinning}) {
     const [field_errors, setFieldErrors] = useState({});
     const onFinish = (data) => {
         setSpinning(true)
-        post({
+        form.postData({
             url: urlForgotPassword,
-            data,
-            form
-        }).then(({data, messages}) => {
+            data
+        }).then(({data: {error, errors, field_errors}}) => {
             setSpinning(false)
-            if (messages)
-                messages.forEach(([type, message]) => {
-                    form.props.notify({type, message})
-                })
-            if (data.error) {
+            if (error) {
                 form.props.notify({
                     message: locale.errorTitle,
-                    description: (data.errors || [data.error]).join('\n'),
+                    description: (errors || [error]).join('\n'),
                 })
-                if (data.field_errors) {
-                    setFieldErrors(data.field_errors || {})
+                if (field_errors) {
+                    setFieldErrors(field_errors || {})
                 }
             } else {
                 setAuth('login')
             }
-        }).catch(error => {
+        }).catch(({message}) => {
             setSpinning(false)
             form.props.notify({
                 message: locale.errorTitle,
-                description: error.message,
+                description: message,
             })
-
         })
     }
     const {getLocale} = useLocaleStore()

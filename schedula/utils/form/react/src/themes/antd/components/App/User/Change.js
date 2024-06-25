@@ -4,18 +4,21 @@ import {
     Input
 } from 'antd'
 import {useState} from "react";
-import {LockOutlined} from '@ant-design/icons';
+import {
+    LockOutlined
+} from '@ant-design/icons';
 import {useLocaleStore} from "../../../models/locale";
 
-export default function ResetPasswordForm(
-    {form, urlResetPassword, setOpen, setSpinning, setAuth}) {
+export default function ChangePasswordForm(
+    {form, urlChangePassword, setAuth, setSpinning, setOpen}) {
+
     const [field_errors, setFieldErrors] = useState({});
-    const {queryInfo: {token = null}} = form.state
+
     const onFinish = (data) => {
         setSpinning(true)
         form.postData({
-            url: `${urlResetPassword}/${token}`,
-            data
+            url: urlChangePassword,
+            data,
         }).then(({data: {error, errors, field_errors, response}}) => {
             setSpinning(false)
             if (error) {
@@ -26,7 +29,7 @@ export default function ResetPasswordForm(
                 if (field_errors) {
                     setFieldErrors(field_errors || {})
                 }
-            } else {
+            } else if (response) {
                 const {user = {}} = response
                 form.setState((state) => ({
                     ...state,
@@ -37,6 +40,8 @@ export default function ResetPasswordForm(
                 const newUrl = `${protocol}//${host}${pathname}${search}`;
                 window.history.replaceState(null, '', newUrl);
                 setOpen(false)
+            } else {
+                setAuth('login')
             }
         }).catch(({message}) => {
             setSpinning(false)
@@ -47,7 +52,7 @@ export default function ResetPasswordForm(
         })
     }
     const {getLocale} = useLocaleStore()
-    const locale = getLocale('User.ResetPassword')
+    const locale = getLocale('User.ChangePassword')
     return <Form
         style={{maxWidth: '300px', margin: 'auto', paddingBottom: '15px'}}
         onFinish={onFinish}>
@@ -57,23 +62,41 @@ export default function ResetPasswordForm(
             help={field_errors.password}
             rules={[{
                 required: true,
+                message: locale.currentPasswordRequired
+            }]} hasFeedback>
+            <Input
+                prefix={<LockOutlined className="site-form-item-icon"/>}
+                type="password" placeholder={locale.currentPasswordPlaceholder}
+                autoComplete="current-password" onChange={() => {
+                if (field_errors.password)
+                    setFieldErrors({
+                        ...field_errors,
+                        password: undefined
+                    })
+            }}/>
+        </Form.Item>
+        <Form.Item
+            name="new_password"
+            validateStatus={field_errors.new_password ? "error" : undefined}
+            help={field_errors.new_password}
+            rules={[{
+                required: true,
                 message: locale.passwordRequired
             }]} hasFeedback>
             <Input
                 prefix={<LockOutlined className="site-form-item-icon"/>}
                 type="password" placeholder={locale.passwordPlaceholder}
                 autoComplete="new-password" onChange={() => {
-                if (field_errors.password)
+                if (field_errors.new_password)
                     setFieldErrors({
                         ...field_errors,
-                        password: undefined
+                        new_password: undefined
                     })
-            }}
-            />
+            }}/>
         </Form.Item>
         <Form.Item
-            name="password_confirm"
-            dependencies={['password']}
+            name="new_password_confirm"
+            dependencies={['new_password']}
             hasFeedback
             rules={[
                 {
@@ -82,7 +105,7 @@ export default function ResetPasswordForm(
                 },
                 ({getFieldValue}) => ({
                     validator(_, value) {
-                        if (!value || getFieldValue('password') === value) {
+                        if (!value || getFieldValue('new_password') === value) {
                             return Promise.resolve();
                         }
                         return Promise.reject(new Error(locale.passwordConfirmError));
@@ -93,23 +116,18 @@ export default function ResetPasswordForm(
                 prefix={<LockOutlined className="site-form-item-icon"/>}
                 type="password" placeholder={locale.passwordConfirmPlaceholder}
                 autoComplete="new-password" onChange={() => {
-                if (field_errors.password_confirm)
+                if (field_errors.new_password_confirm)
                     setFieldErrors({
                         ...field_errors,
-                        password_confirm: undefined
+                        new_password_confirm: undefined
                     })
-            }}
-            />
+            }}/>
         </Form.Item>
         <Form.Item>
-            <Button type="primary" htmlType="submit" style={{width: '100%'}}>
+            <Button type="primary" htmlType="submit"
+                    style={{width: '100%'}}>
                 {locale.submitButton}
             </Button>
-            <div style={{width: '100%'}}>
-                {locale.or} <a href="#login" onClick={() => {
-                setAuth('login')
-            }}>{locale.login}</a>
-            </div>
         </Form.Item>
     </Form>
 }

@@ -99,6 +99,7 @@
         "force_render": true
       },
       "userProps": {
+        "urlChangePassword": "user/change",
         "urlForgotPassword": "user/reset",
         "urlLogin": "user/login",
         "urlLogout": "user/logout",
@@ -106,19 +107,38 @@
         "urlConfirmMail": "user/confirm",
         "urlResetPassword": "user/reset",
         "urlVerify": "user/verify",
-        "urlSettings": "user/edit"
+        "urlEdit": "user/edit",
+        "urlSettings": "user/settings",
+        "settingProps": {
+          "schema": {
+            "properties": {
+              "ds": {
+                "type": "integer"
+              },
+              "firstname": {
+                "type": "string"
+              },
+              "lastname": {
+                "type": "string"
+              }
+            }
+          }
+        }
       },
       "items": [
         {
           "label": "INPUTS",
+          "path": "/inputs",
           "key": 0
         },
         {
           "label": "OUTPUTS",
+          "path": "/outputs",
           "key": 1
         },
         {
           "label": "LAYOUT",
+          "path": "/layout",
           "key": 2
         },
         {
@@ -126,7 +146,7 @@
           "children": [
             {
               "label": "OUTPUeT",
-              "href": "/flash"
+              "path": "/flash"
             }
           ]
         }

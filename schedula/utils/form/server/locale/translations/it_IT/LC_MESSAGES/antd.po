@@ -121,6 +121,39 @@ msgstr "Inserisci il tuo Nome utente!"
 msgid "User.titleLogout"
 msgstr "Sicuro di uscire?"
 
+msgid "User.titleChangePassword"
+msgstr "Cambia la password"
+
+msgid "User.changePasswordButton"
+msgstr "Cambia password"
+
+msgid "User.ChangePassword.submitButton"
+msgstr "Cambia la password"
+
+msgid "User.ChangePassword.currentPasswordRequired"
+msgstr "Inserisci la tua Password!"
+
+msgid "User.ChangePassword.currentPasswordPlaceholder"
+msgstr "Password Corrente"
+
+msgid "User.ChangePassword.passwordPlaceholder"
+msgstr "Nuova Password"
+
+msgid "User.ChangePassword.passwordRequired"
+msgstr "Inserisci la tua Nuova Password!"
+
+msgid "User.ChangePassword.passwordConfirmPlaceholder"
+msgstr "Conferma la Nuova Password"
+
+msgid "User.ChangePassword.passwordConfirmRequired"
+msgstr "Inserisci nuovamente la tua Nuova Password!"
+
+msgid "User.ChangePassword.passwordConfirmError"
+msgstr 'Le due password che hai inserito non corrispondono!'
+
+msgid "User.ChangePassword.errorTitle"
+msgstr 'Ops... qualcosa è andata storta!'
+
 msgid "ArrayCopy.titleCopyButton"
 msgstr "Seleziona dove copiare i dati?"
 

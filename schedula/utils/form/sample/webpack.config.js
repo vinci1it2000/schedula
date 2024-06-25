@@ -116,15 +116,15 @@ module.exports = function (_env, argv) {
         output: {
             // Add /* filename */ comments to generated require()s in the output.
             pathinfo: isEnvDevelopment,
-            publicPath: 'static/schedula/props/',
-            path: path.resolve(__dirname, 'root', 'static', 'schedula', 'props'),
-            filename: 'js/[name].js',
+            publicPath: '/',
+            path: path.resolve(__dirname, 'root'),
+            filename: 'static/schedula/props/js/[name].js',
             chunkFilename: isEnvProduction
-                ? 'js/[name].[contenthash:8].chunk.js'
-                : isEnvDevelopment && 'js/[name].chunk.js',
+                ? 'static/schedula/props/js/[name].[contenthash:8].chunk.js'
+                : isEnvDevelopment && 'static/schedula/props/js/[name].chunk.js',
             assetModuleFilename: isEnvProduction
-                ? 'media/[name].[hash][ext]'
-                : isEnvDevelopment && 'media/[name].[ext]',
+                ? 'static/schedula/props/media/[name].[hash][ext]'
+                : isEnvDevelopment && 'static/schedula/props/media/[name].[ext]',
         },
         infrastructureLogging: {
             level: 'none',

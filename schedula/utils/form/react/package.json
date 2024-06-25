@@ -51,11 +51,13 @@
     "react-antdown": "^1.0.11",
     "react-csv": "^2.2.2",
     "react-dom": "^18.3.1",
+    "react-dropzone": "^14.2.3",
     "react-google-recaptcha": "^3.1.0",
     "react-grid-layout": "^1.4.4",
     "react-markdown": "^9.0.1",
     "react-plotly.js": "^2.6.0",
     "react-resize-detector": "^10.0.1",
+    "react-router-dom": "^6.24.0",
     "react-uid": "^2.3.3",
     "remark-gfm": "^4.0.0"
   },

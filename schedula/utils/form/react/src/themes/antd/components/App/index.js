@@ -1,4 +1,5 @@
 import React, {useEffect, useRef, useState, useMemo} from 'react';
+import {useLocation, Link} from 'react-router-dom';
 import {
     UploadOutlined,
     CaretRightOutlined,
@@ -29,7 +30,8 @@ import {
     Popconfirm,
     Modal,
     Drawer,
-    Typography
+    Typography,
+    Result
 } from 'antd';
 import {useFullscreen} from "ahooks";
 import exportJSON from "../../../../core/utils/Export"
@@ -51,11 +53,40 @@ import isEmpty from "lodash/isEmpty";
 import {createLayoutElement} from "../../../../core";
 import Errors from "../Errors/Drawer";
 import Debug from "../Debug";
+import find from "lodash/find";
 
 const DiffViewer = React.lazy(() => import("../../../../core/components/DiffViewer"))
 const UserNav = React.lazy(() => import('./User'))
 const LanguageNav = React.lazy(() => import('./Language'))
 const ContactNav = React.lazy(() => import('./Contact'))
+const formatItem = ({path, label, children, ...item}) => {
+    if (path && typeof label === 'string') {
+        label = <Link to={path}>{label}</Link>
+    }
+    if (children) {
+        children = children.map(formatItem)
+    }
+    return {path, label, children, ...item}
+}
+
+class Unmountable extends React.Component {
+    componentWillUnmount() {
+        return false
+    }
+
+    render() {
+        return this.props.children
+    }
+}
+
+function* formatRoutes({path, key, children = [], ...props}, elements) {
+    if (path && typeof key === 'number') {
+        yield {path, element: elements[key], key, ...props}
+    }
+    for (const item of children) {
+        yield* formatRoutes(item, elements);
+    }
+}
 
 const {Header, Content, Footer, Sider} = Layout,
     App = ({
@@ -81,7 +112,6 @@ const {Header, Content, Footer, Sider} = Layout,
                footer = null,
                theme = 'light',
                contentProps,
-               selectedKeys,
                ...props
            }) => {
         const {getLocale} = useLocaleStore()
@@ -100,6 +130,7 @@ const {Header, Content, Footer, Sider} = Layout,
         const [saving, setSaving] = useState(savingData);
 
         const {formData} = render;
+
         const [openRestore, setOpenRestore] = useState(false);
         const [dateDiffViewer, setDateDiffViewer] = useState(null);
         useEffect(function updateStorage() {
@@ -128,17 +159,33 @@ const {Header, Content, Footer, Sider} = Layout,
             }
             return null
         }, [changes, dateDiffViewer]);
-        const formatItem = (item) => {
-            if (item.href && typeof item.label === 'string') {
-                item.label = <a href={item.href}>{item.label}</a>
+        const _items = useMemo(() => (items.map(formatItem)), [])
+        const {pathname} = useLocation()
+        const {routes, homePath} = useMemo(() => {
+            const routes = [...formatRoutes({children: items}, children)]
+            const homePath = routes.find(({key}) => key = defaultSelectedKeys[0]).path
+            return {routes, homePath}
+        }, [children, items])
+
+        const [selectedKeys, setSelectedKeys] = useState(null);
+        const _defaultSelectedKeys = useMemo(() => {
+            const _routes = routes.sort((a, b) => (b.path || "").length - (a.path || "").length)
+            let {
+                key = null
+            } = _routes.find(({path}) => pathname === path) || {}
+            if (key === null) {
+                return null
+            } else {
+                setSelectedKeys([String(key)])
             }
-            if (item.children) {
-                item.children = item.children.map(formatItem)
+            return [String(key)]
+        }, [homePath])
+        useEffect(() => {
+            if (homePath === pathname && selectedKeys === null) {
+                setSelectedKeys([defaultSelectedKeys[0]])
             }
-            return item
-        }
-        const _items = items.map(formatItem)
-        const [indexContent, setIndexContent] = useState(defaultSelectedKeys[0]);
+        }, [pathname, defaultSelectedKeys])
+
         const [openCloudDownload, setOpenCloudDownload] = useState(false);
         const [openCloudUpload, setOpenCloudUpload] = useState(false);
         const [currentDataId, setCurrentDataId] = useState(null);
@@ -166,9 +213,8 @@ const {Header, Content, Footer, Sider} = Layout,
                     form.props.notify({message: error})
                 })
         }, [languages, form.props]);
-        const {errors} = form.state
+        const {errors, debugUrl} = form.state
         const [openErrors, setOpenErrors] = useState(false);
-        const {debugUrl} = form.state
         const [openDebug, setOpenDebug] = useState(!!debugUrl);
         useEffect(() => {
             if (!!debugUrl) {
@@ -199,11 +245,10 @@ const {Header, Content, Footer, Sider} = Layout,
                             theme={theme}
                             mode="horizontal"
                             style={{flex: "auto", minWidth: 0}}
-                            defaultSelectedKeys={defaultSelectedKeys}
                             selectedKeys={selectedKeys}
                             items={_items}
                             onSelect={({key}) => {
-                                setIndexContent(key)
+                                setSelectedKeys([key])
                             }}
                             {...props}
                         /> : <div style={{flex: "auto", minWidth: 0}}/>}
@@ -229,6 +274,7 @@ const {Header, Content, Footer, Sider} = Layout,
                                 {userProps ?
                                     <UserNav
                                         form={form}
+                                        formContext={formContext}
                                         containerRef={mainLayout}
                                         {...userProps}/> : null}
                             </Flex> : null}
@@ -395,7 +441,23 @@ const {Header, Content, Footer, Sider} = Layout,
                             }].filter(v => v !== null)}/>
                     </Sider>}
                 <Content style={{margin: '16px 16px'}} {...contentProps}>
-                    {_items.length ? children[indexContent] : children}
+                    {_items.length ? routes.map(({element, path}, index) => (
+                        <div key={index} style={{
+                            display: pathname === path ? "block" : "none",
+                            height: "100%",
+                            width: "100%"
+                        }}>
+                            {element}
+                        </div>)) : children}
+                    {_items.length && _defaultSelectedKeys === null ? <Result
+                        status="404"
+                        title="404"
+                        subTitle="Sorry, the page you visited does not exist."
+                        extra={<Link to={homePath}><Button type="primary">
+                            Back Home
+                        </Button></Link>}
+                    /> : null}
+
                     {cloudUrl ? <>
                         <CloudDownloadField
                             key={'cloud'}
@@ -495,8 +557,7 @@ const {Header, Content, Footer, Sider} = Layout,
                                                 onClick={() => {
                                                     setDateDiffViewer(item.date)
                                                 }}/>
-                                        </Tooltip>
-                                    }
+                                        </Tooltip>}
                                 </List.Item>
                             )}
                         />
@@ -526,7 +587,6 @@ const {Header, Content, Footer, Sider} = Layout,
                             oldValue={oldFormData}
                             newValue={formData}/> : null}
                     </DraggableModal>
-
                 </Content>
             </Layout>
             {footer ? <Footer

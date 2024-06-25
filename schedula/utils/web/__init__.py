@@ -89,9 +89,9 @@ class WebMap(SiteMap):
         from flask import Blueprint
         bp = Blueprint('subsite', __name__)
         opt = {'methods': self.subsite_methods}
-        bp.add_url_rule('/<key>/', 'root', self._site_proxy, **opt)
-        bp.add_url_rule('/<key>/<path:path>', 'root', **opt)
-        bp.add_url_rule('/<key>/<string:path>', 'root', **opt)
+        bp.add_url_rule('/subsite/<key>/', 'root', self._site_proxy, **opt)
+        bp.add_url_rule('/subsite/<key>/<path:path>', 'root', **opt)
+        bp.add_url_rule('/subsite/<key>/<string:path>', 'root', **opt)
         return bp
 
     def app(self, root_path=None, depth=-1, mute=False, blueprint_name=None,
@@ -101,7 +101,7 @@ class WebMap(SiteMap):
             root_path, mute=mute, blueprint_name=blueprint_name, **kwargs
         )
         app.register_blueprint(self.api(depth))
-        app.register_blueprint(self.sub_site(), url_prefix='/subsite')
+        app.register_blueprint(self.sub_site())
         return app
 
     def render(self, *args, **kwargs):

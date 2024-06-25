@@ -54,6 +54,18 @@ static_context = {
 }
 
 
+def get_template(form, context):
+    try:
+        template = f'schedula/{form}.html'
+        return render_template(template, name=form, form_id=form, **context)
+    except TemplateNotFound:
+        form = '/'.join(form.split('/')[:-1])
+        if form:
+            return get_template(form, context)
+        # noinspection PyUnresolvedReferences
+        return get_template('index', context)
+
+
 class FormMap(WebMap):
     def get_form_context(self):
         context = default_get_form_context().copy()
@@ -85,17 +97,13 @@ class FormMap(WebMap):
         return super(FormMap, self).__getattr__(item)
 
     def render_form(self, form='index'):
-        template = f'schedula/{form}.html'
         context = {
-            'name': form, 'form_id': form, 'form': self, 'app': current_app,
+            'form': self,
+            'app': current_app,
             'get_locale': get_locale
         }
         context.update(static_context)
-        try:
-            return render_template(template, **context)
-        except TemplateNotFound:
-            # noinspection PyUnresolvedReferences
-            return render_template('schedula/base.html', **context)
+        return get_template(form, context)
 
     @staticmethod
     def send_static_file(filename):
@@ -146,8 +154,10 @@ class FormMap(WebMap):
         bp = Blueprint(
             'schedula', __name__, template_folder='templates'
         )
-        bp.add_url_rule('/<form>', 'render_form', self.render_form)
-        bp.add_url_rule('/', 'render_form')
+        bp.add_url_rule('/', 'render_form', self.render_form)
+        bp.add_url_rule('/<string:form>', 'render_form')
+        bp.add_url_rule('/<string:form>/', 'render_form')
+        bp.add_url_rule('/<path:form>', 'render_form')
 
         bp.add_url_rule(
             '/static/schedula/<path:filename>', 'static', self.send_static_file

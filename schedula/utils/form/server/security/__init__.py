@@ -16,11 +16,11 @@ import logging
 import flask_security
 import os.path as osp
 from ..extensions import db
-from sqlalchemy import Column, String
 from werkzeug.datastructures import MultiDict
 from flask_principal import Permission, RoleNeed
+from sqlalchemy import Column, String, Text, JSON
 from flask_security.models import fsqla_v3 as fsqla
-from flask import after_this_request, request, Blueprint
+from flask import after_this_request, request, Blueprint, jsonify
 from flask_security.forms import (
     ConfirmRegisterForm, Required, StringField, Form
 )
@@ -50,6 +50,8 @@ class Role(db.Model, fsqla.FsRoleMixin):
 class User(db.Model, fsqla.FsUserMixin):
     firstname = Column(String(255))
     lastname = Column(String(255))
+    avatar = Column(Text())
+    settings = Column(JSON())
 
     def get_security_payload(self):
         return {k: v for k, v in {
@@ -57,7 +59,9 @@ class User(db.Model, fsqla.FsUserMixin):
             'email': self.email,
             'username': self.username,
             'firstname': self.firstname,
-            'lastname': self.lastname
+            'lastname': self.lastname,
+            'avatar': self.avatar,
+            'settings': self.settings,
         }.items() if v is not None}
 
 
@@ -65,6 +69,7 @@ class User(db.Model, fsqla.FsUserMixin):
 class EditForm(Form):
     firstname = StringField('firstname', [Required()])
     lastname = StringField('lastname', [Required()])
+    avatar = StringField('avatar')
 
 
 class ExtendedConfirmRegisterForm(ConfirmRegisterForm, EditForm):
@@ -88,6 +93,19 @@ def edit():
     return base_render_json(form)
 
 
+@bp.route('/settings', methods=['POST'])
+@auth_required()
+def settings():
+    if request.is_json:
+        data = MultiDict(request.get_json())
+    else:
+        data = request.form
+    after_this_request(view_commit)
+    cu.settings = data
+    db.session.add(cu)
+    return jsonify({'user': cu.get_security_payload()})
+
+
 class Security:
     def __init__(self, app, *args, **kwargs):
         if app is not None:
@@ -100,7 +118,9 @@ class Security:
             "SECURITY_BLUEPRINT_NAME": 'security',
             "SECURITY_URL_PREFIX": '/user',
             "SECURITY_CONFIRMABLE": True,
+            "SECURITY_CHANGEABLE": True,
             "SECURITY_AUTO_LOGIN_AFTER_CONFIRM": False,
+            "SECURITY_AUTO_LOGIN_AFTER_RESET": True,
             "SECURITY_POST_CONFIRM_VIEW": '/#login',
             "SECURITY_CONFIRM_ERROR_VIEW": '/#login',
             "SECURITY_REGISTERABLE": True,
