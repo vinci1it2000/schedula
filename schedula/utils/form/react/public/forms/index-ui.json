@@ -127,19 +127,24 @@
       },
       "items": [
         {
+          "label": "HOME",
+          "path": "/",
+          "key": 0
+        },
+        {
           "label": "INPUTS",
           "path": "/inputs",
-          "key": 0
+          "key": 1
         },
         {
           "label": "OUTPUTS",
           "path": "/outputs",
-          "key": 1
+          "key": 2
         },
         {
           "label": "LAYOUT",
           "path": "/layout",
-          "key": 2
+          "key": 3
         },
         {
           "label": "OUTPUT",
@@ -153,6 +158,43 @@
       ]
     },
     "children": [
+      {
+        "component": "Landing",
+        "children": [
+          {"component":"Landing.Banner0", "force_render": true},
+          {"component":"Landing.Banner1", "force_render": true},
+          {"component":"Landing.Banner2", "force_render": true},
+          {"component":"Landing.Banner3", "force_render": true},
+          {"component":"Landing.Banner4", "force_render": true},
+          {"component":"Landing.Banner5", "force_render": true},
+          {"component":"Landing.Contact0", "force_render": true},
+          {"component":"Landing.Content4", "force_render": true},
+          {"component":"Landing.Content5", "force_render": true},
+          {"component":"Landing.Content9", "force_render": true},
+          {"component":"Landing.Content12", "force_render": true},
+          {"component":"Landing.Content13", "force_render": true},
+          {"component":"Landing.Feature0", "force_render": true},
+          {"component":"Landing.Feature1", "force_render": true},
+          {"component":"Landing.Feature2", "force_render": true},
+          {"component":"Landing.Feature3", "force_render": true},
+          {"component":"Landing.Feature4", "force_render": true},
+          {"component":"Landing.Feature5", "force_render": true},
+          {"component":"Landing.Feature6", "force_render": true},
+          {"component":"Landing.Feature7", "force_render": true},
+          {"component":"Landing.Feature8", "force_render": true},
+          {"component":"Landing.Footer0", "force_render": true},
+          {"component":"Landing.Footer1", "force_render": true},
+          {"component":"Landing.Footer2", "force_render": true},
+          {"component":"Landing.Pricing0", "force_render": true},
+          {"component":"Landing.Pricing1", "force_render": true},
+          {"component":"Landing.Pricing2", "force_render": true},
+          {"component":"Landing.Teams0", "force_render": true},
+          {"component":"Landing.Teams1", "force_render": true},
+          {"component":"Landing.Teams2", "force_render": true},
+          {"component":"Landing.Teams3", "force_render": true},
+          {"component":"Landing.Teams4", "force_render": true}
+        ]
+      },
       {
         "component": "FlexLayout",
         "props": {

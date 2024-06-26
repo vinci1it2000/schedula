@@ -8,6 +8,38 @@ import {
 } from "../../../core/components";
 import {domainDebug} from './Debug'
 import {domainErrors} from "./Errors";
+import Landing from './Landing'
+import Landing_Banner0 from './Landing/Banner0'
+import Landing_Banner1 from './Landing/Banner1'
+import Landing_Banner2 from './Landing/Banner2'
+import Landing_Banner3 from './Landing/Banner3'
+import Landing_Banner4 from './Landing/Banner4'
+import Landing_Banner5 from './Landing/Banner5'
+import Landing_Contact0 from './Landing/Contact0'
+import Landing_Content4 from './Landing/Content4'
+import Landing_Content5 from './Landing/Content5'
+import Landing_Content9 from './Landing/Content9'
+import Landing_Content12 from './Landing/Content12'
+import Landing_Content13 from './Landing/Content13'
+import Landing_Feature0 from './Landing/Feature0'
+import Landing_Feature1 from './Landing/Feature1'
+import Landing_Feature2 from './Landing/Feature2'
+import Landing_Feature3 from './Landing/Feature3'
+import Landing_Feature4 from './Landing/Feature4'
+import Landing_Feature5 from './Landing/Feature5'
+import Landing_Feature6 from './Landing/Feature6'
+import Landing_Feature7 from './Landing/Feature7'
+import Landing_Feature8 from './Landing/Feature8'
+import Landing_Footer0 from './Landing/Footer0'
+import Landing_Footer1 from './Landing/Footer1'
+import Landing_Footer2 from './Landing/Footer2'
+import Landing_Pricing0 from './Landing/Pricing0'
+import Landing_Pricing1 from './Landing/Pricing1'
+import Landing_Pricing2 from './Landing/Pricing2'
+import Landing_Teams0 from './Landing/Teams0'
+import Landing_Teams1 from './Landing/Teams1'
+import Landing_Teams2 from './Landing/Teams2'
+import Landing_Teams3 from './Landing/Teams3'
 
 const Accordion = React.lazy(() => import('./Accordion'));
 const Alert = React.lazy(() => import('./Alert'));
@@ -112,6 +144,38 @@ export function generateComponents(register = true, registerDomains = true) {
         Icon,
         "Image.PreviewGroup": Image_PreviewGroup,
         Import,
+        Landing,
+        "Landing.Banner0": Landing_Banner0,
+        "Landing.Banner1": Landing_Banner1,
+        "Landing.Banner2": Landing_Banner2,
+        "Landing.Banner3": Landing_Banner3,
+        "Landing.Banner4": Landing_Banner4,
+        "Landing.Banner5": Landing_Banner5,
+        "Landing.Contact0": Landing_Contact0,
+        "Landing.Content4": Landing_Content4,
+        "Landing.Content5": Landing_Content5,
+        "Landing.Content9": Landing_Content9,
+        "Landing.Content12": Landing_Content12,
+        "Landing.Content13": Landing_Content13,
+        "Landing.Feature0": Landing_Feature0,
+        "Landing.Feature1": Landing_Feature1,
+        "Landing.Feature2": Landing_Feature2,
+        "Landing.Feature3": Landing_Feature3,
+        "Landing.Feature4": Landing_Feature4,
+        "Landing.Feature5": Landing_Feature5,
+        "Landing.Feature6": Landing_Feature6,
+        "Landing.Feature7": Landing_Feature7,
+        "Landing.Feature8": Landing_Feature8,
+        "Landing.Footer0": Landing_Footer0,
+        "Landing.Footer1": Landing_Footer1,
+        "Landing.Footer2": Landing_Footer2,
+        "Landing.Pricing0": Landing_Pricing0,
+        "Landing.Pricing1": Landing_Pricing1,
+        "Landing.Pricing2": Landing_Pricing2,
+        "Landing.Teams0": Landing_Teams0,
+        "Landing.Teams1": Landing_Teams1,
+        "Landing.Teams2": Landing_Teams2,
+        "Landing.Teams3": Landing_Teams3,
         Layout,
         "Layout.Content": Layout_Content,
         "Layout.Footer": Layout_Footer,

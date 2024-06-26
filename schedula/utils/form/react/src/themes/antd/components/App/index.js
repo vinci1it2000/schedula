@@ -53,7 +53,6 @@ import isEmpty from "lodash/isEmpty";
 import {createLayoutElement} from "../../../../core";
 import Errors from "../Errors/Drawer";
 import Debug from "../Debug";
-import find from "lodash/find";
 
 const DiffViewer = React.lazy(() => import("../../../../core/components/DiffViewer"))
 const UserNav = React.lazy(() => import('./User'))
@@ -69,15 +68,6 @@ const formatItem = ({path, label, children, ...item}) => {
     return {path, label, children, ...item}
 }
 
-class Unmountable extends React.Component {
-    componentWillUnmount() {
-        return false
-    }
-
-    render() {
-        return this.props.children
-    }
-}
 
 function* formatRoutes({path, key, children = [], ...props}, elements) {
     if (path && typeof key === 'number') {
@@ -440,7 +430,7 @@ const {Header, Content, Footer, Sider} = Layout,
                                 ]
                             }].filter(v => v !== null)}/>
                     </Sider>}
-                <Content style={{margin: '16px 16px'}} {...contentProps}>
+                <Content {...contentProps}>
                     {_items.length ? routes.map(({element, path}, index) => (
                         <div key={index} style={{
                             display: pathname === path ? "block" : "none",
