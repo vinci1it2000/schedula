@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 1.0\n"
 "Report-Msgid-Bugs-To: vinci1it2000@gmail.com\n"
-"PO-Revision-Date: 2023-11-18 08:55+0000\n"
+"PO-Revision-Date: 2024-06-26 10:12+0000\n"
 "Last-Translator: Vincenzo Arcidiacono <vinci1it2000@gmail.com>\n"
 "Language-Team: English <vinci1it2000@gmail.com>\n"
 "MIME-Version: 1.0\n"
@@ -1347,3 +1347,67 @@ msgstr "Erro ${label} na validação de campo"
 
 msgid "Calendar.lang.previousYear"
 msgstr "Ano anterior (Control + left)"
+
+# traslated
+msgid "User.titleChangePassword"
+msgstr "Alterar senha"
+
+# traslated
+msgid "User.changePasswordButton"
+msgstr "Alterar senha"
+
+# traslated
+msgid "User.ChangePassword.submitButton"
+msgstr "Alterar senha"
+
+# traslated
+msgid "User.ChangePassword.currentPasswordRequired"
+msgstr "Por favor, insira sua senha atual!"
+
+# traslated
+msgid "User.ChangePassword.currentPasswordPlaceholder"
+msgstr "Senha atual"
+
+# traslated
+msgid "User.ChangePassword.passwordPlaceholder"
+msgstr "Nova senha"
+
+# traslated
+msgid "User.ChangePassword.passwordRequired"
+msgstr "Por favor, insira sua nova senha!"
+
+# traslated
+msgid "User.ChangePassword.passwordConfirmPlaceholder"
+msgstr "Confirmar nova senha"
+
+# traslated
+msgid "User.ChangePassword.passwordConfirmRequired"
+msgstr "Por favor, confirme sua nova senha!"
+
+# traslated
+msgid "User.ChangePassword.passwordConfirmError"
+msgstr "As duas senhas que você digitou não coincidem!"
+
+# traslated
+msgid "User.ChangePassword.errorTitle"
+msgstr "Ops... algo deu errado!"
+
+# traslated
+msgid "Transfer.deselectAll"
+msgstr "Desmarcar todos os dados"
+
+# traslated
+msgid "User.Settings.revertButton"
+msgstr "Reverter"
+
+# traslated
+msgid "User.Settings.submitButton"
+msgstr "Salvar"
+
+# traslated
+msgid "QRCode.scanned"
+msgstr "Digitalizados"
+
+# traslated
+msgid "Text.collapse"
+msgstr "Colapso"

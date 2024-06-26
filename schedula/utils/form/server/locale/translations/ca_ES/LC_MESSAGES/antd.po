@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 1.0\n"
 "Report-Msgid-Bugs-To: vinci1it2000@gmail.com\n"
-"PO-Revision-Date: 2023-11-18 08:55+0000\n"
+"PO-Revision-Date: 2024-06-26 10:11+0000\n"
 "Last-Translator: Vincenzo Arcidiacono <vinci1it2000@gmail.com>\n"
 "Language-Team: English <vinci1it2000@gmail.com>\n"
 "MIME-Version: 1.0\n"
@@ -1358,3 +1358,67 @@ msgstr "Error de validació del camp ${label}"
 
 msgid "Calendar.lang.previousYear"
 msgstr "Any anterior (Control + left)"
+
+# traslated
+msgid "User.titleChangePassword"
+msgstr "Canviar contrasenya"
+
+# traslated
+msgid "User.changePasswordButton"
+msgstr "Canviar contrasenya"
+
+# traslated
+msgid "User.ChangePassword.submitButton"
+msgstr "Canviar contrasenya"
+
+# traslated
+msgid "User.ChangePassword.currentPasswordRequired"
+msgstr "Si us plau, introdueixi la seva contrasenya actual!"
+
+# traslated
+msgid "User.ChangePassword.currentPasswordPlaceholder"
+msgstr "Contrasenya actual"
+
+# traslated
+msgid "User.ChangePassword.passwordPlaceholder"
+msgstr "Nova contrasenya"
+
+# traslated
+msgid "User.ChangePassword.passwordRequired"
+msgstr "Si us plau, introdueixi la seva nova contrasenya!"
+
+# traslated
+msgid "User.ChangePassword.passwordConfirmPlaceholder"
+msgstr "Confirmeu una contrasenya nova"
+
+# traslated
+msgid "User.ChangePassword.passwordConfirmRequired"
+msgstr "Si us plau, confirmeu la vostra nova contrasenya."
+
+# traslated
+msgid "User.ChangePassword.passwordConfirmError"
+msgstr "Les dues contrasenyes que has introduït no coincideixen!"
+
+# traslated
+msgid "User.ChangePassword.errorTitle"
+msgstr "Ops... Alguna cosa ha anat malament!"
+
+# traslated
+msgid "Transfer.deselectAll"
+msgstr "Desmarcar totes les dades"
+
+# traslated
+msgid "User.Settings.revertButton"
+msgstr "Tornar"
+
+# traslated
+msgid "User.Settings.submitButton"
+msgstr "Salvar"
+
+# traslated
+msgid "QRCode.scanned"
+msgstr "Escannejat"
+
+# traslated
+msgid "Text.collapse"
+msgstr "Col·lapsar"

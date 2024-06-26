@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 1.0\n"
 "Report-Msgid-Bugs-To: vinci1it2000@gmail.com\n"
-"PO-Revision-Date: 2023-11-18 08:55+0000\n"
+"PO-Revision-Date: 2024-06-26 10:12+0000\n"
 "Last-Translator: Vincenzo Arcidiacono <vinci1it2000@gmail.com>\n"
 "Language-Team: English <vinci1it2000@gmail.com>\n"
 "MIME-Version: 1.0\n"
@@ -1412,3 +1412,67 @@ msgstr "Mezőérvényesítési hiba a következőhöz: ${label}"
 
 msgid "Calendar.lang.previousYear"
 msgstr "Múlt év (Control + left)"
+
+# traslated
+msgid "User.titleChangePassword"
+msgstr "Jelszó módosítása"
+
+# traslated
+msgid "User.changePasswordButton"
+msgstr "Jelszó módosítása"
+
+# traslated
+msgid "User.ChangePassword.submitButton"
+msgstr "Jelszó módosítása"
+
+# traslated
+msgid "User.ChangePassword.currentPasswordRequired"
+msgstr "Kérjük, adja meg jelenlegi jelszavát!"
+
+# traslated
+msgid "User.ChangePassword.currentPasswordPlaceholder"
+msgstr "Jelenlegi jelszó"
+
+# traslated
+msgid "User.ChangePassword.passwordPlaceholder"
+msgstr "Új jelszó"
+
+# traslated
+msgid "User.ChangePassword.passwordRequired"
+msgstr "Kérjük, adja meg új jelszavát!"
+
+# traslated
+msgid "User.ChangePassword.passwordConfirmPlaceholder"
+msgstr "Új jelszó megerősítése"
+
+# traslated
+msgid "User.ChangePassword.passwordConfirmRequired"
+msgstr "Kérjük, erősítse meg új jelszavát!"
+
+# traslated
+msgid "User.ChangePassword.passwordConfirmError"
+msgstr "A megadott két jelszó nem egyezik!"
+
+# traslated
+msgid "User.ChangePassword.errorTitle"
+msgstr "Ops... Valami hiba történt!"
+
+# traslated
+msgid "Transfer.deselectAll"
+msgstr "Az összes adat kijelölésének megszüntetése"
+
+# traslated
+msgid "User.Settings.revertButton"
+msgstr "Visszatér"
+
+# traslated
+msgid "User.Settings.submitButton"
+msgstr "Megment"
+
+# traslated
+msgid "QRCode.scanned"
+msgstr "Beolvasott"
+
+# traslated
+msgid "Text.collapse"
+msgstr "Összeomlás"

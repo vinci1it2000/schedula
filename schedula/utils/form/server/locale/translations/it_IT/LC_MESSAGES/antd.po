@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 1.0\n"
 "Report-Msgid-Bugs-To: vinci1it2000@gmail.com\n"
-"PO-Revision-Date: 2023-11-18 08:55+0000\n"
+"PO-Revision-Date: 2024-06-26 10:12+0000\n"
 "Last-Translator: Vincenzo Arcidiacono <vinci1it2000@gmail.com>\n"
 "Language-Team: English <vinci1it2000@gmail.com>\n"
 "MIME-Version: 1.0\n"
@@ -149,10 +149,10 @@ msgid "User.ChangePassword.passwordConfirmRequired"
 msgstr "Inserisci nuovamente la tua Nuova Password!"
 
 msgid "User.ChangePassword.passwordConfirmError"
-msgstr 'Le due password che hai inserito non corrispondono!'
+msgstr "Le due password che hai inserito non corrispondono!"
 
 msgid "User.ChangePassword.errorTitle"
-msgstr 'Ops... qualcosa è andata storta!'
+msgstr "Ops... qualcosa è andata storta!"
 
 msgid "ArrayCopy.titleCopyButton"
 msgstr "Seleziona dove copiare i dati?"
@@ -1197,3 +1197,23 @@ msgstr "Errore di convalida del campo ${label}"
 
 msgid "Calendar.lang.previousYear"
 msgstr "L'anno scorso (Control + sinistra)"
+
+# traslated
+msgid "Transfer.deselectAll"
+msgstr "Deseleziona tutti i dati"
+
+# traslated
+msgid "User.Settings.revertButton"
+msgstr "Regredire"
+
+# traslated
+msgid "User.Settings.submitButton"
+msgstr "Salvare"
+
+# traslated
+msgid "QRCode.scanned"
+msgstr "Scansione"
+
+# traslated
+msgid "Text.collapse"
+msgstr "Collasso"

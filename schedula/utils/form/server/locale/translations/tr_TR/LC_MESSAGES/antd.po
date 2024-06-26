@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 1.0\n"
 "Report-Msgid-Bugs-To: vinci1it2000@gmail.com\n"
-"PO-Revision-Date: 2023-11-18 08:55+0000\n"
+"PO-Revision-Date: 2024-06-26 10:12+0000\n"
 "Last-Translator: Vincenzo Arcidiacono <vinci1it2000@gmail.com>\n"
 "Language-Team: English <vinci1it2000@gmail.com>\n"
 "MIME-Version: 1.0\n"
@@ -1340,3 +1340,67 @@ msgstr "Alan doğrulama hatası ${label}"
 
 msgid "Calendar.lang.previousYear"
 msgstr "Önceki Yıl (Control + Sol)"
+
+# traslated
+msgid "User.titleChangePassword"
+msgstr "Şifreyi değiştir"
+
+# traslated
+msgid "User.changePasswordButton"
+msgstr "Şifreyi değiştir"
+
+# traslated
+msgid "User.ChangePassword.submitButton"
+msgstr "Şifre Değiştir"
+
+# traslated
+msgid "User.ChangePassword.currentPasswordRequired"
+msgstr "Lütfen Mevcut Şifrenizi giriniz!"
+
+# traslated
+msgid "User.ChangePassword.currentPasswordPlaceholder"
+msgstr "Geçerli şifre"
+
+# traslated
+msgid "User.ChangePassword.passwordPlaceholder"
+msgstr "Yeni Şifre"
+
+# traslated
+msgid "User.ChangePassword.passwordRequired"
+msgstr "Lütfen Yeni Şifrenizi giriniz!"
+
+# traslated
+msgid "User.ChangePassword.passwordConfirmPlaceholder"
+msgstr "Yeni Şifreyi Onayla"
+
+# traslated
+msgid "User.ChangePassword.passwordConfirmRequired"
+msgstr "Lütfen Yeni Şifrenizi onaylayın!"
+
+# traslated
+msgid "User.ChangePassword.passwordConfirmError"
+msgstr "Girdiğiniz iki şifre eşleşmiyor!"
+
+# traslated
+msgid "User.ChangePassword.errorTitle"
+msgstr "Ops... Bir şeyler ters gitti!"
+
+# traslated
+msgid "Transfer.deselectAll"
+msgstr "Tüm verilerin seçimini kaldırma"
+
+# traslated
+msgid "User.Settings.revertButton"
+msgstr "Geri dönmek"
+
+# traslated
+msgid "User.Settings.submitButton"
+msgstr "Kurtarmak"
+
+# traslated
+msgid "QRCode.scanned"
+msgstr "Taranan"
+
+# traslated
+msgid "Text.collapse"
+msgstr "Çökmek"

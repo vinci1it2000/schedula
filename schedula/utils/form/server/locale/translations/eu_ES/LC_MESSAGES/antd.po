@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 1.0\n"
 "Report-Msgid-Bugs-To: vinci1it2000@gmail.com\n"
-"PO-Revision-Date: 2023-11-18 08:55+0000\n"
+"PO-Revision-Date: 2024-06-26 10:11+0000\n"
 "Last-Translator: Vincenzo Arcidiacono <vinci1it2000@gmail.com>\n"
 "Language-Team: English <vinci1it2000@gmail.com>\n"
 "MIME-Version: 1.0\n"
@@ -1351,3 +1351,67 @@ msgstr "${label} eremuaren balidazio errore"
 
 msgid "Calendar.lang.previousYear"
 msgstr "Aurreko urtea (Control + ezkerra)"
+
+# traslated
+msgid "User.titleChangePassword"
+msgstr "Pasahitza aldatu"
+
+# traslated
+msgid "User.changePasswordButton"
+msgstr "Pasahitza aldatu"
+
+# traslated
+msgid "User.ChangePassword.submitButton"
+msgstr "Pasahitza aldatu"
+
+# traslated
+msgid "User.ChangePassword.currentPasswordRequired"
+msgstr "Sartu zure pasahitza gaur egun!"
+
+# traslated
+msgid "User.ChangePassword.currentPasswordPlaceholder"
+msgstr "Gaur egungo pasahitza"
+
+# traslated
+msgid "User.ChangePassword.passwordPlaceholder"
+msgstr "Pasahitz berria"
+
+# traslated
+msgid "User.ChangePassword.passwordRequired"
+msgstr "Mesedez, sartu pasahitz berria!"
+
+# traslated
+msgid "User.ChangePassword.passwordConfirmPlaceholder"
+msgstr "Pasahitz berria baieztatu"
+
+# traslated
+msgid "User.ChangePassword.passwordConfirmRequired"
+msgstr "Baiezta iezadazu, mesedez, zure pasahitz berria!"
+
+# traslated
+msgid "User.ChangePassword.passwordConfirmError"
+msgstr "Sartu zituen bi pasahitzak ez datoz bat!"
+
+# traslated
+msgid "User.ChangePassword.errorTitle"
+msgstr "Eragiketak... Zerbait gaizki atera zen!"
+
+# traslated
+msgid "Transfer.deselectAll"
+msgstr "Datu guztien aukeraketa bertan behera utzi"
+
+# traslated
+msgid "User.Settings.revertButton"
+msgstr "Itzuli"
+
+# traslated
+msgid "User.Settings.submitButton"
+msgstr "Salbatu"
+
+# traslated
+msgid "QRCode.scanned"
+msgstr "Eskaneatua"
+
+# traslated
+msgid "Text.collapse"
+msgstr "Kolapsoa"

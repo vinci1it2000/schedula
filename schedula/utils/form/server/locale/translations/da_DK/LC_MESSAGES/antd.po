@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 1.0\n"
 "Report-Msgid-Bugs-To: vinci1it2000@gmail.com\n"
-"PO-Revision-Date: 2023-11-18 08:55+0000\n"
+"PO-Revision-Date: 2024-06-26 10:11+0000\n"
 "Last-Translator: Vincenzo Arcidiacono <vinci1it2000@gmail.com>\n"
 "Language-Team: English <vinci1it2000@gmail.com>\n"
 "MIME-Version: 1.0\n"
@@ -1400,3 +1400,67 @@ msgstr "Feltvalideringsfejl for ${label}"
 
 msgid "Calendar.lang.previousYear"
 msgstr "Forrige år (Ctrl-venstre pil)"
+
+# traslated
+msgid "User.titleChangePassword"
+msgstr "Skift adgangskode"
+
+# traslated
+msgid "User.changePasswordButton"
+msgstr "Skift adgangskode"
+
+# traslated
+msgid "User.ChangePassword.submitButton"
+msgstr "Skift adgangskode"
+
+# traslated
+msgid "User.ChangePassword.currentPasswordRequired"
+msgstr "Indtast venligst din nuværende adgangskode!"
+
+# traslated
+msgid "User.ChangePassword.currentPasswordPlaceholder"
+msgstr "Nuværende adgangskode"
+
+# traslated
+msgid "User.ChangePassword.passwordPlaceholder"
+msgstr "Ny adgangskode"
+
+# traslated
+msgid "User.ChangePassword.passwordRequired"
+msgstr "Indtast venligst din nye adgangskode!"
+
+# traslated
+msgid "User.ChangePassword.passwordConfirmPlaceholder"
+msgstr "Bekræft ny adgangskode"
+
+# traslated
+msgid "User.ChangePassword.passwordConfirmRequired"
+msgstr "Bekræft venligst din nye adgangskode!"
+
+# traslated
+msgid "User.ChangePassword.passwordConfirmError"
+msgstr "De to adgangskoder, du indtastede, stemmer ikke overens!"
+
+# traslated
+msgid "User.ChangePassword.errorTitle"
+msgstr "Ops... Noget gik galt!"
+
+# traslated
+msgid "Transfer.deselectAll"
+msgstr "Fravælg alle data"
+
+# traslated
+msgid "User.Settings.revertButton"
+msgstr "Vende tilbage"
+
+# traslated
+msgid "User.Settings.submitButton"
+msgstr "Spare"
+
+# traslated
+msgid "QRCode.scanned"
+msgstr "Scannet"
+
+# traslated
+msgid "Text.collapse"
+msgstr "Sammenbrud"

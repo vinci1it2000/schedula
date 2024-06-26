@@ -28,7 +28,7 @@ cdir = osp.dirname(__file__)
 data = {i: {
     '.'.join(k): v for k, v in sh.stack_nested_keys(d)
 } for i, d in data.items()}
-pot_fpath = osp.abspath(osp.join(cdir, '..', '..', 'translations', 'antd.pot'))
+pot_fpath = osp.abspath(osp.join(cdir, '..', '..', 'server', 'locale', 'translations', 'antd.pot'))
 if osp.isfile(pot_fpath):
     pot = polib.pofile(pot_fpath)
 else:
@@ -53,7 +53,7 @@ pot.save(pot_fpath)
 
 def _compile_po(lang, d, default=None):
     po_fpath = osp.abspath(osp.join(
-        cdir, '..', '..', 'translations', lang, 'LC_MESSAGES', 'antd.po'
+        cdir, '..', '..', 'server', 'locale', 'translations', lang, 'LC_MESSAGES', 'antd.po'
     ))
     if osp.isfile(po_fpath):
         po = polib.pofile(po_fpath)

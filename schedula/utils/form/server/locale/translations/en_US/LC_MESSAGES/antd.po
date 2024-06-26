@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 1.0\n"
 "Report-Msgid-Bugs-To: vinci1it2000@gmail.com\n"
-"PO-Revision-Date: 2023-11-18 08:55+0000\n"
+"PO-Revision-Date: 2024-06-26 10:11+0000\n"
 "Last-Translator: Vincenzo Arcidiacono <vinci1it2000@gmail.com>\n"
 "Language-Team: English <vinci1it2000@gmail.com>\n"
 "MIME-Version: 1.0\n"
@@ -146,10 +146,10 @@ msgid "User.ChangePassword.passwordConfirmRequired"
 msgstr "Please confirm your New Password!"
 
 msgid "User.ChangePassword.passwordConfirmError"
-msgstr 'The two passwords that you entered do not match!'
+msgstr "The two passwords that you entered do not match!"
 
 msgid "User.ChangePassword.errorTitle"
-msgstr 'Ops... something went wrong!'
+msgstr "Ops... something went wrong!"
 
 msgid "ArrayCopy.titleCopyButton"
 msgstr "Please select where to copy data?"
@@ -1164,3 +1164,18 @@ msgstr "Field validation error for ${label}"
 
 msgid "Calendar.lang.previousYear"
 msgstr "Last year (Control + left)"
+
+msgid "Transfer.deselectAll"
+msgstr "Deselect all data"
+
+msgid "User.Settings.revertButton"
+msgstr "Revert"
+
+msgid "User.Settings.submitButton"
+msgstr "Save"
+
+msgid "QRCode.scanned"
+msgstr "Scanned"
+
+msgid "Text.collapse"
+msgstr "Collapse"

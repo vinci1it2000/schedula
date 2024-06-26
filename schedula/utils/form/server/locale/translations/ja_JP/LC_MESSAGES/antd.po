@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 1.0\n"
 "Report-Msgid-Bugs-To: vinci1it2000@gmail.com\n"
-"PO-Revision-Date: 2023-11-18 08:55+0000\n"
+"PO-Revision-Date: 2024-06-26 10:12+0000\n"
 "Last-Translator: Vincenzo Arcidiacono <vinci1it2000@gmail.com>\n"
 "Language-Team: English <vinci1it2000@gmail.com>\n"
 "MIME-Version: 1.0\n"
@@ -1369,3 +1369,67 @@ msgstr "${label}のフィールド検証エラー"
 
 msgid "Calendar.lang.previousYear"
 msgstr "前年 (Controlを押しながら左キー)"
+
+# traslated
+msgid "User.titleChangePassword"
+msgstr "パスワード変更"
+
+# traslated
+msgid "User.changePasswordButton"
+msgstr "パスワード変更"
+
+# traslated
+msgid "User.ChangePassword.submitButton"
+msgstr "パスワード変更"
+
+# traslated
+msgid "User.ChangePassword.currentPasswordRequired"
+msgstr "現在のパスワードを入力してください。"
+
+# traslated
+msgid "User.ChangePassword.currentPasswordPlaceholder"
+msgstr "現在のパスワード"
+
+# traslated
+msgid "User.ChangePassword.passwordPlaceholder"
+msgstr "新しいパスワード"
+
+# traslated
+msgid "User.ChangePassword.passwordRequired"
+msgstr "新しいパスワードを入力してください。"
+
+# traslated
+msgid "User.ChangePassword.passwordConfirmPlaceholder"
+msgstr "新しいパスワードの確認"
+
+# traslated
+msgid "User.ChangePassword.passwordConfirmRequired"
+msgstr "新しいパスワードを確認してください。"
+
+# traslated
+msgid "User.ChangePassword.passwordConfirmError"
+msgstr "入力した 2 つのパスワードが一致しません。"
+
+# traslated
+msgid "User.ChangePassword.errorTitle"
+msgstr "オプス...問題が発生しました。"
+
+# traslated
+msgid "Transfer.deselectAll"
+msgstr "すべてのデータの選択を解除する"
+
+# traslated
+msgid "User.Settings.revertButton"
+msgstr "戻す"
+
+# traslated
+msgid "User.Settings.submitButton"
+msgstr "セーブ"
+
+# traslated
+msgid "QRCode.scanned"
+msgstr "スキャン"
+
+# traslated
+msgid "Text.collapse"
+msgstr "倒れる"

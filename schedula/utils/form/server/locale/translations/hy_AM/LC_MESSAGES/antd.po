@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 1.0\n"
 "Report-Msgid-Bugs-To: vinci1it2000@gmail.com\n"
-"PO-Revision-Date: 2023-11-18 08:55+0000\n"
+"PO-Revision-Date: 2024-06-26 10:12+0000\n"
 "Last-Translator: Vincenzo Arcidiacono <vinci1it2000@gmail.com>\n"
 "Language-Team: English <vinci1it2000@gmail.com>\n"
 "MIME-Version: 1.0\n"
@@ -1402,3 +1402,67 @@ msgstr "${պիտակի համար արտի վավերացման սխալը}"
 
 msgid "Calendar.lang.previousYear"
 msgstr "Անցած տարի (Control + left)"
+
+# traslated
+msgid "User.titleChangePassword"
+msgstr "Փոխել գաղտնաբառը"
+
+# traslated
+msgid "User.changePasswordButton"
+msgstr "Փոխել գաղտնաբառը"
+
+# traslated
+msgid "User.ChangePassword.submitButton"
+msgstr "Փոխել գաղտնաբառը"
+
+# traslated
+msgid "User.ChangePassword.currentPasswordRequired"
+msgstr "Խնդրում ենք մուտքագրել Ձեր ընթացիկ գաղտնաբառը!"
+
+# traslated
+msgid "User.ChangePassword.currentPasswordPlaceholder"
+msgstr "Ընթացիկ ծածկագիրը"
+
+# traslated
+msgid "User.ChangePassword.passwordPlaceholder"
+msgstr "Նոր գաղտնաբառ"
+
+# traslated
+msgid "User.ChangePassword.passwordRequired"
+msgstr "Խնդրում ենք մուտքագրել Ձեր Նոր Գաղտնաբառը!"
+
+# traslated
+msgid "User.ChangePassword.passwordConfirmPlaceholder"
+msgstr "Հաստատել նոր գաղտնաբառը"
+
+# traslated
+msgid "User.ChangePassword.passwordConfirmRequired"
+msgstr "Խնդրում ենք հաստատել Ձեր Նոր Գաղտնաբառը!"
+
+# traslated
+msgid "User.ChangePassword.passwordConfirmError"
+msgstr "Երկու գաղտնաբառերը, որոնք մուտք եք գործել, չեն համապատասխանում!"
+
+# traslated
+msgid "User.ChangePassword.errorTitle"
+msgstr "Ops... ինչ-որ բան սխալվեց!"
+
+# traslated
+msgid "Transfer.deselectAll"
+msgstr "Deselect բոլոր տվյալները"
+
+# traslated
+msgid "User.Settings.revertButton"
+msgstr "Revert"
+
+# traslated
+msgid "User.Settings.submitButton"
+msgstr "Խնայել"
+
+# traslated
+msgid "QRCode.scanned"
+msgstr "Սկանավորված"
+
+# traslated
+msgid "Text.collapse"
+msgstr "Փլուզում"

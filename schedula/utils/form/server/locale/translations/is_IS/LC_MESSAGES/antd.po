@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 1.0\n"
 "Report-Msgid-Bugs-To: vinci1it2000@gmail.com\n"
-"PO-Revision-Date: 2023-11-18 08:55+0000\n"
+"PO-Revision-Date: 2024-06-26 10:12+0000\n"
 "Last-Translator: Vincenzo Arcidiacono <vinci1it2000@gmail.com>\n"
 "Language-Team: English <vinci1it2000@gmail.com>\n"
 "MIME-Version: 1.0\n"
@@ -1413,3 +1413,67 @@ msgstr "Villa í svæðisprófun fyrir ${label}"
 
 msgid "Calendar.lang.previousYear"
 msgstr "Fyrra ár (Control + left)"
+
+# traslated
+msgid "User.titleChangePassword"
+msgstr "Breyta aðgangsorði"
+
+# traslated
+msgid "User.changePasswordButton"
+msgstr "Breyta aðgangsorði"
+
+# traslated
+msgid "User.ChangePassword.submitButton"
+msgstr "Breyta aðgangsorði"
+
+# traslated
+msgid "User.ChangePassword.currentPasswordRequired"
+msgstr "Vinsamlegast sláðu inn núverandi aðgangsorð!"
+
+# traslated
+msgid "User.ChangePassword.currentPasswordPlaceholder"
+msgstr "Núverandi aðgangsorð"
+
+# traslated
+msgid "User.ChangePassword.passwordPlaceholder"
+msgstr "Nýtt aðgangsorð"
+
+# traslated
+msgid "User.ChangePassword.passwordRequired"
+msgstr "Vinsamlegast sláðu inn nýja lykilorðið þitt!"
+
+# traslated
+msgid "User.ChangePassword.passwordConfirmPlaceholder"
+msgstr "Staðfesta nýtt aðgangsorð"
+
+# traslated
+msgid "User.ChangePassword.passwordConfirmRequired"
+msgstr "Vinsamlegast staðfestu nýja lykilorðið þitt!"
+
+# traslated
+msgid "User.ChangePassword.passwordConfirmError"
+msgstr "Aðgangsorðin tvö sem færð voru inn passa ekki saman!"
+
+# traslated
+msgid "User.ChangePassword.errorTitle"
+msgstr "Ops... Eitthvað fór úrskeiðis!"
+
+# traslated
+msgid "Transfer.deselectAll"
+msgstr "Hafna öllum gögnum"
+
+# traslated
+msgid "User.Settings.revertButton"
+msgstr "Bakfæra"
+
+# traslated
+msgid "User.Settings.submitButton"
+msgstr "Spara"
+
+# traslated
+msgid "QRCode.scanned"
+msgstr "Skanni"
+
+# traslated
+msgid "Text.collapse"
+msgstr "Hrynja"

@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 1.0\n"
 "Report-Msgid-Bugs-To: vinci1it2000@gmail.com\n"
-"PO-Revision-Date: 2023-11-18 08:55+0000\n"
+"PO-Revision-Date: 2024-06-26 10:12+0000\n"
 "Last-Translator: Vincenzo Arcidiacono <vinci1it2000@gmail.com>\n"
 "Language-Team: English <vinci1it2000@gmail.com>\n"
 "MIME-Version: 1.0\n"
@@ -1329,3 +1329,67 @@ msgstr "字段验证错误${label}"
 
 msgid "Calendar.lang.previousYear"
 msgstr "上一年 (Control键加左方向键)"
+
+# traslated
+msgid "User.titleChangePassword"
+msgstr "更改密码"
+
+# traslated
+msgid "User.changePasswordButton"
+msgstr "更改密码"
+
+# traslated
+msgid "User.ChangePassword.submitButton"
+msgstr "更改密码"
+
+# traslated
+msgid "User.ChangePassword.currentPasswordRequired"
+msgstr "请输入您的当前密码！"
+
+# traslated
+msgid "User.ChangePassword.currentPasswordPlaceholder"
+msgstr "当前密码"
+
+# traslated
+msgid "User.ChangePassword.passwordPlaceholder"
+msgstr "新密码"
+
+# traslated
+msgid "User.ChangePassword.passwordRequired"
+msgstr "请输入您的新密码！"
+
+# traslated
+msgid "User.ChangePassword.passwordConfirmPlaceholder"
+msgstr "确认新密码"
+
+# traslated
+msgid "User.ChangePassword.passwordConfirmRequired"
+msgstr "请确认您的新密码！"
+
+# traslated
+msgid "User.ChangePassword.passwordConfirmError"
+msgstr "您输入的两个密码不匹配！"
+
+# traslated
+msgid "User.ChangePassword.errorTitle"
+msgstr "老年 退休金 计划。。。出了点问题！"
+
+# traslated
+msgid "Transfer.deselectAll"
+msgstr "取消选择所有数据"
+
+# traslated
+msgid "User.Settings.revertButton"
+msgstr "恢复"
+
+# traslated
+msgid "User.Settings.submitButton"
+msgstr "救"
+
+# traslated
+msgid "QRCode.scanned"
+msgstr "扫描"
+
+# traslated
+msgid "Text.collapse"
+msgstr "崩溃"

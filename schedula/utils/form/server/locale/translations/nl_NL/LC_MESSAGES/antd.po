@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 1.0\n"
 "Report-Msgid-Bugs-To: vinci1it2000@gmail.com\n"
-"PO-Revision-Date: 2023-11-18 08:55+0000\n"
+"PO-Revision-Date: 2024-06-26 10:12+0000\n"
 "Last-Translator: Vincenzo Arcidiacono <vinci1it2000@gmail.com>\n"
 "Language-Team: English <vinci1it2000@gmail.com>\n"
 "MIME-Version: 1.0\n"
@@ -1338,3 +1338,67 @@ msgstr "Validatiefout voor ${label}"
 
 msgid "Calendar.lang.previousYear"
 msgstr "Vorig jaar (Control + left)"
+
+# traslated
+msgid "User.titleChangePassword"
+msgstr "Wachtwoord wijzigen"
+
+# traslated
+msgid "User.changePasswordButton"
+msgstr "Wachtwoord wijzigen"
+
+# traslated
+msgid "User.ChangePassword.submitButton"
+msgstr "Wachtwoord wijzigen"
+
+# traslated
+msgid "User.ChangePassword.currentPasswordRequired"
+msgstr "Voer uw huidige wachtwoord in!"
+
+# traslated
+msgid "User.ChangePassword.currentPasswordPlaceholder"
+msgstr "Huidig wachtwoord"
+
+# traslated
+msgid "User.ChangePassword.passwordPlaceholder"
+msgstr "Nieuw wachtwoord"
+
+# traslated
+msgid "User.ChangePassword.passwordRequired"
+msgstr "Voer uw nieuwe wachtwoord in!"
+
+# traslated
+msgid "User.ChangePassword.passwordConfirmPlaceholder"
+msgstr "Bevestig nieuw wachtwoord"
+
+# traslated
+msgid "User.ChangePassword.passwordConfirmRequired"
+msgstr "Bevestig uw nieuwe wachtwoord!"
+
+# traslated
+msgid "User.ChangePassword.passwordConfirmError"
+msgstr "De twee wachtwoorden die u hebt ingevoerd, komen niet overeen!"
+
+# traslated
+msgid "User.ChangePassword.errorTitle"
+msgstr "Ops... Er is iets misgegaan!"
+
+# traslated
+msgid "Transfer.deselectAll"
+msgstr "Deselecteer alle gegevens"
+
+# traslated
+msgid "User.Settings.revertButton"
+msgstr "Terugkeren"
+
+# traslated
+msgid "User.Settings.submitButton"
+msgstr "Redden"
+
+# traslated
+msgid "QRCode.scanned"
+msgstr "Gescande"
+
+# traslated
+msgid "Text.collapse"
+msgstr "Instorting"

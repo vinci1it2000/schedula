@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 1.0\n"
 "Report-Msgid-Bugs-To: vinci1it2000@gmail.com\n"
-"PO-Revision-Date: 2023-11-18 08:55+0000\n"
+"PO-Revision-Date: 2024-06-26 10:11+0000\n"
 "Last-Translator: Vincenzo Arcidiacono <vinci1it2000@gmail.com>\n"
 "Language-Team: English <vinci1it2000@gmail.com>\n"
 "MIME-Version: 1.0\n"
@@ -1335,3 +1335,67 @@ msgstr "Erreur de validation pour le champ ${label}"
 
 msgid "Calendar.lang.previousYear"
 msgstr "Année précédente (Ctrl + gauche)"
+
+# traslated
+msgid "User.titleChangePassword"
+msgstr "Changer le mot de passe"
+
+# traslated
+msgid "User.changePasswordButton"
+msgstr "Changer le mot de passe"
+
+# traslated
+msgid "User.ChangePassword.submitButton"
+msgstr "Changer le mot de passe"
+
+# traslated
+msgid "User.ChangePassword.currentPasswordRequired"
+msgstr "Veuillez saisir votre mot de passe actuel !"
+
+# traslated
+msgid "User.ChangePassword.currentPasswordPlaceholder"
+msgstr "Mot de passe actuel"
+
+# traslated
+msgid "User.ChangePassword.passwordPlaceholder"
+msgstr "Nouveau mot de passe"
+
+# traslated
+msgid "User.ChangePassword.passwordRequired"
+msgstr "Veuillez saisir votre nouveau mot de passe !"
+
+# traslated
+msgid "User.ChangePassword.passwordConfirmPlaceholder"
+msgstr "Confirmer le nouveau mot de passe"
+
+# traslated
+msgid "User.ChangePassword.passwordConfirmRequired"
+msgstr "Veuillez confirmer votre nouveau mot de passe !"
+
+# traslated
+msgid "User.ChangePassword.passwordConfirmError"
+msgstr "Les deux mots de passe que vous avez saisis ne correspondent pas !"
+
+# traslated
+msgid "User.ChangePassword.errorTitle"
+msgstr "Ops... quelque chose s’est mal passé !"
+
+# traslated
+msgid "Transfer.deselectAll"
+msgstr "Désélectionner toutes les données"
+
+# traslated
+msgid "User.Settings.revertButton"
+msgstr "Revenir"
+
+# traslated
+msgid "User.Settings.submitButton"
+msgstr "Sauvegarder"
+
+# traslated
+msgid "QRCode.scanned"
+msgstr "Scanné"
+
+# traslated
+msgid "Text.collapse"
+msgstr "Effondrement"
