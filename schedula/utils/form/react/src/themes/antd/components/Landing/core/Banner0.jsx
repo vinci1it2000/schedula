@@ -3,7 +3,7 @@ import {Button} from 'antd';
 import {DownOutlined} from '@ant-design/icons';
 import QueueAnim from 'rc-queue-anim';
 import TweenOne from 'rc-tween-one';
-import {isImg} from './utils';
+import {isImg, HtmlContent} from './utils';
 
 class Banner extends React.PureComponent {
     render() {
@@ -24,15 +24,15 @@ class Banner extends React.PureComponent {
                         dataSource.title.children.match(isImg) ? (
                             <img src={dataSource.title.children} width="100%"
                                  alt="img"/>
-                        ) : (
+                        ) : HtmlContent(
                             dataSource.title.children
                         )}
                     </div>
                     <div key="content" {...dataSource.content}>
-                        {dataSource.content.children}
+                        {HtmlContent(dataSource.content.children)}
                     </div>
                     <Button ghost key="button" {...dataSource.button}>
-                        {dataSource.button.children}
+                        {HtmlContent(dataSource.button.children)}
                     </Button>
                 </QueueAnim>
                 <TweenOne

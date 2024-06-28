@@ -3,6 +3,7 @@ import {Button} from 'antd';
 import QueueAnim from 'rc-queue-anim';
 import Texty from 'rc-texty';
 import 'rc-texty/assets/index.css';
+import {HtmlContent} from "./utils";
 
 class Banner extends React.PureComponent {
     render() {
@@ -15,7 +16,7 @@ class Banner extends React.PureComponent {
             if (name.match('button')) {
                 return (
                     <Button type="primary" key={name} {...$item}>
-                        {item.children}
+                        {HtmlContent(item.children)}
                     </Button>
                 );
             }
@@ -24,9 +25,7 @@ class Banner extends React.PureComponent {
                 <div key={name} {...$item}>
                     {texty ? (
                         <Texty type="mask-bottom">{item.children}</Texty>
-                    ) : (
-                        item.children
-                    )}
+                    ) : HtmlContent(item.children)}
                 </div>
             );
         });

@@ -3,7 +3,7 @@ import QueueAnim from 'rc-queue-anim';
 import TweenOne from 'rc-tween-one';
 import {Row, Col} from 'antd';
 import OverPack from 'rc-scroll-anim/lib/ScrollOverPack';
-import {getChildrenToRender} from './utils';
+import {getChildrenToRender, HtmlContent} from './utils';
 
 class Content3 extends React.PureComponent {
     getDelay = (e, b) => (e % b) * 100 + Math.floor(e / b) * 100 + b * 100;
@@ -59,7 +59,7 @@ class Content3 extends React.PureComponent {
                             component="h2"
                             {...childObj.title}
                         >
-                            {childObj.title.children}
+                            {HtmlContent(childObj.title.children)}
                         </TweenOne>
                         <TweenOne
                             key="p"
@@ -67,7 +67,7 @@ class Content3 extends React.PureComponent {
                             component="div"
                             {...childObj.content}
                         >
-                            {childObj.content.children}
+                            {HtmlContent(childObj.content.children)}
                         </TweenOne>
                     </div>
                 </TweenOne>

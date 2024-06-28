@@ -8,7 +8,7 @@ import {
 } from "../../../core/components";
 import {domainDebug} from './Debug'
 import {domainErrors} from "./Errors";
-import Landing from './Landing'
+import Landing, {LandingTemplate} from './Landing'
 import Landing_Banner0 from './Landing/Banner0'
 import Landing_Banner1 from './Landing/Banner1'
 import Landing_Banner2 from './Landing/Banner2'
@@ -33,6 +33,7 @@ import Landing_Feature8 from './Landing/Feature8'
 import Landing_Footer0 from './Landing/Footer0'
 import Landing_Footer1 from './Landing/Footer1'
 import Landing_Footer2 from './Landing/Footer2'
+import Landing_Point from './Landing/Point'
 import Landing_Pricing0 from './Landing/Pricing0'
 import Landing_Pricing1 from './Landing/Pricing1'
 import Landing_Pricing2 from './Landing/Pricing2'
@@ -145,6 +146,7 @@ export function generateComponents(register = true, registerDomains = true) {
         "Image.PreviewGroup": Image_PreviewGroup,
         Import,
         Landing,
+        LandingTemplate,
         "Landing.Banner0": Landing_Banner0,
         "Landing.Banner1": Landing_Banner1,
         "Landing.Banner2": Landing_Banner2,
@@ -169,6 +171,7 @@ export function generateComponents(register = true, registerDomains = true) {
         "Landing.Footer0": Landing_Footer0,
         "Landing.Footer1": Landing_Footer1,
         "Landing.Footer2": Landing_Footer2,
+        "Landing.Point": Landing_Point,
         "Landing.Pricing0": Landing_Pricing0,
         "Landing.Pricing1": Landing_Pricing1,
         "Landing.Pricing2": Landing_Pricing2,

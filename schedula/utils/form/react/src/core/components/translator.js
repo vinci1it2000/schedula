@@ -9,6 +9,7 @@ i18n.use(Backend).init({
     lng: document.documentElement.lang,
     ns: 'messages',
     defaultNS: 'messages',
+    keySeparator: false,
     parseMissingKeyHandler: (key) => (
         key.startsWith(`messages:`) ? key.slice(9) : key
     ),
@@ -43,4 +44,5 @@ export function translateJSON(t, data, options) {
         return data
     }
 }
+
 export default i18n;

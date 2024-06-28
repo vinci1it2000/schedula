@@ -1,6 +1,7 @@
 import React from 'react';
 import TweenOne from 'rc-tween-one';
 import OverPack from 'rc-scroll-anim/lib/ScrollOverPack';
+import {HtmlContent} from './utils'
 
 class Footer extends React.PureComponent {
     render() {
@@ -16,7 +17,7 @@ class Footer extends React.PureComponent {
                         key="footer"
                         {...dataSource.copyright}
                     >
-                        {dataSource.copyright.children}
+                        {HtmlContent(dataSource.copyright.children)}
                     </TweenOne>
                 </OverPack>
             </div>

@@ -159,41 +159,103 @@
     },
     "children": [
       {
-        "component": "Landing",
-        "children": [
-          {"component":"Landing.Banner0", "force_render": true},
-          {"component":"Landing.Banner1", "force_render": true},
-          {"component":"Landing.Banner2", "force_render": true},
-          {"component":"Landing.Banner3", "force_render": true},
-          {"component":"Landing.Banner4", "force_render": true},
-          {"component":"Landing.Banner5", "force_render": true},
-          {"component":"Landing.Contact0", "force_render": true},
-          {"component":"Landing.Content4", "force_render": true},
-          {"component":"Landing.Content5", "force_render": true},
-          {"component":"Landing.Content9", "force_render": true},
-          {"component":"Landing.Content12", "force_render": true},
-          {"component":"Landing.Content13", "force_render": true},
-          {"component":"Landing.Feature0", "force_render": true},
-          {"component":"Landing.Feature1", "force_render": true},
-          {"component":"Landing.Feature2", "force_render": true},
-          {"component":"Landing.Feature3", "force_render": true},
-          {"component":"Landing.Feature4", "force_render": true},
-          {"component":"Landing.Feature5", "force_render": true},
-          {"component":"Landing.Feature6", "force_render": true},
-          {"component":"Landing.Feature7", "force_render": true},
-          {"component":"Landing.Feature8", "force_render": true},
-          {"component":"Landing.Footer0", "force_render": true},
-          {"component":"Landing.Footer1", "force_render": true},
-          {"component":"Landing.Footer2", "force_render": true},
-          {"component":"Landing.Pricing0", "force_render": true},
-          {"component":"Landing.Pricing1", "force_render": true},
-          {"component":"Landing.Pricing2", "force_render": true},
-          {"component":"Landing.Teams0", "force_render": true},
-          {"component":"Landing.Teams1", "force_render": true},
-          {"component":"Landing.Teams2", "force_render": true},
-          {"component":"Landing.Teams3", "force_render": true},
-          {"component":"Landing.Teams4", "force_render": true}
-        ]
+        "component": "LandingTemplate",
+        "props": {
+          "sections": {
+            "config": {
+              "Banner0_0": {
+                "dataSource": {
+                  "title": {
+                    "className": "banner0-title lxwb932zj1-editor_css"
+                  },
+                  "button": {
+                    "children": "<span><p>Comincia ora</p></span>"
+                  }
+                }
+              },
+              "Banner3_0": {
+                "dataSource": {
+                  "wrapper": {
+                    "className": "banner3 lxw9dx9i4e7-editor_css"
+                  }
+                }
+              },
+              "Content0_0": {
+                "dataSource": {
+                  "titleWrapper": {
+                    "children": [
+                      {
+                        "name": "title",
+                        "children": "产品与服务",
+                        "className": "lxwb9w3u5k-editor_css"
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            "other": {
+              "point": {
+                "stroke": "point-stroke",
+                "type": "point-prismatic",
+                "size": "point-large"
+              }
+            },
+            "template": [
+              "Banner0_0",
+              "Banner1_0",
+              "Banner2_0",
+              "Banner3_0",
+              "Banner4_0",
+              "Banner5_0",
+              "Contact0_0",
+              "Content4_0",
+              "Content5_0",
+              "Content9_0",
+              "Content12_0",
+              "Content13_0",
+              "Feature0_0",
+              "Feature1_0",
+              "Feature2_0",
+              "Feature3_0",
+              "Feature4_0",
+              "Feature5_0",
+              "Feature6_0",
+              "Feature7_0",
+              "Feature8_0",
+              "Footer0_0",
+              "Footer1_0",
+              "Footer2_0",
+              "Pricing0_0",
+              "Pricing1_0",
+              "Pricing2_0",
+              "Teams0_0",
+              "Teams1_0",
+              "Teams2_0",
+              "Teams3_0",
+              "Teams4_0"
+            ],
+            "page": {},
+            "style": [
+              {
+                "cssString": "#Banner0_0 .banner0-text-wrapper > .lxwb932zj1-editor_css {\n  border-color: #f04134;\n}\n",
+                "id": "Bannerbannertextwrapperlxwbzjeditorcss",
+                "cid": "Banner0_0"
+              },
+              {
+                "cssString": "#Banner3_0.lxw9dx9i4e7-editor_css {\n  font-weight: 400;\n  background-image: url(\"https://i.imgur.com/Obknwzf.jpg\");\n  background-position: 50 100;\n}\n",
+                "id": "Bannerlxwdxieeditorcss",
+                "cid": "Banner3_0"
+              },
+              {
+                "cssString": "#Content0_0 .home-page > .title-wrapper > .lxwb9w3u5k-editor_css {\n  font-size: 50px;\n}\n",
+                "id": "Contenthomepagetitlewrapperlxwbwukeditorcss",
+                "cid": "Content0_0"
+              }
+            ]
+          }
+        },
+        "force_render": true
       },
       {
         "component": "FlexLayout",

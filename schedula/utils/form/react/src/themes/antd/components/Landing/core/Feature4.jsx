@@ -3,7 +3,7 @@ import TweenOne from 'rc-tween-one';
 import {Row, Col} from 'antd';
 import QueueAnim from 'rc-queue-anim';
 import OverPack from 'rc-scroll-anim/lib/ScrollOverPack';
-import {getChildrenToRender} from './utils';
+import {getChildrenToRender, HtmlContent} from './utils';
 
 class Content7 extends React.Component {
     getBlockChildren = (data) =>
@@ -16,8 +16,8 @@ class Content7 extends React.Component {
           <span {...img}>
             <img src={img.children} width="100%" alt="img"/>
           </span>
-                    <h2 {...title}>{title.children}</h2>
-                    <div {...content}>{content.children}</div>
+                    <h2 {...title}>{HtmlContent(title.children)}</h2>
+                    <div {...content}>{HtmlContent(content.children)}</div>
                 </li>
             );
         });

@@ -4,6 +4,7 @@ import QueueAnim from 'rc-queue-anim';
 import {Carousel as AntCarousel, Row, Col} from 'antd';
 import TweenOne from 'rc-tween-one';
 import Children from 'rc-tween-one/lib/plugin/ChildrenPlugin';
+import {HtmlContent} from './utils'
 
 TweenOne.plugins.push(Children);
 
@@ -57,7 +58,7 @@ class Feature6 extends React.PureComponent {
                         ii === current ? `${title.className || ''} active` : title.className
                     }
                 >
-                    {title.children}
+                    {HtmlContent(title.children)}
                 </div>
             );
             const childrenItem = children.map(($item, i) => {
@@ -87,8 +88,9 @@ class Feature6 extends React.PureComponent {
                         >
                             0
                         </TweenOne>
-                        {unit && <span {...unit}>{unit.children}</span>}
-                        <p {...child}>{child.children}</p>
+                        {unit &&
+                            <span {...unit}>{HtmlContent(unit.children)}</span>}
+                        <p {...child}>{HtmlContent(child.children)}</p>
                     </Col>
                 );
             });

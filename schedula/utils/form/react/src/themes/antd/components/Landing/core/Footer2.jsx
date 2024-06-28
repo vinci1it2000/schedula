@@ -1,7 +1,7 @@
 import React from 'react';
 import TweenOne from 'rc-tween-one';
 import OverPack from 'rc-scroll-anim/lib/ScrollOverPack';
-import {isImg} from './utils';
+import {isImg, HtmlContent} from './utils';
 
 class Footer2 extends React.PureComponent {
     render() {
@@ -36,7 +36,7 @@ class Footer2 extends React.PureComponent {
                                         src: item.children,
                                         alt: 'img',
                                     })
-                                    : item.children
+                                    : HtmlContent(item.children)
                             )
                         )}
                     </TweenOne>

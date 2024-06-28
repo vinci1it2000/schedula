@@ -1,5 +1,6 @@
 import React from 'react';
 import QueueAnim from 'rc-queue-anim';
+import {HtmlContent} from './utils'
 
 class Content10 extends React.PureComponent {
     constructor(props) {
@@ -54,8 +55,8 @@ class Content10 extends React.PureComponent {
                     <div>
                         {this.state.showInfo && (
                             <div className="map-tip" key="map">
-                                <h2>{dataSource.Content.children.title.children}</h2>
-                                <p>{dataSource.Content.children.content.children}</p>
+                                <h2>{HtmlContent(dataSource.Content.children.title.children)}</h2>
+                                <p>{HtmlContent(dataSource.Content.children.content.children)}</p>
                             </div>
                         )}
                     </div>

@@ -2,7 +2,7 @@ import React from 'react';
 import OverPack from 'rc-scroll-anim/lib/ScrollOverPack';
 import QueueAnim from 'rc-queue-anim';
 import {Table} from 'antd';
-import {getChildrenToRender, isImg} from './utils';
+import {getChildrenToRender, isImg, HtmlContent} from './utils';
 
 class Pricing2 extends React.PureComponent {
     getColumns = (columns) => {
@@ -30,7 +30,7 @@ class Pricing2 extends React.PureComponent {
                             {typeof $item.children === 'string' &&
                             $item.children.match(isImg) ? (
                                 <img src={$item.children} alt="img"/>
-                            ) : (
+                            ) : HtmlContent(
                                 $item.children
                             )}
                         </div>
@@ -70,8 +70,10 @@ class Pricing2 extends React.PureComponent {
                 dataSource: this.getDataSource(dataSources, items),
             };
             return (
-                <Table key={i.toString()} {...props} pagination={false}
-                       bordered/>
+                <div key={i.toString()}>
+                    <Table {...props} pagination={false}
+                           bordered/>
+                </div>
             );
         });
     };
@@ -88,7 +90,9 @@ class Pricing2 extends React.PureComponent {
         const childrenToRender = isMobile ? (
             this.getMobileChild(table)
         ) : (
-            <Table key="table" {...tableProps} pagination={false} bordered/>
+            <div key="table">
+                <Table key="table" {...tableProps} pagination={false} bordered/>
+            </div>
         );
         return (
             <div {...props} {...wrapper}>

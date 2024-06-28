@@ -1,4 +1,4 @@
-import {Component} from "react";
+import {Component, useMemo} from "react";
 import {Responsive, WidthProvider} from "react-grid-layout";
 import './GridLayout.css'
 
@@ -43,16 +43,15 @@ class Layout extends Component {
     }
 
     render() {
-        return <>
-            <ResponsiveGridLayout
-                measureBeforeMount={false}
-                useCSSTransforms={this.state.mounted}
-                preventCollision={!this.props.compactType}
-                {...this.props}
-                onLayoutChange={this.onLayoutChange}>
-                {this.generateDOM()}
-            </ResponsiveGridLayout>
-        </>
+        return <ResponsiveGridLayout
+            key={'gridLayout'}
+            measureBeforeMount={false}
+            useCSSTransforms={this.state.mounted}
+            preventCollision={!this.props.compactType}
+            {...this.props}
+            onLayoutChange={this.onLayoutChange}>
+            {this.generateDOM()}
+        </ResponsiveGridLayout>
     }
 }
 
@@ -66,37 +65,40 @@ const GridLayout = (
         ...props
     }
 ) => {
-    let layouts = _layouts
-    if (!_layouts) {
-        layouts = {}
-        const w = 2, h = 4;
-        Object.keys(cols).forEach((key) => {
-            const n = cols[key];
-            layouts[key] = children.map((element, i) => ({
-                i: `${i}`,
-                x: (i * w) % n,
-                y: Math.floor(i * w / n) * h,
-                w,
-                h,
-                minW: 0,
-                maxW: Infinity,
-                minH: 0,
-                maxH: Infinity,
-                // If true, equal to `isDraggable: false, isResizable: false`.
-                static: false,
-                // If false, will not be draggable. Overrides `static`.
-                isDraggable: true,
-                // If false, will not be resizable. Overrides `static`.
-                isResizable: true,
-                // By default, a handle is only shown on the bottom-right (southeast) corner.
-                // As of RGL >= 1.4.0, resizing on any corner works just fine!
-                resizeHandles: ['se'], // ['s', 'w' , 'e' , 'n' , 'sw' , 'nw' , 'se' , 'ne']
-                // If true and draggable, item will be moved only within grid.
-                isBounded: false
-            }))
-        })
-    }
-    return <div className={'grid-layout-container'}
+    const layouts = useMemo(() => {
+        let layouts = _layouts
+        if (!_layouts) {
+            layouts = {}
+            const w = 2, h = 4;
+            Object.keys(cols).forEach((key) => {
+                const n = cols[key];
+                layouts[key] = children.map((element, i) => ({
+                    i: `${i}`,
+                    x: (i * w) % n,
+                    y: Math.floor(i * w / n) * h,
+                    w,
+                    h,
+                    minW: 0,
+                    maxW: Infinity,
+                    minH: 0,
+                    maxH: Infinity,
+                    // If true, equal to `isDraggable: false, isResizable: false`.
+                    static: false,
+                    // If false, will not be draggable. Overrides `static`.
+                    isDraggable: true,
+                    // If false, will not be resizable. Overrides `static`.
+                    isResizable: true,
+                    // By default, a handle is only shown on the bottom-right (southeast) corner.
+                    // As of RGL >= 1.4.0, resizing on any corner works just fine!
+                    resizeHandles: ['se'], // ['s', 'w' , 'e' , 'n' , 'sw' , 'nw' , 'se' , 'ne']
+                    // If true and draggable, item will be moved only within grid.
+                    isBounded: false
+                }))
+            })
+        }
+        return layouts
+    }, [_layouts]);
+    return <div key={'grid'} className={'grid-layout-container'}
                 style={{height: '100%', width: '100%', overflow: 'auto'}}>
         <Layout draggableHandle={'.react-grid-item-border'}
                 layouts={layouts} {...props}>

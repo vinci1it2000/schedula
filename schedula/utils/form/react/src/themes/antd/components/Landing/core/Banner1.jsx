@@ -4,7 +4,7 @@ import {DownOutlined} from '@ant-design/icons';
 import QueueAnim from 'rc-queue-anim';
 import TweenOne, {TweenOneGroup} from 'rc-tween-one';
 import BannerAnim, {Element} from 'rc-banner-anim';
-import {isImg} from './utils';
+import {HtmlContent, isImg} from './utils';
 import 'rc-banner-anim/assets/index.css';
 
 const {BgElement} = Element;
@@ -34,15 +34,15 @@ class Banner extends React.PureComponent {
                             title.children.match(isImg) ? (
                                 <img src={title.children} width="100%"
                                      alt="img"/>
-                            ) : (
+                            ) : HtmlContent(
                                 title.children
                             )}
                         </div>
                         <div key="content" {...content}>
-                            {content.children}
+                            {HtmlContent(content.children)}
                         </div>
                         <Button ghost key="button" {...button}>
-                            {button.children}
+                            {HtmlContent(button.children)}
                         </Button>
                     </QueueAnim>
                 </Element>

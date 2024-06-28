@@ -2,7 +2,7 @@ import React from 'react';
 import OverPack from 'rc-scroll-anim/lib/ScrollOverPack';
 import {Tabs, Row, Col} from 'antd';
 import Icon from '@ant-design/icons';
-import {getChildrenToRender} from './utils';
+import {getChildrenToRender, HtmlContent} from './utils';
 
 const TabPane = Tabs.TabPane;
 
@@ -44,7 +44,7 @@ class Content7 extends React.Component {
                     >
                         <Col className={text.className} xs={text.xs}
                              md={text.md}>
-                            {textChildren}
+                            {HtmlContent(textChildren)}
                         </Col>
                         <Col className={img.className} xs={img.xs}
                              md={img.md}>

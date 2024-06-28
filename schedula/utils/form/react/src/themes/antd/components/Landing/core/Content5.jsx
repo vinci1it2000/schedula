@@ -2,7 +2,7 @@ import React from 'react';
 import {Row, Col} from 'antd';
 import {TweenOneGroup} from 'rc-tween-one';
 import OverPack from 'rc-scroll-anim/lib/ScrollOverPack';
-import {getChildrenToRender} from './utils';
+import {getChildrenToRender, HtmlContent} from './utils';
 
 class Content5 extends React.PureComponent {
     getChildrenToRender = (data) =>
@@ -13,7 +13,7 @@ class Content5 extends React.PureComponent {
             <span {...item.children.img}>
               <img src={item.children.img.children} height="100%" alt="img"/>
             </span>
-                        <p {...item.children.content}>{item.children.content.children}</p>
+                        <p {...item.children.content}>{HtmlContent(item.children.content.children)}</p>
                     </a>
                 </Col>
             );

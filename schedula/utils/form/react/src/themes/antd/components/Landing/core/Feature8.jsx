@@ -2,7 +2,7 @@ import React from 'react';
 import OverPack from 'rc-scroll-anim/lib/ScrollOverPack';
 import QueueAnim from 'rc-queue-anim';
 import {Carousel as AntCarousel, Row, Col} from 'antd';
-import {getChildrenToRender} from './utils';
+import {getChildrenToRender, HtmlContent} from './utils';
 
 class Feature8 extends React.PureComponent {
     constructor(props) {
@@ -57,7 +57,7 @@ class Feature8 extends React.PureComponent {
                                 : title.className
                         }
                     >
-                        {title.children}
+                        {HtmlContent(title.children)}
                     </div>
                 );
             }

@@ -3,6 +3,7 @@ import QueueAnim from 'rc-queue-anim';
 import TweenOne from 'rc-tween-one';
 import {Row, Col} from 'antd';
 import OverPack from 'rc-scroll-anim/lib/ScrollOverPack';
+import {HtmlContent} from './utils'
 
 function Content2(props) {
     const {...tagProps} = props;
@@ -59,10 +60,10 @@ function Content2(props) {
                     }}
                 >
                     <h2 key="h1" {...dataSource.title}>
-                        {dataSource.title.children}
+                        {HtmlContent(dataSource.title.children)}
                     </h2>
                     <div key="p" {...dataSource.content}>
-                        {dataSource.content.children}
+                        {HtmlContent(dataSource.content.children)}
                     </div>
                 </QueueAnim>
                 {!isMobile && img}
