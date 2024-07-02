@@ -5,7 +5,7 @@ import {
     ReloadOutlined,
     SaveOutlined
 } from "@ant-design/icons";
-import {useMemo, useState} from "react";
+import {useCallback, useMemo, useState} from "react";
 import {useLocaleStore} from "../../../models/locale";
 import isEqual from "lodash/isEqual";
 
@@ -24,23 +24,52 @@ export default function SettingsForm(
         }
     }) {
     const {
-        props: {
-            widgets,
-            fields,
-            templates,
-            components,
-            notify
+        theme,
+        SchedulaForm,
+        csrf_token
+    } = useMemo(() => {
+        const {
+            props: {
+                widgets,
+                fields,
+                templates,
+                components,
+                notify
+            },
+            state: {csrf_token}
+        } = form
+        const SchedulaForm = components.Form
+        const theme = {widgets, fields, templates, components, notify}
+        return {
+            csrf_token,
+            theme,
+            SchedulaForm
         }
-    } = form
+    }, [form])
     const [edited, setEdited] = useState(initialSettings)
     const [_form] = Form.useForm();
     const [disabled, setDisabled] = useState(true);
-    const SchedulaForm = components.Form
     const {getLocale} = useLocaleStore()
     const locale = getLocale('User.Settings')
     const modified = useMemo(() => {
         return !isEqual(edited, initialSettings)
     }, [edited, initialSettings])
+    const formData = useMemo(() => {
+        return disabled ? initialSettings : edited
+    }, [disabled])
+    const preSubmit = useCallback(({formData}) => (formData), [])
+    const postSubmit = useCallback(({data: {user}}) => (user), [])
+    const onChange = useCallback(({formData}) => {
+        setEdited(formData)
+    }, [])
+    const onSubmit = useCallback(({formData}) => {
+        form.setState((state) => ({
+            ...state,
+            userInfo: formData,
+            submitCount: state.submitCount + 1
+        }))
+        setDisabled(true)
+    }, [form])
     return <Flex key={key} gap="middle" vertical>
         <div key={'control'}><Segmented
             options={[
@@ -53,26 +82,17 @@ export default function SettingsForm(
             disabled={disabled}
             form={_form}
             precompiledValidator={false}
-            formData={disabled ? initialSettings : edited}
-            csrf_token={form.state.csrf_token}
+            formData={formData}
+            csrf_token={csrf_token}
             schema={schema}
             uiSchema={uiSchema}
             name={'user-settings'}
-            preSubmit={({formData}) => (formData)}
-            postSubmit={({data: {user}}) => (user)}
-            onChange={({formData}) => {
-                setEdited(formData)
-            }}
-            onSubmit={({formData}) => {
-                form.setState((state) => ({
-                    ...state,
-                    userInfo: formData,
-                    submitCount: state.submitCount + 1
-                }))
-                setDisabled(true)
-            }}
+            preSubmit={preSubmit}
+            postSubmit={postSubmit}
+            onChange={onChange}
+            onSubmit={onSubmit}
             url={urlSettings}
-            theme={{widgets, fields, templates, components, notify}}
+            theme={theme}
             formContext={formContext}>
             {disabled ? null : (form) => (<Space>
                 <Button type="primary"
