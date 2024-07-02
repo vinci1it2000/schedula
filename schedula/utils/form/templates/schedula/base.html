@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ get_locale() }}">
+<html lang="{{ get_locale() }}" style="height: 100vh"  >
 <head>
     {% block head %}
     <meta charset="UTF-8">
@@ -93,8 +93,8 @@
     {% endblock %}
     {% endblock %}
 </head>
-<body style="background-color: white" onload="onLoad()">
-<div id="content">
+<body style="background-color: white; height: 100%" onload="onLoad()">
+<div id="content" style="height: 100%">
     {% block content %}
     <div id="root" style="height: 100%"></div>
     {% endblock %}

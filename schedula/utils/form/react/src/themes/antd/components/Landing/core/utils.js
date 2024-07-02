@@ -2,7 +2,7 @@ import React from 'react';
 import {Button} from 'antd';
 import DOMPurify from "dompurify";
 
-export const isImg = /^http(s)?:\/\/([\w-]+\.)+[\w-]+(\/[\w-./?%&=]*)?/;
+export const isImg = /^http(s)?:\/\/([\w-]+\.)+[\w-]+(\/[\w-./?%&=]*)?|^\/\S*$/;
 
 export const getChildrenToRender = (item, i) => {
     let tag = item.name.indexOf('title') === 0 ? 'h1' : 'div';
