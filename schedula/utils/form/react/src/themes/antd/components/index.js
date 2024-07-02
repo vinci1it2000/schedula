@@ -68,6 +68,7 @@ const Errors = React.lazy(() => import('./Errors'));
 const Errors_Drawer = React.lazy(() => import('./Errors/Drawer'));
 const Export = React.lazy(() => import('./Export'));
 const Flex = React.lazy(() => import('./Flex'));
+const FloatButton = React.lazy(() => import('./FloatButton'));
 const Grid_Col = React.lazy(() => import('./Grid/Col'));
 const Grid_Row = React.lazy(() => import('./Grid/Row'));
 const Icon = React.lazy(() => import('./Icon'));
@@ -142,6 +143,7 @@ export function generateComponents(register = true, registerDomains = true) {
         "Errors.Drawer": Errors_Drawer,
         Export,
         Flex,
+        FloatButton,
         "Grid.Col": Grid_Col,
         "Grid.Row": Grid_Row,
         Icon,
