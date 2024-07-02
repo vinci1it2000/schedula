@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 1.0\n"
 "Report-Msgid-Bugs-To: vinci1it2000@gmail.com\n"
-"PO-Revision-Date: 2024-06-26 10:12+0000\n"
+"PO-Revision-Date: 2024-07-02 10:31+0000\n"
 "Last-Translator: Vincenzo Arcidiacono <vinci1it2000@gmail.com>\n"
 "Language-Team: English <vinci1it2000@gmail.com>\n"
 "MIME-Version: 1.0\n"
@@ -1395,3 +1395,121 @@ msgstr "Отсканированных"
 # traslated
 msgid "Text.collapse"
 msgstr "Коллапс"
+
+# traslated
+msgid "Cookies.settingsText"
+msgstr "Настроить"
+
+# traslated
+msgid "Cookies.consentItems"
+msgstr "en_US"
+
+# traslated
+msgid "Cookies.rejectAllButton"
+msgstr "Отклонить все"
+
+# traslated
+msgid "Cookies.cancelButton"
+msgstr "Отмена"
+
+# traslated
+msgid "Cookies.acceptAllButton"
+msgstr "Принять все"
+
+# traslated
+msgid "Cookies.modalTitle"
+msgstr "Извещение"
+
+# traslated
+msgid "Cookies.rejectButton"
+msgstr "Отклонить необязательные параметры"
+
+# traslated
+msgid "Cookies.introText"
+msgstr ""
+"Мы и отдельные третьи лица используем файлы cookie или аналогичные "
+"технологии в технических целях и, с вашего согласия, для других целей, "
+"указанных в Политике использования файлов cookie. Для получения "
+"дополнительной информации ознакомьтесь с нашими [Условиями и "
+"положениями](/gdpr/files/terms-conditions) и [Политикой использования файлов"
+" cookie](/gdpr/files/cookies-policy)."
+
+# traslated
+msgid "Cookies.saveButton"
+msgstr "Сохранить и продолжить"
+
+# traslated
+msgid "Cookies.settingsIntro"
+msgstr ""
+"Параметры, представленные в этом разделе, позволяют вам настроить параметры "
+"согласия для любой технологии отслеживания, используемой для целей, "
+"описанных ниже. Чтобы узнать больше о том, как эти трекеры помогают нам и "
+"как они работают, обратитесь к [политике в отношении файлов "
+"cookie](/gdpr/files/cookies-policy). Имейте в виду, что отказ в согласии для"
+" определенной цели может сделать соответствующие функции недоступными."
+
+# traslated
+msgid "Cookies.settingsTitle"
+msgstr ""
+"Ваши предпочтения в отношении согласия на использование технологий "
+"отслеживания"
+
+# traslated
+msgid "Cookies.acceptButton"
+msgstr "Принимать"
+
+# traslated
+msgid "Cookies.errorTitle"
+msgstr "Опс... Что-то пошло не так!"
+
+# traslated
+msgid "Cookies.descriptionMeasuring"
+msgstr ""
+"Эти трекеры помогают нам измерять трафик и анализировать ваше поведение, "
+"чтобы улучшить наш сервис."
+
+# traslated
+msgid "Cookies.descriptionMandatory"
+msgstr ""
+"Эти трекеры используются для действий, которые строго необходимы для работы "
+"или предоставления запрошенных вами услуг и, следовательно, не требуют "
+"вашего согласия."
+
+# traslated
+msgid "Cookies.titleFunctional"
+msgstr "Функциональность"
+
+# traslated
+msgid "Cookies.descriptionFunctional"
+msgstr ""
+"Эти трекеры обеспечивают базовое взаимодействие и функции, которые позволяют"
+" вам получить доступ к выбранным функциям нашего сервиса и облегчают ваше "
+"общение с нами."
+
+# traslated
+msgid "Cookies.titleMeasuring"
+msgstr "Мерный"
+
+# traslated
+msgid "Cookies.titleMandatory"
+msgstr "Необходимый"
+
+# traslated
+msgid "Cookies.titleMarketing"
+msgstr "Маркетинг"
+
+# traslated
+msgid "Cookies.titleExperience"
+msgstr "Опыт"
+
+# traslated
+msgid "Cookies.descriptionMarketing"
+msgstr ""
+"Эти трекеры помогают нам показывать вам персонализированную рекламу или "
+"маркетинговый контент, а также измерять их эффективность."
+
+# traslated
+msgid "Cookies.descriptionExperience"
+msgstr ""
+"Эти трекеры помогают нам улучшить качество вашего пользовательского опыта и "
+"обеспечить взаимодействие с внешним контентом, сетями и платформами."

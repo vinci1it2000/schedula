@@ -35,6 +35,7 @@
     "props": {
       "theme": "dark",
       "urlContact": "user/contact",
+      "urlConsent": "gdpr/consent",
       "languages": {
         "en_US": {
           "icon": "🇺🇸",

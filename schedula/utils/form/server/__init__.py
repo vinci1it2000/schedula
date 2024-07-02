@@ -83,4 +83,8 @@ def basic_app(sitemap, app):
         from .items import Items
         Items(app, sitemap)
 
+    if app.config['SCHEDULA_GDPR_ENABLED']:
+        from .gdpr import GDPR
+        GDPR(app, sitemap)
+
     return app

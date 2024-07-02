@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 1.0\n"
 "Report-Msgid-Bugs-To: vinci1it2000@gmail.com\n"
-"PO-Revision-Date: 2024-06-26 10:12+0000\n"
+"PO-Revision-Date: 2024-07-02 10:31+0000\n"
 "Last-Translator: Vincenzo Arcidiacono <vinci1it2000@gmail.com>\n"
 "Language-Team: English <vinci1it2000@gmail.com>\n"
 "MIME-Version: 1.0\n"
@@ -1393,3 +1393,100 @@ msgstr "扫描"
 # traslated
 msgid "Text.collapse"
 msgstr "崩溃"
+
+# traslated
+msgid "Cookies.settingsText"
+msgstr "自定义"
+
+# traslated
+msgid "Cookies.consentItems"
+msgstr "en_US"
+
+# traslated
+msgid "Cookies.rejectAllButton"
+msgstr "全部拒绝"
+
+# traslated
+msgid "Cookies.cancelButton"
+msgstr "取消"
+
+# traslated
+msgid "Cookies.acceptAllButton"
+msgstr "全部接受"
+
+# traslated
+msgid "Cookies.modalTitle"
+msgstr "通知"
+
+# traslated
+msgid "Cookies.rejectButton"
+msgstr "拒绝可选"
+
+# traslated
+msgid "Cookies.introText"
+msgstr ""
+"我们和选定的第三方将 Cookie 或类似技术用于技术目的，并在您同意的情况下用于 Cookie 政策中指定的其他目的。有关更多信息，请阅读我们的 "
+"[条款和条件]（/gdpr/files/terms-conditions）和[Cookie政策]（/gdpr/files/cookies-"
+"policy）。"
+
+# traslated
+msgid "Cookies.saveButton"
+msgstr "保存并继续"
+
+# traslated
+msgid "Cookies.settingsIntro"
+msgstr ""
+"本节中提供的选项允许您针对用于下述目的的任何跟踪技术自定义您的同意首选项。要了解有关这些跟踪器如何帮助我们以及它们如何工作的更多信息，请参阅 "
+"[cookie 政策]（/gdpr/files/cookies-policy）。请注意，出于特定目的拒绝同意可能会导致相关功能不可用。"
+
+# traslated
+msgid "Cookies.settingsTitle"
+msgstr "您对跟踪技术的同意偏好"
+
+# traslated
+msgid "Cookies.acceptButton"
+msgstr "接受"
+
+# traslated
+msgid "Cookies.errorTitle"
+msgstr "老年 退休金 计划。。。出了点问题！"
+
+# traslated
+msgid "Cookies.descriptionMeasuring"
+msgstr "这些跟踪器可帮助我们衡量流量并分析您的行为，以改善我们的服务。"
+
+# traslated
+msgid "Cookies.descriptionMandatory"
+msgstr "这些跟踪器用于运营或提供您向我们请求的服务所必需的活动，因此不需要您的同意。"
+
+# traslated
+msgid "Cookies.titleFunctional"
+msgstr "功能性"
+
+# traslated
+msgid "Cookies.descriptionFunctional"
+msgstr "这些跟踪器支持基本的交互和功能，使您能够访问我们服务的选定功能并促进您与我们的沟通。"
+
+# traslated
+msgid "Cookies.titleMeasuring"
+msgstr "测量"
+
+# traslated
+msgid "Cookies.titleMandatory"
+msgstr "必要"
+
+# traslated
+msgid "Cookies.titleMarketing"
+msgstr "营销"
+
+# traslated
+msgid "Cookies.titleExperience"
+msgstr "经验"
+
+# traslated
+msgid "Cookies.descriptionMarketing"
+msgstr "这些跟踪器可帮助我们向您投放个性化广告或营销内容，并衡量其效果。"
+
+# traslated
+msgid "Cookies.descriptionExperience"
+msgstr "这些跟踪器可帮助我们提高您的用户体验质量，并实现与外部内容、网络和平台的交互。"

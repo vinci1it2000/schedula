@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 1.0\n"
 "Report-Msgid-Bugs-To: vinci1it2000@gmail.com\n"
-"PO-Revision-Date: 2024-06-26 10:11+0000\n"
+"PO-Revision-Date: 2024-07-02 10:30+0000\n"
 "Last-Translator: Vincenzo Arcidiacono <vinci1it2000@gmail.com>\n"
 "Language-Team: English <vinci1it2000@gmail.com>\n"
 "MIME-Version: 1.0\n"
@@ -1415,3 +1415,119 @@ msgstr "Eskaneatua"
 # traslated
 msgid "Text.collapse"
 msgstr "Kolapsoa"
+
+# traslated
+msgid "Cookies.settingsText"
+msgstr "Pertsonalizatu"
+
+# traslated
+msgid "Cookies.consentItems"
+msgstr "en_US"
+
+# traslated
+msgid "Cookies.rejectAllButton"
+msgstr "Guztia baztertzea"
+
+# traslated
+msgid "Cookies.cancelButton"
+msgstr "Ezeztatu"
+
+# traslated
+msgid "Cookies.acceptAllButton"
+msgstr "Dena onartzea"
+
+# traslated
+msgid "Cookies.modalTitle"
+msgstr "Notatu"
+
+# traslated
+msgid "Cookies.rejectButton"
+msgstr "Aukeran atzera bota"
+
+# traslated
+msgid "Cookies.introText"
+msgstr ""
+"Guk eta aukeratutako hirugarrenek cookieak edo antzeko teknologiak "
+"erabiltzen ditugu helburu teknikoekin eta, beren baimenarekin, cookie-"
+"politikan zehaztutako beste helburu batzuetarako. Informazio gehiago "
+"lortzeko, irakurri gure [terminoak eta baldintzak](/gdpr/files/terms-"
+"conditions) eta [Cookie-politika](/gdpr/files/cookies-policy)."
+
+# traslated
+msgid "Cookies.saveButton"
+msgstr "Gorde eta jarraitu"
+
+# traslated
+msgid "Cookies.settingsIntro"
+msgstr ""
+"Atal honetan emandako aukerei esker, jarraian deskribatutako helburuetarako "
+"erabiltzen den edozein jarraipen-teknologiatarako baimenaren lehentasunak "
+"pertsonalizatu ahal izango dituzu. Arakatzaile hauek nola laguntzen diguten "
+"eta nola funtzionatzen duten jakiteko, kontsulta ezazu [cookieen "
+"politika](/gdpr/files/cookies-policy). Kontuan izan helburu berezi baterako "
+"adostasuna ekatzeak zerikusia duten funtzioak eskuragarri ez egotea "
+"eragoztarazi dezakeela."
+
+# traslated
+msgid "Cookies.settingsTitle"
+msgstr "Jarraipen-teknologietarako adostasun-lehentasunak"
+
+# traslated
+msgid "Cookies.acceptButton"
+msgstr "Onartzea"
+
+# traslated
+msgid "Cookies.errorTitle"
+msgstr "Eragiketak... Zerbait gaizki atera zen!"
+
+# traslated
+msgid "Cookies.descriptionMeasuring"
+msgstr ""
+"Arakatzaile hauek trafikoa neurtzen eta gure zerbitzua hobetzeko duten "
+"portaera aztertzen laguntzen digute."
+
+# traslated
+msgid "Cookies.descriptionMandatory"
+msgstr ""
+"Arakatzaile horiek eskatu zigun zerbitzua emateko edo jarduteko behar-"
+"beharrezkoak diren jardueretarako erabiltzen dira, eta, beraz, ez dute "
+"baimenik behar."
+
+# traslated
+msgid "Cookies.titleFunctional"
+msgstr "Funtzionaltasuna"
+
+# traslated
+msgid "Cookies.descriptionFunctional"
+msgstr ""
+"Arakatzaile horiek interakzio eta oinarrizko funtzionalitateak ahalbidetzen "
+"dituzte, gure zerbitzuaren funtzio hautatuetara iristeko aukera ematen "
+"diotenak eta gurekin komunikatzea errazten dutenak."
+
+# traslated
+msgid "Cookies.titleMeasuring"
+msgstr "Neurketa"
+
+# traslated
+msgid "Cookies.titleMandatory"
+msgstr "Beharrezkoa"
+
+# traslated
+msgid "Cookies.titleMarketing"
+msgstr "Marketina"
+
+# traslated
+msgid "Cookies.titleExperience"
+msgstr "Esperientzia"
+
+# traslated
+msgid "Cookies.descriptionMarketing"
+msgstr ""
+"Arakatzaile horiek iragarki pertsonalizatuak edo marketin-edukiak eskaintzen"
+" eta haien errendimendua neurtzen laguntzen digute."
+
+# traslated
+msgid "Cookies.descriptionExperience"
+msgstr ""
+"Erabiltzaile-esperientziaren kalitatea hobetzen laguntzen digute, eta eduki,"
+" sare eta kanpoko plataformekin elkarrekintzak egiteko aukera ematen dute."

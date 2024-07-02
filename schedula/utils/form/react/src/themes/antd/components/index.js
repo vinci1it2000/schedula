@@ -58,6 +58,7 @@ const Card_Meta = React.lazy(() => import('./Card/Meta'));
 const Carousel = React.lazy(() => import('./Carousel'));
 const Collapse = React.lazy(() => import('./Collapse'));
 const Collapse_Panel = React.lazy(() => import('./Collapse/Panel'));
+const Cookies = React.lazy(() => import('./Cookies'));
 const Debug = React.lazy(() => import('./Debug'));
 const Descriptions = React.lazy(() => import('./Descriptions'));
 const Descriptions_Item = React.lazy(() => import('./Descriptions/Item'));
@@ -131,6 +132,7 @@ export function generateComponents(register = true, registerDomains = true) {
         Carousel,
         Collapse,
         "Collapse.Panel": Collapse_Panel,
+        Cookies,
         Debug,
         Descriptions,
         "Descriptions.Item": Descriptions_Item,

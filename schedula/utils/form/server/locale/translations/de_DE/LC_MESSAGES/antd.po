@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 1.0\n"
 "Report-Msgid-Bugs-To: vinci1it2000@gmail.com\n"
-"PO-Revision-Date: 2024-06-26 10:11+0000\n"
+"PO-Revision-Date: 2024-07-02 10:30+0000\n"
 "Last-Translator: Vincenzo Arcidiacono <vinci1it2000@gmail.com>\n"
 "Language-Team: English <vinci1it2000@gmail.com>\n"
 "MIME-Version: 1.0\n"
@@ -1413,3 +1413,120 @@ msgstr "Gescannt"
 # traslated
 msgid "Text.collapse"
 msgstr "Zusammenbruch"
+
+# traslated
+msgid "Cookies.settingsText"
+msgstr "Anpassen"
+
+# traslated
+msgid "Cookies.consentItems"
+msgstr "en_US"
+
+# traslated
+msgid "Cookies.rejectAllButton"
+msgstr "Alle ablehnen"
+
+# traslated
+msgid "Cookies.cancelButton"
+msgstr "Abbrechen"
+
+# traslated
+msgid "Cookies.acceptAllButton"
+msgstr "Alle akzeptieren"
+
+# traslated
+msgid "Cookies.modalTitle"
+msgstr "Bemerken"
+
+# traslated
+msgid "Cookies.rejectButton"
+msgstr "Optionen ablehnen"
+
+# traslated
+msgid "Cookies.introText"
+msgstr ""
+"Wir und ausgewählte Dritte verwenden Cookies oder ähnliche Technologien für "
+"technische Zwecke und, mit Ihrer Zustimmung, für andere Zwecke, wie in der "
+"Cookie-Richtlinie angegeben. Weitere Informationen finden Sie in unseren "
+"[Allgemeinen Geschäftsbedingungen](/gdpr/files/terms-conditions) und "
+"[Cookie-Richtlinie](/gdpr/files/cookies-policy)."
+
+# traslated
+msgid "Cookies.saveButton"
+msgstr "Speichern und fortfahren"
+
+# traslated
+msgid "Cookies.settingsIntro"
+msgstr ""
+"Die in diesem Abschnitt bereitgestellten Optionen ermöglichen es Ihnen, Ihre"
+" Einwilligungseinstellungen für jede Tracking-Technologie anzupassen, die "
+"für die unten beschriebenen Zwecke verwendet wird. Weitere Informationen "
+"darüber, wie uns diese Tracker helfen und wie sie funktionieren, finden Sie "
+"in der [Cookie-Richtlinie](/gdpr/files/cookies-policy). Bitte beachten Sie, "
+"dass die Verweigerung der Einwilligung für einen bestimmten Zweck dazu "
+"führen kann, dass verwandte Funktionen nicht verfügbar sind."
+
+# traslated
+msgid "Cookies.settingsTitle"
+msgstr "Ihre Einwilligungspräferenzen für Tracking-Technologien"
+
+# traslated
+msgid "Cookies.acceptButton"
+msgstr "Annehmen"
+
+# traslated
+msgid "Cookies.errorTitle"
+msgstr "Ops... Etwas ist schief gelaufen!"
+
+# traslated
+msgid "Cookies.descriptionMeasuring"
+msgstr ""
+"Diese Tracker helfen uns, den Datenverkehr zu messen und Ihr Verhalten zu "
+"analysieren, um unseren Service zu verbessern."
+
+# traslated
+msgid "Cookies.descriptionMandatory"
+msgstr ""
+"Diese Tracker werden für Aktivitäten verwendet, die für den Betrieb oder die"
+" Bereitstellung des von Ihnen angeforderten Dienstes unbedingt erforderlich "
+"sind und daher keine Zustimmung von Ihnen erfordern."
+
+# traslated
+msgid "Cookies.titleFunctional"
+msgstr "Funktionalität"
+
+# traslated
+msgid "Cookies.descriptionFunctional"
+msgstr ""
+"Diese Tracker ermöglichen grundlegende Interaktionen und Funktionen, die es "
+"Ihnen ermöglichen, auf ausgewählte Funktionen unseres Dienstes zuzugreifen "
+"und Ihre Kommunikation mit uns zu erleichtern."
+
+# traslated
+msgid "Cookies.titleMeasuring"
+msgstr "Messend"
+
+# traslated
+msgid "Cookies.titleMandatory"
+msgstr "Notwendig"
+
+# traslated
+msgid "Cookies.titleMarketing"
+msgstr "Marketing"
+
+# traslated
+msgid "Cookies.titleExperience"
+msgstr "Erfahrung"
+
+# traslated
+msgid "Cookies.descriptionMarketing"
+msgstr ""
+"Diese Tracker helfen uns, Ihnen personalisierte Anzeigen oder "
+"Marketinginhalte zu liefern und deren Leistung zu messen."
+
+# traslated
+msgid "Cookies.descriptionExperience"
+msgstr ""
+"Diese Tracker helfen uns, die Qualität Ihrer Benutzererfahrung zu verbessern"
+" und Interaktionen mit externen Inhalten, Netzwerken und Plattformen zu "
+"ermöglichen."

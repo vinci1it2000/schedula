@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 1.0\n"
 "Report-Msgid-Bugs-To: vinci1it2000@gmail.com\n"
-"PO-Revision-Date: 2024-06-26 10:11+0000\n"
+"PO-Revision-Date: 2024-07-02 10:30+0000\n"
 "Last-Translator: Vincenzo Arcidiacono <vinci1it2000@gmail.com>\n"
 "Language-Team: English <vinci1it2000@gmail.com>\n"
 "MIME-Version: 1.0\n"
@@ -1179,3 +1179,96 @@ msgstr "Scanned"
 
 msgid "Text.collapse"
 msgstr "Collapse"
+
+msgid "Cookies.settingsText"
+msgstr "Customize"
+
+# traslated
+msgid "Cookies.consentItems"
+msgstr "en_US"
+
+msgid "Cookies.rejectAllButton"
+msgstr "Reject All"
+
+msgid "Cookies.cancelButton"
+msgstr "Cancel"
+
+msgid "Cookies.acceptAllButton"
+msgstr "Accept All"
+
+msgid "Cookies.modalTitle"
+msgstr "Notice"
+
+msgid "Cookies.rejectButton"
+msgstr "Reject Optionals"
+
+msgid "Cookies.introText"
+msgstr ""
+"We and selected third parties use cookies or similar technologies for "
+"technical purposes and, with your consent, for other purposes as specified "
+"in the Cookie Policy. For more information read our [Terms and "
+"Conditions](/gdpr/files/terms-conditions) and [Cookie "
+"Policy](/gdpr/files/cookies-policy)."
+
+msgid "Cookies.saveButton"
+msgstr "Save and continue"
+
+msgid "Cookies.settingsIntro"
+msgstr ""
+"The options provided in this section allow you to customize your consent "
+"preferences for any tracking technology used for the purposes described "
+"below. To learn more about how these trackers help us and how they work, "
+"refer to the [cookie policy](/gdpr/files/cookies-policy). Please be aware "
+"that denying consent for a particular purpose may make related features "
+"unavailable."
+
+msgid "Cookies.settingsTitle"
+msgstr "Your consent preferences for tracking technologies"
+
+msgid "Cookies.acceptButton"
+msgstr "Accept"
+
+msgid "Cookies.errorTitle"
+msgstr "Ops... something went wrong!"
+
+msgid "Cookies.descriptionMeasuring"
+msgstr ""
+"These trackers help us to measure traffic and analyze your behavior to "
+"improve our service."
+
+msgid "Cookies.descriptionMandatory"
+msgstr ""
+"These trackers are used for activities that are strictly necessary to "
+"operate or deliver the service you requested from us and, therefore, do not "
+"require you to consent."
+
+msgid "Cookies.titleFunctional"
+msgstr "Functionality"
+
+msgid "Cookies.descriptionFunctional"
+msgstr ""
+"These trackers enable basic interactions and functionalities that allow you "
+"to access selected features of our service and facilitate your communication"
+" with us."
+
+msgid "Cookies.titleMeasuring"
+msgstr "Measuring"
+
+msgid "Cookies.titleMandatory"
+msgstr "Necessary"
+
+msgid "Cookies.titleMarketing"
+msgstr "Marketing"
+
+msgid "Cookies.titleExperience"
+msgstr "Experience"
+
+msgid "Cookies.descriptionMarketing"
+msgstr ""
+"These trackers help us to deliver personalized ads or marketing content to "
+"you, and to measure their performance."
+
+msgid "Cookies.descriptionExperience"
+msgstr ""
+"These trackers help us to improve the quality of your user experience and "
+"enable interactions with external content, networks and platforms."

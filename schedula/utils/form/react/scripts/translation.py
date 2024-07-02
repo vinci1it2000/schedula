@@ -26,7 +26,7 @@ data = {lng: json.loads(subprocess.check_output([
 cdir = osp.dirname(__file__)
 
 data = {i: {
-    '.'.join(k): v for k, v in sh.stack_nested_keys(d)
+    '.'.join(k): v for k, v in sh.stack_nested_keys(d) if isinstance(v, str)
 } for i, d in data.items()}
 pot_fpath = osp.abspath(osp.join(cdir, '..', '..', 'server', 'locale', 'translations', 'antd.pot'))
 if osp.isfile(pot_fpath):

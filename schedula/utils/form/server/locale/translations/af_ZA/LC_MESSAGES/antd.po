@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 1.0\n"
 "Report-Msgid-Bugs-To: vinci1it2000@gmail.com\n"
-"PO-Revision-Date: 2024-06-26 10:11+0000\n"
+"PO-Revision-Date: 2024-07-02 10:29+0000\n"
 "Last-Translator: Vincenzo Arcidiacono <vinci1it2000@gmail.com>\n"
 "Language-Team: English <vinci1it2000@gmail.com>\n"
 "MIME-Version: 1.0\n"
@@ -1568,3 +1568,120 @@ msgstr "Geskandeerde"
 # traslated
 msgid "Text.collapse"
 msgstr "Ineenstorting"
+
+# traslated
+msgid "Cookies.settingsText"
+msgstr "Pasmaak"
+
+# traslated
+msgid "Cookies.consentItems"
+msgstr "en_US"
+
+# traslated
+msgid "Cookies.rejectAllButton"
+msgstr "Verwerp alles"
+
+# traslated
+msgid "Cookies.cancelButton"
+msgstr "Kanselleer"
+
+# traslated
+msgid "Cookies.acceptAllButton"
+msgstr "Aanvaar alles"
+
+# traslated
+msgid "Cookies.modalTitle"
+msgstr "Kennisgewing"
+
+# traslated
+msgid "Cookies.rejectButton"
+msgstr "Verwerp opsionele"
+
+# traslated
+msgid "Cookies.introText"
+msgstr ""
+"Ons en geselekteerde derde partye gebruik koekies of soortgelyke tegnologieë"
+" vir tegniese doeleindes en, met u toestemming, vir ander doeleindes soos "
+"gespesifiseer in die Koekiebeleid. Vir meer inligting lees ons [Bepalings en"
+" Voorwaardes](/gdpr/files/terms-conditions) en "
+"[Koekiebeleid](/gdpr/files/cookies-policy)."
+
+# traslated
+msgid "Cookies.saveButton"
+msgstr "Stoor en gaan voort"
+
+# traslated
+msgid "Cookies.settingsIntro"
+msgstr ""
+"Met die opsies wat in hierdie afdeling aangebied word, kan u u "
+"toestemmingsvoorkeure aanpas vir enige opsporingstegnologie wat gebruik word"
+" vir die onderstaande doeleindes. Om meer te wete te kom oor hoe hierdie "
+"spoorsnyers ons help en hoe dit werk, verwys na die "
+"[koekiebeleid](/gdpr/files/cookies-policy). Let daarop dat die weiering van "
+"toestemming vir 'n spesifieke doel verwante funksies nie beskikbaar kan maak"
+" nie."
+
+# traslated
+msgid "Cookies.settingsTitle"
+msgstr "U toestemmingsvoorkeure vir opsporingstegnologieë"
+
+# traslated
+msgid "Cookies.acceptButton"
+msgstr "Aanvaar"
+
+# traslated
+msgid "Cookies.errorTitle"
+msgstr "Ops... iets het verkeerd geloop!"
+
+# traslated
+msgid "Cookies.descriptionMeasuring"
+msgstr ""
+"Hierdie spoorsnyers help ons om verkeer te meet en u gedrag te ontleed om "
+"ons diens te verbeter."
+
+# traslated
+msgid "Cookies.descriptionMandatory"
+msgstr ""
+"Hierdie spoorsnyers word gebruik vir aktiwiteite wat streng noodsaaklik is "
+"om die diens wat u van ons versoek het, te bedryf of te lewer en vereis dus "
+"nie dat u toestemming gee nie."
+
+# traslated
+msgid "Cookies.titleFunctional"
+msgstr "Funksionaliteit"
+
+# traslated
+msgid "Cookies.descriptionFunctional"
+msgstr ""
+"Hierdie spoorsnyers maak basiese interaksies en funksies moontlik wat u "
+"toelaat om toegang tot geselekteerde funksies van ons diens te verkry en u "
+"kommunikasie met ons te vergemaklik."
+
+# traslated
+msgid "Cookies.titleMeasuring"
+msgstr "Meet"
+
+# traslated
+msgid "Cookies.titleMandatory"
+msgstr "Nodig"
+
+# traslated
+msgid "Cookies.titleMarketing"
+msgstr "Bemarking"
+
+# traslated
+msgid "Cookies.titleExperience"
+msgstr "Ervaring"
+
+# traslated
+msgid "Cookies.descriptionMarketing"
+msgstr ""
+"Hierdie spoorsnyers help ons om gepersonaliseerde advertensies of "
+"bemarkingsinhoud aan jou te lewer, en om hul prestasie te meet."
+
+# traslated
+msgid "Cookies.descriptionExperience"
+msgstr ""
+"Hierdie spoorsnyers help ons om die kwaliteit van jou gebruikerservaring te "
+"verbeter en interaksies met eksterne inhoud, netwerke en platforms moontlik "
+"te maak."

@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 1.0\n"
 "Report-Msgid-Bugs-To: vinci1it2000@gmail.com\n"
-"PO-Revision-Date: 2024-06-26 10:12+0000\n"
+"PO-Revision-Date: 2024-07-02 10:31+0000\n"
 "Last-Translator: Vincenzo Arcidiacono <vinci1it2000@gmail.com>\n"
 "Language-Team: English <vinci1it2000@gmail.com>\n"
 "MIME-Version: 1.0\n"
@@ -1414,3 +1414,117 @@ msgstr "Skanowane"
 # traslated
 msgid "Text.collapse"
 msgstr "Zapaść"
+
+# traslated
+msgid "Cookies.settingsText"
+msgstr "Dostosuj"
+
+# traslated
+msgid "Cookies.consentItems"
+msgstr "en_US"
+
+# traslated
+msgid "Cookies.rejectAllButton"
+msgstr "Odrzuć wszystko"
+
+# traslated
+msgid "Cookies.cancelButton"
+msgstr "Anuluj"
+
+# traslated
+msgid "Cookies.acceptAllButton"
+msgstr "Zaakceptuj wszystkie"
+
+# traslated
+msgid "Cookies.modalTitle"
+msgstr "Zauważyć"
+
+# traslated
+msgid "Cookies.rejectButton"
+msgstr "Odrzuć opcjonalne"
+
+# traslated
+msgid "Cookies.introText"
+msgstr ""
+"My i wybrane strony trzecie używamy plików cookie lub podobnych technologii "
+"do celów technicznych oraz, za Twoją zgodą, do innych celów określonych w "
+"Polityce plików cookie. Aby uzyskać więcej informacji, zapoznaj się z naszym"
+" [Regulaminem](/gdpr/files/terms-conditions) i [Polityką plików "
+"cookie](/gdpr/files/cookies-policy)."
+
+# traslated
+msgid "Cookies.saveButton"
+msgstr "Zapisz i kontynuuj"
+
+# traslated
+msgid "Cookies.settingsIntro"
+msgstr ""
+"Opcje przedstawione w tej sekcji umożliwiają dostosowanie preferencji "
+"dotyczących zgody na dowolną technologię śledzenia używaną do celów "
+"opisanych poniżej. Aby dowiedzieć się więcej o tym, jak te moduły śledzące "
+"nam pomagają i jak działają, zapoznaj się z [polityką plików "
+"cookie](/gdpr/files/cookies-policy). Należy pamiętać, że odmowa zgody na "
+"określony cel może spowodować, że powiązane funkcje staną się niedostępne."
+
+# traslated
+msgid "Cookies.settingsTitle"
+msgstr "Preferencje użytkownika dotyczące zgody na technologie śledzenia"
+
+# traslated
+msgid "Cookies.acceptButton"
+msgstr "Akceptować"
+
+# traslated
+msgid "Cookies.errorTitle"
+msgstr "Ops... Coś poszło nie tak!"
+
+# traslated
+msgid "Cookies.descriptionMeasuring"
+msgstr ""
+"Te elementy śledzące pomagają nam mierzyć ruch i analizować zachowanie "
+"użytkownika w celu ulepszenia naszych usług."
+
+# traslated
+msgid "Cookies.descriptionMandatory"
+msgstr ""
+"Te trackery są wykorzystywane do działań, które są absolutnie niezbędne do "
+"obsługi lub świadczenia usługi, o którą prosisz, a zatem nie wymagają Twojej"
+" zgody."
+
+# traslated
+msgid "Cookies.titleFunctional"
+msgstr "Funkcjonalność"
+
+# traslated
+msgid "Cookies.descriptionFunctional"
+msgstr ""
+"Te trackery umożliwiają podstawowe interakcje i funkcje, które umożliwiają "
+"dostęp do wybranych funkcji naszego serwisu i ułatwiają komunikację z nami."
+
+# traslated
+msgid "Cookies.titleMeasuring"
+msgstr "Mierzenie"
+
+# traslated
+msgid "Cookies.titleMandatory"
+msgstr "Niezbędny"
+
+# traslated
+msgid "Cookies.titleMarketing"
+msgstr "Marketing"
+
+# traslated
+msgid "Cookies.titleExperience"
+msgstr "Doświadczenie"
+
+# traslated
+msgid "Cookies.descriptionMarketing"
+msgstr ""
+"Te elementy śledzące pomagają nam dostarczać użytkownikowi spersonalizowane "
+"reklamy lub treści marketingowe oraz mierzyć ich skuteczność."
+
+# traslated
+msgid "Cookies.descriptionExperience"
+msgstr ""
+"Te elementy śledzące pomagają nam poprawić jakość doświadczenia użytkownika "
+"i umożliwiają interakcje z zewnętrznymi treściami, sieciami i platformami."

@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 1.0\n"
 "Report-Msgid-Bugs-To: vinci1it2000@gmail.com\n"
-"PO-Revision-Date: 2024-06-26 10:12+0000\n"
+"PO-Revision-Date: 2024-07-02 10:30+0000\n"
 "Last-Translator: Vincenzo Arcidiacono <vinci1it2000@gmail.com>\n"
 "Language-Team: English <vinci1it2000@gmail.com>\n"
 "MIME-Version: 1.0\n"
@@ -1477,3 +1477,118 @@ msgstr "Skanni"
 # traslated
 msgid "Text.collapse"
 msgstr "Hrynja"
+
+# traslated
+msgid "Cookies.settingsText"
+msgstr "Sérsníða"
+
+# traslated
+msgid "Cookies.consentItems"
+msgstr "en_US"
+
+# traslated
+msgid "Cookies.rejectAllButton"
+msgstr "Hafna öllu"
+
+# traslated
+msgid "Cookies.cancelButton"
+msgstr "Afturkalla"
+
+# traslated
+msgid "Cookies.acceptAllButton"
+msgstr "Samþykkja allt"
+
+# traslated
+msgid "Cookies.modalTitle"
+msgstr "Tilkynning"
+
+# traslated
+msgid "Cookies.rejectButton"
+msgstr "Hafna valfrjálsum"
+
+# traslated
+msgid "Cookies.introText"
+msgstr ""
+"Við og valdir þriðju aðilar notum vafrakökur eða svipaða tækni í tæknilegum "
+"tilgangi og, með þínu samþykki, í öðrum tilgangi eins og tilgreint er í "
+"vafrakökustefnunni. Fyrir frekari upplýsingar lestu okkar [Skilmálar] (/ "
+"GDPR / skrár / skilmálar-skilyrði) og [Vafrakökustefna] (/ GDPR / skrár / "
+"smákökur-stefna)."
+
+# traslated
+msgid "Cookies.saveButton"
+msgstr "Vista og halda áfram"
+
+# traslated
+msgid "Cookies.settingsIntro"
+msgstr ""
+"Valkostirnir í þessum hluta gera þér kleift að sérsníða samþykkisstillingar "
+"þínar fyrir hvers kyns rakningartækni sem notuð er í þeim tilgangi sem lýst "
+"er hér að neðan. Til að læra meira um hvernig þessir rekja spor einhvers "
+"hjálpa okkur og hvernig þeir virka skaltu skoða "
+"[vafrakökustefnu](/gdpr/files/cookies-policy). Vinsamlegast hafðu í huga að "
+"neitun samþykkis í ákveðnum tilgangi getur gert tengda eiginleika ótiltæka."
+
+# traslated
+msgid "Cookies.settingsTitle"
+msgstr "Kjörstillingar þínar fyrir rakningartækni"
+
+# traslated
+msgid "Cookies.acceptButton"
+msgstr "Þiggja"
+
+# traslated
+msgid "Cookies.errorTitle"
+msgstr "Ops... Eitthvað fór úrskeiðis!"
+
+# traslated
+msgid "Cookies.descriptionMeasuring"
+msgstr ""
+"Þessir rekja spor einhvers hjálpa okkur að mæla umferð og greina hegðun þína"
+" til að bæta þjónustu okkar."
+
+# traslated
+msgid "Cookies.descriptionMandatory"
+msgstr ""
+"Þessir rekja spor einhvers eru notaðir fyrir athafnir sem eru stranglega "
+"nauðsynlegar til að reka eða skila þjónustunni sem þú baðst um frá okkur og "
+"þurfa því ekki samþykki þitt."
+
+# traslated
+msgid "Cookies.titleFunctional"
+msgstr "Virkni"
+
+# traslated
+msgid "Cookies.descriptionFunctional"
+msgstr ""
+"Þessir rekja spor einhvers virkja grunnsamskipti og virkni sem gerir þér "
+"kleift að fá aðgang að völdum eiginleikum þjónustu okkar og auðvelda "
+"samskipti þín við okkur."
+
+# traslated
+msgid "Cookies.titleMeasuring"
+msgstr "Mæla"
+
+# traslated
+msgid "Cookies.titleMandatory"
+msgstr "Nauðsynlegur"
+
+# traslated
+msgid "Cookies.titleMarketing"
+msgstr "Markaðssetning"
+
+# traslated
+msgid "Cookies.titleExperience"
+msgstr "Reynsla"
+
+# traslated
+msgid "Cookies.descriptionMarketing"
+msgstr ""
+"Þessir rekja spor einhvers hjálpa okkur að birta sérsniðnar auglýsingar eða "
+"markaðsefni til þín og mæla árangur þeirra."
+
+# traslated
+msgid "Cookies.descriptionExperience"
+msgstr ""
+"Þessir rekja spor einhvers hjálpa okkur að bæta gæði notendaupplifunar "
+"þinnar og virkja samskipti við ytra efni, net og vettvang."

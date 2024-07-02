@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 1.0\n"
 "Report-Msgid-Bugs-To: vinci1it2000@gmail.com\n"
-"PO-Revision-Date: 2024-06-26 10:12+0000\n"
+"PO-Revision-Date: 2024-07-02 10:30+0000\n"
 "Last-Translator: Vincenzo Arcidiacono <vinci1it2000@gmail.com>\n"
 "Language-Team: English <vinci1it2000@gmail.com>\n"
 "MIME-Version: 1.0\n"
@@ -1466,3 +1466,121 @@ msgstr "Սկանավորված"
 # traslated
 msgid "Text.collapse"
 msgstr "Փլուզում"
+
+# traslated
+msgid "Cookies.settingsText"
+msgstr "Customize"
+
+# traslated
+msgid "Cookies.consentItems"
+msgstr "en_US"
+
+# traslated
+msgid "Cookies.rejectAllButton"
+msgstr "Մերժիր բոլորին"
+
+# traslated
+msgid "Cookies.cancelButton"
+msgstr "Չեղարկել"
+
+# traslated
+msgid "Cookies.acceptAllButton"
+msgstr "Ընդունեք բոլորը"
+
+# traslated
+msgid "Cookies.modalTitle"
+msgstr "Նկատողություն"
+
+# traslated
+msgid "Cookies.rejectButton"
+msgstr "Հրաժարվիր տարբերակներից"
+
+# traslated
+msgid "Cookies.introText"
+msgstr ""
+"Մենք եւ ընտրված երրորդ անձինք օգտագործում ենք cookie կամ նմանատիպ "
+"տեխնոլոգիաներ տեխնիկական նպատակներով եւ, Ձեր համաձայնությամբ, այլ "
+"նպատակներով, ինչպես նշված է Cookie Policy-ում: Լրացուցիչ տեղեկությունների "
+"համար կարդացեք մեր [Պայմանները եւ պայմանները](/gdpr/files/terms-conditions) "
+"եւ [Cookie Policy](/gdpr/files/cookies-policy):"
+
+# traslated
+msgid "Cookies.saveButton"
+msgstr "Խնայեք եւ շարունակեք"
+
+# traslated
+msgid "Cookies.settingsIntro"
+msgstr ""
+"Այս բաժնում ներկայացված տարբերակները թույլ են տալիս ձեզ հարմարեցնել ձեր "
+"համաձայնության նախասիրությունները ցանկացած հետապնդման տեխնոլոգիայի համար, "
+"որն օգտագործվում է ստորեւ նկարագրված նպատակների համար: Ավելի շատ "
+"տեղեկություններ ստանալու համար, թե ինչպես են այս trackers օգնում մեզ եւ "
+"ինչպես են նրանք աշխատում, հղում [cookie policy](/gdpr/files/cookies-policy):"
+" Խնդրում ենք տեղյակ լինել, որ համաձայնությունը մերժելը որոշակի նպատակով "
+"կարող է անհասանելի դարձնել դրանց հետ կապված առանձնահատկությունները:"
+
+# traslated
+msgid "Cookies.settingsTitle"
+msgstr "Ձեր համաձայնության նախընտրությունները հետեւել տեխնոլոգիաներին"
+
+# traslated
+msgid "Cookies.acceptButton"
+msgstr "Ընդունել"
+
+# traslated
+msgid "Cookies.errorTitle"
+msgstr "Ops... ինչ-որ բան սխալվեց!"
+
+# traslated
+msgid "Cookies.descriptionMeasuring"
+msgstr ""
+"Այս հետեւողները օգնում են մեզ չափել երթեւեկությունը եւ վերլուծել ձեր վարքը, "
+"որպեսզի բարելավենք մեր ծառայությունը։"
+
+# traslated
+msgid "Cookies.descriptionMandatory"
+msgstr ""
+"Այս հետքրքիրներն օգտագործվում են այնպիսի միջոցառումների համար, որոնք խիստ "
+"անհրաժեշտ են մեզանից Ձեր կողմից ձեր կողմից պահանջված ծառայությունը "
+"գործարկելու կամ մատուցելու համար եւ, հետեւաբար, չեն պահանջում, որ Դուք "
+"համաձայնվեք:"
+
+# traslated
+msgid "Cookies.titleFunctional"
+msgstr "Ֆունկցիոնալություն"
+
+# traslated
+msgid "Cookies.descriptionFunctional"
+msgstr ""
+"Այս trackers-ը հնարավորություն է տալիս ստանալ հիմնական փոխազդեցություններ եւ"
+" ֆունկցիաներ, որոնք թույլ են տալիս ձեզ մուտք գործել մեր ծառայության ընտրված "
+"առանձնահատկություններից եւ հեշտացնել Ձեր հաղորդակցությունը մեզ հետ:"
+
+# traslated
+msgid "Cookies.titleMeasuring"
+msgstr "Չափում"
+
+# traslated
+msgid "Cookies.titleMandatory"
+msgstr "Անհրաժեշտ"
+
+# traslated
+msgid "Cookies.titleMarketing"
+msgstr "Մարքեթինգ"
+
+# traslated
+msgid "Cookies.titleExperience"
+msgstr "Վարժանք"
+
+# traslated
+msgid "Cookies.descriptionMarketing"
+msgstr ""
+"Այս trackers- ը օգնում է մեզ ձեզ փոխանցել անհատականացված գովազդներ կամ "
+"մարքեթինգային բովանդակություն, եւ չափել դրանց կատարումը:"
+
+# traslated
+msgid "Cookies.descriptionExperience"
+msgstr ""
+"Այս trackers-ը օգնում է մեզ բարելավել ձեր օգտագործողի փորձի որակը եւ "
+"հնարավորություն է տալիս շփվել արտաքին բովանդակության, ցանցերի եւ հարթակների "
+"հետ:"

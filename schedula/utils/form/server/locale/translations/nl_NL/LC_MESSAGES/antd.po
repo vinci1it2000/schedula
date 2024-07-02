@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 1.0\n"
 "Report-Msgid-Bugs-To: vinci1it2000@gmail.com\n"
-"PO-Revision-Date: 2024-06-26 10:12+0000\n"
+"PO-Revision-Date: 2024-07-02 10:31+0000\n"
 "Last-Translator: Vincenzo Arcidiacono <vinci1it2000@gmail.com>\n"
 "Language-Team: English <vinci1it2000@gmail.com>\n"
 "MIME-Version: 1.0\n"
@@ -1402,3 +1402,119 @@ msgstr "Gescande"
 # traslated
 msgid "Text.collapse"
 msgstr "Instorting"
+
+# traslated
+msgid "Cookies.settingsText"
+msgstr "Aanpassen"
+
+# traslated
+msgid "Cookies.consentItems"
+msgstr "en_US"
+
+# traslated
+msgid "Cookies.rejectAllButton"
+msgstr "Alles afwijzen"
+
+# traslated
+msgid "Cookies.cancelButton"
+msgstr "Annuleren"
+
+# traslated
+msgid "Cookies.acceptAllButton"
+msgstr "Accepteer alles"
+
+# traslated
+msgid "Cookies.modalTitle"
+msgstr "Bemerken"
+
+# traslated
+msgid "Cookies.rejectButton"
+msgstr "Optioneel afwijzen"
+
+# traslated
+msgid "Cookies.introText"
+msgstr ""
+"Wij en geselecteerde derden gebruiken cookies of vergelijkbare technologieën"
+" voor technische doeleinden en, met uw toestemming, voor andere doeleinden "
+"zoals gespecificeerd in het Cookiebeleid. Lees voor meer informatie onze "
+"[Algemene voorwaarden](/gdpr/files/terms-conditions) en "
+"[Cookiebeleid](/gdpr/files/cookies-policy)."
+
+# traslated
+msgid "Cookies.saveButton"
+msgstr "Opslaan en doorgaan"
+
+# traslated
+msgid "Cookies.settingsIntro"
+msgstr ""
+"Met de opties in deze sectie kunt u uw toestemmingsvoorkeuren aanpassen voor"
+" elke trackingtechnologie die wordt gebruikt voor de hieronder beschreven "
+"doeleinden. Om meer te weten te komen over hoe deze trackers ons helpen en "
+"hoe ze werken, raadpleegt u het [cookiebeleid](/gdpr/files/cookies-policy). "
+"Houd er rekening mee dat het weigeren van toestemming voor een bepaald doel "
+"ertoe kan leiden dat gerelateerde functies niet beschikbaar zijn."
+
+# traslated
+msgid "Cookies.settingsTitle"
+msgstr "Uw toestemmingsvoorkeuren voor trackingtechnologieën"
+
+# traslated
+msgid "Cookies.acceptButton"
+msgstr "Accepteren"
+
+# traslated
+msgid "Cookies.errorTitle"
+msgstr "Ops... Er is iets misgegaan!"
+
+# traslated
+msgid "Cookies.descriptionMeasuring"
+msgstr ""
+"Deze trackers helpen ons om het verkeer te meten en uw gedrag te analyseren "
+"om onze service te verbeteren."
+
+# traslated
+msgid "Cookies.descriptionMandatory"
+msgstr ""
+"Deze trackers worden gebruikt voor activiteiten die strikt noodzakelijk zijn"
+" om de door u gevraagde dienst te exploiteren of te leveren en waarvoor u "
+"daarom geen toestemming nodig hebt."
+
+# traslated
+msgid "Cookies.titleFunctional"
+msgstr "Functionaliteit"
+
+# traslated
+msgid "Cookies.descriptionFunctional"
+msgstr ""
+"Deze trackers maken basisinteracties en functionaliteiten mogelijk waarmee u"
+" toegang krijgt tot geselecteerde functies van onze service en uw "
+"communicatie met ons kunt vergemakkelijken."
+
+# traslated
+msgid "Cookies.titleMeasuring"
+msgstr "Meten"
+
+# traslated
+msgid "Cookies.titleMandatory"
+msgstr "Nodig"
+
+# traslated
+msgid "Cookies.titleMarketing"
+msgstr "Marketing"
+
+# traslated
+msgid "Cookies.titleExperience"
+msgstr "Ervaring"
+
+# traslated
+msgid "Cookies.descriptionMarketing"
+msgstr ""
+"Deze trackers helpen ons om gepersonaliseerde advertenties of "
+"marketinginhoud aan u te leveren en om hun prestaties te meten."
+
+# traslated
+msgid "Cookies.descriptionExperience"
+msgstr ""
+"Deze trackers helpen ons om de kwaliteit van uw gebruikerservaring te "
+"verbeteren en interacties met externe inhoud, netwerken en platforms "
+"mogelijk te maken."

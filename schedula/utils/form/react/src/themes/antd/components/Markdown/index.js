@@ -4,6 +4,12 @@ import remarkGfm from 'remark-gfm'
 
 export default function Markdown({children, render, ...props}) {
     return <ReactAntdown
+        components={{
+            a: ({
+                    node, href, children, ...props
+                }) => <a href={href} target="_blank"
+                         rel="noopener noreferrer" {...props}>{children}</a>,
+        }}
         remarkPlugins={[remarkGfm]}
         urlTransform={uri => uri}>
         {formatMd({

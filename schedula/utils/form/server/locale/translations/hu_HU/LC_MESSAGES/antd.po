@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 1.0\n"
 "Report-Msgid-Bugs-To: vinci1it2000@gmail.com\n"
-"PO-Revision-Date: 2024-06-26 10:12+0000\n"
+"PO-Revision-Date: 2024-07-02 10:30+0000\n"
 "Last-Translator: Vincenzo Arcidiacono <vinci1it2000@gmail.com>\n"
 "Language-Team: English <vinci1it2000@gmail.com>\n"
 "MIME-Version: 1.0\n"
@@ -1476,3 +1476,121 @@ msgstr "Beolvasott"
 # traslated
 msgid "Text.collapse"
 msgstr "Összeomlás"
+
+# traslated
+msgid "Cookies.settingsText"
+msgstr "Testreszab"
+
+# traslated
+msgid "Cookies.consentItems"
+msgstr "en_US"
+
+# traslated
+msgid "Cookies.rejectAllButton"
+msgstr "Összes elutasítása"
+
+# traslated
+msgid "Cookies.cancelButton"
+msgstr "Érvénytelenít"
+
+# traslated
+msgid "Cookies.acceptAllButton"
+msgstr "Összes elfogadása"
+
+# traslated
+msgid "Cookies.modalTitle"
+msgstr "Észrevesz"
+
+# traslated
+msgid "Cookies.rejectButton"
+msgstr "Opcionális beállítások elutasítása"
+
+# traslated
+msgid "Cookies.introText"
+msgstr ""
+"Mi és kiválasztott harmadik felek cookie-kat vagy hasonló technológiákat "
+"használunk technikai célokra, és az Ön beleegyezésével a Cookie-"
+"szabályzatban meghatározott egyéb célokra. További információkért olvassa el"
+" a [Felhasználási feltételek](/gdpr/files/terms-conditions) és a [Cookie "
+"Policy](/gdpr/files/cookies-policy) című részünket."
+
+# traslated
+msgid "Cookies.saveButton"
+msgstr "Mentés és folytatás"
+
+# traslated
+msgid "Cookies.settingsIntro"
+msgstr ""
+"Az ebben a szakaszban található lehetőségek lehetővé teszik, hogy személyre "
+"szabja hozzájárulási beállításait az alább leírt célokra használt bármely "
+"nyomkövetési technológiához. Ha többet szeretne megtudni arról, hogy ezek a "
+"nyomkövetők hogyan segítenek nekünk és hogyan működnek, olvassa el a "
+"[cookie-szabályzat](/gdpr/files/cookies-policy) című cikket. Kérjük, vegye "
+"figyelembe, hogy a hozzájárulás megtagadása egy adott célból elérhetetlenné "
+"teheti a kapcsolódó funkciókat."
+
+# traslated
+msgid "Cookies.settingsTitle"
+msgstr "Az Ön hozzájárulási preferenciái a nyomkövetési technológiákhoz"
+
+# traslated
+msgid "Cookies.acceptButton"
+msgstr "Elfogad"
+
+# traslated
+msgid "Cookies.errorTitle"
+msgstr "Ops... Valami hiba történt!"
+
+# traslated
+msgid "Cookies.descriptionMeasuring"
+msgstr ""
+"Ezek a nyomkövetők segítenek nekünk a forgalom mérésében és az Ön "
+"viselkedésének elemzésében szolgáltatásunk javítása érdekében."
+
+# traslated
+msgid "Cookies.descriptionMandatory"
+msgstr ""
+"Ezeket a nyomkövetőket olyan tevékenységekhez használjuk, amelyek "
+"feltétlenül szükségesek a tőlünk kért szolgáltatás működtetéséhez vagy "
+"nyújtásához, és ezért nem igénylik az Ön hozzájárulását."
+
+# traslated
+msgid "Cookies.titleFunctional"
+msgstr "Funkcionalitás"
+
+# traslated
+msgid "Cookies.descriptionFunctional"
+msgstr ""
+"Ezek a nyomkövetők lehetővé teszik az alapvető interakciókat és funkciókat, "
+"amelyek lehetővé teszik a szolgáltatásunk kiválasztott funkcióinak elérését,"
+" és megkönnyítik a velünk folytatott kommunikációt."
+
+# traslated
+msgid "Cookies.titleMeasuring"
+msgstr "Mérés"
+
+# traslated
+msgid "Cookies.titleMandatory"
+msgstr "Szükséges"
+
+# traslated
+msgid "Cookies.titleMarketing"
+msgstr "Marketing"
+
+# traslated
+msgid "Cookies.titleExperience"
+msgstr "Tapasztalat"
+
+# traslated
+msgid "Cookies.descriptionMarketing"
+msgstr ""
+"Ezek a nyomkövetők segítenek nekünk abban, hogy személyre szabott "
+"hirdetéseket vagy marketingtartalmakat jelenítsünk meg Önnek, és mérjük azok"
+" teljesítményét."
+
+# traslated
+msgid "Cookies.descriptionExperience"
+msgstr ""
+"Ezek a nyomkövetők segítenek nekünk a felhasználói élmény minőségének "
+"javításában, és lehetővé teszik a külső tartalmakkal, hálózatokkal és "
+"platformokkal való interakciókat."

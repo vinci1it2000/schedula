@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 1.0\n"
 "Report-Msgid-Bugs-To: vinci1it2000@gmail.com\n"
-"PO-Revision-Date: 2024-06-26 10:11+0000\n"
+"PO-Revision-Date: 2024-07-02 10:30+0000\n"
 "Last-Translator: Vincenzo Arcidiacono <vinci1it2000@gmail.com>\n"
 "Language-Team: English <vinci1it2000@gmail.com>\n"
 "MIME-Version: 1.0\n"
@@ -1422,3 +1422,121 @@ msgstr "Escannejat"
 # traslated
 msgid "Text.collapse"
 msgstr "Col·lapsar"
+
+# traslated
+msgid "Cookies.settingsText"
+msgstr "Personalitzar"
+
+# traslated
+msgid "Cookies.consentItems"
+msgstr "en_US"
+
+# traslated
+msgid "Cookies.rejectAllButton"
+msgstr "Rebutja-ho tot"
+
+# traslated
+msgid "Cookies.cancelButton"
+msgstr "Cancel·lar"
+
+# traslated
+msgid "Cookies.acceptAllButton"
+msgstr "Acceptar-ho tot"
+
+# traslated
+msgid "Cookies.modalTitle"
+msgstr "Notar"
+
+# traslated
+msgid "Cookies.rejectButton"
+msgstr "Rebutjar opcionals"
+
+# traslated
+msgid "Cookies.introText"
+msgstr ""
+"Nosaltres i tercers seleccionats utilitzem cookies o tecnologies similars "
+"amb finalitats tècniques i, amb el seu consentiment, per a altres finalitats"
+" tal com s'especifica a la Política de Cookies. Per a més informació "
+"llegeixi la nostra [Termes i condicions](/gdpr/arxius/termes-condicions) i "
+"[Política de cookies](/gdpr/arxius/política-cookies)."
+
+# traslated
+msgid "Cookies.saveButton"
+msgstr "Desa i continua"
+
+# traslated
+msgid "Cookies.settingsIntro"
+msgstr ""
+"Les opcions proporcionades en aquesta secció us permeten personalitzar les "
+"vostres preferències de consentiment per a qualsevol tecnologia de seguiment"
+" utilitzada per a les finalitats que es descriuen a continuació. Per obtenir"
+" més informació sobre com ens ajuden aquests rastrejadors i com funcionen, "
+"consulteu [política de cookies] (/gdpr/files/cookies-policy). Tingueu en "
+"compte que denegar el consentiment per a un propòsit concret pot fer que les"
+" funcions relacionades no estiguin disponibles."
+
+# traslated
+msgid "Cookies.settingsTitle"
+msgstr ""
+"Les vostres preferències de consentiment per a les tecnologies de rastreig"
+
+# traslated
+msgid "Cookies.acceptButton"
+msgstr "Acceptar"
+
+# traslated
+msgid "Cookies.errorTitle"
+msgstr "Ops... Alguna cosa ha anat malament!"
+
+# traslated
+msgid "Cookies.descriptionMeasuring"
+msgstr ""
+"Aquests rastrejadors ens ajuden a mesurar el trànsit i analitzar el seu "
+"comportament per millorar el nostre servei."
+
+# traslated
+msgid "Cookies.descriptionMandatory"
+msgstr ""
+"Aquests rastrejadors s'utilitzen per a activitats que són estrictament "
+"necessàries per operar o prestar el servei que ens heu sol·licitat i, per "
+"tant, no requereixen el vostre consentiment."
+
+# traslated
+msgid "Cookies.titleFunctional"
+msgstr "Funcionalitat"
+
+# traslated
+msgid "Cookies.descriptionFunctional"
+msgstr ""
+"Aquests rastrejadors permeten interaccions i funcionalitats bàsiques que li "
+"permeten accedir a funcions seleccionades del nostre servei i faciliten la "
+"seva comunicació amb nosaltres."
+
+# traslated
+msgid "Cookies.titleMeasuring"
+msgstr "Mesurar"
+
+# traslated
+msgid "Cookies.titleMandatory"
+msgstr "Necessari"
+
+# traslated
+msgid "Cookies.titleMarketing"
+msgstr "Màrqueting"
+
+# traslated
+msgid "Cookies.titleExperience"
+msgstr "Experiència"
+
+# traslated
+msgid "Cookies.descriptionMarketing"
+msgstr ""
+"Aquests rastrejadors ens ajuden a oferir-vos anuncis personalitzats o "
+"contingut de màrqueting i a mesurar-ne el rendiment."
+
+# traslated
+msgid "Cookies.descriptionExperience"
+msgstr ""
+"Aquests rastrejadors ens ajuden a millorar la qualitat de la vostra "
+"experiència d'usuari i permeten interaccions amb contingut, xarxes i "
+"plataformes externes."

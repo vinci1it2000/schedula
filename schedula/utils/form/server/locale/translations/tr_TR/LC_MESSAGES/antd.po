@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 1.0\n"
 "Report-Msgid-Bugs-To: vinci1it2000@gmail.com\n"
-"PO-Revision-Date: 2024-06-26 10:12+0000\n"
+"PO-Revision-Date: 2024-07-02 10:31+0000\n"
 "Last-Translator: Vincenzo Arcidiacono <vinci1it2000@gmail.com>\n"
 "Language-Team: English <vinci1it2000@gmail.com>\n"
 "MIME-Version: 1.0\n"
@@ -1404,3 +1404,120 @@ msgstr "Taranan"
 # traslated
 msgid "Text.collapse"
 msgstr "Çökmek"
+
+# traslated
+msgid "Cookies.settingsText"
+msgstr "Özelleştir"
+
+# traslated
+msgid "Cookies.consentItems"
+msgstr "en_US"
+
+# traslated
+msgid "Cookies.rejectAllButton"
+msgstr "Tümünü Reddet"
+
+# traslated
+msgid "Cookies.cancelButton"
+msgstr "İptal"
+
+# traslated
+msgid "Cookies.acceptAllButton"
+msgstr "Tümünü Kabul Et"
+
+# traslated
+msgid "Cookies.modalTitle"
+msgstr "Farkına varmak"
+
+# traslated
+msgid "Cookies.rejectButton"
+msgstr "İsteğe Bağlı Olanları Reddet"
+
+# traslated
+msgid "Cookies.introText"
+msgstr ""
+"Biz ve seçili üçüncü taraflar, çerezleri veya benzer teknolojileri teknik "
+"amaçlarla ve sizin izninizle Çerez Politikasında belirtilen diğer amaçlar "
+"için kullanırız. Daha fazla bilgi için [Şartlar ve "
+"Koşullar](/gdpr/files/terms-conditions) ve [Çerez "
+"Politikası](/gdpr/files/cookies-policy) sayfalarımızı okuyun."
+
+# traslated
+msgid "Cookies.saveButton"
+msgstr "Kaydet ve devam et"
+
+# traslated
+msgid "Cookies.settingsIntro"
+msgstr ""
+"Bu bölümde sağlanan seçenekler, aşağıda açıklanan amaçlar için kullanılan "
+"herhangi bir izleme teknolojisi için izin tercihlerinizi özelleştirmenize "
+"olanak tanır. Bu izleyicilerin bize nasıl yardımcı olduğu ve nasıl "
+"çalıştıkları hakkında daha fazla bilgi edinmek için [çerez "
+"politikası](/gdpr/files/cookies-policy) bölümüne bakın. Belirli bir amaç "
+"için onayın reddedilmesinin ilgili özellikleri kullanılamaz hale "
+"getirebileceğini lütfen unutmayın."
+
+# traslated
+msgid "Cookies.settingsTitle"
+msgstr "İzleme teknolojileri için onay tercihleriniz"
+
+# traslated
+msgid "Cookies.acceptButton"
+msgstr "Almak"
+
+# traslated
+msgid "Cookies.errorTitle"
+msgstr "Ops... Bir şeyler ters gitti!"
+
+# traslated
+msgid "Cookies.descriptionMeasuring"
+msgstr ""
+"Bu izleyiciler, hizmetimizi iyileştirmek için trafiği ölçmemize ve "
+"davranışınızı analiz etmemize yardımcı olur."
+
+# traslated
+msgid "Cookies.descriptionMandatory"
+msgstr ""
+"Bu izleyiciler, bizden talep ettiğiniz hizmeti işletmek veya sunmak için "
+"kesinlikle gerekli olan faaliyetler için kullanılır ve bu nedenle onay "
+"vermenizi gerektirmez."
+
+# traslated
+msgid "Cookies.titleFunctional"
+msgstr "Işlevsel -liği"
+
+# traslated
+msgid "Cookies.descriptionFunctional"
+msgstr ""
+"Bu izleyiciler, hizmetimizin belirli özelliklerine erişmenize ve bizimle "
+"iletişiminizi kolaylaştırmanıza olanak tanıyan temel etkileşimleri ve "
+"işlevleri etkinleştirir."
+
+# traslated
+msgid "Cookies.titleMeasuring"
+msgstr "Ölçüm"
+
+# traslated
+msgid "Cookies.titleMandatory"
+msgstr "Gerekli"
+
+# traslated
+msgid "Cookies.titleMarketing"
+msgstr "Pazarlama"
+
+# traslated
+msgid "Cookies.titleExperience"
+msgstr "Deneyim"
+
+# traslated
+msgid "Cookies.descriptionMarketing"
+msgstr ""
+"Bu izleyiciler, size kişiselleştirilmiş reklamlar veya pazarlama içeriği "
+"sunmamıza ve performanslarını ölçmemize yardımcı olur."
+
+# traslated
+msgid "Cookies.descriptionExperience"
+msgstr ""
+"Bu izleyiciler, kullanıcı deneyiminizin kalitesini artırmamıza ve harici "
+"içerik, ağlar ve platformlarla etkileşimleri etkinleştirmemize yardımcı "
+"olur."

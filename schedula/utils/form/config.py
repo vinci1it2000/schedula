@@ -21,8 +21,15 @@ except ImportError:
 class Config:
     def __init__(self):
         self.DEBUG = False
-        self.WTF_CSRF_CHECK_DEFAULT = False
-        self.SCHEDULA_CSRF_ENABLED = True
+        self.WTF_CSRF_CHECK_DEFAULT = os.environ.get(
+            "WTF_CSRF_CHECK_DEFAULT", 'false'
+        ).lower() == 'true'
+        self.SCHEDULA_CSRF_ENABLED = os.environ.get(
+            "SCHEDULA_CSRF_ENABLED", 'true'
+        ).lower() == 'true'
+        self.SCHEDULA_GDPR_ENABLED = os.environ.get(
+            "SCHEDULA_GDPR_ENABLED", 'true'
+        ).lower() == 'true'
         self.SECURITY_ENABLED = os.environ.get(
             "SECURITY_ENABLED", 'true'
         ).lower() == 'true'

@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 1.0\n"
 "Report-Msgid-Bugs-To: vinci1it2000@gmail.com\n"
-"PO-Revision-Date: 2024-06-26 10:12+0000\n"
+"PO-Revision-Date: 2024-07-02 10:30+0000\n"
 "Last-Translator: Vincenzo Arcidiacono <vinci1it2000@gmail.com>\n"
 "Language-Team: English <vinci1it2000@gmail.com>\n"
 "MIME-Version: 1.0\n"
@@ -1433,3 +1433,102 @@ msgstr "スキャン"
 # traslated
 msgid "Text.collapse"
 msgstr "倒れる"
+
+# traslated
+msgid "Cookies.settingsText"
+msgstr "カスタマイズ"
+
+# traslated
+msgid "Cookies.consentItems"
+msgstr "en_US"
+
+# traslated
+msgid "Cookies.rejectAllButton"
+msgstr "すべて拒否"
+
+# traslated
+msgid "Cookies.cancelButton"
+msgstr "キャンセル"
+
+# traslated
+msgid "Cookies.acceptAllButton"
+msgstr "すべて受け入れる"
+
+# traslated
+msgid "Cookies.modalTitle"
+msgstr "告知"
+
+# traslated
+msgid "Cookies.rejectButton"
+msgstr "リジェクト・オプション"
+
+# traslated
+msgid "Cookies.introText"
+msgstr ""
+"当社および選択された第三者は、技術的な目的で、また、お客様の同意を得た上で、Cookieポリシーで指定されているその他の目的で、Cookieまたは類似の技術を使用します。詳細については、[利用規約](/gdpr/files/terms-"
+"conditions)および[Cookieポリシー](/gdpr/files/cookies-policy)をお読みください。"
+
+# traslated
+msgid "Cookies.saveButton"
+msgstr "保存して続行"
+
+# traslated
+msgid "Cookies.settingsIntro"
+msgstr ""
+"このセクションに用意されているオプションを使用すると、以下に説明する目的で使用される追跡技術に対する同意設定をカスタマイズできます。これらのトラッカーがどのように役立つか、どのように機能するかの詳細については、[Cookieポリシー](/gdpr/files/cookies-"
+"policy)を参照してください。特定の目的に対する同意を拒否すると、関連する機能が利用できなくなる可能性があることに注意してください。"
+
+# traslated
+msgid "Cookies.settingsTitle"
+msgstr "追跡技術に関するお客様の同意設定"
+
+# traslated
+msgid "Cookies.acceptButton"
+msgstr "受け入れる"
+
+# traslated
+msgid "Cookies.errorTitle"
+msgstr "オプス...問題が発生しました。"
+
+# traslated
+msgid "Cookies.descriptionMeasuring"
+msgstr "これらのトラッカーは、トラフィックを測定し、お客様の行動を分析してサービスを改善するのに役立ちます。"
+
+# traslated
+msgid "Cookies.descriptionMandatory"
+msgstr ""
+"これらのトラッカーは、お客様が当社に要求したサービスを運営または提供するために厳密に必要な活動に使用されるため、お客様の同意は必要ありません。"
+
+# traslated
+msgid "Cookies.titleFunctional"
+msgstr "機能"
+
+# traslated
+msgid "Cookies.descriptionFunctional"
+msgstr ""
+"これらのトラッカーは、お客様が当社のサービスの選択された機能にアクセスし、当社とのコミュニケーションを容易にすることを可能にする基本的な相互作用と機能を可能にします。"
+
+# traslated
+msgid "Cookies.titleMeasuring"
+msgstr "メジャリング"
+
+# traslated
+msgid "Cookies.titleMandatory"
+msgstr "いる"
+
+# traslated
+msgid "Cookies.titleMarketing"
+msgstr "マーケティング"
+
+# traslated
+msgid "Cookies.titleExperience"
+msgstr "経験"
+
+# traslated
+msgid "Cookies.descriptionMarketing"
+msgstr "これらのトラッカーは、パーソナライズされた広告やマーケティングコンテンツをお客様に配信し、それらのパフォーマンスを測定するのに役立ちます。"
+
+# traslated
+msgid "Cookies.descriptionExperience"
+msgstr ""
+"これらのトラッカーは、ユーザーエクスペリエンスの品質を向上させ、外部コンテンツ、ネットワーク、プラットフォームとの相互作用を可能にするのに役立ちます。"

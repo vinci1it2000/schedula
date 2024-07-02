@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 1.0\n"
 "Report-Msgid-Bugs-To: vinci1it2000@gmail.com\n"
-"PO-Revision-Date: 2024-06-26 10:11+0000\n"
+"PO-Revision-Date: 2024-07-02 10:30+0000\n"
 "Last-Translator: Vincenzo Arcidiacono <vinci1it2000@gmail.com>\n"
 "Language-Team: English <vinci1it2000@gmail.com>\n"
 "MIME-Version: 1.0\n"
@@ -1464,3 +1464,118 @@ msgstr "Scannet"
 # traslated
 msgid "Text.collapse"
 msgstr "Sammenbrud"
+
+# traslated
+msgid "Cookies.settingsText"
+msgstr "Tilpasse"
+
+# traslated
+msgid "Cookies.consentItems"
+msgstr "en_US"
+
+# traslated
+msgid "Cookies.rejectAllButton"
+msgstr "Afvis alle"
+
+# traslated
+msgid "Cookies.cancelButton"
+msgstr "Aflyse"
+
+# traslated
+msgid "Cookies.acceptAllButton"
+msgstr "Acceptér alle"
+
+# traslated
+msgid "Cookies.modalTitle"
+msgstr "Meddelelse"
+
+# traslated
+msgid "Cookies.rejectButton"
+msgstr "Afvis valgfrie"
+
+# traslated
+msgid "Cookies.introText"
+msgstr ""
+"Vi og udvalgte tredjeparter bruger cookies eller lignende teknologier til "
+"tekniske formål og, med dit samtykke, til andre formål som angivet i "
+"cookiepolitikken. For mere information læs vores [Vilkår og betingelser] (/ "
+"gdpr / filer / vilkår - betingelser) og [Cookie Policy] (/ gdpr / filer / "
+"cookies - politik)."
+
+# traslated
+msgid "Cookies.saveButton"
+msgstr "Gem og fortsæt"
+
+# traslated
+msgid "Cookies.settingsIntro"
+msgstr ""
+"Indstillingerne i dette afsnit giver dig mulighed for at tilpasse dine "
+"indstillinger for samtykke til enhver sporingsteknologi, der bruges til de "
+"formål, der er beskrevet nedenfor. For at lære mere om, hvordan disse "
+"trackere hjælper os, og hvordan de fungerer, henvises til [cookiepolitik] (/"
+" gdpr / filer / cookies-politik). Vær opmærksom på, at nægtelse af samtykke "
+"til et bestemt formål kan gøre relaterede funktioner utilgængelige."
+
+# traslated
+msgid "Cookies.settingsTitle"
+msgstr "Dine indstillinger for samtykke til sporingsteknologier"
+
+# traslated
+msgid "Cookies.acceptButton"
+msgstr "Modtage"
+
+# traslated
+msgid "Cookies.errorTitle"
+msgstr "Ops... Noget gik galt!"
+
+# traslated
+msgid "Cookies.descriptionMeasuring"
+msgstr ""
+"Disse trackere hjælper os med at måle trafik og analysere din adfærd for at "
+"forbedre vores service."
+
+# traslated
+msgid "Cookies.descriptionMandatory"
+msgstr ""
+"Disse trackere bruges til aktiviteter, der er strengt nødvendige for at "
+"drive eller levere den tjeneste, du har anmodet om fra os, og kræver derfor "
+"ikke, at du samtykker."
+
+# traslated
+msgid "Cookies.titleFunctional"
+msgstr "Funktionalitet"
+
+# traslated
+msgid "Cookies.descriptionFunctional"
+msgstr ""
+"Disse trackere muliggør grundlæggende interaktioner og funktionaliteter, der"
+" giver dig adgang til udvalgte funktioner i vores service og letter din "
+"kommunikation med os."
+
+# traslated
+msgid "Cookies.titleMeasuring"
+msgstr "Måling"
+
+# traslated
+msgid "Cookies.titleMandatory"
+msgstr "Nødvendig"
+
+# traslated
+msgid "Cookies.titleMarketing"
+msgstr "Markedsføring"
+
+# traslated
+msgid "Cookies.titleExperience"
+msgstr "Oplevelse"
+
+# traslated
+msgid "Cookies.descriptionMarketing"
+msgstr ""
+"Disse trackere hjælper os med at levere personlige annoncer eller "
+"marketingindhold til dig og måle deres effektivitet."
+
+# traslated
+msgid "Cookies.descriptionExperience"
+msgstr ""
+"Disse trackere hjælper os med at forbedre kvaliteten af din brugeroplevelse "
+"og muliggøre interaktioner med eksternt indhold, netværk og platforme."
