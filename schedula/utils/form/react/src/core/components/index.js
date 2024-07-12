@@ -7,7 +7,8 @@ const Domain = React.lazy(() => import('./Domain'));
 const Element = React.lazy(() => import('./Element'));
 const FlexLayout = React.lazy(() => import('./FlexLayout'));
 const GridLayout = React.lazy(() => import('./GridLayout'));
-const Router = React.lazy(() => import('./Router'));
+const Plasmic_Component = React.lazy(() => import('./Plasmic/component'));
+const Plasmic_Page = React.lazy(() => import('./Plasmic/page'));
 const Router_Link = React.lazy(() => import('./Router/link'));
 const Router_Route = React.lazy(() => import('./Router/route'));
 const Router_Routes = React.lazy(() => import('./Router/routes'));
@@ -25,7 +26,8 @@ export function generateComponents() {
         Element,
         FlexLayout,
         GridLayout,
-        Router,
+        "Plasmic.Component": Plasmic_Component,
+        "Plasmic.Page": Plasmic_Page,
         "Router.Link": Router_Link,
         "Router.Route": Router_Route,
         "Router.Routes": Router_Routes,

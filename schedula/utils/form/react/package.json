@@ -9,6 +9,7 @@
     "@dnd-kit/modifiers": "^7.0.0",
     "@dnd-kit/sortable": "^8.0.0",
     "@dnd-kit/utilities": "^3.2.2",
+    "@plasmicapp/loader-react": "^1.0.361",
     "@react-pdf/renderer": "^3.4.4",
     "@rjsf/antd": "^5.17.1",
     "@rjsf/core": "^5.17.1",

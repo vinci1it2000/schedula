@@ -1,3 +1,4 @@
+import {generateTemplates as coreGenerateTemplates} from "../../../core/templates";
 import {generateTemplates as antdGenerateTemplates} from "@rjsf/antd";
 import React from "react";
 
@@ -9,11 +10,13 @@ const ErrorList = React.lazy(() => import('./ErrorList'));
 const FieldTemplate = React.lazy(() => import('./FieldTemplate'));
 const Loader = React.lazy(() => import('./Loader'));
 const ModalProvider = React.lazy(() => import('./ModalProvider'));
+const NotFound = React.lazy(() => import('./NotFound'));
 const Skeleton = React.lazy(() => import('./Skeleton'));
 const TitleFieldTemplate = React.lazy(() => import('./TitleFieldTemplate'));
 
 export function generateTemplates() {
     return {
+        ...coreGenerateTemplates(),
         ...antdGenerateTemplates(),
         BaseInputTemplate,
         ConfigProvider,
@@ -23,6 +26,7 @@ export function generateTemplates() {
         FieldTemplate,
         Loader,
         ModalProvider,
+        NotFound,
         Skeleton,
         TitleFieldTemplate
     }

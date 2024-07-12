@@ -1,7 +1,7 @@
 import {Spin} from 'antd';
 
-const Loader = ({spinning, children, ...props}) => {
-    return <Spin spinning={spinning} size="large"
+const Loader = ({loading, children, ...props}) => {
+    return <Spin spinning={loading} size="large"
                  style={{maxHeight: null}} {...props}>
         {children}
     </Spin>

@@ -514,15 +514,23 @@ export default class Form extends BaseForm {
         const as = _internalFormWrapper ? tagName : undefined;
         const FormTag = _internalFormWrapper || tagName || "form";
         const uiOptions = getUiOptions(uiSchema)
-        const {configProvider: propsConfigProvider = {}} = uiOptions
+        const {
+            configProvider: propsConfigProvider = {},
+            contentProvider: propsContentProvider = {}
+        } = uiOptions
         const Loader = getTemplate('Loader', registry, uiOptions);
         const ModalProvider = getTemplate('ModalProvider', registry, uiOptions);
         const ConfigProvider = getTemplate('ConfigProvider', registry, uiOptions);
+        const ContentProvider = getTemplate('ContentProvider', registry, uiOptions);
         const Debug = getTemplate('Debug', registry, uiOptions);
         const {formContext} = registry
         const {FormContext} = formContext
         return <FormContext.Provider
-            value={{form: this, state: this.state, setState: this.setState}}>
+            value={{
+                form: this,
+                state: this.state,
+                setState: this.setState
+            }}>
             <FormTag
                 className={className ? className : "rjsf"}
                 id={id}
@@ -539,35 +547,37 @@ export default class Form extends BaseForm {
                 style={{height: '100%'}}
                 ref={this.formElement}>
                 <ConfigProvider {...{...propsConfigProvider, form: this}}>
-                    <Loader spinning={this.state.loading}>
-                        <ModalProvider>
-                            {showErrorList === "top" && this.renderErrors(registry)}
-                            <SchemaField
-                                name=""
-                                schema={schema}
-                                uiSchema={uiSchema}
-                                errorSchema={errorSchema}
-                                idSchema={idSchema}
-                                idPrefix={idPrefix}
-                                idSeparator={idSeparator}
-                                formContext={formContext}
-                                formData={formData}
-                                onChange={this.onChange}
-                                onBlur={this.onBlur}
-                                onFocus={this.onFocus}
-                                registry={registry}
-                                disabled={disabled}
-                                readonly={readonly}
-                                submitCount={this.state.submitCount}  // used to re-render
-                            />
-                            {typeof children === 'function' ? children(this) : children}
-                            {showDebug && this.state.debugUrl ? <Debug
-                                key={name + '-Debug'}
-                                id={name + '-Debug'}
-                                src={this.state.debugUrl}
-                                name={name}/> : null}
-                            {showErrorList === "bottom" && this.renderErrors(registry)}
-                        </ModalProvider>
+                    <Loader loading={this.state.loading}>
+                        <ContentProvider {...propsContentProvider}>
+                            <ModalProvider>
+                                {showErrorList === "top" && this.renderErrors(registry)}
+                                <SchemaField
+                                    name=""
+                                    schema={schema}
+                                    uiSchema={uiSchema}
+                                    errorSchema={errorSchema}
+                                    idSchema={idSchema}
+                                    idPrefix={idPrefix}
+                                    idSeparator={idSeparator}
+                                    formContext={formContext}
+                                    formData={formData}
+                                    onChange={this.onChange}
+                                    onBlur={this.onBlur}
+                                    onFocus={this.onFocus}
+                                    registry={registry}
+                                    disabled={disabled}
+                                    readonly={readonly}
+                                    submitCount={this.state.submitCount}  // used to re-render
+                                />
+                                {typeof children === 'function' ? children(this) : children}
+                                {showDebug && this.state.debugUrl ? <Debug
+                                    key={name + '-Debug'}
+                                    id={name + '-Debug'}
+                                    src={this.state.debugUrl}
+                                    name={name}/> : null}
+                                {showErrorList === "bottom" && this.renderErrors(registry)}
+                            </ModalProvider>
+                        </ContentProvider>
                     </Loader>
                 </ConfigProvider>
             </FormTag>

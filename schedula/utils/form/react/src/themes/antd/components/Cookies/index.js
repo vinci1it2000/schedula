@@ -17,15 +17,17 @@ import {useLocaleStore} from "../../models/locale";
 
 const {Title} = Typography
 
-const Consent = ({
-                     id,
-                     value,
-                     description,
-                     title,
-                     setConsents,
-                     disabled,
-                     formData
-                 }) => (
+const Consent = (
+    {
+        id,
+        value,
+        description,
+        title,
+        setConsents,
+        disabled,
+        formData
+    }
+) => (
     <Space key={id} direction="vertical" gutter={[16]} style={{width: '100%'}}>
         <Title key={"title"} level={5} strong>{title}</Title>
         <Flex key={"content"} direction="row"
@@ -43,16 +45,18 @@ const Consent = ({
         </Flex>
     </Space>)
 
-const CookiesModal = ({
-                          children,
-                          render: {formContext: {form}, formData: {_formData}},
-                          urlConsent = '/gdpr/consent',
-                          consentItems: _consentItems,
-                          ...props
-                      }) => {
+const CookiesModal = (
+    {
+        children,
+        render: {formContext: {form}, formData: {_formData}},
+        urlConsent = '/gdpr/consent',
+        consentItems: _consentItems,
+        ...props
+    }
+) => {
     const formData = useMemo(() => {
         return {..._formData, urlConsent}
-    })
+    },[_formData, urlConsent])
     const {getLocale} = useLocaleStore()
     const locale = getLocale('Cookies')
     const [visible, setVisible] = useState(!localStorage.getItem('consent-id'));
@@ -157,15 +161,15 @@ const CookiesModal = ({
             loading={loading}
             open={visible}
             footer={[(consents === null || !edited ? <Button onClick={() => {
-                    if (consents === null) postConsents()
+                if (consents === null) postConsents()
+                setVisible(false)
+            }}>
+                {consents !== null ? locale.cancelButton : locale.rejectButton}
+            </Button> : null), (consents === null || edited ?
+                <Button type={"primary"} onClick={() => {
+                    postConsents()
                     setVisible(false)
-                }}>
-                    {consents !== null ? locale.cancelButton : locale.rejectButton}
-                </Button> : null), (consents === null || edited ?
-                    <Button type={"primary"} onClick={() => {
-                        postConsents()
-                        setVisible(false)
-                    }}>{edited ? locale.saveButton : locale.acceptButton} </Button> : null)]}
+                }}>{edited ? locale.saveButton : locale.acceptButton} </Button> : null)]}
             width={"calc(100% - 40px)"}
             key="Modal">
             <Space direction="vertical" size="middle" style={{

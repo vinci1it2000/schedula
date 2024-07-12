@@ -48,7 +48,6 @@ import {
     DraggableModal
 } from "ant-design-draggable-modal/packages/ant-design-draggable-modal";
 import {useLocaleStore} from "../../models/locale";
-import './App.css'
 import isEmpty from "lodash/isEmpty";
 import {createLayoutElement} from "../../../../core";
 import Errors from "../Errors/Drawer";
@@ -59,6 +58,8 @@ const DiffViewer = React.lazy(() => import("../../../../core/components/DiffView
 const UserNav = React.lazy(() => import('./User'))
 const LanguageNav = React.lazy(() => import('./Language'))
 const ContactNav = React.lazy(() => import('./Contact'))
+const ContentPage = React.lazy(() => import('./ContentPages'))
+
 const formatItem = ({path, label, children, ...item}) => {
     if (path && typeof label === 'string') {
         label = <Link to={path}>{label}</Link>
@@ -87,7 +88,6 @@ const App = (
         savingData = false,
         savingKey,
         items = [],
-        defaultSelectedKeys = ["0"],
         urlContact,
         languages = true,
         logo,
@@ -105,6 +105,7 @@ const App = (
         footer = null,
         theme = 'light',
         contentProps,
+        homePath = '/',
         ...props
     }
 ) => {
@@ -153,10 +154,9 @@ const App = (
     }, [changes, dateDiffViewer]);
     const _items = useMemo(() => (items.map(formatItem)), [])
     const {pathname} = useLocation()
-    const {routes, homePath} = useMemo(() => {
+    const {routes} = useMemo(() => {
         const routes = [...formatRoutes({children: items}, children)]
-        const homePath = routes.find(({key}) => key = defaultSelectedKeys[0]).path
-        return {routes, homePath}
+        return {routes}
     }, [children, items])
 
     const [selectedKeys, setSelectedKeys] = useState(null);
@@ -172,11 +172,10 @@ const App = (
         }
         return [String(key)]
     }, [homePath])
+    const [visitedRoutes, setVisitedRoutes] = useState({});
     useEffect(() => {
-        if (homePath === pathname && selectedKeys === null) {
-            setSelectedKeys([defaultSelectedKeys[0]])
-        }
-    }, [pathname, defaultSelectedKeys])
+        setVisitedRoutes((visited) => ({...visited, [pathname]: true}))
+    }, [pathname])
 
     const [openCloudDownload, setOpenCloudDownload] = useState(false);
     const [openCloudUpload, setOpenCloudUpload] = useState(false);
@@ -214,7 +213,6 @@ const App = (
         }
     }, [debugUrl]);
     const [sliderCollapsed, setSliderCollapsed] = useState(true);
-
     return <Layout style={{height: '100%'}}>
         {!hideNav || currentDataId || urlContact || languages || userProps || _items.length || logo ?
             <Header
@@ -444,23 +442,22 @@ const App = (
                         bottom: '16px',
                         left: hideSideMenu ? '16px' : (sliderCollapsed ? '96px' : '216px')
                     }}/> : null}
-                {_items.length ? routes.map(({element, path}, index) => (
-                    <div key={index} style={{
+                {pathname === '/unauthorized' ? <Result
+                    status="403"
+                    title="403"
+                    subTitle="Sorry, you are not authorized to access this page."
+                /> : _items.length ? routes.map(({element, path}, index) => {
+                    return (visitedRoutes[path] ? <div key={index} style={{
                         display: pathname === path ? "block" : "none",
                         height: "100%",
                         width: "100%"
                     }}>
                         {element}
-                    </div>)) : children}
-                {_items.length && _defaultSelectedKeys === null ? <Result
-                    status="404"
-                    title="404"
-                    subTitle="Sorry, the page you visited does not exist."
-                    extra={<Link to={homePath}><Button type="primary">
-                        Back Home
-                    </Button></Link>}
-                /> : null}
-
+                    </div> : null)
+                }) : children}
+                {(_items.length && !routes.some(({path}) => path === pathname)) || children === undefined ?
+                    <ContentPage homePath={homePath} render={render}/> : null
+                }
                 {cloudUrl ? <>
                     <CloudDownloadField
                         key={'cloud'}
