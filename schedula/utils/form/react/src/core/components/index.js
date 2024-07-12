@@ -14,6 +14,8 @@ const Router_Route = React.lazy(() => import('./Router/route'));
 const Router_Routes = React.lazy(() => import('./Router/routes'));
 const Static = React.lazy(() => import('./Static'));
 const Stripe = React.lazy(() => import('./Stripe'));
+const Stripe_Portal = React.lazy(() => import('./Stripe/portal'));
+const Stripe_Table = React.lazy(() => import('./Stripe/table'));
 const Title = React.lazy(() => import('./Title'));
 const Form = React.lazy(() => import('../form'));
 
@@ -33,6 +35,8 @@ export function generateComponents() {
         "Router.Routes": Router_Routes,
         Static,
         Stripe,
+        "Stripe.Portal": Stripe_Portal,
+        "Stripe.Table": Stripe_Table,
         Title
     }
 }

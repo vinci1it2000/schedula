@@ -66,6 +66,7 @@ export const locale = merge({}, en, {
         titleResetPassword: "Reset password",
         loginTooltip: 'Login',
         infoButton: 'Profile',
+        subscriptionButton: 'Subscription',
         changePasswordButton: 'Change password',
         settingButton: 'Settings',
         logoutButton: 'Logout'
@@ -242,6 +243,11 @@ export const locale = merge({}, en, {
     PDFField: {
         ...en.Upload, ...en.Image,
         titleSectionSelection: 'Sections'
+    },
+    "Stripe.Card": {
+        titleFeatures: "Include:",
+        buttonText:"Buy",
+        modalTitle:"Checkout"
     },
     ArrayAccordion: {
         ...en.global,

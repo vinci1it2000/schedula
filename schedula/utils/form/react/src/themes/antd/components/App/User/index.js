@@ -13,11 +13,13 @@ import {
     LogoutOutlined,
     SettingOutlined,
     UserOutlined,
-    LockOutlined
+    LockOutlined,
+    CrownOutlined
 } from "@ant-design/icons";
-import React, {useState, useEffect, useMemo, Suspense} from "react";
+import React, {useState, useEffect, useMemo, Suspense, useRef} from "react";
 import {useLocaleStore} from "../../../models/locale";
 import isEmpty from "lodash/isEmpty";
+import {useLocation} from "react-router-dom";
 
 const LoginForm = React.lazy(() => import( "./Login"))
 const RegisterForm = React.lazy(() => import( "./Register"))
@@ -43,6 +45,7 @@ export default function UserNav(
         urlLogout,
         urlEdit,
         urlSettings,
+        urlSubscription,
         settingProps,
         formContext,
         containerRef
@@ -64,18 +67,25 @@ export default function UserNav(
         confirm: locale.titleConfirm,
         reset: locale.titleResetPassword
     }
-    const page = window.location.hash.slice(1)
+    const {pathname} = useLocation()
+    const page = pathname.split('/')[-1]
     const [spinning, setSpinning] = useState(false);
     const [open, setOpen] = useState(titles.hasOwnProperty(page));
     const [auth, setAuth] = useState((open && page) || 'login');
+    const mustLogin = useMemo(() => {
+        return loginRequired === true || (typeof loginRequired === 'object' && loginRequired[pathname])
+    }, [pathname, loginRequired])
+    const StripePortal = useMemo(() => {
+        return window.schedula.getComponents({
+            render: {formContext}, component: 'Stripe.Portal'
+        })
+    })
     useEffect(() => {
-        if (loginRequired && !logged) {
+        if (mustLogin && !logged) {
             setOpen(true)
-            if (!auth) {
-                setAuth('login')
-            }
+            setAuth('login')
         }
-    }, [logged, loginRequired])
+    }, [logged, mustLogin])
     const drawerContent = useMemo(() => {
         if (!open) {
             return null
@@ -158,12 +168,15 @@ export default function UserNav(
                 return null
         }
     }, [auth, userInfo, open]);
+    const portalRef = useRef()
     return <div key={key}>
         {logged ? <Dropdown key={'right-menu'} menu={{
             selectedKeys: [],
             onClick: ({key}) => {
-                setAuth(key)
-                setOpen(true)
+                if (!['subscription'].includes(key)) {
+                    setAuth(key)
+                    setOpen(true)
+                }
             },
             items: [
                 {
@@ -171,16 +184,24 @@ export default function UserNav(
                     icon: <UserOutlined/>,
                     label: locale.infoButton
                 },
-                {
+                (urlChangePassword ? {
                     key: 'change-password',
                     icon: <LockOutlined/>,
                     label: locale.changePasswordButton
-                },
-                {
+                } : null),
+                (urlSubscription ? {
+                    key: 'subscription',
+                    icon: <CrownOutlined/>,
+                    label: locale.subscriptionButton,
+                    onClick: () => {
+                        portalRef.current.click()
+                    }
+                } : null),
+                (urlSettings ? {
                     key: 'settings',
                     icon: <SettingOutlined/>,
                     label: locale.settingButton
-                },
+                } : null),
                 {
                     type: 'divider'
                 },
@@ -189,7 +210,7 @@ export default function UserNav(
                     icon: <LogoutOutlined/>,
                     label: locale.logoutButton
                 }
-            ]
+            ].filter(v => !!v)
         }}>
             <Space>
                 {userInfo.avatar ?
@@ -199,6 +220,16 @@ export default function UserNav(
                         type="primary" shape="circle" icon={<UserOutlined/>}/>
                 }
                 {userInfo.username}
+                <StripePortal
+                    ref={portalRef}
+                    key={'subscription-portal'}
+                    render={{formContext}}
+                    width={"80%"}
+                    height={"80%"}
+                    left={"10%"}
+                    bottom={"10%"}
+                    urlPortalSession={urlSubscription}
+                />
             </Space>
         </Dropdown> : <Tooltip
             key={'btn'} title={locale.buttonTooltip}
@@ -215,9 +246,9 @@ export default function UserNav(
         <Drawer
             rootStyle={{position: "absolute"}}
             title={titles[auth]}
-            closable={!spinning && !(loginRequired && !logged)}
+            closable={!spinning && !(mustLogin && !logged)}
             onClose={() => {
-                if (!spinning && !(loginRequired && !logged))
+                if (!spinning && !(mustLogin && !logged))
                     setOpen(false)
             }}
             getContainer={() => {

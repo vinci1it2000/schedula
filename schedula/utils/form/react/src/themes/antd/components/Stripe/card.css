@@ -1,0 +1,8 @@
+
+.ribbon-stretch {
+    align-self: stretch;
+    display: flex;
+}
+.ribbon-hide {
+    display: none;
+}

@@ -96,6 +96,8 @@ const Space = React.lazy(() => import('./Space'));
 const Space_Compact = React.lazy(() => import('./Space/Compact'));
 const Spin = React.lazy(() => import('./Spin'));
 const Steps = React.lazy(() => import('./Steps'));
+const Stripe_Card = React.lazy(() => import('./Stripe/card'));
+const Stripe_Cards = React.lazy(() => import('./Stripe/cards'));
 const Submit = React.lazy(() => import('./Submit'));
 const Submit_Debug = React.lazy(() => import('./Submit/Debug'));
 const Table = React.lazy(() => import('./Table'));
@@ -205,6 +207,8 @@ export function generateComponents(register = true, registerDomains = true) {
         "Space.Compact": Space_Compact,
         Spin,
         Steps,
+        "Stripe.Card": Stripe_Card,
+        "Stripe.Cards": Stripe_Cards,
         Submit,
         "Submit.Debug": Submit_Debug,
         Table,
