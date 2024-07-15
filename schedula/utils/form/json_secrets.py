@@ -23,7 +23,7 @@ def dumps_secret(o):
     if not '$secrets' in session:
         session['$secrets'] = {}
     if key not in session['$secrets']:
-        session['$secrets'][key] = o
+        session['$secrets'] = {**session['$secrets'], key: o}
     return key
 
 

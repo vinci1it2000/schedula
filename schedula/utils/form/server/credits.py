@@ -10,8 +10,11 @@
 It provides functions to build the credit application services.
 """
 import os
+import copy
 import json
+import stripe
 import datetime
+import itertools
 import schedula as sh
 from .csrf import csrf
 from .extensions import db
@@ -28,9 +31,13 @@ from flask import (
 )
 from multiprocessing import Lock
 from sqlalchemy import (
-    Column, String, Integer, DateTime, JSON, or_, event, Boolean
+    Column, String, Integer, DateTime, JSON, or_, event, Boolean, desc
 )
+from asteval import Interpreter
+from dateutil.relativedelta import relativedelta
+from dateutil.rrule import rrule, YEARLY, MONTHLY, WEEKLY, DAILY
 
+FREQUENCIES = {'M': MONTHLY, 'W': WEEKLY, 'D': DAILY, 'Y': YEARLY}
 lock = Lock()
 bp = Blueprint('schedula_credits', __name__)
 
@@ -51,7 +58,7 @@ class Wallet(db.Model):
         ).filter_by(
             wallet_id=self.id,
             **({} if product is None else {"product": product})
-        )
+        ).filter(Txn.valid_from <= day)
         alive_balance = {
             r.product: r.total_credits for r in base.filter(or_(
                 Txn.expired_at == None, Txn.expired_at >= day
@@ -183,6 +190,7 @@ REFUND = 2
 USAGE = 3
 CHARGE = 4
 TRANSFER = 5
+SUBSCRIPTION = 6
 
 
 def insert_transaction_type(target, connection, **kw):
@@ -191,7 +199,8 @@ def insert_transaction_type(target, connection, **kw):
         {'id': REFUND, 'name': 'Refund'},
         {'id': USAGE, 'name': 'Usage'},
         {'id': CHARGE, 'name': 'Charge'},
-        {'id': TRANSFER, 'name': 'Transfer'}
+        {'id': TRANSFER, 'name': 'Transfer'},
+        {'id': SUBSCRIPTION, 'name': 'Subscription'}
     ])
 
 
@@ -244,13 +253,130 @@ def compute_line_items(quantity, tiers, type='graduated'):
     return line_items
 
 
-@bp.route('/create-checkout-session', methods=['POST'])
-def create_payment():
-    import stripe
+def user2stripe_customer(user=cu, limit=1, **kwargs):
+    api_key = current_app.config['STRIPE_SECRET_KEY']
+    for update, query in enumerate((
+            f"metadata['user_id']:'{user.id}'", f"email:'{user.email}'"
+    )):
+        result = stripe.Customer.search(
+            api_key=api_key, query=query, limit=limit, **kwargs
+        ).data
+        if result:
+            customer = result[0]
+            if update > 0:
+                customer = stripe.Customer.modify(
+                    customer.id, api_key=api_key,
+                    metadata={"user_id": str(user.id)}
+                )
+            break
+    else:
+        customer = stripe.Customer.create(
+            api_key=api_key, email=user.email,
+            name=f'{user.firstname} {user.lastname}',
+            metadata={'user_id': str(user.id)}
+        )
+    return customer
+
+
+def stripe_customer2user(customer):
+    user = User.query.get(customer.metadata['user_id'])
+    if user:
+        return user
+    user = User.query.filter_by(email=customer.email).first()
+    if user:
+        return user
+    user = current_app.security.datastore.create_user(
+        email=customer.email, firstname=customer.name
+    )
+    db.session.flush([user])
+
+    api_key = current_app.config['STRIPE_SECRET_KEY']
+    stripe.Customer.modify(
+        customer.id, api_key=api_key, metadata={"user_id": str(user.id)}
+    )
+    return user
+
+
+def get_wallet(user_id):
+    wallet = Wallet.query.filter_by(user_id=user_id).first()
+    if not wallet:
+        wallet = Wallet(user_id=user_id)
+        db.session.add(wallet)
+        db.session.flush([wallet])
+    return wallet
+
+
+@bp.route('/create-customer-pricing-table-session', methods=['POST'])
+@auth_required()
+def create_pricing_table():
     try:
         data = request.get_json() if request.is_json else dict(request.form)
         data = json_secrets.secrets(data, False)
-        api_key = current_app.config['STRIPE_SECRET_KEY']
+        customer = user2stripe_customer()
+        session = stripe.CustomerSession.create(
+            api_key=current_app.config['STRIPE_SECRET_KEY'],
+            **sh.combine_nested_dicts(data, base={
+                "customer": customer.id,
+                "components": {"pricing_table": {"enabled": True}}
+            })
+        )
+    except Exception as e:
+        return jsonify(error=str(e))
+
+    return jsonify(clientSecret=session.client_secret)
+
+
+@bp.route('/create-customer-portal-session', methods=['POST'])
+@auth_required()
+def create_portal():
+    try:
+        data = request.get_json() if request.is_json else dict(request.form)
+        data = json_secrets.secrets(data, False)
+        customer = user2stripe_customer(expand=['data.subscriptions'])
+
+        if customer.subscriptions.data:
+            plan = customer.subscriptions.data[0].plan
+            subscription = plan.nickname or plan.id
+        else:
+            subscription = ''
+        session = stripe.billing_portal.Session.create(
+            api_key=current_app.config['STRIPE_SECRET_KEY'],
+            **sh.combine_nested_dicts(data, base={
+                "customer": customer.id,
+            })
+        )
+    except Exception as e:
+        return jsonify(error=str(e))
+
+    return jsonify(session_url=session.url, subscription=subscription)
+
+
+def format_line_items(line_items):
+    api_key = current_app.config['STRIPE_SECRET_KEY']
+    line_items = copy.deepcopy(line_items)
+    lookup_keys = {}
+    for i, d in enumerate(line_items):
+        lookup_key = d.pop('lookup_key', None)
+        if lookup_key:
+            sh.get_nested_dicts(
+                lookup_keys, lookup_key, default=list
+            ).append(i)
+    if lookup_keys:
+        for price in stripe.Price.list(
+                api_key=api_key,
+                lookup_keys=list(lookup_keys.keys()),
+                expand=['data.product']
+        ).data:
+            for i in lookup_keys[price.lookup_key]:
+                line_items[i].update({'price': price.id})
+    return line_items
+
+
+@bp.route('/create-checkout-session', methods=['POST'])
+def create_payment():
+    try:
+        data = request.get_json() if request.is_json else dict(request.form)
+        data = json_secrets.secrets(data, False)
         metadata = {
             f'customer_{k}': getattr(cu, k)
             for k in ('id', 'firstname', 'lastname')
@@ -268,21 +394,7 @@ def create_payment():
                     ))
                 else:
                     line_items.append(d)
-            lookup_keys = {}
-            for i, d in enumerate(line_items):
-                lookup_key = d.pop('lookup_key', None)
-                if lookup_key:
-                    sh.get_nested_dicts(
-                        lookup_keys, lookup_key, default=list
-                    ).append(i)
-            if lookup_keys:
-                for price in stripe.Price.list(
-                        api_key=api_key,
-                        lookup_keys=list(lookup_keys.keys()),
-                        expand=['data.product']
-                ).data:
-                    for i in lookup_keys[price.lookup_key]:
-                        line_items[i].update({'price': price.id})
+            line_items = format_line_items(line_items)
             metadata['line_items'] = json.dumps(line_items)
             for d in line_items:
                 d.pop('metadata', None)
@@ -292,7 +404,7 @@ def create_payment():
             api_key=current_app.config['STRIPE_SECRET_KEY'],
             **sh.combine_nested_dicts(data, base={
                 'ui_mode': 'embedded',
-                'customer_email': getattr(cu, 'email', None),
+                'customer': user2stripe_customer().id,
                 'automatic_tax': {'enabled': True},
                 'redirect_on_completion': 'never',
                 'metadata': metadata
@@ -310,7 +422,6 @@ def create_payment():
 @auth_required()
 @roles_required('admin')
 def create_refund():
-    import stripe
     try:
         stripe_id = request.args.get('session_id')
         t_refund = Txn.query.filter_by(stripe_id=stripe_id, type=PURCHASE).all()
@@ -429,42 +540,28 @@ def checkout_session_completed(session_id):
                 Txn.query.filter_by(stripe_id=session_id).exists()
         ).scalar():
             return False
-        import stripe
-        from asteval import Interpreter
-        from dateutil.relativedelta import relativedelta
+        session = stripe.checkout.Session.retrieve(
+            session_id, api_key=current_app.config['STRIPE_SECRET_KEY'],
+            expand=['line_items.data.price.product', 'customer']
+        )
+        if session.mode != 'payment':
+            return
+        customer = session.customer
+        current_time = datetime.datetime.fromtimestamp(session.created)
         aeval = Interpreter(usersyms={
-            'now': datetime.datetime.now(),
+            'now': current_time,
             'relativedelta': relativedelta
         }, minimal=True)
 
-        session = stripe.checkout.Session.retrieve(
-            session_id,
-            api_key=current_app.config['STRIPE_SECRET_KEY'],
-            expand=['line_items.data.price.product']
-        )
-        customer_id = int(session.metadata.get('customer_id'))
-        if not customer_id:
-            customer_details = session.customer_details
-            user = User.query.filter_by(email=customer_details.email).first()
-            if not user:
-                user = current_app.security.datastore.create_user(
-                    email=customer_details.email,
-                    firstname=customer_details.name
-                )
-                db.session.flush([user])
-            customer_id = user.id
-
-        wallet = Wallet.query.filter_by(user_id=customer_id).first()
-        if not wallet:
-            wallet = Wallet(user_id=customer_id)
-            db.session.add(wallet)
-            db.session.flush([wallet])
+        user = stripe_customer2user(customer)
+        wallet = get_wallet(user.id)
 
         line_items = json.loads(session.metadata.get('line_items', '[]'))
         for i, item in enumerate(session.line_items.data):
             price = item.price
+            product = price.product
             expired_at = aeval(price.metadata.get(
-                'expires_at', price.product.metadata.get('expires_at', 'None')
+                'expires_at', product.metadata.get('expires_at', 'None')
             ))
             try:
                 credits = line_items[i].get('metadata', {})['credits']
@@ -475,28 +572,135 @@ def checkout_session_completed(session_id):
                 wallet_id=wallet.id,
                 type_id=PURCHASE,
                 credits=credits,
-                product=price.product.name,
+                product=product.name,
                 subtotal=item.amount_subtotal,
                 discount=item.amount_discount,
                 tax=item.amount_tax,
                 total=item.amount_total,
                 currency=item.currency,
                 stripe_id=session_id,
-                expired_at=expired_at,
                 raw_data=item.to_dict_recursive(),
-                created_by=customer_id
+                created_by=user.id,
+                valid_from=current_time,
+                expired_at=expired_at,
             )
             db.session.add(transaction)
+
         db.session.commit()
         return True
 
 
+def refund_charge(stripe_id, start_time):
+    base = Txn.query.filter_by(stripe_id=stripe_id).filter(
+        or_(Txn.type == CHARGE, Txn.type == PURCHASE)
+    )
+    base.filter(Txn.valid_from > start_time).delete(synchronize_session=False)
+    base.filter(Txn.expired_at > start_time).update({"expired_at": start_time})
+
+
+def subscription_invoice_paid(event):
+    invoice = event.data.object
+    billing_reason = invoice.billing_reason
+    if billing_reason not in (
+            'subscription_create', 'subscription_update', 'subscription_cycle'
+    ):
+        return
+    with lock:
+        if db.session.query(
+                Txn.query.filter_by(stripe_id=invoice.id).exists()
+        ).scalar():
+            return False
+
+        api_key = current_app.config['STRIPE_SECRET_KEY']
+        subscription = stripe.Subscription.retrieve(
+            invoice.subscription, api_key=api_key, expand=[
+                'customer', 'items.data.price.product'
+            ]
+        )
+
+        customer = subscription.customer
+        user = stripe_customer2user(customer)
+        wallet = get_wallet(user.id)
+
+        start_time = datetime.datetime.fromtimestamp(
+            subscription.current_period_start
+        )
+        end_time = datetime.datetime.fromtimestamp(
+            subscription.current_period_end
+        ) + relativedelta(days=1)
+
+        if billing_reason == 'subscription_update':
+            latest_invoice = Txn.query.filter_by(
+                wallet_id=wallet.id, type_id=SUBSCRIPTION
+            ).filter(Txn.valid_from <= start_time).order_by(
+                desc(Txn.valid_from)
+            ).first().stripe_id
+            refund_charge(latest_invoice, start_time)
+
+        for item in subscription.get('items').data:
+            product = item.price.product
+            if item.object == 'subscription_item':
+                transaction = Txn(
+                    wallet_id=wallet.id,
+                    type_id=SUBSCRIPTION,
+                    product=product.name,
+                    subtotal=invoice.subtotal,
+                    discount=invoice.discount,
+                    tax=invoice.tax,
+                    total=invoice.total,
+                    currency=invoice.currency,
+                    stripe_id=invoice.id,
+                    raw_data=invoice.to_dict_recursive(),
+                    created_by=user.id,
+                    valid_from=start_time,
+                    expired_at=end_time
+                )
+                db.session.add(transaction)
+                for feat in stripe.Product.list_features(
+                        product.id, api_key=api_key
+                ).data:
+                    metadata = feat.entitlement_feature.metadata or {}
+                    products = json.loads(metadata.get('products', '[]'))
+                    for name, credits, freq in products:
+                        for valid_from, expired_at in itertools.pairwise(rrule(
+                                freq=FREQUENCIES[freq], dtstart=start_time,
+                                until=end_time
+                        )):
+                            transaction = Txn(
+                                wallet_id=wallet.id,
+                                type_id=CHARGE,
+                                credits=credits,
+                                product=name,
+                                stripe_id=invoice.id,
+                                created_by=user.id,
+                                valid_from=valid_from,
+                                expired_at=expired_at
+                            )
+                            db.session.add(transaction)
+        db.session.commit()
+        return True
+
+
+def charge_refunded(event):
+    api_key = current_app.config['STRIPE_SECRET_KEY']
+    charge = event.data.object
+    invoice = charge.invoice
+    current_time = datetime.datetime.fromtimestamp(event.created)
+    with lock:
+        for stripe_id in (invoice and (invoice,) or (
+                session.id for session in stripe.checkout.Session.list(
+            payment_intent=charge.payment_intent,
+            api_key=api_key
+        )
+        )):
+            refund_charge(stripe_id, current_time)
+        db.session.commit()
+
+
 @bp.route('/session-status/<session_id>', methods=['GET'])
 def session_status(session_id):
-    import stripe
     session = stripe.checkout.Session.retrieve(
-        session_id,
-        api_key=current_app.config['STRIPE_SECRET_KEY']
+        session_id, api_key=current_app.config['STRIPE_SECRET_KEY']
     )
     status = session.status
     if status == "complete":
@@ -523,15 +727,15 @@ def session_status(session_id):
 @bp.route('/webhooks', methods=['POST'])
 @csrf.exempt
 def stripe_webhook():
-    import stripe
     payload = request.data
     sig_header = request.headers['STRIPE_SIGNATURE']
+    api_key = current_app.config['STRIPE_SECRET_KEY']
 
     try:
         event = stripe.Webhook.construct_event(
             payload, sig_header,
             current_app.config['STRIPE_WEBHOOK_SECRET_KEY'],
-            api_key=current_app.config['STRIPE_SECRET_KEY'],
+            api_key=api_key,
             tolerance=None
         )
     except ValueError as e:
@@ -540,22 +744,13 @@ def stripe_webhook():
     except stripe.error.SignatureVerificationError as e:
         # Invalid signature
         raise e
-
-    if event.type == 'checkout.session.completed':
+    event_type = event.type
+    if event_type == 'checkout.session.completed':
         checkout_session_completed(event.data.object.id)
-    elif event.type == 'charge.refunded':
-        api_key = current_app.config['STRIPE_SECRET_KEY']
-        charge = stripe.Charge.retrieve(
-            event.data.object.id, api_key=api_key, expand=['refunds']
-        )
-        for r in charge.refunds.data:
-            custumer_id = r.metadata['custumer_id']
-            refunds = json.loads(r.metadata['refunds'])
-            Txn.query.filter(Txn.id.in_(refunds)).update(
-                {'refunded': True, 'updated_by': custumer_id},
-                synchronize_session='fetch'
-            )
-        after_this_request(view_commit)
+    elif event_type == 'charge.refunded':
+        charge_refunded(event)
+    elif event_type == 'invoice.paid':
+        subscription_invoice_paid(event)
 
     current_app.stripe_event_handler(event)
     return jsonify(success=True)
