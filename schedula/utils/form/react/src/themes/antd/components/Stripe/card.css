@@ -6,3 +6,6 @@
 .ribbon-hide {
     display: none;
 }
+.timeline-compact .ant-timeline-item-last .ant-timeline-item-content{
+    min-height: unset;
+}

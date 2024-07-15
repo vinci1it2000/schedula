@@ -8,7 +8,7 @@
  *
  */
 
-import React, {useState, useMemo} from 'react';
+import React, {useState, useMemo, useRef, useEffect} from 'react';
 import {
     Card,
     Flex,
@@ -48,6 +48,7 @@ const PricingCard = (
         checkoutProps,
         onCheckout,
         buttonProps,
+        maxProductDescriptionHeight = 50,
         ...props
     }
 ) => {
@@ -66,6 +67,14 @@ const PricingCard = (
         const decimalSeparator = parts.find(part => part.type === 'decimal').value;
         return {groupSeparator, decimalSeparator};
     }, [language]);
+    const [parentHeight, setParentHeight] = useState(0);
+    const parentRef = useRef(null);
+
+    useEffect(() => {
+        if (parentRef.current) {
+            setParentHeight(parentRef.current.clientHeight);
+        }
+    }, []);
     return <ConfigProvider theme={{
         "components": {
             "Statistic": {"contentFontSize": token.fontSizeHeading2},
@@ -86,29 +95,37 @@ const PricingCard = (
                         alignSelf: "stretch"
                     }
                 }} {...props}>
-                <Flex gap={"middle"} vertical style={{height: "100%"}}>
-                    {title ? <Title key="title" level={4} style={{margin: 0}}>
-                        {title}
-                    </Title> : null}
-                    <Text style={{flexGrow: 1}}
-                          key="product-description"
-                          type="secondary">
+                <Flex gap={"large"} vertical style={{height: "100%"}}
+                      ref={parentRef}>
+                    {title ?
+                        <Title key="title" level={4} style={{margin: 0}}>
+                            {title}
+                        </Title> : null}
+                    <Text
+                        style={{
+                            flexGrow: 1,
+                            height: parentHeight >= 200 ? maxProductDescriptionHeight : undefined,
+                            maxHeight: parentHeight >= 200 ? maxProductDescriptionHeight : undefined
+                        }}
+                        key="product-description"
+                        type="secondary">
                         {productDescription || ""}
                     </Text>
-                    {price !== undefined ? <Flex gap="small" align="flex-end">
-                        <Statistic
-                            key="value"
-                            valueStyle={{"fontWeight": 700}}
-                            value={price}
-                            suffix={` ${currency}`}
-                            {...separators}
-                        />
-                        {priceUnit ? <Text
-                            key="price-uint"
-                            type="secondary">
-                            {priceUnit || ""}
-                        </Text> : null}
-                    </Flex> : null}
+                    {price !== undefined ?
+                        <Flex gap="small" align="flex-end">
+                            <Statistic
+                                key="value"
+                                valueStyle={{"fontWeight": 700}}
+                                value={price}
+                                suffix={` ${currency}`}
+                                {...separators}
+                            />
+                            {priceUnit ? <Text
+                                key="price-uint"
+                                type="secondary">
+                                {priceUnit || ""}
+                            </Text> : null}
+                        </Flex> : null}
                     {priceDescription ? <Text key="price-description">
                         {priceDescription}
                     </Text> : null}
@@ -121,20 +138,20 @@ const PricingCard = (
                         {...buttonProps}>
                         {buttonText || locale.buttonText}
                     </Button>
-                    {features ? <>
+                    {features ?
                         <Text key="title-features">
                             {titleFeatures || locale.titleFeatures}
-                        </Text>
-                        <Timeline
-                            key="features"
-                            items={features.map(({text, ...item}) => ({
-                                color: token.colorTextTertiary,
-                                dot: <CheckCircleFilled/>,
-                                children: <Text>{text}</Text>,
-                                ...item
-                            }))}
-                        />
-                    </> : null}
+                        </Text> : null}
+                    {features ? <Timeline
+                        rootClassName={"timeline-compact"}
+                        key="features"
+                        items={features.map(({text, ...item}) => ({
+                            color: token.colorTextTertiary,
+                            dot: <CheckCircleFilled/>,
+                            children: <Text>{text}</Text>,
+                            ...item
+                        }))}
+                    /> : null}
                 </Flex>
             </Card>
         </Badge.Ribbon>
