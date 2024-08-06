@@ -1519,6 +1519,24 @@ class TestDispatch(unittest.TestCase):
         self.assertEqual(o.workflow.adj, w)
         self.assertEqual(set(o.workflow.nodes), r)
 
+        o = dsp.dispatch({'a': 5, 'b': 6}, ['a', 'b'], wildcard=2,
+                         shrink=True)
+        self.assertEqual(dict(o.items()), {
+            'a': 5, 'b': 1, 'c': 0, 'd': 0, 'e': 2
+        })
+        self.assertEqual(o.workflow.adj, {**w, **{
+            'x - 4': {},
+            'a': {
+                'log(b - a)': {'value': 5},
+                'min': {'value': 5},
+                'x - 4': {'value': 5}
+            }
+        }})
+        self.assertEqual(set(o.workflow.nodes), {
+            '2 / (d + 1)', 'a', 'b', 'c', 'd', 'e', 'log(b - a)', 'min',
+            sh.START, 'x - 4', 'x ^ y'
+        })
+
         dsp = self.dsp_wildcard_1
 
         o = dsp.dispatch({'a': 5, 'b': 6}, ['a', 'b'], wildcard=True)

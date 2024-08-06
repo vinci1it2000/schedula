@@ -260,8 +260,10 @@ class Dispatcher(Base):
         :param wildcard:
             If True, when the data node is used as input and target in the
             ArciDispatch algorithm, the input value will be used as input for
-            the connected functions, but not as output.
-        :type wildcard: bool, optional
+            the connected functions, but not as output. If it is equal to 2, the
+            the data node that cannot be calculated are excluded by the wildcard
+            condition.
+        :type wildcard: bool, int, optional
 
         :param function:
             Data node estimation function.
@@ -1230,8 +1232,10 @@ class Dispatcher(Base):
         :param wildcard:
             If True, when the data node is used as input and target in the
             ArciDispatch algorithm, the input value will be used as input for
-            the connected functions, but not as output.
-        :type wildcard: bool, optional
+            the connected functions, but not as output. If it is equal to 2, the
+            the data node that cannot be calculated are excluded by the wildcard
+            condition.
+        :type wildcard: bool, int, optional
 
         :param _update_links:
             If True, it updates remote links of the extracted dispatcher.
@@ -1599,8 +1603,10 @@ class Dispatcher(Base):
         :param wildcard:
             If True, when the data node is used as input and target in the
             ArciDispatch algorithm, the input value will be used as input for
-            the connected functions, but not as output.
-        :type wildcard: bool, optional
+            the connected functions, but not as output. If it is equal to 2, the
+            the data node that cannot be calculated are excluded by the wildcard
+            condition.
+        :type wildcard: bool, int, optional
 
         :param no_call:
             If True data node estimation function is not used and the input
@@ -1757,8 +1763,10 @@ class Dispatcher(Base):
         :param wildcard:
             If True, when the data node is used as input and target in the
             ArciDispatch algorithm, the input value will be used as input for
-            the connected functions, but not as output.
-        :type wildcard: bool, optional
+            the connected functions, but not as output. If it is equal to 2, the
+            the data node that cannot be calculated are excluded by the wildcard
+            condition.
+        :type wildcard: bool, int, optional
 
         :return:
             A sub-dispatcher.

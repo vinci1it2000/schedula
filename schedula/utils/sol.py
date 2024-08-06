@@ -57,7 +57,7 @@ class Solution(Base, collections.OrderedDict):
             self._set_inputs(inputs, inputs_dist, excluded_defaults)
 
             # Set wildcards.
-            self._set_wildcards(*((inputs, outputs) if wildcard else ()))
+            self._set_wildcards(wildcard, inputs, outputs)
 
             # Initialize workflow params.
             self._init_workflow()
@@ -103,9 +103,17 @@ class Solution(Base, collections.OrderedDict):
 
         self.inputs, self.inputs_dist = initial_values, initial_distances
 
-    def _set_wildcards(self, inputs=None, outputs=None):
+    def _set_wildcards(self, wildcard, inputs=None, outputs=None):
         """
         Update wildcards set with the input data nodes that are also outputs.
+
+        :param wildcard:
+            If True, when the data node is used as input and target in the
+            ArciDispatch algorithm, the input value will be used as input for
+            the connected functions, but not as output. If it is equal to 2, the
+            the data node that cannot be calculated are excluded by the wildcard
+            condition.
+        :type wildcard: bool, int
 
         :param inputs:
             Input data nodes.
@@ -118,11 +126,17 @@ class Solution(Base, collections.OrderedDict):
 
         w = self._wildcards = set()  # Clean wildcards.
 
-        if outputs and inputs:
-            node, wi = self.nodes, self._wait_in.get  # Namespace shortcut.
+        if wildcard and outputs and inputs:
+            # Namespace shortcut.
+            node = self.nodes
+            wi = self._wait_in.get
+            pred = self._pred
 
             # Input data nodes that are in output_targets.
-            w_crd = {u: node[u] for u in inputs if u in outputs or wi(u, False)}
+            w_crd = {
+                u: node[u] for u in inputs
+                if (u in outputs and (wildcard != 2 or pred[u])) or wi(u, False)
+            }
 
             # Data nodes without the wildcard.
             w.update([k for k, v in w_crd.items() if v.get('wildcard', True)])
