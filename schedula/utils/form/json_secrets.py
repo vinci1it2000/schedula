@@ -13,13 +13,13 @@ with JSON.
 
 import json
 import hashlib
-from flask import session
 
 
 def dumps_secret(o):
     dhash = hashlib.sha256()
     dhash.update(json.dumps(o, sort_keys=True).encode())
     key = dhash.hexdigest()
+    from flask import session
     if not '$secrets' in session:
         session['$secrets'] = {}
     if key not in session['$secrets']:
@@ -28,6 +28,7 @@ def dumps_secret(o):
 
 
 def loads_secret(key):
+    from flask import session
     return session['$secrets'][key]
 
 

@@ -35,26 +35,34 @@ from ..web import WebMap
 from . import json_secrets
 from jinja2 import TemplateNotFound
 from werkzeug.exceptions import NotFound
-from .server import basic_app, default_get_form_context
-from flask import render_template, Blueprint, current_app, request, send_file
-from flask_babel import get_locale
 
 __author__ = 'Vincenzo Arcidiacono <vinci1it2000@gmail.com>'
 
 static_dir = osp.join(osp.dirname(__file__), 'static')
 
-static_context = {
-    f'main_{k}': osp.relpath(glob.glob(osp.join(
-        static_dir, 'schedula', k, f'main.*.{k}.gz'
-    ))[0], osp.join(static_dir, 'schedula')).replace('\\', '/')
-    for k in ('js', 'css')
-}
-static_context = {
-    k: v[:-3] if v.endswith('.gz') else v for k, v in static_context.items()
-}
+STATIC_CONTEXT = {}
+
+
+def get_static_context():
+    if ~all(f'main_{k}' in STATIC_CONTEXT and osp.exists(
+                STATIC_CONTEXT[f'main_{k}']) for k in ('js', 'css')):
+        STATIC_CONTEXT.clear()
+        static_context = {
+            f'main_{k}': osp.relpath(glob.glob(osp.join(
+                static_dir, 'schedula', k, f'main.*.{k}.gz'
+            ))[0], osp.join(static_dir, 'schedula')).replace('\\', '/')
+            for k in ('js', 'css')
+        }
+        static_context = {
+            k: v[:-3] if v.endswith('.gz') else v for k, v in
+            static_context.items()
+        }
+        STATIC_CONTEXT.update(static_context)
+    return STATIC_CONTEXT
 
 
 def get_template(form, context):
+    from flask import render_template
     try:
         template = f'schedula/{form}.html'
         return render_template(template, name=form, form_id=form, **context)
@@ -68,6 +76,7 @@ def get_template(form, context):
 
 class FormMap(WebMap):
     def get_form_context(self):
+        from .server import default_get_form_context
         context = default_get_form_context().copy()
         if hasattr(self, '_get_form_context'):
             context.update(self._get_form_context())
@@ -88,6 +97,7 @@ class FormMap(WebMap):
         if item.startswith('get_') and hasattr(self, f'_{item}'):
             attr = getattr(self, f'_{item}')
             if isinstance(attr, dict):
+                from flask import request
                 attr = attr.get(request.path, attr.get(
                     None, getattr(self.__class__, f'_{item}')
                 ))
@@ -97,16 +107,19 @@ class FormMap(WebMap):
         return super(FormMap, self).__getattr__(item)
 
     def render_form(self, form='index'):
+        from flask import current_app
+        from flask_babel import get_locale
         context = {
             'form': self,
             'app': current_app,
             'get_locale': get_locale
         }
-        context.update(static_context)
+        context.update(get_static_context())
         return get_template(form, context)
 
     @staticmethod
     def send_static_file(filename):
+        from flask import current_app, request, send_file
         is_form = filename.startswith('forms')
         filename = f'schedula/{filename}'.split('/')
         download_name = filename[-1]
@@ -148,6 +161,7 @@ class FormMap(WebMap):
 
     def app(self, root_path=None, depth=1, mute=False, blueprint_name=None,
             index=False, **kwargs):
+        from flask import Blueprint
         app = self.basic_app(
             root_path, mute=mute, blueprint_name=blueprint_name, **kwargs
         )
@@ -173,5 +187,6 @@ class FormMap(WebMap):
             root_path, mute=mute, blueprint_name=blueprint_name, **kwargs
         )
         if blueprint_name is None:
+            from .server import basic_app
             app = basic_app(self, app)
         return app
