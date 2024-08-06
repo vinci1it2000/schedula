@@ -91,7 +91,7 @@ const App = (
         urlContact,
         languages = true,
         logo,
-        userProps,
+        userProps = {},
         cloudUrl,
         urlConsent,
         hideErrors = false,
@@ -213,6 +213,12 @@ const App = (
         }
     }, [debugUrl]);
     const [sliderCollapsed, setSliderCollapsed] = useState(true);
+
+    const mustLogin = useMemo(() => {
+        const {loginRequired = false} = userProps
+        return loginRequired === true || (typeof loginRequired === 'object' && loginRequired[pathname])
+    }, [pathname, userProps])
+
     return <Layout style={{height: '100%'}}>
         {!hideNav || currentDataId || urlContact || languages || userProps || _items.length || logo ?
             <Header
@@ -442,7 +448,7 @@ const App = (
                         bottom: '16px',
                         left: hideSideMenu ? '16px' : (sliderCollapsed ? '96px' : '216px')
                     }}/> : null}
-                {pathname === '/unauthorized' ? <Result
+                {mustLogin && !logged ? <Result
                     status="403"
                     title="403"
                     subTitle="Sorry, you are not authorized to access this page."
@@ -455,7 +461,7 @@ const App = (
                         {element}
                     </div> : null)
                 }) : children}
-                {(_items.length && !routes.some(({path}) => path === pathname)) || children === undefined ?
+                {!mustLogin && ((_items.length && !routes.some(({path}) => path === pathname)) || children === undefined) ?
                     <ContentPage homePath={homePath} render={render}/> : null
                 }
                 {cloudUrl ? <>
