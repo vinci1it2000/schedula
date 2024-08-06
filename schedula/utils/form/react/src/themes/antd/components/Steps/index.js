@@ -1,5 +1,5 @@
 import {Steps as BaseSteps, Flex, Button, theme} from 'antd';
-import {useState, useContext, isValidElement} from 'react';
+import {useState, useContext, useEffect, isValidElement} from 'react';
 import {useLocaleStore} from "../../models/locale";
 import get from 'lodash/get';
 
@@ -14,6 +14,7 @@ const Steps = (
         finishButton = false,
         previousButton = {},
         nextButton = {},
+        setCurrentStep = null,
         ...props
     }
 ) => {
@@ -23,6 +24,10 @@ const Steps = (
     const locale = getLocale('Tour')
     const {token} = theme.useToken();
     const [current, setCurrent] = useState(0);
+    useEffect(() => {
+        if (setCurrentStep)
+            setCurrentStep(current)
+    }, [current, setCurrentStep])
     const onChange = (value) => {
         setCurrent(value);
     };
@@ -36,6 +41,7 @@ const Steps = (
         flexGrow: 1,
         padding: 16
     };
+
     let kw = {}, hasErrors;
     if (data2verify) {
         const regexPattern = new RegExp(`^${idPrefix}\\.?`);
