@@ -25,12 +25,13 @@ import {CheckCircleFilled} from '@ant-design/icons';
 import {useLocaleStore} from "../../models/locale";
 import {getComponents} from '../../../../core'
 import './card.css'
+import Markdown from '../Markdown'
 
-const {Title, Text, Paragraph} = Typography
+const {Title, Text} = Typography
 const PricingCard = (
     {
         children,
-        render: {uiSchema, registry, formContext},
+        render: {uiSchema, registry, formContext, formData},
         title,
         productDescription,
         priceDescription,
@@ -40,6 +41,7 @@ const PricingCard = (
         ribbon,
         ribbonProps,
         price,
+        vat = 0,
         quantity,
         currency = "€",
         features,
@@ -47,7 +49,7 @@ const PricingCard = (
         urlCreateCheckoutStatus = "/stripe/session-status",
         checkoutProps,
         onCheckout,
-        buttonProps,
+        buttonProps: {onClick: buttonOnClick, ...buttonProps} = {},
         maxProductDescriptionHeight = 50,
         ...props
     }
@@ -101,7 +103,7 @@ const PricingCard = (
                         <Title key="title" level={4} style={{margin: 0}}>
                             {title}
                         </Title> : null}
-                    <Text
+                    {productDescription ? <Text
                         style={{
                             flexGrow: 1,
                             height: parentHeight >= 200 ? maxProductDescriptionHeight : undefined,
@@ -110,13 +112,13 @@ const PricingCard = (
                         key="product-description"
                         type="secondary">
                         {productDescription || ""}
-                    </Text>
+                    </Text> : null}
                     {price !== undefined ?
                         <Flex gap="small" align="flex-end">
                             <Statistic
                                 key="value"
                                 valueStyle={{"fontWeight": 700}}
-                                value={price}
+                                value={Math.ceil(price * (1 + vat) * 100) / 100}
                                 suffix={` ${currency}`}
                                 {...separators}
                             />
@@ -134,8 +136,13 @@ const PricingCard = (
                         size="large"
                         type="primary"
                         style={{width: '100%'}}
-                        onClick={() => setOpenCheckout(true)}
-                        {...buttonProps}>
+                        {...buttonProps}
+                        onClick={() => {
+                            setOpenCheckout(true)
+                            if (buttonOnClick) {
+                                buttonOnClick();
+                            }
+                        }}>
                         {buttonText || locale.buttonText}
                     </Button>
                     {features ?
@@ -148,7 +155,15 @@ const PricingCard = (
                         items={features.map(({text, ...item}) => ({
                             color: token.colorTextTertiary,
                             dot: <CheckCircleFilled/>,
-                            children: <Text>{text}</Text>,
+                            children: <Markdown render={{
+                                formData: {
+                                    price,
+                                    quantity,
+                                    ...formData
+                                }
+                            }}>
+                                {text}
+                            </Markdown>,
                             ...item
                         }))}
                     /> : null}

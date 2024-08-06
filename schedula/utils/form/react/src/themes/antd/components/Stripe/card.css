@@ -3,9 +3,15 @@
     align-self: stretch;
     display: flex;
 }
+
 .ribbon-hide {
     display: none;
 }
-.timeline-compact .ant-timeline-item-last .ant-timeline-item-content{
+
+.timeline-compact .ant-timeline-item-last .ant-timeline-item-content {
     min-height: unset;
+}
+
+.timeline-compact p {
+    margin: 0
 }
