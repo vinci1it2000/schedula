@@ -11,6 +11,7 @@ It provides functions to build the credit application services.
 """
 import os
 import copy
+import math
 import json
 import stripe
 import datetime
@@ -36,10 +37,17 @@ from sqlalchemy import (
 from asteval import Interpreter
 from dateutil.relativedelta import relativedelta
 from dateutil.rrule import rrule, YEARLY, MONTHLY, WEEKLY, DAILY
+from sqlalchemy.ext.declarative import declarative_base
 
 FREQUENCIES = {'M': MONTHLY, 'W': WEEKLY, 'D': DAILY, 'Y': YEARLY}
 lock = Lock()
 bp = Blueprint('schedula_credits', __name__)
+Base = declarative_base()
+users_wallet = db.Table(
+    'users_wallet', db.Model.metadata,
+    Column('user_id', Integer, db.ForeignKey('user.id'), primary_key=True),
+    Column('wallet_id', Integer, db.ForeignKey('wallet.id'), primary_key=True)
+)
 
 
 class Wallet(db.Model):
@@ -47,9 +55,43 @@ class Wallet(db.Model):
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, db.ForeignKey('user.id'))
     user = db.relationship('User', backref='user')
+    users = db.relationship('User', secondary=users_wallet)
 
     def __repr__(self):
         return f'Wallet - {self.id}'
+
+    def name(self):
+        return f"{self.user.firstname or ''} {self.user.lastname or ''}"
+
+    def subscription(self, day=None):
+        subscriptions = {}
+        api_key = current_app.config['STRIPE_SECRET_KEY']
+        day = datetime.datetime.today() if day is None else day
+        products = {}
+        for tran in Txn.query.filter_by(
+                wallet_id=self.id, type_id=SUBSCRIPTION
+        ).filter(Txn.valid_from <= day).filter(or_(
+            Txn.expired_at == None, Txn.expired_at >= day
+        )).all():
+            subscription = stripe.Invoice.retrieve(
+                tran.stripe_id, api_key=api_key, expand=['subscription']
+            ).subscription
+            if subscription.status != 'active':
+                continue
+            subscriptions[subscription.id] = subs = {}
+            for item in subscription.get('items').data:
+                product_id = item.price.product
+                if product_id in products:
+                    features = products[product_id]
+                else:
+                    products[product_id] = features = {}
+                    for v in stripe.Product.list_features(
+                            product_id, api_key=api_key
+                    ).data:
+                        feat = v.entitlement_feature
+                        features[feat.lookup_key] = feat.metadata or {}
+                subs.update(features)
+        return subscriptions
 
     def balance(self, product=None, day=None):
         day = datetime.datetime.today() if day is None else day
@@ -114,15 +156,43 @@ class Wallet(db.Model):
 @auth_required()
 def get_balance(wallet_id=None):
     user_id = request.args.get('user_id', cu.id)
+    if not is_admin() and cu.id != user_id:
+        abort(403)
+    query = Wallet.query.join(users_wallet, full=True).filter(or_(
+        users_wallet.c.user_id == user_id, Wallet.user_id == user_id
+    ))
+    if wallet_id is not None:
+        query = query.filter_by(wallet_id=wallet_id)
+    with lock:
+        if not Wallet.query.filter_by(user_id=user_id).first():
+            wallet = Wallet(user_id=user_id)
+            db.session.add(wallet)
+            db.session.flush([wallet])
+            db.session.commit()
+        product = request.args.get('product')
+        return jsonify({
+            wallet.id: {
+                'name': wallet.name(),
+                'balance': wallet.balance(product),
+                'main': wallet.user_id == user_id
+            } for wallet in query.all()
+        })
+
+
+@bp.route('/subscription', methods=['GET'])
+@bp.route('/subscription/<int:wallet_id>', methods=['GET'])
+@auth_required()
+def get_subscription(wallet_id=None):
+    user_id = request.args.get('user_id', cu.id)
     kw = {'id': wallet_id, 'user_id': user_id}
     if not is_admin() and cu.id != user_id:
         abort(403)
     if wallet_id is None:
         kw.pop('id', None)
-    product = request.args.get('product')
-    return jsonify([
-        wallet.balance(product) for wallet in Wallet.query.filter_by(**kw).all()
-    ])
+    return jsonify({
+        wallet.id: wallet.subscription()
+        for wallet in Wallet.query.filter_by(**kw).all()
+    })
 
 
 class TxnType(db.Model):
@@ -351,8 +421,78 @@ def create_portal():
     return jsonify(session_url=session.url, subscription=subscription)
 
 
-def format_line_items(line_items):
+def get_discounts():
+    discounts = {}
+    for k, v in sh.stack_nested_keys(get_wallet(cu.id).subscription()):
+        if k[-1] == 'discounts':
+            for product, flat, perc in json.loads(v):
+                f, p = discounts.get(product, (0, 1))
+                discounts[product] = f + flat, p * (1 - perc)
+    discounts = {k: list(v) for k, v in discounts.items() if v != (0, 1)}
+    if discounts:
+        api_key = current_app.config['STRIPE_SECRET_KEY']
+        price_discounts = {}
+        product_discounts = {}
+        for prod, name in (
+                (product, product.name)
+                for product in stripe.Product.list(
+            active=True, api_key=api_key
+        ).auto_paging_iter() if product.name in discounts):
+            product_discounts[prod.id] = name
+            for price in stripe.Price.list(
+                    active=True, product=prod.id, api_key=api_key
+            ).auto_paging_iter():
+                price_discounts[price.id] = name
+        return {
+            'discounts': discounts,
+            'prod_name': {k: k for k in discounts},
+            'price': price_discounts,
+            'product': product_discounts
+        }
+    return {}
+
+
+def update_line_items_discounts(line_items, discounts):
     api_key = current_app.config['STRIPE_SECRET_KEY']
+    line_items = copy.deepcopy(line_items)
+    for item in line_items:
+        if 'price' in item and item['price'] in discounts['price']:
+            p = stripe.Price.retrieve(item.pop('price'), api_key=api_key)
+            item['price_data'] = {
+                'currency': p.currency,
+                'product': p.product.id,
+                'recurring': p.recurring,
+                'tax_behavior': p.tax_behavior,
+                'unit_amount_decimal': p.unit_amount_decimal
+            }
+        if 'price_data' not in item:
+            continue
+        price_data = item['price_data']
+        if 'product' in price_data:
+            d = discounts['product'].get(price_data['product'])
+        else:
+            d = discounts['prod_name'].get(price_data['product_data']['name'])
+        if d is None:
+            continue
+        d = discounts['discounts'][d]
+        for k, s in (('unit_amount', 1.0), ('unit_amount_decimal', 100.0)):
+            if k not in price_data:
+                continue
+            if d[0]:
+                quantity = item['quantity']
+                cost = float(price_data[k]) / s * quantity
+                new_cost = max(cost - d[0], 0)
+                d[0] -= cost - new_cost
+                amount = new_cost / quantity * s
+            else:
+                amount = float(price_data[k])
+
+            price_data[k] = '%d' % math.ceil(amount * d[1])
+    return line_items
+
+
+def format_line_items(line_items):
+    discounts = get_discounts()
     line_items = copy.deepcopy(line_items)
     lookup_keys = {}
     for i, d in enumerate(line_items):
@@ -362,13 +502,26 @@ def format_line_items(line_items):
                 lookup_keys, lookup_key, default=list
             ).append(i)
     if lookup_keys:
+        api_key = current_app.config['STRIPE_SECRET_KEY']
         for price in stripe.Price.list(
-                api_key=api_key,
-                lookup_keys=list(lookup_keys.keys()),
-                expand=['data.product']
-        ).data:
+                active=True, api_key=api_key, expand=['data.product'],
+                lookup_keys=list(lookup_keys.keys())
+        ).auto_paging_iter():
+            discount = discounts.get('prod_name', {}).get(price.product.name)
             for i in lookup_keys[price.lookup_key]:
-                line_items[i].update({'price': price.id})
+                item = line_items[i]
+                if discount is None:
+                    item['price'] = price.id
+                else:
+                    item['price_data'] = {
+                        'currency': price.currency,
+                        'product': price.product.id,
+                        'recurring': price.recurring,
+                        'tax_behavior': price.tax_behavior,
+                        'unit_amount_decimal': price.unit_amount_decimal,
+                    }
+    if discounts:
+        return update_line_items_discounts(line_items, discounts)
     return line_items
 
 
@@ -382,6 +535,8 @@ def create_payment():
             for k in ('id', 'firstname', 'lastname')
             if hasattr(cu, k)
         }
+        api_key = current_app.config['STRIPE_SECRET_KEY']
+
         if 'line_items' in data:
             it = data['line_items']
             if not isinstance(it, list):
@@ -395,16 +550,17 @@ def create_payment():
                 else:
                     line_items.append(d)
             line_items = format_line_items(line_items)
-            metadata['line_items'] = json.dumps(line_items)
-            for d in line_items:
-                d.pop('metadata', None)
+            metadata['line_items'] = json.dumps([
+                d.pop('metadata', None) for d in line_items
+            ])
             data['line_items'] = line_items
 
         session = stripe.checkout.Session.create(
-            api_key=current_app.config['STRIPE_SECRET_KEY'],
+            api_key=api_key,
             **sh.combine_nested_dicts(data, base={
                 'ui_mode': 'embedded',
                 'customer': user2stripe_customer().id,
+                'customer_update': {"address": "auto"},
                 'automatic_tax': {'enabled': True},
                 'redirect_on_completion': 'never',
                 'metadata': metadata
@@ -564,7 +720,7 @@ def checkout_session_completed(session_id):
                 'expires_at', product.metadata.get('expires_at', 'None')
             ))
             try:
-                credits = line_items[i].get('metadata', {})['credits']
+                credits = line_items[i]['credits']
             except (IndexError, KeyError):
                 credits = item.quantity
 
