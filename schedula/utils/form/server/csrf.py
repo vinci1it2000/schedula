@@ -17,6 +17,32 @@ from flask_wtf.csrf import CSRFProtect, CSRFError, generate_csrf
 
 
 class CSRF(CSRFProtect):
+    def setup_form(self, form):
+        """
+        Receive the form we're attached to and set up fields.
+
+        The default implementation creates a single field of
+        type :attr:`field_class` with name taken from the
+        ``csrf_field_name`` of the class meta.
+
+        :param form:
+            The form instance we're attaching to.
+        :return:
+            A sequence of `(field_name, unbound_field)` 2-tuples which
+            are unbound fields to be added to the form.
+        """
+        from wtforms.csrf.core import CSRFTokenField
+        meta = form.meta
+        field_name = meta.csrf_field_name
+        unbound_field = CSRFTokenField(label="CSRF Token", csrf_impl=self)
+        return [(field_name, unbound_field)]
+
+    def generate_csrf_token(self, csrf_token_field):
+        return generate_csrf()
+
+    def validate_csrf_token(self, form, field):
+        super().protect()
+
     def protect(self):
         try:
             super().protect()

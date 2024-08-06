@@ -23,11 +23,16 @@ class SecureForm(_SecureForm):
     class Meta:
         @property
         def csrf(self):
-            return str(current_app.config['SCHEDULA_CSRF_ENABLED']).lower() == 'true'
+            return str(
+                current_app.config['SCHEDULA_CSRF_ENABLED']).lower() == 'true'
 
         @property
         def csrf_field_name(self):
             return current_app.config['WTF_CSRF_FIELD_NAME']
+
+        def build_csrf(self, form):
+            from .csrf import csrf
+            return csrf
 
 
 class ModelView(_ModelView):

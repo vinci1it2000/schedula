@@ -28,14 +28,13 @@ Sub-Modules:
 """
 import logging
 import schedula as sh
-from .extensions import db
-from flask import current_app
-from flask_security import current_user as cu
 
 log = logging.getLogger(__name__)
 
 
 def default_get_form_context():
+    from flask import current_app
+    from flask_security import current_user as cu
     return {
         'reCAPTCHA': current_app.config.get('RECAPTCHA_PUBLIC_KEY'),
         'stripeKey': current_app.config.get('STRIPE_PUBLISHABLE_KEY'),
@@ -48,6 +47,7 @@ def default_get_form_context():
 
 def basic_app(sitemap, app):
     from ..config import Config
+    from .extensions import db
     app.config.from_object(Config())
     if getattr(sitemap, 'basic_app_config'):
         app.config.from_object(sitemap.basic_app_config)
