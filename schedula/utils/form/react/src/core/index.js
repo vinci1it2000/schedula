@@ -12,6 +12,7 @@ import {
 } from "./fields/utils";
 import ReactDOM from 'react-dom/client'
 import getTheme from '../themes'
+import { dereferenceSync } from 'dereference-json-schema';
 
 async function renderForm(
     {
@@ -32,7 +33,7 @@ async function renderForm(
             <Form
                 csrf_token={csrf_token}
                 schema={schema}
-                uiSchema={uiSchema}
+                uiSchema={dereferenceSync(uiSchema)}
                 name={name}
                 url={url}
                 theme={theme}

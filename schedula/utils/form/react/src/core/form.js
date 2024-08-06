@@ -41,7 +41,7 @@ function Form(
             })
         })
     }, []);
-    const BaseForm = useMemo(()=>(withTheme(theme)),[theme]);
+    const BaseForm = useMemo(() => (withTheme(theme)), [theme]);
     const rootRef = createRef()
     return <HoxRoot key={name}>
         {futureProps ? <BaseForm
