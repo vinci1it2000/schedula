@@ -30,7 +30,7 @@ class Base:
         return result
 
     def web(self, depth=-1, node_data=NONE, node_function=NONE, directory=None,
-            sites=None, run=True, subsite_idle_timeout=600):
+            sites=None, run=True, subsite_idle_timeout=600, debug=False):
         """
         Creates a dispatcher Flask app.
 
@@ -62,6 +62,10 @@ class Base:
         :param subsite_idle_timeout:
             Idle timeout of a debug subsite in seconds.
         :type subsite_idle_timeout: int, optional
+
+        :param debug:
+            Enable debug chart backend server?
+        :type subsite_idle_timeout: bool, optional
 
         :return:
             A WebMap.
@@ -110,9 +114,9 @@ class Base:
         webmap.directory = directory
         webmap.idle_timeout = subsite_idle_timeout
         if sites is not None:
-            sites.add(webmap.site(view=run))
+            sites.add(webmap.site(view=run, debug=debug))
         elif run:
-            return webmap.site(view=run)
+            return webmap.site(view=run, debug=debug)
         return webmap
 
     def form(self, depth=1, node_data=NONE, node_function=NONE, directory=None,

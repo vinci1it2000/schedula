@@ -160,7 +160,7 @@ class FormMap(WebMap):
         raise NotFound
 
     def app(self, root_path=None, depth=1, mute=False, blueprint_name=None,
-            index=False, **kwargs):
+            index=False, debug=False, **kwargs):
         from flask import Blueprint
         app = self.basic_app(
             root_path, mute=mute, blueprint_name=blueprint_name, **kwargs
@@ -177,8 +177,7 @@ class FormMap(WebMap):
             '/static/schedula/<path:filename>', 'static', self.send_static_file
         )
         bp.add_url_rule('/static/schedula/<string:filename>', 'static')
-        bp.register_blueprint(self.api(depth))
-        bp.register_blueprint(self.sub_site())
+        bp.register_blueprint(self.api(depth, debug))
         app.register_blueprint(bp)
         return app
 

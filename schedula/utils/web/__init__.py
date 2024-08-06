@@ -71,7 +71,7 @@ class WebMap(SiteMap):
         app.after_request(self.after_request)
         return app
 
-    def api(self, depth=-1):
+    def api(self, depth=-1, debug=False):
         from flask import Blueprint
         bp = Blueprint('api', __name__)
         context = self.rules(depth=depth, index=False)
@@ -83,6 +83,8 @@ class WebMap(SiteMap):
             else:
                 bp.add_url_rule('/', 'root', view, **opt)
                 bp.add_url_rule('/%s' % path, 'root', **opt)
+        if debug:
+            bp.register_blueprint(self.sub_site())
         return bp
 
     def sub_site(self):
@@ -95,13 +97,12 @@ class WebMap(SiteMap):
         return bp
 
     def app(self, root_path=None, depth=-1, mute=False, blueprint_name=None,
-            **kwargs):
+            debug=False, **kwargs):
         kwargs.pop('index', None)
         app = self.basic_app(
             root_path, mute=mute, blueprint_name=blueprint_name, **kwargs
         )
-        app.register_blueprint(self.api(depth))
-        app.register_blueprint(self.sub_site())
+        app.register_blueprint(self.api(depth, debug))
         return app
 
     def render(self, *args, **kwargs):
@@ -112,7 +113,7 @@ class WebMap(SiteMap):
         from flask import url_for
         from string import ascii_lowercase, digits
         key = ''.join(random.choices(ascii_lowercase + digits, k=12))
-        upx = url_for('schedula.subsite.root', key=key)
+        upx = url_for('.subsite.root', key=key)
         site = func.plot(workflow=True, view=False).site(
             index=True, url_prefix=upx, blueprint_name='debug',
             idle_timeout=self.idle_timeout

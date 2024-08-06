@@ -53,7 +53,7 @@ class TestDispatcherWeb(unittest.TestCase):
         self.sol = sol = dsp.dispatch()
         sites = set()
         webmap = dsp.web(
-            node_data=('+set_value',), run=True, sites=sites,
+            node_data=('+set_value',), run=True, sites=sites, debug=True,
             subsite_idle_timeout=os.name == 'nt' and 6 or 1
         )
         self.site = sites.pop()

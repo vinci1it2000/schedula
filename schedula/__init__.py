@@ -100,7 +100,7 @@ def __getattr__(name):
     if name in _all:
         import importlib
         obj = getattr(importlib.import_module(_all[name], __name__), name)
-        globals()[name] = obj
+        globals().pop(_all[name].split('.')[1], None)  # For multiprocessing.
         return obj
     raise AttributeError("module %s has no attribute %s" % (__name__, name))
 
@@ -138,3 +138,4 @@ if sys.version_info[:2] < (3, 7) or os.environ.get('IMPORT_ALL') == 'True':
         )
     except ImportError:  # MicroPython.
         pass
+del sys, os
