@@ -137,7 +137,7 @@ def generate_autosummary_docs(
     if len(showed_sources) > 20:
         showed_sources = showed_sources[:10] + ['...'] + showed_sources[-10:]
     logger.info(__('[autosummary] generating autosummary for: %s') %
-                ', '.join(showed_sources))
+                ', '.join(map(str, showed_sources)))
 
     if output_dir:
         logger.info(__('[autosummary] writing to %s') % output_dir)
