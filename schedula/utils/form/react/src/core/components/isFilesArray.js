@@ -19,13 +19,13 @@ export default function isFilesArray(
     if (uiSchema[UI_WIDGET_KEY] === "files") {
         return true
     }
-
-    if (schema.items) {
-        if ((get(schema.items, 'type', "string") !== "string") ||
-            (get(schema.items, 'format', "data-url") !== "data-url")) {
+    const {items} = schema
+    if (items) {
+        if ((get(items, 'type', "string") !== "string") ||
+            (get(items, 'format', "data-url") !== "data-url")) {
             return false
         }
-        const itemsSchema = retrieveSchema(validator, schema.items, rootSchema)
+        const itemsSchema = retrieveSchema(validator, items, rootSchema)
         return itemsSchema.type === "string" && itemsSchema.format === "data-url"
     }
     return false
