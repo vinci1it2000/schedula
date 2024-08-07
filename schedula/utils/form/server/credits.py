@@ -36,12 +36,10 @@ from sqlalchemy import (
 )
 from dateutil.relativedelta import relativedelta
 from dateutil.rrule import rrule, YEARLY, MONTHLY, WEEKLY, DAILY
-from sqlalchemy.ext.declarative import declarative_base
 
 FREQUENCIES = {'M': MONTHLY, 'W': WEEKLY, 'D': DAILY, 'Y': YEARLY}
 lock = Lock()
 bp = Blueprint('schedula_credits', __name__)
-Base = declarative_base()
 users_wallet = db.Table(
     'users_wallet', db.Model.metadata,
     Column('user_id', Integer, db.ForeignKey('user.id'), primary_key=True),
