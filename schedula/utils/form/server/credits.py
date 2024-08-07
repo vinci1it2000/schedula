@@ -207,18 +207,19 @@ class Txn(db.Model):
     wallet_id = Column(Integer, db.ForeignKey('wallet.id'), nullable=False)
     wallet = db.relationship('Wallet', backref='wallet')
 
-    type_id = Column(Integer, db.ForeignKey('transaction_type.id'),
-                     nullable=False)
+    type_id = Column(
+        Integer, db.ForeignKey('transaction_type.id'), nullable=False
+    )
     type = db.relationship('TxnType', backref='transaction_type')
 
     credits = Column(Integer, default=0)
-    product = Column(String)
+    product = Column(String(255))
     discount = Column(Integer, default=0)
     subtotal = Column(Integer, default=0)
     tax = Column(Integer, default=0)
     total = Column(Integer, default=0)
-    currency = Column(String)
-    stripe_id = Column(String)
+    currency = Column(String(64))
+    stripe_id = Column(String(64))
     refunded = Column(Boolean, default=False)
     raw_data = Column('raw_data', JSON)
     expired_at = Column(DateTime())
