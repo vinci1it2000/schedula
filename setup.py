@@ -91,7 +91,7 @@ if __name__ == '__main__':
     extras['form'] = extras['web'] + [
         'itsdangerous', 'rst2txt', 'flask-sqlalchemy', 'sqlalchemy', 'docutils',
         'flask-babel', 'flask-wtf', 'flask-principal', 'flask-security-too',
-        'flask-mail', 'stripe', 'click', 'click_log', 'gunicorn'
+        'flask-mail', 'stripe', 'click', 'click_log', 'gunicorn', 'flask-admin'
     ]
     extras['sphinx'] = ['sphinx>=7.2'] + extras['plot']
     extras['all'] = sorted(functools.reduce(set.union, extras.values(), set()))

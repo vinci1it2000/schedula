@@ -6,6 +6,7 @@ flask-babel
 flask-wtf
 flask-principal
 flask-security-too
+flask-admin
 sqlalchemy
 flask-mail
 rst2txt
