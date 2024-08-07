@@ -2,6 +2,165 @@ Changelog
 =========
 
 
+v1.5.12 (2024-08-07)
+--------------------
+
+Feat
+~~~~
+- (form): Update resources.
+
+- (form): Add option to disable debug chart API.
+
+- (core): Add new option to handle wildcards.
+
+- (form): Make `static_context` loading dynamically.
+
+- (form): Update `Credits` service.
+
+- (form): Add mode features to Stripe component.
+
+- (form): Apply `dereference` to `uiSchema` like `json-schema`.
+
+- (form): Update Subscription handling and credits.
+
+- (form): Update Stripe Card layout.
+
+- (form): Add Stripe components.
+
+- (form): Add Plasimc support.
+
+- (form): Add `FloatButton` component.
+
+- (form): Add GDPR service.
+
+- (form): Update resources.
+
+- (form): Update translations.
+
+- (form): Add landing components.
+
+- (form): Add router components.
+
+- (form): Add custom settings and use `react-router-dom` for `App`.
+
+- (form): Add Form as component.
+
+- (form): Update resources.
+
+- (form): Update server form.
+
+- (form): Update layout of user anc contact rendering + add
+  `loginRequired` option.
+
+- (form): Add `autoComplete` to `User` components.
+
+- (form): Change table orderable handler.
+
+- (form): Merge `Loader.css` in `main.css`.
+
+- (form): `ConfigProvider` handles the language changes.
+
+- (form): Make `antd` as default theme.
+
+- (form): Add `postData` method to `Form`.
+
+- (form): Update stripe widget.
+
+- (form): Add `Skeleton` template.
+
+- (form): Add `Tag` and `Timeline` components.
+
+- (form): Update Steps behaviour.
+
+- (form): Add `jsx` extension in `webpack.config.js`.
+
+- (form): Update resources.
+
+- (form): Update `Steps` component.
+
+- (form): Add tooltip and tour components.
+
+- (form): Update resources.
+
+- (form): Update Steps defaults.
+
+- (form): Correct `InputNumber` focused behaviour.
+
+- (form): Add `configProvider` option to layout widget.
+
+- (form): Update server structure.
+
+- (form): Add options for `CheckboxWidget`.
+
+- (form): Add Markdown widget.
+
+- (form): Add new table csv output and input format.
+
+- (form): Update layout rendering.
+
+- (form): Add `Alert`, `Drawer`, `Popconfirm`, `Progress`, `Result`,
+  `Skeleton`, `Spin`, `Watermark` components.
+
+
+Fix
+~~~
+- (form): Remove unused code.
+
+- (doc): Correct bug for new version sphinx.
+
+- (form): Correct form test cases.
+
+- (core): Add missing requirements.
+
+- (form): Correct `Admin` `CSRF`.
+
+- (form): Add `setCurrentStep` feature to `Steps` component.
+
+- (form): Hide page content when not logged.
+
+- (form): Remove Landing components.
+
+- (form): Correct Settings rendering.
+
+- (form): Correct page layout.
+
+- (form): Correct Landing formatting.
+
+- (core): Remove unneeded resources.
+
+- (form): Correct `formContext` generation.
+
+- (form): Correct `idPrefix`.
+
+- (form): Correct `PDFField` behaviour.
+
+- (web): Correct flash messages encoding.
+
+- (form): Correct `DraggerFileWidget` error colors.
+
+- (form): Correct `Loader` layout.
+
+- (form): Correct `Stripe` widget.
+
+- (form): Correct `webhooks` CSRF bug.
+
+- (form): Rollback `rjsf` version resources.
+
+- (form): Correct callback dependencies.
+
+- (form): Use debounce for updating values in editing mode.
+
+- (form): Correct `RangeWidget` update timing.
+
+- (form): Correct `ConfigProvider` handling.
+
+- (form): Correct `MentionsWidget` behaviour.
+
+- (form): Correct minus layout of App component.
+
+- (form): Correct bug in rendering parent path.
+
+
 v1.5.11 (2024-05-08)
 --------------------
 
