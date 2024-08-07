@@ -13,6 +13,7 @@
       }
     }
   },
+  "ui:onlyChildren": true,
   "ui:layout": {
     "component": "App",
     "props": {
@@ -27,42 +28,6 @@
             "global": {
               "tabEnableClose": false
             },
-            "borders": [
-              {
-                "type": "border",
-                "location": "left",
-                "enableDrop": false,
-                "size": 1200,
-                "selected": 0,
-                "children": [
-                  {
-                    "type": "tab",
-                    "enableClose": false,
-                    "enableDrag": false,
-                    "enableFloat": true,
-                    "name": "Debug",
-                    "component": 3
-                  }
-                ]
-              },
-              {
-                "type": "border",
-                "location": "right",
-                "enableDrop": false,
-                "size": 400,
-                "selected": 0,
-                "children": [
-                  {
-                    "type": "tab",
-                    "enableClose": false,
-                    "enableDrag": false,
-                    "enableFloat": false,
-                    "name": "Errors",
-                    "component": 2
-                  }
-                ]
-              }
-            ],
             "layout": {
               "type": "row",
               "children": [
@@ -222,14 +187,6 @@
                 ]
               }
             ]
-          },
-          {
-            "component": "Errors",
-            "force_render": true
-          },
-          {
-            "component": "Debug",
-            "force_render": true
           }
         ]
       }

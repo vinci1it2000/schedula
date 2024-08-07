@@ -34,7 +34,6 @@ from multiprocessing import Lock
 from sqlalchemy import (
     Column, String, Integer, DateTime, JSON, or_, event, Boolean, desc
 )
-from asteval import Interpreter
 from dateutil.relativedelta import relativedelta
 from dateutil.rrule import rrule, YEARLY, MONTHLY, WEEKLY, DAILY
 from sqlalchemy.ext.declarative import declarative_base
@@ -704,6 +703,7 @@ def checkout_session_completed(session_id):
             return
         customer = session.customer
         current_time = datetime.datetime.fromtimestamp(session.created)
+        from asteval import Interpreter
         aeval = Interpreter(usersyms={
             'now': current_time,
             'relativedelta': relativedelta

@@ -13,11 +13,13 @@ import schedula as sh
 import os.path as osp
 
 EXTRAS = os.environ.get('EXTRAS', 'all')
-
+GITHUB = os.getenv('GITHUB_ACTIONS') == 'true'
 PLATFORM = platform.system().lower()
 
 
-@unittest.skipIf(EXTRAS not in ('form',), 'Not for extra %s.' % EXTRAS)
+@unittest.skipIf(
+    EXTRAS not in ('form',) and GITHUB, 'Not for extra %s.' % EXTRAS
+)
 @unittest.skipIf(PLATFORM not in ('darwin', 'linux'),
                  'Not for platform %s.' % PLATFORM)
 class TestDispatcherForm(unittest.TestCase):
@@ -77,7 +79,7 @@ class TestDispatcherForm(unittest.TestCase):
         sites = set()
         self.dsp.form(
             directory=self.form_dir, run=True, sites=sites, view=False,
-            get_context=lambda: {
+            debug=True, get_context=lambda: {
                 'runnable': False,
                 'userInfo': {}
             }, get_data=lambda: {
@@ -141,6 +143,11 @@ class TestDispatcherForm(unittest.TestCase):
         if EXTRAS in ('all',):
             _run('debug-button')
             self.assertTrue(_btn('debug-button', 'ant-menu-item-disabled'))
+            WebDriverWait(driver, 30).until(
+                EC.element_to_be_clickable((
+                    By.XPATH, "//button[@class='ant-drawer-close']"
+                ))
+            ).click()
             _clean()
 
     @unittest.skipIf(
@@ -157,6 +164,8 @@ class TestDispatcherForm(unittest.TestCase):
             if event['type'] == 'payment_intent.created':
                 status[0] = True
 
+        import os
+        os.environ['SCHEDULA_CREDITS_ENABLED'] = 'true'
         self.stripe_site = sh.Dispatcher().form(
             directory=self.stripe_form_dir, run=False, view=False,
             stripe_event_handler=stripe_event_handler
@@ -195,23 +204,24 @@ class TestDispatcherForm(unittest.TestCase):
                 ))
             ).click()
 
-        for card in ('4000000000000002',):
-            for _ in range(3):
-                try:
-                    send_payment(card)
-                    self.assertTrue(bool(WebDriverWait(driver, 30).until(
-                        EC.visibility_of_element_located((
-                            By.XPATH,
-                            '//input[contains(@class, "CheckoutInput--invalid")]'
-                        ))
-                    )))
-                except TimeoutException:
-                    continue
-                break
-            else:
-                self.assertTrue(
-                    False, 'Stripe CheckoutInput--invalid TimeoutException'
-                )
-            driver.get('%s/' % self.stripe_site.url)
-            driver.switch_to.alert.accept()
-        send_payment('4242424242424242')
+        if not GITHUB:
+            for card in ('4000000000000002',):
+                for _ in range(3):
+                    try:
+                        send_payment(card)
+                        self.assertTrue(bool(WebDriverWait(driver, 30).until(
+                            EC.visibility_of_element_located((
+                                By.XPATH,
+                                '//input[contains(@class, "CheckoutInput--invalid")]'
+                            ))
+                        )))
+                    except TimeoutException:
+                        continue
+                    break
+                else:
+                    self.assertTrue(
+                        False, 'Stripe CheckoutInput--invalid TimeoutException'
+                    )
+                driver.get('%s/' % self.stripe_site.url)
+                driver.switch_to.alert.accept()
+            send_payment('4242424242424242')

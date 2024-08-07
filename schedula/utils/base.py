@@ -121,7 +121,7 @@ class Base:
 
     def form(self, depth=1, node_data=NONE, node_function=NONE, directory=None,
              sites=None, run=True, view=True, get_context=NONE, get_data=NONE,
-             subsite_idle_timeout=600, basic_app_config=None,
+             subsite_idle_timeout=600, basic_app_config=None, debug=False,
              stripe_event_handler=lambda event: None):
         """
         Creates a dispatcher Form Flask app.
@@ -171,6 +171,10 @@ class Base:
             Flask app config object.
         :type basic_app_config: object, optional
 
+        :param debug:
+            Enable debug chart backend server?
+        :type debug: bool, optional
+
         :param stripe_event_handler:
             Stripe event handler function.
         :type stripe_event_handler: function, optional
@@ -201,7 +205,7 @@ class Base:
             if v is not NONE:
                 setattr(formmap, f'_{k}', v)
         if sites is not None or run or view:
-            site = formmap.site(view=view)
+            site = formmap.site(view=view, debug=debug)
             site = run and not view and site.run() or site
             if sites is None:
                 return site
