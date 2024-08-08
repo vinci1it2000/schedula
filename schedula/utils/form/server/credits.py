@@ -155,8 +155,8 @@ def get_balance(wallet_id=None):
     user_id = request.args.get('user_id', cu.id)
     if not is_admin() and cu.id != user_id:
         abort(403)
-    query = Wallet.query.join(users_wallet, full=True).filter(or_(
-        users_wallet.c.user_id == user_id, Wallet.user_id == user_id
+    query = Wallet.query.filter(or_(
+        Wallet.users.any(id=user_id), Wallet.user_id == user_id
     ))
     if wallet_id is not None:
         query = query.filter_by(wallet_id=wallet_id)
