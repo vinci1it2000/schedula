@@ -135,7 +135,7 @@ export default function UserNav(
                 return <ChangePasswordForm
                     key={auth}
                     form={form}
-                    urlResetPassword={urlChangePassword}
+                    urlChangePassword={urlChangePassword}
                     setAuth={setAuth}
                     setSpinning={setSpinning}
                     setOpen={setOpen}/>
