@@ -51,11 +51,11 @@ class Wallet(db.Model):
     __tablename__ = 'wallet'
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, db.ForeignKey('user.id'))
-    user = db.relationship('User', backref='user')
+    user = db.relationship('User', foreign_keys=[user_id])
     users = db.relationship('User', secondary=users_wallet)
 
     def __repr__(self):
-        return f'Wallet - {self.id}'
+        return f'Wallet({self.id}) {self.user.name}'
 
     def name(self):
         return f"{self.user.firstname or ''} {self.user.lastname or ''}"
@@ -198,19 +198,19 @@ class TxnType(db.Model):
     name = Column(String(255))
 
     def __repr__(self):
-        return f'TransactionType - {self.id}'
+        return f'{self.name}'
 
 
 class Txn(db.Model):
     __tablename__ = 'wallet_transaction'
     id = Column(Integer, primary_key=True)
     wallet_id = Column(Integer, db.ForeignKey('wallet.id'), nullable=False)
-    wallet = db.relationship('Wallet', backref='wallet')
+    wallet = db.relationship('Wallet', foreign_keys=[wallet_id])
 
     type_id = Column(
         Integer, db.ForeignKey('transaction_type.id'), nullable=False
     )
-    type = db.relationship('TxnType', backref='transaction_type')
+    type = db.relationship('TxnType', foreign_keys=[type_id])
 
     credits = Column(Integer, default=0)
     product = Column(String(255))

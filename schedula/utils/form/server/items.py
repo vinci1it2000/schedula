@@ -35,6 +35,7 @@ class Item(db.Model):
     category = Column(String(255))
     data = Column('data', JSON)
     user_id = Column(Integer, ForeignKey('user.id'))
+    user = db.relationship('User', foreign_keys=[user_id])
     created_at = Column(DateTime(), default=datetime.datetime.utcnow)
     updated_at = Column(DateTime(), onupdate=datetime.datetime.utcnow)
 
@@ -54,7 +55,7 @@ class Item(db.Model):
         return res
 
     def __repr__(self):
-        return f'{self.category}-{self.id}-{self.user_id}'
+        return f'Item({self.id}) {self.category} - {self.user.name}'
 
 
 @bp.route('/<category>', methods=['GET', 'POST'])

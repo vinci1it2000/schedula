@@ -45,7 +45,8 @@ def is_admin():
 
 
 class Role(db.Model, fsqla.FsRoleMixin):
-    pass
+    def __repr__(self):
+        return f'Role({self.id}) {self.name}'
 
 
 class User(db.Model, fsqla.FsUserMixin):
@@ -53,6 +54,12 @@ class User(db.Model, fsqla.FsUserMixin):
     lastname = Column(String(255))
     avatar = Column(JSON())
     settings = Column(JSON())
+
+    def name(self):
+        return f'{self.firstname} {self.lastname}'
+
+    def __repr__(self):
+        return f'User({self.id}) - {self.firstname} {self.lastname} <{self.email}>'
 
     def get_security_payload(self):
         return {k: v for k, v in {
