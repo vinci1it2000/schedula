@@ -9,6 +9,7 @@
 """
 It provides functions to build the user authentication service.
 """
+import json
 import os
 import inspect
 import secrets
@@ -50,7 +51,7 @@ class Role(db.Model, fsqla.FsRoleMixin):
 class User(db.Model, fsqla.FsUserMixin):
     firstname = Column(String(255))
     lastname = Column(String(255))
-    avatar = Column(Text())
+    avatar = Column(JSON())
     settings = Column(JSON())
 
     def get_security_payload(self):
@@ -63,6 +64,11 @@ class User(db.Model, fsqla.FsUserMixin):
             'avatar': self.avatar,
             'settings': self.settings,
         }.items() if v is not None}
+
+
+class JSONField(StringField):
+    def _value(self):
+        return json.dumps(super(JSONField, self)._value())
 
 
 # Setup Flask-Security
