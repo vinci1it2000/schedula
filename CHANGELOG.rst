@@ -2,6 +2,41 @@ Changelog
 =========
 
 
+v1.5.13 (2024-08-09)
+--------------------
+
+Feat
+~~~~
+- (form): Update resources.
+
+- (form): Improve DB object readability.
+
+- (form): Make username registration optional.
+
+
+Fix
+~~~
+- (setup): Correct flask security requirements.
+
+- (form): Correct column size for stripe ids.
+
+- (form): Correct balance query for mysql db.
+
+- (form): Make all configs settable from envs.
+
+- (form): Correct avatar DB type.
+
+- (form): Correct typos.
+
+
+v1.5.13 (2024-08-08)
+--------------------
+
+Fix
+~~~
+- (form): Correct string length for mysql DB.
+
+
 v1.5.12 (2024-08-08)
 --------------------
 
