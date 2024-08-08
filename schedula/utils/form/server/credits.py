@@ -219,7 +219,7 @@ class Txn(db.Model):
     tax = Column(Integer, default=0)
     total = Column(Integer, default=0)
     currency = Column(String(64))
-    stripe_id = Column(String(64))
+    stripe_id = Column(String(255))
     refunded = Column(Boolean, default=False)
     raw_data = Column('raw_data', JSON)
     expired_at = Column(DateTime())
