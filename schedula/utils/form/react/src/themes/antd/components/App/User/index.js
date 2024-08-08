@@ -40,6 +40,7 @@ export default function UserNav(
         urlChangePassword,
         urlLogin,
         urlRegister,
+        registerAddUsername=false,
         urlConfirmMail,
         urlResetPassword,
         urlLogout,
@@ -98,7 +99,7 @@ export default function UserNav(
                     urlRegister={urlRegister}
                     setAuth={setAuth}
                     setSpinning={setSpinning}
-                    setOpen={setOpen}/>
+                    setOpen={setOpen} addUsername={registerAddUsername}/>
             case 'confirm':
                 return <ConfirmForm
                     key={auth}

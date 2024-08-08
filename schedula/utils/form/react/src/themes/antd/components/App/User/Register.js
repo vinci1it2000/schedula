@@ -13,7 +13,7 @@ import {
 import {useLocaleStore} from "../../../models/locale";
 
 export default function RegisterForm(
-    {form, urlRegister, setAuth, setSpinning, setOpen}) {
+    {form, urlRegister, setAuth, setSpinning, setOpen, addUsername = false}) {
 
     const [field_errors, setFieldErrors] = useState({});
 
@@ -89,7 +89,7 @@ export default function RegisterForm(
                     setFieldErrors({...field_errors, lastname: undefined})
             }}/>
         </Form.Item>
-        <Form.Item
+        {addUsername ? <Form.Item
             name="username"
             validateStatus={field_errors.username ? "error" : undefined}
             help={field_errors.username}
@@ -103,7 +103,7 @@ export default function RegisterForm(
                 if (field_errors.username)
                     setFieldErrors({...field_errors, username: undefined})
             }}/>
-        </Form.Item>
+        </Form.Item> : null}
         <Form.Item
             name="email"
             validateStatus={field_errors.email ? "error" : undefined}
