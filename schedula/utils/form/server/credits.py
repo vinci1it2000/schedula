@@ -111,40 +111,41 @@ class Wallet(db.Model):
             balance = balance.get(product, 0)
         return balance
 
-    def use(self, product, credits):
+    def use(self, product, credits, session=db.session):
         assert credits >= 0, 'Credits to be consumed have to be positive.'
         assert self.balance(product) >= credits, 'Insufficient balance.'
         t = Txn(
             wallet_id=self.id, type_id=CHARGE, credits=-credits,
             product=product, created_by=cu.id
         )
-        db.session.add(t)
-        db.session.flush()
+        session.add(t)
+        session.flush()
         return t.id
 
-    def charge(self, product, credits):
+    def charge(self, product, credits, session=db.session):
         assert credits >= 0, 'Credits to be added have to be positive.'
-        t = Txn(wallet_id=self.id, type_id=CHARGE, credits=credits,
-                product=product)
-        db.session.add(t)
-        db.session.flush()
+        t = Txn(
+            wallet_id=self.id, type_id=CHARGE, credits=credits, product=product
+        )
+        session.add(t)
+        session.flush()
         return t.id
 
-    def transfer_to(self, product, credits, to_wallet):
+    def transfer_to(self, product, credits, to_wallet, session=db.session):
         assert credits >= 0, 'Credits to be transfer have to be positive.'
-        assert Wallet.query.get(to_wallet), 'Destination wallet not found.'
+        assert session.get(Wallet, to_wallet), 'Destination wallet not found.'
         assert self.balance(product) >= credits, 'Insufficient balance.'
         t = Txn(
             wallet_id=self.id, type_id=TRANSFER, credits=-credits,
             product=product
         )
-        db.session.add(t)
+        session.add(t)
         t = Txn(
             wallet_id=to_wallet, type_id=TRANSFER, credits=credits,
             product=product
         )
-        db.session.add(t)
-        db.session.flush()
+        session.add(t)
+        session.flush()
         return t.id
 
 
@@ -244,12 +245,13 @@ class Txn(db.Model):
     def __repr__(self):
         return f'Transaction - {self.id}'
 
-    def update_credits(self, credits):
+    def update_credits(self, credits, session=db.session, force=False):
         assert credits >= 0, 'Credits update have to be positive.'
-        assert -self.credits >= credits, 'Credits update have to be lower than previous.'
+        assert force or -self.credits >= credits, \
+            'Credits update have to be lower than previous.'
         self.credits = -credits
-        db.session.add(self)
-        db.session.flush()
+        session.add(self)
+        session.flush()
 
 
 INF_DATE = datetime.datetime(9999, 12, 31, 23, 59)
@@ -365,12 +367,12 @@ def stripe_customer2user(customer):
     return user
 
 
-def get_wallet(user_id):
-    wallet = Wallet.query.filter_by(user_id=user_id).first()
+def get_wallet(user_id, session=db.session):
+    wallet = session.query(Wallet).filter_by(user_id=user_id).first()
     if not wallet:
         wallet = Wallet(user_id=user_id)
-        db.session.add(wallet)
-        db.session.flush([wallet])
+        session.add(wallet)
+        session.flush([wallet])
     return wallet
 
 
