@@ -2,6 +2,46 @@ Changelog
 =========
 
 
+v1.5.15 (2024-08-12)
+--------------------
+
+Feat
+~~~~
+- (form): Make `credits` `db.session` configurable.
+
+
+Fix
+~~~
+- (form): Add missing requirements.
+
+
+v1.5.14 (2024-08-08)
+--------------------
+
+Feat
+~~~~
+- (form): Update resources.
+
+- (form): Improve DB object readability.
+
+- (form): Make username registration optional.
+
+
+Fix
+~~~
+- (setup): Correct flask security requirements.
+
+- (form): Correct column size for stripe ids.
+
+- (form): Correct balance query for mysql db.
+
+- (form): Make all configs settable from envs.
+
+- (form): Correct avatar DB type.
+
+- (form): Correct typos.
+
+
 v1.5.13 (2024-08-09)
 --------------------
 
