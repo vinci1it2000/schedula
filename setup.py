@@ -185,6 +185,8 @@ if __name__ == '__main__':
                 'templates/*', 'index/js/*', 'index/css/*', 'viz/*'
             ],
             'schedula.utils.form': [
+                'server/locale/translations/**/*.po',
+                'server/security/translations/**/*.po',
                 'static/schedula/forms/*',
                 'static/schedula/**/*.gz',
                 'static/schedula/**/*.LICENSE.txt',
