@@ -52,7 +52,8 @@ class Mail(_Mail):
     def send_rst(self, to, rst=None, reply_to=None, body=None, subject=None,
                  **data):
         from tabulate import tabulate
-        language = get_locale().language
+        locale = get_locale()
+        language = f"{locale.language}_{locale.territory}"
         body = body or _render_template(
             f'schedula/email/{rst}-body-{language}.rst',
             f'schedula/email/{rst}-body.rst',

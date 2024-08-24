@@ -1,6 +1,7 @@
+
 Dear *{{ data.name | safe }}*,
 
-thanks for contacting us. The {{ created | safe }} you sent the following message:
+Thanks for contacting us. On {{ created | safe }} you sent the following message:
 
 **{{ data.message | safe }}**
 
