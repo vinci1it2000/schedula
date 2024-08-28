@@ -2,6 +2,33 @@ Changelog
 =========
 
 
+v1.5.16 (2024-08-28)
+--------------------
+
+Feat
+~~~~
+- (form): Update resources.
+
+- (form): Update all `FileWidgets`.
+
+- (form): Improve Steps code.
+
+- (form): Update `form.postData` method.
+
+- (form): Add files service.
+
+- (form): Use a shared lock.
+
+- (form): Add all translations.
+
+
+Fix
+~~~
+- (form): Update antd translations.
+
+- (setup): Add missing files.
+
+
 v1.5.15 (2024-08-12)
 --------------------
 
