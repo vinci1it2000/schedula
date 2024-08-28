@@ -14,7 +14,7 @@ import functools
 from ..cst import EMPTY
 from . import _process_funcs
 from ..exc import ExecutorShutdown
-from ..imp import Future, finalize, Error
+from ..imp import Future, finalize, Error, Lock
 from ..dsp import parent_func, SubDispatch, NoSub, get_nested_dicts
 
 
@@ -130,8 +130,7 @@ class ProcessExecutor(Executor):
 
     def __init__(self, *args, **state):
         super(ProcessExecutor, self).__init__()
-        import threading
-        self.lock = threading.Lock()
+        self.lock = Lock()
         for k, v in state.items():
             setattr(self, k, v)
 

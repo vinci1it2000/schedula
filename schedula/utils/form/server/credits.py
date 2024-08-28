@@ -30,7 +30,7 @@ from flask_security import current_user as cu, auth_required, roles_required
 from flask import (
     request, jsonify, current_app, flash, Blueprint, after_this_request, abort
 )
-from multiprocessing import Lock
+from sherlock import Lock
 from sqlalchemy import (
     Column, String, Integer, DateTime, JSON, or_, event, Boolean, desc
 )
@@ -38,7 +38,7 @@ from dateutil.relativedelta import relativedelta
 from dateutil.rrule import rrule, YEARLY, MONTHLY, WEEKLY, DAILY
 
 FREQUENCIES = {'M': MONTHLY, 'W': WEEKLY, 'D': DAILY, 'Y': YEARLY}
-lock = Lock()
+
 bp = Blueprint('schedula_credits', __name__)
 users_wallet = db.Table(
     'users_wallet', db.Model.metadata,
@@ -161,7 +161,7 @@ def get_balance(wallet_id=None):
     ))
     if wallet_id is not None:
         query = query.filter_by(wallet_id=wallet_id)
-    with lock:
+    with Lock('credits'):
         if not Wallet.query.filter_by(user_id=user_id).first():
             wallet = Wallet(user_id=user_id)
             db.session.add(wallet)
@@ -691,7 +691,7 @@ def create_refund():
 
 
 def checkout_session_completed(session_id):
-    with lock:
+    with Lock('credits'):
         if db.session.query(
                 Txn.query.filter_by(stripe_id=session_id).exists()
         ).scalar():
@@ -762,7 +762,7 @@ def subscription_invoice_paid(event):
             'subscription_create', 'subscription_update', 'subscription_cycle'
     ):
         return
-    with lock:
+    with Lock('credits'):
         if db.session.query(
                 Txn.query.filter_by(stripe_id=invoice.id).exists()
         ).scalar():
@@ -843,7 +843,7 @@ def charge_refunded(event):
     charge = event.data.object
     invoice = charge.invoice
     current_time = datetime.datetime.fromtimestamp(event.created)
-    with lock:
+    with Lock('credits'):
         for stripe_id in (invoice and (invoice,) or (
                 session.id for session in stripe.checkout.Session.list(
             payment_intent=charge.payment_intent,
@@ -928,7 +928,16 @@ class Credits:
             assert app.config[k], f'`{k}` is required!'
         app.stripe_event_handler = sitemap.stripe_event_handler
         app.register_blueprint(bp, url_prefix='/stripe')
-        app.extensions['schedula_stripe'] = self
+        app.extensions['schedula_credits'] = self
+        import sherlock
+        lock_config = sherlock._configuration
+        try:
+            lock_config.client
+        except ValueError as ex:
+            if lock_config.backend is None:
+                sherlock.configure(backend=sherlock.backends.FILE)
+            else:
+                raise ex
         if 'schedula_admin' in app.extensions:
             admin = app.extensions['schedula_admin']
             for v in (Wallet, Txn, TxnType):
