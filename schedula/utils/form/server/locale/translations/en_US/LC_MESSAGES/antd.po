@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 1.0\n"
 "Report-Msgid-Bugs-To: vinci1it2000@gmail.com\n"
-"PO-Revision-Date: 2024-07-02 10:30+0000\n"
+"PO-Revision-Date: 2024-08-28 10:07+0000\n"
 "Last-Translator: Vincenzo Arcidiacono <vinci1it2000@gmail.com>\n"
 "Language-Team: English <vinci1it2000@gmail.com>\n"
 "MIME-Version: 1.0\n"
@@ -1272,3 +1272,30 @@ msgid "Cookies.descriptionExperience"
 msgstr ""
 "These trackers help us to improve the quality of your user experience and "
 "enable interactions with external content, networks and platforms."
+
+msgid "ColorPicker.transparent"
+msgstr "Transparent"
+
+msgid "ColorPicker.gradientColor"
+msgstr "Gradient"
+
+msgid "Stripe.Card.titleFeatures"
+msgstr "Include:"
+
+msgid "ColorPicker.singleColor"
+msgstr "Single"
+
+msgid "DatePicker.lang.cellMeridiemFormat"
+msgstr "A"
+
+msgid "Stripe.Card.modalTitle"
+msgstr "Checkout"
+
+msgid "Calendar.lang.cellMeridiemFormat"
+msgstr "A"
+
+msgid "User.subscriptionButton"
+msgstr "Subscription"
+
+msgid "Stripe.Card.buttonText"
+msgstr "Buy"

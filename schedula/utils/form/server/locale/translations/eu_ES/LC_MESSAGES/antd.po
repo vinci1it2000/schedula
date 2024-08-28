@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 1.0\n"
 "Report-Msgid-Bugs-To: vinci1it2000@gmail.com\n"
-"PO-Revision-Date: 2024-07-02 10:30+0000\n"
+"PO-Revision-Date: 2024-08-28 10:07+0000\n"
 "Last-Translator: Vincenzo Arcidiacono <vinci1it2000@gmail.com>\n"
 "Language-Team: English <vinci1it2000@gmail.com>\n"
 "MIME-Version: 1.0\n"
@@ -1531,3 +1531,39 @@ msgid "Cookies.descriptionExperience"
 msgstr ""
 "Erabiltzaile-esperientziaren kalitatea hobetzen laguntzen digute, eta eduki,"
 " sare eta kanpoko plataformekin elkarrekintzak egiteko aukera ematen dute."
+
+# traslated
+msgid "ColorPicker.transparent"
+msgstr "Gardena"
+
+# traslated
+msgid "ColorPicker.gradientColor"
+msgstr "Gradiente"
+
+# traslated
+msgid "Stripe.Card.titleFeatures"
+msgstr "Barne hartu:"
+
+# traslated
+msgid "ColorPicker.singleColor"
+msgstr "Ezkongai"
+
+# traslated
+msgid "DatePicker.lang.cellMeridiemFormat"
+msgstr "Bat"
+
+# traslated
+msgid "Stripe.Card.modalTitle"
+msgstr "Kutxa"
+
+# traslated
+msgid "Calendar.lang.cellMeridiemFormat"
+msgstr "Bat"
+
+# traslated
+msgid "User.subscriptionButton"
+msgstr "Harpidetza"
+
+# traslated
+msgid "Stripe.Card.buttonText"
+msgstr "Erosi"

@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 1.0\n"
 "Report-Msgid-Bugs-To: vinci1it2000@gmail.com\n"
-"PO-Revision-Date: 2024-07-02 10:31+0000\n"
+"PO-Revision-Date: 2024-08-28 10:07+0000\n"
 "Last-Translator: Vincenzo Arcidiacono <vinci1it2000@gmail.com>\n"
 "Language-Team: English <vinci1it2000@gmail.com>\n"
 "MIME-Version: 1.0\n"
@@ -1490,3 +1490,39 @@ msgstr "这些跟踪器可帮助我们向您投放个性化广告或营销内容
 # traslated
 msgid "Cookies.descriptionExperience"
 msgstr "这些跟踪器可帮助我们提高您的用户体验质量，并实现与外部内容、网络和平台的交互。"
+
+# traslated
+msgid "ColorPicker.transparent"
+msgstr "透明"
+
+# traslated
+msgid "ColorPicker.gradientColor"
+msgstr "梯度"
+
+# traslated
+msgid "Stripe.Card.titleFeatures"
+msgstr "包括："
+
+# traslated
+msgid "ColorPicker.singleColor"
+msgstr "单"
+
+# traslated
+msgid "DatePicker.lang.cellMeridiemFormat"
+msgstr "一个"
+
+# traslated
+msgid "Stripe.Card.modalTitle"
+msgstr "收款处"
+
+# traslated
+msgid "Calendar.lang.cellMeridiemFormat"
+msgstr "一个"
+
+# traslated
+msgid "User.subscriptionButton"
+msgstr "订阅"
+
+# traslated
+msgid "Stripe.Card.buttonText"
+msgstr "买"

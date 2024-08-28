@@ -22,6 +22,8 @@ Sub-Modules:
     credits
     csrf
     extensions
+    files
+    gdpr
     items
     locale
     security
@@ -82,6 +84,10 @@ def basic_app(sitemap, app):
     if app.config.get('ITEMS_STORAGE_ENABLED'):
         from .items import Items
         Items(app, sitemap)
+
+    if app.config.get('FILES_STORAGE_ENABLED'):
+        from .files import Files
+        Files(app, sitemap)
 
     if app.config['SCHEDULA_GDPR_ENABLED']:
         from .gdpr import GDPR

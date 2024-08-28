@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 1.0\n"
 "Report-Msgid-Bugs-To: vinci1it2000@gmail.com\n"
-"PO-Revision-Date: 2024-07-02 10:30+0000\n"
+"PO-Revision-Date: 2024-08-28 10:07+0000\n"
 "Last-Translator: Vincenzo Arcidiacono <vinci1it2000@gmail.com>\n"
 "Language-Team: English <vinci1it2000@gmail.com>\n"
 "MIME-Version: 1.0\n"
@@ -1532,3 +1532,39 @@ msgstr "これらのトラッカーは、パーソナライズされた広告や
 msgid "Cookies.descriptionExperience"
 msgstr ""
 "これらのトラッカーは、ユーザーエクスペリエンスの品質を向上させ、外部コンテンツ、ネットワーク、プラットフォームとの相互作用を可能にするのに役立ちます。"
+
+# traslated
+msgid "ColorPicker.transparent"
+msgstr "透明"
+
+# traslated
+msgid "ColorPicker.gradientColor"
+msgstr "勾配"
+
+# traslated
+msgid "Stripe.Card.titleFeatures"
+msgstr "含める："
+
+# traslated
+msgid "ColorPicker.singleColor"
+msgstr "単"
+
+# traslated
+msgid "DatePicker.lang.cellMeridiemFormat"
+msgstr "ある"
+
+# traslated
+msgid "Stripe.Card.modalTitle"
+msgstr "チェックアウト"
+
+# traslated
+msgid "Calendar.lang.cellMeridiemFormat"
+msgstr "ある"
+
+# traslated
+msgid "User.subscriptionButton"
+msgstr "予約"
+
+# traslated
+msgid "Stripe.Card.buttonText"
+msgstr "買う"

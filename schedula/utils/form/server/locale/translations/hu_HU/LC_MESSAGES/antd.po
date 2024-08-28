@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 1.0\n"
 "Report-Msgid-Bugs-To: vinci1it2000@gmail.com\n"
-"PO-Revision-Date: 2024-07-02 10:30+0000\n"
+"PO-Revision-Date: 2024-08-28 10:07+0000\n"
 "Last-Translator: Vincenzo Arcidiacono <vinci1it2000@gmail.com>\n"
 "Language-Team: English <vinci1it2000@gmail.com>\n"
 "MIME-Version: 1.0\n"
@@ -1594,3 +1594,39 @@ msgstr ""
 "Ezek a nyomkövetők segítenek nekünk a felhasználói élmény minőségének "
 "javításában, és lehetővé teszik a külső tartalmakkal, hálózatokkal és "
 "platformokkal való interakciókat."
+
+# traslated
+msgid "ColorPicker.transparent"
+msgstr "Átlátszó"
+
+# traslated
+msgid "ColorPicker.gradientColor"
+msgstr "Emelkedő"
+
+# traslated
+msgid "Stripe.Card.titleFeatures"
+msgstr "Tartalmaz:"
+
+# traslated
+msgid "ColorPicker.singleColor"
+msgstr "Nőtlen"
+
+# traslated
+msgid "DatePicker.lang.cellMeridiemFormat"
+msgstr "Egy"
+
+# traslated
+msgid "Stripe.Card.modalTitle"
+msgstr "Pénztár"
+
+# traslated
+msgid "Calendar.lang.cellMeridiemFormat"
+msgstr "Egy"
+
+# traslated
+msgid "User.subscriptionButton"
+msgstr "Előfizetés"
+
+# traslated
+msgid "Stripe.Card.buttonText"
+msgstr "Vesz"

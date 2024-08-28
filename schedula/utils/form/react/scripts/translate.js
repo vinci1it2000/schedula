@@ -2,7 +2,7 @@ import fs from 'fs';
 import merge from "lodash/merge.js";
 
 let key = process.argv[2], module
-if (fs.existsSync(`./src/themes/antd/models/locale/${key}.mjs`)) {
+if (fs.existsSync(`../src/themes/antd/models/locale/${key}.mjs`)) {
     module = import(`../src/themes/antd/models/locale/${key}.mjs`).then(module => {
         let {default: d, ...locale} = module.default
         return merge({}, d, locale)

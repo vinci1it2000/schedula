@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 1.0\n"
 "Report-Msgid-Bugs-To: vinci1it2000@gmail.com\n"
-"PO-Revision-Date: 2024-07-02 10:29+0000\n"
+"PO-Revision-Date: 2024-08-28 10:07+0000\n"
 "Last-Translator: Vincenzo Arcidiacono <vinci1it2000@gmail.com>\n"
 "Language-Team: English <vinci1it2000@gmail.com>\n"
 "MIME-Version: 1.0\n"
@@ -1685,3 +1685,39 @@ msgstr ""
 "Hierdie spoorsnyers help ons om die kwaliteit van jou gebruikerservaring te "
 "verbeter en interaksies met eksterne inhoud, netwerke en platforms moontlik "
 "te maak."
+
+# traslated
+msgid "ColorPicker.transparent"
+msgstr "Deursigtige"
+
+# traslated
+msgid "ColorPicker.gradientColor"
+msgstr "Gradiënt"
+
+# traslated
+msgid "Stripe.Card.titleFeatures"
+msgstr "Sluit:"
+
+# traslated
+msgid "ColorPicker.singleColor"
+msgstr "Enkele"
+
+# traslated
+msgid "DatePicker.lang.cellMeridiemFormat"
+msgstr "'N"
+
+# traslated
+msgid "Stripe.Card.modalTitle"
+msgstr "Betaalpunt"
+
+# traslated
+msgid "Calendar.lang.cellMeridiemFormat"
+msgstr "'N"
+
+# traslated
+msgid "User.subscriptionButton"
+msgstr "Intekening"
+
+# traslated
+msgid "Stripe.Card.buttonText"
+msgstr "Koop"

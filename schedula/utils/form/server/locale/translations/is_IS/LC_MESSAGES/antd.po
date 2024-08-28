@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 1.0\n"
 "Report-Msgid-Bugs-To: vinci1it2000@gmail.com\n"
-"PO-Revision-Date: 2024-07-02 10:30+0000\n"
+"PO-Revision-Date: 2024-08-28 10:07+0000\n"
 "Last-Translator: Vincenzo Arcidiacono <vinci1it2000@gmail.com>\n"
 "Language-Team: English <vinci1it2000@gmail.com>\n"
 "MIME-Version: 1.0\n"
@@ -1592,3 +1592,39 @@ msgid "Cookies.descriptionExperience"
 msgstr ""
 "Þessir rekja spor einhvers hjálpa okkur að bæta gæði notendaupplifunar "
 "þinnar og virkja samskipti við ytra efni, net og vettvang."
+
+# traslated
+msgid "ColorPicker.transparent"
+msgstr "Gagnsær"
+
+# traslated
+msgid "ColorPicker.gradientColor"
+msgstr "Stigull"
+
+# traslated
+msgid "Stripe.Card.titleFeatures"
+msgstr "Fela í sér:"
+
+# traslated
+msgid "ColorPicker.singleColor"
+msgstr "Einhleypur"
+
+# traslated
+msgid "DatePicker.lang.cellMeridiemFormat"
+msgstr "A"
+
+# traslated
+msgid "Stripe.Card.modalTitle"
+msgstr "Stöðva"
+
+# traslated
+msgid "Calendar.lang.cellMeridiemFormat"
+msgstr "A"
+
+# traslated
+msgid "User.subscriptionButton"
+msgstr "Áskrift"
+
+# traslated
+msgid "Stripe.Card.buttonText"
+msgstr "Kaupa"

@@ -12,23 +12,27 @@ import schedula as sh
 from datetime import datetime
 import translators as ts
 
-data = {'en_US', 'it_IT'}
+data = {'en_US'}
 for fpath in glob.glob(osp.join(
         osp.dirname(inspect.getfile(flask_security)), 'translations', '*'
 )):
     if osp.isdir(fpath):
         data.add(osp.basename(fpath))
-data = {lng: json.loads(subprocess.check_output([
-    'node', '--es-module-specifier-resolution=node', './scripts/translate.js',
-    {'zh_Hans_CN': 'zh_CN'}.get(lng, lng)
-])) for lng in data}
 
 cdir = osp.dirname(__file__)
+data = {lng: json.loads(subprocess.check_output([
+    'node', '--es-module-specifier-resolution=node', osp.join(
+        cdir, 'translate.js'
+    ), {'zh_Hans_CN': 'zh_CN'}.get(lng, lng)
+], cwd=cdir)) for lng in data}
+
 
 data = {i: {
     '.'.join(k): v for k, v in sh.stack_nested_keys(d) if isinstance(v, str)
 } for i, d in data.items()}
-pot_fpath = osp.abspath(osp.join(cdir, '..', '..', 'server', 'locale', 'translations', 'antd.pot'))
+pot_fpath = osp.abspath(osp.join(
+    cdir, '..', '..', 'server', 'locale', 'translations', 'antd.pot'
+))
 if osp.isfile(pot_fpath):
     pot = polib.pofile(pot_fpath)
 else:
@@ -53,7 +57,8 @@ pot.save(pot_fpath)
 
 def _compile_po(lang, d, default=None):
     po_fpath = osp.abspath(osp.join(
-        cdir, '..', '..', 'server', 'locale', 'translations', lang, 'LC_MESSAGES', 'antd.po'
+        cdir, '..', '..', 'server', 'locale', 'translations', lang,
+        'LC_MESSAGES', 'antd.po'
     ))
     if osp.isfile(po_fpath):
         po = polib.pofile(po_fpath)
