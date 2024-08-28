@@ -9,7 +9,6 @@
 """
 It provides functions to build the item storage service.
 """
-import io
 import hashlib
 import datetime
 import schedula as sh
@@ -135,9 +134,11 @@ class FileName(db.Model):
             if file_:
                 return file_
             elif 'file' in file:
-                file_ = File(hash=hash, data=file['file'])
-                db.session.add(file_)
-                db.session.commit()
+                from urllib.request import urlopen
+                with urlopen(file['file'], 'rb') as f:
+                    file_ = File(hash=hash, data=f)
+                    db.session.add(file_)
+                    db.session.commit()
                 return file_
             else:
                 raise AskFile()
