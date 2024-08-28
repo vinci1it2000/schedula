@@ -17,3 +17,4 @@ click_log
 gunicorn
 asteval
 sherlock
+sqlalchemy-file
