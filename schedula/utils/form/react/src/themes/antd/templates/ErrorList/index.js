@@ -1,6 +1,8 @@
 import React, {useState, Suspense} from "react";
 import {FloatButton, List, Badge} from 'antd';
-import {DraggableModal} from 'ant-design-draggable-modal/packages/ant-design-draggable-modal'
+import {
+    DraggableModal
+} from 'ant-design-draggable-modal/packages/ant-design-draggable-modal'
 import './index.css'
 import {useLocaleStore} from "../../models/locale";
 

@@ -56,7 +56,7 @@ const CookiesModal = (
 ) => {
     const formData = useMemo(() => {
         return {..._formData, urlConsent}
-    },[_formData, urlConsent])
+    }, [_formData, urlConsent])
     const {getLocale} = useLocaleStore()
     const locale = getLocale('Cookies')
     const [visible, setVisible] = useState(!localStorage.getItem('consent-id'));
@@ -78,18 +78,8 @@ const CookiesModal = (
         const consentId = localStorage.getItem('consent-id');
         form.postData({
             url: urlConsent, data: {id: consentId, consents: newConsents},
-        }).then(({data: {error, ...data}}) => {
-            if (error) {
-                form.props.notify({
-                    message: locale.errorTitle, description: error
-                })
-            } else {
-                updateConsents(data)
-            }
-        }).catch(({message}) => {
-            form.props.notify({
-                message: locale.errorTitle, description: message
-            })
+        }, ({data}) => {
+            updateConsents(data)
         })
     }, [newConsents, urlConsent, form, updateConsents, locale])
     const consentItems = useMemo(() => {
@@ -132,12 +122,11 @@ const CookiesModal = (
             if (consentId) {
                 setLoading(true);
                 form.postData({
-                    url: `${urlConsent}/${consentId}`, method: 'GET', data: {}
-                }).then(({data}) => {
+                    url: `${urlConsent}/${consentId}`, method: 'GET'
+                }, ({data}) => {
                     updateConsents(data)
                     setLoading(false);
-                }).catch(({message}) => {
-                    form.props.notify({message})
+                }, () => {
                     setLoading(false);
                 })
             } else {

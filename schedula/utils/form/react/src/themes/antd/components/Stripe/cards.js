@@ -21,7 +21,7 @@ const PricingCards = (
         render,
         prices = [],
         options,
-        categoryMax={},
+        categoryMax = {},
         initialSelected = 0,
         style = {},
         ...props
@@ -35,7 +35,7 @@ const PricingCards = (
     const [current, setCurrent] = useState(initialSelected)
     const max = {...categoryMax}
     prices.forEach(
-        ({price, quantity = 1, months = 1, category=null}) => {
+        ({price, quantity = 1, months = 1, category = null}) => {
             const ratio = price / quantity / months
             if (!isNaN(ratio)) {
                 max[category] = get(max, category, [])
@@ -52,7 +52,7 @@ const PricingCards = (
                 price,
                 quantity = 1,
                 months = 1,
-                category=null,
+                category = null,
                 ribbonText = 'Save',
                 ...item
             }, index) => {

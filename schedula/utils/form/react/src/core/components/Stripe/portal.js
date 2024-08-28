@@ -75,30 +75,21 @@ const StripePortal = forwardRef((
                         data: {
                             locale: language.replace('_', '-').split('-')[0]
                         },
-                    }).then(({data: {error, session_url}}) => {
+                    }, ({data: {session_url}}) => {
                         form.setState({loading: false})
-                        if (error) {
-                            form.props.notify({
-                                description: error,
-                            })
-                        } else {
-                            const {
-                                    width: popWidth,
-                                    height: popHeight,
-                                    top: popTop,
-                                    left: popLeft
-                                } = convertToHeightWidthTopLeft({
-                                    height, width, top, bottom, left, right
-                                }),
-                                params = `status=no,location=no,toolbar=no,menubar=no,width=${popWidth},height=${popHeight},left=${popLeft},top=${popTop}`;
-                            const popup = window.open(session_url, '_blank', params);
-                            setPopup(popup)
-                        }
-                    }).catch(({message}) => {
+                        const {
+                                width: popWidth,
+                                height: popHeight,
+                                top: popTop,
+                                left: popLeft
+                            } = convertToHeightWidthTopLeft({
+                                height, width, top, bottom, left, right
+                            }),
+                            params = `status=no,location=no,toolbar=no,menubar=no,width=${popWidth},height=${popHeight},left=${popLeft},top=${popTop}`;
+                        const popup = window.open(session_url, '_blank', params);
+                        setPopup(popup)
+                    }, () => {
                         form.setState({loading: false})
-                        form.props.notify({
-                            description: message,
-                        })
                     })
                 })
             }

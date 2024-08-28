@@ -32,31 +32,19 @@ export default function InfoForm(
         form.postData({
             url: urlEdit,
             data: {...data, avatar: userImage},
-        }).then(({data: {error, errors, field_errors, response}}) => {
+        }, ({data: {response: {user = {}}}}) => {
             setSpinning(false)
-            if (error) {
-                form.props.notify({
-                    message: locale.errorTitle,
-                    description: (errors || [error]).join('\n'),
-                })
-                if (field_errors) {
-                    setFieldErrors(field_errors || {})
-                }
-            } else {
-                const {user = {}} = response
-                form.setState((state) => ({
-                    ...state,
-                    userInfo: user,
-                    submitCount: state.submitCount + 1
-                }))
-                setDisabled(true)
+            form.setState((state) => ({
+                ...state,
+                userInfo: user,
+                submitCount: state.submitCount + 1
+            }))
+            setDisabled(true)
+        }, ({data: {field_errors}}) => {
+            setSpinning(false)
+            if (field_errors) {
+                setFieldErrors(field_errors || {})
             }
-        }).catch(({message}) => {
-            setSpinning(false)
-            form.props.notify({
-                message: locale.errorTitle,
-                description: message,
-            })
         })
     }
     const {getLocale} = useLocaleStore()

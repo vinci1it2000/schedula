@@ -51,19 +51,10 @@ export default function StripeTable(
             if (user_id && urlPriceTableSession) {
                 form.postData({
                     url: urlPriceTableSession,
-                    data: {},
-                }).then(({data: {error, clientSecret}}) => {
-                    if (error) {
-                        form.props.notify({
-                            description: error,
-                        })
-                    } else if (clientSecret) {
+                }, ({data: {clientSecret}}) => {
+                    if (clientSecret) {
                         setClientSecret(clientSecret)
                     }
-                }).catch(({message}) => {
-                    form.props.notify({
-                        description: message,
-                    })
                 })
             }
         })

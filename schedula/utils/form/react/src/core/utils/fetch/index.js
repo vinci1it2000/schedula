@@ -1,7 +1,7 @@
 import {gzip, ungzip} from 'pako';
 
 export default async function post(
-    {url, data, form, headers, method = 'POST', ...props}) {
+    {url, data = {}, form, headers, method = 'POST', ...props}) {
     let init = {
         method,
         crossDomain: true,
@@ -27,7 +27,7 @@ export default async function post(
         }
         if (response.headers.has('N-CSRF-Token')) {
             const csrf_token = response.headers.get('N-CSRF-Token')
-            form.setState((state)=>({...state, csrf_token}))
+            form.setState((state) => ({...state, csrf_token}))
         }
         if (response.redirected) {
             window.location.href = response.url;

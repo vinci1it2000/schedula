@@ -325,13 +325,15 @@ export default class Form extends BaseForm {
             }
 
             this.setState(state, () => {
-                this.postData({data, ...detail}).then(({data, debugUrl}) => {
-                    return {
-                        debugUrl, ...this.postSubmit({
-                            data, input, formData: newFormData
-                        })
-                    }
-                }).then(({data, debugUrl, state: fetchState}) => {
+                this.postData({data, ...detail}, (
+                    {
+                        data: postData,
+                        debugUrl,
+                        state: fetchState
+                    }) => {
+                    const {data} = this.postSubmit({
+                        data: postData, input, formData: newFormData
+                    })
                     if (debugUrl) {
                         newState = {...newState, debugUrl}
                     }
@@ -357,11 +359,9 @@ export default class Form extends BaseForm {
                         }
                         this.validateForm()
                     })
-                }).catch(error => {
+                }, () => {
                     this.setState({
                         ...this.state, ...state, ...newState
-                    }, () => {
-                        this.props.notify({message: error.message})
                     })
                 });
             })
@@ -370,7 +370,7 @@ export default class Form extends BaseForm {
         }
     }, 50)
 
-    postData = (kwargs) => {
+    postData = (kwargs, onSuccess, onError) => {
         return postData({
             url: this.props.url || '/',
             form: this,
@@ -381,6 +381,23 @@ export default class Form extends BaseForm {
                 this.props.notify({type, message})
             })
             return {debugUrl, data}
+        }).then((response) => {
+            let {data: {error, errors = []}} = response
+            if (error || errors.length) {
+                let message = (errors.length ? errors : [error]).join('\n')
+                throw {...response, message}
+            } else if (onSuccess) {
+                onSuccess(response)
+            } else {
+                return response
+            }
+        }).catch((error = {}) => {
+            this.props.notify({
+                message: this.t('Ops... something went wrong!'),
+                description: error.message,
+            })
+            if (onError)
+                onError(error)
         })
     }
 

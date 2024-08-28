@@ -1,5 +1,7 @@
 import React, {useState, useCallback} from 'react'
-import {DraggableModal} from 'ant-design-draggable-modal/packages/ant-design-draggable-modal'
+import {
+    DraggableModal
+} from 'ant-design-draggable-modal/packages/ant-design-draggable-modal'
 import {FloatButton} from 'antd';
 import {
     QuestionCircleOutlined, CloseCircleOutlined

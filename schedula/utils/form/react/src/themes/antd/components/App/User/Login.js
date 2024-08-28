@@ -24,31 +24,20 @@ export default function LoginForm(
         form.postData({
             url: urlLogin,
             data: {email, password, remember},
-        }).then(({data: {error, errors, field_errors, response}}) => {
+        }, ({data: {response}}) => {
             setSpinning(false)
-            if (error) {
-                form.props.notify({
-                    message: locale.errorTitle,
-                    description: (errors || [error]).join('\n'),
-                })
-                if (field_errors) {
-                    setFieldErrors(field_errors || {})
-                }
-            } else {
-                const {user = {}} = response
-                form.setState((state) => ({
-                    ...state,
-                    userInfo: {email, ...user},
-                    submitCount: state.submitCount + 1
-                }))
-                setOpen(false)
+            const {user = {}} = response
+            form.setState((state) => ({
+                ...state,
+                userInfo: {email, ...user},
+                submitCount: state.submitCount + 1
+            }))
+            setOpen(false)
+        }, ({data: {field_errors}}) => {
+            setSpinning(false)
+            if (field_errors) {
+                setFieldErrors(field_errors || {})
             }
-        }).catch(({message}) => {
-            setSpinning(false)
-            form.props.notify({
-                message: locale.errorTitle,
-                description: message,
-            })
         })
     }
     const {getLocale} = useLocaleStore()

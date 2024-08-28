@@ -50,8 +50,7 @@ export const locale = merge({}, en, {
         subjectPlaceholder: "Mail Subject",
         subjectRequired: "Please enter mail subject!",
         messagePlaceholder: "Your Message",
-        messageRequired: "Please enter your message!",
-        errorTitle: 'Ops... something went wrong!'
+        messageRequired: "Please enter your message!"
     },
     User: {
         buttonTooltip: "Login",
@@ -82,8 +81,7 @@ export const locale = merge({}, en, {
         passwordPlaceholder: "Password",
         passwordRequired: "Please input your Password!",
         rememberMe: "Remember me",
-        forgotPassword: "Forgot password",
-        errorTitle: 'Ops... something went wrong!'
+        forgotPassword: "Forgot password"
     },
     "User.Logout": {
         submitButton: "Logout",
@@ -94,8 +92,7 @@ export const locale = merge({}, en, {
         login: "login!",
         emailPlaceholder: "Email",
         emailRequired: "Please input your Email!",
-        emailInvalid: "Invalid Email!",
-        errorTitle: 'Ops... something went wrong!'
+        emailInvalid: "Invalid Email!"
     },
     "User.Confirm": {
         submitButton: "Send instructions",
@@ -103,8 +100,7 @@ export const locale = merge({}, en, {
         login: "login!",
         emailPlaceholder: "Email",
         emailRequired: "Please input your Email!",
-        emailInvalid: "Invalid Email!",
-        errorTitle: 'Ops... something went wrong!'
+        emailInvalid: "Invalid Email!"
     },
     "User.ChangePassword": {
         submitButton: "Change Password",
@@ -114,8 +110,7 @@ export const locale = merge({}, en, {
         passwordRequired: "Please input your New Password!",
         passwordConfirmPlaceholder: "Confirm New Password",
         passwordConfirmRequired: "Please confirm your New Password!",
-        passwordConfirmError: 'The two passwords that you entered do not match!',
-        errorTitle: 'Ops... something went wrong!'
+        passwordConfirmError: 'The two passwords that you entered do not match!'
     },
     "User.ResetPassword": {
         or: "Or",
@@ -125,8 +120,7 @@ export const locale = merge({}, en, {
         passwordRequired: "Please input your New Password!",
         passwordConfirmPlaceholder: "Confirm New Password",
         passwordConfirmRequired: "Please confirm your New Password!",
-        passwordConfirmError: 'The two passwords that you entered do not match!',
-        errorTitle: 'Ops... something went wrong!'
+        passwordConfirmError: 'The two passwords that you entered do not match!'
     },
     "User.Register": {
         submitButton: "Register",
@@ -145,11 +139,9 @@ export const locale = merge({}, en, {
         passwordRequired: "Please input your Password!",
         passwordConfirmPlaceholder: "Confirm Password",
         passwordConfirmRequired: "Please confirm your Password!",
-        passwordConfirmError: 'The two passwords that you entered do not match!',
-        errorTitle: 'Ops... something went wrong!'
+        passwordConfirmError: 'The two passwords that you entered do not match!'
     },
     "User.Setting": {
-        errorTitle: 'Ops... something went wrong!',
         submitButton: 'Save',
         revertButton: 'Revert',
         firstnamePlaceholder: "Name",
@@ -162,7 +154,6 @@ export const locale = merge({}, en, {
         revertButton: 'Revert'
     },
     CloudDownloadField: {
-        errorTitle: 'Ops... something went wrong!',
         fieldErrors: {name: 'Please input name!'},
         dataSwitchChecked: "current",
         dataSwitchUnChecked: "server",
@@ -179,7 +170,6 @@ export const locale = merge({}, en, {
         titleSaveNew: "Save current data"
     },
     CloudUploadField: {
-        errorTitle: 'Ops... something went wrong!',
         fieldErrors: {name: 'Please input name!'},
         dataSwitchChecked: "current",
         dataSwitchUnChecked: "server",
@@ -196,7 +186,6 @@ export const locale = merge({}, en, {
         titleSaveNew: "Save current data"
     },
     Cookies: {
-        errorTitle: 'Ops... something went wrong!',
         modalTitle: "Notice",
         saveButton: "Save and continue",
         acceptButton: "Accept",
@@ -246,8 +235,8 @@ export const locale = merge({}, en, {
     },
     "Stripe.Card": {
         titleFeatures: "Include:",
-        buttonText:"Buy",
-        modalTitle:"Checkout"
+        buttonText: "Buy",
+        modalTitle: "Checkout"
     },
     ArrayAccordion: {
         ...en.global,

@@ -1,4 +1,6 @@
-import {DraggableModalProvider} from 'ant-design-draggable-modal/packages/ant-design-draggable-modal'
+import {
+    DraggableModalProvider
+} from 'ant-design-draggable-modal/packages/ant-design-draggable-modal'
 import 'ant-design-draggable-modal/packages/ant-design-draggable-modal/index.css'
 
 

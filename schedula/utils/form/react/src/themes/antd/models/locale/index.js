@@ -13,7 +13,7 @@ function translateLocale(form, data, keys) {
         if (isObject(v) && !Array.isArray(v)) {
             newData[k] = translateLocale(form, v, [...(keys || []), k])
         } else {
-            let token = `antd:${[...(keys || []), k].join('.')}`
+            let token = `antd:::${[...(keys || []), k].join('.')}`
             let text = form.t(token)
             if (text !== token) {
                 newData[k] = text

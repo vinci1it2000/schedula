@@ -40,7 +40,7 @@ export default function UserNav(
         urlChangePassword,
         urlLogin,
         urlRegister,
-        registerAddUsername=false,
+        registerAddUsername = false,
         urlConfirmMail,
         urlResetPassword,
         urlLogout,

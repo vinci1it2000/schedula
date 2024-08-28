@@ -8,6 +8,7 @@ i18n.use(Backend).init({
     fallbackLng: 'en_US',
     lng: document.documentElement.lang,
     ns: 'messages',
+    nsSeparator: ':::',
     defaultNS: 'messages',
     keySeparator: false,
     parseMissingKeyHandler: (key) => (

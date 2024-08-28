@@ -16,17 +16,9 @@ export default function ConfirmForm(
         form.postData({
             url: urlConfirmMail,
             data: {email},
-        }).then(({data: {error, errors, field_errors, response}}) => {
+        }, ({data: {response}}) => {
             setSpinning(false)
-            if (error) {
-                form.props.notify({
-                    message: locale.errorTitle,
-                    description: (errors || [error]).join('\n'),
-                })
-                if (field_errors) {
-                    setFieldErrors(field_errors || {})
-                }
-            } else if (response) {
+            if (response) {
                 const {user = {}} = response
                 form.setState((state) => ({
                     ...state,
@@ -40,12 +32,11 @@ export default function ConfirmForm(
             } else {
                 setAuth('login')
             }
-        }).catch(({message}) => {
+        }, ({data: {field_errors}}) => {
             setSpinning(false)
-            form.props.notify({
-                message: locale.errorTitle,
-                description: message,
-            })
+            if (field_errors) {
+                setFieldErrors(field_errors || {})
+            }
         })
     }
     const {getLocale} = useLocaleStore()

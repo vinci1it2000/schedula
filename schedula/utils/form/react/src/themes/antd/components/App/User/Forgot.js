@@ -15,25 +15,14 @@ export default function ForgotForm(
         form.postData({
             url: urlForgotPassword,
             data
-        }).then(({data: {error, errors, field_errors}}) => {
+        }, () => {
             setSpinning(false)
-            if (error) {
-                form.props.notify({
-                    message: locale.errorTitle,
-                    description: (errors || [error]).join('\n'),
-                })
-                if (field_errors) {
-                    setFieldErrors(field_errors || {})
-                }
-            } else {
-                setAuth('login')
+            setAuth('login')
+        }, ({data: {field_errors}}) => {
+            setSpinning(false)
+            if (field_errors) {
+                setFieldErrors(field_errors || {})
             }
-        }).catch(({message}) => {
-            setSpinning(false)
-            form.props.notify({
-                message: locale.errorTitle,
-                description: message,
-            })
         })
     }
     const {getLocale} = useLocaleStore()
@@ -56,9 +45,9 @@ export default function ForgotForm(
                 prefix={<MailOutlined className="site-form-item-icon"/>}
                 placeholder={locale.emailPlaceholder} autoComplete="username"
                 onChange={() => {
-                if (field_errors.email)
-                    setFieldErrors({...field_errors, email: undefined})
-            }}/>
+                    if (field_errors.email)
+                        setFieldErrors({...field_errors, email: undefined})
+                }}/>
         </Form.Item>
         <Form.Item>
             <Button type="primary" htmlType="submit" style={{width: '100%'}}>

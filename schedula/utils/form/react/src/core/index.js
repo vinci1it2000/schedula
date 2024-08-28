@@ -12,7 +12,7 @@ import {
 } from "./fields/utils";
 import ReactDOM from 'react-dom/client'
 import getTheme from '../themes'
-import { dereferenceSync } from 'dereference-json-schema';
+import {dereferenceSync} from 'dereference-json-schema';
 
 async function renderForm(
     {

@@ -24,7 +24,6 @@ import {
     Typography
 } from 'antd';
 import {getUiOptions} from "@rjsf/utils";
-import post from "../../../../core/utils/fetch";
 import isEqual from "lodash/isEqual";
 import isArray from "lodash/isArray";
 import get from "lodash/get";
@@ -101,43 +100,26 @@ export default function CloudDownloadField(
             page: tableParams.pagination.current || 1,
             per_page: tableParams.pagination.pageSize || 10
         })
-        post({
+        form.postData({
             url: `${cloudUrl}?${query}`,
-            data: {},
-            form,
             method: 'GET'
-        }).then(({data, messages}) => {
+        }, ({data, messages}) => {
             setLoading(false)
-            if (messages)
-                messages.forEach(([type, message]) => {
-                    form.props.notify({type, message})
-                })
-            if (data.error) {
-                form.props.notify({
-                    message: locale.errorTitle,
-                    description: (data.errors || [data.error]).join('\n'),
-                })
-            } else {
-                const {page, total, items} = data
-                setData(items);
-                setLoading(false);
-                setTableParams((tableParams) => ({
-                    ...tableParams,
-                    pagination: {
-                        ...tableParams.pagination,
-                        total: total,
-                        current: page
-                    }
-                }));
-            }
-        }).catch(error => {
+            const {page, total, items} = data
+            setData(items);
+            setLoading(false);
+            setTableParams((tableParams) => ({
+                ...tableParams,
+                pagination: {
+                    ...tableParams.pagination,
+                    total: total,
+                    current: page
+                }
+            }));
+        }, () => {
             setLoading(false)
-            form.props.notify({
-                message: locale.errorTitle,
-                description: error.message,
-            })
         })
-    }, [cloudUrl, form, locale.errorTitle]);
+    }, [cloudUrl, form]);
     const handleTableChange = (pagination, filters, sorter) => {
         let newParams = {
             pagination,
@@ -151,62 +133,32 @@ export default function CloudDownloadField(
     };
     const handleDelete = (id) => {
         setLoading(true)
-        post({
-            url: `${cloudUrl}/${id}`, data: {}, form, method: 'DELETE'
-        }).then(({data, messages}) => {
+        form.postData({
+            url: `${cloudUrl}/${id}`, method: 'DELETE'
+        }, () => {
             setLoading(false)
-            if (messages)
-                messages.forEach(([type, message]) => {
-                    form.props.notify({type, message})
-                })
-            if (data.error) {
-                form.props.notify({
-                    message: locale.errorTitle,
-                    description: (data.errors || [data.error]).join('\n'),
-                })
-            } else {
-                fetchData()
-            }
-        }).catch(error => {
+            fetchData()
+        }, () => {
             setLoading(false)
-            form.props.notify({
-                message: locale.errorTitle,
-                description: error.message,
-            })
         })
     };
     const postUpdate = (data, method, name, id, updateCurrent = false) => {
         const query = qs.stringify({name})
         const url = id === undefined ? cloudUrl : `${cloudUrl}/${id}`
-        return post({
-            url: `${url}?${query}`, data, form, method
-        }).then(({data, messages}) => {
+        return form.postData({
+            url: `${url}?${query}`, data, method
+        }, ({data, messages}) => {
             setLoading(false)
-            if (messages)
-                messages.forEach(([type, message]) => {
-                    form.props.notify({type, message})
-                })
-            if (data.error) {
-                form.props.notify({
-                    message: locale.errorTitle,
-                    description: (data.errors || [data.error]).join('\n')
-                })
-            } else {
-                setOpenSave(false)
-                if (updateCurrent) {
-                    const {id, name} = data
-                    setCurrentKey({id, name})
-                    if (onSelect)
-                        onSelect({id, name, data: formData})
-                }
-                fetchData()
+            setOpenSave(false)
+            if (updateCurrent) {
+                const {id, name} = data
+                setCurrentKey({id, name})
+                if (onSelect)
+                    onSelect({id, name, data: formData})
             }
-        }).catch(error => {
+            fetchData()
+        }, () => {
             setLoading(false)
-            form.props.notify({
-                message: locale.errorTitle,
-                description: error.message,
-            })
         })
     }
     const handleUpdate = async (id) => {
@@ -237,81 +189,46 @@ export default function CloudDownloadField(
     const handleGet = (id) => {
         cancel()
         setLoading(true);
-        post({
+        form.postData({
             url: `${cloudUrl}/${id}`,
-            data: {},
-            form,
             method: 'GET'
-        }).then(({data, messages}) => {
+        }, ({data, messages}) => {
             setLoading(false)
-            if (messages)
-                messages.forEach(([type, message]) => {
-                    form.props.notify({type, message})
-                })
-            if (data.error) {
-                form.props.notify({
-                    message: locale.errorTitle,
-                    description: (data.errors || [data.error]).join('\n'),
-                })
-            } else {
-                let {
-                    id,
-                    name,
-                    data: _data
-                } = postGet ? form.compileFunc(postGet)({
-                    ...data,
-                    formData
-                }) : data
-                if (objectItems) {
-                    _data = Object.entries(objectItems).reduce((res, [pathFrom, pathTo]) => {
-                        res[pathFrom] = get(_data, pathTo)
-                        return res
-                    }, {...formData})
-                }
-                setCurrentKey({id, name})
-                onChange(_data)
-                setOpenModal(false)
-                if (onSelect)
-                    onSelect(data)
+
+            let {
+                id,
+                name,
+                data: _data
+            } = postGet ? form.compileFunc(postGet)({
+                ...data,
+                formData
+            }) : data
+            if (objectItems) {
+                _data = Object.entries(objectItems).reduce((res, [pathFrom, pathTo]) => {
+                    res[pathFrom] = get(_data, pathTo)
+                    return res
+                }, {...formData})
             }
-        }).catch(error => {
+            setCurrentKey({id, name})
+            onChange(_data)
+            setOpenModal(false)
+            if (onSelect)
+                onSelect(data)
+        }, () => {
             setLoading(false)
-            form.props.notify({
-                message: locale.errorTitle,
-                description: error.message,
-            })
         })
     };
     const handleDownload = (id) => {
         setLoading(true);
-        post({
+        form.postData({
             url: `${cloudUrl}/${id}`,
-            data: {},
-            form,
             method: 'GET'
-        }).then(({data, messages}) => {
+        }, ({data: {name, data}}) => {
             setLoading(false)
-            if (messages)
-                messages.forEach(([type, message]) => {
-                    form.props.notify({type, message})
-                })
-            if (data.error) {
-                form.props.notify({
-                    message: locale.errorTitle,
-                    description: (data.errors || [data.error]).join('\n'),
-                })
-            } else {
-                const {name, data: _data} = data
-                exportJSON(_data, `${name}.json`)
-            }
-        }).catch(error => {
+            exportJSON(data, `${name}.json`)
+        }, () => {
             setLoading(false)
-            form.props.notify({
-                message: locale.errorTitle,
-                description: error.message,
-            })
         })
-
     };
     useEffect(() => {
         if (openModal || (modal || {}).open)

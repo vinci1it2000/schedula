@@ -33,13 +33,13 @@ const ContactNav = ({key, form, formContext, urlContact, containerRef}) => {
             open={open}>
             <Spin key={'page'} spinning={spinning}>
                 <Suspense>
-                <ContactForm
-                    key={'contact'}
-                    form={form}
-                    formContext={formContext}
-                    urlContact={urlContact}
-                    setSpinning={setSpinning}
-                    setOpen={setOpen}/>
+                    <ContactForm
+                        key={'contact'}
+                        form={form}
+                        formContext={formContext}
+                        urlContact={urlContact}
+                        setSpinning={setSpinning}
+                        setOpen={setOpen}/>
                 </Suspense>
             </Spin>
         </Drawer>

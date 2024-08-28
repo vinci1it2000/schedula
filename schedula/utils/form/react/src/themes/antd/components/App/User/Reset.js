@@ -16,34 +16,22 @@ export default function ResetPasswordForm(
         form.postData({
             url: `${urlResetPassword}/${token}`,
             data
-        }).then(({data: {error, errors, field_errors, response}}) => {
+        }, ({data: {response: {user = {}}}}) => {
             setSpinning(false)
-            if (error) {
-                form.props.notify({
-                    message: locale.errorTitle,
-                    description: (errors || [error]).join('\n'),
-                })
-                if (field_errors) {
-                    setFieldErrors(field_errors || {})
-                }
-            } else {
-                const {user = {}} = response
-                form.setState((state) => ({
-                    ...state,
-                    userInfo: user,
-                    submitCount: state.submitCount + 1
-                }))
-                const {protocol, host, pathname, search} = window.location;
-                const newUrl = `${protocol}//${host}${pathname}${search}`;
-                window.history.replaceState(null, '', newUrl);
-                setOpen(false)
+            form.setState((state) => ({
+                ...state,
+                userInfo: user,
+                submitCount: state.submitCount + 1
+            }))
+            const {protocol, host, pathname, search} = window.location;
+            const newUrl = `${protocol}//${host}${pathname}${search}`;
+            window.history.replaceState(null, '', newUrl);
+            setOpen(false)
+        }, ({data: {field_errors}}) => {
+            setSpinning(false)
+            if (field_errors) {
+                setFieldErrors(field_errors || {})
             }
-        }).catch(({message}) => {
-            setSpinning(false)
-            form.props.notify({
-                message: locale.errorTitle,
-                description: message,
-            })
         })
     }
     const {getLocale} = useLocaleStore()

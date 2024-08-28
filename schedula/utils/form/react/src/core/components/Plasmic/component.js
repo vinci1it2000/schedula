@@ -32,7 +32,8 @@ export default function PlasmicComponent(
         }
     }, [PLASMIC, component]);
     const content = pageData ?
-        <BasePlasmicComponent component={component} children={children} {...props}/> : (
+        <BasePlasmicComponent component={component}
+                              children={children} {...props}/> : (
             PLASMIC ?
                 <div>Not found</div> :
                 <div>PLASMIC not configured!</div>

@@ -4,7 +4,6 @@ import {
     EmbeddedCheckoutProvider,
     EmbeddedCheckout
 } from "@stripe/react-stripe-js";
-import post from "../../../core/utils/fetch";
 import {getTemplate, getUiOptions} from "@rjsf/utils";
 
 export default function Stripe(
@@ -38,26 +37,20 @@ export default function Stripe(
     }, [stripeKey, form]);
     useEffect(() => {
         if (!clientSecret) {
-            post({
+            form.postData({
                 url: urlCreateCheckoutSession,
-                data: checkoutProps,
-                form
-            }).then(({data: {error, sessionId, clientSecret}}) => {
-                if (error) {
-                    form.props.notify({type: 'error', message: error})
-                } else {
-                    setSessionId(sessionId)
-                    setClientSecret(clientSecret)
-                }
+                data: checkoutProps
+            }, ({data: {sessionId, clientSecret}}) => {
+                setSessionId(sessionId)
+                setClientSecret(clientSecret)
             })
         }
     }, [])
     const onComplete = useCallback(() => {
-        post({
+        form.postData({
             url: `${urlCreateCheckoutStatus}/${sessionId}`,
-            method: 'GET',
-            form
-        }).then(({data}) => {
+            method: 'GET'
+        }, ({data}) => {
             form.setState((state) => ({...state, userInfo: data.userInfo}))
             if (onCheckout)
                 onCheckout(data)

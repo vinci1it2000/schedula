@@ -16,7 +16,6 @@ import {
     Typography
 } from 'antd';
 import {getUiOptions} from "@rjsf/utils";
-import post from "../../../../core/utils/fetch";
 import isEqual from "lodash/isEqual";
 
 
@@ -45,32 +44,17 @@ export default function CloudUploadField({uiSchema, formData, formContext}) {
     const postUpdate = (data, method, name, id) => {
         const query = qs.stringify({name})
         const url = id === undefined ? cloudUrl : `${cloudUrl}/${id}`
-        return post({
-            url: `${url}?${query}`, data, form, method
-        }).then(({data, messages}) => {
+        return form.postData({
+            url: `${url}?${query}`, data, method
+        }, ({data: {id, name}}) => {
             setLoading(false)
-            if (messages)
-                messages.forEach(([type, message]) => {
-                    form.props.notify({type, message})
-                })
-            if (data.error) {
-                form.props.notify({
-                    message: locale.errorTitle,
-                    description: (data.errors || [data.error]).join('\n'),
-                })
-            } else {
-                const {id, name} = data
-                setCurrentKey({id, name})
-                props.onCancel()
-                if (onSave)
-                    onSave({id, name, data: formData})
-            }
-        }).catch(error => {
+            setCurrentKey({id, name})
+            props.onCancel()
+            if (onSave)
+                onSave({id, name, data: formData})
+
+        }, error => {
             setLoading(false)
-            form.props.notify({
-                message: locale.errorTitle,
-                description: error.message,
-            })
         })
     }
     const handleUpdate = async (id) => {

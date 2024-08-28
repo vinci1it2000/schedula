@@ -7,7 +7,6 @@ import {useState, createRef, useEffect} from "react";
 import ReCAPTCHA from "react-google-recaptcha";
 import {MailOutlined, UserOutlined, TagOutlined} from '@ant-design/icons';
 import {useLocaleStore} from "../../../models/locale";
-import post from "../../../../../core/utils/fetch";
 
 export default function ContactForm(
     {form, formContext, urlContact, setSpinning}) {
@@ -25,7 +24,7 @@ export default function ContactForm(
     const onFinish = ({name, email, subject, message}) => {
         setSpinning(true)
         const recaptcha = recaptchaRef.current.getValue();
-        post({
+        form.postData({
             url: urlContact,
             data: {
                 name,
@@ -33,29 +32,14 @@ export default function ContactForm(
                 subject,
                 message,
                 'g-recaptcha-response': recaptcha
-            },
-            form
-        }).then(({data, messages}) => {
-            setSpinning(false)
-            if (messages)
-                messages.forEach(([type, message]) => {
-                    form.props.notify({type, message})
-                })
-            if (data.error) {
-                form.props.notify({
-                    message: locale.errorTitle,
-                    description: (data.errors || [data.error]).join('\n'),
-                })
-                if (data.field_errors) {
-                    setFieldErrors(data.field_errors || {})
-                }
             }
-        }).catch(error => {
+        }, () => {
             setSpinning(false)
-            form.props.notify({
-                message: locale.errorTitle,
-                description: error.message,
-            })
+        }, ({data: {field_errors}}) => {
+            setSpinning(false)
+            if (field_errors) {
+                setFieldErrors(field_errors || {})
+            }
         })
     }
     const {getLocale} = useLocaleStore()

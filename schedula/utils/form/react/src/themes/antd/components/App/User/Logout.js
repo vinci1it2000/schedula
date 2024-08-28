@@ -10,28 +10,16 @@ export default function LogoutForm(
         setSpinning(true)
         form.postData({
             url: urlLogout,
-            data: {},
-        }).then(({data: {error, errors}}) => {
+        }, () => {
             setSpinning(false)
-            if (error) {
-                form.props.notify({
-                    message: locale.errorTitle,
-                    description: (errors || [error]).join('\n'),
-                })
-            } else {
-                form.setState((state) => ({
-                    ...state, userInfo: {},
-                    submitCount: state.submitCount + 1
-                }))
-                setOpen(false)
-                setAuth('login')
-            }
-        }).catch(({message}) => {
+            form.setState((state) => ({
+                ...state, userInfo: {},
+                submitCount: state.submitCount + 1
+            }))
+            setOpen(false)
+            setAuth('login')
+        }, () => {
             setSpinning(false)
-            form.props.notify({
-                message: locale.errorTitle,
-                description: message,
-            })
         })
     }
     const {getLocale} = useLocaleStore()

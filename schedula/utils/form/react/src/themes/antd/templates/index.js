@@ -1,4 +1,6 @@
-import {generateTemplates as coreGenerateTemplates} from "../../../core/templates";
+import {
+    generateTemplates as coreGenerateTemplates
+} from "../../../core/templates";
 import {generateTemplates as antdGenerateTemplates} from "@rjsf/antd";
 import React from "react";
 

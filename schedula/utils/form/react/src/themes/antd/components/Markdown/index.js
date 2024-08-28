@@ -2,7 +2,13 @@ import ReactAntdown from 'react-antdown'
 import formatMd from '../../../../core/utils/Markdown'
 import remarkGfm from 'remark-gfm'
 
-export default function Markdown({children, render: {formData={}}, ...props}) {
+export default function Markdown(
+    {
+        children,
+        render: {formData = {}},
+        ...props
+    }
+) {
     return <ReactAntdown
         components={{
             a: ({
