@@ -1,5 +1,12 @@
 import {Steps as BaseSteps, Flex, Button, theme} from 'antd';
-import {useState, useContext, useEffect, isValidElement} from 'react';
+import {
+    useState,
+    useContext,
+    useEffect,
+    isValidElement,
+    useCallback,
+    useMemo
+} from 'react';
 import {useLocaleStore} from "../../models/locale";
 import get from 'lodash/get';
 
@@ -28,11 +35,15 @@ const Steps = (
         if (setCurrentStep)
             setCurrentStep(current)
     }, [current, setCurrentStep])
-    const onChange = (value) => {
+    const onChange = useCallback((value) => {
         setCurrent(value);
-    };
-    const _items = items.map((item, index) => ({key: index, ...item, ...(index === current ? {status: 'process'} : {})}))
-    const contentStyle = {
+    }, [setCurrent]);
+    const _items = useMemo(() => items.map(
+        (item, index) => ({
+            key: index, ...item, ...(index === current ? {status: 'process'} : {})
+        })
+    ), [items, current])
+    const contentStyle = useMemo(() => ({
         color: token.colorTextTertiary,
         backgroundColor: token.colorFillAlter,
         borderRadius: token.borderRadiusLG,
@@ -40,46 +51,49 @@ const Steps = (
         overflowY: 'hidden',
         flexGrow: 1,
         padding: 16
-    };
+    }), [token]);
 
-    let kw = {}, hasErrors;
-    if (data2verify) {
-        const regexPattern = new RegExp(`^${idPrefix}\\.?`);
-        hasErrors = (data2verify[current] || []).some(k => {
-            let path = (k.startsWith(idPrefix) ? k : $id + '.' + k).replace(regexPattern, '')
-            return !!get(errorSchema, path, false)
-        })
-        kw.status = hasErrors ? 'error' : 'progress'
-    }
-    let _controls
-    if (controls) {
-        let isLastStep = current === _items.length - 1,
-            previousBtn = previousButton,
-            nextBtn = isLastStep ? (finishButton === false ? {style: {display: "none"}} : finishButton) : nextButton;
-        if (!isValidElement(previousBtn)) {
-            previousBtn = <Button
-                key={'previous'}
-                disabled={current <= 0}
-                onClick={() => {
-                    setCurrent(current - 1)
-                }}
-                children={locale.Previous}
-                {...previousBtn}/>
+    const {status, hasErrors} = useMemo(() => {
+        let status, hasErrors;
+        if (data2verify) {
+            const regexPattern = new RegExp(`^${idPrefix}\\.?`);
+            hasErrors = (data2verify[current] || []).some(k => {
+                let path = (k.startsWith(idPrefix) ? k : $id + '.' + k).replace(regexPattern, '')
+                return !!get(errorSchema, path, false)
+            })
+            status = hasErrors ? 'error' : 'progress'
+        }
+        return {status, hasErrors}
+    }, [data2verify, current, idPrefix, $id, errorSchema])
 
-        }
-        if (!isValidElement(nextBtn)) {
-            nextBtn = <Button
-                key={isLastStep ? 'finish' : 'next'}
-                disabled={hasErrors}
-                type={"primary"}
-                onClick={isLastStep ? null : () => {
-                    setCurrent(current + 1)
-                }}
-                children={isLastStep ? locale.Finish : locale.Next}
-                {...nextBtn}/>
-        }
-        _controls =
-            <Flex key={'controls'} gap="middle" justify={'space-around'}>
+    const _controls = useMemo(() => {
+        if (controls) {
+            let isLastStep = current === _items.length - 1,
+                previousBtn = previousButton,
+                nextBtn = isLastStep ? (finishButton === false ? {style: {display: "none"}} : finishButton) : nextButton;
+            if (!isValidElement(previousBtn)) {
+                previousBtn = <Button
+                    key={'previous'}
+                    disabled={current <= 0}
+                    onClick={() => {
+                        setCurrent(current - 1)
+                    }}
+                    children={locale.Previous}
+                    {...previousBtn}/>
+
+            }
+            if (!isValidElement(nextBtn)) {
+                nextBtn = <Button
+                    key={isLastStep ? 'finish' : 'next'}
+                    disabled={hasErrors}
+                    type={"primary"}
+                    onClick={isLastStep ? null : () => {
+                        setCurrent(current + 1)
+                    }}
+                    children={isLastStep ? locale.Finish : locale.Next}
+                    {...nextBtn}/>
+            }
+            return <Flex key={'controls'} gap="middle" justify={'space-around'}>
                 <div key={'left'} style={{
                     width: '50%',
                     textAlign: 'center'
@@ -89,7 +103,8 @@ const Steps = (
                     textAlign: 'center'
                 }}>{nextBtn}</div>
             </Flex>
-    }
+        }
+    }, [current, _items, controls, previousButton, finishButton, nextButton, setCurrent, locale, hasErrors]);
     return <Flex gap="large" vertical style={{
         height: "100%", overflowY: "hidden"
     }}>
@@ -98,7 +113,7 @@ const Steps = (
             current={current}
             onChange={onChange}
             items={_items}
-            {...kw}
+            state={status}
             {...props}
         />
         <div key={'content'} style={contentStyle}>{children[current]}</div>
