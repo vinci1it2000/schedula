@@ -18,3 +18,4 @@ gunicorn
 asteval
 sherlock
 sqlalchemy-file
+fasteners
