@@ -1,5 +1,5 @@
 import {notification, Upload, Modal} from 'antd';
-import {useState, useEffect} from 'react';
+import {useState, useEffect, useMemo, useCallback} from 'react';
 import format from 'python-format-js'
 import {useLocaleStore} from '../../models/locale'
 import ImgCrop from 'antd-img-crop';
@@ -24,7 +24,18 @@ function dataURLtoFile(dataurl) {
     return file;
 }
 
-
+const onDownload = (file) => {
+    const a = document.createElement('a')
+    a.download = file.name
+    a.href = file.response
+    const clickEvt = new MouseEvent('click', {
+        view: window,
+        bubbles: true,
+        cancelable: true,
+    })
+    a.dispatchEvent(clickEvt)
+    a.remove()
+}
 const ImageFileWidget = (
     {
         multiple,
@@ -39,149 +50,162 @@ const ImageFileWidget = (
     }) => {
     const {getLocale} = useLocaleStore()
     const locale = getLocale('FileWidget')
-    const {accept, cropProps, ...opt} = options;
     const [previewOpen, setPreviewOpen] = useState(false);
     const [previewImage, setPreviewImage] = useState('');
     const [previewTitle, setPreviewTitle] = useState('');
     const [fileList, setFileList] = useState([])
     let nFiles = fileList.length
-    const newValue = value ? (multiple ? value : [value]) : []
     useEffect(() => {
         setFileList((value ? (multiple ? value : [value]) : []).filter(
             v => !!v
         ).map(dataURLtoFile))
     }, [value, multiple])
-    const handleCancelPreview = () => setPreviewOpen(false);
-
-    const onRemove = (file) => {
+    const {accept, cropProps, ...opt} = options;
+    const handleCancelPreview = useCallback(() => setPreviewOpen(false), [setPreviewOpen]);
+    const onRemove = useCallback((file) => {
         if (!multiple) {
             onChange(undefined)
         } else {
-            const index = fileList.indexOf(file);
+            const index = fileList.map(({uid}) => uid).indexOf(file.uid);
+            const newValue = value.slice();
             newValue.splice(index, 1);
+            setFileList((value ? (multiple ? value : [value]) : []).filter(
+                v => !!v
+            ).map(dataURLtoFile))
             onChange(newValue)
         }
-    }
-    let props = {
-        onRemove,
-        beforeUpload: (file) => {
-            let fn = file.name.split('.'),
-                ext = fn[fn.length - 1].toLowerCase(),
-                isAccepted = !(accept && accept.length) || accept.some(v => ext === v);
-            if (!isAccepted) {
-                const fileTypes = accept.map(
-                    v => v.toUpperCase()
-                ).join('/')
+    }, [value, multiple, onChange, fileList])
+    const beforeUpload = useCallback((file) => {
+        let fn = file.name.split('.'),
+            ext = fn[fn.length - 1].toLowerCase(),
+            isAccepted = !(accept && accept.length) || accept.some(v => ext === v);
+        if (!isAccepted) {
+            const fileTypes = accept.map(
+                v => v.toUpperCase()
+            ).join('/')
+            notification.error({
+                message: locale.errorNotUploaded,
+                description: format(locale.errorFileType, {fileTypes}),
+                placement: 'top'
+            })
+        } else if (schema.maxItems && nFiles >= schema.maxItems) {
+            isAccepted = false
+            if (nFiles === schema.maxItems) {
+                const maxItems = schema.maxItems
                 notification.error({
                     message: locale.errorNotUploaded,
-                    description: format(locale.errorFileType, {fileTypes}),
+                    description: schema.maxItems > 1 ? format(locale.errorMaxItems, {maxItems}) : locale.errorOnlyOneItem,
                     placement: 'top'
                 })
-            } else if (schema.maxItems && nFiles >= schema.maxItems) {
-                isAccepted = false
-                if (nFiles === schema.maxItems) {
-                    const maxItems = schema.maxItems
-                    notification.error({
-                        message: locale.errorNotUploaded,
-                        description: schema.maxItems > 1 ? format(locale.errorMaxItems, {maxItems}) : locale.errorOnlyOneItem,
-                        placement: 'top'
-                    })
-                    nFiles++;
-                }
+                nFiles++;
             }
-            if (isAccepted) nFiles++;
-            return isAccepted || Upload.LIST_IGNORE;
-        },
-        onDownload: (file) => {
-            const a = document.createElement('a')
-            a.download = file.name
-            a.href = file.response
-            const clickEvt = new MouseEvent('click', {
-                view: window,
-                bubbles: true,
-                cancelable: true,
-            })
-            a.dispatchEvent(clickEvt)
-            a.remove()
-        },
-        onChange: ({file, fileList: newFileList}) => {
-            if (file.status === 'done') {
-                if (multiple) {
-                    newValue.push(file.response)
-                    onChange(newValue)
-                } else {
-                    onChange(file.response)
-                }
-                setFileList(newFileList)
-            } else if (file.status === 'error') {
-                onRemove(file)
-            } else if (file.status === 'uploading') {
-                setFileList(newFileList)
+        } else if (fileList.some(v => v.name === file.name)) {
+            notification.error({
+                message: locale.errorNotUploaded,
+                description: format(locale.errorSameFile, {filename: file.name}),
+                placement: 'top'
+            });
+            isAccepted = false
+        }
+        if (isAccepted) nFiles++;
+        return isAccepted || Upload.LIST_IGNORE;
+    }, [accept, fileList, locale, nFiles, schema.maxItems]);
+    const onChange_ = useCallback(({file, fileList: newFileList}) => {
+        if (file.status === 'done') {
+            if (multiple) {
+                const newValue = value ? (multiple ? value : [value]) : []
+                newValue.push(file.response)
+                onChange(newValue)
+            } else {
+                onChange(file.response)
             }
-        },
-        customRequest: async ({onProgress, onError, onSuccess, file}) => {
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = () => {
-                let url = reader.result.replace(
-                    ";base64", `;name=${encodeURIComponent(file.name)};base64`
-                )
-                if (fileList.some(v => v.response === url)) {
-                    notification.error({
-                        message: locale.errorNotUploaded,
-                        description: format(locale.errorSameFile, {filename: file.name}),
-                        placement: 'top'
-                    });
-                    onError(url)
-                } else {
-                    onSuccess(url)
-                }
-            };
-            reader.onerror = error => onError(error);
-            reader.onprogress = function progress(e) {
-                if (e.total > 0) {
-                    e.percent = (e.loaded / e.total) * 100;
-                }
-                onProgress(e);
-            };
-            return {
-                abort() {
-                    reader.abort()
-                }
-            };
-        },
-        onPreview: async (file) => {
-            setPreviewImage(file.response);
-            setPreviewOpen(true);
-            setPreviewTitle(file.name);
-        },
-        showUploadList: {
-            showDownloadIcon: true,
-            showPreviewIcon: true,
-            showRemoveIcon: !(readonly || disabled),
-        },
-        multiple: !!multiple,
-        fileList,
-        ...opt
-    }
-    if (accept) {
-        props.accept = `.${accept.join(',.')}`
-    }
-    props.maxCount = multiple ? schema.maxItems : 1
-    let _cropProps = {
-        quality: 1,
-        aspectSlider: true,
-        rotationSlider: true,
-        showReset: true,
-        ...cropProps
-    }
+            setFileList(newFileList)
+        } else if (file.status === 'error') {
+            onRemove(file)
+        } else if (file.status === 'uploading') {
+            setFileList(newFileList)
+        }
+    }, [multiple, value, onChange, onRemove])
+    const customRequest = useCallback(async (
+        {onProgress, onError, onSuccess, file}
+    ) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+            let url = reader.result.replace(
+                ";base64", `;name=${encodeURIComponent(file.name)};base64`
+            )
+            if (fileList.some(v => v.response === url)) {
+                notification.error({
+                    message: locale.errorNotUploaded,
+                    description: format(locale.errorSameFile, {filename: file.name}),
+                    placement: 'top'
+                });
+                onError(url)
+            } else {
+                onSuccess(url)
+            }
+        };
+        reader.onerror = error => onError(error);
+        reader.onprogress = function progress(e) {
+            if (e.total > 0) {
+                e.percent = (e.loaded / e.total) * 100;
+            }
+            onProgress(e);
+        };
+        reader.readAsDataURL(file);
+        return {
+            abort() {
+                reader.abort()
+            }
+        };
+    }, [locale, fileList])
+    const onPreview = useCallback(async (file) => {
+        setPreviewImage(file.response);
+        setPreviewOpen(true);
+        setPreviewTitle(file.name);
+    }, [setPreviewImage, setPreviewOpen, setPreviewTitle])
+    const props = useMemo(() => {
+        let props = {}
+        if (accept) {
+            props.accept = `.${accept.join(',.')}`
+        }
+        if (multiple) {
+            if (schema.maxItems) {
+                props.maxCount = schema.maxItems
+            }
+        } else {
+            props.maxCount = 1
+        }
+        return props;
+    }, [multiple, accept, schema.maxItems])
+
     return <>
-        <ImgCrop key={id + '-ImgCrop'} {..._cropProps}>
+        <ImgCrop
+            key={id + '-ImgCrop'}
+            quality={1}
+            aspectSlider={true}
+            rotationSlider={true}
+            showReset={true}
+            {...cropProps}>
             <Upload
                 key={id + '-Upload'}
                 listType="picture-card"
                 danger={!!rawErrors}
-                {...props}>
+                onRemove={onRemove}
+                beforeUpload={beforeUpload}
+                onDownload={onDownload}
+                onChange={onChange_}
+                customRequest={customRequest}
+                onPreview={onPreview}
+                showUploadList={{
+                    showDownloadIcon: true,
+                    showPreviewIcon: true,
+                    showRemoveIcon: !(readonly || disabled),
+                }}
+                multiple={!!multiple}
+                fileList={fileList}
+                {...props}
+                {...opt}>
                 {readonly || disabled || nFiles >= (props.maxCount || Infinity) ? null : locale.dropMessage}
             </Upload>
         </ImgCrop>

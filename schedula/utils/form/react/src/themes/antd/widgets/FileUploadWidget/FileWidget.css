@@ -10,7 +10,3 @@
 #components-upload-demo-drag-sorting .ant-upload-draggable-list-item.drop-over-upward {
     border-top-color: #1890ff !important;
 }
-
-.ant-upload-wrapper {
-    display: block;
-}

@@ -8,6 +8,14 @@
       "type": "string",
       "format": "data-url"
     },
+    "urls": {
+      "title": "Files",
+      "type": "array",
+      "items": {
+        "type": "string",
+        "format": "data-url"
+      }
+    },
     "number1": {
       "type": "number",
       "minimum": 0,

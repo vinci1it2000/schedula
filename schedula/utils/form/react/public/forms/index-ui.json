@@ -1201,6 +1201,13 @@
                 "uiSchema": {
                   "ui:widget": "color"
                 }
+              },
+              {
+                "path": "urls",
+                "uiSchema": {
+                  "ui:action": "http://127.0.0.1:50000/files/upload",
+                  "ui:widget": "FileUploadWidget"
+                }
               }
             ]
           }

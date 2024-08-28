@@ -4,23 +4,16 @@ import {useState, useEffect, useMemo, useCallback} from 'react';
 import './FileWidget.css'
 import format from 'python-format-js'
 import {useLocaleStore} from '../../models/locale'
+import {sha512} from 'js-sha512';
 
 
 function dataURLtoFile(dataurl) {
-    let arr = dataurl.split(','),
-        mime = arr[0].match(/:(.*?);/)[1],
-        filename = decodeURIComponent(arr[0].match(/;?name=(.*?);/)[1]),
-        bstr = atob(arr[1]),
-        n = bstr.length,
-        u8arr = new Uint8Array(n);
-
-    while (n--) {
-        u8arr[n] = bstr.charCodeAt(n);
-    }
-    let file = new File([u8arr], filename, {type: mime})
-    file.response = dataurl
-    file.status = 'done'
-    return file;
+    const searchParams = new URLSearchParams(dataurl)
+    return {
+        status: 'done',
+        response: dataurl,
+        name: searchParams.get('name')
+    };
 }
 
 const onDownload = (file) => {
@@ -35,7 +28,7 @@ const onDownload = (file) => {
     a.dispatchEvent(clickEvt)
     a.remove()
 }
-const FileWidget = (
+const FileUploadWidget = (
     {
         multiple,
         id,
@@ -45,25 +38,30 @@ const FileWidget = (
         value,
         schema,
         options,
-        rawErrors
+        rawErrors,
+        formContext: {form}
     }) => {
     const {getLocale} = useLocaleStore()
     const locale = getLocale('FileWidget')
     const [fileList, setFileList] = useState([])
+
     let nFiles = fileList.length
     useEffect(() => {
         setFileList((value ? (multiple ? value : [value]) : []).filter(
             v => !!v
         ).map(dataURLtoFile))
     }, [value, multiple])
-    const {accept, ...opt} = options;
+    const {accept, action, ...opt} = options;
     const onRemove = useCallback((file) => {
         if (!multiple) {
             onChange(undefined)
         } else {
-            const index = fileList.indexOf(file);
+            const index = fileList.map(({uid}) => uid).indexOf(file.uid);
             const newValue = value.slice();
             newValue.splice(index, 1);
+            setFileList((value ? (multiple ? value : [value]) : []).filter(
+                v => !!v
+            ).map(dataURLtoFile))
             onChange(newValue)
         }
     }, [value, multiple, onChange, fileList])
@@ -123,34 +121,41 @@ const FileWidget = (
     ) => {
         const reader = new FileReader();
         reader.onload = () => {
-            let url = reader.result.replace(
-                ";base64", `;name=${encodeURIComponent(file.name)};base64`
-            )
-            if (fileList.some(v => v.response === url)) {
-                notification.error({
-                    message: locale.errorNotUploaded,
-                    description: format(locale.errorSameFile, {filename: file.name}),
-                    placement: 'top'
-                });
-                onError(url)
-            } else {
-                onSuccess(url)
+            let filename = file.name,
+                base64file = reader.result
+            let onErrorPost = ({message}) => {
+                onError(message)
             }
+            form.postData({
+                url: action,
+                data: {
+                    hash: sha512(base64file),
+                    filename,
+                }
+            }, ({data: {sendfile = false, url}}) => {
+                if (sendfile) {
+                    form.postData({
+                        url: action,
+                        data: {
+                            filename,
+                            file: base64file
+                        }
+                    }, ({data: {url}}) => {
+                        onSuccess(url)
+                    }, onErrorPost)
+                } else {
+                    onSuccess(url)
+                }
+            }, onErrorPost)
         };
         reader.onerror = error => onError(error);
-        reader.onprogress = function progress(e) {
-            if (e.total > 0) {
-                e.percent = (e.loaded / e.total) * 100;
-            }
-            onProgress(e);
-        };
         reader.readAsDataURL(file);
         return {
             abort() {
                 reader.abort()
             }
         };
-    }, [locale, fileList])
+    }, [form, action])
     const props = useMemo(() => {
         let props = {}
         if (accept) {
@@ -189,8 +194,7 @@ const FileWidget = (
                 {locale.dropMessage}
             </Button>}
     </Upload>
-
 };
 
 
-export default FileWidget;
+export default FileUploadWidget;
