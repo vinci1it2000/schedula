@@ -29,6 +29,8 @@ from sqlalchemy_file import File as SQLFile, FileField
 from sqlalchemy_file.storage import StorageManager
 from libcloud.storage.drivers.local import LocalStorageDriver
 from libcloud.storage.types import ObjectDoesNotExistError
+from urllib.parse import urlparse, parse_qs
+from itsdangerous import URLSafeTimedSerializer
 
 bp = Blueprint('files', __name__)
 
@@ -64,24 +66,30 @@ def calculate_meta(ctx):
     return ca.file_meta_handler(ctx)
 
 
-def calculate_hash(ctx, overwrite=True):
-    params = ctx.get_current_parameters()
-    if overwrite or 'hash' not in params:
-        import base64
-        file = params['data']
-        b64 = base64.b64encode(StorageManager.get_file(file.path).read())
-        return hashlib.sha512(
-            f'data:{file.content_type};{b64}'.encode('utf-8')
-        ).hexdigest()
+def calculate_default_hash(ctx):
+    params = ctx if isinstance(ctx, dict) else ctx.get_current_parameters()
+    if not params.get('hash'):
+        return calculate_hash(ctx)
     return params['hash']
+
+
+def calculate_hash(ctx):
+    params = ctx if isinstance(ctx, dict) else ctx.get_current_parameters()
+    import base64
+    file = params['data']
+    b64 = base64.b64encode(StorageManager.get_file(file.path).read())
+    return hashlib.sha512(
+        f'data:{file.content_type};{b64}'.encode('utf-8')
+    ).hexdigest()
 
 
 class File(db.Model):
     __tablename__ = 'file'
+
     id = Column(Integer, primary_key=True)
     hash = Column(
         String(128), unique=True, nullable=False, onupdate=calculate_hash,
-        default=functools.partial(calculate_hash, overwrite=False)
+        default=calculate_default_hash
     )
     data = Column(FileField(upload_storage='files'))
     created_at = Column(DateTime(), default=datetime.datetime.utcnow)
@@ -111,10 +119,10 @@ class AskFile(Exception):
     pass
 
 
-def get_file(url, session=db.session):
-    from urllib.parse import urlparse, parse_qs
-    from itsdangerous import URLSafeTimedSerializer
-    serializer = URLSafeTimedSerializer(ca.secret_key, salt='file-token')
+def get_file(url, session=db.session, secret_key=None):
+    if secret_key is None:
+        secret_key = ca.secret_key
+    serializer = URLSafeTimedSerializer(secret_key, salt='file-token')
     item = session.get(FileName, serializer.loads(
         parse_qs(urlparse(url).query)['file_token'][0]
     ))
@@ -177,7 +185,6 @@ class FileName(db.Model):
         raise ValueError("Invalid file type")
 
     def payload(self, data=False):
-        from itsdangerous import URLSafeTimedSerializer
         serializer = URLSafeTimedSerializer(ca.secret_key, salt='file-token')
         res = {
             'id': self.id,
