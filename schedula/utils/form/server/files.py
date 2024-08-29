@@ -9,6 +9,7 @@
 """
 It provides functions to build the item storage service.
 """
+import functools
 import hashlib
 import datetime
 import schedula as sh
@@ -24,7 +25,7 @@ from sqlalchemy import (
 from flask_security.utils import view_commit
 from flask_security import current_user as cu, auth_required
 from sqlalchemy.orm import validates
-from sqlalchemy_file import File, FileField
+from sqlalchemy_file import File as SQLFile, FileField
 from sqlalchemy_file.storage import StorageManager
 from libcloud.storage.drivers.local import LocalStorageDriver
 from libcloud.storage.types import ObjectDoesNotExistError
@@ -63,10 +64,25 @@ def calculate_meta(ctx):
     return ca.file_meta_handler(ctx)
 
 
+def calculate_hash(ctx, overwrite=True):
+    params = ctx.get_current_parameters()
+    if overwrite or 'hash' not in params:
+        import base64
+        file = params['data']
+        b64 = base64.b64encode(StorageManager.get_file(file.path).read())
+        return hashlib.sha512(
+            f'data:{file.content_type};{b64}'.encode('utf-8')
+        ).hexdigest()
+    return params['hash']
+
+
 class File(db.Model):
     __tablename__ = 'file'
     id = Column(Integer, primary_key=True)
-    hash = Column(String(128), unique=True, nullable=False)
+    hash = Column(
+        String(128), unique=True, nullable=False, onupdate=calculate_hash,
+        default=functools.partial(calculate_hash, overwrite=False)
+    )
     data = Column(FileField(upload_storage='files'))
     created_at = Column(DateTime(), default=datetime.datetime.utcnow)
     updated_at = Column(DateTime(), onupdate=datetime.datetime.utcnow)
@@ -95,6 +111,18 @@ class AskFile(Exception):
     pass
 
 
+def get_file(url, session=db.session):
+    from urllib.parse import urlparse, parse_qs
+    from itsdangerous import URLSafeTimedSerializer
+    serializer = URLSafeTimedSerializer(ca.secret_key, salt='file-token')
+    item = session.get(FileName, serializer.loads(
+        parse_qs(urlparse(url).query)['file_token'][0]
+    ))
+    file = StorageManager.get_file(item.file.data.path)
+    file.filename = item.name
+    return file
+
+
 class FileName(db.Model):
     __tablename__ = 'file_name'
     id = Column(Integer, primary_key=True)
@@ -115,11 +143,13 @@ class FileName(db.Model):
         if isinstance(file, File):
             return file
         hash = None
+        content_type = None
         if 'file' in file:
             kw = {}
             for v in file['file'].split(';'):
                 if v.startswith('data:'):
                     kw['data'] = v
+                    content_type = v[5:]
                 elif v.startswith('base64,'):
                     kw['base64'] = v
                 if len(kw) == 2:
@@ -136,7 +166,9 @@ class FileName(db.Model):
             elif 'file' in file:
                 from urllib.request import urlopen
                 with urlopen(file['file'], 'rb') as f:
-                    file_ = File(hash=hash, data=f)
+                    file_ = File(hash=hash, data=SQLFile(
+                        content=f, content_type=content_type
+                    ))
                     db.session.add(file_)
                     db.session.commit()
                 return file_
@@ -145,12 +177,14 @@ class FileName(db.Model):
         raise ValueError("Invalid file type")
 
     def payload(self, data=False):
+        from itsdangerous import URLSafeTimedSerializer
+        serializer = URLSafeTimedSerializer(ca.secret_key, salt='file-token')
         res = {
             'id': self.id,
             'name': self.name,
             'url': url_for(
                 '.file', category=self.category, id_item=self.id,
-                name=self.name
+                name=self.name, file_token=serializer.dumps(self.id)
             ),
             'meta': self.meta,
             'created_at': self.created_at,
