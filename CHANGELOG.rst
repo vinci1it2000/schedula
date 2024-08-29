@@ -2,6 +2,18 @@ Changelog
 =========
 
 
+v1.5.17 (2024-08-29)
+--------------------
+
+Fix
+~~~
+- (form): Improve file storage and add `get_file` utility function.
+
+- (form): Ensure to have one wallet per user.
+
+- (setup): Add missing requirements.
+
+
 v1.5.16 (2024-08-28)
 --------------------
 
