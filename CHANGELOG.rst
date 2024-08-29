@@ -2,6 +2,19 @@ Changelog
 =========
 
 
+v1.5.18 (2024-08-30)
+--------------------
+
+Feat
+~~~~
+- (form): Make `Wallet` methods usable without app.
+
+
+Fix
+~~~
+- (form): Correct hash calculation of files.
+
+
 v1.5.17 (2024-08-29)
 --------------------
 
