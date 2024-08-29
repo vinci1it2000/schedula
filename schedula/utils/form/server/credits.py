@@ -60,12 +60,12 @@ class Wallet(db.Model):
     def name(self):
         return f"{self.user.firstname or ''} {self.user.lastname or ''}"
 
-    def subscription(self, day=None):
+    def subscription(self, day=None, session=db.session):
         subscriptions = {}
         api_key = current_app.config['STRIPE_SECRET_KEY']
         day = datetime.datetime.today() if day is None else day
         products = {}
-        for tran in Txn.query.filter_by(
+        for tran in session.query(Txn).filter_by(
                 wallet_id=self.id, type_id=SUBSCRIPTION
         ).filter(Txn.valid_from <= day).filter(or_(
             Txn.expired_at == None, Txn.expired_at >= day
@@ -90,9 +90,9 @@ class Wallet(db.Model):
                 subs.update(features)
         return subscriptions
 
-    def balance(self, product=None, day=None):
+    def balance(self, product=None, day=None, session=db.session):
         day = datetime.datetime.today() if day is None else day
-        base = Txn.query.with_entities(
+        base = session.query(Txn).with_entities(
             func.sum(Txn.credits).label('total_credits'), column('product')
         ).filter_by(
             wallet_id=self.id,
@@ -111,12 +111,16 @@ class Wallet(db.Model):
             balance = balance.get(product, 0)
         return balance
 
-    def use(self, product, credits, session=db.session):
+    def use(self, product, credits, session=db.session, created_by=None):
         assert credits >= 0, 'Credits to be consumed have to be positive.'
-        assert self.balance(product) >= credits, 'Insufficient balance.'
+        assert self.balance(
+            product, session=session
+        ) >= credits, 'Insufficient balance.'
+        if created_by is None:
+            created_by = cu.id
         t = Txn(
             wallet_id=self.id, type_id=CHARGE, credits=-credits,
-            product=product, created_by=cu.id
+            product=product, created_by=created_by
         )
         session.add(t)
         session.flush()
@@ -134,7 +138,8 @@ class Wallet(db.Model):
     def transfer_to(self, product, credits, to_wallet, session=db.session):
         assert credits >= 0, 'Credits to be transfer have to be positive.'
         assert session.get(Wallet, to_wallet), 'Destination wallet not found.'
-        assert self.balance(product) >= credits, 'Insufficient balance.'
+        assert self.balance(product,
+                            session=session) >= credits, 'Insufficient balance.'
         t = Txn(
             wallet_id=self.id, type_id=TRANSFER, credits=-credits,
             product=product
