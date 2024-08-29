@@ -50,7 +50,7 @@ users_wallet = db.Table(
 class Wallet(db.Model):
     __tablename__ = 'wallet'
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, db.ForeignKey('user.id'))
+    user_id = Column(Integer, db.ForeignKey('user.id'), unique=True)
     user = db.relationship('User', foreign_keys=[user_id])
     users = db.relationship('User', secondary=users_wallet)
 
@@ -162,10 +162,9 @@ def get_balance(wallet_id=None):
     if wallet_id is not None:
         query = query.filter_by(wallet_id=wallet_id)
     with Lock('credits'):
-        if not Wallet.query.filter_by(user_id=user_id).first():
+        if not Wallet.query.filter_by(user_id=user_id).one_or_none():
             wallet = Wallet(user_id=user_id)
             db.session.add(wallet)
-            db.session.flush([wallet])
             db.session.commit()
         product = request.args.get('product')
         return jsonify({
@@ -368,7 +367,7 @@ def stripe_customer2user(customer):
 
 
 def get_wallet(user_id, session=db.session):
-    wallet = session.query(Wallet).filter_by(user_id=user_id).first()
+    wallet = session.query(Wallet).filter_by(user_id=user_id).one_or_none()
     if not wallet:
         wallet = Wallet(user_id=user_id)
         session.add(wallet)
