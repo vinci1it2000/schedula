@@ -109,3 +109,4 @@ class Contact(Mail):
     def init_app(self, app):
         super().init_app(app)
         app.register_blueprint(bp, url_prefix='/mail')
+        app.extensions['schedula_mail'] = self
