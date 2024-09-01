@@ -15,6 +15,8 @@
     {% block css %}
     <link href="{{ url_for('schedula.static', filename=main_css) }}"
           rel="stylesheet">
+    <link href="{{ url_for('schedula.static', filename='props/css/' + form_id + '.css') }}"
+          rel="stylesheet">
     {% endblock %}
 
     {% block alive_func %}
