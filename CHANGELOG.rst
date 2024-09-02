@@ -2,6 +2,27 @@ Changelog
 =========
 
 
+v1.5.19 (2024-09-02)
+--------------------
+
+Feat
+~~~~
+- (form): Update resources.
+
+
+Fix
+~~~
+- (form): Correct app default page.
+
+- (form): Correct App menu.
+
+- (form): Correct flashing messages for html requests.
+
+- (form): Add missing link in template.
+
+- (form): Add missing extension.
+
+
 v1.5.18 (2024-08-30)
 --------------------
 
