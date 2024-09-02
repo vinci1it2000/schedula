@@ -66,8 +66,9 @@ class Config:
         self.MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER')
         self.MAIL_SERVER = os.environ.get('MAIL_HOST')
         self.MAIL_PORT = int(os.environ.get('MAIL_PORT', 465))
-        self.MAIL_USE_SSL = os.environ.get('MAIL_USE_SSL',
-                                           'true').lower() == 'true'
+        self.MAIL_USE_SSL = os.environ.get(
+            'MAIL_USE_SSL', 'true'
+        ).lower() == 'true'
         self.MAIL_USERNAME = os.environ.get('MAIL_USER')
         self.MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
         self.DB_DIALECT = os.environ.get('DB_DIALECT', 'sqlite')

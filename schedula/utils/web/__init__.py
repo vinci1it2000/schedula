@@ -129,6 +129,8 @@ class WebMap(SiteMap):
 
     @staticmethod
     def after_request(response):
+        if response.mimetype == 'text/html':
+            return response
         from flask import request, current_app, get_flashed_messages
         messages = get_flashed_messages(with_categories=True)
         if messages:

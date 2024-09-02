@@ -42,10 +42,8 @@ function Form(
         })
     }, []);
     const BaseForm = useMemo(() => (withTheme(theme)), [theme]);
-    const rootRef = createRef()
     return <HoxRoot key={name}>
         {futureProps ? <BaseForm
-            rootRef={rootRef}
             language={language}
             csrf_token={csrf_token}
             refresh_csrf={refresh_csrf}

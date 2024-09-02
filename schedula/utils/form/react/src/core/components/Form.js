@@ -20,6 +20,7 @@ import defineValidator from "./validator";
 import i18n, {translateJSON} from "./translator";
 import patchSchemaUtils from './patchSchemaUtils'
 import BaseForm from "@rjsf/core"
+import isEmpty from "lodash/isEmpty";
 
 
 function customCreateSchemaUtils(validator, schema, experimental_defaultFormStateBehavior) {
@@ -35,7 +36,7 @@ export default class Form extends BaseForm {
 
     componentDidMount() {
         this.editOnChange(this.state.formData)
-        this.debounceValidate()
+        this.debounceValidate(this.props.onLoad)
     }
 
     compileFunc(func) {
@@ -159,7 +160,7 @@ export default class Form extends BaseForm {
             .validateFormData(formData, resolvedSchema, customValidate, transformErrors, uiSchema)
     }
 
-    debounceValidate = debounce(() => {
+    debounceValidate = debounce((callback) => {
         if (!this.props.noValidate && this.validateForm() && ((this.state.schemaValidationErrors || []).length || (this.state.errors || []).length)) {
             this.setState({
                 ...this.state,
@@ -169,6 +170,8 @@ export default class Form extends BaseForm {
                 schemaValidationErrors: []
             })
         }
+        if (callback)
+            callback(this)
     }, 50)
 
     editOnChange(formData, id) {
@@ -370,6 +373,11 @@ export default class Form extends BaseForm {
         }
     }, 50)
 
+    flashMessages = (messages) => {
+        if (this.props.notify) (messages || []).forEach(([type, message]) => {
+            this.props.notify({type, message})
+        })
+    }
     postData = (kwargs, onSuccess, onError) => {
         return postData({
             url: this.props.url || '/',
@@ -377,13 +385,11 @@ export default class Form extends BaseForm {
             method: 'POST',
             headers: {}, ...kwargs
         }).then(({data, debugUrl}) => {
-            if (this.props.notify) (data.messages || []).forEach(([type, message]) => {
-                this.props.notify({type, message})
-            })
+            this.flashMessages(data.messages)
             return {debugUrl, data}
         }).then((response) => {
             let {data: {error, errors = []}} = response
-            if (error || errors.length) {
+            if (!isEmpty(error) || errors.length) {
                 let message = (errors.length ? errors : [error]).join('\n')
                 throw {...response, message}
             } else if (onSuccess) {

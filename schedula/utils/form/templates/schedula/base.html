@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ get_locale() }}" style="height: 100vh"  >
+<html lang="{{ get_locale() }}" style="height: 100vh">
 <head>
     {% block head %}
     <meta charset="UTF-8">
@@ -87,6 +87,10 @@
                     csrf_token,
                     formData,
                     formContext,
+                    onLoad: (form) => {
+                        const messages = JSON.parse('{{ get_flashed_messages(with_categories=True)| tojson | safe}}')
+                        form.flashMessages(messages)
+                    },
                     ..._schedulaProps
                 })
             });
