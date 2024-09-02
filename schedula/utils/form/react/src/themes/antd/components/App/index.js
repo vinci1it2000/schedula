@@ -228,9 +228,9 @@ const App = (
                     top: 0,
                     zIndex: 1,
                     width: '100%',
-                    padding: 0
+                    padding: 0,
+                    display: "flex",
                 }}>
-                <div style={{display: "flex", height: "100%"}}>
                     <div key={'logo'} style={{
                         height: "100%",
                         textAlign: 'center',
@@ -276,7 +276,6 @@ const App = (
                                     containerRef={mainLayout}
                                     {...userProps}/> : null}
                         </Flex> : null}
-                </div>
             </Header> : null}
         <Layout ref={mainLayout} style={{
             position: 'relative'
