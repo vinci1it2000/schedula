@@ -160,7 +160,7 @@ const App = (
     }, [children, items])
 
     const [selectedKeys, setSelectedKeys] = useState(null);
-    const _defaultSelectedKeys = useMemo(() => {
+    useEffect(() => {
         const _routes = routes.sort((a, b) => (b.path || "").length - (a.path || "").length)
         let {
             key = null
@@ -171,7 +171,7 @@ const App = (
             setSelectedKeys([String(key)])
         }
         return [String(key)]
-    }, [homePath])
+    }, [])
     const [visitedRoutes, setVisitedRoutes] = useState({});
     useEffect(() => {
         setVisitedRoutes((visited) => ({...visited, [pathname]: true}))
