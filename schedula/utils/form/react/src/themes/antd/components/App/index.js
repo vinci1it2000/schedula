@@ -166,11 +166,10 @@ const App = (
             key = null
         } = _routes.find(({path}) => pathname === path) || {}
         if (key === null) {
-            return null
+            setSelectedKeys(null)
         } else {
             setSelectedKeys([String(key)])
         }
-        return [String(key)]
     }, [])
     const [visitedRoutes, setVisitedRoutes] = useState({});
     useEffect(() => {
