@@ -44,8 +44,11 @@ STATIC_CONTEXT = {}
 
 
 def get_static_context():
-    if ~all(f'main_{k}' in STATIC_CONTEXT and osp.exists(
-                STATIC_CONTEXT[f'main_{k}']) for k in ('js', 'css')):
+    if ~all(
+            f'main_{k}' in STATIC_CONTEXT and
+            osp.exists(STATIC_CONTEXT[f'main_{k}'])
+            for k in ('js', 'css')
+    ):
         STATIC_CONTEXT.clear()
         static_context = {
             f'main_{k}': osp.relpath(glob.glob(osp.join(

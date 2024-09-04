@@ -9,7 +9,6 @@
 """
 It provides functions to build the item storage service.
 """
-import functools
 import hashlib
 import datetime
 import schedula as sh

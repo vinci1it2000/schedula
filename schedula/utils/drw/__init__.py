@@ -1716,17 +1716,22 @@ class SiteMap(collections.OrderedDict):
     def get_directory(self, directory):
         return directory or self.directory or tempfile.mkdtemp()
 
-    def basic_app(self, root_path, mute=True, blueprint_name=None, **kwargs):
-        import flask
-        root_path = osp.abspath(self.get_directory(root_path))
-        if blueprint_name is None:
-            app = flask.Flask(root_path, root_path=root_path, **kwargs)
-        else:
-            app = flask.Blueprint(
-                blueprint_name, root_path, root_path=root_path, **kwargs
-            )
+    def basic_app(self, root_path, mute=True, blueprint_name=None, app=None,
+                  **kwargs):
+        if app is None:
+            import flask
+            root_path = osp.abspath(self.get_directory(root_path))
+            if blueprint_name is None:
+                app = flask.Flask(root_path, root_path=root_path, **kwargs)
+            else:
+                app = flask.Blueprint(
+                    blueprint_name, root_path, root_path=root_path, **kwargs
+                )
         app.before_request(functools.partial(before_request, mute))
         return app
+
+    def init_app(self, app, **kwargs):
+        return self.app(app=app, **kwargs)
 
     def app(self, root_path=None, depth=-1, index=True, mute=True, viz_js=False,
             executor='async', blueprint_name=None, **kw):
