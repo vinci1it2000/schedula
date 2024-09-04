@@ -1,3 +1,4 @@
 -r plot.pip
 
 sphinx>=7.2
+sphinx-click

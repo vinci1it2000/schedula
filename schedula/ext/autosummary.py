@@ -97,13 +97,14 @@ def generate_autosummary_content(
             ns['modules'] = imported_modules + modules
             ns["all_modules"] = all_imported_modules + all_modules
     elif doc.objtype == 'class':
-        ns['members'] = dir(obj)
-        ns['inherited_members'] = \
-            set(dir(obj)) - set(obj.__dict__.keys())
-        ns['methods'], ns['all_methods'] = \
-            _get_members(doc, app, obj, {'method'}, include_public={'__init__'})
-        ns['attributes'], ns['all_attributes'] = \
-            _get_members(doc, app, obj, {'attribute', 'property'})
+        if not app.emit_firstresult('autodoc-skip-member', doc.objtype, name, obj, False, {}):
+            ns['members'] = dir(obj)
+            ns['inherited_members'] = \
+                set(dir(obj)) - set(obj.__dict__.keys())
+            ns['methods'], ns['all_methods'] = \
+                _get_members(doc, app, obj, {'method'}, include_public={'__init__'})
+            ns['attributes'], ns['all_attributes'] = \
+                _get_members(doc, app, obj, {'attribute', 'property'})
 
     if modname is None or qualname is None:
         modname, qualname = _split_full_qualified_name(name)
@@ -189,6 +190,12 @@ def generate_autosummary_docs(
                     __('[autosummary] failed to import %s.\nPossible hints:\n%s'),
                     entry.name, '\n'.join(errors))
                 continue
+        except RuntimeError as exc:
+            errors = [f"* {type(exc).__name__}: {exc}"]
+            logger.warning(
+                __('[autosummary] failed to import %s.\nPossible hints:\n%s'),
+                entry.name, '\n'.join(errors))
+            continue
 
         context: dict[str, Any] = {}
         if app:
@@ -256,10 +263,13 @@ def process_generate_options(app):
 
     imported_members = app.config.autosummary_imported_members
     with mock(app.config.autosummary_mock_imports):
-        generate_autosummary_docs(genfiles, suffix=suffix, base_path=app.srcdir,
+        try:
+            generate_autosummary_docs(genfiles, suffix=suffix, base_path=app.srcdir,
                                   app=app, imported_members=imported_members,
                                   overwrite=app.config.autosummary_generate_overwrite,
                                   encoding=app.config.source_encoding)
+        except Exception as exc:
+            raise exc
 
 
 def setup(app):

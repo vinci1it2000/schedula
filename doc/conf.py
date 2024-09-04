@@ -46,6 +46,7 @@ extensions = [
     'sphinx.ext.viewcode',
     'schedula.ext.autosummary',
     'schedula.ext.dispatcher',
+    'sphinx_click'
 ]
 
 autosummary_generate = True
@@ -334,3 +335,16 @@ texinfo_documents = [
 
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {'python': ('https://docs.python.org/3', None)}
+
+
+def maybe_skip_member(app, what, name, obj, skip, options):
+    tname = type(obj).__name__
+    if tname in ('flask_sqlalchemy.model.DefaultMeta',):
+        return True
+    if tname == 'object' and name == 'query' and what == 'attribute':
+        return True
+    return False
+
+
+def setup(app):
+    app.connect('autodoc-skip-member', maybe_skip_member)

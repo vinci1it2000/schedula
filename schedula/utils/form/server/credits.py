@@ -27,9 +27,7 @@ from flask_babel import lazy_gettext
 from sqlalchemy.sql import func, column
 from flask_security.utils import view_commit
 from flask_security import current_user as cu, auth_required, roles_required
-from flask import (
-    request, jsonify, current_app, flash, Blueprint, after_this_request, abort
-)
+from flask import jsonify, flash, Blueprint, after_this_request, abort
 from sherlock import Lock
 from sqlalchemy import (
     Column, String, Integer, DateTime, JSON, or_, event, Boolean, desc
@@ -61,8 +59,9 @@ class Wallet(db.Model):
         return f"{self.user.firstname or ''} {self.user.lastname or ''}"
 
     def subscription(self, day=None, session=db.session):
+        from flask import current_app as ca
         subscriptions = {}
-        api_key = current_app.config['STRIPE_SECRET_KEY']
+        api_key = ca.config['STRIPE_SECRET_KEY']
         day = datetime.datetime.today() if day is None else day
         products = {}
         for tran in session.query(Txn).filter_by(
@@ -158,6 +157,7 @@ class Wallet(db.Model):
 @bp.route('/balance/<int:wallet_id>', methods=['GET'])
 @auth_required()
 def get_balance(wallet_id=None):
+    from flask import request
     user_id = request.args.get('user_id', cu.id)
     if not is_admin() and cu.id != user_id:
         abort(403)
@@ -185,6 +185,7 @@ def get_balance(wallet_id=None):
 @bp.route('/subscription/<int:wallet_id>', methods=['GET'])
 @auth_required()
 def get_subscription(wallet_id=None):
+    from flask import request
     user_id = request.args.get('user_id', cu.id)
     kw = {'id': wallet_id, 'user_id': user_id}
     if not is_admin() and cu.id != user_id:
@@ -328,7 +329,8 @@ def compute_line_items(quantity, tiers, type='graduated'):
 
 
 def user2stripe_customer(user=cu, limit=1, **kwargs):
-    api_key = current_app.config['STRIPE_SECRET_KEY']
+    from flask import current_app as ca
+    api_key = ca.config['STRIPE_SECRET_KEY']
     for update, query in enumerate((
             f"metadata['user_id']:'{user.id}'", f"email:'{user.email}'"
     )):
@@ -359,12 +361,13 @@ def stripe_customer2user(customer):
     user = User.query.filter_by(email=customer.email).first()
     if user:
         return user
-    user = current_app.security.datastore.create_user(
+    from flask import current_app as ca
+    user = ca.security.datastore.create_user(
         email=customer.email, firstname=customer.name
     )
     db.session.flush([user])
 
-    api_key = current_app.config['STRIPE_SECRET_KEY']
+    api_key = ca.config['STRIPE_SECRET_KEY']
     stripe.Customer.modify(
         customer.id, api_key=api_key, metadata={"user_id": str(user.id)}
     )
@@ -383,12 +386,13 @@ def get_wallet(user_id, session=db.session):
 @bp.route('/create-customer-pricing-table-session', methods=['POST'])
 @auth_required()
 def create_pricing_table():
+    from flask import request, current_app as ca
     try:
         data = request.get_json() if request.is_json else dict(request.form)
         data = json_secrets.secrets(data, False)
         customer = user2stripe_customer()
         session = stripe.CustomerSession.create(
-            api_key=current_app.config['STRIPE_SECRET_KEY'],
+            api_key=ca.config['STRIPE_SECRET_KEY'],
             **sh.combine_nested_dicts(data, base={
                 "customer": customer.id,
                 "components": {"pricing_table": {"enabled": True}}
@@ -403,6 +407,7 @@ def create_pricing_table():
 @bp.route('/create-customer-portal-session', methods=['POST'])
 @auth_required()
 def create_portal():
+    from flask import request, current_app as ca
     try:
         data = request.get_json() if request.is_json else dict(request.form)
         data = json_secrets.secrets(data, False)
@@ -414,7 +419,7 @@ def create_portal():
         else:
             subscription = ''
         session = stripe.billing_portal.Session.create(
-            api_key=current_app.config['STRIPE_SECRET_KEY'],
+            api_key=ca.config['STRIPE_SECRET_KEY'],
             **sh.combine_nested_dicts(data, base={
                 "customer": customer.id,
             })
@@ -434,7 +439,8 @@ def get_discounts():
                 discounts[product] = f + flat, p * (1 - perc)
     discounts = {k: list(v) for k, v in discounts.items() if v != (0, 1)}
     if discounts:
-        api_key = current_app.config['STRIPE_SECRET_KEY']
+        from flask import current_app as ca
+        api_key = ca.config['STRIPE_SECRET_KEY']
         price_discounts = {}
         product_discounts = {}
         for prod, name in (
@@ -457,7 +463,8 @@ def get_discounts():
 
 
 def update_line_items_discounts(line_items, discounts):
-    api_key = current_app.config['STRIPE_SECRET_KEY']
+    from flask import current_app as ca
+    api_key = ca.config['STRIPE_SECRET_KEY']
     line_items = copy.deepcopy(line_items)
     for item in line_items:
         if 'price' in item and item['price'] in discounts['price']:
@@ -506,7 +513,8 @@ def format_line_items(line_items):
                 lookup_keys, lookup_key, default=list
             ).append(i)
     if lookup_keys:
-        api_key = current_app.config['STRIPE_SECRET_KEY']
+        from flask import current_app as ca
+        api_key = ca.config['STRIPE_SECRET_KEY']
         for price in stripe.Price.list(
                 active=True, api_key=api_key, expand=['data.product'],
                 lookup_keys=list(lookup_keys.keys())
@@ -531,6 +539,7 @@ def format_line_items(line_items):
 
 @bp.route('/create-checkout-session', methods=['POST'])
 def create_payment():
+    from flask import request, current_app as ca
     try:
         data = request.get_json() if request.is_json else dict(request.form)
         data = json_secrets.secrets(data, False)
@@ -539,7 +548,7 @@ def create_payment():
             for k in ('id', 'firstname', 'lastname')
             if hasattr(cu, k)
         }
-        api_key = current_app.config['STRIPE_SECRET_KEY']
+        api_key = ca.config['STRIPE_SECRET_KEY']
 
         if 'line_items' in data:
             it = data['line_items']
@@ -582,6 +591,7 @@ def create_payment():
 @auth_required()
 @roles_required('admin')
 def create_refund():
+    from flask import request, current_app as ca
     try:
         stripe_id = request.args.get('session_id')
         t_refund = Txn.query.filter_by(stripe_id=stripe_id, type=PURCHASE).all()
@@ -596,7 +606,7 @@ def create_refund():
             return jsonify(error=msg)
 
         stripe_session = stripe.checkout.Session.retrieve(
-            stripe_id, api_key=current_app.config['STRIPE_SECRET_KEY']
+            stripe_id, api_key=ca.config['STRIPE_SECRET_KEY']
         )
         if not stripe_session:
             msg = f'Purchase session ID ({stripe_id}) is not in Stripe.'
@@ -679,7 +689,7 @@ def create_refund():
         }
         metadata['refunds'] = json.dumps([r.id for r in refunds])
         refund_id = stripe.Refund.create(
-            api_key=current_app.config['STRIPE_SECRET_KEY'],
+            api_key=ca.config['STRIPE_SECRET_KEY'],
             payment_intent=stripe_session.payment_intent,
             amount=total_refund,
             metadata=metadata
@@ -695,13 +705,14 @@ def create_refund():
 
 
 def checkout_session_completed(session_id):
+    from flask import current_app as ca
     with Lock('credits'):
         if db.session.query(
                 Txn.query.filter_by(stripe_id=session_id).exists()
         ).scalar():
             return False
         session = stripe.checkout.Session.retrieve(
-            session_id, api_key=current_app.config['STRIPE_SECRET_KEY'],
+            session_id, api_key=ca.config['STRIPE_SECRET_KEY'],
             expand=['line_items.data.price.product', 'customer']
         )
         if session.mode != 'payment':
@@ -766,13 +777,14 @@ def subscription_invoice_paid(event):
             'subscription_create', 'subscription_update', 'subscription_cycle'
     ):
         return
+    from flask import current_app as ca
     with Lock('credits'):
         if db.session.query(
                 Txn.query.filter_by(stripe_id=invoice.id).exists()
         ).scalar():
             return False
 
-        api_key = current_app.config['STRIPE_SECRET_KEY']
+        api_key = ca.config['STRIPE_SECRET_KEY']
         subscription = stripe.Subscription.retrieve(
             invoice.subscription, api_key=api_key, expand=[
                 'customer', 'items.data.price.product'
@@ -843,7 +855,8 @@ def subscription_invoice_paid(event):
 
 
 def charge_refunded(event):
-    api_key = current_app.config['STRIPE_SECRET_KEY']
+    from flask import current_app as ca
+    api_key = ca.config['STRIPE_SECRET_KEY']
     charge = event.data.object
     invoice = charge.invoice
     current_time = datetime.datetime.fromtimestamp(event.created)
@@ -860,8 +873,9 @@ def charge_refunded(event):
 
 @bp.route('/session-status/<session_id>', methods=['GET'])
 def session_status(session_id):
+    from flask import current_app as ca
     session = stripe.checkout.Session.retrieve(
-        session_id, api_key=current_app.config['STRIPE_SECRET_KEY']
+        session_id, api_key=ca.config['STRIPE_SECRET_KEY']
     )
     status = session.status
     if status == "complete":
@@ -888,14 +902,15 @@ def session_status(session_id):
 @bp.route('/webhooks', methods=['POST'])
 @csrf.exempt
 def stripe_webhook():
+    from flask import request, current_app as ca
     payload = request.data
     sig_header = request.headers['STRIPE_SIGNATURE']
-    api_key = current_app.config['STRIPE_SECRET_KEY']
+    api_key = ca.config['STRIPE_SECRET_KEY']
 
     try:
         event = stripe.Webhook.construct_event(
             payload, sig_header,
-            current_app.config['STRIPE_WEBHOOK_SECRET_KEY'],
+            ca.config['STRIPE_WEBHOOK_SECRET_KEY'],
             api_key=api_key,
             tolerance=None
         )
@@ -913,7 +928,7 @@ def stripe_webhook():
     elif event_type == 'invoice.paid':
         subscription_invoice_paid(event)
 
-    current_app.stripe_event_handler(event)
+    ca.stripe_event_handler(event)
     return jsonify(success=True)
 
 

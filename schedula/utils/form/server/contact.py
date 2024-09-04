@@ -21,7 +21,7 @@ from flask_mail import Message, Mail as _Mail
 from werkzeug.datastructures import MultiDict
 from flask_wtf.recaptcha import RecaptchaField
 from flask_babel import lazy_gettext, get_locale
-from flask import request, current_app as ca, flash, Blueprint
+from flask import flash, Blueprint
 from flask_security.utils import base_render_json, suppress_form_csrf
 from flask_security.forms import Required, StringField, Form, EmailField
 
@@ -83,6 +83,7 @@ class ContactForm(Form):
 
 @bp.route('/contact', methods=['POST'])
 def contact():
+    from flask import request, current_app as ca
     data = MultiDict(
         request.get_json()
     ) if request.is_json else request.form

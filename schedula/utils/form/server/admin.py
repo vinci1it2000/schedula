@@ -14,7 +14,7 @@ from .extensions import db
 from sqlalchemy import inspect
 from flask_security import current_user
 from flask_admin import helpers as admin_helpers
-from flask import current_app, url_for, redirect, abort, request
+from flask import url_for, redirect, abort
 from flask_admin.contrib.sqla import ModelView as _ModelView
 from flask_admin.form import SecureForm as _SecureForm
 
@@ -23,12 +23,13 @@ class SecureForm(_SecureForm):
     class Meta:
         @property
         def csrf(self):
-            return str(
-                current_app.config['SCHEDULA_CSRF_ENABLED']).lower() == 'true'
+            from flask import current_app as ca
+            return str(ca.config['SCHEDULA_CSRF_ENABLED']).lower() == 'true'
 
         @property
         def csrf_field_name(self):
-            return current_app.config['WTF_CSRF_FIELD_NAME']
+            from flask import current_app as ca
+            return ca.config['WTF_CSRF_FIELD_NAME']
 
         def build_csrf(self, form):
             from .csrf import csrf
@@ -63,6 +64,7 @@ class ModelView(_ModelView):
                 abort(403)
             else:
                 # login
+                from flask import request
                 return redirect(url_for('security.login', next=request.url))
 
 
