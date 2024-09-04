@@ -21,7 +21,7 @@ from flask_mail import Message, Mail as _Mail
 from werkzeug.datastructures import MultiDict
 from flask_wtf.recaptcha import RecaptchaField
 from flask_babel import lazy_gettext, get_locale
-from flask import request, current_app, flash, Blueprint
+from flask import request, current_app as ca, flash, Blueprint
 from flask_security.utils import base_render_json, suppress_form_csrf
 from flask_security.forms import Required, StringField, Form, EmailField
 
@@ -49,23 +49,27 @@ def _render_template(*paths, **data):
 
 
 class Mail(_Mail):
-    def send_rst(self, to, rst=None, reply_to=None, body=None, subject=None,
-                 **data):
+    def send_rst(
+            self, to, data, rst=None, reply_to=None, body=None, subject=None,
+            language=None, **kwargs):
         from tabulate import tabulate
-        locale = get_locale()
-        language = f"{locale.language}_{locale.territory}"
+        if language is None:
+            locale = get_locale()
+            language = f"{locale.language}_{locale.territory}"
         body = body or _render_template(
-            f'schedula/email/{rst}-body-{language}.rst',
-            f'schedula/email/{rst}-body.rst',
+            f'schedula/email/{rst}/body/{language}.rst',
+            f'schedula/email/{rst}/body.rst',
             tabulate=tabulate, **data
         )
         subject = subject or _render_template(
-            f'schedula/email/{rst}-subject-{language}.rst',
-            f'schedula/email/{rst}-subject.rst',
+            f'schedula/email/{rst}/subject/{language}.rst',
+            f'schedula/email/{rst}/subject.rst',
             tabulate=tabulate, **data
         )
         recipients = list(sh.stlp(os.environ.get('LOCAL', to)))
-        message = prepare_message(body, subject, recipients, reply_to=reply_to)
+        message = prepare_message(
+            body, subject, recipients, reply_to=reply_to, **kwargs
+        )
         return self.send(message)
 
 
@@ -89,11 +93,12 @@ def contact():
             data['name'] = f'{cu.firstname} {cu.lastname}'
     form = ContactForm(data, meta=suppress_form_csrf())
     if form.validate_on_submit():
-        current_app.extensions['schedula_mail'].send_rst(
-            to=[form.data['email'],
-                current_app.config.get('MAIL_DEFAULT_SENDER')],
-            rst='contact', reply_to=form.data['email'], user=cu, data=data,
-            created=datetime.datetime.now().strftime("%d/%m/%Y-%H:%M:%S")
+        ca.extensions['schedula_mail'].send_rst(
+            to=[form.data['email'], ca.config.get('MAIL_DEFAULT_SENDER')],
+            rst='contact', reply_to=form.data['email'], data={
+                'user': cu, 'data': data,
+                'created': datetime.datetime.now().strftime("%d/%m/%Y-%H:%M:%S")
+            }
         )
         flash(
             str(lazy_gettext('Your message has been successfully sent!')),
