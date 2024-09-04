@@ -1,5 +1,8 @@
 [report]
-omit = */test/*
+omit =
+    */test/*
+    */utils/form/*
+    cli.py
 
 [report]
 exclude_lines =

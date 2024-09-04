@@ -2,6 +2,25 @@ Changelog
 =========
 
 
+v1.5.20 (2024-09-04)
+--------------------
+
+Feat
+~~~~
+- (form): Update resources.
+
+- (form): Make contact mail usable outside app context.
+
+
+Fix
+~~~
+- (setup): Add missing requirements.
+
+- (doc): Correct Sphinx import error.
+
+- (form): Correct bug in App component.
+
+
 v1.5.19 (2024-09-02)
 --------------------
 
