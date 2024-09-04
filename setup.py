@@ -92,7 +92,8 @@ if __name__ == '__main__':
         'itsdangerous', 'rst2txt', 'flask-sqlalchemy', 'sqlalchemy', 'docutils',
         'flask-babel', 'flask-wtf', 'flask-security-too[common]', 'flask-admin',
         'flask-principal', 'flask-mail', 'gunicorn', 'stripe', 'click_log',
-        'click', 'asteval', 'sherlock','sqlalchemy-file', 'fasteners'
+        'click', 'asteval', 'sherlock','sqlalchemy-file', 'fasteners',
+        'python-dateutil'
     ]
     extras['sphinx'] = ['sphinx>=7.2', 'sphinx-click'] + extras['plot']
     extras['all'] = sorted(functools.reduce(set.union, extras.values(), set()))
