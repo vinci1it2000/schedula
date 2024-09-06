@@ -51,7 +51,7 @@ export default function UserNav(
         formContext,
         containerRef
     }) {
-    const {userInfo = {}} = form.state
+    const {userInfo = {}, emitter} = form.state
     const logged = !isEmpty(userInfo)
     const {getLocale} = useLocaleStore()
     const locale = getLocale('User')
@@ -76,6 +76,19 @@ export default function UserNav(
     const mustLogin = useMemo(() => {
         return loginRequired === true || (typeof loginRequired === 'object' && loginRequired[pathname])
     }, [pathname, loginRequired])
+    useEffect(() => {
+        emitter.on('set-auth', (v) => {
+            setAuth(v)
+            if (!logged && v === 'login') {
+                setOpen(true)
+            }
+        })
+    }, [])
+    useEffect(() => {
+        if (open && !mustLogin) {
+            setOpen(false)
+        }
+    }, [pathname])
     const StripePortal = useMemo(() => {
         return window.schedula.getComponents({
             render: {formContext}, component: 'Stripe.Portal'

@@ -21,7 +21,7 @@ import i18n, {translateJSON} from "./translator";
 import patchSchemaUtils from './patchSchemaUtils'
 import BaseForm from "@rjsf/core"
 import isEmpty from "lodash/isEmpty";
-
+import EventEmitter from "events"
 
 function customCreateSchemaUtils(validator, schema, experimental_defaultFormStateBehavior) {
     return patchSchemaUtils(createSchemaUtils(validator, schema, experimental_defaultFormStateBehavior))
@@ -32,6 +32,7 @@ export default class Form extends BaseForm {
     constructor(props) {
         super(props);
         this.state.FormContext = React.createContext({form: this})
+        this.state.emitter = new EventEmitter()
     }
 
     componentDidMount() {

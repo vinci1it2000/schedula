@@ -49,13 +49,25 @@ const PricingCard = (
         urlCreateCheckoutStatus = "/stripe/session-status",
         checkoutProps,
         onCheckout,
-        buttonProps: {onClick: buttonOnClick, ...buttonProps} = {},
+        buttonProps: {
+            buttonOnClick,
+            redirect2Login = true,
+            ...buttonProps
+        } = {},
         maxProductDescriptionHeight = 50,
         ...props
     }
 ) => {
     const {token} = theme.useToken();
-    const {form: {state: {language}}} = formContext
+    const {
+        form: {
+            state: {
+                language,
+                emitter,
+                userInfo: {id: user_id = null} = {}
+            }
+        }
+    } = formContext
     const [openCheckout, setOpenCheckout] = useState(false)
     const {getLocale} = useLocaleStore()
     const locale = getLocale('Stripe.Card')
@@ -136,13 +148,18 @@ const PricingCard = (
                         size="large"
                         type="primary"
                         style={{width: '100%'}}
-                        {...buttonProps}
                         onClick={() => {
-                            setOpenCheckout(true)
-                            if (buttonOnClick) {
-                                buttonOnClick();
+                            if (redirect2Login && user_id === null) {
+                                emitter.emit('set-auth', 'login')
+                            } else {
+                                setOpenCheckout(true)
+                                if (buttonOnClick) {
+                                    buttonOnClick();
+                                }
                             }
-                        }}>
+
+                        }}
+                        {...buttonProps}>
                         {buttonText || locale.buttonText}
                     </Button>
                     {features ?

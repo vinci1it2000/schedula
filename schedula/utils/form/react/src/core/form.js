@@ -1,6 +1,6 @@
 import {withTheme} from './components/Form';
 import {HoxRoot} from "hox";
-import {useEffect, useState, createRef, useMemo} from 'react'
+import {useEffect, useState, useMemo} from 'react'
 import defineValidator from "./components/validator";
 import {getUiOptions} from "@rjsf/utils";
 import i18n, {translateJSON} from './components/translator'
