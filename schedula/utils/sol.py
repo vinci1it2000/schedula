@@ -561,8 +561,9 @@ class Solution(Base, collections.OrderedDict):
                 value = args[0]
             else:
                 args = [v for v in args if v is not NONE]
-                value = self._evaluate_function(args, node_id, node_attr, attr,
-                                                **kw)
+                value = self._evaluate_function(
+                    args, node_id, node_attr, attr, **kw
+                )
             value = self._apply_filters(value, node_id, node_attr, attr, **kw)
             self._ended(attr, node_id)
 
@@ -697,11 +698,14 @@ class Solution(Base, collections.OrderedDict):
 
     def _verbose(self, node_id, attr, end=False):
         if self.verbose:
-            if end:
-                msg = 'Done `%s` in {:.5f} sec.'.format(attr['duration'])
+            if isinstance(self.verbose, collections.abc.Callable):
+                self.verbose(self, node_id, attr, end)
             else:
-                msg = 'Start `%s`...'
-            log.info(msg % '/'.join(self.full_name + (node_id,)))
+                if end:
+                    msg = 'Done `%s` in {:.5f} sec.'.format(attr['duration'])
+                else:
+                    msg = 'Start `%s`...'
+                log.info(msg % '/'.join(self.full_name + (node_id,)))
 
     def _set_function_node_output(self, node_id, node_attr, no_call,
                                   next_nds=None, **kw):

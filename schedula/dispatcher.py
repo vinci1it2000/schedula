@@ -1646,7 +1646,8 @@ class Dispatcher(Base):
 
         :param verbose:
             If True the dispatcher will log start and end of each function.
-        :type verbose: str, optional
+            If you pass a function you can customize the log message.
+        :type verbose: str, Callable, optional
 
         :return:
             Dictionary of estimated data node outputs.

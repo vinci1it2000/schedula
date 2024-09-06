@@ -1197,6 +1197,7 @@ class TestDispatch(unittest.TestCase):
         dsp = self.dsp
         import logging
         logging.disable(False)
+        test_logger = logging.getLogger('test_logger')
         with self.assertLogs('schedula', level='INFO') as cm:
             o = dsp.dispatch({'a': 5, 'b': 6, 'f': 9}, verbose=True)
             self.assertEqual(
@@ -1210,6 +1211,31 @@ class TestDispatch(unittest.TestCase):
                 'INFO:schedula\.utils\.sol:Done `min` in \d+\.\d+ sec\.',
                 'INFO:schedula\.utils\.sol:Start `2 / \(d \+ 1\)`\.\.\.',
                 'INFO:schedula\.utils\.sol:Done `2 / \(d \+ 1\)` in \d+\.\d+ sec\.'
+            ]
+
+            self.assertEqual(len(cm.output), len(cm.output))
+            for o, regex in zip(cm.output, res):
+                self.assertRegex(o, regex)
+        with self.assertLogs('test_logger', level='INFO') as cm:
+            def custom_verbose(sol, node_id, attr, end):
+                if end:
+                    msg = 'Done `%s` in {:.5f} sec.'.format(attr['duration'])
+                else:
+                    msg = 'Start `%s`...'
+                test_logger.info(msg % '/'.join(sol.full_name + (node_id,)))
+
+            o = dsp.dispatch({'a': 5, 'b': 6, 'f': 9}, verbose=custom_verbose)
+            self.assertEqual(
+                dict(o.items()),
+                {'a': 5, 'b': 6, 'c': 0, 'd': 0, 'e': 2, 'f': 9}
+            )
+            res = [
+                'INFO:test_logger:Start `log\(b - a\)`\.\.\.',
+                'INFO:test_logger:Done `log\(b - a\)` in \d+\.\d+ sec\.',
+                'INFO:test_logger:Start `min`\.\.\.',
+                'INFO:test_logger:Done `min` in \d+\.\d+ sec\.',
+                'INFO:test_logger:Start `2 / \(d \+ 1\)`\.\.\.',
+                'INFO:test_logger:Done `2 / \(d \+ 1\)` in \d+\.\d+ sec\.'
             ]
 
             self.assertEqual(len(cm.output), len(cm.output))
