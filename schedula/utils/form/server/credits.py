@@ -136,21 +136,24 @@ class Wallet(db.Model):
 
     def transfer_to(self, product, credits, to_wallet, session=db.session):
         assert credits >= 0, 'Credits to be transfer have to be positive.'
-        assert session.get(Wallet, to_wallet), 'Destination wallet not found.'
-        assert self.balance(product,
-                            session=session) >= credits, 'Insufficient balance.'
-        t = Txn(
+
+        tran_from = Txn(
             wallet_id=self.id, type_id=TRANSFER, credits=-credits,
             product=product
         )
-        session.add(t)
-        t = Txn(
+        tran_to = Txn(
             wallet_id=to_wallet, type_id=TRANSFER, credits=credits,
             product=product
         )
-        session.add(t)
+        assert session.get(
+            Wallet, to_wallet
+        ), 'Destination wallet not found.'
+        assert self.balance(
+            product, session=session
+        ) >= credits, 'Insufficient balance.'
+        session.add_all([tran_from, tran_to])
         session.flush()
-        return t.id
+        return tran_from.id, tran_to.id
 
 
 @bp.route('/balance', methods=['GET'])
@@ -161,24 +164,23 @@ def get_balance(wallet_id=None):
     user_id = request.args.get('user_id', cu.id)
     if not is_admin() and cu.id != user_id:
         abort(403)
+    with Lock('credits'):
+        get_wallet(user_id)
+
     query = Wallet.query.filter(or_(
         Wallet.users.any(id=user_id), Wallet.user_id == user_id
     ))
     if wallet_id is not None:
         query = query.filter_by(wallet_id=wallet_id)
-    with Lock('credits'):
-        if not Wallet.query.filter_by(user_id=user_id).one_or_none():
-            wallet = Wallet(user_id=user_id)
-            db.session.add(wallet)
-            db.session.commit()
-        product = request.args.get('product')
-        return jsonify({
-            wallet.id: {
-                'name': wallet.name(),
-                'balance': wallet.balance(product),
-                'main': wallet.user_id == user_id
-            } for wallet in query.all()
-        })
+
+    product = request.args.get('product')
+    return jsonify({
+        wallet.id: {
+            'name': wallet.name(),
+            'balance': wallet.balance(product),
+            'main': wallet.user_id == user_id
+        } for wallet in query.all()
+    })
 
 
 @bp.route('/subscription', methods=['GET'])
@@ -593,111 +595,114 @@ def create_payment():
 def create_refund():
     from flask import request, current_app as ca
     try:
-        stripe_id = request.args.get('session_id')
-        t_refund = Txn.query.filter_by(stripe_id=stripe_id, type=PURCHASE).all()
-        if not t_refund:
-            msg = f'Purchase session ID ({stripe_id}) is not in the database.'
-            flash(str(lazy_gettext(msg)), 'error')
-            return jsonify(error=msg)
+        with Lock('credits'):
+            stripe_id = request.args.get('session_id')
+            t_refund = Txn.query.filter_by(stripe_id=stripe_id,
+                                           type=PURCHASE).all()
+            if not t_refund:
+                msg = f'Purchase session ID ({stripe_id}) is not in the database.'
+                flash(str(lazy_gettext(msg)), 'error')
+                return jsonify(error=msg)
 
-        if t_refund[0].refunded:
-            msg = f'Purchase session ID ({stripe_id}) is already refunded.'
-            flash(str(lazy_gettext(msg)), 'warning')
-            return jsonify(error=msg)
+            if t_refund[0].refunded:
+                msg = f'Purchase session ID ({stripe_id}) is already refunded.'
+                flash(str(lazy_gettext(msg)), 'warning')
+                return jsonify(error=msg)
 
-        stripe_session = stripe.checkout.Session.retrieve(
-            stripe_id, api_key=ca.config['STRIPE_SECRET_KEY']
-        )
-        if not stripe_session:
-            msg = f'Purchase session ID ({stripe_id}) is not in Stripe.'
-            flash(str(lazy_gettext(msg)), 'warning')
-            return jsonify(error=msg)
+            stripe_session = stripe.checkout.Session.retrieve(
+                stripe_id, api_key=ca.config['STRIPE_SECRET_KEY']
+            )
+            if not stripe_session:
+                msg = f'Purchase session ID ({stripe_id}) is not in Stripe.'
+                flash(str(lazy_gettext(msg)), 'warning')
+                return jsonify(error=msg)
 
-        w_id = t_refund[0].wallet
-        fringes = {}
-        for t in Txn.query.filter_by(wallet=w_id).order_by(
-                Txn.valid_from
-        ).all():
-            fringe = sh.get_nested_dicts(fringes, t.product, default=list)
-            if (t.type == PURCHASE and t.credits >= 0) or t.credits > 0:
-                heappush(fringe, [
-                    t.expired_at or INF_DATE, t.valid_from, t.id, t.credits, t
-                ])
-            elif t.credits < 0:
-                demand = int(t.credits)
-                while demand < 0:
-                    item = fringe[0]
-                    if item[0] < t.valid_from:  # Credit expired.
-                        heappop(fringe)
+            w_id = t_refund[0].wallet
+            fringes = {}
+            for t in Txn.query.filter_by(wallet=w_id).order_by(
+                    Txn.valid_from
+            ).all():
+                fringe = sh.get_nested_dicts(fringes, t.product, default=list)
+                if (t.type == PURCHASE and t.credits >= 0) or t.credits > 0:
+                    heappush(fringe, [
+                        t.expired_at or INF_DATE, t.valid_from, t.id, t.credits,
+                        t
+                    ])
+                elif t.credits < 0:
+                    demand = int(t.credits)
+                    while demand < 0:
+                        item = fringe[0]
+                        if item[0] < t.valid_from:  # Credit expired.
+                            heappop(fringe)
+                            continue
+                        demand += item[-2]
+                        if demand <= 0:  # Credits are not enough.
+                            heappop(fringe)
+                        else:
+                            item[-2] = demand
+            now = datetime.datetime.now()
+            total_refund = 0
+            refunds = []
+
+            for fringe in fringes.values():
+                while fringe:
+                    item = heappop(fringe)
+                    if item[0] < now:  # Credit expired.
                         continue
-                    demand += item[-2]
-                    if demand <= 0:  # Credits are not enough.
-                        heappop(fringe)
-                    else:
-                        item[-2] = demand
-        now = datetime.datetime.now()
-        total_refund = 0
-        refunds = []
+                    balance, t = item[-2:]
+                    if t.stripe_id == stripe_id:
+                        refund = -balance
+                        if balance != t.credits:  # Partial refund.
+                            bill_scheme = t.raw_data['price']['billing_scheme']
+                            if bill_scheme != "per_unit" or balance <= 0:
+                                continue  # Cannot be or nothing to refund.
+                            p = refund / t.credits
+                            subtotal = int(t.subtotal * p)
+                            discount = int(t.discount * p)
+                            tax = int(t.tax * p)
+                            total = subtotal + discount + tax
+                        else:
+                            subtotal = -t.subtotal
+                            discount = -t.discount
+                            tax = -t.tax
+                            total = -t.total
 
-        for fringe in fringes.values():
-            while fringe:
-                item = heappop(fringe)
-                if item[0] < now:  # Credit expired.
-                    continue
-                balance, t = item[-2:]
-                if t.stripe_id == stripe_id:
-                    refund = -balance
-                    if balance != t.credits:  # Partial refund.
-                        billing_scheme = t.raw_data['price']['billing_scheme']
-                        if billing_scheme != "per_unit" or balance <= 0:
-                            continue  # Cannot be or nothing to refund.
-                        p = refund / t.credits
-                        subtotal = int(t.subtotal * p)
-                        discount = int(t.discount * p)
-                        tax = int(t.tax * p)
-                        total = subtotal + discount + tax
-                    else:
-                        subtotal = -t.subtotal
-                        discount = -t.discount
-                        tax = -t.tax
-                        total = -t.total
-
-                    total_refund -= total
-                    r = Txn(
-                        wallet=w_id,
-                        type=REFUND,
-                        product=t.product,
-                        credits=refund,
-                        subtotal=subtotal,
-                        discount=discount,
-                        tax=tax,
-                        total=total,
-                        currency=t.currency,
-                        stripe_id=None,
-                        refunded=False,
-                        expired_at=None,
-                        valid_from=t.valid_from
-                    )
-                    db.session.add(r)
-                    refunds.append(r)
-                    t.refunded = True
-                    db.session.flush([r, t])
-        metadata = {
-            f'user_{k}': getattr(cu, k)
-            for k in ('id', 'firstname', 'lastname')
-            if hasattr(cu, k)
-        }
-        metadata['refunds'] = json.dumps([r.id for r in refunds])
-        refund_id = stripe.Refund.create(
-            api_key=ca.config['STRIPE_SECRET_KEY'],
-            payment_intent=stripe_session.payment_intent,
-            amount=total_refund,
-            metadata=metadata
-        ).id
-        for t in refunds:
-            t.stripe_id = refund_id
-        db.session.flush(refunds)
-        after_this_request(view_commit)
+                        total_refund -= total
+                        r = Txn(
+                            wallet=w_id,
+                            type=REFUND,
+                            product=t.product,
+                            credits=refund,
+                            subtotal=subtotal,
+                            discount=discount,
+                            tax=tax,
+                            total=total,
+                            currency=t.currency,
+                            stripe_id=None,
+                            refunded=False,
+                            expired_at=None,
+                            valid_from=t.valid_from
+                        )
+                        db.session.add(r)
+                        refunds.append(r)
+                        t.refunded = True
+                        db.session.flush([r, t])
+            metadata = {
+                f'user_{k}': getattr(cu, k)
+                for k in ('id', 'firstname', 'lastname')
+                if hasattr(cu, k)
+            }
+            metadata['refunds'] = json.dumps([r.id for r in refunds])
+            refund_id = stripe.Refund.create(
+                api_key=ca.config['STRIPE_SECRET_KEY'],
+                payment_intent=stripe_session.payment_intent,
+                amount=total_refund,
+                metadata=metadata
+            ).id
+            for t in refunds:
+                t.stripe_id = refund_id
+            db.session.flush(refunds)
+            db.session.commit()
     except Exception as e:
         return jsonify(error=str(e))
 
@@ -729,6 +734,7 @@ def checkout_session_completed(session_id):
         wallet = get_wallet(user.id)
 
         line_items = json.loads(session.metadata.get('line_items', '[]'))
+        transactions = []
         for i, item in enumerate(session.line_items.data):
             price = item.price
             product = price.product
@@ -740,7 +746,7 @@ def checkout_session_completed(session_id):
             except (IndexError, KeyError):
                 credits = item.quantity
 
-            transaction = Txn(
+            transactions.append(Txn(
                 wallet_id=wallet.id,
                 type_id=PURCHASE,
                 credits=credits,
@@ -755,9 +761,8 @@ def checkout_session_completed(session_id):
                 created_by=user.id,
                 valid_from=current_time,
                 expired_at=expired_at,
-            )
-            db.session.add(transaction)
-
+            ))
+        db.session.add_all(transactions)
         db.session.commit()
         return True
 
@@ -809,11 +814,11 @@ def subscription_invoice_paid(event):
                 desc(Txn.valid_from)
             ).first().stripe_id
             refund_charge(latest_invoice, start_time)
-
+        transactions = []
         for item in subscription.get('items').data:
             product = item.price.product
             if item.object == 'subscription_item':
-                transaction = Txn(
+                transactions.append(Txn(
                     wallet_id=wallet.id,
                     type_id=SUBSCRIPTION,
                     product=product.name,
@@ -827,8 +832,7 @@ def subscription_invoice_paid(event):
                     created_by=user.id,
                     valid_from=start_time,
                     expired_at=end_time
-                )
-                db.session.add(transaction)
+                ))
                 for feat in stripe.Product.list_features(
                         product.id, api_key=api_key
                 ).data:
@@ -839,7 +843,7 @@ def subscription_invoice_paid(event):
                                 freq=FREQUENCIES[freq], dtstart=start_time,
                                 until=end_time
                         )):
-                            transaction = Txn(
+                            transactions.append(Txn(
                                 wallet_id=wallet.id,
                                 type_id=CHARGE,
                                 credits=credits,
@@ -848,8 +852,8 @@ def subscription_invoice_paid(event):
                                 created_by=user.id,
                                 valid_from=valid_from,
                                 expired_at=expired_at
-                            )
-                            db.session.add(transaction)
+                            ))
+        db.session.add_all(transactions)
         db.session.commit()
         return True
 
@@ -862,11 +866,11 @@ def charge_refunded(event):
     current_time = datetime.datetime.fromtimestamp(event.created)
     with Lock('credits'):
         for stripe_id in (invoice and (invoice,) or (
-                session.id for session in stripe.checkout.Session.list(
+                session.id
+                for session in stripe.checkout.Session.list(
             payment_intent=charge.payment_intent,
             api_key=api_key
-        )
-        )):
+        ))):
             refund_charge(stripe_id, current_time)
         db.session.commit()
 

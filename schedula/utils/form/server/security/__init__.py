@@ -99,10 +99,10 @@ def edit():
     form = EditForm(data, meta=suppress_form_csrf())
     form.user = cu
     if form.validate_on_submit():
-        after_this_request(view_commit)
         for k, v in form.data.items():
             setattr(cu, k, v)
         db.session.add(cu)
+        db.session.commit()
     return base_render_json(form)
 
 
@@ -113,9 +113,9 @@ def settings():
         data = MultiDict(request.get_json())
     else:
         data = request.form
-    after_this_request(view_commit)
     cu.settings = data
     db.session.add(cu)
+    db.session.commit()
     return jsonify({'user': cu.get_security_payload()})
 
 
