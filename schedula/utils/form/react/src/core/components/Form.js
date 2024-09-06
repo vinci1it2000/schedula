@@ -379,7 +379,7 @@ export default class Form extends BaseForm {
             this.props.notify({type, message})
         })
     }
-    postData = (kwargs, onSuccess, onError) => {
+    postData = (kwargs, onSuccess, onError, notify = true) => {
         return postData({
             url: this.props.url || '/',
             form: this,
@@ -399,10 +399,11 @@ export default class Form extends BaseForm {
                 return response
             }
         }).catch((error = {}) => {
-            this.props.notify({
-                message: this.t('Ops... something went wrong!'),
-                description: error.message,
-            })
+            if (notify)
+                this.props.notify({
+                    message: this.t('Ops... something went wrong!'),
+                    description: error.message,
+                })
             if (onError)
                 onError(error)
         })
