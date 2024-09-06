@@ -2,6 +2,16 @@ Changelog
 =========
 
 
+v1.5.21 (2024-09-06)
+--------------------
+
+Feat
+~~~~
+- (core): Make verbose customizable.
+
+- (from): Improve DB code.
+
+
 v1.5.21 (2024-09-05)
 --------------------
 
