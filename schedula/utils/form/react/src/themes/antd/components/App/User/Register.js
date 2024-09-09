@@ -122,7 +122,7 @@ export default function RegisterForm(
                 required: true,
                 message: locale.passwordRequired
             }]} hasFeedback>
-            <Input
+            <Input.Password
                 prefix={<LockOutlined className="site-form-item-icon"/>}
                 type="password" placeholder={locale.passwordPlaceholder}
                 autoComplete="new-password" onChange={() => {
@@ -151,7 +151,7 @@ export default function RegisterForm(
                     },
                 }),
             ]}>
-            <Input
+            <Input.Password
                 prefix={<LockOutlined className="site-form-item-icon"/>}
                 type="password" placeholder={locale.passwordConfirmPlaceholder}
                 autoComplete="new-password" onChange={() => {

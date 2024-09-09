@@ -47,7 +47,7 @@ export default function ResetPasswordForm(
                 required: true,
                 message: locale.passwordRequired
             }]} hasFeedback>
-            <Input
+            <Input.Password
                 prefix={<LockOutlined className="site-form-item-icon"/>}
                 type="password" placeholder={locale.passwordPlaceholder}
                 autoComplete="new-password" onChange={() => {
@@ -77,7 +77,7 @@ export default function ResetPasswordForm(
                     },
                 }),
             ]}>
-            <Input
+            <Input.Password
                 prefix={<LockOutlined className="site-form-item-icon"/>}
                 type="password" placeholder={locale.passwordConfirmPlaceholder}
                 autoComplete="new-password" onChange={() => {

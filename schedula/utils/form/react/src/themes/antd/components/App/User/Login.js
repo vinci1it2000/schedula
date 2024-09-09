@@ -75,7 +75,7 @@ export default function LoginForm(
                 required: true,
                 message: locale.passwordRequired
             }]}>
-            <Input
+            <Input.Password
                 prefix={<LockOutlined className="site-form-item-icon"/>}
                 type="password" placeholder={locale.passwordPlaceholder}
                 autoComplete="current-password"
