@@ -2,7 +2,25 @@ Changelog
 =========
 
 
-v1.5.21 (2024-09-06)
+v1.5.23 (2024-09-09)
+--------------------
+
+Feat
+~~~~
+- (form): Update resources.
+
+- (form): Add configurable `send_static_file` function.
+
+- (form): Add extra block in html template.
+
+- (form): Improve passwords layout.
+
+- (form): Make error notification optional in postData.
+
+- (form): Add event emitter.
+
+
+v1.5.22 (2024-09-06)
 --------------------
 
 Feat
@@ -12,7 +30,7 @@ Feat
 - (from): Improve DB code.
 
 
-v1.5.21 (2024-09-05)
+v1.5.21 (2024-09-04)
 --------------------
 
 Feat
