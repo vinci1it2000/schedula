@@ -23,6 +23,7 @@ Sub-Modules:
     json_secrets
     server
 """
+import functools
 import io
 import os
 import gzip
@@ -34,8 +35,16 @@ import os.path as osp
 from ..web import WebMap
 from . import json_secrets
 from jinja2 import TemplateNotFound
+from collections import OrderedDict
 from werkzeug.exceptions import NotFound
 
+try:
+    from smart_open import open as _open
+    from smart_open.compression import NO_COMPRESSION
+
+    _open = functools.partial(_open, compression=NO_COMPRESSION)
+except ImportError:
+    _open = open
 __author__ = 'Vincenzo Arcidiacono <vinci1it2000@gmail.com>'
 
 static_dir = osp.join(osp.dirname(__file__), 'static')
@@ -75,6 +84,55 @@ def get_template(form, context):
             return get_template(form, context)
         # noinspection PyUnresolvedReferences
         return get_template('index', context)
+
+
+def send_static_file(
+        filename, static_folders, is_form=False):
+    from flask import current_app, request, send_file
+    filename = f'{filename}'.split('/')
+    download_name = filename[-1]
+    kw = {
+        'conditional': True,
+        'download_name': download_name,
+        'max_age': current_app.get_send_file_max_age(download_name)
+    }
+    gzipped = 'gzip' in request.headers.get('Accept-Encoding', '').lower()
+    if isinstance(static_folders, (list, tuple)):
+        static_folders = OrderedDict(((k, True) for k in static_folders))
+    for sdir, immutable in static_folders.items():
+        sdir = osp.join(sdir, *filename[:-1])
+        for ext in ('.gz', '')[::gzipped and 1 or -1]:
+            fn = f'{download_name}{ext}'
+            fp = osp.join(sdir, fn)
+            try:
+                with _open(fp, "rb") as f:
+                    if is_form:
+                        data = json_secrets.dumps(json.load(f)).encode()
+                    else:
+                        data = f.read()
+                if gzipped != bool(ext):
+                    func = gzipped and gzip.compress or gzip.decompress
+                    f = io.BytesIO(func(data))
+                    fn = gzipped and f'{fn}.gz' or download_name
+                else:
+                    f = io.BytesIO(data)
+                try:
+                    kw['last_modified'] = os.stat(fp).st_mtime
+                except FileNotFoundError:  # Remote file.
+                    pass
+                mimetype, encoding = mimetypes.guess_type(fn)
+
+                response = send_file(f, **kw)
+                if immutable:
+                    response.cache_control.immutable = True
+                    response.cache_control.public = True
+                    response.cache_control.max_age = 946080000  # 30 years.
+                response.content_type = mimetype
+                response.content_encoding = encoding
+                return response
+            except FileNotFoundError:
+                continue
+    raise NotFound
 
 
 class FormMap(WebMap):
@@ -122,45 +180,10 @@ class FormMap(WebMap):
 
     @staticmethod
     def send_static_file(filename):
-        from flask import current_app, request, send_file
-        is_form = filename.startswith('forms')
-        filename = f'schedula/{filename}'.split('/')
-        download_name = filename[-1]
-        kw = {
-            'conditional': True,
-            'download_name': download_name,
-            'max_age': current_app.get_send_file_max_age(download_name)
-        }
-        gzipped = 'gzip' in request.headers.get('Accept-Encoding', '').lower()
-        for i, sdir in enumerate((current_app.static_folder, static_dir)):
-            sdir = osp.join(sdir, *filename[:-1])
-            for ext in ('.gz', '')[::gzipped and 1 or -1]:
-                fn = f'{download_name}{ext}'
-                fp = osp.join(sdir, fn)
-                if osp.exists(fp):
-                    with open(fp, "rb") as f:
-                        if is_form:
-                            data = json_secrets.dumps(json.load(f)).encode()
-                        else:
-                            data = f.read()
-                    if gzipped != bool(ext):
-                        func = gzipped and gzip.compress or gzip.decompress
-                        f = io.BytesIO(func(data))
-                        fn = gzipped and f'{fn}.gz' or download_name
-                    else:
-                        f = io.BytesIO(data)
-                    kw['last_modified'] = os.stat(fp).st_mtime
-                    mimetype, encoding = mimetypes.guess_type(fn)
-
-                    response = send_file(f, **kw)
-                    if i:
-                        response.cache_control.immutable = True
-                        response.cache_control.public = True
-                        response.cache_control.max_age = 946080000  # 30 years.
-                    response.content_type = mimetype
-                    response.content_encoding = encoding
-                    return response
-        raise NotFound
+        from flask import current_app
+        return send_static_file(f'schedula/{filename}', OrderedDict((
+            (current_app.static_folder, False), (static_dir, True)
+        )), is_form=filename.startswith('forms'))
 
     def app(self, root_path=None, depth=1, mute=False, blueprint_name=None,
             index=False, debug=False, **kwargs):
