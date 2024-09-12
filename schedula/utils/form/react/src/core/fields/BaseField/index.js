@@ -160,7 +160,7 @@ function BaseFieldRender(props) {
      */
     const errorsComponent =
         hideError ||
-        ((schema.anyOf || schema.oneOf) && !schemaUtils.isSelect(schema)) ? (
+        ((schema.anyOf || schema.oneOf) && (!(schemaUtils.isSelect(schema) || schema.cascader))) ? (
             undefined
         ) : (
             <FieldErrorTemplate

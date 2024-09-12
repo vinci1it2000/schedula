@@ -32,7 +32,16 @@ function buildOptions(schema, names) {
 }
 
 export default function CascaderField(
-    {schema, uiSchema, formData = {}, onChange, registry, ...props}
+    {
+        schema,
+        uiSchema,
+        formData = {},
+        onChange,
+        registry,
+        rawErrors,
+        errorSchema,
+        ...props
+    }
 ) {
     const {getLocale} = useLocaleStore()
     const locale = getLocale('global')
@@ -73,14 +82,17 @@ export default function CascaderField(
     );
     const {fields: {BaseField}} = registry
     return <BaseField
-        schema={schema} uiSchema={{
-        displayLabel: true,
-        "ui:classNames": ['unset-height'], ...uiSchema
-    }}
+        schema={schema}
+        errorSchema={{__errors: rawErrors, ...errorSchema}}
+        uiSchema={{
+            displayLabel: true,
+            "ui:classNames": ['unset-height'], ...uiSchema
+        }}
         formData={formData}
         registry={registry}
         {...props}>
         <Cascader
+            status={!!rawErrors ? "error" : null}
             style={{width: '100%'}}
             value={value}
             options={valueOptions}
