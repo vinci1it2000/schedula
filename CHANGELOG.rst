@@ -2,6 +2,19 @@ Changelog
 =========
 
 
+v1.5.24 (2024-09-12)
+--------------------
+
+Feat
+~~~~
+- (form): Update resources.
+
+
+Fix
+~~~
+- (form): Correct error message for cascader.
+
+
 v1.5.23 (2024-09-09)
 --------------------
 
