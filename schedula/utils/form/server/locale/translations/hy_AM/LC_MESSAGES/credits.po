@@ -1,0 +1,39 @@
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: 1.0\n"
+"Report-Msgid-Bugs-To: vinci1it2000@gmail.com\n"
+"PO-Revision-Date: 2024-09-13 12:31+0000\n"
+"Last-Translator: Vincenzo Arcidiacono <vinci1it2000@gmail.com>\n"
+"Language-Team: English <vinci1it2000@gmail.com>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+# traslated
+msgid "Purchase session ID %(stripe_id)s is not in the database."
+msgstr "Գնման նիստի ID %(stripe_id)s-ը տվյալների բազայում չէ:"
+
+# traslated
+msgid "Purchase session ID %(stripe_id)s is already refunded."
+msgstr "Գնման նիստի ID %(stripe_id)s-ն արդեն վերադարձվում է:"
+
+# traslated
+msgid "Purchase session ID %(stripe_id)s is not in Stripe."
+msgstr "Գնման նիստի ID %(stripe_id)s-ը Սթրիփում չէ:"
+
+# traslated
+msgid "Payment succeeded!"
+msgstr "Վճարումը հաջողեց!"
+
+# traslated
+msgid "Your payment is processing."
+msgstr "Ձեր վճարումը պրոցեսոր է:"
+
+# traslated
+msgid "Your payment was not successful, please try again."
+msgstr "Ձեր վճարումը հաջող չէր, խնդրում եմ նորից փորձեք:"
+
+# traslated
+msgid "Something went wrong."
+msgstr "Ինչ-որ բան սխալվեց:"

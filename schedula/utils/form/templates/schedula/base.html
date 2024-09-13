@@ -53,7 +53,11 @@
         function onLoad() {
             let name = "{{ form_id or 'index' }}",
                 url = "{{ url_for('schedula.api.root') }}",
-                {formContext: _formContext, ..._schedulaProps} = window.schedulaProps || {},
+                {
+                    formContext: _formContext,
+                    language,
+                    ..._schedulaProps
+                } = window.schedulaProps || {},
                 element = document.getElementById('root'),
                 forms_url = "{{ url_for('schedula.static', filename='forms') }}",
                 csrf_token = "{{ csrf_token() }}",
@@ -76,8 +80,10 @@
                         'Content-Encoding': 'gzip',
                         'Accept-Encoding': 'gzip'
                     }
-                }).then(v => v.json())
-            ]).then(([schema, uiSchema]) => {
+                }).then(v => v.json()),
+                fetch(`locales/${language || 'none'}`)
+                    .then(v => v.json()).then(({language}) => language)
+            ]).then(([schema, uiSchema, language]) => {
                 schedula.renderForm({
                     element,
                     url,
@@ -87,6 +93,7 @@
                     csrf_token,
                     formData,
                     formContext,
+                    language,
                     onLoad: (form) => {
                         const messages = JSON.parse('{{ get_flashed_messages(with_categories=True)| tojson | safe}}')
                         form.flashMessages(messages)

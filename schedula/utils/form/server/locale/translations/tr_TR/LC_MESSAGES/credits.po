@@ -1,0 +1,39 @@
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: 1.0\n"
+"Report-Msgid-Bugs-To: vinci1it2000@gmail.com\n"
+"PO-Revision-Date: 2024-09-13 12:31+0000\n"
+"Last-Translator: Vincenzo Arcidiacono <vinci1it2000@gmail.com>\n"
+"Language-Team: English <vinci1it2000@gmail.com>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+# traslated
+msgid "Purchase session ID %(stripe_id)s is not in the database."
+msgstr "%(stripe_id)s satın alma oturumu kimliği veritabanında yok."
+
+# traslated
+msgid "Purchase session ID %(stripe_id)s is already refunded."
+msgstr "%(stripe_id)s satın alma oturumu kimliği zaten iade edildi."
+
+# traslated
+msgid "Purchase session ID %(stripe_id)s is not in Stripe."
+msgstr "%(stripe_id)s satın alma oturumu kimliği Stripe'ta değil."
+
+# traslated
+msgid "Payment succeeded!"
+msgstr "Ödeme başarılı oldu!"
+
+# traslated
+msgid "Your payment is processing."
+msgstr "Ödemeniz işleniyor."
+
+# traslated
+msgid "Your payment was not successful, please try again."
+msgstr "Ödemeniz başarılı olmadı, lütfen tekrar deneyin."
+
+# traslated
+msgid "Something went wrong."
+msgstr "Bir şeyler ters gitti."

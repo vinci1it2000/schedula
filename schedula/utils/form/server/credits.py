@@ -23,11 +23,10 @@ from .security import User
 from .. import json_secrets
 from .security import is_admin
 from heapq import heappop, heappush
-from flask_babel import lazy_gettext
+from .locale import lazy_gettext
 from sqlalchemy.sql import func, column
-from flask_security.utils import view_commit
 from flask_security import current_user as cu, auth_required, roles_required
-from flask import jsonify, flash, Blueprint, after_this_request, abort
+from flask import jsonify, flash, Blueprint, abort
 from sherlock import Lock
 from sqlalchemy import (
     Column, String, Integer, DateTime, JSON, or_, event, Boolean, desc
@@ -600,21 +599,30 @@ def create_refund():
             t_refund = Txn.query.filter_by(stripe_id=stripe_id,
                                            type=PURCHASE).all()
             if not t_refund:
-                msg = f'Purchase session ID ({stripe_id}) is not in the database.'
-                flash(str(lazy_gettext(msg)), 'error')
+                msg = str(lazy_gettext(
+                    u'Purchase session ID %(stripe_id)s is not in the database.',
+                    stripe_id=stripe_id, domain='credits'
+                ))
+                flash(msg, 'error')
                 return jsonify(error=msg)
 
             if t_refund[0].refunded:
-                msg = f'Purchase session ID ({stripe_id}) is already refunded.'
-                flash(str(lazy_gettext(msg)), 'warning')
+                msg = str(lazy_gettext(
+                    u'Purchase session ID %(stripe_id)s is already refunded.',
+                    stripe_id=stripe_id, domain='credits'
+                ))
+                flash(msg, 'warning')
                 return jsonify(error=msg)
 
             stripe_session = stripe.checkout.Session.retrieve(
                 stripe_id, api_key=ca.config['STRIPE_SECRET_KEY']
             )
             if not stripe_session:
-                msg = f'Purchase session ID ({stripe_id}) is not in Stripe.'
-                flash(str(lazy_gettext(msg)), 'warning')
+                msg = str(lazy_gettext(
+                    u'Purchase session ID %(stripe_id)s is not in Stripe.',
+                    stripe_id=stripe_id, domain='credits'
+                ))
+                flash(msg, 'warning')
                 return jsonify(error=msg)
 
             w_id = t_refund[0].wallet
@@ -883,19 +891,22 @@ def session_status(session_id):
     )
     status = session.status
     if status == "complete":
-        msg = 'Payment succeeded!'
+        msg = lazy_gettext('Payment succeeded!', domain='credits')
         category = 'success'
         checkout_session_completed(session_id)
     elif status == "processing":
-        msg = 'Your payment is processing.'
+        msg = lazy_gettext('Your payment is processing.', domain='credits')
         category = 'info'
     elif status == "requires_payment_method":
-        msg = 'Your payment was not successful, please try again.'
+        msg = lazy_gettext(
+            'Your payment was not successful, please try again.',
+            domain='credits'
+        )
         category = 'warning'
     else:
-        msg = 'Something went wrong.'
+        msg = lazy_gettext('Something went wrong.', domain='credits')
         category = 'error'
-    flash(str(lazy_gettext(msg)), category)
+    flash(str(msg), category)
     return jsonify(
         status=status,
         customer_email=session.customer_details.email,

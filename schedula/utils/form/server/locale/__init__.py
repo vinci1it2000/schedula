@@ -11,8 +11,9 @@ It provides functions to build the language service.
 """
 import os
 import os.path as osp
-from flask_babel import Babel
+from flask_babel import Babel, Domain
 from werkzeug.exceptions import NotFound
+from werkzeug.datastructures.accept import LanguageAccept
 from flask import (
     jsonify, current_app, request, session, Blueprint, send_from_directory
 )
@@ -20,9 +21,18 @@ from flask import (
 bp = Blueprint('locales', __name__)
 
 
+@functools.lru_cache()
+def get_domain(domain):
+    return Domain(domain=domain)
+
+
+def lazy_gettext(*args, domain=None, **kwargs):
+    return get_domain(domain).lazy_gettext(*args, **kwargs)
+
+
 @bp.route('/<language>/<namespace>', methods=['GET'])
 def locales(language, namespace):
-    for d in current_app.config['SCHEDULA_I18N_DIRNAME']:
+    for d in current_app.extensions['babel'].translation_directories:
         try:
             return send_from_directory(
                 d, f'{osp.join(language, "LC_MESSAGES", namespace)}.po',
@@ -38,7 +48,24 @@ def get_locales():
     return jsonify(current_app.config.get('BABEL_LANGUAGES'))
 
 
-def get_locale():
+@bp.route('/<lang>', methods=['POST'])
+def set_locale(lang):
+    languages = LanguageAccept([(lang, 2)] + request.accept_languages)
+    session['locale'] = locale = languages.best_match(
+        current_app.config.get('BABEL_LANGUAGES')
+    )
+    return jsonify({"language": locale})
+
+
+@bp.route('/<lang>', methods=['GET'])
+def get_locale(lang):
+    locale = session.get('locale')
+    if not locale:
+        return set_locale(lang)
+    return jsonify({"language": locale})
+
+
+def _get_locale():
     locale = session.get('locale')
     if not locale:
         session['locale'] = locale = request.accept_languages.best_match(
@@ -52,7 +79,7 @@ class Locales:
         if app is not None:
             self.init_app(app, *args, **kwargs)
 
-    def init_app(self, app, *args, locale_selector=get_locale, **kwargs):
+    def init_app(self, app, *args, locale_selector=_get_locale, **kwargs):
         app.extensions = getattr(app, 'extensions', {})
         app.config['BABEL_DEFAULT_LOCALE'] = app.config.get(
             'BABEL_DEFAULT_LOCALE', os.environ.get(
@@ -83,13 +110,21 @@ class Locales:
                 'zh_Hans_CN': {"icon": "🇨🇳", "label": "中文（简体）"}
             }
         )
-        app.config['SCHEDULA_I18N_DIRNAME'] = app.config.get(
-            'SCHEDULA_I18N_DIRNAME', [
-                "translations",
-                os.environ.get('SCHEDULA_I18N_DIRNAME', 'translations'),
-                osp.join(osp.dirname(__file__), 'translations'),
-            ]
+        directories = []
+        it = app.config.get(
+            'BABEL_TRANSLATION_DIRECTORIES',
+            os.environ.get('BABEL_TRANSLATION_DIRECTORIES', 'translations')
         )
+        if isinstance(it, str):
+            it = [it]
+        for k in it:
+            directories.extend(k.split(';'))
+        if not directories:
+            directories.append('translations')
+        tdir = osp.join(osp.dirname(__file__), 'translations')
+        if tdir not in directories:
+            directories.append(tdir)
+        app.config['BABEL_TRANSLATION_DIRECTORIES'] = ';'.join(directories)
         Babel(app, *args, locale_selector=locale_selector, **kwargs)
         app.register_blueprint(bp, url_prefix='/locales')
         app.extensions['locates'] = self

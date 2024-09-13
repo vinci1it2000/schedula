@@ -1,0 +1,42 @@
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: 1.0\n"
+"Report-Msgid-Bugs-To: vinci1it2000@gmail.com\n"
+"PO-Revision-Date: 2024-09-13 12:31+0000\n"
+"Last-Translator: Vincenzo Arcidiacono <vinci1it2000@gmail.com>\n"
+"Language-Team: English <vinci1it2000@gmail.com>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+# traslated
+msgid "Purchase session ID %(stripe_id)s is not in the database."
+msgstr ""
+"A %(stripe_id)s vásárlási munkamenet azonosítója nincs az adatbázisban."
+
+# traslated
+msgid "Purchase session ID %(stripe_id)s is already refunded."
+msgstr ""
+"A vásárlási munkamenet azonosítója %(stripe_id)s már visszatérítésre került."
+
+# traslated
+msgid "Purchase session ID %(stripe_id)s is not in Stripe."
+msgstr ""
+"A vásárlási munkamenet azonosítója %(stripe_id)s nincs a Stripe mappában."
+
+# traslated
+msgid "Payment succeeded!"
+msgstr "A fizetés sikerült!"
+
+# traslated
+msgid "Your payment is processing."
+msgstr "A fizetés feldolgozása folyamatban van."
+
+# traslated
+msgid "Your payment was not successful, please try again."
+msgstr "A fizetés sikertelen volt, kérjük, próbálja újra."
+
+# traslated
+msgid "Something went wrong."
+msgstr "Valami hiba történt."

@@ -19,15 +19,13 @@ import os.path as osp
 from ..extensions import db
 from werkzeug.datastructures import MultiDict
 from flask_principal import Permission, RoleNeed
-from sqlalchemy import Column, String, Text, JSON
+from sqlalchemy import Column, String, JSON
 from flask_security.models import fsqla_v3 as fsqla
-from flask import after_this_request, request, Blueprint, jsonify
+from flask import request, Blueprint, jsonify
 from flask_security.forms import (
     ConfirmRegisterForm, Required, StringField, Form
 )
-from flask_security.utils import (
-    base_render_json, suppress_form_csrf, view_commit
-)
+from flask_security.utils import base_render_json, suppress_form_csrf
 from flask_security import (
     Security as _Security, SQLAlchemyUserDatastore, current_user as cu,
     auth_required

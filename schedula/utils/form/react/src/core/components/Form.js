@@ -74,27 +74,31 @@ export default class Form extends BaseForm {
     }
 
     updateLanguage(language, callback) {
-        this.setState({
-            ...this.state, loading: true
-        }, () => {
-            i18n.changeLanguage(language, (err, t) => {
-                console.log(err)
-                const schema = this.t(this.state.rootSchema)
-                defineValidator(this.props.precompiledValidator, language, schema, this.props.nonce).then(validator => {
-                    const uiSchema = this.t(this.state.rootUiSchema)
-                    const experimental_defaultFormStateBehavior = this.props.experimental_defaultFormStateBehavior
-                    this.setState({
-                        ...this.state,
-                        loading: false,
-                        language,
-                        schema,
-                        uiSchema,
-                        schemaUtils: customCreateSchemaUtils(validator, schema, experimental_defaultFormStateBehavior)
-                    }, () => {
-                        if (callback) {
-                            callback(this)
-                        }
-                        this.validateForm()
+        this.postData({
+            url: '/locales/' + language
+        }, ({data: {language}}) => {
+            this.setState({
+                ...this.state, loading: true
+            }, () => {
+                i18n.changeLanguage(language, (err, t) => {
+                    console.log(err)
+                    const schema = this.t(this.state.rootSchema)
+                    defineValidator(this.props.precompiledValidator, language, schema, this.props.nonce).then(validator => {
+                        const uiSchema = this.t(this.state.rootUiSchema)
+                        const experimental_defaultFormStateBehavior = this.props.experimental_defaultFormStateBehavior
+                        this.setState({
+                            ...this.state,
+                            loading: false,
+                            language,
+                            schema,
+                            uiSchema,
+                            schemaUtils: customCreateSchemaUtils(validator, schema, experimental_defaultFormStateBehavior)
+                        }, () => {
+                            if (callback) {
+                                callback(this)
+                            }
+                            this.validateForm()
+                        })
                     })
                 })
             })

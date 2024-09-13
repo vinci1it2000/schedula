@@ -1,0 +1,39 @@
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: 1.0\n"
+"Report-Msgid-Bugs-To: vinci1it2000@gmail.com\n"
+"PO-Revision-Date: 2024-09-13 12:31+0000\n"
+"Last-Translator: Vincenzo Arcidiacono <vinci1it2000@gmail.com>\n"
+"Language-Team: English <vinci1it2000@gmail.com>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+# traslated
+msgid "Purchase session ID %(stripe_id)s is not in the database."
+msgstr "A ID da sessão de compra %(stripe_id)s não está no banco de dados."
+
+# traslated
+msgid "Purchase session ID %(stripe_id)s is already refunded."
+msgstr "O ID da sessão de compra %(stripe_id)s já foi reembolsado."
+
+# traslated
+msgid "Purchase session ID %(stripe_id)s is not in Stripe."
+msgstr "O ID da sessão de compra %(stripe_id)s não está no Stripe."
+
+# traslated
+msgid "Payment succeeded!"
+msgstr "Pagamento bem-sucedido!"
+
+# traslated
+msgid "Your payment is processing."
+msgstr "Seu pagamento está sendo processado."
+
+# traslated
+msgid "Your payment was not successful, please try again."
+msgstr "Seu pagamento não foi bem-sucedido, tente novamente."
+
+# traslated
+msgid "Something went wrong."
+msgstr "Algo deu errado."

@@ -17,7 +17,7 @@ function Form(
         theme,
         liveValidate = true,
         nonce,
-        language: _language = 'en_US',
+        language: _language,
         precompiledValidator: _precompiledValidator = true,
         formContext,
         ...props

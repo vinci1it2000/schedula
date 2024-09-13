@@ -1,0 +1,39 @@
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: 1.0\n"
+"Report-Msgid-Bugs-To: vinci1it2000@gmail.com\n"
+"PO-Revision-Date: 2024-09-13 12:31+0000\n"
+"Last-Translator: Vincenzo Arcidiacono <vinci1it2000@gmail.com>\n"
+"Language-Team: English <vinci1it2000@gmail.com>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+# traslated
+msgid "Purchase session ID %(stripe_id)s is not in the database."
+msgstr "L'ID de sessió de compra %(stripe_id)s no és a la base de dades."
+
+# traslated
+msgid "Purchase session ID %(stripe_id)s is already refunded."
+msgstr "L'ID de sessió de compra %(stripe_id)s ja s'ha reembossat."
+
+# traslated
+msgid "Purchase session ID %(stripe_id)s is not in Stripe."
+msgstr "L'ID de sessió de compra %(stripe_id)s no és a Stripe."
+
+# traslated
+msgid "Payment succeeded!"
+msgstr "El pagament ha tingut èxit!"
+
+# traslated
+msgid "Your payment is processing."
+msgstr "El pagament s'està processant."
+
+# traslated
+msgid "Your payment was not successful, please try again."
+msgstr "El pagament no s'ha realitzat correctament, torneu-ho a provar."
+
+# traslated
+msgid "Something went wrong."
+msgstr "Alguna cosa va sortir malament."

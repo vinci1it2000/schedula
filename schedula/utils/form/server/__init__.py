@@ -57,13 +57,13 @@ def basic_app(sitemap, app):
     # Create database connection object
     db.init_app(app)
 
-    if app.config['SCHEDULA_CSRF_ENABLED']:
-        from .csrf import csrf
-        csrf.init_app(app)
-
     if app.config['SCHEDULA_LOCALE_ENABLED']:
         from .locale import Locales
         Locales(app)
+
+    if app.config['SCHEDULA_CSRF_ENABLED']:
+        from .csrf import csrf
+        csrf.init_app(app)
 
     if app.config['SECURITY_ENABLED']:
         from .security import Security
