@@ -2,6 +2,23 @@ Changelog
 =========
 
 
+v1.5.25 (2024-09-13)
+--------------------
+
+Feat
+~~~~
+- (form): Update resources.
+
+- (form): Add form and render objects to Plasmic components.
+
+- (form): Correct locale handling.
+
+
+Fix
+~~~
+- (form): Update contact logic.
+
+
 v1.5.24 (2024-09-12)
 --------------------
 
