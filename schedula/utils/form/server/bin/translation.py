@@ -106,3 +106,7 @@ for folder in ('credits', 'contact'):
     subprocess.check_call([
         'pybabel', 'compile', '-d', f'../locale/translations', '-D', folder
     ], cwd=cdir)
+
+subprocess.check_call([
+    'pybabel', 'compile', '-d', f'../security/translations', '-D', folder
+], cwd=cdir)

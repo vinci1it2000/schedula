@@ -188,16 +188,16 @@ if __name__ == '__main__':
                 'templates/*', 'index/js/*', 'index/css/*', 'viz/*'
             ],
             'schedula.utils.form': [
-                'server/locale/translations/**/*.po',
-                'server/security/translations/**/*.po',
+                'server/locale/translations/**/antd.po',
+                'server/locale/translations/**/*.mo',
+                'server/security/translations/**/*.mo',
                 'static/schedula/forms/*',
                 'static/schedula/**/*.gz',
                 'static/schedula/**/*.LICENSE.txt',
                 'templates/**/*',
                 'sample/.babelrc',
                 'sample/*.*',
-                'sample/src/**/*',
-                'translations/**/*'
+                'sample/src/**/*'
             ]
         },
         **kw

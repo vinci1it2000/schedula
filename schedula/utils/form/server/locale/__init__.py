@@ -17,7 +17,6 @@ from werkzeug.datastructures.accept import LanguageAccept
 from flask import (
     jsonify, current_app, request, session, Blueprint, send_from_directory
 )
-
 bp = Blueprint('locales', __name__)
 
 
