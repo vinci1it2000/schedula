@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from "react";
+import React, {useContext, useEffect, useState} from "react";
 import {
     PlasmicComponent
 } from '@plasmicapp/loader-react';
@@ -10,12 +10,15 @@ import {useLocation} from "react-router-dom";
 export default function PlasmicPage(
     {
         children,
-        render: {uiSchema, registry},
+        render,
         pathname,
         homePath = '/',
+        componentProps,
         ...props
     }
 ) {
+    const {uiSchema, registry, formContext: {FormContext}} = render
+    const {form} = useContext(FormContext)
     const {PLASMIC} = usePlasmicStore()
     const [loading, setLoading] = useState(true);
     const [pageData, setPageData] = useState(null);
@@ -41,7 +44,10 @@ export default function PlasmicPage(
     }, [PLASMIC, pathname]);
     const content = pageData ?
         <div style={{overflowY: "auto", height: "100%"}}>
-            <PlasmicComponent component={pathname} {...props}/>
+            <PlasmicComponent
+                component={pathname}
+                componentProps={{form, render, ...componentProps}}
+                {...props}/>
         </div> : (
             PLASMIC ?
                 (

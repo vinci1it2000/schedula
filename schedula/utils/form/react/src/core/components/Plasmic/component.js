@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from "react";
+import React, {useContext, useEffect, useState} from "react";
 import {
     PlasmicComponent as BasePlasmicComponent
 } from '@plasmicapp/loader-react';
@@ -8,11 +8,14 @@ import {getTemplate, getUiOptions} from "@rjsf/utils";
 export default function PlasmicComponent(
     {
         children,
-        render: {uiSchema, registry},
+        render,
         component,
+        componentProps,
         ...props
     }
 ) {
+    const {uiSchema, registry, formContext: {FormContext}} = render
+    const {form} = useContext(FormContext)
     const {PLASMIC} = usePlasmicStore()
     const [loading, setLoading] = useState(true);
     const [pageData, setPageData] = useState(null);
@@ -32,8 +35,11 @@ export default function PlasmicComponent(
         }
     }, [PLASMIC, component]);
     const content = pageData ?
-        <BasePlasmicComponent component={component}
-                              children={children} {...props}/> : (
+        <BasePlasmicComponent
+            component={component}
+            children={children}
+            componentProps={{render, form, ...componentProps}}
+            {...props}/> : (
             PLASMIC ?
                 <div>Not found</div> :
                 <div>PLASMIC not configured!</div>
