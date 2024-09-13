@@ -10,6 +10,7 @@
 It provides functions to build the language service.
 """
 import os
+import functools
 import os.path as osp
 from flask_babel import Babel, Domain
 from werkzeug.exceptions import NotFound
