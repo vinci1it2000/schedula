@@ -20,10 +20,13 @@ from flask_security import current_user as cu
 from flask_mail import Message, Mail as _Mail
 from werkzeug.datastructures import MultiDict
 from flask_wtf.recaptcha import RecaptchaField
-from flask_babel import lazy_gettext, get_locale
-from flask import flash, Blueprint
-from flask_security.utils import base_render_json, suppress_form_csrf
+from flask_babel import get_locale
+from flask import flash, Blueprint, redirect, request, current_app as ca
+from flask_security.utils import (
+    base_render_json, suppress_form_csrf, get_post_action_redirect
+)
 from flask_security.forms import Required, StringField, Form, EmailField
+from .locale import lazy_gettext
 
 log = logging.getLogger(__name__)
 bp = Blueprint('contact', __name__)
@@ -81,9 +84,12 @@ class ContactForm(Form):
     recaptcha = RecaptchaField('g-recaptcha-response')
 
 
+def get_post_contact_redirect():
+    return get_post_action_redirect("SCHEDULA_POST_CONTACT_VIEW", request.form)
+
+
 @bp.route('/contact', methods=['POST'])
 def contact():
-    from flask import request, current_app as ca
     data = MultiDict(
         request.get_json()
     ) if request.is_json else request.form
@@ -94,18 +100,30 @@ def contact():
             data['name'] = f'{cu.firstname} {cu.lastname}'
     form = ContactForm(data, meta=suppress_form_csrf())
     if form.validate_on_submit():
-        ca.extensions['schedula_mail'].send_rst(
-            to=[form.data['email'], ca.config.get('MAIL_DEFAULT_SENDER')],
-            rst='contact', reply_to=form.data['email'], data={
-                'user': cu, 'data': data,
-                'created': datetime.datetime.now().strftime("%d/%m/%Y-%H:%M:%S")
-            }
-        )
-        flash(
-            str(lazy_gettext('Your message has been successfully sent!')),
-            'success'
-        )
-    return base_render_json(form)
+        try:
+            ca.extensions['schedula_mail'].send_rst(
+                to=[form.data['email'], ca.config.get('MAIL_DEFAULT_SENDER')],
+                rst='contact', reply_to=form.data['email'], data={
+                    'user': cu, 'data': data,
+                    'created': datetime.datetime.now().strftime(
+                        "%d/%m/%Y-%H:%M:%S")
+                }
+            )
+            flash(str(lazy_gettext(
+                'Your message has been successfully sent!',
+                domain='contact'
+            )), 'success')
+        except Exception as ex:
+            flash(str(lazy_gettext(
+                "A system error has occurred. Please try again later. "
+                "If the problem persists, contact technical support.",
+                domain='contact'
+            )), 'error')
+            return redirect(request.referrer or '/')
+
+    if ca.extensions["security"]._want_json(request):
+        return base_render_json(form)
+    return redirect(get_post_contact_redirect())
 
 
 class Contact(Mail):
@@ -114,5 +132,13 @@ class Contact(Mail):
 
     def init_app(self, app):
         super().init_app(app)
+        app.config['SCHEDULA_POST_CONTACT_VIEW'] = app.config.get(
+            'SCHEDULA_POST_CONTACT_VIEW', os.environ.get(
+                'SCHEDULA_POST_CONTACT_VIEW', app.config.get(
+                    "APPLICATION_ROOT", "/"
+                )
+            )
+        )
+
         app.register_blueprint(bp, url_prefix='/mail')
         app.extensions['schedula_mail'] = self

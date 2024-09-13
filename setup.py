@@ -92,7 +92,7 @@ if __name__ == '__main__':
         'itsdangerous', 'rst2txt', 'flask-sqlalchemy', 'sqlalchemy', 'docutils',
         'flask-babel', 'flask-wtf', 'flask-security-too[common]', 'flask-admin',
         'flask-principal', 'flask-mail', 'gunicorn', 'stripe', 'click_log',
-        'click', 'asteval', 'sherlock','sqlalchemy-file', 'fasteners',
+        'click', 'asteval', 'sherlock', 'sqlalchemy-file', 'fasteners',
         'python-dateutil'
     ]
     extras['sphinx'] = ['sphinx>=7.2', 'sphinx-click'] + extras['plot']
@@ -108,7 +108,9 @@ if __name__ == '__main__':
         'tests', 'tests.*',
         'examples', 'examples.*',
         'micropython', 'micropython.*',
-        'requirements', 'binder', 'bin'
+        'requirements', 'binder', 'bin',
+        'schedula.utils.form.react', 'schedula.utils.form.react.*',
+        'schedula.utils.form.server.bin', 'schedula.utils.form.server.bin.*',
     ]
     kw = {'entry_points': {
         'console_scripts': [
