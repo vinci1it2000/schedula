@@ -2,6 +2,16 @@ Changelog
 =========
 
 
+v1.5.26 (2024-09-14)
+--------------------
+
+Fix
+~~~
+- (form): Add missing import.
+
+- (setup): Add missing files.
+
+
 v1.5.25 (2024-09-13)
 --------------------
 
