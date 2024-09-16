@@ -2,6 +2,19 @@ Changelog
 =========
 
 
+v1.5.27 (2024-09-16)
+--------------------
+
+Feat
+~~~~
+- (form): Update resources.
+
+
+Fix
+~~~
+- (form): Improve cache control.
+
+
 v1.5.26 (2024-09-14)
 --------------------
 
