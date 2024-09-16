@@ -4,6 +4,7 @@ import {useEffect, useState, useMemo} from 'react'
 import defineValidator from "./components/validator";
 import {getUiOptions} from "@rjsf/utils";
 import i18n, {translateJSON} from './components/translator'
+import {BrowserRouter} from 'react-router-dom';
 
 function Form(
     {
@@ -42,7 +43,7 @@ function Form(
         })
     }, []);
     const BaseForm = useMemo(() => (withTheme(theme)), [theme]);
-    return <HoxRoot key={name}>
+    return <BrowserRouter><HoxRoot key={name}>
         {futureProps ? <BaseForm
             language={language}
             csrf_token={csrf_token}
@@ -74,7 +75,7 @@ function Form(
             {...props}
             {...optionsProps}
         /> : <div>loading...</div>}
-    </HoxRoot>
+    </HoxRoot></BrowserRouter>
 }
 
 export {Form as default};

@@ -1,9 +1,5 @@
 import React from 'react';
 import {
-    BrowserRouter
-} from 'react-router-dom';
-import Form from './form'
-import {
     registerComponent,
     registerComponentDomain,
     getComponents,
@@ -13,6 +9,8 @@ import {
 import ReactDOM from 'react-dom/client'
 import getTheme from '../themes'
 import {dereferenceSync} from 'dereference-json-schema';
+
+const Form = React.lazy(() => import('./form'));
 
 async function renderForm(
     {
@@ -29,17 +27,15 @@ async function renderForm(
 ) {
     return getTheme(theme).then(theme => {
         const root = ReactDOM.createRoot(element);
-        root.render(<BrowserRouter>
-            <Form
-                csrf_token={csrf_token}
-                schema={schema}
-                uiSchema={dereferenceSync(uiSchema)}
-                name={name}
-                url={url}
-                theme={theme}
-                formContext={formContext}
-                {...props}/>
-        </BrowserRouter>);
+        root.render(<Form
+            csrf_token={csrf_token}
+            schema={schema}
+            uiSchema={dereferenceSync(uiSchema)}
+            name={name}
+            url={url}
+            theme={theme}
+            formContext={formContext}
+            {...props}/>);
     });
 }
 
