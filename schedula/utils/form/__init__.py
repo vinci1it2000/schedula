@@ -123,10 +123,16 @@ def send_static_file(
                 mimetype, encoding = mimetypes.guess_type(fn)
 
                 response = send_file(f, **kw)
+                response.cache_control.immutable = immutable
+                response.cache_control.public = immutable
+                response.cache_control.pop('no_cache', None)
+                response.cache_control.pop('no-cache', None)
                 if immutable:
-                    response.cache_control.immutable = True
-                    response.cache_control.public = True
                     response.cache_control.max_age = 946080000  # 30 years.
+                else:
+                    response.cache_control.must_revalidate = True
+                    response.cache_control.max_age = 604800  # 1 week.
+                    response.cache_control.stale_while_revalidate = 120  # 2 min.
                 response.content_type = mimetype
                 response.content_encoding = encoding
                 return response
