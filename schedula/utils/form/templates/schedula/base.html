@@ -84,6 +84,7 @@
                 fetch(`locales/${language || 'none'}`)
                     .then(v => v.json()).then(({language}) => language)
             ]).then(([schema, uiSchema, language]) => {
+                document.title = uiSchema.title || schema.title || "{{ name }}"
                 schedula.renderForm({
                     element,
                     url,
