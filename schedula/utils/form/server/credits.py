@@ -10,6 +10,7 @@
 It provides functions to build the credit application services.
 """
 import os
+import re
 import copy
 import math
 import json
@@ -32,9 +33,23 @@ from sqlalchemy import (
     Column, String, Integer, DateTime, JSON, or_, event, Boolean, desc
 )
 from dateutil.relativedelta import relativedelta
-from dateutil.rrule import rrule, YEARLY, MONTHLY, WEEKLY, DAILY
+from dateutil.rrule import rrule, YEARLY, MONTHLY, WEEKLY, DAILY, HOURLY, \
+    MINUTELY, SECONDLY
 
-FREQUENCIES = {'M': MONTHLY, 'W': WEEKLY, 'D': DAILY, 'Y': YEARLY}
+FREQUENCIES = {
+    'M': MONTHLY, 'W': WEEKLY, 'D': DAILY, 'Y': YEARLY, 'h': HOURLY,
+    'm': MINUTELY, 's': SECONDLY
+}
+_re_freq = re.compile('^(?P<interval>[1-9]\d*)?(?P<freq>[MWDYhms])$')
+
+
+def date_range(start_time, end_time, freq):
+    d = _re_freq.match(freq).groupdict()
+    return itertools.pairwise(rrule(
+        freq=FREQUENCIES[d['freq']], dtstart=start_time,
+        until=end_time, interval=int(d['interval'] or '1')
+    ))
+
 
 bp = Blueprint('schedula_credits', __name__)
 users_wallet = db.Table(
@@ -73,19 +88,28 @@ class Wallet(db.Model):
             ).subscription
             if subscription.status != 'active':
                 continue
-            subscriptions[subscription.id] = subs = {}
+            subs = {}
             for item in subscription.get('items').data:
                 product_id = item.price.product
                 if product_id in products:
                     features = products[product_id]
                 else:
-                    products[product_id] = features = {}
+                    product = stripe.Product.retrieve(
+                        product_id, api_key=api_key
+                    )
+                    products[product_id] = features = {
+                        product_id: dict(product.metadata),
+                    }
                     for v in stripe.Product.list_features(
                             product_id, api_key=api_key
                     ).data:
                         feat = v.entitlement_feature
-                        features[feat.lookup_key] = feat.metadata or {}
+                        features[feat.lookup_key] = dict(feat.metadata or {})
                 subs.update(features)
+                subs[item.price.id] = dict(item.price.metadata)
+            subscriptions[subscription.id] = {
+                k: v for k, v in subs.items() if v
+            }
         return subscriptions
 
     def balance(self, product=None, day=None, session=db.session):
@@ -777,7 +801,7 @@ def checkout_session_completed(session_id):
 
 def refund_charge(stripe_id, start_time):
     base = Txn.query.filter_by(stripe_id=stripe_id).filter(
-        or_(Txn.type == CHARGE, Txn.type == PURCHASE)
+        or_(Txn.type_id == CHARGE, Txn.type_id == PURCHASE)
     )
     base.filter(Txn.valid_from > start_time).delete(synchronize_session=False)
     base.filter(Txn.expired_at > start_time).update({"expired_at": start_time})
@@ -841,26 +865,29 @@ def subscription_invoice_paid(event):
                     valid_from=start_time,
                     expired_at=end_time
                 ))
+                products = json.loads(product.metadata.get('products', '[]'))
+                products.extend(
+                    json.loads(item.price.metadata.get('products', '[]'))
+                )
                 for feat in stripe.Product.list_features(
                         product.id, api_key=api_key
                 ).data:
                     metadata = feat.entitlement_feature.metadata or {}
-                    products = json.loads(metadata.get('products', '[]'))
-                    for name, credits, freq in products:
-                        for valid_from, expired_at in itertools.pairwise(rrule(
-                                freq=FREQUENCIES[freq], dtstart=start_time,
-                                until=end_time
-                        )):
-                            transactions.append(Txn(
-                                wallet_id=wallet.id,
-                                type_id=CHARGE,
-                                credits=credits,
-                                product=name,
-                                stripe_id=invoice.id,
-                                created_by=user.id,
-                                valid_from=valid_from,
-                                expired_at=expired_at
-                            ))
+                    products.extend(json.loads(metadata.get('products', '[]')))
+                for name, credits, freq in products:
+                    for valid_from, expired_at in date_range(
+                            start_time, end_time, freq
+                    ):
+                        transactions.append(Txn(
+                            wallet_id=wallet.id,
+                            type_id=CHARGE,
+                            credits=credits,
+                            product=name,
+                            stripe_id=invoice.id,
+                            created_by=user.id,
+                            valid_from=valid_from,
+                            expired_at=expired_at
+                        ))
         db.session.add_all(transactions)
         db.session.commit()
         return True
