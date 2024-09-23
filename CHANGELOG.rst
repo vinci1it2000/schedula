@@ -2,6 +2,28 @@ Changelog
 =========
 
 
+v1.5.28 (2024-09-23)
+--------------------
+
+Feat
+~~~~
+- (form): Update resources.
+
+- (form): Use also metadata instead of only product features for credits
+  behaviour.
+
+- (form): Change html title from json.
+
+
+Fix
+~~~
+- (form): Improve Lock credits.
+
+- (form): Correct Cookies behaviour.
+
+- (core): Correct logic and performances of module imports.
+
+
 v1.5.27 (2024-09-16)
 --------------------
 
