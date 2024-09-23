@@ -143,10 +143,13 @@ const CookiesModal = (
     const edited = useMemo(() => (consents !== null && !isEqual(newConsents, consents)), [newConsents, consents]);
     return <>
         <Modal
-            style={{top: 20}}
+            style={{bottom: 20, top: 'unset', left: 20, position: 'absolute'}}
             title={locale.modalTitle}
             closable={consents !== null}
-            onCancel={() => setVisible(false)}
+            onCancel={() => {
+                if (consents !== null)
+                    setVisible(false)
+            }}
             loading={loading}
             open={visible}
             footer={[(consents === null || !edited ? <Button onClick={() => {
