@@ -25,6 +25,7 @@ Modules:
 """
 import os
 import sys
+import importlib
 from ._version import *
 
 _all = {
@@ -97,12 +98,18 @@ def __dir__():
 
 
 def __getattr__(name):
-    if name in _all:
-        import importlib
-        obj = getattr(importlib.import_module(_all[name], __name__), name)
-        globals().pop(_all[name].split('.')[1], None)  # For multiprocessing.
-        return obj
-    raise AttributeError("module %s has no attribute %s" % (__name__, name))
+    try:
+        module = f'{__name__}{_all[name]}'
+    except KeyError:
+        raise AttributeError(f"module {__name__} has no attribute {name}")
+    import sys
+    try:
+        mdl = sys.modules[module]
+    except KeyError:
+        mdl = sys.modules[module] = importlib.import_module(module)
+
+    globals()[name] = obj = getattr(mdl, name)
+    return obj
 
 
 if sys.version_info[:2] < (3, 7) or os.environ.get('IMPORT_ALL') == 'True':
