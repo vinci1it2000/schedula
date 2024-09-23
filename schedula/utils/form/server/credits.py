@@ -72,6 +72,9 @@ class Wallet(db.Model):
     def name(self):
         return f"{self.user.firstname or ''} {self.user.lastname or ''}"
 
+    def lock(self):
+        return Lock(f'wallet-{self.id}')
+
     def subscription(self, day=None, session=db.session):
         from flask import current_app as ca
         subscriptions = {}
@@ -135,26 +138,29 @@ class Wallet(db.Model):
 
     def use(self, product, credits, session=db.session, created_by=None):
         assert credits >= 0, 'Credits to be consumed have to be positive.'
-        assert self.balance(
-            product, session=session
-        ) >= credits, 'Insufficient balance.'
-        if created_by is None:
-            created_by = cu.id
-        t = Txn(
-            wallet_id=self.id, type_id=CHARGE, credits=-credits,
-            product=product, created_by=created_by
-        )
-        session.add(t)
-        session.flush()
+        with self.lock():
+            assert self.balance(
+                product, session=session
+            ) >= credits, 'Insufficient balance.'
+            if created_by is None:
+                created_by = cu.id
+            t = Txn(
+                wallet_id=self.id, type_id=CHARGE, credits=-credits,
+                product=product, created_by=created_by
+            )
+            session.add(t)
+            session.commit()
         return t.id
 
     def charge(self, product, credits, session=db.session):
         assert credits >= 0, 'Credits to be added have to be positive.'
-        t = Txn(
-            wallet_id=self.id, type_id=CHARGE, credits=credits, product=product
-        )
-        session.add(t)
-        session.flush()
+        with self.lock():
+            t = Txn(
+                wallet_id=self.id, type_id=CHARGE, credits=credits,
+                product=product
+            )
+            session.add(t)
+            session.commit()
         return t.id
 
     def transfer_to(self, product, credits, to_wallet, session=db.session):
@@ -168,14 +174,15 @@ class Wallet(db.Model):
             wallet_id=to_wallet, type_id=TRANSFER, credits=credits,
             product=product
         )
-        assert session.get(
-            Wallet, to_wallet
-        ), 'Destination wallet not found.'
-        assert self.balance(
-            product, session=session
-        ) >= credits, 'Insufficient balance.'
-        session.add_all([tran_from, tran_to])
-        session.flush()
+        to_wallet = session.get(Wallet, to_wallet)
+        assert to_wallet, 'Destination wallet not found.'
+        assert to_wallet, 'Destination wallet not found.'
+        with self.lock(), to_wallet.lock():
+            assert self.balance(
+                product, session=session
+            ) >= credits, 'Insufficient balance.'
+            session.add_all([tran_from, tran_to])
+            session.commit()
         return tran_from.id, tran_to.id
 
 
@@ -187,8 +194,8 @@ def get_balance(wallet_id=None):
     user_id = request.args.get('user_id', cu.id)
     if not is_admin() and cu.id != user_id:
         abort(403)
-    with Lock('credits'):
-        get_wallet(user_id)
+
+    get_wallet(user_id)
 
     query = Wallet.query.filter(or_(
         Wallet.users.any(id=user_id), Wallet.user_id == user_id
@@ -400,11 +407,12 @@ def stripe_customer2user(customer):
 
 
 def get_wallet(user_id, session=db.session):
-    wallet = session.query(Wallet).filter_by(user_id=user_id).one_or_none()
-    if not wallet:
-        wallet = Wallet(user_id=user_id)
-        session.add(wallet)
-        session.flush([wallet])
+    with Lock(f'wallet-user-{user_id}'):
+        wallet = session.query(Wallet).filter_by(user_id=user_id).one_or_none()
+        if not wallet:
+            wallet = Wallet(user_id=user_id)
+            session.add(wallet)
+            session.commit()
     return wallet
 
 
@@ -618,10 +626,11 @@ def create_payment():
 def create_refund():
     from flask import request, current_app as ca
     try:
-        with Lock('credits'):
-            stripe_id = request.args.get('session_id')
-            t_refund = Txn.query.filter_by(stripe_id=stripe_id,
-                                           type=PURCHASE).all()
+        stripe_id = request.args.get('session_id')
+        with Lock(f'Txn-stripe-{stripe_id}'):
+            t_refund = Txn.query.filter_by(
+                stripe_id=stripe_id, type_id=PURCHASE
+            ).all()
             if not t_refund:
                 msg = str(lazy_gettext(
                     u'Purchase session ID %(stripe_id)s is not in the database.',
@@ -655,7 +664,7 @@ def create_refund():
                     Txn.valid_from
             ).all():
                 fringe = sh.get_nested_dicts(fringes, t.product, default=list)
-                if (t.type == PURCHASE and t.credits >= 0) or t.credits > 0:
+                if (t.type_id == PURCHASE and t.credits >= 0) or t.credits > 0:
                     heappush(fringe, [
                         t.expired_at or INF_DATE, t.valid_from, t.id, t.credits,
                         t
@@ -702,7 +711,7 @@ def create_refund():
                         total_refund -= total
                         r = Txn(
                             wallet=w_id,
-                            type=REFUND,
+                            type_id=REFUND,
                             product=t.product,
                             credits=refund,
                             subtotal=subtotal,
@@ -743,7 +752,7 @@ def create_refund():
 
 def checkout_session_completed(session_id):
     from flask import current_app as ca
-    with Lock('credits'):
+    with Lock(f'Txn-stripe-{session_id}'):
         if db.session.query(
                 Txn.query.filter_by(stripe_id=session_id).exists()
         ).scalar():
@@ -800,11 +809,16 @@ def checkout_session_completed(session_id):
 
 
 def refund_charge(stripe_id, start_time):
-    base = Txn.query.filter_by(stripe_id=stripe_id).filter(
-        or_(Txn.type_id == CHARGE, Txn.type_id == PURCHASE)
-    )
-    base.filter(Txn.valid_from > start_time).delete(synchronize_session=False)
-    base.filter(Txn.expired_at > start_time).update({"expired_at": start_time})
+    with Lock(f'Txn-stripe-{stripe_id}'):
+        base = Txn.query.filter_by(stripe_id=stripe_id).filter(
+            or_(Txn.type_id == CHARGE, Txn.type_id == PURCHASE)
+        )
+        base.filter(Txn.valid_from > start_time).delete(
+            synchronize_session=False
+        )
+        base.filter(Txn.expired_at > start_time).update(
+            {"expired_at": start_time}
+        )
 
 
 def subscription_invoice_paid(event):
@@ -815,7 +829,7 @@ def subscription_invoice_paid(event):
     ):
         return
     from flask import current_app as ca
-    with Lock('credits'):
+    with Lock(f'Txn-stripe-{invoice.id}'):
         if db.session.query(
                 Txn.query.filter_by(stripe_id=invoice.id).exists()
         ).scalar():
@@ -899,15 +913,15 @@ def charge_refunded(event):
     charge = event.data.object
     invoice = charge.invoice
     current_time = datetime.datetime.fromtimestamp(event.created)
-    with Lock('credits'):
-        for stripe_id in (invoice and (invoice,) or (
-                session.id
-                for session in stripe.checkout.Session.list(
-            payment_intent=charge.payment_intent,
-            api_key=api_key
-        ))):
-            refund_charge(stripe_id, current_time)
-        db.session.commit()
+
+    for stripe_id in (invoice and (invoice,) or (
+            session.id
+            for session in stripe.checkout.Session.list(
+        payment_intent=charge.payment_intent,
+        api_key=api_key
+    ))):
+        refund_charge(stripe_id, current_time)
+    db.session.commit()
 
 
 @bp.route('/session-status/<session_id>', methods=['GET'])
