@@ -51,6 +51,7 @@
     {% block js_onload %}
     <script defer="defer">
         function onLoad() {
+            const origin = window.location.origin;
             let name = "{{ form_id or 'index' }}",
                 url = "{{ url_for('schedula.api.root') }}",
                 {
@@ -67,21 +68,21 @@
                 ...JSON.parse('{{ form.get_form_context() | tojson | safe}}')
             }
             Promise.all([
-                fetch(`${forms_url}/${name}-schema.json`, {
+                fetch(`${origin}/${forms_url}/${name}-schema.json`, {
                     headers: {
                         'Content-Type': 'application/json',
                         'Content-Encoding': 'gzip',
                         'Accept-Encoding': 'gzip'
                     }
                 }).then(v => v.json()),
-                fetch(`${forms_url}/${name}-ui.json`, {
+                fetch(`${origin}/${forms_url}/${name}-ui.json`, {
                     headers: {
                         'Content-Type': 'application/json',
                         'Content-Encoding': 'gzip',
                         'Accept-Encoding': 'gzip'
                     }
                 }).then(v => v.json()),
-                fetch(`locales/${language || 'none'}`)
+                fetch(`${origin}/locales/${language || 'none'}`)
                     .then(v => v.json()).then(({language}) => language)
             ]).then(([schema, uiSchema, language]) => {
                 document.title = uiSchema.title || schema.title || "{{ name }}"
