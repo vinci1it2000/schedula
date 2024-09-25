@@ -12,7 +12,7 @@ const ModuleNotFoundPlugin = require('react-dev-utils/ModuleNotFoundPlugin');
 const imageInlineSizeLimit = parseInt(
     process.env.IMAGE_INLINE_SIZE_LIMIT || '10000'
 );
-
+const CompressionPlugin = require("compression-webpack-plugin");
 const getCSSModuleLocalIdent = require('react-dev-utils/getCSSModuleLocalIdent');
 
 // style files regexes
@@ -118,13 +118,9 @@ module.exports = function (_env, argv) {
             pathinfo: isEnvDevelopment,
             publicPath: '/',
             path: path.resolve(__dirname, 'root'),
-            filename: 'static/schedula/props/js/[name].js',
-            chunkFilename: isEnvProduction
-                ? 'static/schedula/props/js/[name].[contenthash:8].chunk.js'
-                : isEnvDevelopment && 'static/schedula/props/js/[name].chunk.js',
-            assetModuleFilename: isEnvProduction
-                ? 'static/schedula/props/media/[name].[hash][ext]'
-                : isEnvDevelopment && 'static/schedula/props/media/[name].[ext]',
+            filename: 'static/schedula/props/js/[name].[contenthash:8].js',
+            chunkFilename: 'static/schedula/props/js/[name].[contenthash:8].chunk.js',
+            assetModuleFilename: 'static/schedula/props/media/[name].[hash][ext]',
         },
         infrastructureLogging: {
             level: 'none',
@@ -212,6 +208,29 @@ module.exports = function (_env, argv) {
                             resolve: {
                                 extensions: ['', '.js', '.jsx'],
                             }
+                        },
+                        {
+                            test: /\.less$/i,
+                            use: [
+                                // compiles Less to CSS
+                                {
+                                    loader: "style-loader",
+                                },
+                                {
+                                    loader: "css-loader",
+                                },
+                                {
+                                    loader: "less-loader",
+                                    options: {
+                                        lessOptions: {
+                                            strictMath: true,
+                                            javascriptEnabled: true,
+
+                                        },
+                                    },
+                                },
+
+                            ],
                         },
                         // "postcss" loader applies autoprefixer to our CSS.
                         // "css" loader resolves paths in CSS and adds assets as dependencies.
@@ -342,8 +361,8 @@ module.exports = function (_env, argv) {
             isEnvDevelopment && new CaseSensitivePathsPlugin(),
             isEnvProduction &&
             new MiniCssExtractPlugin({
-                filename: "css/[name].[contenthash:8].css",
-                chunkFilename: "css/[name].[contenthash:8].chunk.css"
+                filename: 'static/schedula/props/css/[name].[contenthash:8].css',
+                chunkFilename: "static/schedula/props/css/[name].[contenthash:8].chunk.css"
             }),
             // Moment.js is an extremely popular library that bundles large locale files
             // by default due to how webpack interprets its code. This is a practical
@@ -353,6 +372,11 @@ module.exports = function (_env, argv) {
             new webpack.IgnorePlugin({
                 resourceRegExp: /^\.\/locale$/,
                 contextRegExp: /moment$/,
+            }),
+            isEnvProduction && new CompressionPlugin({
+                deleteOriginalAssets: true,
+                test: /(\/(js|css)\/[^\/]*\.(js|css)|\/media\/.*)$/i,
+                filename: "[file].gz",
             })
         ].filter(Boolean),
         optimization: {

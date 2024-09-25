@@ -10,13 +10,17 @@
     {% endblock %}
     {% block js %}
     <script src="{{ url_for('schedula.static', filename=main_js) }}"></script>
-    <script src="{{ url_for('schedula.static', filename='props/js/' + form_id + '.js') }}"></script>
+    {% if props_js %}
+    <script src="{{ url_for('schedula.static', filename=props_js) }}"></script>
+    {% endif %}
     {% endblock %}
     {% block css %}
     <link href="{{ url_for('schedula.static', filename=main_css) }}"
           rel="stylesheet">
-    <link href="{{ url_for('schedula.static', filename='props/css/' + form_id + '.css') }}"
+    {% if props_css %}
+    <link href="{{ url_for('schedula.static', filename=props_css) }}"
           rel="stylesheet">
+    {% endif %}
     {% endblock %}
 
     {% block alive_func %}

@@ -182,6 +182,18 @@ class FormMap(WebMap):
             'get_locale': get_locale
         }
         context.update(get_static_context())
+        ref_dir = osp.join(current_app.static_folder, 'schedula', 'props')
+        for i in ('js', 'css'):
+            k = f'props_{i}'
+            for j in (form, 'index'):
+                if k in context:
+                    continue
+                for fp in sorted(glob.glob(osp.join(ref_dir, i, f'{j}.*'))):
+                    fp = osp.relpath(fp, ref_dir).replace("\\", " / ")
+                    if fp.endswith('.gz'):
+                        fp = fp[:-3]
+                    context[k] = f'props/{fp}'
+                    break
         return get_template(form, context)
 
     @staticmethod
