@@ -190,19 +190,15 @@ const App = (
     const [languageOptions, setLanguageOptions] = useState(languages !== true ? languages : null);
     useEffect(() => {
         if (languages === true)
-            fetch('/locales', {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Content-Encoding': 'gzip',
-                    'Accept-Encoding': 'gzip'
-                }
-            }).then(v => v.json()).then((v) => {
-                setLanguageOptions(v)
-            }).catch((error) => {
+            form.postData({
+                url: '/locales/',
+                method: 'GET'
+            }, ({data}) => {
+                setLanguageOptions(data)
+            }, () => {
                 setLanguageOptions(null)
-                form.props.notify({message: error})
             })
-    }, [languages, form.props]);
+    }, [languages, form]);
     const {errors, debugUrl} = form.state
     const [openErrors, setOpenErrors] = useState(false);
     const [openDebug, setOpenDebug] = useState(!!debugUrl);
@@ -230,51 +226,51 @@ const App = (
                     padding: 0,
                     display: "flex",
                 }}>
-                    <div key={'logo'} style={{
-                        height: "100%",
-                        textAlign: 'center',
-                        lineHeight: 'normal'
-                    }}>{logo ? createLayoutElement({
-                        key: 'logo', layout: logo, render, isArray: false
-                    }) : null}</div>
-                    {_items.length ? <Menu
-                        key={'left-menu'}
-                        theme={theme}
-                        mode="horizontal"
-                        style={{flex: "auto", minWidth: 0}}
-                        selectedKeys={selectedKeys}
-                        items={_items}
-                        onSelect={({key}) => {
-                            setSelectedKeys([key])
-                        }}
-                        {...props}
-                    /> : <div style={{flex: "auto", minWidth: 0}}/>}
-                    {currentDataId || urlContact || languages || userProps ?
-                        <Flex key={'right-element'}
-                              style={{
-                                  paddingLeft: '16px',
-                                  paddingRight: '16px',
-                                  cursor: 'pointer'
-                              }}
-                              gap="middle">
-                            {currentDataId ? <Typography.Text keyboard>
-                                # {currentDataId.id} - {currentDataId.name}
-                            </Typography.Text> : null}
-                            {urlContact ? <ContactNav
+                <div key={'logo'} style={{
+                    height: "100%",
+                    textAlign: 'center',
+                    lineHeight: 'normal'
+                }}>{logo ? createLayoutElement({
+                    key: 'logo', layout: logo, render, isArray: false
+                }) : null}</div>
+                {_items.length ? <Menu
+                    key={'left-menu'}
+                    theme={theme}
+                    mode="horizontal"
+                    style={{flex: "auto", minWidth: 0}}
+                    selectedKeys={selectedKeys}
+                    items={_items}
+                    onSelect={({key}) => {
+                        setSelectedKeys([key])
+                    }}
+                    {...props}
+                /> : <div style={{flex: "auto", minWidth: 0}}/>}
+                {currentDataId || urlContact || languages || userProps ?
+                    <Flex key={'right-element'}
+                          style={{
+                              paddingLeft: '16px',
+                              paddingRight: '16px',
+                              cursor: 'pointer'
+                          }}
+                          gap="middle">
+                        {currentDataId ? <Typography.Text keyboard>
+                            # {currentDataId.id} - {currentDataId.name}
+                        </Typography.Text> : null}
+                        {urlContact ? <ContactNav
+                            form={form}
+                            formContext={formContext}
+                            containerRef={mainLayout}
+                            urlContact={urlContact}/> : null}
+                        {languageOptions ? <LanguageNav
+                            form={form}
+                            languages={languageOptions}/> : null}
+                        {userProps ?
+                            <UserNav
                                 form={form}
                                 formContext={formContext}
                                 containerRef={mainLayout}
-                                urlContact={urlContact}/> : null}
-                            {languageOptions ? <LanguageNav
-                                form={form}
-                                languages={languageOptions}/> : null}
-                            {userProps ?
-                                <UserNav
-                                    form={form}
-                                    formContext={formContext}
-                                    containerRef={mainLayout}
-                                    {...userProps}/> : null}
-                        </Flex> : null}
+                                {...userProps}/> : null}
+                    </Flex> : null}
             </Header> : null}
         <Layout ref={mainLayout} style={{
             position: 'relative'

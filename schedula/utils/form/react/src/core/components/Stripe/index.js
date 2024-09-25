@@ -45,7 +45,7 @@ export default function Stripe(
                 setClientSecret(clientSecret)
             })
         }
-    }, [])
+    })
     const onComplete = useCallback(() => {
         form.postData({
             url: `${urlCreateCheckoutStatus}/${sessionId}`,

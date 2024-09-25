@@ -18,6 +18,7 @@ from werkzeug.datastructures.accept import LanguageAccept
 from flask import (
     jsonify, current_app, request, session, Blueprint, send_from_directory
 )
+
 bp = Blueprint('locales', __name__)
 
 
@@ -43,6 +44,7 @@ def locales(language, namespace):
     raise NotFound()
 
 
+@bp.route('', methods=['GET'])
 @bp.route('/', methods=['GET'])
 def get_locales():
     return jsonify(current_app.config.get('BABEL_LANGUAGES'))

@@ -96,7 +96,7 @@ const StripePortal = forwardRef((
         } else if (popup) {
             popup.close()
         }
-    }, [open, urlPortalSession, form, language, user_id])
+    }, [open, urlPortalSession, form, language, user_id,  height, width, top, bottom, left, right])
     useEffect(() => {
         if (popup) {
             const bringToFront = setInterval(() => {

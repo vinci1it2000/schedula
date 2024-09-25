@@ -3,10 +3,14 @@ import DOMPurify from 'dompurify';
 
 export default function Static({children, render, sanitize, url, ...props}) {
     const [html, setHTML] = useState(null)
-
+    const {formContext} = render
+    const {form} = formContext
     useEffect(() => {
         if (url) {
-            fetch(url).then(r => r.text()).then(text => {
+            form.postData({
+                url,
+                method: 'GET'
+            }, ({data: text}) => {
                 if (sanitize)
                     text = DOMPurify.sanitize(text, sanitize)
                 setHTML(text)
@@ -17,7 +21,7 @@ export default function Static({children, render, sanitize, url, ...props}) {
                 text = DOMPurify.sanitize(text, sanitize)
             setHTML(text)
         }
-    }, [url, children, sanitize])
+    }, [url, children, sanitize, form])
 
     return html ?
         <div {...props} dangerouslySetInnerHTML={{__html: html}}/> : null
