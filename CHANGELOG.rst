@@ -2,6 +2,19 @@ Changelog
 =========
 
 
+v1.5.31 (2024-09-26)
+--------------------
+
+Feat
+~~~~
+- (form): Update resources.
+
+
+Fix
+~~~
+- (form): Correct props scrips.
+
+
 v1.5.30 (2024-09-25)
 --------------------
 
