@@ -2,6 +2,19 @@ Changelog
 =========
 
 
+v1.5.30 (2024-09-25)
+--------------------
+
+Feat
+~~~~
+- (form): Update resources.
+
+
+Fix
+~~~
+- (form): Correct locales data fetching.
+
+
 v1.5.29 (2024-09-24)
 --------------------
 
