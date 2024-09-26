@@ -2,7 +2,7 @@ import {notification, Upload, Modal} from 'antd';
 import {useState, useEffect, useMemo, useCallback} from 'react';
 import format from 'python-format-js'
 import {useLocaleStore} from '../../models/locale'
-import ImgCrop from 'antd-img-crop';
+import ImgCrop from '../ImageFileUploadWidget/ImgCrop';
 
 
 function dataURLtoFile(dataurl) {

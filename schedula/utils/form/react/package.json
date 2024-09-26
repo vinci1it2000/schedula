@@ -53,6 +53,7 @@
     "rc-scroll-anim": "^2.7.6",
     "rc-tween-one": "^3.0.6",
     "react": "^18.3.1",
+    "react-advanced-cropper": "^0.20.0",
     "react-antdown": "^1.0.11",
     "react-csv": "^2.2.2",
     "react-dom": "^18.3.1",
