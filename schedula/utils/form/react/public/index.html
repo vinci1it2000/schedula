@@ -13,7 +13,14 @@
                 fetch(`${forms_url}/${name}-schema.json`).then(v => v.json()),
                 fetch(`${forms_url}/${name}-ui.json`).then(v => v.json())
             ]).then(([schema, uiSchema]) => {
-                schedula.renderForm({element, url, name, schema, uiSchema})
+                schedula.renderForm({
+                    element,
+                    url,
+                    name,
+                    schema,
+                    uiSchema,
+                    language: 'en_US'
+                })
             });
         }
     </script>

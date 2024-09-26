@@ -20,7 +20,7 @@ function defineValidator(precompiledValidator, language, schema, nonce) {
                 optimize: false
             }
         }
-    }, local = localizer[language.split('_')[0]] || localizer.en
+    }, local = localizer[(language || '').split('_')[0]] || localizer.en
     if (precompiledValidator) {
         const code = compileSchemaValidatorsCode(schema, options);
         return evaluateValidator(hash(schema), code, nonce).then((precompiledValidator) => createPrecompiledValidator(

@@ -7,7 +7,7 @@ export default function InputNumberTemplate(
     {format, value, id, emptyValue, onBlur, onFocus, ...props}) {
     const [focused, setFocused] = useState(false)
     const {getLocale} = useLocaleStore()
-    const locale = getLocale('locale')
+    const locale = getLocale('language').replace("_", "-")
 
     const {key, numberParser, numberFormatter} = useMemo(() => {
         const group = new Intl.NumberFormat(locale).format(1111).replace(/1/g, "");
