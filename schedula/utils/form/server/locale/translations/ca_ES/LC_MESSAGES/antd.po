@@ -1471,7 +1471,7 @@ msgstr ""
 "vostres preferències de consentiment per a qualsevol tecnologia de seguiment"
 " utilitzada per a les finalitats que es descriuen a continuació. Per obtenir"
 " més informació sobre com ens ajuden aquests rastrejadors i com funcionen, "
-"consulteu [política de cookies] (/gdpr/files/cookies-policy). Tingueu en "
+"consulteu [política de cookies] (/privacy). Tingueu en "
 "compte que denegar el consentiment per a un propòsit concret pot fer que les"
 " funcions relacionades no estiguin disponibles."
 

@@ -1449,7 +1449,7 @@ msgstr ""
 " préférences de consentement pour toute technologie de suivi utilisée aux "
 "fins décrites ci-dessous. Pour en savoir plus sur la façon dont ces traceurs"
 " nous aident et comment ils fonctionnent, reportez-vous à la [politique en "
-"matière de cookies](/gdpr/files/cookies-policy). Veuillez noter que le refus"
+"matière de cookies](/privacy). Veuillez noter que le refus"
 " du consentement dans un but particulier peut rendre les fonctionnalités "
 "associées indisponibles."
 

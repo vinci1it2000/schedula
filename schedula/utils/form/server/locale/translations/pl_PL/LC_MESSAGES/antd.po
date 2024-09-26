@@ -1449,8 +1449,8 @@ msgstr ""
 "My i wybrane strony trzecie używamy plików cookie lub podobnych technologii "
 "do celów technicznych oraz, za Twoją zgodą, do innych celów określonych w "
 "Polityce plików cookie. Aby uzyskać więcej informacji, zapoznaj się z naszym"
-" [Regulaminem](/gdpr/files/terms-conditions) i [Polityką plików "
-"cookie](/gdpr/files/cookies-policy)."
+" [Regulaminem](/terms-of-service) i [Polityką plików "
+"cookie](/privacy)."
 
 # traslated
 msgid "Cookies.saveButton"
@@ -1463,7 +1463,7 @@ msgstr ""
 "dotyczących zgody na dowolną technologię śledzenia używaną do celów "
 "opisanych poniżej. Aby dowiedzieć się więcej o tym, jak te moduły śledzące "
 "nam pomagają i jak działają, zapoznaj się z [polityką plików "
-"cookie](/gdpr/files/cookies-policy). Należy pamiętać, że odmowa zgody na "
+"cookie](/privacy). Należy pamiętać, że odmowa zgody na "
 "określony cel może spowodować, że powiązane funkcje staną się niedostępne."
 
 # traslated

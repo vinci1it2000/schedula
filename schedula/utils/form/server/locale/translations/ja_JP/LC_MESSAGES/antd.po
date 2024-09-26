@@ -1466,7 +1466,7 @@ msgstr "リジェクト・オプション"
 msgid "Cookies.introText"
 msgstr ""
 "当社および選択された第三者は、技術的な目的で、また、お客様の同意を得た上で、Cookieポリシーで指定されているその他の目的で、Cookieまたは類似の技術を使用します。詳細については、[利用規約](/gdpr/files/terms-"
-"conditions)および[Cookieポリシー](/gdpr/files/cookies-policy)をお読みください。"
+"conditions)および[Cookieポリシー](/privacy)をお読みください。"
 
 # traslated
 msgid "Cookies.saveButton"

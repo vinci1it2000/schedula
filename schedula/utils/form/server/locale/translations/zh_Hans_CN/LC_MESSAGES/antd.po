@@ -1426,7 +1426,7 @@ msgstr "拒绝可选"
 msgid "Cookies.introText"
 msgstr ""
 "我们和选定的第三方将 Cookie 或类似技术用于技术目的，并在您同意的情况下用于 Cookie 政策中指定的其他目的。有关更多信息，请阅读我们的 "
-"[条款和条件](/gdpr/files/terms-conditions)和[Cookie政策](/gdpr/files/cookies-"
+"[条款和条件](/terms-of-service)和[Cookie政策](/gdpr/files/cookies-"
 "policy)。"
 
 # traslated
@@ -1437,7 +1437,7 @@ msgstr "保存并继续"
 msgid "Cookies.settingsIntro"
 msgstr ""
 "本节中提供的选项允许您针对用于下述目的的任何跟踪技术自定义您的同意首选项。要了解有关这些跟踪器如何帮助我们以及它们如何工作的更多信息，请参阅 "
-"[cookie 政策](/gdpr/files/cookies-policy)。请注意，出于特定目的拒绝同意可能会导致相关功能不可用。"
+"[cookie 政策](/privacy)。请注意，出于特定目的拒绝同意可能会导致相关功能不可用。"
 
 # traslated
 msgid "Cookies.settingsTitle"
