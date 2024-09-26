@@ -2,6 +2,19 @@ Changelog
 =========
 
 
+v1.5.32 (2024-09-27)
+--------------------
+
+Feat
+~~~~
+- (form): Update ImgCrop.
+
+
+Fix
+~~~
+- (form): Correct number formatting.
+
+
 v1.5.31 (2024-09-26)
 --------------------
 
