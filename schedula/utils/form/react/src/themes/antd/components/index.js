@@ -62,6 +62,8 @@ const Skeleton = React.lazy(() => import('./Skeleton'));
 const Space = React.lazy(() => import('./Space'));
 const Space_Compact = React.lazy(() => import('./Space/Compact'));
 const Spin = React.lazy(() => import('./Spin'));
+const Splitter = React.lazy(() => import('./Splitter'));
+const Splitter_Panel = React.lazy(() => import('./Splitter/Panel'));
 const Steps = React.lazy(() => import('./Steps'));
 const Stripe_Card = React.lazy(() => import('./Stripe/card'));
 const Stripe_Cards = React.lazy(() => import('./Stripe/cards'));
@@ -139,6 +141,8 @@ export function generateComponents(register = true, registerDomains = true) {
         Space,
         "Space.Compact": Space_Compact,
         Spin,
+        Splitter,
+        "Splitter.Panel": Splitter_Panel,
         Steps,
         "Stripe.Card": Stripe_Card,
         "Stripe.Cards": Stripe_Cards,
