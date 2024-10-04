@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 1.0\n"
 "Report-Msgid-Bugs-To: vinci1it2000@gmail.com\n"
-"PO-Revision-Date: 2024-08-28 10:07+0000\n"
+"PO-Revision-Date: 2024-10-04 16:19+0000\n"
 "Last-Translator: Vincenzo Arcidiacono <vinci1it2000@gmail.com>\n"
 "Language-Team: English <vinci1it2000@gmail.com>\n"
 "MIME-Version: 1.0\n"
@@ -1438,9 +1438,8 @@ msgid "Cookies.introText"
 msgstr ""
 "Biz ve seçili üçüncü taraflar, çerezleri veya benzer teknolojileri teknik "
 "amaçlarla ve sizin izninizle Çerez Politikasında belirtilen diğer amaçlar "
-"için kullanırız. Daha fazla bilgi için [Şartlar ve "
-"Koşullar](/terms-of-service) ve [Çerez "
-"Politikası](/privacy) sayfalarımızı okuyun."
+"için kullanırız. Daha fazla bilgi için [Şartlar ve Koşullar](/terms-of-"
+"service) ve [Çerez Politikası](/privacy) sayfalarımızı okuyun."
 
 # traslated
 msgid "Cookies.saveButton"
@@ -1453,9 +1452,9 @@ msgstr ""
 "herhangi bir izleme teknolojisi için izin tercihlerinizi özelleştirmenize "
 "olanak tanır. Bu izleyicilerin bize nasıl yardımcı olduğu ve nasıl "
 "çalıştıkları hakkında daha fazla bilgi edinmek için [çerez "
-"politikası](/privacy) bölümüne bakın. Belirli bir amaç "
-"için onayın reddedilmesinin ilgili özellikleri kullanılamaz hale "
-"getirebileceğini lütfen unutmayın."
+"politikası](/privacy) bölümüne bakın. Belirli bir amaç için onayın "
+"reddedilmesinin ilgili özellikleri kullanılamaz hale getirebileceğini lütfen"
+" unutmayın."
 
 # traslated
 msgid "Cookies.settingsTitle"
@@ -1557,3 +1556,35 @@ msgstr "Abonelik"
 # traslated
 msgid "Stripe.Card.buttonText"
 msgstr "Almak"
+
+# traslated
+msgid "CloudDownloadField.tooltipButtonSaveNew"
+msgstr "Mevcut verileri kaydet"
+
+# traslated
+msgid "CloudDownloadField.tooltipImport"
+msgstr "Seçileni içe aktar"
+
+# traslated
+msgid "CloudDownloadField.tooltipDelete"
+msgstr "Verileri sil"
+
+# traslated
+msgid "CloudDownloadField.tooltipConfirmEdit"
+msgstr "Onaylamak"
+
+# traslated
+msgid "CloudDownloadField.tooltipButtonOverwrite"
+msgstr "Geçerli verilerin üzerine yaz"
+
+# traslated
+msgid "CloudDownloadField.tooltipEditData"
+msgstr "Verileri düzenle"
+
+# traslated
+msgid "CloudDownloadField.tooltipCancelEdit"
+msgstr "İptal"
+
+# traslated
+msgid "CloudDownloadField.actions"
+msgstr "Eylemler"

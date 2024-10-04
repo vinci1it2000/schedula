@@ -167,7 +167,15 @@ export const locale = merge({}, en, {
         buttonSaveNew: 'New record',
         buttonSave: "Save",
         buttonCancel: "Cancel",
-        titleSaveNew: "Save current data"
+        titleSaveNew: "Save current data",
+        tooltipButtonOverwrite: "Overwrite current data",
+        tooltipButtonSaveNew: "Save current data",
+        tooltipImport: "Import selected",
+        tooltipConfirmEdit: "Confirm",
+        tooltipCancelEdit: "Cancel",
+        tooltipEditData: "Edit data",
+        tooltipDelete: "Delete data",
+        actions: "Actions"
     },
     CloudUploadField: {
         fieldErrors: {name: 'Please input name!'},

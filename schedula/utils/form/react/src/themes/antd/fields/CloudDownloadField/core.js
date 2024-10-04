@@ -5,7 +5,6 @@ import {
     CheckOutlined,
     CloseOutlined,
     SaveOutlined,
-    DownloadOutlined,
     CloudOutlined,
     PlusOutlined
 } from '@ant-design/icons';
@@ -21,7 +20,8 @@ import {
     Space,
     Switch,
     Modal,
-    Typography
+    Typography,
+    Tooltip
 } from 'antd';
 import {getUiOptions} from "@rjsf/utils";
 import isEqual from "lodash/isEqual";
@@ -174,9 +174,9 @@ export default function CloudDownloadField(
             const row = await _form.validateFields();
             if (id !== undefined) {
                 if (row.data) {  //put
-                    postUpdate(data, 'PUT', row.name, id)
+                    postUpdate(data, 'PUT', row.name, id, id === currentKey.id)
                 } else {  //patch
-                    postUpdate({}, 'PATCH', row.name, id)
+                    postUpdate({}, 'PATCH', row.name, id, id === currentKey.id)
                 }
             } else if (openSave === 2) {
                 postUpdate(data, 'PUT', row['new-name'], currentKey.id, true)
@@ -240,16 +240,6 @@ export default function CloudDownloadField(
     }, [_currentKey])
     const columns = [
         {
-            dataIndex: 'select',
-            fixed: 'left',
-            render: (_, record) => (<Button
-                type="primary" shape="circle" icon={<SelectOutlined/>} ghost
-                onClick={(event) => {
-                    event.stopPropagation();
-                    handleGet(record.id)
-                }}/>),
-            width: 48,
-        }, {
             title: '#',
             dataIndex: 'id',
             fixed: 'left',
@@ -267,47 +257,57 @@ export default function CloudDownloadField(
             width: 250,
             dataIndex: 'updated_at'
         }, {
-            title: locale.titleData,
-            dataIndex: 'data',
-            editable: true,
-            width: 120,
-            render: (_, record) => (<Button
-                type="primary" icon={<DownloadOutlined/>}
-                onClick={(event) => {
-                    event.stopPropagation();
-                    handleDownload(record.id)
-                }} ghost>
-                {locale.buttonDownload}
-            </Button>)
-        }, {
+            title: locale.actions,
             fixed: 'right',
-            width: 88,
+            width: 128,
             dataIndex: 'operation',
-            render: (_, record) => (isEditing(record) ? <Space>
-                <Button type="primary" shape="circle" icon={<CheckOutlined/>}
+            render: (_, record) => (<Space>
+                <Tooltip title={locale.tooltipImport}>
+                    <Button
+                        type="primary" shape="circle" icon={<SelectOutlined/>}
+                        ghost
                         onClick={(event) => {
                             event.stopPropagation();
-                            handleUpdate(record.id)
-                        }} ghost/>
-                <Button danger shape="circle" ghost
-                        icon={<CloseOutlined/>} onClick={(event) => {
-                    event.stopPropagation();
-                    cancel()
-                }}/>
-            </Space> : <Space>
-                <Button type="primary" shape="circle" icon={<EditOutlined/>}
-                        onClick={(event) => {
+                            handleGet(record.id)
+                        }}/>
+                </Tooltip>
+                {isEditing(record) ? [
+                    <Tooltip title={locale.tooltipConfirmEdit}>
+                        <Button type="primary" shape="circle"
+                                icon={<CheckOutlined/>}
+                                onClick={(event) => {
+                                    event.stopPropagation();
+                                    handleUpdate(record.id)
+                                }} ghost/>
+                    </Tooltip>,
+                    <Tooltip title={locale.tooltipCancelEdit}>
+                        <Button danger shape="circle" ghost
+                                icon={<CloseOutlined/>} onClick={(event) => {
                             event.stopPropagation();
-                            edit(record)
-                        }} ghost/>
-                <Popconfirm title={locale.confirmDelete}
+                            cancel()
+                        }}/>
+                    </Tooltip>
+                ] : [
+                    <Tooltip title={locale.tooltipEditData}>
+                        <Button type="primary" shape="circle"
+                                icon={<EditOutlined/>}
+                                onClick={(event) => {
+                                    event.stopPropagation();
+                                    edit(record)
+                                }} ghost/>
+                    </Tooltip>,
+                    <Tooltip title={locale.tooltipDelete}>
+                        <Popconfirm
+                            title={locale.confirmDelete}
                             onConfirm={(event) => {
                                 event.stopPropagation();
                                 handleDelete(record.id)
                             }}>
-                    <Button danger shape="circle" ghost
-                            icon={<DeleteOutlined/>}/>
-                </Popconfirm>
+                            <Button danger shape="circle" ghost
+                                    icon={<DeleteOutlined/>}/>
+                        </Popconfirm>
+                    </Tooltip>
+                ]}
             </Space>)
         }
     ];
@@ -322,26 +322,30 @@ export default function CloudDownloadField(
         title={() => (<div style={{display: "flex"}}>
             {currentKey ? <Space
                 key={'left'} style={{flex: "auto", minWidth: 0}}>
-                <Button type="primary" ghost icon={<SaveOutlined/>}
-                        onClick={(event) => {
-                            event.stopPropagation();
-                            setOpenSave(2);
-                        }}>
-                    {locale.buttonOverwrite}
-                </Button>
+                <Tooltip title={locale.tooltipButtonOverwrite}>
+                    <Button type="primary" ghost icon={<SaveOutlined/>}
+                            onClick={(event) => {
+                                event.stopPropagation();
+                                setOpenSave(2);
+                            }}>
+                        {locale.buttonOverwrite}
+                    </Button>
+                </Tooltip>
                 <Typography.Text keyboard>
                     # {currentKey.id} - {currentKey.name}
                 </Typography.Text>
             </Space> : <div style={{flex: "auto", minWidth: 0}}/>}
             <div style={{paddingLeft: '16px', paddingRight: '16px'}}>
                 <Space>
-                    <Button type="primary" ghost
-                            icon={<PlusOutlined/>} onClick={(event) => {
-                        event.stopPropagation();
-                        setOpenSave(true);
-                    }}>
-                        {locale.buttonSaveNew}
-                    </Button>
+                    <Tooltip title={locale.tooltipButtonSaveNew}>
+                        <Button type="primary" ghost
+                                icon={<PlusOutlined/>} onClick={(event) => {
+                            event.stopPropagation();
+                            setOpenSave(true);
+                        }}>
+                            {locale.buttonSaveNew}
+                        </Button>
+                    </Tooltip>
                 </Space>
             </div>
         </div>)}

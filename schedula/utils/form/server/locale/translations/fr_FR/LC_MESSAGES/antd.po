@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 1.0\n"
 "Report-Msgid-Bugs-To: vinci1it2000@gmail.com\n"
-"PO-Revision-Date: 2024-08-28 10:07+0000\n"
+"PO-Revision-Date: 2024-10-04 16:18+0000\n"
 "Last-Translator: Vincenzo Arcidiacono <vinci1it2000@gmail.com>\n"
 "Language-Team: English <vinci1it2000@gmail.com>\n"
 "MIME-Version: 1.0\n"
@@ -1449,9 +1449,9 @@ msgstr ""
 " préférences de consentement pour toute technologie de suivi utilisée aux "
 "fins décrites ci-dessous. Pour en savoir plus sur la façon dont ces traceurs"
 " nous aident et comment ils fonctionnent, reportez-vous à la [politique en "
-"matière de cookies](/privacy). Veuillez noter que le refus"
-" du consentement dans un but particulier peut rendre les fonctionnalités "
-"associées indisponibles."
+"matière de cookies](/privacy). Veuillez noter que le refus du consentement "
+"dans un but particulier peut rendre les fonctionnalités associées "
+"indisponibles."
 
 # traslated
 msgid "Cookies.settingsTitle"
@@ -1554,3 +1554,35 @@ msgstr "Abonnement"
 # traslated
 msgid "Stripe.Card.buttonText"
 msgstr "Acheter"
+
+# traslated
+msgid "CloudDownloadField.tooltipButtonSaveNew"
+msgstr "Enregistrer les données actuelles"
+
+# traslated
+msgid "CloudDownloadField.tooltipImport"
+msgstr "Importer sélectionné"
+
+# traslated
+msgid "CloudDownloadField.tooltipDelete"
+msgstr "Supprimer des données"
+
+# traslated
+msgid "CloudDownloadField.tooltipConfirmEdit"
+msgstr "Confirmer"
+
+# traslated
+msgid "CloudDownloadField.tooltipButtonOverwrite"
+msgstr "Écraser les données actuelles"
+
+# traslated
+msgid "CloudDownloadField.tooltipEditData"
+msgstr "Modifier les données"
+
+# traslated
+msgid "CloudDownloadField.tooltipCancelEdit"
+msgstr "Annuler"
+
+# traslated
+msgid "CloudDownloadField.actions"
+msgstr "Actions"

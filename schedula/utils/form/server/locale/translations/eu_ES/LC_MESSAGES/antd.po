@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 1.0\n"
 "Report-Msgid-Bugs-To: vinci1it2000@gmail.com\n"
-"PO-Revision-Date: 2024-08-28 10:07+0000\n"
+"PO-Revision-Date: 2024-10-04 16:18+0000\n"
 "Last-Translator: Vincenzo Arcidiacono <vinci1it2000@gmail.com>\n"
 "Language-Team: English <vinci1it2000@gmail.com>\n"
 "MIME-Version: 1.0\n"
@@ -1464,9 +1464,9 @@ msgstr ""
 "erabiltzen den edozein jarraipen-teknologiatarako baimenaren lehentasunak "
 "pertsonalizatu ahal izango dituzu. Arakatzaile hauek nola laguntzen diguten "
 "eta nola funtzionatzen duten jakiteko, kontsulta ezazu [cookieen "
-"politika](/privacy). Kontuan izan helburu berezi baterako "
-"adostasuna ekatzeak zerikusia duten funtzioak eskuragarri ez egotea "
-"eragoztarazi dezakeela."
+"politika](/privacy). Kontuan izan helburu berezi baterako adostasuna "
+"ekatzeak zerikusia duten funtzioak eskuragarri ez egotea eragoztarazi "
+"dezakeela."
 
 # traslated
 msgid "Cookies.settingsTitle"
@@ -1567,3 +1567,35 @@ msgstr "Harpidetza"
 # traslated
 msgid "Stripe.Card.buttonText"
 msgstr "Erosi"
+
+# traslated
+msgid "CloudDownloadField.tooltipButtonSaveNew"
+msgstr "Gorde egungo datuak"
+
+# traslated
+msgid "CloudDownloadField.tooltipImport"
+msgstr "Hautatutako inportatzea"
+
+# traslated
+msgid "CloudDownloadField.tooltipDelete"
+msgstr "Datuak ezabatzea"
+
+# traslated
+msgid "CloudDownloadField.tooltipConfirmEdit"
+msgstr "Baieztatu"
+
+# traslated
+msgid "CloudDownloadField.tooltipButtonOverwrite"
+msgstr "Egungo datuak azaltzea"
+
+# traslated
+msgid "CloudDownloadField.tooltipEditData"
+msgstr "Datuak editatu"
+
+# traslated
+msgid "CloudDownloadField.tooltipCancelEdit"
+msgstr "Ezeztatu"
+
+# traslated
+msgid "CloudDownloadField.actions"
+msgstr "Ekintzak"

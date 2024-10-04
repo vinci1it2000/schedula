@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 1.0\n"
 "Report-Msgid-Bugs-To: vinci1it2000@gmail.com\n"
-"PO-Revision-Date: 2024-08-28 10:07+0000\n"
+"PO-Revision-Date: 2024-10-04 16:18+0000\n"
 "Last-Translator: Vincenzo Arcidiacono <vinci1it2000@gmail.com>\n"
 "Language-Team: English <vinci1it2000@gmail.com>\n"
 "MIME-Version: 1.0\n"
@@ -1448,8 +1448,8 @@ msgstr ""
 "Wir und ausgewählte Dritte verwenden Cookies oder ähnliche Technologien für "
 "technische Zwecke und, mit Ihrer Zustimmung, für andere Zwecke, wie in der "
 "Cookie-Richtlinie angegeben. Weitere Informationen finden Sie in unseren "
-"[Allgemeinen Geschäftsbedingungen](/terms-of-service) und "
-"[Cookie-Richtlinie](/privacy)."
+"[Allgemeinen Geschäftsbedingungen](/terms-of-service) und [Cookie-"
+"Richtlinie](/privacy)."
 
 # traslated
 msgid "Cookies.saveButton"
@@ -1462,9 +1462,9 @@ msgstr ""
 " Einwilligungseinstellungen für jede Tracking-Technologie anzupassen, die "
 "für die unten beschriebenen Zwecke verwendet wird. Weitere Informationen "
 "darüber, wie uns diese Tracker helfen und wie sie funktionieren, finden Sie "
-"in der [Cookie-Richtlinie](/privacy). Bitte beachten Sie, "
-"dass die Verweigerung der Einwilligung für einen bestimmten Zweck dazu "
-"führen kann, dass verwandte Funktionen nicht verfügbar sind."
+"in der [Cookie-Richtlinie](/privacy). Bitte beachten Sie, dass die "
+"Verweigerung der Einwilligung für einen bestimmten Zweck dazu führen kann, "
+"dass verwandte Funktionen nicht verfügbar sind."
 
 # traslated
 msgid "Cookies.settingsTitle"
@@ -1566,3 +1566,35 @@ msgstr "Abonnement"
 # traslated
 msgid "Stripe.Card.buttonText"
 msgstr "Kaufen"
+
+# traslated
+msgid "CloudDownloadField.tooltipButtonSaveNew"
+msgstr "Aktuelle Daten speichern"
+
+# traslated
+msgid "CloudDownloadField.tooltipImport"
+msgstr "Importiert selected"
+
+# traslated
+msgid "CloudDownloadField.tooltipDelete"
+msgstr "Löschen von Daten"
+
+# traslated
+msgid "CloudDownloadField.tooltipConfirmEdit"
+msgstr "Bestätigen"
+
+# traslated
+msgid "CloudDownloadField.tooltipButtonOverwrite"
+msgstr "Aktuelle Daten überschreiben"
+
+# traslated
+msgid "CloudDownloadField.tooltipEditData"
+msgstr "Bearbeiten von Daten"
+
+# traslated
+msgid "CloudDownloadField.tooltipCancelEdit"
+msgstr "Abbrechen"
+
+# traslated
+msgid "CloudDownloadField.actions"
+msgstr "Aktionen"

@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 1.0\n"
 "Report-Msgid-Bugs-To: vinci1it2000@gmail.com\n"
-"PO-Revision-Date: 2024-08-28 10:07+0000\n"
+"PO-Revision-Date: 2024-10-04 16:19+0000\n"
 "Last-Translator: Vincenzo Arcidiacono <vinci1it2000@gmail.com>\n"
 "Language-Team: English <vinci1it2000@gmail.com>\n"
 "MIME-Version: 1.0\n"
@@ -1568,3 +1568,35 @@ msgstr "予約"
 # traslated
 msgid "Stripe.Card.buttonText"
 msgstr "買う"
+
+# traslated
+msgid "CloudDownloadField.tooltipButtonSaveNew"
+msgstr "現在のデータを保存"
+
+# traslated
+msgid "CloudDownloadField.tooltipImport"
+msgstr "選択したものをインポート"
+
+# traslated
+msgid "CloudDownloadField.tooltipDelete"
+msgstr "データの削除"
+
+# traslated
+msgid "CloudDownloadField.tooltipConfirmEdit"
+msgstr "確認する"
+
+# traslated
+msgid "CloudDownloadField.tooltipButtonOverwrite"
+msgstr "現在のデータを上書きする"
+
+# traslated
+msgid "CloudDownloadField.tooltipEditData"
+msgstr "データの編集"
+
+# traslated
+msgid "CloudDownloadField.tooltipCancelEdit"
+msgstr "キャンセル"
+
+# traslated
+msgid "CloudDownloadField.actions"
+msgstr "アクション"

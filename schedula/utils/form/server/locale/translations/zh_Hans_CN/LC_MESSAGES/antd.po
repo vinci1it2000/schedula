@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 1.0\n"
 "Report-Msgid-Bugs-To: vinci1it2000@gmail.com\n"
-"PO-Revision-Date: 2024-08-28 10:07+0000\n"
+"PO-Revision-Date: 2024-10-04 16:19+0000\n"
 "Last-Translator: Vincenzo Arcidiacono <vinci1it2000@gmail.com>\n"
 "Language-Team: English <vinci1it2000@gmail.com>\n"
 "MIME-Version: 1.0\n"
@@ -1426,8 +1426,7 @@ msgstr "拒绝可选"
 msgid "Cookies.introText"
 msgstr ""
 "我们和选定的第三方将 Cookie 或类似技术用于技术目的，并在您同意的情况下用于 Cookie 政策中指定的其他目的。有关更多信息，请阅读我们的 "
-"[条款和条件](/terms-of-service)和[Cookie政策](/gdpr/files/cookies-"
-"policy)。"
+"[条款和条件](/terms-of-service)和[Cookie政策](/gdpr/files/cookies-policy)。"
 
 # traslated
 msgid "Cookies.saveButton"
@@ -1526,3 +1525,35 @@ msgstr "订阅"
 # traslated
 msgid "Stripe.Card.buttonText"
 msgstr "买"
+
+# traslated
+msgid "CloudDownloadField.tooltipButtonSaveNew"
+msgstr "保存当前数据"
+
+# traslated
+msgid "CloudDownloadField.tooltipImport"
+msgstr "导入已选"
+
+# traslated
+msgid "CloudDownloadField.tooltipDelete"
+msgstr "删除数据"
+
+# traslated
+msgid "CloudDownloadField.tooltipConfirmEdit"
+msgstr "确认"
+
+# traslated
+msgid "CloudDownloadField.tooltipButtonOverwrite"
+msgstr "覆盖当前数据"
+
+# traslated
+msgid "CloudDownloadField.tooltipEditData"
+msgstr "编辑数据"
+
+# traslated
+msgid "CloudDownloadField.tooltipCancelEdit"
+msgstr "取消"
+
+# traslated
+msgid "CloudDownloadField.actions"
+msgstr "行动"

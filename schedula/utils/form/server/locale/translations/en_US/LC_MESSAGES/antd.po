@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 1.0\n"
 "Report-Msgid-Bugs-To: vinci1it2000@gmail.com\n"
-"PO-Revision-Date: 2024-08-28 10:07+0000\n"
+"PO-Revision-Date: 2024-10-04 16:18+0000\n"
 "Last-Translator: Vincenzo Arcidiacono <vinci1it2000@gmail.com>\n"
 "Language-Team: English <vinci1it2000@gmail.com>\n"
 "MIME-Version: 1.0\n"
@@ -1207,8 +1207,7 @@ msgstr ""
 "We and selected third parties use cookies or similar technologies for "
 "technical purposes and, with your consent, for other purposes as specified "
 "in the Cookie Policy. For more information read our [Terms and "
-"Conditions](/terms-of-service) and [Cookie "
-"Policy](/privacy)."
+"Conditions](/terms-of-service) and [Cookie Policy](/privacy)."
 
 msgid "Cookies.saveButton"
 msgstr "Save and continue"
@@ -1218,9 +1217,8 @@ msgstr ""
 "The options provided in this section allow you to customize your consent "
 "preferences for any tracking technology used for the purposes described "
 "below. To learn more about how these trackers help us and how they work, "
-"refer to the [cookie policy](/privacy). Please be aware "
-"that denying consent for a particular purpose may make related features "
-"unavailable."
+"refer to the [cookie policy](/privacy). Please be aware that denying consent"
+" for a particular purpose may make related features unavailable."
 
 msgid "Cookies.settingsTitle"
 msgstr "Your consent preferences for tracking technologies"
@@ -1299,3 +1297,27 @@ msgstr "Subscription"
 
 msgid "Stripe.Card.buttonText"
 msgstr "Buy"
+
+msgid "CloudDownloadField.tooltipButtonSaveNew"
+msgstr "Save current data"
+
+msgid "CloudDownloadField.tooltipImport"
+msgstr "Import selected"
+
+msgid "CloudDownloadField.tooltipDelete"
+msgstr "Delete data"
+
+msgid "CloudDownloadField.tooltipConfirmEdit"
+msgstr "Confirm"
+
+msgid "CloudDownloadField.tooltipButtonOverwrite"
+msgstr "Overwrite current data"
+
+msgid "CloudDownloadField.tooltipEditData"
+msgstr "Edit data"
+
+msgid "CloudDownloadField.tooltipCancelEdit"
+msgstr "Cancel"
+
+msgid "CloudDownloadField.actions"
+msgstr "Actions"

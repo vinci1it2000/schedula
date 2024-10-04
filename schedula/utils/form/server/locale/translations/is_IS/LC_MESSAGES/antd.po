@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 1.0\n"
 "Report-Msgid-Bugs-To: vinci1it2000@gmail.com\n"
-"PO-Revision-Date: 2024-08-28 10:07+0000\n"
+"PO-Revision-Date: 2024-10-04 16:19+0000\n"
 "Last-Translator: Vincenzo Arcidiacono <vinci1it2000@gmail.com>\n"
 "Language-Team: English <vinci1it2000@gmail.com>\n"
 "MIME-Version: 1.0\n"
@@ -1525,9 +1525,9 @@ msgstr ""
 "Valkostirnir í þessum hluta gera þér kleift að sérsníða samþykkisstillingar "
 "þínar fyrir hvers kyns rakningartækni sem notuð er í þeim tilgangi sem lýst "
 "er hér að neðan. Til að læra meira um hvernig þessir rekja spor einhvers "
-"hjálpa okkur og hvernig þeir virka skaltu skoða "
-"[vafrakökustefnu](/privacy). Vinsamlegast hafðu í huga að "
-"neitun samþykkis í ákveðnum tilgangi getur gert tengda eiginleika ótiltæka."
+"hjálpa okkur og hvernig þeir virka skaltu skoða [vafrakökustefnu](/privacy)."
+" Vinsamlegast hafðu í huga að neitun samþykkis í ákveðnum tilgangi getur "
+"gert tengda eiginleika ótiltæka."
 
 # traslated
 msgid "Cookies.settingsTitle"
@@ -1628,3 +1628,35 @@ msgstr "Áskrift"
 # traslated
 msgid "Stripe.Card.buttonText"
 msgstr "Kaupa"
+
+# traslated
+msgid "CloudDownloadField.tooltipButtonSaveNew"
+msgstr "Vista núverandi gögn"
+
+# traslated
+msgid "CloudDownloadField.tooltipImport"
+msgstr "Innflutningur valinn"
+
+# traslated
+msgid "CloudDownloadField.tooltipDelete"
+msgstr "Eyða gögnum"
+
+# traslated
+msgid "CloudDownloadField.tooltipConfirmEdit"
+msgstr "Staðfesta"
+
+# traslated
+msgid "CloudDownloadField.tooltipButtonOverwrite"
+msgstr "Skrifaðu yfir núverandi gögn"
+
+# traslated
+msgid "CloudDownloadField.tooltipEditData"
+msgstr "Breyta gögnum"
+
+# traslated
+msgid "CloudDownloadField.tooltipCancelEdit"
+msgstr "Afturkalla"
+
+# traslated
+msgid "CloudDownloadField.actions"
+msgstr "Aðgerðir"

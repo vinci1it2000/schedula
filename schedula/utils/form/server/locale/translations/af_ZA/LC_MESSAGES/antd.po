@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 1.0\n"
 "Report-Msgid-Bugs-To: vinci1it2000@gmail.com\n"
-"PO-Revision-Date: 2024-08-28 10:07+0000\n"
+"PO-Revision-Date: 2024-10-04 16:18+0000\n"
 "Last-Translator: Vincenzo Arcidiacono <vinci1it2000@gmail.com>\n"
 "Language-Team: English <vinci1it2000@gmail.com>\n"
 "MIME-Version: 1.0\n"
@@ -1603,8 +1603,7 @@ msgstr ""
 "Ons en geselekteerde derde partye gebruik koekies of soortgelyke tegnologieë"
 " vir tegniese doeleindes en, met u toestemming, vir ander doeleindes soos "
 "gespesifiseer in die Koekiebeleid. Vir meer inligting lees ons [Bepalings en"
-" Voorwaardes](/terms-of-service) en "
-"[Koekiebeleid](/privacy)."
+" Voorwaardes](/terms-of-service) en [Koekiebeleid](/privacy)."
 
 # traslated
 msgid "Cookies.saveButton"
@@ -1617,9 +1616,8 @@ msgstr ""
 "toestemmingsvoorkeure aanpas vir enige opsporingstegnologie wat gebruik word"
 " vir die onderstaande doeleindes. Om meer te wete te kom oor hoe hierdie "
 "spoorsnyers ons help en hoe dit werk, verwys na die "
-"[koekiebeleid](/privacy). Let daarop dat die weiering van "
-"toestemming vir 'n spesifieke doel verwante funksies nie beskikbaar kan maak"
-" nie."
+"[koekiebeleid](/privacy). Let daarop dat die weiering van toestemming vir 'n"
+" spesifieke doel verwante funksies nie beskikbaar kan maak nie."
 
 # traslated
 msgid "Cookies.settingsTitle"
@@ -1721,3 +1719,35 @@ msgstr "Intekening"
 # traslated
 msgid "Stripe.Card.buttonText"
 msgstr "Koop"
+
+# traslated
+msgid "CloudDownloadField.tooltipButtonSaveNew"
+msgstr "Stoor huidige data"
+
+# traslated
+msgid "CloudDownloadField.tooltipImport"
+msgstr "Voer geselekteer in"
+
+# traslated
+msgid "CloudDownloadField.tooltipDelete"
+msgstr "Skrap data"
+
+# traslated
+msgid "CloudDownloadField.tooltipConfirmEdit"
+msgstr "Bevestig"
+
+# traslated
+msgid "CloudDownloadField.tooltipButtonOverwrite"
+msgstr "Oorskryf huidige data"
+
+# traslated
+msgid "CloudDownloadField.tooltipEditData"
+msgstr "Redigeer data"
+
+# traslated
+msgid "CloudDownloadField.tooltipCancelEdit"
+msgstr "Kanselleer"
+
+# traslated
+msgid "CloudDownloadField.actions"
+msgstr "Aksies"

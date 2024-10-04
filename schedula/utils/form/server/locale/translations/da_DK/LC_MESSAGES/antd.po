@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 1.0\n"
 "Report-Msgid-Bugs-To: vinci1it2000@gmail.com\n"
-"PO-Revision-Date: 2024-08-28 10:07+0000\n"
+"PO-Revision-Date: 2024-10-04 16:18+0000\n"
 "Last-Translator: Vincenzo Arcidiacono <vinci1it2000@gmail.com>\n"
 "Language-Team: English <vinci1it2000@gmail.com>\n"
 "MIME-Version: 1.0\n"
@@ -1615,3 +1615,35 @@ msgstr "Abonnement"
 # traslated
 msgid "Stripe.Card.buttonText"
 msgstr "Købe"
+
+# traslated
+msgid "CloudDownloadField.tooltipButtonSaveNew"
+msgstr "Gem aktuelle data"
+
+# traslated
+msgid "CloudDownloadField.tooltipImport"
+msgstr "Importer valgt"
+
+# traslated
+msgid "CloudDownloadField.tooltipDelete"
+msgstr "Slet data"
+
+# traslated
+msgid "CloudDownloadField.tooltipConfirmEdit"
+msgstr "Bekræfte"
+
+# traslated
+msgid "CloudDownloadField.tooltipButtonOverwrite"
+msgstr "Overskriv aktuelle data"
+
+# traslated
+msgid "CloudDownloadField.tooltipEditData"
+msgstr "Rediger data"
+
+# traslated
+msgid "CloudDownloadField.tooltipCancelEdit"
+msgstr "Aflyse"
+
+# traslated
+msgid "CloudDownloadField.actions"
+msgstr "Handlinger"

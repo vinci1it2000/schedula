@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 1.0\n"
 "Report-Msgid-Bugs-To: vinci1it2000@gmail.com\n"
-"PO-Revision-Date: 2024-08-28 10:07+0000\n"
+"PO-Revision-Date: 2024-10-04 16:18+0000\n"
 "Last-Translator: Vincenzo Arcidiacono <vinci1it2000@gmail.com>\n"
 "Language-Team: English <vinci1it2000@gmail.com>\n"
 "MIME-Version: 1.0\n"
@@ -1525,9 +1525,9 @@ msgstr ""
 "szabja hozzájárulási beállításait az alább leírt célokra használt bármely "
 "nyomkövetési technológiához. Ha többet szeretne megtudni arról, hogy ezek a "
 "nyomkövetők hogyan segítenek nekünk és hogyan működnek, olvassa el a "
-"[cookie-szabályzat](/privacy) című cikket. Kérjük, vegye "
-"figyelembe, hogy a hozzájárulás megtagadása egy adott célból elérhetetlenné "
-"teheti a kapcsolódó funkciókat."
+"[cookie-szabályzat](/privacy) című cikket. Kérjük, vegye figyelembe, hogy a "
+"hozzájárulás megtagadása egy adott célból elérhetetlenné teheti a kapcsolódó"
+" funkciókat."
 
 # traslated
 msgid "Cookies.settingsTitle"
@@ -1630,3 +1630,35 @@ msgstr "Előfizetés"
 # traslated
 msgid "Stripe.Card.buttonText"
 msgstr "Vesz"
+
+# traslated
+msgid "CloudDownloadField.tooltipButtonSaveNew"
+msgstr "Aktuális adatok mentése"
+
+# traslated
+msgid "CloudDownloadField.tooltipImport"
+msgstr "Kijelöltek importálása"
+
+# traslated
+msgid "CloudDownloadField.tooltipDelete"
+msgstr "Adatok törlése"
+
+# traslated
+msgid "CloudDownloadField.tooltipConfirmEdit"
+msgstr "Megerősít"
+
+# traslated
+msgid "CloudDownloadField.tooltipButtonOverwrite"
+msgstr "Aktuális adatok felülírása"
+
+# traslated
+msgid "CloudDownloadField.tooltipEditData"
+msgstr "Adatok szerkesztése"
+
+# traslated
+msgid "CloudDownloadField.tooltipCancelEdit"
+msgstr "Érvénytelenít"
+
+# traslated
+msgid "CloudDownloadField.actions"
+msgstr "Műveletek"
