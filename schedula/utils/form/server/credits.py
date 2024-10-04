@@ -786,6 +786,7 @@ def charge_refunded(event):
     from flask import current_app as ca
     api_key = ca.config['STRIPE_SECRET_KEY']
     charge = event.data.object
+    amount_refunded = charge.amount_refunded
     invoice = charge.invoice
     wallet_id = None
     current_time = datetime.datetime.fromtimestamp(event.created)
@@ -793,22 +794,23 @@ def charge_refunded(event):
             session.id for session in stripe.checkout.Session.list(
         payment_intent=charge.payment_intent, api_key=api_key
     ))):
-        if wallet_id is None:
+        if amount_refunded and wallet_id is None:
             wallet_id = Txn.query.filter_by(stripe_id=stripe_id).filter(or_(
                 Txn.type_id == SUBSCRIPTION, Txn.type_id == PURCHASE
             )).one().wallet_id
 
         refund_charge(stripe_id, current_time, db.session)
-    db.session.add(Txn(
-        type_id=REFUND,
-        stripe_id=event.id,
-        wallet_id=wallet_id,
-        total=charge.amount_refunded,
-        currency=charge.currency,
-        raw_data=charge.to_dict_recursive(),
-        valid_from=current_time,
-    ))
-    db.session.commit()
+    if amount_refunded:
+        db.session.add(Txn(
+            type_id=REFUND,
+            stripe_id=event.id,
+            wallet_id=wallet_id,
+            total=charge.amount_refunded,
+            currency=charge.currency,
+            raw_data=charge.to_dict_recursive(),
+            valid_from=current_time,
+        ))
+        db.session.commit()
 
 
 @bp.route('/session-status/<session_id>', methods=['GET'])
