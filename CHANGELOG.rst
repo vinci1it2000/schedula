@@ -2,6 +2,24 @@ Changelog
 =========
 
 
+v1.5.33 (2024-10-04)
+--------------------
+
+Feat
+~~~~
+- (form): Update resources.
+
+- (form): Add REFUND transaction.
+
+- (form): Update Data cloud layout and add tooltips.
+
+- (form): Add `Splitter` and `Splitter.Panel`.
+
+- (form): Remove charge refund route.
+
+- (form): Update gdpr links.
+
+
 v1.5.32 (2024-09-27)
 --------------------
 
