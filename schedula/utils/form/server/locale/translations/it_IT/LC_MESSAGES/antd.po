@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 1.0\n"
 "Report-Msgid-Bugs-To: vinci1it2000@gmail.com\n"
-"PO-Revision-Date: 2024-10-04 16:19+0000\n"
+"PO-Revision-Date: 2024-10-08 21:06+0000\n"
 "Last-Translator: Vincenzo Arcidiacono <vinci1it2000@gmail.com>\n"
 "Language-Team: English <vinci1it2000@gmail.com>\n"
 "MIME-Version: 1.0\n"
@@ -1376,15 +1376,15 @@ msgstr "Salva i dati correnti"
 
 # traslated
 msgid "CloudDownloadField.tooltipImport"
-msgstr "Importa selezionati"
+msgstr "Importa"
 
 # traslated
 msgid "CloudDownloadField.tooltipDelete"
-msgstr "Eliminare i dati"
+msgstr "Elimina"
 
 # traslated
 msgid "CloudDownloadField.tooltipConfirmEdit"
-msgstr "Confermare"
+msgstr "Conferma"
 
 # traslated
 msgid "CloudDownloadField.tooltipButtonOverwrite"
@@ -1392,7 +1392,7 @@ msgstr "Sovrascrivi i dati correnti"
 
 # traslated
 msgid "CloudDownloadField.tooltipEditData"
-msgstr "Modifica dati"
+msgstr "Rinomina"
 
 # traslated
 msgid "CloudDownloadField.tooltipCancelEdit"
