@@ -10,7 +10,17 @@ import {
 import {useLocaleStore} from "../../models/locale";
 import get from 'lodash/get';
 
+const StepContent = ({isActive, children, style}) => {
+    const [hasRendered, setHasRendered] = useState(false);
 
+    if (isActive && !hasRendered) {
+        setHasRendered(true); // Mark the tab as rendered when it becomes active for the first time
+    }
+
+    return <div style={{...style, display: isActive ? 'block' : 'none'}}>
+        {hasRendered && children}
+    </div>
+};
 const Steps = (
     {
         children,
@@ -116,7 +126,14 @@ const Steps = (
             state={status}
             {...props}
         />
-        <div key={'content'} style={contentStyle}>{children[current]}</div>
+        {children.map((content, index) => (
+            <StepContent
+                key={index}
+                isActive={current === index}
+                style={contentStyle}>
+                {content}
+            </StepContent>
+        ))}
         {_controls}
         <div key={'placeholder'}></div>
     </Flex>
