@@ -49,6 +49,7 @@ const Layout_Sider = React.lazy(() => import('./Layout/Sider'));
 const List = React.lazy(() => import('./List'));
 const List_Item = React.lazy(() => import('./List/Item'));
 const List_Item_Meta = React.lazy(() => import('./List/Item/Meta'));
+const Locale = React.lazy(() => import('./Locale'));
 const Markdown = React.lazy(() => import('./Markdown'));
 const OverPack = React.lazy(() => import('./OverPack'));
 const Popconfirm = React.lazy(() => import('./Popconfirm'));
@@ -128,6 +129,7 @@ export function generateComponents(register = true, registerDomains = true) {
         List,
         "List.Item": List_Item,
         "List.Item.Meta": List_Item_Meta,
+        Locale,
         Markdown,
         OverPack,
         Popconfirm,
