@@ -3,7 +3,7 @@ import {
     Form,
     Input
 } from 'antd'
-import {useState} from "react";
+import {useCallback, useState} from "react";
 import {MailOutlined} from '@ant-design/icons';
 import {useLocaleStore} from "../../../models/locale";
 
@@ -11,7 +11,7 @@ export default function ConfirmForm(
     {form, urlConfirmMail, setAuth, setSpinning, setOpen}
 ) {
     const [field_errors, setFieldErrors] = useState({});
-    const onFinish = ({email}) => {
+    const onFinish = useCallback(({email}) => {
         setSpinning(true)
         form.postData({
             url: urlConfirmMail,
@@ -38,7 +38,7 @@ export default function ConfirmForm(
                 setFieldErrors(field_errors || {})
             }
         })
-    }
+    }, [form, urlConfirmMail, setAuth, setSpinning, setOpen])
     const {getLocale} = useLocaleStore()
     const locale = getLocale('User.Confirm')
     return <Form

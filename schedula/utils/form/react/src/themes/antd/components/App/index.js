@@ -7,16 +7,11 @@ import {
     LaptopOutlined,
     CompressOutlined,
     DownloadOutlined,
-    ReloadOutlined,
-    CheckCircleOutlined,
     ExpandOutlined,
-    DiffOutlined,
-    StopOutlined,
     DeleteOutlined,
     CloudUploadOutlined,
     CloudDownloadOutlined,
     CloudOutlined,
-    BranchesOutlined,
     WarningOutlined
 } from '@ant-design/icons';
 import {
@@ -24,10 +19,7 @@ import {
     Menu,
     Flex,
     FloatButton,
-    Button,
-    List,
     Tooltip,
-    Popconfirm,
     Modal,
     Drawer,
     Typography,
@@ -36,25 +28,15 @@ import {
 import {useFullscreen} from "ahooks";
 import exportJSON from "../../../../core/utils/Export"
 import uploadJSON from "../../../../core/utils/Import"
-import {
-    cleanStorage,
-    readDiffList,
-    storeData,
-    buildData
-} from "../../../../core/utils/Autosave"
 import CloudDownloadField from '../../fields/CloudDownloadField'
 import CloudUploadField from '../../fields/CloudUploadField'
-import {
-    DraggableModal
-} from "ant-design-draggable-modal/packages/ant-design-draggable-modal";
 import {useLocaleStore} from "../../models/locale";
 import isEmpty from "lodash/isEmpty";
 import {createLayoutElement} from "../../../../core";
-import Errors from "../Errors/Drawer";
-import Debug from "../Debug";
-import Cookies from '../Cookies'
 
-const DiffViewer = React.lazy(() => import("../../../../core/components/DiffViewer"))
+const Errors = React.lazy(() => import('../Errors/Drawer'))
+const Debug = React.lazy(() => import('../Debug'))
+const Cookies = React.lazy(() => import('../Cookies'))
 const UserNav = React.lazy(() => import('./User'))
 const LanguageNav = React.lazy(() => import('./Language'))
 const ContactNav = React.lazy(() => import('./Contact'))
@@ -85,8 +67,6 @@ const App = (
     {
         children,
         render,
-        savingData = false,
-        savingKey,
         items = [],
         urlContact,
         languages = true,
@@ -121,37 +101,6 @@ const App = (
         isEnabled: isFullscreenEnabled,
         toggleFullscreen
     }] = useFullscreen(form.formElement);
-    const storeKey = savingKey || (render ? 'schedula-' + form.props.$id + '-' + render.idSchema.$id + '-formData' : 'form')
-    const [saving, setSaving] = useState(savingData);
-    const {formData} = render;
-    const [openRestore, setOpenRestore] = useState(false);
-    const [dateDiffViewer, setDateDiffViewer] = useState(null);
-    useEffect(function updateStorage() {
-        if (saving) {
-            try {
-                storeData(storeKey, formData)
-            } catch (error) {
-                setSaving(false)
-                form.props.notify({
-                    message: locale.autoSavingErrorTitle,
-                    description: error.message,
-                    type: 'warning'
-                })
-            }
-        }
-    }, [storeKey, formData, saving, locale.autoSavingErrorTitle, form.props]);
-    const {changes, diffList} = useMemo(function updateDiffList() {
-        if (openRestore) {
-            return readDiffList(storeKey, formData)
-        }
-        return {}
-    }, [storeKey, formData, openRestore]);
-    const oldFormData = useMemo(function updateOldFormData() {
-        if (dateDiffViewer !== null && changes) {
-            return buildData(changes, dateDiffViewer)
-        }
-        return null
-    }, [changes, dateDiffViewer]);
     const _items = useMemo(() => (items.map(formatItem)), [])
     const {pathname} = useLocation()
     const {routes} = useMemo(() => {
@@ -187,18 +136,6 @@ const App = (
 
     if (typeof footer === 'number')
         footer = children[footer]
-    const [languageOptions, setLanguageOptions] = useState(languages !== true ? languages : null);
-    useEffect(() => {
-        if (languages === true)
-            form.postData({
-                url: '/locales/',
-                method: 'GET'
-            }, ({data}) => {
-                setLanguageOptions(data)
-            }, () => {
-                setLanguageOptions(null)
-            })
-    }, [languages, form]);
     const {errors, debugUrl} = form.state
     const [openErrors, setOpenErrors] = useState(false);
     const [openDebug, setOpenDebug] = useState(!!debugUrl);
@@ -214,9 +151,10 @@ const App = (
         return loginRequired === true || (typeof loginRequired === 'object' && loginRequired[pathname])
     }, [pathname, userProps])
 
-    return <Layout style={{height: '100%'}}>
+    return <Layout key={'main'} style={{height: '100%'}}>
         {!hideNav || currentDataId || urlContact || languages || userProps || _items.length || logo ?
             <Header
+                key={'bar'}
                 className={`ant-menu-${theme}`}
                 style={{
                     position: 'sticky',
@@ -244,7 +182,8 @@ const App = (
                         setSelectedKeys([key])
                     }}
                     {...props}
-                /> : <div style={{flex: "auto", minWidth: 0}}/>}
+                /> : <div key={'left-menu-place'}
+                          style={{flex: "auto", minWidth: 0}}/>}
                 {currentDataId || urlContact || languages || userProps ?
                     <Flex key={'right-element'}
                           style={{
@@ -257,28 +196,32 @@ const App = (
                             # {currentDataId.id} - {currentDataId.name}
                         </Typography.Text> : null}
                         {urlContact ? <ContactNav
+                            key={'contact'}
                             form={form}
                             formContext={formContext}
                             containerRef={mainLayout}
                             urlContact={urlContact}/> : null}
-                        {languageOptions ? <LanguageNav
+                        <LanguageNav
+                            key={'language'}
                             form={form}
-                            languages={languageOptions}/> : null}
+                            languages={languages}/>
                         {userProps ?
                             <UserNav
+                                key={'user'}
                                 form={form}
                                 formContext={formContext}
                                 containerRef={mainLayout}
                                 {...userProps}/> : null}
                     </Flex> : null}
             </Header> : null}
-        <Layout ref={mainLayout} style={{
+        <Layout hasSider key={"main"} ref={mainLayout} style={{
             position: 'relative'
         }}>
-            {hideSideMenu || (hideRun && hideDebug && hideClean && hideFullscreen && !cloudUrl && hideFiles && !savingData) ? null :
-                <Sider collapsible onCollapse={(collapsed) => {
-                    setSliderCollapsed(collapsed)
-                }} defaultCollapsed={true} style={{
+            {hideSideMenu || (hideRun && hideDebug && hideClean && hideFullscreen && !cloudUrl && hideFiles) ? null :
+                <Sider key={"side-left"} collapsible
+                       onCollapse={(collapsed) => {
+                           setSliderCollapsed(collapsed)
+                       }} defaultCollapsed={true} style={{
                     overflowY: "auto",
                     marginBottom: "44px"
                 }} theme={theme}>
@@ -289,6 +232,7 @@ const App = (
                         uploadJSON(render.parent.props.onChange, event)
                     }}/>
                     <Menu
+                        key={'menu'}
                         mode="inline"
                         theme={theme}
                         selectable={false}
@@ -312,10 +256,6 @@ const App = (
                                 exportJSON(render.formData, 'file.json')
                             } else if (key === 'upload') {
                                 impButton.current.click()
-                            } else if (key === 'autosave') {
-                                setSaving(!saving)
-                            } else if (key === 'restore') {
-                                setOpenRestore(!openRestore)
                             } else if (key === 'cloud-download') {
                                 setOpenCloudDownload(true)
                             } else if (key === 'cloud-upload') {
@@ -403,39 +343,11 @@ const App = (
                                     </Tooltip>
                                 }
                             ]
-                        }, !savingData ? null : {
-                            icon: <BranchesOutlined/>,
-                            key: 'branches',
-                            className: 'branches-button',
-                            label: locale.branchesButton,
-                            children: [
-                                {
-                                    icon: saving ? <CheckCircleOutlined/> :
-                                        <StopOutlined/>,
-                                    key: 'autosave',
-                                    className: 'autosave-button',
-                                    label: <Tooltip
-                                        title={saving ? locale.autoSavingTooltip :
-                                            locale.autoSaveTooltip}
-                                        placement="right">
-                                        {saving ? locale.autoSavingButton : locale.autoSaveButton}
-                                    </Tooltip>
-                                },
-                                {
-                                    icon: <ReloadOutlined/>,
-                                    key: 'restore',
-                                    className: 'restore-button',
-                                    label: <Tooltip
-                                        title={locale.restoreTooltip}
-                                        placement="right">
-                                        {locale.restoreButton}
-                                    </Tooltip>
-                                }
-                            ]
                         }].filter(v => v !== null)}/>
                 </Sider>}
             <Content {...contentProps}>
                 {urlConsent ? <Cookies
+                    key={'consent'}
                     render={render}
                     urlConsent={urlConsent}
                     style={{
@@ -497,100 +409,11 @@ const App = (
                         onChange={form.onChange}
                         formContext={render.formContext}/>
                 </> : null}
-                <DraggableModal
-                    key={'restore'}
-                    title={locale.restoreModalTitle}
-                    open={openRestore}
-                    onOk={() => {
-                        setOpenRestore(false)
-                    }}
-                    onCancel={() => {
-                        setOpenRestore(false)
-                    }}
-                    footer={[
-                        <Button key="erase"
-                                onClick={() => {
-                                    setOpenRestore(false);
-                                    cleanStorage(storeKey)
-                                }}>{locale.restoreEraseButton}</Button>,
-                        <Button key="close"
-                                onClick={() => {
-                                    setOpenRestore(false);
-                                }}>{locale.restoreCloseButton}</Button>
-                    ]}>
-                    <List
-                        size="small"
-                        dataSource={diffList}
-                        renderItem={(item) => (
-                            <List.Item>
-                                <List.Item.Meta
-                                    avatar={
-                                        <Popconfirm
-                                            title={locale.restoreConfirm}
-                                            placement="top"
-                                            onConfirm={(event) => {
-                                                if (event) {
-                                                    event.preventDefault();
-                                                }
-                                                render.parent.props.onChange(buildData(changes, item.date))
-                                                setOpenRestore(false)
-                                            }}>
-                                            <Button
-                                                type="primary"
-                                                shape="circle"
-                                                icon={
-                                                    <ReloadOutlined/>}
-                                            />
-                                        </Popconfirm>
-                                    }
-                                    title={(new Date(item.date * 60000)).toLocaleString()}
-                                />
-                                {item.sameAsCurrent ? null :
-                                    <Tooltip
-                                        title={locale.restoreDifferences}
-                                        placement="bottom">
-                                        <Button
-                                            type="primary"
-                                            shape="circle"
-                                            icon={
-                                                <DiffOutlined/>}
-                                            onClick={() => {
-                                                setDateDiffViewer(item.date)
-                                            }}/>
-                                    </Tooltip>}
-                            </List.Item>
-                        )}
-                    />
-                </DraggableModal>
-                <DraggableModal
-                    key={'diff'}
-                    title={locale.restoreTitleDifferences}
-                    open={dateDiffViewer !== null}
-                    onCancel={() => {
-                        setDateDiffViewer(null)
-                    }}
-                    footer={[
-                        <Button key="restore"
-                                onClick={() => {
-                                    setOpenRestore(false);
-                                    render.parent.props.onChange(oldFormData)
-                                    setDateDiffViewer(null);
-                                }}>{locale.restoreRestoreButton}</Button>,
-                        <Button key="close"
-                                onClick={() => {
-                                    setDateDiffViewer(null);
-                                }}>{locale.restoreCloseButton}</Button>
-                    ]}>
-                    {dateDiffViewer ? <DiffViewer
-                        rightTitle={(new Date(Math.floor(Date.now() / 60000) * 60000)).toLocaleString() + ` (${locale.restoreCurrent})`}
-                        leftTitle={(new Date(dateDiffViewer * 60000)).toLocaleString()}
-                        oldValue={oldFormData}
-                        newValue={formData}/> : null}
-                </DraggableModal>
             </Content>
         </Layout>
         {
             footer ? <Footer
+                key={"footer"}
                 style={{
                     position: 'sticky',
                     bottom: 0,
@@ -602,7 +425,7 @@ const App = (
                 {footer}
             </Footer> : null
         }
-        <FloatButton.Group>
+        <FloatButton.Group key={"buttonFloat"}>
             {errors.length && !hideErrors ? (openErrors ?
                 <Errors render={render}
                         onClose={() => {

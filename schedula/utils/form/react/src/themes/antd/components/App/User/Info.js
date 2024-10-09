@@ -27,7 +27,7 @@ export default function InfoForm(
     const [disabled, setDisabled] = useState(true);
     const [field_errors, setFieldErrors] = useState({});
     const [_form] = Form.useForm();
-    const onFinish = (data) => {
+    const onFinish = useCallback((data) => {
         setSpinning(true)
         form.postData({
             url: urlEdit,
@@ -46,7 +46,7 @@ export default function InfoForm(
                 setFieldErrors(field_errors || {})
             }
         })
-    }
+    },[form, urlEdit, setSpinning])
     const {getLocale} = useLocaleStore()
     const locale = getLocale('User.Setting')
     const initialValues = useMemo(() => (pick(userInfo, [

@@ -1,12 +1,5 @@
 import {
-    Drawer,
-    Tooltip,
-    Button,
-    Spin,
-    Space,
-    Dropdown,
-    Avatar,
-    Skeleton
+    Drawer, Tooltip, Button, Spin, Space, Dropdown, Avatar
 } from 'antd'
 import {
     LoginOutlined,
@@ -16,7 +9,7 @@ import {
     LockOutlined,
     CrownOutlined
 } from "@ant-design/icons";
-import React, {useState, useEffect, useMemo, Suspense, useRef} from "react";
+import React, {useState, useEffect, useMemo, useRef} from "react";
 import {useLocaleStore} from "../../../models/locale";
 import isEmpty from "lodash/isEmpty";
 import {useLocation} from "react-router-dom";
@@ -31,9 +24,24 @@ const InfoForm = React.lazy(() => import( "./Info"))
 const SettingsForm = React.lazy(() => import( "./Settings"))
 const LogoutForm = React.lazy(() => import( "./Logout"))
 
+const Content = ({isActive, children, style}) => {
+    const [hasRendered, setHasRendered] = useState(false);
+
+    if (isActive && !hasRendered) {
+        setHasRendered(true);
+    }
+
+    return <div style={{
+        height: "100%",
+        width: "100%", ...style,
+        display: isActive ? 'block' : 'none'
+    }}>
+        {hasRendered && children}
+    </div>
+};
 export default function UserNav(
     {
-        key = 'user-nav',
+        id = 'user-nav',
         form,
         loginRequired,
         urlForgotPassword,
@@ -51,188 +59,97 @@ export default function UserNav(
         formContext,
         containerRef
     }) {
-    const {userInfo = {}, emitter} = form.state
-    const logged = !isEmpty(userInfo)
+    const portalRef = useRef()
     const {getLocale} = useLocaleStore()
     const locale = getLocale('User')
-
-    const titles = logged ? {
-        info: locale.titleInfo,
-        'change-password': locale.titleChangePassword,
-        settings: locale.titleSetting,
-        logout: locale.titleLogout,
-    } : {
-        login: locale.titleLogin,
-        forgot: locale.titleForgot,
-        register: locale.titleRegister,
-        confirm: locale.titleConfirm,
-        reset: locale.titleResetPassword
-    }
-    const {pathname} = useLocation()
-    const page = pathname.split('/')[-1]
-    const [spinning, setSpinning] = useState(false);
-    const [open, setOpen] = useState(titles.hasOwnProperty(page));
-    const [auth, setAuth] = useState((open && page) || 'login');
-    const mustLogin = useMemo(() => {
-        return loginRequired === true || (typeof loginRequired === 'object' && loginRequired[pathname])
-    }, [pathname, loginRequired])
-    useEffect(() => {
-        emitter.on('set-auth', (v) => {
-            setAuth(v)
-            if (!logged && v === 'login') {
-                setOpen(true)
-            }
-        })
-    }, [])
-    useEffect(() => {
-        if (open && !mustLogin) {
-            setOpen(false)
-        }
-    }, [pathname])
     const StripePortal = useMemo(() => {
         return window.schedula.getComponents({
             render: {formContext}, component: 'Stripe.Portal'
         })
-    })
+    }, [])
+
+    const {userInfo = {}, emitter} = form.state
+    const {pathname, search, hash: anchor} = useLocation()
+    const [spinning, setSpinning] = useState(false);
+    const [open, setOpen] = useState(false);
+    const [auth, setAuth] = useState(null);
+
     useEffect(() => {
+        emitter.on('set-auth', (v) => {
+            setAuth(v)
+            if (isEmpty(form.state.userInfo) && v === 'login') {
+                setOpen(true)
+            }
+        })
+    }, [emitter, form])
+
+    const {logged, titles} = useMemo(() => {
+        let logged = !isEmpty(userInfo)
+        return {
+            logged, titles: logged ? {
+                info: locale.titleInfo,
+                'change-password': locale.titleChangePassword,
+                settings: locale.titleSetting,
+                logout: locale.titleLogout,
+            } : {
+                login: locale.titleLogin,
+                forgot: locale.titleForgot,
+                register: locale.titleRegister,
+                confirm: locale.titleConfirm,
+                reset: locale.titleResetPassword
+            }
+        }
+    }, [userInfo])
+    const mustLogin = useMemo(() => {
+        return loginRequired === true || (typeof loginRequired === 'object' && loginRequired[pathname])
+    }, [pathname, loginRequired])
+    useEffect(() => {
+        let auth = (anchor || '#').substring(1),
+            open = titles.hasOwnProperty(auth);
+        auth = (open && auth) || 'login';
         if (mustLogin && !logged) {
             setOpen(true)
             setAuth('login')
+        } else {
+            setAuth(auth)
+            setOpen(open)
         }
-    }, [logged, mustLogin])
-    const drawerContent = useMemo(() => {
-        if (!open) {
-            return null
-        }
-        switch (auth) {
-            case 'register':
-                return <RegisterForm
-                    key={auth}
-                    form={form}
-                    urlRegister={urlRegister}
-                    setAuth={setAuth}
-                    setSpinning={setSpinning}
-                    setOpen={setOpen} addUsername={registerAddUsername}/>
-            case 'confirm':
-                return <ConfirmForm
-                    key={auth}
-                    form={form}
-                    urlConfirmMail={urlConfirmMail}
-                    setAuth={setAuth}
-                    setSpinning={setSpinning}
-                    setOpen={setOpen}/>
-            case 'login':
-                return <LoginForm
-                    key={auth}
-                    form={form}
-                    urlLogin={urlLogin}
-                    urlRegister={urlRegister}
-                    setAuth={setAuth}
-                    setSpinning={setSpinning}
-                    setOpen={setOpen}/>
-            case 'forgot':
-                return <ForgotForm
-                    key={auth}
-                    form={form}
-                    urlForgotPassword={urlForgotPassword}
-                    setAuth={setAuth}
-                    setSpinning={setSpinning}/>
-            case 'reset':
-                return <ResetForm
-                    key={auth}
-                    form={form}
-                    urlResetPassword={urlResetPassword}
-                    setAuth={setAuth}
-                    setSpinning={setSpinning}
-                    setOpen={setOpen}/>
-            case 'change-password':
-                return <ChangePasswordForm
-                    key={auth}
-                    form={form}
-                    urlChangePassword={urlChangePassword}
-                    setAuth={setAuth}
-                    setSpinning={setSpinning}
-                    setOpen={setOpen}/>
-            case 'logout':
-                return <LogoutForm
-                    key={auth}
-                    form={form}
-                    urlLogout={urlLogout}
-                    setSpinning={setSpinning}
-                    setAuth={setAuth}
-                    setOpen={setOpen}/>
-            case 'info':
-                return <InfoForm
-                    key={auth}
-                    form={form}
-                    userInfo={userInfo}
-                    urlEdit={urlEdit}
-                    setSpinning={setSpinning}/>
-            case 'settings':
-                return <SettingsForm
-                    key={auth}
-                    formContext={formContext}
-                    userInfo={userInfo}
-                    urlSettings={urlSettings}
-                    setAuth={setAuth}
-                    setSpinning={setSpinning}
-                    {...settingProps}
-                />
-            default:
-                return null
-        }
-    }, [auth, userInfo, open]);
-    const portalRef = useRef()
-    return <div key={key}>
+    }, [logged, anchor, titles, mustLogin])
+    return <div key={id}>
         {logged ? <Dropdown key={'right-menu'} menu={{
-            selectedKeys: [],
-            onClick: ({key}) => {
+            selectedKeys: [], onClick: ({key}) => {
                 if (!['subscription'].includes(key)) {
                     setAuth(key)
                     setOpen(true)
                 }
-            },
-            items: [
-                {
-                    key: 'info',
-                    icon: <UserOutlined/>,
-                    label: locale.infoButton
-                },
-                (urlChangePassword ? {
-                    key: 'change-password',
-                    icon: <LockOutlined/>,
-                    label: locale.changePasswordButton
-                } : null),
-                (urlSubscription ? {
-                    key: 'subscription',
-                    icon: <CrownOutlined/>,
-                    label: locale.subscriptionButton,
-                    onClick: () => {
-                        portalRef.current.click()
-                    }
-                } : null),
-                (urlSettings ? {
-                    key: 'settings',
-                    icon: <SettingOutlined/>,
-                    label: locale.settingButton
-                } : null),
-                {
-                    type: 'divider'
-                },
-                {
-                    key: 'logout',
-                    icon: <LogoutOutlined/>,
-                    label: locale.logoutButton
+            }, items: [{
+                key: 'info', icon: <UserOutlined/>, label: locale.infoButton
+            }, (urlChangePassword ? {
+                key: 'change-password',
+                icon: <LockOutlined/>,
+                label: locale.changePasswordButton
+            } : null), (urlSubscription ? {
+                key: 'subscription',
+                icon: <CrownOutlined/>,
+                label: locale.subscriptionButton,
+                onClick: () => {
+                    portalRef.current.click()
                 }
-            ].filter(v => !!v)
+            } : null), (urlSettings ? {
+                key: 'settings',
+                icon: <SettingOutlined/>,
+                label: locale.settingButton
+            } : null), {
+                type: 'divider'
+            }, {
+                key: 'logout',
+                icon: <LogoutOutlined/>,
+                label: locale.logoutButton
+            }].filter(v => !!v)
         }}>
             <Space>
-                {userInfo.avatar ?
-                    <Avatar src={userInfo.avatar}/>
-                    :
-                    <Button
-                        type="primary" shape="circle" icon={<UserOutlined/>}/>
-                }
+                {userInfo.avatar ? <Avatar src={userInfo.avatar}/> : <Button
+                    type="primary" shape="circle" icon={<UserOutlined/>}/>}
                 {userInfo.username}
                 <StripePortal
                     ref={portalRef}
@@ -252,27 +169,106 @@ export default function UserNav(
                 type="primary"
                 shape="circle"
                 onClick={() => {
+                    setAuth('login')
                     setOpen(true)
                 }}
                 icon={<LoginOutlined/>}
             />
         </Tooltip>}
         <Drawer
+            key="Drawer"
             rootStyle={{position: "absolute"}}
             title={titles[auth]}
             closable={!spinning && !(mustLogin && !logged)}
             onClose={() => {
-                if (!spinning && !(mustLogin && !logged))
+                if (!spinning && !(mustLogin && !logged)) {
                     setOpen(false)
+                    if (anchor) {
+                        window.history.pushState({}, "", pathname + search);
+                    }
+                    setAuth(null)
+                }
             }}
             getContainer={() => {
                 return containerRef.current
             }}
             open={open}>
             <Spin key={'page'} spinning={spinning}>
-                <Suspense fallback={<Skeleton/>}>
-                    {open && drawerContent}
-                </Suspense>
+                <Content key='register' isActive={auth === 'register'}>
+                    <RegisterForm
+                        form={form}
+                        urlRegister={urlRegister}
+                        setAuth={setAuth}
+                        setSpinning={setSpinning}
+                        setOpen={setOpen}
+                        addUsername={registerAddUsername}/>
+                </Content>
+                <Content key='confirm' isActive={auth === 'confirm'}>
+                    <ConfirmForm
+                        form={form}
+                        urlConfirmMail={urlConfirmMail}
+                        setAuth={setAuth}
+                        setSpinning={setSpinning}
+                        setOpen={setOpen}/>
+                </Content>
+                <Content key='login' isActive={auth === 'login'}>
+                    <LoginForm
+                        form={form}
+                        urlLogin={urlLogin}
+                        urlRegister={urlRegister}
+                        setAuth={setAuth}
+                        setSpinning={setSpinning}
+                        setOpen={setOpen}/>
+                </Content>
+                <Content key='forgot' isActive={auth === 'forgot'}>
+                    <ForgotForm
+                        form={form}
+                        urlForgotPassword={urlForgotPassword}
+                        setAuth={setAuth}
+                        setSpinning={setSpinning}/>
+                </Content>
+                <Content key='reset' isActive={auth === 'reset'}>
+                    <ResetForm
+                        form={form}
+                        urlResetPassword={urlResetPassword}
+                        setAuth={setAuth}
+                        setSpinning={setSpinning}
+                        setOpen={setOpen}/>
+                </Content>
+                <Content key='change-password'
+                         isActive={auth === 'change-password'}>
+                    <ChangePasswordForm
+                        form={form}
+                        urlChangePassword={urlChangePassword}
+                        setAuth={setAuth}
+                        setSpinning={setSpinning}
+                        setOpen={setOpen}/>
+                </Content>
+                <Content key='logout' isActive={auth === 'logout'}>
+                    <LogoutForm
+                        form={form}
+                        urlLogout={urlLogout}
+                        setSpinning={setSpinning}
+                        setAuth={setAuth}
+                        setOpen={setOpen}/>
+                </Content>
+                <Content key='info' isActive={auth === 'info'}>
+                    <InfoForm
+                        form={form}
+                        userInfo={userInfo}
+                        urlEdit={urlEdit}
+                        setSpinning={setSpinning}/>
+                </Content>
+                <Content key='settings' isActive={auth === 'settings'}>
+                    <SettingsForm
+                        formContext={formContext}
+                        userInfo={userInfo}
+                        urlSettings={urlSettings}
+                        setAuth={setAuth}
+                        setSpinning={setSpinning}
+                        {...settingProps}
+                    />
+                </Content>
             </Spin>
         </Drawer>
     </div>

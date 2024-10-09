@@ -3,7 +3,7 @@ import {
     Form,
     Input
 } from 'antd'
-import {useState} from "react";
+import {useState, useCallback} from "react";
 import {
     LockOutlined
 } from '@ant-design/icons';
@@ -14,7 +14,7 @@ export default function ChangePasswordForm(
 
     const [field_errors, setFieldErrors] = useState({});
 
-    const onFinish = (data) => {
+    const onFinish = useCallback((data) => {
         setSpinning(true)
         form.postData({
             url: urlChangePassword,
@@ -41,7 +41,7 @@ export default function ChangePasswordForm(
                 setFieldErrors(field_errors || {})
             }
         })
-    }
+    }, [form, urlChangePassword, setAuth, setSpinning, setOpen])
     const {getLocale} = useLocaleStore()
     const locale = getLocale('User.ChangePassword')
     return <Form

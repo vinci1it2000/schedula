@@ -23,7 +23,6 @@ const ConfigProvider = (
         const url = new URL(window.location.href);
         url.searchParams.forEach((value, key) => {
             params[key] = value
-            url.searchParams.delete(key);
         });
         ['error', 'warning', 'success', 'info'].forEach(type => {
             const message = params[type]
@@ -31,11 +30,6 @@ const ConfigProvider = (
                 notification[type]({message, placement: 'top'})
             }
         })
-        form.setState((state) => ({
-            ...state,
-            queryInfo: {...state.queryInfo, ...params},
-        }))
-        window.history.replaceState(null, null, url);
     }, [])
     let algorithm = [dark ? darkAlgorithm : defaultAlgorithm]
     if (compact)

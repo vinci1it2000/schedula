@@ -3,10 +3,11 @@ import {
     Form
 } from 'antd'
 import {useLocaleStore} from "../../../models/locale";
+import {useCallback} from "react";
 
 export default function LogoutForm(
     {form, urlLogout, setOpen, setAuth, setSpinning}) {
-    const onFinish = () => {
+    const onFinish = useCallback(() => {
         setSpinning(true)
         form.postData({
             url: urlLogout,
@@ -21,7 +22,7 @@ export default function LogoutForm(
         }, () => {
             setSpinning(false)
         })
-    }
+    }, [form, urlLogout, setOpen, setAuth, setSpinning])
     const {getLocale} = useLocaleStore()
     const locale = getLocale('User.Logout')
     return <Form

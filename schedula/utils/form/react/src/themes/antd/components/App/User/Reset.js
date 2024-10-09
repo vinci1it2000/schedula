@@ -3,16 +3,19 @@ import {
     Form,
     Input
 } from 'antd'
-import {useState} from "react";
+import {useState, useCallback} from "react";
 import {LockOutlined} from '@ant-design/icons';
 import {useLocaleStore} from "../../../models/locale";
+import {useLocation} from 'react-router-dom';
 
 export default function ResetPasswordForm(
     {form, urlResetPassword, setOpen, setSpinning, setAuth}) {
     const [field_errors, setFieldErrors] = useState({});
-    const {queryInfo: {token = null}} = form.state
-    const onFinish = (data) => {
+    const {search} = useLocation()
+    const onFinish = useCallback((data) => {
         setSpinning(true)
+        const searchParams = new URLSearchParams(search);
+        const token = searchParams.get('token');
         form.postData({
             url: `${urlResetPassword}/${token}`,
             data
@@ -33,7 +36,7 @@ export default function ResetPasswordForm(
                 setFieldErrors(field_errors || {})
             }
         })
-    }
+    }, [form, urlResetPassword, setOpen, setSpinning, setAuth, search])
     const {getLocale} = useLocaleStore()
     const locale = getLocale('User.ResetPassword')
     return <Form

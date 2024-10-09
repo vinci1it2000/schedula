@@ -4,7 +4,7 @@ import {
     Checkbox,
     Input
 } from 'antd'
-import {useState} from "react";
+import {useState, useCallback} from "react";
 import {MailOutlined, LockOutlined} from '@ant-design/icons';
 import {useLocaleStore} from "../../../models/locale";
 
@@ -19,7 +19,7 @@ export default function LoginForm(
         ...props
     }) {
     const [field_errors, setFieldErrors] = useState({});
-    const onFinish = ({email, password, remember}) => {
+    const onFinish = useCallback(({email, password, remember}) => {
         setSpinning(true)
         form.postData({
             url: urlLogin,
@@ -39,7 +39,7 @@ export default function LoginForm(
                 setFieldErrors(field_errors || {})
             }
         })
-    }
+    },[form, urlLogin])
     const {getLocale} = useLocaleStore()
     const locale = getLocale('User.Login')
     return <Form

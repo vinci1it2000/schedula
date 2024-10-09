@@ -3,14 +3,14 @@ import {
     Form,
     Input
 } from 'antd'
-import {useState} from "react";
+import {useState, useCallback} from "react";
 import {MailOutlined} from '@ant-design/icons';
 import {useLocaleStore} from "../../../models/locale";
 
 export default function ForgotForm(
     {form, urlForgotPassword, setAuth, setSpinning}) {
     const [field_errors, setFieldErrors] = useState({});
-    const onFinish = (data) => {
+    const onFinish = useCallback((data) => {
         setSpinning(true)
         form.postData({
             url: urlForgotPassword,
@@ -24,7 +24,7 @@ export default function ForgotForm(
                 setFieldErrors(field_errors || {})
             }
         })
-    }
+    }, [form, urlForgotPassword, setAuth, setSpinning, setFieldErrors])
     const {getLocale} = useLocaleStore()
     const locale = getLocale('User.Forgot')
     return <Form

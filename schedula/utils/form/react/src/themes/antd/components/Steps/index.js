@@ -17,7 +17,11 @@ const StepContent = ({isActive, children, style}) => {
         setHasRendered(true); // Mark the tab as rendered when it becomes active for the first time
     }
 
-    return <div style={{...style, display: isActive ? 'block' : 'none'}}>
+    return <div style={{
+        height: "100%",
+        width: "100%", ...style,
+        display: isActive ? 'block' : 'none'
+    }}>
         {hasRendered && children}
     </div>
 };

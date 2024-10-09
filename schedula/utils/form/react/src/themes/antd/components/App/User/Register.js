@@ -3,7 +3,7 @@ import {
     Form,
     Input
 } from 'antd'
-import {useState} from "react";
+import {useCallback, useState} from "react";
 import {
     MailOutlined,
     LockOutlined,
@@ -17,7 +17,7 @@ export default function RegisterForm(
 
     const [field_errors, setFieldErrors] = useState({});
 
-    const onFinish = (data) => {
+    const onFinish = useCallback((data) => {
         setSpinning(true)
         form.postData({
             url: urlRegister,
@@ -44,7 +44,7 @@ export default function RegisterForm(
                 setFieldErrors(field_errors || {})
             }
         })
-    }
+    }, [form, urlRegister, setAuth, setSpinning, setOpen])
     const {getLocale} = useLocaleStore()
     const locale = getLocale('User.Register')
     return <Form
