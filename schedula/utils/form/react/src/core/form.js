@@ -4,7 +4,25 @@ import {useEffect, useState, useMemo} from 'react'
 import defineValidator from "./components/validator";
 import {getUiOptions} from "@rjsf/utils";
 import i18n, {translateJSON} from './components/translator'
-import {BrowserRouter} from 'react-router-dom';
+import {BrowserRouter, useNavigate} from 'react-router-dom';
+
+const SafeBrowserRouter = ({children}) => {
+    let isInsideRouter = true;
+
+    try {
+        useNavigate();  // Will throw an error if not inside a BrowserRouter
+    } catch (error) {
+        isInsideRouter = false;
+    }
+    if (isInsideRouter) {
+        return children
+    } else {
+        return <BrowserRouter>
+            {children}
+        </BrowserRouter>
+    }
+
+}
 
 function Form(
     {
@@ -43,39 +61,41 @@ function Form(
         })
     }, []);
     const BaseForm = useMemo(() => (withTheme(theme)), [theme]);
-    return <BrowserRouter><HoxRoot key={name}>
-        {futureProps ? <BaseForm
-            language={language}
-            csrf_token={csrf_token}
-            refresh_csrf={refresh_csrf}
-            name={name}
-            id={name}
-            idPrefix={name}
-            idSeparator={'.'}
-            rootSchema={rootSchema}
-            rootUiSchema={rootUiSchema}
-            url={url}
-            nonce={nonce}
-            showErrorList={false}
-            omitExtraData={true}
-            editOnChange={null}
-            preSubmit={null}
-            postSubmit={null}
-            showDebug={false}
-            liveValidate={false}
-            precompiledValidator={precompiledValidator}
-            debounceValidate={liveValidate}
-            experimental_defaultFormStateBehavior={{
-                arrayMinItems: {populate: 'all'},
-                emptyObjectFields: 'populateAllDefaults',
-                allOf: 'populateDefaults',
-            }}
-            formContext={{...formContext, ...optionsFormContext}}
-            {...futureProps}
-            {...props}
-            {...optionsProps}
-        /> : <div>loading...</div>}
-    </HoxRoot></BrowserRouter>
+    return <SafeBrowserRouter>
+        <HoxRoot key={name}>
+            {futureProps ? <BaseForm
+                language={language}
+                csrf_token={csrf_token}
+                refresh_csrf={refresh_csrf}
+                name={name}
+                id={name}
+                idPrefix={name}
+                idSeparator={'.'}
+                rootSchema={rootSchema}
+                rootUiSchema={rootUiSchema}
+                url={url}
+                nonce={nonce}
+                showErrorList={false}
+                omitExtraData={true}
+                editOnChange={null}
+                preSubmit={null}
+                postSubmit={null}
+                showDebug={false}
+                liveValidate={false}
+                precompiledValidator={precompiledValidator}
+                debounceValidate={liveValidate}
+                experimental_defaultFormStateBehavior={{
+                    arrayMinItems: {populate: 'all'},
+                    emptyObjectFields: 'populateAllDefaults',
+                    allOf: 'populateDefaults',
+                }}
+                formContext={{...formContext, ...optionsFormContext}}
+                {...futureProps}
+                {...props}
+                {...optionsProps}
+            /> : <div>loading...</div>}
+        </HoxRoot>
+    </SafeBrowserRouter>
 }
 
 export {Form as default};
