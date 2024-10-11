@@ -27,7 +27,6 @@ import {getUiOptions} from "@rjsf/utils";
 import isEqual from "lodash/isEqual";
 import isArray from "lodash/isArray";
 import get from "lodash/get";
-import exportJSON from "../../../../core/utils/Export";
 
 
 export default function CloudDownloadField(
@@ -218,18 +217,6 @@ export default function CloudDownloadField(
             setLoading(false)
         })
     };
-    const handleDownload = (id) => {
-        setLoading(true);
-        form.postData({
-            url: `${cloudUrl}/${id}`,
-            method: 'GET'
-        }, ({data: {name, data}}) => {
-            setLoading(false)
-            exportJSON(data, `${name}.json`)
-        }, () => {
-            setLoading(false)
-        })
-    };
     useEffect(() => {
         if (openModal || (modal || {}).open)
             fetchData();
@@ -368,7 +355,8 @@ export default function CloudDownloadField(
                 setOpenModal(false)
             }} {...modal}>{content}</Modal>
     }
-    content = <Form key={'form'} form={_form} component={false}>
+    content = <Form key={'form'} form={_form} component={false}
+                    initialValues={openSave === 2 ? {'new-name': currentKey.name} : {}}>
         {content}
         <Modal
             key={'save'}
