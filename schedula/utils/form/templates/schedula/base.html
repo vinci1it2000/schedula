@@ -3,12 +3,22 @@
 <head>
     {% block head %}
     <meta charset="UTF-8">
+
     {% block title %}
     <title>{% block title_name %}{{ name }}{% endblock %}</title>
     <link rel="shortcut icon"
           href="{{ url_for('static', filename='favicon.ico') }}"/>
     {% endblock %}
     {% block js %}
+    <script>
+        window.getPublicPath = function () {
+            {% if is_static %}
+            return `${window.location.origin}/`
+            {% else %}
+            return ""
+            {% endif %}
+        };
+    </script>
     <script src="{{ url_for('schedula.static', filename=main_js) }}"></script>
     {% if props_js %}
     <script src="{{ url_for('schedula.static', filename=props_js) }}"></script>
@@ -32,10 +42,10 @@
             let response, fail = 0;
             while (alive_url) {
                 await new Promise(resolve => setTimeout(resolve, alive_period));
-                response = await fetch(alive_url);
-                if (response.status == 200) {
+                response = await fetch(window.getPublicPath() + alive_url);
+                if (response.status === 200) {
                     fail = 0
-                } else if (response.status == 503) {
+                } else if (response.status === 503) {
                     document.open()
                     document.write(await response.text())
                     document.close()
@@ -54,8 +64,19 @@
 
     {% block js_onload %}
     <script defer="defer">
+         async function fetchData(filename) {
+            const forms_url = "{{ url_for('schedula.static', filename='forms') }}",
+                url = `${window.getPublicPath()}${forms_url}/${filename}`
+            return fetch(url, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Content-Encoding': 'gzip',
+                    'Accept-Encoding': 'gzip'
+                }
+            }).then(v => v.json())
+        }
+
         function onLoad() {
-            const origin = window.location.origin;
             let name = "{{ form_id or 'index' }}",
                 url = "{{ url_for('schedula.api.root') }}",
                 {
@@ -64,7 +85,6 @@
                     ..._schedulaProps
                 } = window.schedulaProps || {},
                 element = document.getElementById('root'),
-                forms_url = "{{ url_for('schedula.static', filename='forms') }}",
                 csrf_token = "{{ csrf_token() }}",
                 formData = JSON.parse('{{ form.get_form_data() | tojson | safe}}');
             let formContext = {
@@ -72,23 +92,15 @@
                 ...JSON.parse('{{ form.get_form_context() | tojson | safe}}')
             }
             Promise.all([
-                fetch(`${origin}/${forms_url}/${name}-schema.json`, {
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Content-Encoding': 'gzip',
-                        'Accept-Encoding': 'gzip'
-                    }
-                }).then(v => v.json()),
-                fetch(`${origin}/${forms_url}/${name}-ui.json`, {
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Content-Encoding': 'gzip',
-                        'Accept-Encoding': 'gzip'
-                    }
-                }).then(v => v.json()),
-                fetch(`${origin}/locales/${language || 'none'}`)
-                    .then(v => v.json()).then(({language}) => language)
-            ]).then(([schema, uiSchema, language]) => {
+                fetchData(`${name}-schema.json`),
+                fetchData(`${name}-ui.json`).catch(error => {
+                    return {};
+                }),
+                fetch(`${window.getPublicPath()}locales/${language || 'none'}`)
+                    .then(v => v.json()).catch(error => {
+                    return {language: 'en_US'};
+                })
+            ]).then(([schema, uiSchema, {language}]) => {
                 document.title = uiSchema.title || schema.title || "{{ name }}"
                 schedula.renderForm({
                     element,
@@ -100,9 +112,12 @@
                     formData,
                     formContext,
                     language,
-                    onLoad: (form) => {
+                    onLoad: async (form) => {
                         const messages = JSON.parse('{{ get_flashed_messages(with_categories=True)| tojson | safe}}')
                         form.flashMessages(messages)
+                        fetchData(`${name}-data.json`).then(formData => {
+                            form.onChange(formData)
+                        })
                     },
                     ..._schedulaProps
                 })

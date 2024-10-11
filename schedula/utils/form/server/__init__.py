@@ -21,6 +21,7 @@ Sub-Modules:
     contact
     credits
     csrf
+    export
     extensions
     files
     gdpr
@@ -92,5 +93,9 @@ def basic_app(sitemap, app):
     if app.config['SCHEDULA_GDPR_ENABLED']:
         from .gdpr import GDPR
         GDPR(app, sitemap)
+
+    if app.config['SCHEDULA_EXPORT_FORM_ENABLED']:
+        from .export import ExportForm
+        ExportForm(app, sitemap)
 
     return app

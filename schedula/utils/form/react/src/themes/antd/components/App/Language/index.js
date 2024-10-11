@@ -8,10 +8,12 @@ const LanguageNav = ({form, languages}) => {
     useEffect(() => {
         if (languages === true)
             form.postData({
-                url: '/locales/',
+                url: '/locales',
                 method: 'GET'
             }, ({data}) => {
-                setLanguageOptions(data)
+                if (typeof data === 'object') {
+                    setLanguageOptions(data)
+                }
             }, () => {
                 setLanguageOptions(null)
             })

@@ -1,7 +1,15 @@
 import {gzip, ungzip} from 'pako';
 
 export default async function post(
-    {url, data = {}, form, headers, method = 'POST', ...props}) {
+    {
+        url,
+        data = {},
+        form,
+        headers,
+        method = 'POST',
+        rawResponse = false,
+        ...props
+    }) {
     let init = {
         method,
         crossDomain: true,
@@ -19,6 +27,9 @@ export default async function post(
     }
     if (method !== 'GET') {
         init.body = gzip(JSON.stringify(data))
+    }
+    if (window.getPublicPath && url.startsWith('/')) {
+        url = `${window.getPublicPath()}${url}`;
     }
     return fetch(url, {...init, ...props}).then(async (response) => {
         let debugUrl, messages;
@@ -48,7 +59,7 @@ export default async function post(
             return {data: errors, response, messages}
         }
         return {
-            data: isJson ? await response.json() : await response.text(),
+            data: rawResponse ? response : (isJson ? await response.json() : await response.text()),
             debugUrl,
             messages
         }

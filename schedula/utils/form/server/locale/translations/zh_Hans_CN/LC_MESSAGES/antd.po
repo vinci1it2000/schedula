@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 1.0\n"
 "Report-Msgid-Bugs-To: vinci1it2000@gmail.com\n"
-"PO-Revision-Date: 2024-10-04 16:19+0000\n"
+"PO-Revision-Date: 2024-10-10 23:08+0000\n"
 "Last-Translator: Vincenzo Arcidiacono <vinci1it2000@gmail.com>\n"
 "Language-Team: English <vinci1it2000@gmail.com>\n"
 "MIME-Version: 1.0\n"
@@ -1557,3 +1557,11 @@ msgstr "取消"
 # traslated
 msgid "CloudDownloadField.actions"
 msgstr "行动"
+
+# traslated
+msgid "App.exportButton"
+msgstr "出口"
+
+# traslated
+msgid "App.exportTooltip"
+msgstr "将数据导出为静态站点"

@@ -18,6 +18,8 @@ export const locale = merge({}, en, {
         uploadTooltip: "Import data as JSON",
         cloudButton: "Cloud",
         cloudUploadTooltip: "Save data to Cloud",
+        exportButton: "Export",
+        exportTooltip: "Export data as static site",
         cloudUploadButton: "Save",
         cloudDownloadTooltip: "Import data from Cloud",
         cloudDownloadButton: "Import",

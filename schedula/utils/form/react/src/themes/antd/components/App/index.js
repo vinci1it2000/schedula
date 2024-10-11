@@ -12,7 +12,8 @@ import {
     CloudUploadOutlined,
     CloudDownloadOutlined,
     CloudOutlined,
-    WarningOutlined
+    WarningOutlined,
+    ExportOutlined
 } from '@ant-design/icons';
 import {
     Layout,
@@ -33,6 +34,7 @@ import CloudUploadField from '../../fields/CloudUploadField'
 import {useLocaleStore} from "../../models/locale";
 import isEmpty from "lodash/isEmpty";
 import {createLayoutElement} from "../../../../core";
+import {saveAs} from 'file-saver';
 
 const Errors = React.lazy(() => import('../Errors/Drawer'))
 const Debug = React.lazy(() => import('../Debug'))
@@ -71,10 +73,11 @@ const App = (
         urlContact,
         languages = true,
         logo,
-        userProps = {},
+        userProps,
         cloudUrl,
         urlConsent,
         hideErrors = false,
+        hideExport = true,
         hideNav = false,
         hideRun = false,
         hideDebug = false,
@@ -147,7 +150,7 @@ const App = (
     const [sliderCollapsed, setSliderCollapsed] = useState(true);
 
     const mustLogin = useMemo(() => {
-        const {loginRequired = false} = userProps
+        const {loginRequired = false} = userProps || {}
         return loginRequired === true || (typeof loginRequired === 'object' && loginRequired[pathname])
     }, [pathname, userProps])
 
@@ -254,6 +257,29 @@ const App = (
                                 toggleFullscreen()
                             } else if (key === 'download') {
                                 exportJSON(render.formData, 'file.json')
+                            } else if (key === 'export') {
+                                form.setState({
+                                    ...form.state, loading: true
+                                }, () => {
+                                    setTimeout(() => {
+                                        form.postData({
+                                            rawResponse: true,
+                                            url: `/export-form/${form.props.name}`,
+                                            data: form.state.formData
+                                        }, async ({data: response}) => {
+                                            saveAs(await response.blob(), `${form.props.name}.zip`);
+                                            form.setState({
+                                                ...form.state,
+                                                loading: false
+                                            })
+                                        }, () => {
+                                            form.setState({
+                                                ...form.state,
+                                                loading: false
+                                            })
+                                        })
+                                    }, 1000);
+                                })
                             } else if (key === 'upload') {
                                 impButton.current.click()
                             } else if (key === 'cloud-download') {
@@ -341,8 +367,18 @@ const App = (
                                         placement="right">
                                         {locale.uploadButton}
                                     </Tooltip>
+                                },
+                                hideExport ? null : {
+                                    icon: <ExportOutlined/>,
+                                    key: 'export',
+                                    className: 'export-button',
+                                    label: <Tooltip
+                                        title={locale.exportTooltip}
+                                        placement="right">
+                                        {locale.exportButton}
+                                    </Tooltip>
                                 }
-                            ]
+                            ].filter(v => v !== null)
                         }].filter(v => v !== null)}/>
                 </Sider>}
             <Content {...contentProps}>

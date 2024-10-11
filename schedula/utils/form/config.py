@@ -51,6 +51,9 @@ class Config:
         self.SCHEDULA_LOCALE_ENABLED = os.environ.get(
             "SCHEDULA_LOCALE_ENABLED", 'true'
         ).lower() == 'true'
+        self.SCHEDULA_EXPORT_FORM_ENABLED = os.environ.get(
+            "SCHEDULA_EXPORT_FORM_ENABLED", 'false'
+        ).lower() == 'true'
 
         # reCAPTCHA configuration
         self.RECAPTCHA_PUBLIC_KEY = os.environ.get(

@@ -173,7 +173,7 @@ class FormMap(WebMap):
             return lambda: attr
         return super(FormMap, self).__getattr__(item)
 
-    def render_form(self, form='index'):
+    def render_form(self, form='index', ctx=None):
         from flask import current_app
         from flask_babel import get_locale
         context = {
@@ -182,6 +182,7 @@ class FormMap(WebMap):
             'get_locale': get_locale
         }
         context.update(get_static_context())
+
         ref_dir = osp.join(current_app.static_folder, 'schedula', 'props')
         for i in ('js', 'css'):
             k = f'props_{i}'
@@ -194,6 +195,8 @@ class FormMap(WebMap):
                         fp = fp[:-3]
                     context[k] = f'props/{fp}'
                     break
+        if ctx is not None:
+            context.update(ctx)
         return get_template(form, context)
 
     @staticmethod
