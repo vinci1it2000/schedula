@@ -2,6 +2,18 @@ Changelog
 =========
 
 
+v1.5.35 (2024-10-11)
+--------------------
+
+Feat
+~~~~
+- (form): Update resources.
+
+- (form): Add export page service.
+
+- (form): Add initial values when overwriting CloudDownloadField.
+
+
 v1.5.34 (2024-10-09)
 --------------------
 
