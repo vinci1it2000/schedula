@@ -59,7 +59,7 @@ const CookiesModal = (
     }, [_formData, urlConsent])
     const {getLocale} = useLocaleStore()
     const locale = getLocale('Cookies')
-    const [visible, setVisible] = useState(!localStorage.getItem('consent-id'));
+    const [visible, setVisible] = useState(!localStorage.getItem('privacyConsentId'));
     const [loading, setLoading] = useState(true);
     const [consents, setConsents] = useState(null);
     const [newConsents, setNewConsents] = useState({});
@@ -69,13 +69,12 @@ const CookiesModal = (
                 consents[key] = default_value;
             }
         })
-        localStorage.setItem('consent-id', id || '');
-        localStorage.setItem('consents', JSON.stringify(consents));
+        localStorage.setItem('privacyConsentId', id || '');
         setConsents(consents)
         setNewConsents(consents)
     }, [])
     const postConsents = useCallback(() => {
-        const consentId = localStorage.getItem('consent-id');
+        const consentId = localStorage.getItem('privacyConsentId');
         form.postData({
             url: urlConsent, data: {id: consentId, consents: newConsents},
         }, ({data}) => {
@@ -118,7 +117,7 @@ const CookiesModal = (
 
     useEffect(() => {
         if (visible) {
-            const consentId = localStorage.getItem('consent-id');
+            const consentId = localStorage.getItem('privacyConsentId');
             if (consentId) {
                 setLoading(true);
                 form.postData({

@@ -154,6 +154,12 @@ const App = (
         return loginRequired === true || (typeof loginRequired === 'object' && loginRequired[pathname])
     }, [pathname, userProps])
 
+    const logoElement = useMemo(() => {
+        return logo ? createLayoutElement({
+            key: 'logo', layout: logo, render, isArray: false
+        }) : null
+    }, [logo, render])
+
     return <Layout key={'main'} style={{height: '100%'}}>
         {!hideNav || currentDataId || urlContact || languages || userProps || _items.length || logo ?
             <Header
@@ -171,9 +177,7 @@ const App = (
                     height: "100%",
                     textAlign: 'center',
                     lineHeight: 'normal'
-                }}>{logo ? createLayoutElement({
-                    key: 'logo', layout: logo, render, isArray: false
-                }) : null}</div>
+                }}>{logoElement}</div>
                 {_items.length ? <Menu
                     key={'left-menu'}
                     theme={theme}
@@ -447,20 +451,18 @@ const App = (
                 </> : null}
             </Content>
         </Layout>
-        {
-            footer ? <Footer
-                key={"footer"}
-                style={{
-                    position: 'sticky',
-                    bottom: 0,
-                    zIndex: 1,
-                    width: '100%',
-                    padding: '16px 50px',
-                    textAlign: 'center',
-                }}>
-                {footer}
-            </Footer> : null
-        }
+        {footer ? <Footer
+            key={"footer"}
+            style={{
+                position: 'sticky',
+                bottom: 0,
+                zIndex: 1,
+                width: '100%',
+                padding: '16px 50px',
+                textAlign: 'center',
+            }}>
+            {footer}
+        </Footer> : null}
         <FloatButton.Group key={"buttonFloat"}>
             {errors.length && !hideErrors ? (openErrors ?
                 <Errors render={render}
