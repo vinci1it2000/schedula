@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 1.0\n"
 "Report-Msgid-Bugs-To: vinci1it2000@gmail.com\n"
-"PO-Revision-Date: 2024-10-17 09:01+0000\n"
+"PO-Revision-Date: 2024-10-17 14:37+0000\n"
 "Last-Translator: Vincenzo Arcidiacono <vinci1it2000@gmail.com>\n"
 "Language-Team: English <vinci1it2000@gmail.com>\n"
 "MIME-Version: 1.0\n"
@@ -1585,3 +1585,23 @@ msgstr "重置"
 # traslated
 msgid "User.Register.avatarReset"
 msgstr "重置"
+
+# traslated
+msgid "User.Setting.cancelButton"
+msgstr "流产"
+
+# traslated
+msgid "User.Setting.labelName"
+msgstr "名字"
+
+# traslated
+msgid "User.Setting.labelSurname"
+msgstr "姓"
+
+# traslated
+msgid "User.Setting.labelUsername"
+msgstr "用户名"
+
+# traslated
+msgid "User.Setting.labelEmail"
+msgstr "电子邮件"

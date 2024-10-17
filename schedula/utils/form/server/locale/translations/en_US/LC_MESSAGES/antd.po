@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 1.0\n"
 "Report-Msgid-Bugs-To: vinci1it2000@gmail.com\n"
-"PO-Revision-Date: 2024-10-17 09:01+0000\n"
+"PO-Revision-Date: 2024-10-17 14:36+0000\n"
 "Last-Translator: Vincenzo Arcidiacono <vinci1it2000@gmail.com>\n"
 "Language-Team: English <vinci1it2000@gmail.com>\n"
 "MIME-Version: 1.0\n"
@@ -1338,7 +1338,22 @@ msgid "User.Register.avatarUpload"
 msgstr "Upload"
 
 msgid "User.Setting.avatarReset"
-msgstr "Reset"
+msgstr "Cancel"
 
 msgid "User.Register.avatarReset"
 msgstr "Reset"
+
+msgid "User.Setting.cancelButton"
+msgstr "Abort"
+
+msgid "User.Setting.labelName"
+msgstr "Name"
+
+msgid "User.Setting.labelSurname"
+msgstr "Surname"
+
+msgid "User.Setting.labelUsername"
+msgstr "Username"
+
+msgid "User.Setting.labelEmail"
+msgstr "E-mail"

@@ -148,7 +148,12 @@ export const locale = merge({}, en, {
     "User.Setting": {
         submitButton: 'Save',
         revertButton: 'Revert',
-        avatarReset: "Reset",
+        cancelButton: 'Abort',
+        labelName: 'Name',
+        labelSurname: "Surname",
+        labelEmail: "E-mail",
+        labelUsername: "Username",
+        avatarReset: "Cancel",
         avatarUpload: "Upload",
         firstnamePlaceholder: "Name",
         firstnameRequired: "Please input your Name!",

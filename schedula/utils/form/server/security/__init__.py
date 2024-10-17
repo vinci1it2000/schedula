@@ -9,8 +9,9 @@
 """
 It provides functions to build the user authentication service.
 """
-import json
 import os
+import re
+import json
 import inspect
 import secrets
 import logging
@@ -77,16 +78,31 @@ class JSONField(StringField):
     def _value(self):
         return json.dumps(super(JSONField, self)._value())
 
+
 def validate_json(form, field):
     try:
-        json.loads(field.data)
+        json.dumps(field.data)
     except ValueError:
         raise ValidationError("Invalid JSON format.")
+
+
+_re_base64_image_pattern = re.compile(
+    r'^data:image\/[a-zA-Z]+;base64,[A-Za-z0-9+/]+={0,2}$'
+)
+
+
+def is_base64_encoded_image(form, field):
+    if field.data and not _re_base64_image_pattern.match(field.data):
+        raise ValidationError(
+            "Invalid avatar format. It must be a Base64 encoded image URL."
+        )
+
+
 # Setup Flask-Security
 class EditForm(Form):
     firstname = StringField('firstname', [Required()])
     lastname = StringField('lastname', [Required()])
-    avatar = StringField('avatar')
+    avatar = StringField('avatar', [is_base64_encoded_image])
     custom_data = TextAreaField('custom_data', [validate_json])
 
 
