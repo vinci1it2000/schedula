@@ -21,17 +21,21 @@ import {useLocaleStore} from "../../../models/locale";
 import isEqual from "lodash/isEqual";
 import pick from "lodash/pick"
 import {useDropzone} from 'react-dropzone';
+import omit from "lodash/omit";
 
 export default function InfoForm(
-    {form, userInfo, urlEdit, setSpinning}) {
+    {form, userInfo, urlEdit, setSpinning, addUsername = false, customData}) {
     const [disabled, setDisabled] = useState(true);
     const [field_errors, setFieldErrors] = useState({});
     const [_form] = Form.useForm();
     const onFinish = useCallback((data) => {
         setSpinning(true)
+        const customDataKeys = (customData || []).map(({name}) => name)
+        const newData = omit(data, customDataKeys);
+        newData.custom_data = JSON.stringify(pick(data, customDataKeys))
         form.postData({
             url: urlEdit,
-            data: {...data, avatar: userImage},
+            data: newData
         }, ({data: {response: {user = {}}}}) => {
             setSpinning(false)
             form.setState((state) => ({
@@ -46,12 +50,18 @@ export default function InfoForm(
                 setFieldErrors(field_errors || {})
             }
         })
-    },[form, urlEdit, setSpinning])
+    }, [form, urlEdit, setSpinning, customData])
     const {getLocale} = useLocaleStore()
     const locale = getLocale('User.Setting')
-    const initialValues = useMemo(() => (pick(userInfo, [
-        'firstname', 'lastname', 'avatar', 'email', 'username'
-    ])), [])
+    const initialValues = useMemo(() => {
+        let {
+            custom_data,
+            ...values
+        } = pick(userInfo, [
+            'firstname', 'lastname', 'avatar', 'email', 'username', 'custom_data'
+        ])
+        return {...values, ...custom_data}
+    }, [])
     const [edited, setEdited] = useState(initialValues)
     const [userImage, setUserImage] = useState(initialValues.avatar);
     const {getRootProps, getInputProps} = useDropzone({
@@ -131,7 +141,7 @@ export default function InfoForm(
             onValuesChange={(_, allValues) => {
                 setEdited((edited) => ({...edited, ...allValues}))
             }}
-            onFinish={onFinish}>
+            onFinish={(data) => onFinish({avatar: userImage, ...data})}>
             <Form.Item
                 name="avatar"
                 validateStatus={field_errors.avatar ? "error" : undefined}
@@ -148,10 +158,12 @@ export default function InfoForm(
                         <div {...getRootProps({className: 'dropzone'})}>
                             <input {...getInputProps()} />
                             <label htmlFor='icon-button-file'>
-                                <Button type="primary">Upload</Button>
+                                <Button
+                                    type="primary">{locale.avatarUpload}</Button>
                             </label>
                         </div>}
-                    {disabled ? null : <Button onClick={onReset}>Reset</Button>}
+                    {disabled ? null :
+                        <Button onClick={onReset}>{locale.avatarReset}</Button>}
                 </Flex>
             </Form.Item>
             <Form.Item
@@ -188,10 +200,23 @@ export default function InfoForm(
                 <Input
                     prefix={<MailOutlined className="site-form-item-icon"/>}/>
             </Form.Item> : null}
-            {disabled && userInfo.username ? <Form.Item name="username">
-                <Input
-                    prefix={<UserOutlined className="site-form-item-icon"/>}/>
-            </Form.Item> : null}
+            {addUsername && disabled && userInfo.username ?
+                <Form.Item name="username">
+                    <Input
+                        prefix={<UserOutlined
+                            className="site-form-item-icon"/>}/>
+                </Form.Item> : null}
+            {(customData || []).map(({name, itemProps, inputProps}) =>
+                <Form.Item
+                    name={name}
+                    validateStatus={field_errors[name] ? "error" : undefined}
+                    help={field_errors[name]}
+                    {...itemProps}>
+                    <Input {...inputProps} onChange={() => {
+                        if (field_errors[name])
+                            setFieldErrors({...field_errors, [name]: undefined})
+                    }}/>
+                </Form.Item>)}
             <Form.Item>
                 {disabled ? null :
                     <Space>

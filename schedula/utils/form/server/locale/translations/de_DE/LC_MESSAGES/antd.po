@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 1.0\n"
 "Report-Msgid-Bugs-To: vinci1it2000@gmail.com\n"
-"PO-Revision-Date: 2024-10-10 23:08+0000\n"
+"PO-Revision-Date: 2024-10-17 09:01+0000\n"
 "Last-Translator: Vincenzo Arcidiacono <vinci1it2000@gmail.com>\n"
 "Language-Team: English <vinci1it2000@gmail.com>\n"
 "MIME-Version: 1.0\n"
@@ -1606,3 +1606,23 @@ msgstr "Exportieren"
 # traslated
 msgid "App.exportTooltip"
 msgstr "Exportieren von Daten als statische Site"
+
+# traslated
+msgid "User.billingPortalButton"
+msgstr "Abrechnungsportal"
+
+# traslated
+msgid "User.Setting.avatarUpload"
+msgstr "Hochladen"
+
+# traslated
+msgid "User.Register.avatarUpload"
+msgstr "Hochladen"
+
+# traslated
+msgid "User.Setting.avatarReset"
+msgstr "Zurücksetzen"
+
+# traslated
+msgid "User.Register.avatarReset"
+msgstr "Zurücksetzen"

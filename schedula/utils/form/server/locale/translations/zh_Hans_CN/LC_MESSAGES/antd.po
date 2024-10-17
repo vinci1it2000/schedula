@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 1.0\n"
 "Report-Msgid-Bugs-To: vinci1it2000@gmail.com\n"
-"PO-Revision-Date: 2024-10-10 23:08+0000\n"
+"PO-Revision-Date: 2024-10-17 09:01+0000\n"
 "Last-Translator: Vincenzo Arcidiacono <vinci1it2000@gmail.com>\n"
 "Language-Team: English <vinci1it2000@gmail.com>\n"
 "MIME-Version: 1.0\n"
@@ -1565,3 +1565,23 @@ msgstr "出口"
 # traslated
 msgid "App.exportTooltip"
 msgstr "将数据导出为静态站点"
+
+# traslated
+msgid "User.billingPortalButton"
+msgstr "计费门户"
+
+# traslated
+msgid "User.Setting.avatarUpload"
+msgstr "上传"
+
+# traslated
+msgid "User.Register.avatarUpload"
+msgstr "上传"
+
+# traslated
+msgid "User.Setting.avatarReset"
+msgstr "重置"
+
+# traslated
+msgid "User.Register.avatarReset"
+msgstr "重置"

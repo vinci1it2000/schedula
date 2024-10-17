@@ -17,14 +17,14 @@ import logging
 import flask_security
 import os.path as osp
 from ..extensions import db
-from werkzeug.datastructures import MultiDict
-from flask_principal import Permission, RoleNeed
 from sqlalchemy import Column, String, JSON
-from flask_security.models import fsqla_v3 as fsqla
 from flask import request, Blueprint, jsonify
-from flask_security.forms import (
-    ConfirmRegisterForm, Required, StringField, Form
-)
+from werkzeug.datastructures import MultiDict
+from wtforms import StringField, TextAreaField
+from wtforms.validators import ValidationError
+from flask_principal import Permission, RoleNeed
+from flask_security.models import fsqla_v3 as fsqla
+from flask_security.forms import ConfirmRegisterForm, Required, Form
 from flask_security.utils import base_render_json, suppress_form_csrf
 from flask_security import (
     Security as _Security, SQLAlchemyUserDatastore, current_user as cu,
@@ -51,6 +51,7 @@ class User(db.Model, fsqla.FsUserMixin):
     firstname = Column(String(255))
     lastname = Column(String(255))
     avatar = Column(JSON())
+    custom_data = Column(JSON())
     settings = Column(JSON())
 
     def name(self):
@@ -68,6 +69,7 @@ class User(db.Model, fsqla.FsUserMixin):
             'lastname': self.lastname,
             'avatar': self.avatar,
             'settings': self.settings,
+            'custom_data': self.custom_data
         }.items() if v is not None}
 
 
@@ -75,12 +77,17 @@ class JSONField(StringField):
     def _value(self):
         return json.dumps(super(JSONField, self)._value())
 
-
+def validate_json(form, field):
+    try:
+        json.loads(field.data)
+    except ValueError:
+        raise ValidationError("Invalid JSON format.")
 # Setup Flask-Security
 class EditForm(Form):
     firstname = StringField('firstname', [Required()])
     lastname = StringField('lastname', [Required()])
     avatar = StringField('avatar')
+    custom_data = TextAreaField('custom_data', [validate_json])
 
 
 class ExtendedConfirmRegisterForm(ConfirmRegisterForm, EditForm):

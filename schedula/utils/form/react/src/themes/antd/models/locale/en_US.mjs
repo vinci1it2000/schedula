@@ -67,7 +67,7 @@ export const locale = merge({}, en, {
         titleResetPassword: "Reset password",
         loginTooltip: 'Login',
         infoButton: 'Profile',
-        subscriptionButton: 'Subscription',
+        billingPortalButton: 'Billing Portal',
         changePasswordButton: 'Change password',
         settingButton: 'Settings',
         logoutButton: 'Logout'
@@ -128,6 +128,8 @@ export const locale = merge({}, en, {
         submitButton: "Register",
         or: "Or",
         login: "login!",
+        avatarReset: "Reset",
+        avatarUpload: "Upload",
         emailPlaceholder: "Email",
         emailRequired: "Please input your Email!",
         emailInvalid: "Invalid Email!",
@@ -146,6 +148,8 @@ export const locale = merge({}, en, {
     "User.Setting": {
         submitButton: 'Save',
         revertButton: 'Revert',
+        avatarReset: "Reset",
+        avatarUpload: "Upload",
         firstnamePlaceholder: "Name",
         firstnameRequired: "Please input your Name!",
         lastnamePlaceholder: "Surname",

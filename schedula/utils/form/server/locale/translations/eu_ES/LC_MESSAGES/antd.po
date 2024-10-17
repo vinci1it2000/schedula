@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 1.0\n"
 "Report-Msgid-Bugs-To: vinci1it2000@gmail.com\n"
-"PO-Revision-Date: 2024-10-10 23:08+0000\n"
+"PO-Revision-Date: 2024-10-17 09:01+0000\n"
 "Last-Translator: Vincenzo Arcidiacono <vinci1it2000@gmail.com>\n"
 "Language-Team: English <vinci1it2000@gmail.com>\n"
 "MIME-Version: 1.0\n"
@@ -1607,3 +1607,23 @@ msgstr "Esportatu"
 # traslated
 msgid "App.exportTooltip"
 msgstr "Datuak gune estatiko gisa esportatu"
+
+# traslated
+msgid "User.billingPortalButton"
+msgstr "Fakturazio ataria"
+
+# traslated
+msgid "User.Setting.avatarUpload"
+msgstr "Igo"
+
+# traslated
+msgid "User.Register.avatarUpload"
+msgstr "Igo"
+
+# traslated
+msgid "User.Setting.avatarReset"
+msgstr "Berrezartzea"
+
+# traslated
+msgid "User.Register.avatarReset"
+msgstr "Berrezartzea"

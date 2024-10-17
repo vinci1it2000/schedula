@@ -7,7 +7,7 @@ import {
     SettingOutlined,
     UserOutlined,
     LockOutlined,
-    CrownOutlined
+    BankOutlined
 } from "@ant-design/icons";
 import React, {useState, useEffect, useMemo, useRef} from "react";
 import {useLocaleStore} from "../../../models/locale";
@@ -49,12 +49,13 @@ export default function UserNav(
         urlLogin,
         urlRegister,
         registerAddUsername = false,
+        registerCustomData = [],
         urlConfirmMail,
         urlResetPassword,
         urlLogout,
         urlEdit,
         urlSettings,
-        urlSubscription,
+        urlBillingPortal,
         settingProps,
         formContext,
         containerRef
@@ -118,7 +119,7 @@ export default function UserNav(
     return <div key={id}>
         {logged ? <Dropdown key={'right-menu'} menu={{
             selectedKeys: [], onClick: ({key}) => {
-                if (!['subscription'].includes(key)) {
+                if (!['billing-portal'].includes(key)) {
                     setAuth(key)
                     setOpen(true)
                 }
@@ -128,10 +129,10 @@ export default function UserNav(
                 key: 'change-password',
                 icon: <LockOutlined/>,
                 label: locale.changePasswordButton
-            } : null), (urlSubscription ? {
-                key: 'subscription',
-                icon: <CrownOutlined/>,
-                label: locale.subscriptionButton,
+            } : null), (urlBillingPortal ? {
+                key: 'billing-portal',
+                icon: <BankOutlined/>,
+                label: locale.billingPortalButton,
                 onClick: () => {
                     portalRef.current.click()
                 }
@@ -153,13 +154,13 @@ export default function UserNav(
                 {userInfo.username}
                 <StripePortal
                     ref={portalRef}
-                    key={'subscription-portal'}
+                    key={'billing-portal'}
                     render={{formContext}}
                     width={"80%"}
                     height={"80%"}
                     left={"10%"}
                     bottom={"10%"}
-                    urlPortalSession={urlSubscription}
+                    urlPortalSession={urlBillingPortal}
                 />
             </Space>
         </Dropdown> : <Tooltip
@@ -201,7 +202,9 @@ export default function UserNav(
                         setAuth={setAuth}
                         setSpinning={setSpinning}
                         setOpen={setOpen}
-                        addUsername={registerAddUsername}/>
+                        addUsername={registerAddUsername}
+                        customData={registerCustomData}
+                    />
                 </Content>
                 <Content key='confirm' isActive={auth === 'confirm'}>
                     <ConfirmForm
@@ -257,7 +260,10 @@ export default function UserNav(
                         form={form}
                         userInfo={userInfo}
                         urlEdit={urlEdit}
-                        setSpinning={setSpinning}/>
+                        setSpinning={setSpinning}
+                        addUsername={registerAddUsername}
+                        customData={registerCustomData}
+                    />
                 </Content>
                 <Content key='settings' isActive={auth === 'settings'}>
                     <SettingsForm

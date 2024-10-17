@@ -77,18 +77,12 @@ class Wallet(db.Model):
         from flask import current_app as ca
         subscriptions = {}
         api_key = ca.config['STRIPE_SECRET_KEY']
-        day = datetime.datetime.today() if day is None else day
         products = {}
-        for tran in session.query(Txn).filter_by(
-                wallet_id=self.id, type_id=SUBSCRIPTION
-        ).filter(Txn.valid_from <= day).filter(or_(
-            Txn.expired_at == None, Txn.expired_at >= day
-        )).all():
-            subscription = stripe.Invoice.retrieve(
-                tran.stripe_id, api_key=api_key, expand=['subscription']
-            ).subscription
-            if subscription.status != 'active':
-                continue
+
+        for subscription in stripe.Subscription.list(
+                customer=user2stripe_customer(), status='active',
+                expand=['data.items.data.price'], api_key=api_key
+        ).auto_paging_iter():
             subs = {}
             for item in subscription.get('items').data:
                 product_id = item.price.product
@@ -268,8 +262,8 @@ class Txn(db.Model):
         DateTime(), nullable=True, onupdate=datetime.datetime.utcnow
     )
     created_by = db.Column(
-        db.Integer, db.ForeignKey('user.id'), nullable=False,
-        default=lambda: cu.id
+        db.Integer, db.ForeignKey('user.id'), nullable=True,
+        default=lambda: getattr(cu, 'id', None)
     )
     updated_by = db.Column(
         db.Integer, db.ForeignKey('user.id'), nullable=True,
@@ -360,26 +354,27 @@ def compute_line_items(quantity, tiers, type='graduated'):
 def user2stripe_customer(user=cu, limit=1, **kwargs):
     from flask import current_app as ca
     api_key = ca.config['STRIPE_SECRET_KEY']
-    for update, query in enumerate((
-            f"metadata['user_id']:'{user.id}'", f"email:'{user.email}'"
-    )):
-        result = stripe.Customer.search(
-            api_key=api_key, query=query, limit=limit, **kwargs
-        ).data
-        if result:
-            customer = result[0]
-            if update > 0:
-                customer = stripe.Customer.modify(
-                    customer.id, api_key=api_key,
-                    metadata={"user_id": str(user.id)}
-                )
-            break
-    else:
-        customer = stripe.Customer.create(
-            api_key=api_key, email=user.email,
-            name=f'{user.firstname} {user.lastname}',
-            metadata={'user_id': str(user.id)}
-        )
+    with Lock(f'Stripe-customer-{user.id}'):
+        for update, query in enumerate((
+                f"metadata['user_id']:'{user.id}'", f"email:'{user.email}'"
+        )):
+            result = stripe.Customer.search(
+                api_key=api_key, query=query, limit=limit, **kwargs
+            ).data
+            if result:
+                customer = result[0]
+                if update > 0:
+                    customer = stripe.Customer.modify(
+                        customer.id, api_key=api_key,
+                        metadata={"user_id": str(user.id)}
+                    )
+                break
+        else:
+            customer = stripe.Customer.create(
+                api_key=api_key, email=user.email,
+                name=f'{user.firstname} {user.lastname}',
+                metadata={'user_id': str(user.id)}
+            )
     return customer
 
 
@@ -437,7 +432,7 @@ def create_pricing_table():
 @bp.route('/create-customer-portal-session', methods=['POST'])
 @auth_required()
 def create_portal():
-    from flask import request, current_app as ca
+    from flask import request, current_app as ca, session
     try:
         data = request.get_json() if request.is_json else dict(request.form)
         data = json_secrets.secrets(data, False)
@@ -452,6 +447,7 @@ def create_portal():
             api_key=ca.config['STRIPE_SECRET_KEY'],
             **sh.combine_nested_dicts(data, base={
                 "customer": customer.id,
+                'locale': session.get('locale', 'en_US').split('_')[0]
             })
         )
     except Exception as e:
@@ -569,7 +565,7 @@ def format_line_items(line_items):
 
 @bp.route('/create-checkout-session', methods=['POST'])
 def create_payment():
-    from flask import request, current_app as ca
+    from flask import request, current_app as ca, session
     try:
         data = request.get_json() if request.is_json else dict(request.form)
         data = json_secrets.secrets(data, False)
@@ -606,7 +602,8 @@ def create_payment():
                 'customer_update': {"address": "auto"},
                 'automatic_tax': {'enabled': True},
                 'redirect_on_completion': 'never',
-                'metadata': metadata
+                'metadata': metadata,
+                'locale': session.get('locale', 'en_US').split('_')[0]
             })
         )
     except Exception as e:
@@ -684,9 +681,12 @@ def checkout_session_completed(session_id):
         return True
 
 
-def refund_charge(stripe_id, start_time, session):
+def refund_charge(stripe_id, start_time, session, type_ids=(CHARGE,)):
     with Lock(f'Txn-stripe-{stripe_id}'):
-        base = Txn.query.filter_by(stripe_id=stripe_id, type_id=CHARGE)
+        base = Txn.query.filter_by(stripe_id=stripe_id).filter(or_(*(
+            Txn.type_id == type_id for type_id in type_ids
+        )))
+
         base.filter(Txn.valid_from > start_time).delete(
             synchronize_session=False
         )
@@ -734,7 +734,9 @@ def subscription_invoice_paid(event):
             ).filter(Txn.valid_from <= start_time).order_by(
                 desc(Txn.valid_from)
             ).first().stripe_id
-            refund_charge(latest_invoice, start_time, db.session)
+            refund_charge(latest_invoice, start_time, db.session, (
+                CHARGE, SUBSCRIPTION
+            ))
         transactions = []
         for item in subscription.get('items').data:
             product = item.price.product
@@ -744,7 +746,10 @@ def subscription_invoice_paid(event):
                     type_id=SUBSCRIPTION,
                     product=product.name,
                     subtotal=invoice.subtotal,
-                    discount=invoice.discount,
+                    discount=sum((
+                        v['amount']
+                        for v in invoice.total_discount_amounts or []
+                    ), 0),
                     tax=invoice.tax,
                     total=invoice.total,
                     currency=invoice.currency,
@@ -783,23 +788,27 @@ def subscription_invoice_paid(event):
 
 
 def charge_refunded(event):
+    from sqlalchemy.exc import NoResultFound
     from flask import current_app as ca
     api_key = ca.config['STRIPE_SECRET_KEY']
     charge = event.data.object
     amount_refunded = charge.amount_refunded
-    invoice = charge.invoice
-    wallet_id = None
-    current_time = datetime.datetime.fromtimestamp(event.created)
-    for stripe_id in (invoice and (invoice,) or (
-            session.id for session in stripe.checkout.Session.list(
-        payment_intent=charge.payment_intent, api_key=api_key
-    ))):
-        if amount_refunded and wallet_id is None:
-            wallet_id = Txn.query.filter_by(stripe_id=stripe_id).filter(or_(
-                Txn.type_id == SUBSCRIPTION, Txn.type_id == PURCHASE
-            )).one().wallet_id
 
-        refund_charge(stripe_id, current_time, db.session)
+    try:
+        stripe_id = charge.invoice
+        wallet_id = Txn.query.filter_by(
+            stripe_id=stripe_id, type_id=SUBSCRIPTION
+        ).one().wallet_id
+    except NoResultFound:
+        stripe_id = stripe.checkout.Session.list(
+            payment_intent=charge.payment_intent, api_key=api_key, limit=1
+        ).data[0].id
+        wallet_id = Txn.query.filter_by(
+            stripe_id=stripe_id, type_id=PURCHASE
+        ).first().wallet_id
+    current_time = datetime.datetime.fromtimestamp(event.created)
+
+    refund_charge(stripe_id, current_time, db.session)
     if amount_refunded:
         db.session.add(Txn(
             type_id=REFUND,
