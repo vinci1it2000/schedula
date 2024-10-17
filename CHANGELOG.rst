@@ -2,6 +2,32 @@ Changelog
 =========
 
 
+v1.5.36 (2024-10-17)
+--------------------
+
+Feat
+~~~~
+- (form): Update resources.
+
+- (form): Update Cookies banner layout.
+
+
+Fix
+~~~
+- (form): Correct dev mode.
+
+- (form): Correct Info and register rendereing.
+
+- (form): Correct App rendering.
+
+- (form): Rename `subscription-portal` as `billing-portal` and add
+  customData to registration.
+
+- (form): Make `precompiledValidator` as optional and not as default.
+
+- (form): Simplify customer portal of stripe.
+
+
 v1.5.35 (2024-10-11)
 --------------------
 
