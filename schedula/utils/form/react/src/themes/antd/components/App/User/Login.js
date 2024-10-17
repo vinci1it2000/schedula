@@ -2,7 +2,8 @@ import {
     Button,
     Form,
     Checkbox,
-    Input
+    Input,
+    Spin
 } from 'antd'
 import {useState, useCallback} from "react";
 import {MailOutlined, LockOutlined} from '@ant-design/icons';
@@ -15,9 +16,9 @@ export default function LoginForm(
         urlRegister,
         setAuth,
         setOpen,
-        setSpinning,
         ...props
     }) {
+    const [spinning, setSpinning] = useState(false);
     const [field_errors, setFieldErrors] = useState({});
     const onFinish = useCallback(({email, password, remember}) => {
         setSpinning(true)
@@ -39,10 +40,10 @@ export default function LoginForm(
                 setFieldErrors(field_errors || {})
             }
         })
-    },[form, urlLogin])
+    }, [form, urlLogin])
     const {getLocale} = useLocaleStore()
     const locale = getLocale('User.Login')
-    return <Form
+    return <Spin spinning={spinning}><Form
         style={{maxWidth: '300px', margin: 'auto', paddingBottom: '15px'}}
         initialValues={{remember: true}}
         onFinish={onFinish}
@@ -121,5 +122,5 @@ export default function LoginForm(
             }}>
                 {locale.sendConfirmMail}</a></>
         </Form.Item>
-    </Form>
+    </Form></Spin>
 }

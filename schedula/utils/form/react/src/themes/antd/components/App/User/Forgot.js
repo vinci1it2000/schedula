@@ -1,14 +1,16 @@
 import {
     Button,
     Form,
-    Input
+    Input,
+    Spin
 } from 'antd'
 import {useState, useCallback} from "react";
 import {MailOutlined} from '@ant-design/icons';
 import {useLocaleStore} from "../../../models/locale";
 
 export default function ForgotForm(
-    {form, urlForgotPassword, setAuth, setSpinning}) {
+    {form, urlForgotPassword, setAuth}) {
+    const [spinning, setSpinning] = useState(false);
     const [field_errors, setFieldErrors] = useState({});
     const onFinish = useCallback((data) => {
         setSpinning(true)
@@ -24,10 +26,10 @@ export default function ForgotForm(
                 setFieldErrors(field_errors || {})
             }
         })
-    }, [form, urlForgotPassword, setAuth, setSpinning, setFieldErrors])
+    }, [form, urlForgotPassword, setAuth])
     const {getLocale} = useLocaleStore()
     const locale = getLocale('User.Forgot')
-    return <Form
+    return <Spin spinning={spinning}><Form
         style={{maxWidth: '300px', margin: 'auto', paddingBottom: '15px'}}
         onFinish={onFinish}>
         <Form.Item
@@ -59,5 +61,5 @@ export default function ForgotForm(
             }}>{locale.login}</a>
             </div>
         </Form.Item>
-    </Form>
+    </Form></Spin>
 }

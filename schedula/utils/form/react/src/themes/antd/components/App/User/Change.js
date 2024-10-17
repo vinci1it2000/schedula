@@ -1,7 +1,8 @@
 import {
     Button,
     Form,
-    Input
+    Input,
+    Spin
 } from 'antd'
 import {useState, useCallback} from "react";
 import {
@@ -10,8 +11,8 @@ import {
 import {useLocaleStore} from "../../../models/locale";
 
 export default function ChangePasswordForm(
-    {form, urlChangePassword, setAuth, setSpinning, setOpen}) {
-
+    {form, urlChangePassword, setAuth, setOpen}) {
+    const [spinning, setSpinning] = useState(false);
     const [field_errors, setFieldErrors] = useState({});
 
     const onFinish = useCallback((data) => {
@@ -41,10 +42,10 @@ export default function ChangePasswordForm(
                 setFieldErrors(field_errors || {})
             }
         })
-    }, [form, urlChangePassword, setAuth, setSpinning, setOpen])
+    }, [form, urlChangePassword, setAuth, setOpen])
     const {getLocale} = useLocaleStore()
     const locale = getLocale('User.ChangePassword')
-    return <Form
+    return <Spin spinning={spinning}><Form
         style={{maxWidth: '300px', margin: 'auto', paddingBottom: '15px'}}
         onFinish={onFinish}>
         <Form.Item
@@ -120,5 +121,5 @@ export default function ChangePasswordForm(
                 {locale.submitButton}
             </Button>
         </Form.Item>
-    </Form>
+    </Form></Spin>
 }

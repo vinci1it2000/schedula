@@ -1,7 +1,8 @@
 import {
     Button,
     Form,
-    Input
+    Input,
+    Spin
 } from 'antd'
 import {useState, useCallback} from "react";
 import {LockOutlined} from '@ant-design/icons';
@@ -9,7 +10,8 @@ import {useLocaleStore} from "../../../models/locale";
 import {useLocation} from 'react-router-dom';
 
 export default function ResetPasswordForm(
-    {form, urlResetPassword, setOpen, setSpinning, setAuth}) {
+    {form, urlResetPassword, setOpen, setAuth}) {
+    const [spinning, setSpinning] = useState(false);
     const [field_errors, setFieldErrors] = useState({});
     const {search} = useLocation()
     const onFinish = useCallback((data) => {
@@ -36,10 +38,10 @@ export default function ResetPasswordForm(
                 setFieldErrors(field_errors || {})
             }
         })
-    }, [form, urlResetPassword, setOpen, setSpinning, setAuth, search])
+    }, [form, urlResetPassword, setOpen, setAuth, search])
     const {getLocale} = useLocaleStore()
     const locale = getLocale('User.ResetPassword')
-    return <Form
+    return <Spin spinning={spinning}><Form
         style={{maxWidth: '300px', margin: 'auto', paddingBottom: '15px'}}
         onFinish={onFinish}>
         <Form.Item
@@ -102,5 +104,5 @@ export default function ResetPasswordForm(
             }}>{locale.login}</a>
             </div>
         </Form.Item>
-    </Form>
+    </Form></Spin>
 }

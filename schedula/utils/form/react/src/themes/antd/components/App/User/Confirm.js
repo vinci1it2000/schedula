@@ -1,15 +1,17 @@
 import {
     Button,
     Form,
-    Input
+    Input,
+    Spin
 } from 'antd'
 import {useCallback, useState} from "react";
 import {MailOutlined} from '@ant-design/icons';
 import {useLocaleStore} from "../../../models/locale";
 
 export default function ConfirmForm(
-    {form, urlConfirmMail, setAuth, setSpinning, setOpen}
+    {form, urlConfirmMail, setAuth, setOpen}
 ) {
+    const [spinning, setSpinning] = useState(false);
     const [field_errors, setFieldErrors] = useState({});
     const onFinish = useCallback(({email}) => {
         setSpinning(true)
@@ -38,10 +40,10 @@ export default function ConfirmForm(
                 setFieldErrors(field_errors || {})
             }
         })
-    }, [form, urlConfirmMail, setAuth, setSpinning, setOpen])
+    }, [form, urlConfirmMail, setAuth, setOpen])
     const {getLocale} = useLocaleStore()
     const locale = getLocale('User.Confirm')
-    return <Form
+    return <Spin spinning={spinning}><Form
         style={{maxWidth: '300px', margin: 'auto', paddingBottom: '15px'}}
         onFinish={onFinish}>
         <Form.Item
@@ -72,5 +74,5 @@ export default function ConfirmForm(
             }}>{locale.login}</a>
             </div>
         </Form.Item>
-    </Form>
+    </Form></Spin>
 }

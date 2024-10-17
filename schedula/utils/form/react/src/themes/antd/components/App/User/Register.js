@@ -3,7 +3,8 @@ import {
     Button,
     Flex,
     Form,
-    Input
+    Input,
+    Spin
 } from 'antd'
 import {useCallback, useState} from "react";
 import {
@@ -22,12 +23,11 @@ export default function RegisterForm(
         form,
         urlRegister,
         setAuth,
-        setSpinning,
         setOpen,
         customData,
         addUsername = false
     }) {
-
+    const [spinning, setSpinning] = useState(false);
     const [field_errors, setFieldErrors] = useState({});
     const onFinish = useCallback((data) => {
         setSpinning(true)
@@ -102,7 +102,7 @@ export default function RegisterForm(
         if (field_errors.avatar)
             setFieldErrors({...field_errors, avatar: undefined})
     }, []);
-    return <Form
+    return <Spin spinning={spinning}><Form
         style={{maxWidth: '300px', margin: 'auto', paddingBottom: '15px'}}
         onFinish={(data) => onFinish({avatar: userImage, ...data})}>
         <Form.Item
@@ -260,5 +260,5 @@ export default function RegisterForm(
                 setAuth('login')
             }}> {locale.login}</a>
         </Form.Item>
-    </Form>
+    </Form></Spin>
 }

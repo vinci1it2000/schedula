@@ -1,12 +1,14 @@
 import {
     Button,
-    Form
+    Form,
+    Spin
 } from 'antd'
 import {useLocaleStore} from "../../../models/locale";
-import {useCallback} from "react";
+import {useCallback, useState} from "react";
 
 export default function LogoutForm(
-    {form, urlLogout, setOpen, setAuth, setSpinning}) {
+    {form, urlLogout, setOpen, setAuth}) {
+    const [spinning, setSpinning] = useState(false);
     const onFinish = useCallback(() => {
         setSpinning(true)
         form.postData({
@@ -22,10 +24,10 @@ export default function LogoutForm(
         }, () => {
             setSpinning(false)
         })
-    }, [form, urlLogout, setOpen, setAuth, setSpinning])
+    }, [form, urlLogout, setOpen, setAuth])
     const {getLocale} = useLocaleStore()
     const locale = getLocale('User.Logout')
-    return <Form
+    return <Spin spinning={spinning}><Form
         style={{maxWidth: '300px', margin: 'auto', paddingBottom: '15px'}}
         onFinish={onFinish}>
         <Form.Item>
@@ -33,5 +35,5 @@ export default function LogoutForm(
                 {locale.submitButton}
             </Button>
         </Form.Item>
-    </Form>
+    </Form></Spin>
 }

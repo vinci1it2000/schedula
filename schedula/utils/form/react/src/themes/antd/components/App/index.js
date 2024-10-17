@@ -1,4 +1,4 @@
-import React, {useEffect, useRef, useState, useMemo} from 'react';
+import React, {useEffect, useRef, useState, useMemo, Suspense} from 'react';
 import {useLocation, Link} from 'react-router-dom';
 import {
     UploadOutlined,
@@ -24,7 +24,8 @@ import {
     Modal,
     Drawer,
     Typography,
-    Result
+    Result,
+    Skeleton
 } from 'antd';
 import {useFullscreen} from "ahooks";
 import exportJSON from "../../../../core/utils/Export"
@@ -202,23 +203,23 @@ const App = (
                         {currentDataId ? <Typography.Text keyboard>
                             # {currentDataId.id} - {currentDataId.name}
                         </Typography.Text> : null}
-                        {urlContact ? <ContactNav
+                        {urlContact ? <Suspense><ContactNav
                             key={'contact'}
                             form={form}
                             formContext={formContext}
                             containerRef={mainLayout}
-                            urlContact={urlContact}/> : null}
-                        <LanguageNav
+                            urlContact={urlContact}/></Suspense> : null}
+                        <Suspense><LanguageNav
                             key={'language'}
                             form={form}
-                            languages={languages}/>
+                            languages={languages}/></Suspense>
                         {userProps ?
-                            <UserNav
+                            <Suspense><UserNav
                                 key={'user'}
                                 form={form}
                                 formContext={formContext}
                                 containerRef={mainLayout}
-                                {...userProps}/> : null}
+                                {...userProps}/></Suspense> : null}
                     </Flex> : null}
             </Header> : null}
         <Layout hasSider key={"main"} ref={mainLayout} style={{
@@ -386,14 +387,16 @@ const App = (
                         }].filter(v => v !== null)}/>
                 </Sider>}
             <Content {...contentProps}>
-                {urlConsent ? <Cookies
-                    key={'consent'}
-                    render={render}
-                    urlConsent={urlConsent}
-                    style={{
-                        bottom: '16px',
-                        left: hideSideMenu ? '16px' : (sliderCollapsed ? '96px' : '216px')
-                    }}/> : null}
+                {urlConsent ? <Suspense>
+                    <Cookies
+                        key={'consent'}
+                        render={render}
+                        urlConsent={urlConsent}
+                        style={{
+                            bottom: '16px',
+                            left: hideSideMenu ? '16px' : (sliderCollapsed ? '96px' : '216px')
+                        }}/>
+                </Suspense> : null}
                 {mustLogin && !logged ? <Result
                     status="403"
                     title="403"
@@ -408,7 +411,9 @@ const App = (
                     </div> : null)
                 }) : children}
                 {!mustLogin && ((_items.length && !routes.some(({path}) => path === pathname)) || children === undefined) ?
-                    <ContentPage homePath={homePath} render={render}/> : null
+                    <Suspense fallback={<Skeleton/>}>
+                        <ContentPage homePath={homePath} render={render}/>
+                    </Suspense> : null
                 }
                 {cloudUrl ? <>
                     <CloudDownloadField
@@ -465,11 +470,13 @@ const App = (
         </Footer> : null}
         <FloatButton.Group key={"buttonFloat"}>
             {errors.length && !hideErrors ? (openErrors ?
-                <Errors render={render}
-                        onClose={() => {
-                            setOpenErrors(false)
-                        }}
-                        open={openErrors}/>
+                <Suspense fallback={<Skeleton/>}><Errors
+                    render={render}
+                    onClose={() => {
+                        setOpenErrors(false)
+                    }}
+                    open={openErrors}
+                /></Suspense>
                 : <FloatButton
                     icon={<WarningOutlined/>}
                     badge={{
@@ -487,7 +494,9 @@ const App = (
                 }}
                 open={openDebug}
                 key={'debug'}>
-                <Debug render={render}/>
+                <Suspense fallback={<Skeleton/>}>
+                    <Debug render={render}/>
+                </Suspense>
             </Drawer> : <FloatButton
                 icon={<BugOutlined/>}
                 onClick={() => {

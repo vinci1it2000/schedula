@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {Suspense} from 'react';
 import {
     registerComponent,
     registerComponentDomain,
@@ -27,7 +27,7 @@ async function renderForm(
 ) {
     return getTheme(theme).then(theme => {
         const root = ReactDOM.createRoot(element);
-        root.render(<Form
+        root.render(<Suspense><Form
             csrf_token={csrf_token}
             schema={schema}
             uiSchema={dereferenceSync(uiSchema)}
@@ -35,7 +35,7 @@ async function renderForm(
             url={url}
             theme={theme}
             formContext={formContext}
-            {...props}/>);
+            {...props}/></Suspense>);
     });
 }
 

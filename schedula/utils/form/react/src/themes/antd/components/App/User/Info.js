@@ -5,7 +5,8 @@ import {
     Form,
     Input,
     Segmented,
-    Space
+    Space,
+    Spin
 } from 'antd'
 import {useState, useMemo, useCallback} from "react";
 import {
@@ -24,7 +25,8 @@ import {useDropzone} from 'react-dropzone';
 import omit from "lodash/omit";
 
 export default function InfoForm(
-    {form, userInfo, urlEdit, setSpinning, addUsername = false, customData}) {
+    {form, userInfo, urlEdit, addUsername = false, customData}) {
+    const [spinning, setSpinning] = useState(false);
     const [disabled, setDisabled] = useState(true);
     const [field_errors, setFieldErrors] = useState({});
     const [_form] = Form.useForm();
@@ -32,7 +34,7 @@ export default function InfoForm(
         setSpinning(true)
         const customDataKeys = (customData || []).map(({name}) => name)
         const newData = omit(data, customDataKeys);
-        newData.custom_data = JSON.stringify(pick(data, customDataKeys))
+        newData.custom_data = pick(data, customDataKeys)
         form.postData({
             url: urlEdit,
             data: newData
@@ -50,7 +52,7 @@ export default function InfoForm(
                 setFieldErrors(field_errors || {})
             }
         })
-    }, [form, urlEdit, setSpinning, customData])
+    }, [form, urlEdit, customData])
     const {getLocale} = useLocaleStore()
     const locale = getLocale('User.Setting')
     const initialValues = useMemo(() => {
@@ -114,7 +116,7 @@ export default function InfoForm(
     const modified = useMemo(() => {
         return !isEqual(edited, initialValues)
     }, [edited, initialValues])
-    return <Flex gap="middle" vertical>
+    return <Spin spinning={spinning}><Flex gap="middle" vertical>
         <div key={'controls'}><Segmented
             options={[
                 {value: true, icon: <BulbOutlined/>},
@@ -236,5 +238,5 @@ export default function InfoForm(
                 }
             </Form.Item>
         </Form>
-    </Flex>
+    </Flex></Spin>
 }

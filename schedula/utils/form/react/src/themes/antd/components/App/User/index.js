@@ -1,5 +1,5 @@
 import {
-    Drawer, Tooltip, Button, Spin, Space, Dropdown, Avatar
+    Drawer, Tooltip, Button, Space, Dropdown, Avatar, Skeleton
 } from 'antd'
 import {
     LoginOutlined,
@@ -9,7 +9,7 @@ import {
     LockOutlined,
     BankOutlined
 } from "@ant-design/icons";
-import React, {useState, useEffect, useMemo, useRef} from "react";
+import React, {useState, useEffect, useMemo, useRef, Suspense} from "react";
 import {useLocaleStore} from "../../../models/locale";
 import isEmpty from "lodash/isEmpty";
 import {useLocation} from "react-router-dom";
@@ -39,6 +39,8 @@ const Content = ({isActive, children, style}) => {
         {hasRendered && children}
     </div>
 };
+
+
 export default function UserNav(
     {
         id = 'user-nav',
@@ -71,7 +73,6 @@ export default function UserNav(
 
     const {userInfo = {}, emitter} = form.state
     const {pathname, search, hash: anchor} = useLocation()
-    const [spinning, setSpinning] = useState(false);
     const [open, setOpen] = useState(false);
     const [auth, setAuth] = useState(null);
 
@@ -178,11 +179,13 @@ export default function UserNav(
         </Tooltip>}
         <Drawer
             key="Drawer"
+            autoFocus={false}
+            forceRender={true}
             rootStyle={{position: "absolute"}}
             title={titles[auth]}
-            closable={!spinning && !(mustLogin && !logged)}
+            closable={!(mustLogin && !logged)}
             onClose={() => {
-                if (!spinning && !(mustLogin && !logged)) {
+                if (!(mustLogin && !logged)) {
                     setOpen(false)
                     if (anchor) {
                         window.history.pushState({}, "", pathname + search);
@@ -194,13 +197,12 @@ export default function UserNav(
                 return containerRef.current
             }}
             open={open}>
-            <Spin key={'page'} spinning={spinning}>
+            <Suspense fallback={<Skeleton/>}>
                 <Content key='register' isActive={auth === 'register'}>
                     <RegisterForm
                         form={form}
                         urlRegister={urlRegister}
                         setAuth={setAuth}
-                        setSpinning={setSpinning}
                         setOpen={setOpen}
                         addUsername={registerAddUsername}
                         customData={registerCustomData}
@@ -211,7 +213,6 @@ export default function UserNav(
                         form={form}
                         urlConfirmMail={urlConfirmMail}
                         setAuth={setAuth}
-                        setSpinning={setSpinning}
                         setOpen={setOpen}/>
                 </Content>
                 <Content key='login' isActive={auth === 'login'}>
@@ -220,7 +221,6 @@ export default function UserNav(
                         urlLogin={urlLogin}
                         urlRegister={urlRegister}
                         setAuth={setAuth}
-                        setSpinning={setSpinning}
                         setOpen={setOpen}/>
                 </Content>
                 <Content key='forgot' isActive={auth === 'forgot'}>
@@ -228,14 +228,13 @@ export default function UserNav(
                         form={form}
                         urlForgotPassword={urlForgotPassword}
                         setAuth={setAuth}
-                        setSpinning={setSpinning}/>
+                    />
                 </Content>
                 <Content key='reset' isActive={auth === 'reset'}>
                     <ResetForm
                         form={form}
                         urlResetPassword={urlResetPassword}
                         setAuth={setAuth}
-                        setSpinning={setSpinning}
                         setOpen={setOpen}/>
                 </Content>
                 <Content key='change-password'
@@ -244,14 +243,12 @@ export default function UserNav(
                         form={form}
                         urlChangePassword={urlChangePassword}
                         setAuth={setAuth}
-                        setSpinning={setSpinning}
                         setOpen={setOpen}/>
                 </Content>
                 <Content key='logout' isActive={auth === 'logout'}>
                     <LogoutForm
                         form={form}
                         urlLogout={urlLogout}
-                        setSpinning={setSpinning}
                         setAuth={setAuth}
                         setOpen={setOpen}/>
                 </Content>
@@ -260,7 +257,6 @@ export default function UserNav(
                         form={form}
                         userInfo={userInfo}
                         urlEdit={urlEdit}
-                        setSpinning={setSpinning}
                         addUsername={registerAddUsername}
                         customData={registerCustomData}
                     />
@@ -271,11 +267,10 @@ export default function UserNav(
                         userInfo={userInfo}
                         urlSettings={urlSettings}
                         setAuth={setAuth}
-                        setSpinning={setSpinning}
                         {...settingProps}
                     />
                 </Content>
-            </Spin>
+            </Suspense>
         </Drawer>
     </div>
 }

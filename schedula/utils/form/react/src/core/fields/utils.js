@@ -374,7 +374,6 @@ export function LayoutElement({id: key, layout, render}) {
         return props;
     }, [eprops, fprops, vprops, form, form.state, form.state.formData, props_, render, layout, key])
 
-
     props.key = key
     if (type) {
         props.render = render
