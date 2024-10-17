@@ -142,7 +142,10 @@ const CookiesModal = (
     const edited = useMemo(() => (consents !== null && !isEqual(newConsents, consents)), [newConsents, consents]);
     return <>
         <Modal
-            style={{bottom: 20, top: 'unset', left: 20, position: 'absolute'}}
+            style={{
+                bottom: 20, top: 'unset', left: 20, position: 'absolute',
+                maxHeight: "calc(100vh - 40px)", overflowY: 'auto'
+            }}
             title={locale.modalTitle}
             closable={consents !== null}
             onCancel={() => {
@@ -172,9 +175,49 @@ const CookiesModal = (
                 <Divider key="divider"/>
                 <Collapse
                     key={"options"}
-                    size="small"
                     items={[{
-                        key: '1', label: locale.settingsText, children: <Space
+                        styles: {header: {alignItems: "center"}},
+                        key: '1', label: locale.settingsText,
+                        extra: <Flex key={"buttons"} justify="end"
+                                     gap="middle">
+                            <Button
+                                type={consentItems.reduce((acc, {
+                                    key, disabled
+                                }) => {
+                                    return acc && (disabled || !newConsents[key])
+                                }, true) ? "primary" : "dashed"}
+                                key={"reject"}
+                                onClick={(event) => {
+                                    event.stopPropagation();
+                                    setNewConsents(consents => consentItems.reduce((acc, {
+                                        key, disabled
+                                    }) => {
+                                        if (!disabled) acc[key] = false
+                                        return acc
+                                    }, {...consents}))
+                                }}>
+                                {locale.rejectAllButton}
+                            </Button>
+                            <Button
+                                key={"accept"}
+                                type={consentItems.reduce((acc, {
+                                    key, disabled
+                                }) => {
+                                    return acc && (disabled || newConsents[key])
+                                }, true) ? "primary" : "dashed"}
+                                onClick={(event) => {
+                                    event.stopPropagation();
+                                    setNewConsents(consents => consentItems.reduce((acc, {
+                                        key, disabled
+                                    }) => {
+                                        if (!disabled) acc[key] = true
+                                        return acc
+                                    }, {...consents}))
+                                }}>
+                                {locale.acceptAllButton}
+                            </Button>
+                        </Flex>,
+                        children: <Space
                             style={{
                                 maxHeight: 200, overflowY: 'auto', width: '100%'
                             }}
@@ -185,43 +228,7 @@ const CookiesModal = (
                             <Markdown render={{formData}} key={'intro'}>
                                 {locale.settingsIntro}
                             </Markdown>
-                            <Flex key={"buttons"} justify="end"
-                                  gap="middle">
-                                <Button
-                                    type={consentItems.reduce((acc, {
-                                        key, disabled
-                                    }) => {
-                                        return acc && (disabled || !newConsents[key])
-                                    }, true) ? "primary" : "dashed"}
-                                    key={"reject"}
-                                    onClick={() => {
-                                        setNewConsents(consents => consentItems.reduce((acc, {
-                                            key, disabled
-                                        }) => {
-                                            if (!disabled) acc[key] = false
-                                            return acc
-                                        }, {...consents}))
-                                    }}>
-                                    {locale.rejectAllButton}
-                                </Button>
-                                <Button
-                                    key={"accept"}
-                                    type={consentItems.reduce((acc, {
-                                        key, disabled
-                                    }) => {
-                                        return acc && (disabled || newConsents[key])
-                                    }, true) ? "primary" : "dashed"}
-                                    onClick={() => {
-                                        setNewConsents(consents => consentItems.reduce((acc, {
-                                            key, disabled
-                                        }) => {
-                                            if (!disabled) acc[key] = true
-                                            return acc
-                                        }, {...consents}))
-                                    }}>
-                                    {locale.acceptAllButton}
-                                </Button>
-                            </Flex>
+
                             <Divider key="divider"/>
                             {consentItems.map(({key, ...item}) => <Consent
                                 {...item}
