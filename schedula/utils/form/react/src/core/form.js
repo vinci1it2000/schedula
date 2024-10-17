@@ -37,7 +37,7 @@ function Form(
         liveValidate = true,
         nonce,
         language: _language,
-        precompiledValidator: _precompiledValidator = true,
+        precompiledValidator: _precompiledValidator = false,
         formContext,
         ...props
     }
