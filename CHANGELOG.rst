@@ -2,6 +2,15 @@ Changelog
 =========
 
 
+v1.5.37 (2024-10-18)
+--------------------
+
+Feat
+~~~~
+- (form): Add some extra information in metadata when creating stripe
+  session.
+
+
 v1.5.36 (2024-10-17)
 --------------------
 
