@@ -569,11 +569,14 @@ def create_payment():
     try:
         data = request.get_json() if request.is_json else dict(request.form)
         data = json_secrets.secrets(data, False)
-        metadata = {
-            f'customer_{k}': getattr(cu, k)
-            for k in ('id', 'firstname', 'lastname')
-            if hasattr(cu, k)
-        }
+
+        metadata = {f'customer_{k}': getattr(cu, k) for k in (
+            'id', 'firstname', 'lastname', 'email'
+        ) if hasattr(cu, k)}
+        metadata.update({f'customer_{k}': json.dumps(getattr(cu, k)) for k in (
+            'custom_data',
+        ) if hasattr(cu, k)})
+
         api_key = ca.config['STRIPE_SECRET_KEY']
 
         if 'line_items' in data:
@@ -609,9 +612,7 @@ def create_payment():
     except Exception as e:
         return jsonify(error=str(e))
 
-    return jsonify(
-        clientSecret=session.client_secret, sessionId=session.id
-    )
+    return jsonify(clientSecret=session.client_secret, sessionId=session.id)
 
 
 def checkout_session_completed(session_id):
@@ -733,10 +734,12 @@ def subscription_invoice_paid(event):
                 wallet_id=wallet.id, type_id=SUBSCRIPTION
             ).filter(Txn.valid_from <= start_time).order_by(
                 desc(Txn.valid_from)
-            ).first().stripe_id
-            refund_charge(latest_invoice, start_time, db.session, (
-                CHARGE, SUBSCRIPTION
-            ))
+            ).first()
+            if latest_invoice:
+                latest_invoice = latest_invoice.stripe_id
+                refund_charge(latest_invoice, start_time, db.session, (
+                    CHARGE, SUBSCRIPTION
+                ))
         transactions = []
         for item in subscription.get('items').data:
             product = item.price.product
