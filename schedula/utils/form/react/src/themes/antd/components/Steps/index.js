@@ -36,6 +36,7 @@ const Steps = (
         previousButton = {},
         nextButton = {},
         setCurrentStep = null,
+        initial = 0,
         ...props
     }
 ) => {
@@ -44,7 +45,7 @@ const Steps = (
     const {getLocale} = useLocaleStore()
     const locale = getLocale('Tour')
     const {token} = theme.useToken();
-    const [current, setCurrent] = useState(0);
+    const [current, setCurrent] = useState(initial);
     useEffect(() => {
         if (setCurrentStep)
             setCurrentStep(current)
