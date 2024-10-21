@@ -66,7 +66,7 @@ def export(form):
             f'/static/schedula/forms/{form}-data.json', json.dumps(data)
         )
         zipf.writestr(
-            f'/locales', json.dumps(ca.config.get('BABEL_LANGUAGES'))
+            f'/locales/languages.json', json.dumps(ca.config.get('BABEL_LANGUAGES'))
         )
         zipf.write(osp.join(osp.dirname(__file__), 'start.py'), '/start.py')
     output_zip.seek(0)

@@ -4,6 +4,19 @@ import po2i18next from 'gettext-converter/po2i18next'
 import isString from "lodash/isString";
 import {isObject} from "@rjsf/utils";
 
+function joinPaths(path1, path2) {
+    // If both paths have slashes at the join point, remove one
+    if (path1.endsWith('/') && path2.startsWith('/')) {
+        return path1 + path2.slice(1);
+    }
+    // If neither path has a slash at the join point, add one
+    if (!path1.endsWith('/') && !path2.startsWith('/')) {
+        return `${path1}/${path2}`;
+    }
+    // Otherwise, join as is
+    return path1 + path2;
+}
+
 i18n.use(Backend).init({
     fallbackLng: 'en_US',
     lng: document.documentElement.lang,
@@ -19,7 +32,12 @@ i18n.use(Backend).init({
         escapeValue: false, // not needed for react as it escapes by default
     },
     backend: {
-        loadPath: '/locales/{{lng}}/{{ns}}',
+        loadPath: (languages, namespaces) => {
+            let url = '/locales/{{lng}}/{{ns}}'
+            if (window.getPublicPath)
+                url = joinPaths(window.getPublicPath(), url);
+            return url
+        },
         parse: function (data) {
             return po2i18next(data, {compatibilityJSON: 'v4'})
         }

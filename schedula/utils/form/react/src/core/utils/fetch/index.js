@@ -29,7 +29,10 @@ export default async function post(
         init.body = gzip(JSON.stringify(data))
     }
     if (window.getPublicPath && url.startsWith('/')) {
-        url = `${window.getPublicPath()}${url}`;
+        let publicPath = window.getPublicPath()
+        if (publicPath.endsWith('/'))
+            url = url.slice(1)
+        url = `${publicPath}${url}`;
     }
     return fetch(url, {...init, ...props}).then(async (response) => {
         let debugUrl, messages;

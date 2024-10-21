@@ -44,8 +44,7 @@ def locales(language, namespace):
     raise NotFound()
 
 
-@bp.route('', methods=['GET'])
-@bp.route('/', methods=['GET'])
+@bp.route('/languages.json', methods=['GET'])
 def get_locales():
     return jsonify(current_app.config.get('BABEL_LANGUAGES'))
 
