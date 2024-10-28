@@ -222,6 +222,9 @@ export default function CloudDownloadField(
             fetchData();
     }, [openModal, modal, fetchData]);
     useEffect(() => {
+        _form.setFieldsValue(openSave === 2 ? {'new-name': currentKey.name} : {})
+    }, [openSave, currentKey]);
+    useEffect(() => {
         if (!isEqual(_currentKey, currentKey))
             setCurrentKey(_currentKey)
     }, [_currentKey])
@@ -355,8 +358,7 @@ export default function CloudDownloadField(
                 setOpenModal(false)
             }} {...modal}>{content}</Modal>
     }
-    content = <Form key={'form'} form={_form} component={false}
-                    initialValues={openSave === 2 ? {'new-name': currentKey.name} : {}}>
+    content = <Form key={'form'} form={_form} component={false}>
         {content}
         <Modal
             key={'save'}
