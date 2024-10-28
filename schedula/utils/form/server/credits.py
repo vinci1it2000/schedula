@@ -355,26 +355,23 @@ def user2stripe_customer(user=cu, limit=1, **kwargs):
     from flask import current_app as ca
     api_key = ca.config['STRIPE_SECRET_KEY']
     with Lock(f'Stripe-customer-{user.id}'):
-        for update, query in enumerate((
-                f"metadata['user_id']:'{user.id}'", f"email:'{user.email}'"
-        )):
-            result = stripe.Customer.search(
-                api_key=api_key, query=query, limit=limit, **kwargs
-            ).data
-            if result:
-                customer = result[0]
-                if update > 0:
-                    customer = stripe.Customer.modify(
-                        customer.id, api_key=api_key,
-                        metadata={"user_id": str(user.id)}
-                    )
-                break
+        for customer in stripe.Customer.search(
+                query=f"email:'{user.email}'", api_key=api_key, limit=1,
+                **kwargs
+        ).data:
+            if customer.metadata.user_id != str(user.id):
+                customer = stripe.Customer.modify(
+                    customer.id, api_key=api_key,
+                    metadata={"user_id": str(user.id)}
+                )
+            break
         else:
             customer = stripe.Customer.create(
                 api_key=api_key, email=user.email,
                 name=f'{user.firstname} {user.lastname}',
                 metadata={'user_id': str(user.id)}
             )
+
     return customer
 
 
@@ -803,12 +800,16 @@ def charge_refunded(event):
             stripe_id=stripe_id, type_id=SUBSCRIPTION
         ).one().wallet_id
     except NoResultFound:
-        stripe_id = stripe.checkout.Session.list(
-            payment_intent=charge.payment_intent, api_key=api_key, limit=1
-        ).data[0].id
-        wallet_id = Txn.query.filter_by(
-            stripe_id=stripe_id, type_id=PURCHASE
-        ).first().wallet_id
+        try:
+            stripe_id = stripe.checkout.Session.list(
+                payment_intent=charge.payment_intent, api_key=api_key, limit=1
+            ).data[0].id
+            wallet_id = Txn.query.filter_by(
+                stripe_id=stripe_id, type_id=PURCHASE
+            ).first().wallet_id
+        except (IndexError, AttributeError):
+            return
+
     current_time = datetime.datetime.fromtimestamp(event.created)
 
     refund_charge(stripe_id, current_time, db.session)
