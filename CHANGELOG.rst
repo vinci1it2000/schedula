@@ -2,6 +2,28 @@ Changelog
 =========
 
 
+v1.5.38 (2024-10-28)
+--------------------
+
+Feat
+~~~~
+- (form): Update resources.
+
+- (form): Add default name in CloudDownloadField.
+
+- (form): Make stripe subscription checkout forward to portal when
+  customer has subscriptions.
+
+- (form): Add `initial` props to `Steps` component.
+
+
+Fix
+~~~
+- (form): Correct stripe customer selection.
+
+- (form): Correct export structure for locales.
+
+
 v1.5.37 (2024-10-18)
 --------------------
 
