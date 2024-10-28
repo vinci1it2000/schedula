@@ -428,11 +428,14 @@ def create_pricing_table():
 
 @bp.route('/create-customer-portal-session', methods=['POST'])
 @auth_required()
-def create_portal():
+def create_portal(skip_data=False):
     from flask import request, current_app as ca, session
     try:
-        data = request.get_json() if request.is_json else dict(request.form)
-        data = json_secrets.secrets(data, False)
+        if skip_data:
+            data = {}
+        else:
+            data = request.get_json() if request.is_json else dict(request.form)
+            data = json_secrets.secrets(data, False)
         customer = user2stripe_customer(expand=['data.subscriptions'])
 
         if customer.subscriptions.data:
@@ -444,6 +447,7 @@ def create_portal():
             api_key=ca.config['STRIPE_SECRET_KEY'],
             **sh.combine_nested_dicts(data, base={
                 "customer": customer.id,
+                'return_url': request.referrer,
                 'locale': session.get('locale', 'en_US').split('_')[0]
             })
         )
@@ -566,6 +570,12 @@ def create_payment():
     try:
         data = request.get_json() if request.is_json else dict(request.form)
         data = json_secrets.secrets(data, False)
+        if data['mode'] == 'subscription':
+            customer = user2stripe_customer(expand=['data.subscriptions'])
+            if any(v.status == 'active' for v in customer.subscriptions.data):
+                return create_portal(True)
+        else:
+            customer = user2stripe_customer()
 
         metadata = {f'customer_{k}': getattr(cu, k) for k in (
             'id', 'firstname', 'lastname', 'email'
@@ -598,7 +608,7 @@ def create_payment():
             api_key=api_key,
             **sh.combine_nested_dicts(data, base={
                 'ui_mode': 'embedded',
-                'customer': user2stripe_customer().id,
+                'customer': customer.id,
                 'customer_update': {"address": "auto"},
                 'automatic_tax': {'enabled': True},
                 'redirect_on_completion': 'never',

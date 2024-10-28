@@ -196,7 +196,7 @@ const PricingCard = (
             footer={null}
             open={openCheckout}
             onClose={() => setOpenCheckout(false)}>
-            <Stripe
+            {openCheckout ? <Stripe
                 render={{formContext, uiSchema, registry}}
                 urlCreateCheckoutSession={urlCreateCheckoutSession}
                 urlCreateCheckoutStatus={urlCreateCheckoutStatus}
@@ -205,7 +205,7 @@ const PricingCard = (
                     if (onCheckout)
                         onCheckout(data)
                     setOpenCheckout(false)
-                }}/>
+                }}/> : null}
         </Drawer>
     </ConfigProvider>
 };

@@ -1,8 +1,7 @@
 import {loadStripe} from "@stripe/stripe-js";
 import React, {useState, useCallback, useMemo, useEffect} from "react";
 import {
-    EmbeddedCheckoutProvider,
-    EmbeddedCheckout
+    EmbeddedCheckoutProvider, EmbeddedCheckout
 } from "@stripe/react-stripe-js";
 import {getTemplate, getUiOptions} from "@rjsf/utils";
 
@@ -25,11 +24,10 @@ export default function Stripe(
     const Skeleton = getTemplate('Skeleton', registry, uiOptions);
     const [clientSecret, setClientSecret] = useState(clientSecret_);
     const [sessionId, setSessionId] = useState(sessionId_);
-
+    const {state: {language}} = form
     const stripe = useMemo(() => {
         const {stripe} = form.state
-        if (stripe)
-            return stripe;
+        if (stripe) return stripe;
         return loadStripe(stripeKey).then(stripe => {
             form.setState((state) => ({...state, stripe}))
             return stripe
@@ -39,21 +37,25 @@ export default function Stripe(
         if (!clientSecret) {
             form.postData({
                 url: urlCreateCheckoutSession,
-                data: checkoutProps
-            }, ({data: {sessionId, clientSecret}}) => {
-                setSessionId(sessionId)
-                setClientSecret(clientSecret)
+                data: {locale: language.replace('_', '-').split('-')[0], ...checkoutProps}
+            }, ({
+                    data: {sessionId, clientSecret, session_url, subscription}
+                }) => {
+                if (session_url) {
+                    window.location.href = session_url
+                } else {
+                    setSessionId(sessionId)
+                    setClientSecret(clientSecret)
+                }
             })
         }
-    })
+    }, [language])
     const onComplete = useCallback(() => {
         form.postData({
-            url: `${urlCreateCheckoutStatus}/${sessionId}`,
-            method: 'GET'
+            url: `${urlCreateCheckoutStatus}/${sessionId}`, method: 'GET'
         }, ({data}) => {
             form.setState((state) => ({...state, userInfo: data.userInfo}))
-            if (onCheckout)
-                onCheckout(data)
+            if (onCheckout) onCheckout(data)
         });
     }, [form, onCheckout, urlCreateCheckoutStatus, sessionId]);
     return <Skeleton key="stripe" loading={!clientSecret}>
