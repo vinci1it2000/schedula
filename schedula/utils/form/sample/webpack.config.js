@@ -14,6 +14,7 @@ const imageInlineSizeLimit = parseInt(
 );
 const CompressionPlugin = require("compression-webpack-plugin");
 const getCSSModuleLocalIdent = require('react-dev-utils/getCSSModuleLocalIdent');
+const WebpackRequireFrom = require('webpack-require-from');
 
 // style files regexes
 const cssRegex = /\.css$/;
@@ -347,6 +348,38 @@ module.exports = function (_env, argv) {
             'lodash': 'lodash'
         },
         plugins: [
+            {
+                apply: (compiler) => {
+                    compiler.hooks.watchRun.tap('WatchRunPlugin', (compilation) => {
+                        let pattern = path.resolve(__dirname, 'root', 'static', 'schedula', 'props', 'js', '*.????????.js')
+                        glob(pattern, (err, files) => {
+                            if (err) {
+                                console.error('Error finding files:', err);
+                                return;
+                            }
+
+                            // Filter out files that end with '.chunk.js'
+                            const filteredFiles = files.filter(file => !file.endsWith('.chunk.js'));
+
+                            // Loop through and delete each matching file
+                            filteredFiles.forEach(file => {
+                                try {
+                                    fs.rmSync(file, {force: true});
+                                    fs.rmSync(file + '.map', {force: true});
+                                    console.log(`Deleted: ${file}`);
+                                } catch (error) {
+                                    console.error(`Error deleting file: ${file}`, error);
+                                }
+                            });
+                        });
+
+                    });
+                }
+            },
+            new WebpackRequireFrom({
+                // You can specify a function or a string here
+                methodName: 'getPublicPath',  // the name of the function to call at runtime to determine the path
+            }),
             // This gives some necessary context to module not found errors, such as
             // the requesting resource.
             new ModuleNotFoundPlugin('.'),
