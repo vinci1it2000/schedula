@@ -13,7 +13,11 @@
     <script>
         window.getPublicPath = function () {
             {% if is_static %}
-            return `${window.location.origin}/`
+            let urlWithoutQuery = window.location.origin + window.location.pathname;
+            if (!urlWithoutQuery.endsWith('/')) {
+                urlWithoutQuery += '/';
+            }
+            return urlWithoutQuery
             {% else %}
             return ""
             {% endif %}
