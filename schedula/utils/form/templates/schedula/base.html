@@ -19,7 +19,7 @@
             }
             return urlWithoutQuery
             {% else %}
-            return ""
+            return  window.location.origin.replace(/\/+$/, '') + "/" +"{{ app_root }}".replace(/^\/+/, '')
             {% endif %}
         };
     </script>
@@ -121,7 +121,7 @@
                         form.flashMessages(messages)
                         fetchData(`${name}-data.json`).then(formData => {
                             form.onChange(formData)
-                        })
+                        }).catch(error => {})
                     },
                     ..._schedulaProps
                 })

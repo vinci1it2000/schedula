@@ -98,4 +98,8 @@ def basic_app(sitemap, app):
         from .export import ExportForm
         ExportForm(app, sitemap)
 
+    @app.context_processor
+    def inject_application_root():
+        return dict(app_root=app.config.get('APPLICATION_ROOT', ''))
+
     return app

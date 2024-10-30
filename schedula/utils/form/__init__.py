@@ -73,17 +73,30 @@ def get_static_context():
     return STATIC_CONTEXT
 
 
-def get_template(form, context):
+def get_form_name(name):
+    from flask import current_app
+    for k in name.split('/')[:1]:
+        for sdir in (current_app.static_folder, static_dir):
+            sd = osp.join(sdir, 'schedula', 'forms')
+            for j in ('schema', 'ui'):
+                if osp.exists(osp.join(sd, f'{k}-{j}.json')):
+                    return k
+    return 'index'
+
+
+def get_template(form, context, name=None):
     from flask import render_template
+    if name is None:
+        name = get_form_name(form)
     try:
         template = f'schedula/{form}.html'
-        return render_template(template, name=form, form_id=form, **context)
+        return render_template(template, name=name, form_id=name, **context)
     except TemplateNotFound:
         form = '/'.join(form.split('/')[:-1])
         if form:
-            return get_template(form, context)
+            return get_template(form, context, name)
         # noinspection PyUnresolvedReferences
-        return get_template('index', context)
+        return get_template('index', context, name=name)
 
 
 def send_static_file(
