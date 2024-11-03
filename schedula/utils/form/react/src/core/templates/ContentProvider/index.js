@@ -2,7 +2,6 @@ import React, {useEffect} from "react";
 import {PlasmicRootProvider} from '@plasmicapp/loader-react';
 import {usePlasmicStore} from "../../models/plasmic";
 import {Trans, useTranslation} from 'react-i18next';
-
 // Defined as a hook; should be used and passed as translator
 // prop to PlasmicRootProvider
 function usePlasmicTranslator() {

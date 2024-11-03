@@ -175,8 +175,7 @@ export default class Form extends BaseForm {
                 schemaValidationErrors: []
             })
         }
-        if (callback)
-            callback(this)
+        if (callback) callback(this)
     }, 50)
 
     editOnChange(formData, id) {
@@ -333,12 +332,11 @@ export default class Form extends BaseForm {
             }
 
             this.setState(state, () => {
-                this.postData({data, ...detail}, (
-                    {
-                        data: postData,
-                        debugUrl,
-                        state: fetchState
-                    }) => {
+                this.postData({data, ...detail}, ({
+                                                      data: postData,
+                                                      debugUrl,
+                                                      state: fetchState
+                                                  }) => {
                     const {data} = this.postSubmit({
                         data: postData, input, formData: newFormData
                     })
@@ -360,8 +358,7 @@ export default class Form extends BaseForm {
                         } else {
                             if (onSubmit) {
                                 onSubmit({
-                                    ...this.state,
-                                    status: "submitted"
+                                    ...this.state, status: "submitted"
                                 }, event)
                             }
                         }
@@ -403,13 +400,11 @@ export default class Form extends BaseForm {
                 return response
             }
         }).catch((error = {}) => {
-            if (notify)
-                this.props.notify({
-                    message: this.t('Ops... something went wrong!'),
-                    description: error.message,
-                })
-            if (onError)
-                onError(error)
+            if (notify) this.props.notify({
+                message: this.t('Ops... something went wrong!'),
+                description: error.message,
+            })
+            if (onError) onError(error)
         })
     }
 
@@ -556,9 +551,7 @@ export default class Form extends BaseForm {
         const {FormContext} = formContext
         return <FormContext.Provider
             value={{
-                form: this,
-                state: this.state,
-                setState: this.setState
+                form: this, state: this.state, setState: this.setState
             }}>
             <FormTag
                 className={className ? className : "rjsf"}
@@ -575,9 +568,11 @@ export default class Form extends BaseForm {
                 as={as}
                 style={{height: '100%'}}
                 ref={this.formElement}>
-                <ConfigProvider {...{...propsConfigProvider, form: this}}>
-                    <Loader loading={this.state.loading}>
-                        <ContentProvider {...propsContentProvider}>
+                <ConfigProvider {...{
+                    ...propsConfigProvider, form: this
+                }}>
+                    <ContentProvider {...propsContentProvider}>
+                        <Loader loading={this.state.loading}>
                             <ModalProvider>
                                 {showErrorList === "top" && this.renderErrors(registry)}
                                 <SchemaField
@@ -606,8 +601,8 @@ export default class Form extends BaseForm {
                                     name={name}/> : null}
                                 {showErrorList === "bottom" && this.renderErrors(registry)}
                             </ModalProvider>
-                        </ContentProvider>
-                    </Loader>
+                        </Loader>
+                    </ContentProvider>
                 </ConfigProvider>
             </FormTag>
         </FormContext.Provider>
