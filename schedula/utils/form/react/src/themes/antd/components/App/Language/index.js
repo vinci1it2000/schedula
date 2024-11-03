@@ -2,8 +2,7 @@ import React, {useEffect, useState} from 'react';
 import {Button, Dropdown} from 'antd';
 import './Language.css'
 
-const LanguageNav = ({form, languages}) => {
-
+const LanguageNav = ({render: {formContext: {form}}, languages}) => {
     const [languageOptions, setLanguageOptions] = useState(languages !== true ? languages : null);
     useEffect(() => {
         if (languages === true)

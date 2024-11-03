@@ -10,7 +10,7 @@ import {useLocaleStore} from "../../../models/locale";
 import {useLocation} from 'react-router-dom';
 
 export default function ResetPasswordForm(
-    {form, urlResetPassword, setOpen, setAuth}) {
+    {render: {formContext: {form}}, urlResetPassword, setOpen, setAuth}) {
     const [spinning, setSpinning] = useState(false);
     const [field_errors, setFieldErrors] = useState({});
     const {search} = useLocation()

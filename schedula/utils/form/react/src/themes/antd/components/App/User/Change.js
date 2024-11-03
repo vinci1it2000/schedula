@@ -11,7 +11,7 @@ import {
 import {useLocaleStore} from "../../../models/locale";
 
 export default function ChangePasswordForm(
-    {form, urlChangePassword, setAuth, setOpen}) {
+    {render: {formContext: {form}}, urlChangePassword, setAuth, setOpen}) {
     const [spinning, setSpinning] = useState(false);
     const [field_errors, setFieldErrors] = useState({});
 

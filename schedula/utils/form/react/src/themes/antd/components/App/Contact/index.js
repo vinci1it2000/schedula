@@ -4,8 +4,19 @@ import {MessageOutlined} from "@ant-design/icons";
 import {Drawer, Spin, Tooltip, Button} from "antd";
 import {useLocaleStore} from "../../../models/locale";
 
+const getContainerElement = (refContainer) => {
+    if (refContainer === null) {
+        return null; // Return null if refContainer is null
+    } else if (typeof refContainer === 'string') {
+        return document.querySelector(refContainer); // Use the string selector
+    } else if (refContainer && refContainer.current) {
+        return refContainer.current; // Use the ref
+    }
+    return null; // Fallback if none of the conditions match
+};
 const ContactForm = React.lazy(() => import( "./Contact"))
-const ContactNav = ({key, form, formContext, urlContact, containerRef}) => {
+const ContactNav = ({key, render: {formContext}, urlContact, containerRef}) => {
+    const {form} = formContext
     const {getLocale} = useLocaleStore()
     const locale = getLocale('Contact')
     const page = window.location.hash.slice(1)
@@ -29,7 +40,7 @@ const ContactNav = ({key, form, formContext, urlContact, containerRef}) => {
                 if (!spinning)
                     setOpen(false)
             }}
-            getContainer={containerRef.current}
+            getContainer={() => getContainerElement(containerRef)}
             open={open}>
             <Spin key={'page'} spinning={spinning}>
                 <Suspense>

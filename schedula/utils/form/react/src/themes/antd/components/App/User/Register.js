@@ -20,7 +20,7 @@ import {useDropzone} from "react-dropzone";
 
 export default function RegisterForm(
     {
-        form,
+        render: {formContext: {form}},
         urlRegister,
         setAuth,
         setOpen,

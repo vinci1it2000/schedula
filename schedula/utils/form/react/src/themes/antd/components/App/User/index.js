@@ -23,7 +23,16 @@ const ChangePasswordForm = React.lazy(() => import( "./Change"))
 const InfoForm = React.lazy(() => import( "./Info"))
 const SettingsForm = React.lazy(() => import( "./Settings"))
 const LogoutForm = React.lazy(() => import( "./Logout"))
-
+const getContainerElement = (refContainer) => {
+    if (refContainer === null) {
+        return null; // Return null if refContainer is null
+    } else if (typeof refContainer === 'string') {
+        return document.querySelector(refContainer); // Use the string selector
+    } else if (refContainer && refContainer.current) {
+        return refContainer.current; // Use the ref
+    }
+    return null; // Fallback if none of the conditions match
+};
 const Content = ({isActive, children, style}) => {
     const [hasRendered, setHasRendered] = useState(false);
 
@@ -44,7 +53,7 @@ const Content = ({isActive, children, style}) => {
 export default function UserNav(
     {
         id = 'user-nav',
-        form,
+        render,
         loginRequired,
         urlForgotPassword,
         urlChangePassword,
@@ -59,17 +68,17 @@ export default function UserNav(
         urlSettings,
         urlBillingPortal,
         settingProps,
-        formContext,
         containerRef
     }) {
+    const {formContext: {form}} = render
     const portalRef = useRef()
     const {getLocale} = useLocaleStore()
     const locale = getLocale('User')
     const StripePortal = useMemo(() => {
         return window.schedula.getComponents({
-            render: {formContext}, component: 'Stripe.Portal'
+            render, component: 'Stripe.Portal'
         })
-    }, [])
+    }, [render])
 
     const {userInfo = {}, emitter} = form.state
     const {pathname, search, hash: anchor} = useLocation()
@@ -156,7 +165,7 @@ export default function UserNav(
                 <StripePortal
                     ref={portalRef}
                     key={'billing-portal'}
-                    render={{formContext}}
+                    render={render}
                     width={"80%"}
                     height={"80%"}
                     left={"10%"}
@@ -193,14 +202,12 @@ export default function UserNav(
                     setAuth(null)
                 }
             }}
-            getContainer={() => {
-                return containerRef.current
-            }}
+            getContainer={() => getContainerElement(containerRef)}
             open={open}>
             <Suspense fallback={<Skeleton/>}>
                 <Content key='register' isActive={auth === 'register'}>
                     <RegisterForm
-                        form={form}
+                        render={render}
                         urlRegister={urlRegister}
                         setAuth={setAuth}
                         setOpen={setOpen}
@@ -210,14 +217,14 @@ export default function UserNav(
                 </Content>
                 <Content key='confirm' isActive={auth === 'confirm'}>
                     <ConfirmForm
-                        form={form}
+                        render={render}
                         urlConfirmMail={urlConfirmMail}
                         setAuth={setAuth}
                         setOpen={setOpen}/>
                 </Content>
                 <Content key='login' isActive={auth === 'login'}>
                     <LoginForm
-                        form={form}
+                        render={render}
                         urlLogin={urlLogin}
                         urlRegister={urlRegister}
                         setAuth={setAuth}
@@ -225,14 +232,14 @@ export default function UserNav(
                 </Content>
                 <Content key='forgot' isActive={auth === 'forgot'}>
                     <ForgotForm
-                        form={form}
+                        render={render}
                         urlForgotPassword={urlForgotPassword}
                         setAuth={setAuth}
                     />
                 </Content>
                 <Content key='reset' isActive={auth === 'reset'}>
                     <ResetForm
-                        form={form}
+                        render={render}
                         urlResetPassword={urlResetPassword}
                         setAuth={setAuth}
                         setOpen={setOpen}/>
@@ -240,22 +247,21 @@ export default function UserNav(
                 <Content key='change-password'
                          isActive={auth === 'change-password'}>
                     <ChangePasswordForm
-                        form={form}
+                        render={render}
                         urlChangePassword={urlChangePassword}
                         setAuth={setAuth}
                         setOpen={setOpen}/>
                 </Content>
                 <Content key='logout' isActive={auth === 'logout'}>
                     <LogoutForm
-                        form={form}
+                        render={render}
                         urlLogout={urlLogout}
                         setAuth={setAuth}
                         setOpen={setOpen}/>
                 </Content>
                 <Content key='info' isActive={auth === 'info'}>
                     <InfoForm
-                        form={form}
-                        userInfo={userInfo}
+                        render={render}
                         urlEdit={urlEdit}
                         addUsername={registerAddUsername}
                         customData={registerCustomData}
@@ -263,8 +269,7 @@ export default function UserNav(
                 </Content>
                 <Content key='settings' isActive={auth === 'settings'}>
                     <SettingsForm
-                        formContext={formContext}
-                        userInfo={userInfo}
+                        render={render}
                         urlSettings={urlSettings}
                         setAuth={setAuth}
                         {...settingProps}

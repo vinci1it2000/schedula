@@ -9,7 +9,7 @@ import {MailOutlined} from '@ant-design/icons';
 import {useLocaleStore} from "../../../models/locale";
 
 export default function ConfirmForm(
-    {form, urlConfirmMail, setAuth, setOpen}
+    {render: {formContext: {form}}, urlConfirmMail, setAuth, setOpen}
 ) {
     const [spinning, setSpinning] = useState(false);
     const [field_errors, setFieldErrors] = useState({});

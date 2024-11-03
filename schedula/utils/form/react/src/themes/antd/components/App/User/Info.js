@@ -24,8 +24,15 @@ import {useDropzone} from 'react-dropzone';
 import omit from "lodash/omit";
 import omitBy from "lodash/omitBy";
 import isUndefined from "lodash/isUndefined"
+
 export default function InfoForm(
-    {form, userInfo, urlEdit, addUsername = false, customData}) {
+    {
+        render: {formContext: {form}},
+        urlEdit,
+        addUsername = false,
+        customData
+    }) {
+    const {state: {userInfo}} = form
     const [spinning, setSpinning] = useState(false);
     const [editing, setEditing] = useState(false);
     const [field_errors, setFieldErrors] = useState({});
@@ -245,7 +252,7 @@ export default function InfoForm(
                     }}/>
                 </Form.Item>)}
             {!editing && userInfo.email ? <Form.Item name="email"
-                label={locale.labelEmail} >
+                                                     label={locale.labelEmail}>
                 <Input
                     prefix={<MailOutlined
                         className="site-form-item-icon"/>}/>

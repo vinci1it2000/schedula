@@ -12,10 +12,9 @@ import isEqual from "lodash/isEqual";
 
 export default function SettingsForm(
     {
+        render: {formContext},
         key = 'SettingsForm',
-        userInfo: {settings: initialSettings},
         urlSettings,
-        formContext: {form, ...formContext},
         schema = {
             "properties": {}
         },
@@ -23,6 +22,8 @@ export default function SettingsForm(
             "ui:onlyChildren": true
         }
     }) {
+    const {form} = formContext;
+    const {state: {userInfo: {settings: initialSettings}}} = form
     const {
         theme,
         SchedulaForm,

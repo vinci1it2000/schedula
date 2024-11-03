@@ -12,6 +12,18 @@ import {domainErrors} from "./Errors";
 const Accordion = React.lazy(() => import('./Accordion'));
 const Alert = React.lazy(() => import('./Alert'));
 const App = React.lazy(() => import('./App'));
+const App_Contact = React.lazy(() => import('./App/Contact'));
+const App_Language = React.lazy(() => import('./App/Language'));
+const App_User = React.lazy(() => import('./App/User'));
+const App_User_Change = React.lazy(() => import('./App/User/Change'));
+const App_User_Confirm = React.lazy(() => import('./App/User/Confirm'));
+const App_User_Forgot = React.lazy(() => import('./App/User/Forgot'));
+const App_User_Info = React.lazy(() => import('./App/User/Info'));
+const App_User_Login = React.lazy(() => import('./App/User/Login'));
+const App_User_Logout = React.lazy(() => import('./App/User/Logout'));
+const App_User_Register = React.lazy(() => import('./App/User/Register'));
+const App_User_Reset = React.lazy(() => import('./App/User/Reset'));
+const App_User_Settings = React.lazy(() => import('./App/User/Settings'));
 const ArrayAccordion = React.lazy(() => import('./ArrayAccordion'));
 const ArrayCopy = React.lazy(() => import('./ArrayCopy'));
 const Avatar = React.lazy(() => import('./Avatar'));
@@ -92,6 +104,18 @@ export function generateComponents(register = true, registerDomains = true) {
         Accordion,
         Alert,
         App,
+        "App.Contact": App_Contact,
+        "App.Language": App_Language,
+        "App.User": App_User,
+        "App.User.Change": App_User_Change,
+        "App.User.Confirm": App_User_Confirm,
+        "App.User.Forgot": App_User_Forgot,
+        "App.User.Info": App_User_Info,
+        "App.User.Login": App_User_Login,
+        "App.User.Logout": App_User_Logout,
+        "App.User.Register": App_User_Register,
+        "App.User.Reset": App_User_Reset,
+        "App.User.Settings": App_User_Settings,
         ArrayAccordion,
         ArrayCopy,
         Avatar,

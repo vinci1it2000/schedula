@@ -11,7 +11,7 @@ import {useLocaleStore} from "../../../models/locale";
 
 export default function LoginForm(
     {
-        form,
+        render: {formContext: {form}},
         urlLogin,
         urlRegister,
         setAuth,

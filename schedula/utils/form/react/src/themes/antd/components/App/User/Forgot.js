@@ -9,7 +9,7 @@ import {MailOutlined} from '@ant-design/icons';
 import {useLocaleStore} from "../../../models/locale";
 
 export default function ForgotForm(
-    {form, urlForgotPassword, setAuth}) {
+    {render: {formContext: {form}}, urlForgotPassword, setAuth}) {
     const [spinning, setSpinning] = useState(false);
     const [field_errors, setFieldErrors] = useState({});
     const onFinish = useCallback((data) => {

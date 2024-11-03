@@ -7,7 +7,7 @@ import {useLocaleStore} from "../../../models/locale";
 import {useCallback, useState} from "react";
 
 export default function LogoutForm(
-    {form, urlLogout, setOpen, setAuth}) {
+    {render: {formContext: {form}}, urlLogout, setOpen, setAuth}) {
     const [spinning, setSpinning] = useState(false);
     const onFinish = useCallback(() => {
         setSpinning(true)

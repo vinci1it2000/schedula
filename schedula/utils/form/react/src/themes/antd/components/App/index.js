@@ -205,19 +205,17 @@ const App = (
                         </Typography.Text> : null}
                         {urlContact ? <Suspense><ContactNav
                             key={'contact'}
-                            form={form}
-                            formContext={formContext}
+                            render={render}
                             containerRef={mainLayout}
                             urlContact={urlContact}/></Suspense> : null}
                         <Suspense><LanguageNav
                             key={'language'}
-                            form={form}
+                            render={render}
                             languages={languages}/></Suspense>
                         {userProps ?
                             <Suspense><UserNav
                                 key={'user'}
-                                form={form}
-                                formContext={formContext}
+                                render={render}
                                 containerRef={mainLayout}
                                 {...userProps}/></Suspense> : null}
                     </Flex> : null}
