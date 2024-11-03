@@ -2,6 +2,29 @@ Changelog
 =========
 
 
+v1.5.39 (2024-11-03)
+--------------------
+
+Feat
+~~~~
+- (form): Update resources.
+
+- (form): Add plasmic host to register components.
+
+- (form): Add all App sub-components.
+
+- (form): Add translator to plasmic components.
+
+
+Fix
+~~~
+- (form): Correct `getPublicPath` for dynamic site.
+
+- (form): Correct sample project requirements.
+
+- (form): Correct `getPublicPath` for static pages.
+
+
 v1.5.38 (2024-10-28)
 --------------------
 
