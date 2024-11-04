@@ -2,6 +2,19 @@ Changelog
 =========
 
 
+v1.5.41 (2024-11-05)
+--------------------
+
+Feat
+~~~~
+- (form): Update resources.
+
+
+Fix
+~~~
+- (form): Correct plasmic page rendering.
+
+
 v1.5.40 (2024-11-04)
 --------------------
 
