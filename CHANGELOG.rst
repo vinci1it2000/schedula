@@ -2,6 +2,14 @@ Changelog
 =========
 
 
+v1.5.40 (2024-11-04)
+--------------------
+
+Fix
+~~~
+- (form): Correct viewport according to device size.
+
+
 v1.5.39 (2024-11-03)
 --------------------
 
