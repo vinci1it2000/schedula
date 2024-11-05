@@ -45,16 +45,26 @@ const LanguageNav = React.lazy(() => import('./Language'))
 const ContactNav = React.lazy(() => import('./Contact'))
 const ContentPage = React.lazy(() => import('./ContentPages'))
 
-const formatItem = ({path, label, children, ...item}) => {
+const formatItem = ({path, label, children, ...item}, index) => {
     if (path && typeof label === 'string') {
         label = <Link to={path}>{label}</Link>
     }
     if (children) {
-        children = children.map(formatItem)
+        children = children.map((d, i) => {
+            return formatItem(d, `${index}-${i}`)
+        })
     }
-    return {path, label, children, ...item}
+    return {path, label, children, key: `tmp-${index}`, ...item}
 }
 
+function* formatPaths({path, key, children = []}) {
+    if (path) {
+        yield {path, key}
+    }
+    for (const item of children) {
+        yield* formatPaths(item);
+    }
+}
 
 function* formatRoutes({path, key, children = [], ...props}, elements) {
     if (path && typeof key === 'number') {
@@ -114,16 +124,12 @@ const App = (
 
     const [selectedKeys, setSelectedKeys] = useState(null);
     useEffect(() => {
-        const _routes = routes.sort((a, b) => (b.path || "").length - (a.path || "").length)
+        const _routes = [...formatPaths({children: _items})].sort((a, b) => (b.path || "").length - (a.path || "").length)
         let {
             key = null
-        } = _routes.find(({path}) => pathname === path) || {}
-        if (key === null) {
-            setSelectedKeys(null)
-        } else {
-            setSelectedKeys([String(key)])
-        }
-    }, [])
+        } = _routes.find(({path}) => pathname.startsWith(path)) || {}
+        setSelectedKeys(key === null ? null : [String(key)])
+    }, [_items])
     const [visitedRoutes, setVisitedRoutes] = useState({});
     useEffect(() => {
         setVisitedRoutes((visited) => ({...visited, [pathname]: true}))
