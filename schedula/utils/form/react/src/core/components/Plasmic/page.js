@@ -26,8 +26,8 @@ export default function PlasmicPage(
     const Skeleton = getTemplate('Skeleton', registry, uiOptions);
     const NotFound = getTemplate('NotFound', registry, uiOptions);
 
-    const {pathname: _pathname = '/'} = useLocation()
-
+    const {pathname: _pathname = '/', search} = useLocation()
+    const queryParams = new URLSearchParams(search);
     pathname = pathname !== undefined ? pathname : _pathname
     useEffect(() => {
         async function load() {
@@ -49,7 +49,8 @@ export default function PlasmicPage(
                 loader={PLASMIC}
                 prefetchedData={plasmicData}
                 pageRoute={plasmicData.entryCompMetas[0].path}
-                pageParams={plasmicData.entryCompMetas[0].params}>
+                pageParams={plasmicData.entryCompMetas[0].params}
+                pageQuery={Object.fromEntries(queryParams)}>
                 <PlasmicComponent
                     component={plasmicData.entryCompMetas[0].displayName}
                     componentProps={{form, render, ...componentProps}}
