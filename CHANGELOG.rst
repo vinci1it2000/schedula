@@ -2,6 +2,21 @@ Changelog
 =========
 
 
+v1.5.42 (2024-11-06)
+--------------------
+
+Feat
+~~~~
+- (form): Update resources.
+
+
+Fix
+~~~
+- (form): Correct App navbar selected item.
+
+- (form): Add query params to plasmic page.
+
+
 v1.5.41 (2024-11-05)
 --------------------
 
