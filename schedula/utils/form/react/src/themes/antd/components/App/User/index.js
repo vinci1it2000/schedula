@@ -161,8 +161,7 @@ export default function UserNav(
             <Space>
                 {userInfo.avatar ? <Avatar src={userInfo.avatar}/> : <Button
                     type="primary" shape="circle" icon={<UserOutlined/>}/>}
-                {userInfo.username}
-                <StripePortal
+                {urlBillingPortal ? <StripePortal
                     ref={portalRef}
                     key={'billing-portal'}
                     render={render}
@@ -171,7 +170,7 @@ export default function UserNav(
                     left={"10%"}
                     bottom={"10%"}
                     urlPortalSession={urlBillingPortal}
-                />
+                /> : null}
             </Space>
         </Dropdown> : <Tooltip
             key={'btn'} title={locale.buttonTooltip}

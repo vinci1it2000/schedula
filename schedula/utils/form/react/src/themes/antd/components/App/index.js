@@ -96,6 +96,7 @@ const App = (
         hideFullscreen = false,
         hideFiles = false,
         hideSideMenu = false,
+        page403 = null,
         footer = null,
         theme = 'light',
         contentProps,
@@ -189,7 +190,7 @@ const App = (
                     key={'left-menu'}
                     theme={theme}
                     mode="horizontal"
-                    style={{flex: "auto", minWidth: 0}}
+                    style={{flex: "auto", minWidth: 0, border: 0}}
                     selectedKeys={selectedKeys}
                     items={_items}
                     onSelect={({key}) => {
@@ -401,10 +402,10 @@ const App = (
                             left: hideSideMenu ? '16px' : (sliderCollapsed ? '96px' : '216px')
                         }}/>
                 </Suspense> : null}
-                {mustLogin && !logged ? <Result
+                {mustLogin && !logged ? page403 || <Result
                     status="403"
                     title="403"
-                    subTitle="Sorry, you are not authorized to access this page."
+                    subTitle={form.t("Sorry, you are not authorized to access this page.")}
                 /> : _items.length ? routes.map(({element, path}, index) => {
                     return (visitedRoutes[path] ? <div key={index} style={{
                         display: pathname === path ? "block" : "none",
@@ -416,7 +417,7 @@ const App = (
                 }) : children}
                 {!mustLogin && ((_items.length && !routes.some(({path}) => path === pathname)) || children === undefined) ?
                     <Suspense fallback={<Skeleton/>}>
-                        <ContentPage homePath={homePath} render={render}/>
+                        <ContentPage key={`plasmic-${pathname}`} homePath={homePath} render={render}/>
                     </Suspense> : null
                 }
                 {cloudUrl ? <>

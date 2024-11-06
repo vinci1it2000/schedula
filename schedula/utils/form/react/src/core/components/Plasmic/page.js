@@ -1,7 +1,5 @@
-import React, {useContext, useEffect, useState} from "react";
-import {
-    PlasmicComponent, PlasmicRootProvider
-} from '@plasmicapp/loader-react';
+import React, {useContext, useEffect, useState, useMemo} from "react";
+import {PlasmicComponent, PlasmicRootProvider} from '@plasmicapp/loader-react';
 import {usePlasmicStore} from "../../models/plasmic";
 import {getTemplate, getUiOptions} from "@rjsf/utils";
 import {useLocation} from "react-router-dom";
@@ -11,9 +9,10 @@ export default function PlasmicPage(
     {
         children,
         render,
-        pathname,
+        pathname: path,
         homePath = '/',
         componentProps,
+        plasmicRootProviderProps,
         ...props
     }
 ) {
@@ -25,10 +24,15 @@ export default function PlasmicPage(
     const uiOptions = getUiOptions(uiSchema);
     const Skeleton = getTemplate('Skeleton', registry, uiOptions);
     const NotFound = getTemplate('NotFound', registry, uiOptions);
-
-    const {pathname: _pathname = '/', search} = useLocation()
+    const location = useLocation()
+    const {
+        pathname = '/',
+        search,
+        hash
+    } = useMemo(() => {
+        return path !== undefined ? new URL(path, window.location.origin) : location
+    }, [path, location])
     const queryParams = new URLSearchParams(search);
-    pathname = pathname !== undefined ? pathname : _pathname
     useEffect(() => {
         async function load() {
             const plasmicData = await PLASMIC.maybeFetchComponentData(pathname);
@@ -44,13 +48,14 @@ export default function PlasmicPage(
     }, [PLASMIC, pathname]);
 
     const content = plasmicData ?
-        <div style={{overflowY: "auto", height: "100%"}}>
+        <div key={pathname} style={{overflowY: "auto", height: "100%"}}>
             <PlasmicRootProvider
                 loader={PLASMIC}
                 prefetchedData={plasmicData}
                 pageRoute={plasmicData.entryCompMetas[0].path}
                 pageParams={plasmicData.entryCompMetas[0].params}
-                pageQuery={Object.fromEntries(queryParams)}>
+                pageQuery={Object.fromEntries(queryParams)}
+                {...plasmicRootProviderProps}>
                 <PlasmicComponent
                     component={plasmicData.entryCompMetas[0].displayName}
                     componentProps={{form, render, ...componentProps}}
