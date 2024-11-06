@@ -49,13 +49,18 @@ def get_locales():
     return jsonify(current_app.config.get('BABEL_LANGUAGES'))
 
 
+def _set_locale(languages):
+    get = current_app.config.get
+    session['locale'] = locale = languages.best_match(
+        get('BABEL_LANGUAGES'), get('BABEL_DEFAULT_LOCALE')
+    )
+    return locale
+
+
 @bp.route('/<lang>', methods=['POST'])
 def set_locale(lang):
     languages = LanguageAccept([(lang, 2)] + request.accept_languages)
-    session['locale'] = locale = languages.best_match(
-        current_app.config.get('BABEL_LANGUAGES')
-    )
-    return jsonify({"language": locale})
+    return jsonify({"language": _set_locale(languages)})
 
 
 @bp.route('/<lang>', methods=['GET'])
@@ -67,12 +72,7 @@ def get_locale(lang):
 
 
 def _get_locale():
-    locale = session.get('locale')
-    if not locale:
-        session['locale'] = locale = request.accept_languages.best_match(
-            current_app.config.get('BABEL_LANGUAGES')
-        )
-    return locale
+    return session.get('locale') or _set_locale(request.accept_languages)
 
 
 class Locales:

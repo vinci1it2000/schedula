@@ -429,6 +429,7 @@ def create_pricing_table():
 @bp.route('/create-customer-portal-session', methods=['POST'])
 @auth_required()
 def create_portal(skip_data=False):
+    from stripe.billing_portal import Session
     from flask import request, current_app as ca, session
     try:
         if skip_data:
@@ -443,7 +444,7 @@ def create_portal(skip_data=False):
             subscription = plan.nickname or plan.id
         else:
             subscription = ''
-        session = stripe.billing_portal.Session.create(
+        session = Session.create(
             api_key=ca.config['STRIPE_SECRET_KEY'],
             **sh.combine_nested_dicts(data, base={
                 "customer": customer.id,
@@ -566,6 +567,7 @@ def format_line_items(line_items):
 
 @bp.route('/create-checkout-session', methods=['POST'])
 def create_payment():
+    from stripe.checkout import Session
     from flask import request, current_app as ca, session
     try:
         data = request.get_json() if request.is_json else dict(request.form)
@@ -604,7 +606,7 @@ def create_payment():
             ])
             data['line_items'] = line_items
 
-        session = stripe.checkout.Session.create(
+        session = Session.create(
             api_key=api_key,
             **sh.combine_nested_dicts(data, base={
                 'ui_mode': 'embedded',
@@ -624,12 +626,13 @@ def create_payment():
 
 def checkout_session_completed(session_id):
     from flask import current_app as ca
+    from stripe.checkout import Session
     with Lock(f'Txn-stripe-{session_id}'):
         if db.session.query(
                 Txn.query.filter_by(stripe_id=session_id).exists()
         ).scalar():
             return False
-        session = stripe.checkout.Session.retrieve(
+        session = Session.retrieve(
             session_id, api_key=ca.config['STRIPE_SECRET_KEY'],
             expand=['line_items.data.price.product', 'customer']
         )
@@ -800,6 +803,7 @@ def subscription_invoice_paid(event):
 def charge_refunded(event):
     from sqlalchemy.exc import NoResultFound
     from flask import current_app as ca
+    from stripe.checkout import Session
     api_key = ca.config['STRIPE_SECRET_KEY']
     charge = event.data.object
     amount_refunded = charge.amount_refunded
@@ -811,7 +815,7 @@ def charge_refunded(event):
         ).one().wallet_id
     except NoResultFound:
         try:
-            stripe_id = stripe.checkout.Session.list(
+            stripe_id = Session.list(
                 payment_intent=charge.payment_intent, api_key=api_key, limit=1
             ).data[0].id
             wallet_id = Txn.query.filter_by(
@@ -839,7 +843,8 @@ def charge_refunded(event):
 @bp.route('/session-status/<session_id>', methods=['GET'])
 def session_status(session_id):
     from flask import current_app as ca
-    session = stripe.checkout.Session.retrieve(
+    from stripe.checkout import Session
+    session = Session.retrieve(
         session_id, api_key=ca.config['STRIPE_SECRET_KEY']
     )
     status = session.status
