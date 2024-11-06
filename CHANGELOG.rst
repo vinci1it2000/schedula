@@ -2,6 +2,21 @@ Changelog
 =========
 
 
+v1.5.43 (2024-11-07)
+--------------------
+
+Feat
+~~~~
+- (form): Update resources.
+
+- (form): Add custom 403 page.
+
+
+Fix
+~~~
+- (form): Correct locale setting.
+
+
 v1.5.42 (2024-11-06)
 --------------------
 
