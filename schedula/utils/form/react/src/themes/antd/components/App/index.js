@@ -25,7 +25,8 @@ import {
     Drawer,
     Typography,
     Result,
-    Skeleton
+    Skeleton,
+    theme
 } from 'antd';
 import {useFullscreen} from "ahooks";
 import exportJSON from "../../../../core/utils/Export"
@@ -44,7 +45,7 @@ const UserNav = React.lazy(() => import('./User'))
 const LanguageNav = React.lazy(() => import('./Language'))
 const ContactNav = React.lazy(() => import('./Contact'))
 const ContentPage = React.lazy(() => import('./ContentPages'))
-
+const {useToken} = theme;
 const formatItem = ({path, label, children, ...item}, index) => {
     if (path && typeof label === 'string') {
         label = <Link to={path}>{label}</Link>
@@ -104,6 +105,7 @@ const App = (
         ...props
     }
 ) => {
+    const {token} = useToken();
     const {getLocale} = useLocaleStore()
     const locale = getLocale('App')
     const impButton = useRef(null);
@@ -180,6 +182,9 @@ const App = (
                     width: '100%',
                     padding: 0,
                     display: "flex",
+                    borderBottomWidth: 1,
+                    borderBottomColor: token.colorBorder,
+                    borderBottomStyle: 'solid',
                 }}>
                 <div key={'logo'} style={{
                     height: "100%",
@@ -417,7 +422,8 @@ const App = (
                 }) : children}
                 {!mustLogin && ((_items.length && !routes.some(({path}) => path === pathname)) || children === undefined) ?
                     <Suspense fallback={<Skeleton/>}>
-                        <ContentPage key={`plasmic-${pathname}`} homePath={homePath} render={render}/>
+                        <ContentPage key={`plasmic-${pathname}`}
+                                     homePath={homePath} render={render}/>
                     </Suspense> : null
                 }
                 {cloudUrl ? <>
