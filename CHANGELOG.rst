@@ -2,6 +2,20 @@ Changelog
 =========
 
 
+v1.5.44 (2024-11-08)
+--------------------
+
+Feat
+~~~~
+- (form): Update resources.
+
+- (form): Improve consent layout.
+
+- (form): Improve user layout.
+
+- (form): Add menu border.
+
+
 v1.5.43 (2024-11-07)
 --------------------
 
