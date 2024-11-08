@@ -1,6 +1,8 @@
 import {
     Avatar,
+    Badge,
     Button,
+    Divider,
     Flex,
     Form,
     Input,
@@ -15,7 +17,9 @@ import {
     UserOutlined,
     MailOutlined,
     EditOutlined,
-    CloseOutlined
+    CloseOutlined,
+    CloseCircleOutlined,
+    UploadOutlined
 } from '@ant-design/icons';
 import {useLocaleStore} from "../../../models/locale";
 import isEqual from "lodash/isEqual";
@@ -151,24 +155,24 @@ export default function InfoForm(
                                 key={'avatar-upload'} {...getRootProps({className: 'dropzone'})}>
                                 <input {...getInputProps()} />
                                 <label htmlFor='icon-button-file'>
-                                    <Avatar
-                                        style={{cursor: 'pointer'}}
-                                        src={userImage}
-                                        size={64} icon={<UserOutlined/>}/>
+                                    <Badge
+                                        count={userImage ?
+                                            <CloseCircleOutlined
+                                                onClick={(event) => {
+                                                    event.stopPropagation()
+                                                    onReset()
+                                                }}/>
+                                            :
+                                            <UploadOutlined
+                                                style={{cursor: 'pointer'}}/>}>
+                                        <Avatar
+                                            style={{cursor: 'pointer'}}
+                                            src={userImage} size={64}
+                                            icon={<UserOutlined/>}
+                                        />
+                                    </Badge>
                                 </label>
                             </div>
-                            <div
-                                key={'upload'} {...getRootProps({className: 'dropzone'})}>
-                                <input {...getInputProps()} />
-                                <label htmlFor='icon-button-file'>
-                                    <Button type="primary">
-                                        {locale.avatarUpload}
-                                    </Button>
-                                </label>
-                            </div>
-                            <Button key={'reset'} onClick={onReset}>
-                                {locale.avatarReset}
-                            </Button>
                         </Flex> :
                         <Avatar
                             key={'avatar'}
@@ -237,6 +241,20 @@ export default function InfoForm(
                             })
                     }}/>
             </Form.Item>
+            {!editing && userInfo.email ? <Form.Item
+                name="email" label={locale.labelEmail}>
+                <Input prefix={
+                    <MailOutlined className="site-form-item-icon"/>
+                }/>
+            </Form.Item> : null}
+            {addUsername && !editing && userInfo.username ?
+                <Form.Item label={locale.labelUsername} name="username">
+                    <Input
+                        prefix={<UserOutlined
+                            className="site-form-item-icon"/>}/>
+                </Form.Item> : null}
+            {customData ?
+                <Divider plain>{locale.titleCustomData}</Divider> : null}
             {(customData || []).map(({name, itemProps, inputProps}) =>
                 <Form.Item
                     name={name}
@@ -251,18 +269,6 @@ export default function InfoForm(
                             })
                     }}/>
                 </Form.Item>)}
-            {!editing && userInfo.email ? <Form.Item name="email"
-                                                     label={locale.labelEmail}>
-                <Input
-                    prefix={<MailOutlined
-                        className="site-form-item-icon"/>}/>
-            </Form.Item> : null}
-            {addUsername && !editing && userInfo.username ?
-                <Form.Item label={locale.labelUsername} name="username">
-                    <Input
-                        prefix={<UserOutlined
-                            className="site-form-item-icon"/>}/>
-                </Form.Item> : null}
             <Form.Item>
                 {!editing ? null :
                     <Space>

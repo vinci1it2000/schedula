@@ -127,6 +127,7 @@ export const locale = merge({}, en, {
     "User.Register": {
         submitButton: "Register",
         or: "Or",
+        titleCustomData:"Additional information",
         login: "login!",
         avatarReset: "Reset",
         avatarUpload: "Upload",
@@ -148,6 +149,7 @@ export const locale = merge({}, en, {
     "User.Setting": {
         submitButton: 'Save',
         revertButton: 'Revert',
+        titleCustomData:"Additional information",
         cancelButton: 'Abort',
         labelName: 'Name',
         labelSurname: "Surname",

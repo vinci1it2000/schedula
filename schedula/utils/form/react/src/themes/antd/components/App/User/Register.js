@@ -1,6 +1,8 @@
 import {
     Avatar,
+    Badge,
     Button,
+    Divider,
     Flex,
     Form,
     Input,
@@ -11,7 +13,9 @@ import {
     MailOutlined,
     LockOutlined,
     UserOutlined,
-    IdcardOutlined
+    IdcardOutlined,
+    CloseCircleOutlined,
+    UploadOutlined
 } from '@ant-design/icons';
 import {useLocaleStore} from "../../../models/locale";
 import pick from 'lodash/pick';
@@ -104,6 +108,7 @@ export default function RegisterForm(
     }, []);
     return <Spin spinning={spinning}><Form
         style={{maxWidth: '300px', margin: 'auto', paddingBottom: '15px'}}
+        layout={'vertical'}
         onFinish={(data) => onFinish({...data, avatar: userImage})}>
         <Form.Item
             name="avatar"
@@ -113,19 +118,24 @@ export default function RegisterForm(
                 <div {...getRootProps({className: 'dropzone'})}>
                     <input {...getInputProps()} />
                     <label htmlFor='icon-button-file'>
-                        <Avatar
-                            style={{cursor: 'pointer'}}
-                            src={userImage}
-                            size={64} icon={<UserOutlined/>}/>
+                        <Badge
+                            count={userImage ?
+                                <CloseCircleOutlined onClick={(event) => {
+                                    event.stopPropagation()
+                                    onReset()
+                                }}/>
+                                :
+                                <UploadOutlined onClick={() => {
+                                }}
+                                />}>
+                            <Avatar
+                                style={{cursor: 'pointer'}}
+                                src={userImage} size={64}
+                                icon={<UserOutlined/>}
+                            />
+                        </Badge>
                     </label>
                 </div>
-                <div {...getRootProps({className: 'dropzone'})}>
-                    <input {...getInputProps()} />
-                    <label htmlFor='icon-button-file'>
-                        <Button type="primary">{locale.avatarUpload}</Button>
-                    </label>
-                </div>
-                <Button onClick={onReset}>{locale.avatarReset}</Button>
             </Flex>
         </Form.Item>
         <Form.Item
@@ -192,16 +202,6 @@ export default function RegisterForm(
                     setFieldErrors({...field_errors, lastname: undefined})
             }}/>
         </Form.Item>
-        {(customData || []).map(({name, itemProps, inputProps}) => <Form.Item
-            name={name}
-            validateStatus={field_errors[name] ? "error" : undefined}
-            help={field_errors[name]}
-            {...itemProps}>
-            <Input {...inputProps} onChange={() => {
-                if (field_errors[name])
-                    setFieldErrors({...field_errors, [name]: undefined})
-            }}/>
-        </Form.Item>)}
         <Form.Item
             name="password"
             validateStatus={field_errors.password ? "error" : undefined}
@@ -250,6 +250,17 @@ export default function RegisterForm(
                     })
             }}/>
         </Form.Item>
+        {customData ? <Divider plain>{locale.titleCustomData}</Divider> : null}
+        {(customData || []).map(({name, itemProps, inputProps}) => <Form.Item
+            name={name}
+            validateStatus={field_errors[name] ? "error" : undefined}
+            help={field_errors[name]}
+            {...itemProps}>
+            <Input {...inputProps} onChange={() => {
+                if (field_errors[name])
+                    setFieldErrors({...field_errors, [name]: undefined})
+            }}/>
+        </Form.Item>)}
         <Form.Item>
             <Button type="primary" htmlType="submit"
                     style={{width: '100%'}}>

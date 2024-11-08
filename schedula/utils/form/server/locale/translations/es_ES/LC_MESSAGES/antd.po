@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 1.0\n"
 "Report-Msgid-Bugs-To: vinci1it2000@gmail.com\n"
-"PO-Revision-Date: 2024-10-17 14:36+0000\n"
+"PO-Revision-Date: 2024-11-08 14:41+0000\n"
 "Last-Translator: Vincenzo Arcidiacono <vinci1it2000@gmail.com>\n"
 "Language-Team: English <vinci1it2000@gmail.com>\n"
 "MIME-Version: 1.0\n"
@@ -1651,3 +1651,11 @@ msgstr "Nombre de usuario"
 # traslated
 msgid "User.Setting.labelEmail"
 msgstr "Correo electrónico"
+
+# traslated
+msgid "User.Register.titleCustomData"
+msgstr "Información adicional"
+
+# traslated
+msgid "User.Setting.titleCustomData"
+msgstr "Información adicional"

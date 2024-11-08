@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 1.0\n"
 "Report-Msgid-Bugs-To: vinci1it2000@gmail.com\n"
-"PO-Revision-Date: 2024-10-17 14:37+0000\n"
+"PO-Revision-Date: 2024-11-08 14:41+0000\n"
 "Last-Translator: Vincenzo Arcidiacono <vinci1it2000@gmail.com>\n"
 "Language-Team: English <vinci1it2000@gmail.com>\n"
 "MIME-Version: 1.0\n"
@@ -520,7 +520,7 @@ msgid "Pagination.jump_to"
 msgstr "vai a"
 
 msgid "User.ResetPassword.or"
-msgstr "O"
+msgstr "oppure"
 
 msgid "User.Register.passwordPlaceholder"
 msgstr "Password"
@@ -535,7 +535,7 @@ msgid "CloudDownloadField.updatedAt"
 msgstr "Aggiornato"
 
 msgid "User.Login.or"
-msgstr "O"
+msgstr "oppure"
 
 msgid "DebugTemplate.titleModal"
 msgstr "Diagramma di debug"
@@ -581,7 +581,7 @@ msgid "Calendar.lang.dateTimeFormat"
 msgstr "D/M/YYYY HH:mm:ss"
 
 msgid "User.Confirm.or"
-msgstr "O"
+msgstr "oppure"
 
 msgid "Contact.messagePlaceholder"
 msgstr "Il tuo messaggio"
@@ -757,7 +757,7 @@ msgid "Form.defaultValidateMessages.types.date"
 msgstr " ${label} non è un ${type} valido"
 
 msgid "User.Register.or"
-msgstr "O"
+msgstr "oppure"
 
 msgid "DatePicker.lang.previousDecade"
 msgstr "Ultimo decennio"
@@ -821,7 +821,7 @@ msgid "User.Login.passwordRequired"
 msgstr "Inserisci la tua Password!"
 
 msgid "User.Forgot.or"
-msgstr "O"
+msgstr "oppure"
 
 msgid "Form.defaultValidateMessages.types.boolean"
 msgstr " ${label} non è un ${type} valido"
@@ -1445,3 +1445,11 @@ msgstr "Nome utente"
 # traslated
 msgid "User.Setting.labelEmail"
 msgstr "Posta elettronica"
+
+# traslated
+msgid "User.Register.titleCustomData"
+msgstr "Informazioni aggiuntive"
+
+# traslated
+msgid "User.Setting.titleCustomData"
+msgstr "Informazioni aggiuntive"
