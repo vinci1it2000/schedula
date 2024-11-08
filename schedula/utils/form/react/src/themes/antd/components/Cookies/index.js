@@ -8,7 +8,8 @@ import {
     FloatButton,
     Collapse,
     Flex,
-    Space
+    Space,
+    Checkbox
 } from 'antd';
 import Markdown from '../Markdown'
 import isEqual from 'lodash/isEqual';
@@ -140,6 +141,13 @@ const CookiesModal = (
         }
     }, [visible, consentItems, form, urlConsent, updateConsents])
     const edited = useMemo(() => (consents !== null && !isEqual(newConsents, consents)), [newConsents, consents]);
+
+    const allDisabled = consentItems.reduce((acc, {key, disabled}) => {
+        return acc && (disabled || !newConsents[key])
+    }, true)
+    const allEnabled = consentItems.reduce((acc, {key, disabled}) => {
+        return acc && (disabled || newConsents[key])
+    }, true)
     return <>
         <Modal
             style={{
@@ -178,45 +186,21 @@ const CookiesModal = (
                     items={[{
                         styles: {header: {alignItems: "center"}},
                         key: '1', label: locale.settingsText,
-                        extra: <Flex key={"buttons"} justify="end"
-                                     gap="middle">
-                            <Button
-                                type={consentItems.reduce((acc, {
-                                    key, disabled
-                                }) => {
-                                    return acc && (disabled || !newConsents[key])
-                                }, true) ? "primary" : "dashed"}
-                                key={"reject"}
-                                onClick={(event) => {
-                                    event.stopPropagation();
-                                    setNewConsents(consents => consentItems.reduce((acc, {
-                                        key, disabled
-                                    }) => {
-                                        if (!disabled) acc[key] = false
-                                        return acc
-                                    }, {...consents}))
-                                }}>
-                                {locale.rejectAllButton}
-                            </Button>
-                            <Button
-                                key={"accept"}
-                                type={consentItems.reduce((acc, {
-                                    key, disabled
-                                }) => {
-                                    return acc && (disabled || newConsents[key])
-                                }, true) ? "primary" : "dashed"}
-                                onClick={(event) => {
-                                    event.stopPropagation();
-                                    setNewConsents(consents => consentItems.reduce((acc, {
-                                        key, disabled
-                                    }) => {
-                                        if (!disabled) acc[key] = true
-                                        return acc
-                                    }, {...consents}))
-                                }}>
+                        extra: <div onClick={(e) => {
+                            e.stopPropagation()
+                            setNewConsents(consents => consentItems.reduce((acc, {
+                                key, disabled
+                            }) => {
+                                if (!disabled) acc[key] = !allEnabled
+                                return acc
+                            }, {...consents}))
+                        }}>
+                            <Checkbox
+                                indeterminate={!(allEnabled || allDisabled)}
+                                checked={!allDisabled}>
                                 {locale.acceptAllButton}
-                            </Button>
-                        </Flex>,
+                            </Checkbox>
+                        </div>,
                         children: <Space
                             style={{
                                 maxHeight: 200, overflowY: 'auto', width: '100%'
