@@ -230,6 +230,7 @@ export const locale = merge({}, en, {
         descriptionMarketing: "These trackers help us to deliver personalized ads or marketing content to you, and to measure their performance.",
     },
     FileWidget: {
+        modalTitleImgCrop: "Edit image",
         errorNotUploaded: 'Ops... file not uploaded',
         errorFileType: 'You can only upload {fileTypes} file!',
         errorMaxItems: 'You can upload maximum {maxItems} files!',

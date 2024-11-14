@@ -185,6 +185,7 @@ const ImageFileWidget = (
         <ImgCrop
             key={id + '-ImgCrop'}
             quality={1}
+            modalTitle={locale.modalTitleImgCrop}
             aspectSlider={true}
             rotationSlider={true}
             showReset={true}
