@@ -25,7 +25,3 @@ body {
 .ant-collapse > .ant-collapse-item > .ant-collapse-header .ant-collapse-header-text {
     font-weight: 700;
 }
-
-.ant-spin-nested-loading, .ant-spin-nested-loading > .ant-spin-container {
-    height: 100%;
-}
