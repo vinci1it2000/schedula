@@ -1,6 +1,22 @@
 Changelog
 =========
 
+v1.5.45 (2024-11-14)
+--------------------
+
+Feat
+~~~~
+- (form): Update resources.
+
+
+Fix
+~~~
+- (form): Add missing translation.
+
+- (form): Correct loader css.
+
+- (form): Correct Table and Cascader descriptions.
+
 
 v1.5.44 (2024-11-08)
 --------------------
