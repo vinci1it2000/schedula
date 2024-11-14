@@ -120,7 +120,6 @@ export default class TableField extends ArrayField {
             const {
                 columns,
                 rows = {},
-                description,
                 title = schema.title === undefined ? name : schema.title,
                 removable = true,
                 filename = name,
@@ -360,7 +359,6 @@ export default class TableField extends ArrayField {
             }
             const {token} = useToken();
             const {labelAlign = "right", rowGutter = 24} = formContext;
-            const ArrayFieldDescriptionTemplate = getTemplate("ArrayFieldDescriptionTemplate", registry, uiOptions);
             const ArrayFieldTitleTemplate = getTemplate("ArrayFieldTitleTemplate", registry, uiOptions);
             const handleTableChange = (pagination, filters, sorter) => {
                 this.setState({...this.state, pagination})
@@ -463,18 +461,6 @@ export default class TableField extends ArrayField {
                                                 idSchema={idSchema}
                                                 required={required}
                                                 title={title}
-                                                schema={schema}
-                                                uiSchema={uiSchema}
-                                                registry={registry}
-                                            />
-                                        </Col>
-                                    )}
-                                    {(description || schema.description) && (
-                                        <Col span={24}
-                                             style={{paddingBottom: "8px",}}>
-                                            <ArrayFieldDescriptionTemplate
-                                                description={description || schema.description || ""}
-                                                idSchema={idSchema}
                                                 schema={schema}
                                                 uiSchema={uiSchema}
                                                 registry={registry}

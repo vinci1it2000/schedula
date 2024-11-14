@@ -72,7 +72,6 @@ export default class TabField extends ArrayField {
                 const {SchemaField} = fields;
                 const uiOptions = getUiOptions(uiSchema);
                 const {
-                    description,
                     removable = true,
                     editable: _editable = true,
                     orderable = true,

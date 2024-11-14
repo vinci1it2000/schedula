@@ -33,7 +33,10 @@ function buildOptions(schema, names) {
 
 export default function CascaderField(
     {
-        schema,
+        schema:{
+            description, // rendered by the parent.
+            ...schema
+        },
         uiSchema,
         formData = {},
         onChange,
@@ -86,7 +89,8 @@ export default function CascaderField(
         errorSchema={{__errors: rawErrors, ...errorSchema}}
         uiSchema={{
             displayLabel: true,
-            "ui:classNames": ['unset-height'], ...uiSchema
+            "ui:classNames": ['unset-height child-item-margin-0'],
+            ...uiSchema
         }}
         formData={formData}
         registry={registry}
