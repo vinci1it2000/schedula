@@ -55,14 +55,14 @@ def serve_file(path, filename):
                 mimetype=file.content_type,
                 headers={
                     "Content-Disposition": f"attachment;filename={filename}"
-                },
+                }
             )
     except ObjectDoesNotExistError:
         abort(404)
 
 
-def calculate_meta(ctx):
-    return ca.file_meta_handler(ctx)
+def verify_file(kw):
+    return ca.verify_file_handler(kw)
 
 
 def calculate_default_hash(ctx):
@@ -98,7 +98,6 @@ class File(db.Model):
         res = {
             'id': self.id,
             'hash': self.hash,
-            'meta': self.meta,
             'created_at': self.created_at,
             'updated_at': self.updated_at
         }
@@ -130,6 +129,41 @@ def get_file(url, session=db.session, secret_key=None):
     return file
 
 
+def get_file_from_query(file):
+    if isinstance(file, File):
+        return file
+    hash = None
+    content_type = None
+    if 'file' in file:
+        kw = {}
+        for v in file['file'].split(';'):
+            if v.startswith('data:'):
+                kw['data'] = v
+                content_type = v[5:]
+            elif v.startswith('base64,'):
+                kw['base64'] = v
+            if len(kw) == 2:
+                break
+        file['file'] = '{data};{base64}'.format(**kw)
+        hash = hashlib.sha512(file['file'].encode('utf-8')).hexdigest()
+    elif 'hash' in file:
+        hash = file['hash']
+
+    if hash:
+        file_ = File.query.filter(File.hash == hash).one_or_none()
+        if file_:
+            return file_
+        elif 'file' in file:
+            return {
+                'file': file['file'],
+                'hash': hash,
+                'content_type': content_type
+            }
+        else:
+            raise AskFile()
+    raise ValueError("Invalid file type")
+
+
 class FileName(db.Model):
     __tablename__ = 'file_name'
     id = Column(Integer, primary_key=True)
@@ -137,9 +171,7 @@ class FileName(db.Model):
     category = Column(String(255))
     file_id = Column(Integer, ForeignKey('file.id'))
     file = db.relationship('File', foreign_keys=[file_id])
-    meta = Column(
-        'meta', JSON, default=calculate_meta, onupdate=calculate_meta
-    )
+    meta = Column('meta', JSON)
     user_id = Column(Integer, ForeignKey('user.id'))
     user = db.relationship('User', foreign_keys=[user_id])
     created_at = Column(DateTime(), default=datetime.datetime.utcnow)
@@ -147,41 +179,16 @@ class FileName(db.Model):
 
     @validates("file", include_backrefs=False)
     def validate_file(self, key, file):
-        if isinstance(file, File):
-            return file
-        hash = None
-        content_type = None
-        if 'file' in file:
-            kw = {}
-            for v in file['file'].split(';'):
-                if v.startswith('data:'):
-                    kw['data'] = v
-                    content_type = v[5:]
-                elif v.startswith('base64,'):
-                    kw['base64'] = v
-                if len(kw) == 2:
-                    break
-            file['file'] = '{data};{base64}'.format(**kw)
-            hash = hashlib.sha512(file['file'].encode('utf-8')).hexdigest()
-        elif 'hash' in file:
-            hash = file['hash']
-
-        if hash:
-            file_ = File.query.filter(File.hash == hash).one_or_none()
-            if file_:
-                return file_
-            elif 'file' in file:
-                from urllib.request import urlopen
-                with urlopen(file['file'], 'rb') as f:
-                    file_ = File(hash=hash, data=SQLFile(
-                        content=f, content_type=content_type
-                    ))
-                    db.session.add(file_)
-                    db.session.commit()
-                return file_
-            else:
-                raise AskFile()
-        raise ValueError("Invalid file type")
+        file = get_file_from_query(file)
+        if isinstance(file, dict):
+            from urllib.request import urlopen
+            with urlopen(file['file'], 'rb') as f:
+                file = File(hash=file['hash'], data=SQLFile(
+                    content=f, content_type=file['content_type']
+                ))
+                db.session.add(file)
+                db.session.commit()
+        return file
 
     def payload(self, data=False):
         serializer = URLSafeTimedSerializer(ca.secret_key, salt='file-token')
@@ -234,9 +241,13 @@ def file(category, id_item=None):
         by.pop('user_id')
     if method == 'POST':  # Create.
         try:
-            item = FileName(**kw)
+            kw = verify_file(kw)
         except AskFile:
             return jsonify({'sendfile': True})
+        except Exception as e:
+            return jsonify({'error': str(e.args[0])})
+
+        item = FileName(**kw)
         item = FileName.query.filter(and_(
             FileName.name == item.name,
             FileName.category == item.category,
@@ -272,6 +283,10 @@ def file(category, id_item=None):
                     kw['data'] = sh.combine_nested_dicts(
                         item.data, kw['data']
                     )
+                try:
+                    kw = verify_file(kw)
+                except Exception as e:
+                    return jsonify({'error': str(e.args[0])})
                 for k, v in kw.items():
                     setattr(item, k, v)
                 db.session.add(item)
@@ -289,7 +304,7 @@ class Files:
             self.init_app(app, *args, **kwargs)
 
     def init_app(self, app, sitemap, *args, **kwargs):
-        app.file_meta_handler = sitemap.file_meta_handler or (lambda ctx: None)
+        app.verify_file_handler = sitemap.verify_file_handler or (lambda kw: kw)
 
         if 'files' not in StorageManager._storages:
             import os

@@ -123,7 +123,7 @@ class Base:
              sites=None, run=True, view=True, get_context=NONE, get_data=NONE,
              subsite_idle_timeout=600, basic_app_config=None, debug=False,
              stripe_event_handler=lambda event: None,
-             file_meta_handler=lambda ctx: None):
+             verify_file_handler=lambda kw: kw):
         """
         Creates a dispatcher Form Flask app.
 
@@ -180,9 +180,9 @@ class Base:
             Stripe event handler function.
         :type stripe_event_handler: function, optional
 
-        :param file_meta_handler:
-            File meta calculation handler function.
-        :type file_meta_handler: function, optional
+        :param verify_file_handler:
+            File verification handler function.
+        :type verify_file_handler: function, optional
 
         :return:
             A FormMap or a Site if `sites is None` and `run or view is True`.
@@ -202,7 +202,7 @@ class Base:
         formmap.idle_timeout = subsite_idle_timeout
         formmap.basic_app_config = basic_app_config
         formmap.stripe_event_handler = stripe_event_handler
-        formmap.file_meta_handler = file_meta_handler
+        formmap.verify_file_handler = verify_file_handler
         methods = {
             'get_form_context': get_context,
             'get_form_data': get_data
