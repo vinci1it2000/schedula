@@ -1,6 +1,14 @@
 Changelog
 =========
 
+v1.5.47 (2024-12-06)
+--------------------
+
+Feat
+~~~~
+- (form): Add `verify_file_handler` and remove `file_meta_handler`.
+
+
 v1.5.46 (2024-11-21)
 --------------------
 
