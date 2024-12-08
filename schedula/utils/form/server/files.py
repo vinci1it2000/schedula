@@ -226,9 +226,12 @@ def file(category, id_item=None):
     is_get = method == 'GET'
 
     kw = {'category': category, 'user_id': cu.id}
-    if not is_get:
+    if method in ('POST', 'PUT', 'PATCH'):
         kw['file'] = request.get_json()
-        kw['name'] = kw['file']['filename']
+        if method == 'PATCH' and not kw['file']:
+            kw.pop('file')
+        else:
+            kw['name'] = kw['file']['filename']
     elif id_item is None and 'id_item' in args:
         id_item = args.get("id_item", type=str)
     if 'name' in args:
@@ -279,7 +282,7 @@ def file(category, id_item=None):
             if method == 'DELETE':
                 db.session.delete(item)
             elif method in ('PATCH', 'PUT'):
-                if method == 'PATCH':
+                if method == 'PATCH' and 'data' in kw:
                     kw['data'] = sh.combine_nested_dicts(
                         item.data, kw['data']
                     )
@@ -291,7 +294,9 @@ def file(category, id_item=None):
                     setattr(item, k, v)
                 db.session.add(item)
                 db.session.flush()
-            if is_get:
+            if is_get and not args.get(
+                    "payload", type=str, default=''
+            ).lower() == 'true':
                 return serve_file(item.file.data.path, item.name)
             payload = item.payload()
     is_get or after_this_request(view_commit)
