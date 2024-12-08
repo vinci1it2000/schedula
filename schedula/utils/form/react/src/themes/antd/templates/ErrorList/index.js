@@ -1,8 +1,5 @@
 import React, {useState, Suspense} from "react";
-import {FloatButton, List, Badge} from 'antd';
-import {
-    DraggableModal
-} from 'ant-design-draggable-modal/packages/ant-design-draggable-modal'
+import {FloatButton, List, Badge, Modal} from 'antd';
 import './index.css'
 import {useLocaleStore} from "../../models/locale";
 
@@ -27,7 +24,7 @@ const ErrorList = ({errors}) => {
                 type="error"
                 style={{right: 0, top: 88, height: 40}}
             />
-            <DraggableModal
+            <Modal
                 locale={getLocale('Modal')}
                 title={locale.titleModal}
                 open={open}
@@ -40,7 +37,7 @@ const ErrorList = ({errors}) => {
                     dataSource={errors}
                     renderItem={(item) => <List.Item>{item.stack}</List.Item>}
                 />
-            </DraggableModal>
+            </Modal>
         </Suspense>
     );
 };

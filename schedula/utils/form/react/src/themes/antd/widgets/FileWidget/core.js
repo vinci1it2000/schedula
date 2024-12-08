@@ -185,7 +185,7 @@ const FileWidget = (
             <Button
                 key={id + '-Button'}
                 icon={<UploadOutlined/>}
-                danger={!!rawErrors}>
+                danger={rawErrors && rawErrors.length > 0}>
                 {locale.dropMessage}
             </Button>}
     </Upload>

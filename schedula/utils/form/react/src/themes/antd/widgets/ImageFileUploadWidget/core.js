@@ -193,7 +193,7 @@ const ImageFileWidget = (
             <Upload
                 key={id + '-Upload'}
                 listType="picture-card"
-                danger={!!rawErrors}
+                danger={rawErrors && rawErrors.length > 0}
                 onRemove={onRemove}
                 beforeUpload={beforeUpload}
                 onDownload={onDownload}

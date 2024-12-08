@@ -4,7 +4,10 @@ import postSubmit from './postSubmit'
 import fields from './fields'
 import widgets from './widgets'
 import formContext from './formContext'
+import customValidate from './customValidate'
+import transformErrors from './transformErrors'
 import * as uiFunctions from './uiFunctions'
+import './index.css'
 
 window.schedulaProps = {
     editOnChange,
@@ -13,5 +16,7 @@ window.schedulaProps = {
     widgets,
     fields,
     formContext,
-    uiFunctions
+    uiFunctions,
+    customValidate,
+    transformErrors
 }

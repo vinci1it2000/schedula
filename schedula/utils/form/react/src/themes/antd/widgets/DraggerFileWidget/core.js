@@ -177,7 +177,7 @@ const DraggerFileWidget = (
     const {Dragger} = Upload;
     const theme = useMemo(() => {
         let theme = {}
-        if (!!rawErrors) {
+        if (rawErrors && rawErrors.length > 0) {
             theme = {
                 components: {
                     "Upload": {

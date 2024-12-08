@@ -1,8 +1,5 @@
 import React, {useState, useCallback} from 'react'
-import {
-    DraggableModal
-} from 'ant-design-draggable-modal/packages/ant-design-draggable-modal'
-import {FloatButton} from 'antd';
+import {FloatButton, Modal} from 'antd';
 import {
     QuestionCircleOutlined, CloseCircleOutlined
 } from '@ant-design/icons';
@@ -24,7 +21,7 @@ const Debug = ({src, name, ...props}) => {
                 style={{right: 24}}
                 size="small"
                 onClick={onToggle}/>
-            <DraggableModal
+            <Modal
                 locale={getLocale('Modal')} open={open}
                 onOk={onOk} onCancel={onCancel}
                 title={locale.titleModal}>
@@ -39,7 +36,7 @@ const Debug = ({src, name, ...props}) => {
                         border: "none"
                     }}>
                 </iframe>
-            </DraggableModal>
+            </Modal>
         </>
     );
 };

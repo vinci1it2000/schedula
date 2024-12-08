@@ -96,7 +96,7 @@ export default function CascaderField(
         registry={registry}
         {...props}>
         <Cascader
-            status={!!rawErrors ? "error" : null}
+            status={rawErrors && rawErrors.length > 0 ? "error" : null}
             style={{width: '100%'}}
             value={value}
             options={valueOptions}

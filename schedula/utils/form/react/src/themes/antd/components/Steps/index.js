@@ -74,7 +74,7 @@ const Steps = (
             const regexPattern = new RegExp(`^${idPrefix}\\.?`);
             hasErrors = (data2verify[current] || []).some(k => {
                 let path = (k.startsWith(idPrefix) ? k : $id + '.' + k).replace(regexPattern, '')
-                return !!get(errorSchema, path, false)
+                return (get(errorSchema, path, []) || []).length > 0
             })
             status = hasErrors ? 'error' : 'progress'
         }
