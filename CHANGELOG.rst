@@ -1,6 +1,19 @@
 Changelog
 =========
 
+v1.5.49 (2024-12-09)
+--------------------
+
+Feat
+~~~~
+- (form): Update resources.
+
+
+Fix
+~~~
+- (form): Correct Steps error checks.
+
+
 v1.5.48 (2024-12-08)
 --------------------
 
