@@ -1,6 +1,18 @@
 Changelog
 =========
 
+v1.5.48 (2024-12-08)
+--------------------
+
+Feat
+~~~~
+- (form): Update resources.
+
+- (form): Update API for file handling.
+
+- (form): Update error handling and add custom validation.
+
+
 v1.5.47 (2024-12-06)
 --------------------
 
