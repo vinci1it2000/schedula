@@ -9,7 +9,7 @@ import {
 } from 'react';
 import {useLocaleStore} from "../../models/locale";
 import get from 'lodash/get';
-
+import {toErrorList} from "@rjsf/utils"
 const StepContent = ({isActive, children, style}) => {
     const [hasRendered, setHasRendered] = useState(false);
 
@@ -74,7 +74,7 @@ const Steps = (
             const regexPattern = new RegExp(`^${idPrefix}\\.?`);
             hasErrors = (data2verify[current] || []).some(k => {
                 let path = (k.startsWith(idPrefix) ? k : $id + '.' + k).replace(regexPattern, '')
-                return (get(errorSchema, path, []) || []).length > 0
+                return toErrorList(get(errorSchema, path)).length > 0
             })
             status = hasErrors ? 'error' : 'progress'
         }
