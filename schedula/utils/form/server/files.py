@@ -245,12 +245,11 @@ def file(category, id_item=None):
     if method == 'POST':  # Create.
         try:
             kw = verify_file(kw)
+            item = FileName(**kw)
         except AskFile:
             return jsonify({'sendfile': True})
         except Exception as e:
             return jsonify({'error': str(e.args[0])})
-
-        item = FileName(**kw)
         item = FileName.query.filter(and_(
             FileName.name == item.name,
             FileName.category == item.category,
