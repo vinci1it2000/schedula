@@ -46,9 +46,13 @@ const LanguageNav = React.lazy(() => import('./Language'))
 const ContactNav = React.lazy(() => import('./Contact'))
 const ContentPage = React.lazy(() => import('./ContentPages'))
 const {useToken} = theme;
-const formatItem = ({path, label, children, ...item}, index) => {
+const formatItem = ({path, label, children,href, ...item}, index) => {
     if (path && typeof label === 'string') {
         label = <Link to={path}>{label}</Link>
+    } else if (href && typeof label === 'string') {
+        label = <a href={href} rel="noopener noreferrer">
+            {label}
+        </a>
     }
     if (children) {
         children = children.map((d, i) => {
