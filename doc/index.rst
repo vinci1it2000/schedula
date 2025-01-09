@@ -23,6 +23,7 @@
     async
     contrib
     donate
+    sponsors
     api
     change
 

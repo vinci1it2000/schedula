@@ -499,6 +499,14 @@ processes::
     ['async', 'parallel']
 
 .. _end-async:
+.. _start-sponsors:
+
+Supported by
+============
+
+[![JetBrains logo.](https://resources.jetbrains.com/storage/products/company/brand/logos/jetbrains.svg)](https://jb.gg/OpenSourceSupport)
+
+.. _end-sponsors:
 .. _start-badges:
 
 .. |test_status| image:: https://github.com/vinci1it2000/schedula/actions/workflows/tests.yml/badge.svg?branch=master
