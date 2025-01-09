@@ -1,5 +1,6 @@
 import React, {useEffect, useState} from 'react';
 import {Button, Dropdown} from 'antd';
+import Icon from '@ant-design/icons';
 import './Language.css'
 
 const LanguageNav = ({render: {formContext: {form}}, languages}) => {
@@ -31,8 +32,9 @@ const LanguageNav = ({render: {formContext: {form}}, languages}) => {
             },
             items: Object.entries(languageOptions).map(([key, item]) => Object.assign({key}, item))
         }}>
-            <Button shape="circle"
-                    icon={languageOptions[form.state.language].icon}/>
+            <Button shape="circle" icon={<Icon
+                component={() => languageOptions[form.state.language].icon}
+            />}/>
         </Dropdown>
     </div> : null
 }
