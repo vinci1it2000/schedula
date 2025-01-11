@@ -1,6 +1,27 @@
 Changelog
 =========
 
+v1.5.50 (2025-01-11)
+--------------------
+
+Feat
+~~~~
+- (form): Update resources.
+
+- (form): Add `experimental_customMergeAllOf` in Form.
+
+- (form): Update Language Icon.
+
+- (form): Add href as App menu link.
+
+- (doc): Add JetBrains sponsor.
+
+
+Fix
+~~~
+- (form): Correct file handling.
+
+
 v1.5.49 (2024-12-09)
 --------------------
 
