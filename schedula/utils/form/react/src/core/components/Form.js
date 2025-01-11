@@ -23,8 +23,8 @@ import BaseForm from "@rjsf/core"
 import isEmpty from "lodash/isEmpty";
 import EventEmitter from "events"
 
-function customCreateSchemaUtils(validator, schema, experimental_defaultFormStateBehavior) {
-    return patchSchemaUtils(createSchemaUtils(validator, schema, experimental_defaultFormStateBehavior))
+function customCreateSchemaUtils(validator, schema, experimental_defaultFormStateBehavior, experimental_customMergeAllOf) {
+    return patchSchemaUtils(createSchemaUtils(validator, schema, experimental_defaultFormStateBehavior, experimental_customMergeAllOf))
 }
 
 /** The `Form` component renders the outer form and all the fields defined in the `schema` */
@@ -33,6 +33,12 @@ export default class Form extends BaseForm {
         super(props);
         this.state.FormContext = React.createContext({form: this})
         this.state.emitter = new EventEmitter()
+        this.state["schemaUtils"] = customCreateSchemaUtils(
+            props.validator,
+            props.schema,
+            props.experimental_defaultFormStateBehavior,
+            props.experimental_customMergeAllOf
+        )
     }
 
     componentDidMount() {
@@ -86,13 +92,14 @@ export default class Form extends BaseForm {
                     defineValidator(this.props.precompiledValidator, language, schema, this.props.nonce).then(validator => {
                         const uiSchema = this.t(this.state.rootUiSchema)
                         const experimental_defaultFormStateBehavior = this.props.experimental_defaultFormStateBehavior
+                        const experimental_customMergeAllOf = this.props.experimental_customMergeAllOf
                         this.setState({
                             ...this.state,
                             loading: false,
                             language,
                             schema,
                             uiSchema,
-                            schemaUtils: customCreateSchemaUtils(validator, schema, experimental_defaultFormStateBehavior)
+                            schemaUtils: customCreateSchemaUtils(validator, schema, experimental_defaultFormStateBehavior, experimental_customMergeAllOf)
                         }, () => {
                             if (callback) {
                                 callback(this)
@@ -113,14 +120,143 @@ export default class Form extends BaseForm {
      * @param inputFormData - The new or current data for the `Form`
      * @param retrievedSchema - An expanded schema, if not provided, it will be retrieved from the `schema` and `formData`.
      * @param isSchemaChanged - A flag indicating whether the schema has changed.
+     * @param formDataChangedFields - The changed fields of `formData`
      * @returns - The new state for the `Form`
      */
-    getStateFromProps(props, inputFormData, retrievedSchema, isSchemaChanged = false) {
-        let state = super.getStateFromProps({
-            ...props
-        }, inputFormData, retrievedSchema, isSchemaChanged)
-        patchSchemaUtils(state.schemaUtils)
-        const rootSchema = get(props, "rootSchema", this.props.schema)
+    getStateFromProps(
+        props,
+        inputFormData,
+        retrievedSchema,
+        isSchemaChanged = false,
+        formDataChangedFields = []
+    ) {
+        const state = this.state || {}
+        const schema = "schema" in props ? props.schema : this.props.schema
+        const uiSchema =
+            ("uiSchema" in props ? props.uiSchema : this.props.uiSchema) || {}
+        const edit = typeof inputFormData !== "undefined"
+        const liveValidate =
+            "liveValidate" in props ? props.liveValidate : this.props.liveValidate
+        const mustValidate = edit && !props.noValidate && liveValidate
+        const rootSchema = schema
+        const experimental_defaultFormStateBehavior =
+            "experimental_defaultFormStateBehavior" in props
+                ? props.experimental_defaultFormStateBehavior
+                : this.props.experimental_defaultFormStateBehavior
+        const experimental_customMergeAllOf =
+            "experimental_customMergeAllOf" in props
+                ? props.experimental_customMergeAllOf
+                : this.props.experimental_customMergeAllOf
+        let schemaUtils = state.schemaUtils
+        if (
+            !schemaUtils ||
+            schemaUtils.doesSchemaUtilsDiffer(
+                props.validator,
+                rootSchema,
+                experimental_defaultFormStateBehavior,
+                experimental_customMergeAllOf
+            )
+        ) {
+            schemaUtils = customCreateSchemaUtils(
+                props.validator,
+                rootSchema,
+                experimental_defaultFormStateBehavior,
+                experimental_customMergeAllOf
+            )
+        }
+        const formData = schemaUtils.getDefaultFormState(schema, inputFormData)
+        const _retrievedSchema = this.updateRetrievedSchema(
+            retrievedSchema ?? schemaUtils.retrieveSchema(schema, formData)
+        )
+
+        const getCurrentErrors = () => {
+            // If the `props.noValidate` option is set or the schema has changed, we reset the error state.
+            if (props.noValidate || isSchemaChanged) {
+                return {errors: [], errorSchema: {}}
+            } else if (!props.liveValidate) {
+                return {
+                    errors: state.schemaValidationErrors || [],
+                    errorSchema: state.schemaValidationErrorSchema || {}
+                }
+            }
+            return {
+                errors: state.errors || [],
+                errorSchema: state.errorSchema || {}
+            }
+        }
+
+        let errors
+        let errorSchema
+        let schemaValidationErrors = state.schemaValidationErrors
+        let schemaValidationErrorSchema = state.schemaValidationErrorSchema
+        if (mustValidate) {
+            const schemaValidation = this.validate(
+                formData,
+                schema,
+                schemaUtils,
+                _retrievedSchema
+            )
+            errors = schemaValidation.errors
+            // If retrievedSchema is undefined which means the schema or formData has changed, we do not merge state.
+            // Else in the case where it hasn't changed, we merge 'state.errorSchema' with 'schemaValidation.errorSchema.' This done to display the raised field error.
+            if (retrievedSchema === undefined) {
+                errorSchema = schemaValidation.errorSchema
+            } else {
+                errorSchema = mergeObjects(
+                    this.state?.errorSchema,
+                    schemaValidation.errorSchema,
+                    "preventDuplicates"
+                )
+            }
+            schemaValidationErrors = errors
+            schemaValidationErrorSchema = errorSchema
+        } else {
+            const currentErrors = getCurrentErrors()
+            errors = currentErrors.errors
+            errorSchema = currentErrors.errorSchema
+            if (formDataChangedFields.length > 0) {
+                const newErrorSchema = formDataChangedFields.reduce((acc, key) => {
+                    acc[key] = undefined
+                    return acc
+                }, {})
+                errorSchema = schemaValidationErrorSchema = mergeObjects(
+                    currentErrors.errorSchema,
+                    newErrorSchema,
+                    "preventDuplicates"
+                )
+            }
+        }
+
+        if (props.extraErrors) {
+            const merged = validationDataMerge(
+                {errorSchema, errors},
+                props.extraErrors
+            )
+            errorSchema = merged.errorSchema
+            errors = merged.errors
+        }
+        const idSchema = schemaUtils.toIdSchema(
+            _retrievedSchema,
+            uiSchema["ui:rootFieldId"],
+            formData,
+            props.idPrefix,
+            props.idSeparator
+        )
+        const nextState = {
+            schemaUtils,
+            schema,
+            uiSchema,
+            idSchema,
+            formData,
+            edit,
+            errors,
+            errorSchema,
+            schemaValidationErrors,
+            schemaValidationErrorSchema,
+            retrievedSchema: _retrievedSchema
+        }
+
+        const _rootSchema = get(props, "rootSchema", this.props.schema)
         const rootUiSchema = get(props, "rootUiSchema", this.props.uiSchema) || {}
         const language = get(props, "language", this.props.language) || 'en_US'
         const csrf_token = "csrf_token" in state ? state.csrf_token : ("csrf_token" in props ? props.csrf_token : this.props.csrf_token)
@@ -132,9 +268,8 @@ export default class Form extends BaseForm {
         const loading = "loading" in state ? state.loading : false
         const debugUrl = "debugUrl" in state ? state.debugUrl : ""
         return {
-            ...state,
-            formData: cloneDeep(state.formData),
-            rootSchema,
+            ...nextState,
+            rootSchema: _rootSchema,
             rootUiSchema,
             csrf_token,
             loading,
@@ -154,15 +289,27 @@ export default class Form extends BaseForm {
      * @param schema - The schema used to validate against
      * @param altSchemaUtils - The alternate schemaUtils to use for validation
      */
-    validate(formData, schema, altSchemaUtils) {
+    validate(
+        formData,
+        schema = this.props.schema,
+        altSchemaUtils,
+        retrievedSchema
+    ) {
         const schemaUtils = altSchemaUtils ? altSchemaUtils : this.state.schemaUtils
         schema = schema ? schema : this.state.schema
         const uiSchema = this.state ? this.state.uiSchema : this.props.uiSchema
         const {customValidate, transformErrors} = this.props
-        const resolvedSchema = schemaUtils.retrieveSchema(schema, formData)
+        const resolvedSchema =
+            retrievedSchema ?? schemaUtils.retrieveSchema(schema, formData)
         return schemaUtils
             .getValidator()
-            .validateFormData(formData, resolvedSchema, customValidate, transformErrors, uiSchema)
+            .validateFormData(
+                formData,
+                resolvedSchema,
+                customValidate,
+                transformErrors,
+                uiSchema
+            )
     }
 
     debounceValidate = debounce((callback) => {
@@ -181,7 +328,12 @@ export default class Form extends BaseForm {
     editOnChange(formData, id) {
         if (this.props.editOnChange) {
             const {editOnChange, ...props} = this.props
-            return editOnChange({...props, formData, _, form: this}, id);
+            return editOnChange({
+                ...props,
+                formData: cloneDeep(formData),
+                _,
+                form: this
+            }, id);
         }
         return formData
     }
@@ -230,11 +382,18 @@ export default class Form extends BaseForm {
 
             newFormData = this.getUsedFormData(formData, fieldNames)
             state = {
-                ...state, formData: newFormData
+                ...state,
+                formData: newFormData
             }
         }
+
         if (mustValidate) {
-            const schemaValidation = this.validate(newFormData, schema, schemaUtils, retrievedSchema);
+            const schemaValidation = this.validate(
+                newFormData,
+                schema,
+                schemaUtils,
+                retrievedSchema
+            )
             let errors = schemaValidation.errors
             let errorSchema = schemaValidation.errorSchema
             const schemaValidationErrors = errors
@@ -243,6 +402,19 @@ export default class Form extends BaseForm {
                 const merged = validationDataMerge(schemaValidation, extraErrors)
                 errorSchema = merged.errorSchema
                 errors = merged.errors
+            }
+            // Merging 'newErrorSchema' into 'errorSchema' to display the custom raised errors.
+            if (newErrorSchema) {
+                const filteredErrors = this.filterErrorsBasedOnSchema(
+                    newErrorSchema,
+                    retrievedSchema,
+                    newFormData
+                )
+                errorSchema = mergeObjects(
+                    errorSchema,
+                    filteredErrors,
+                    "preventDuplicates"
+                )
             }
             state = {
                 ...state,
@@ -309,7 +481,7 @@ export default class Form extends BaseForm {
         }
         newFormData = this.editOnChange(newFormData)
 
-        if (noValidate || this.validateForm()) {
+        if (noValidate || this.validateFormWithFormData(newFormData)) {
             // There are no errors generated through schema validation.
             // Check for user provided errors and update state accordingly.
             const errorSchema = extraErrors || {}
@@ -332,11 +504,12 @@ export default class Form extends BaseForm {
             }
 
             this.setState(state, () => {
-                this.postData({data, ...detail}, ({
-                                                      data: postData,
-                                                      debugUrl,
-                                                      state: fetchState
-                                                  }) => {
+                this.postData({data, ...detail}, (
+                    {
+                        data: postData,
+                        debugUrl,
+                        state: fetchState
+                    }) => {
                     const {data} = this.postSubmit({
                         data: postData, input, formData: newFormData
                     })
@@ -444,24 +617,41 @@ export default class Form extends BaseForm {
         return registry
     }
 
-    /** Programmatically validate the form. If `onError` is provided, then it will be called with the list of errors the
-     * same way as would happen on form submission.
+    /**
+     * If the retrievedSchema has changed the new retrievedSchema is returned.
+     * Otherwise, the old retrievedSchema is returned to persist reference.
+     * -  This ensures that AJV retrieves the schema from the cache when it has not changed,
+     *    avoiding the performance cost of recompiling the schema.
      *
+     * @param retrievedSchema The new retrieved schema.
+     * @returns The new retrieved schema if it has changed, else the old retrieved schema.
+     */
+    updateRetrievedSchema(retrievedSchema) {
+        const isTheSame = deepEquals(retrievedSchema, this.state?.retrievedSchema)
+        return isTheSame ? this.state.retrievedSchema : retrievedSchema
+    }
+
+    /** Validates the form using the given `formData`. For use on form submission or on programmatic validation.
+     * If `onError` is provided, then it will be called with the list of errors.
+     *
+     * @param formData - The form data to validate
      * @returns - True if the form is valid, false otherwise.
      */
-    validateForm() {
+    validateFormWithFormData = formData => {
         const {
-            extraErrors, extraErrorsBlockSubmit, focusOnFirstError, onError
+            extraErrors,
+            extraErrorsBlockSubmit,
+            focusOnFirstError,
+            onError
         } = this.props
-        const {
-            formData, errors: prevErrors
-        } = this.state
+        const {errors: prevErrors} = this.state
         const schemaValidation = this.validate(formData)
         let errors = schemaValidation.errors
         let errorSchema = schemaValidation.errorSchema
         const schemaValidationErrors = errors
         const schemaValidationErrorSchema = errorSchema
-        const hasError = errors.length > 0 || (extraErrors && extraErrorsBlockSubmit)
+        const hasError =
+            errors.length > 0 || (extraErrors && extraErrorsBlockSubmit)
         if (hasError) {
             if (extraErrors) {
                 const merged = validationDataMerge(schemaValidation, extraErrors)

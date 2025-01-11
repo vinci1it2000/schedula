@@ -36,15 +36,25 @@ import {splitKeyElementFromObject} from "@rjsf/utils/lib/findSchemaDefinition"
  * @param schema - The schema for which retrieving a schema is desired
  * @param [rootSchema={}] - The root schema that will be forwarded to all the APIs
  * @param [rawFormData] - The current formData, if any, to assist retrieving a schema
+ * @param [experimental_customMergeAllOf] - Optional function that allows for custom merging of `allOf` schemas
  * @returns - The schema having its conditions, additional properties, references and dependencies resolved
  */
 export default function retrieveSchema(
     validator,
     schema,
     rootSchema = {},
-    rawFormData
+    rawFormData,
+    experimental_customMergeAllOf
 ) {
-    return retrieveSchemaInternal(validator, schema, rootSchema, rawFormData)[0]
+    return retrieveSchemaInternal(
+        validator,
+        schema,
+        rootSchema,
+        rawFormData,
+        undefined,
+        undefined,
+        experimental_customMergeAllOf
+    )[0]
 }
 
 /** Resolves a conditional block (if/else/then) by removing the condition and merging the appropriate conditional branch
@@ -58,6 +68,7 @@ export default function retrieveSchema(
  *          dependencies as a list of schemas
  * @param recurseList - The list of recursive references already processed
  * @param [formData] - The current formData to assist retrieving a schema
+ * @param [experimental_customMergeAllOf] - Optional function that allows for custom merging of `allOf` schemas
  * @returns - A list of schemas with the appropriate conditions resolved, possibly with all branches expanded
  */
 export function resolveCondition(
@@ -66,7 +77,8 @@ export function resolveCondition(
     rootSchema,
     expandAllBranches,
     recurseList,
-    formData
+    formData,
+    experimental_customMergeAllOf
 ) {
     const {
         if: expression,
@@ -91,7 +103,8 @@ export function resolveCondition(
                     rootSchema,
                     formData,
                     expandAllBranches,
-                    recurseList
+                    recurseList,
+                    experimental_customMergeAllOf
                 )
             )
         }
@@ -103,7 +116,8 @@ export function resolveCondition(
                     rootSchema,
                     formData,
                     expandAllBranches,
-                    recurseList
+                    recurseList,
+                    experimental_customMergeAllOf
                 )
             )
         }
@@ -117,7 +131,8 @@ export function resolveCondition(
                     rootSchema,
                     formData,
                     expandAllBranches,
-                    recurseList
+                    recurseList,
+                    experimental_customMergeAllOf
                 )
             )
         }
@@ -134,7 +149,8 @@ export function resolveCondition(
             rootSchema,
             formData,
             expandAllBranches,
-            recurseList
+            recurseList,
+            experimental_customMergeAllOf
         )
     )
 }
@@ -183,6 +199,7 @@ export function getAllPermutationsOfXxxOf(listOfLists) {
  *          as a list of schemas
  * @param recurseList - The list of recursive references already processed
  * @param [formData] - The current formData, if any, to assist retrieving a schema
+ * @param [experimental_customMergeAllOf] - Optional function that allows for custom merging of `allOf` schemas
  * @returns - The list of schemas having its references, dependencies and allOf schemas resolved
  */
 export function resolveSchema(
@@ -191,7 +208,8 @@ export function resolveSchema(
     rootSchema,
     expandAllBranches,
     recurseList,
-    formData
+    formData,
+    experimental_customMergeAllOf
 ) {
     const updatedSchemas = resolveReference(
         validator,
@@ -222,7 +240,8 @@ export function resolveSchema(
                 rootSchema,
                 formData,
                 expandAllBranches,
-                recurseList
+                recurseList,
+                experimental_customMergeAllOf
             )
         })
     }
@@ -234,7 +253,8 @@ export function resolveSchema(
                 rootSchema,
                 formData,
                 expandAllBranches,
-                recurseList
+                recurseList,
+                experimental_customMergeAllOf
             )
         )
         const allPermutations = getAllPermutationsOfXxxOf(allOfSchemaElements)
@@ -258,6 +278,7 @@ export function resolveSchema(
  *          as a list of schemas
  * @param recurseList - The list of recursive references already processed
  * @param [formData] - The current formData, if any, to assist retrieving a schema
+ * @param [experimental_customMergeAllOf] - Optional function that allows for custom merging of `allOf` schemas
  * @returns - The list schemas retrieved after having all references resolved
  */
 export function resolveReference(
@@ -266,7 +287,8 @@ export function resolveReference(
     rootSchema,
     expandAllBranches,
     recurseList,
-    formData
+    formData,
+    experimental_customMergeAllOf
 ) {
     const updatedSchema = resolveAllReferences(schema, rootSchema, recurseList)
     if (updatedSchema !== schema) {
@@ -277,7 +299,8 @@ export function resolveReference(
             rootSchema,
             formData,
             expandAllBranches,
-            recurseList
+            recurseList,
+            experimental_customMergeAllOf
         )
     }
     return [schema]
@@ -343,13 +366,15 @@ export function resolveAllReferences(schema, rootSchema, recurseList) {
  * @param theSchema - The schema for which the existing additional properties is desired
  * @param [rootSchema] - The root schema, used to primarily to look up `$ref`s * @param validator
  * @param [aFormData] - The current formData, if any, to assist retrieving a schema
+ * @param [experimental_customMergeAllOf] - Optional function that allows for custom merging of `allOf` schemas
  * @returns - The updated schema with additional properties stubbed
  */
 export function stubExistingAdditionalProperties(
     validator,
     theSchema,
     rootSchema,
-    aFormData
+    aFormData,
+    experimental_customMergeAllOf
 ) {
     // Clone the schema so that we don't ruin the consumer's original
     const schema = {
@@ -374,7 +399,8 @@ export function stubExistingAdditionalProperties(
                         $ref: get(schema.additionalProperties, [REF_KEY])
                     },
                     rootSchema,
-                    formData
+                    formData,
+                    experimental_customMergeAllOf
                 )
             } else if ("type" in schema.additionalProperties) {
                 additionalProperties = {...schema.additionalProperties}
@@ -414,6 +440,7 @@ export function stubExistingAdditionalProperties(
  * @param [expandAllBranches=false] - Flag, if true, will return all possible branches of conditions, any/oneOf and
  *          dependencies as a list of schemas
  * @param [recurseList=[]] - The optional, list of recursive references already processed
+ * @param [experimental_customMergeAllOf] - Optional function that allows for custom merging of `allOf` schemas
  * @returns - The schema(s) resulting from having its conditions, additional properties, references and dependencies
  *          resolved. Multiple schemas may be returned if `expandAllBranches` is true.
  */
@@ -423,7 +450,8 @@ export function retrieveSchemaInternal(
     rootSchema,
     rawFormData,
     expandAllBranches = false,
-    recurseList = []
+    recurseList = [],
+    experimental_customMergeAllOf
 ) {
     if (!isObject(schema)) {
         return [{}]
@@ -434,7 +462,8 @@ export function retrieveSchemaInternal(
         rootSchema,
         expandAllBranches,
         recurseList,
-        rawFormData
+        rawFormData,
+        experimental_customMergeAllOf
     )
     return resolvedSchemas.flatMap(s => {
         let resolvedSchema = s
@@ -445,7 +474,8 @@ export function retrieveSchemaInternal(
                 rootSchema,
                 expandAllBranches,
                 recurseList,
-                rawFormData
+                rawFormData,
+                experimental_customMergeAllOf
             )
         }
         if (ALL_OF_KEY in resolvedSchema) {
@@ -455,9 +485,29 @@ export function retrieveSchemaInternal(
                 return [...allOf, restOfSchema]
             }
             try {
-                resolvedSchema = mergeAllOf(resolvedSchema, {
-                    deep: false
+                const withContainsSchemas = []
+                const withoutContainsSchemas = []
+                resolvedSchema.allOf?.forEach(s => {
+                    if (typeof s === "object" && s.contains) {
+                        withContainsSchemas.push(s)
+                    } else {
+                        withoutContainsSchemas.push(s)
+                    }
                 })
+                if (withContainsSchemas.length) {
+                    resolvedSchema = {
+                        ...resolvedSchema,
+                        allOf: withoutContainsSchemas
+                    }
+                }
+                resolvedSchema = experimental_customMergeAllOf
+                    ? experimental_customMergeAllOf(resolvedSchema)
+                    : mergeAllOf(resolvedSchema, {
+                        deep: false
+                    })
+                if (withContainsSchemas.length) {
+                    resolvedSchema.allOf = withContainsSchemas
+                }
             } catch (e) {
                 console.warn("could not merge subschemas in allOf:\n", e)
                 const {allOf, ...resolvedSchemaWithoutAllOf} = resolvedSchema
@@ -472,7 +522,8 @@ export function retrieveSchemaInternal(
                 validator,
                 resolvedSchema,
                 rootSchema,
-                rawFormData
+                rawFormData,
+                experimental_customMergeAllOf
             )
         }
 
@@ -542,6 +593,7 @@ export function resolveAnyOrOneOfSchemas(
  *          as a list of schemas
  * @param recurseList - The list of recursive references already processed
  * @param [formData] - The current formData, if any, to assist retrieving a schema
+ * @param [experimental_customMergeAllOf] - Optional function that allows for custom merging of `allOf` schemas
  * @returns - The list of schemas with their dependencies resolved
  */
 export function resolveDependencies(
@@ -550,7 +602,8 @@ export function resolveDependencies(
     rootSchema,
     expandAllBranches,
     recurseList,
-    formData
+    formData,
+    experimental_customMergeAllOf
 ) {
     // Drop the dependencies from the source schema.
     const {dependencies, ...remainingSchema} = schema
@@ -569,7 +622,8 @@ export function resolveDependencies(
             rootSchema,
             expandAllBranches,
             recurseList,
-            formData
+            formData,
+            experimental_customMergeAllOf
         )
     )
 }
@@ -585,6 +639,7 @@ export function resolveDependencies(
  *          as a list of schemas
  * @param recurseList - The list of recursive references already processed
  * @param [formData] - The current formData, if any, to assist retrieving a schema
+ * @param [experimental_customMergeAllOf] - Optional function that allows for custom merging of `allOf` schemas
  * @returns - The schema with the `dependencies` resolved into it
  */
 export function processDependencies(
@@ -594,7 +649,8 @@ export function processDependencies(
     rootSchema,
     expandAllBranches,
     recurseList,
-    formData
+    formData,
+    experimental_customMergeAllOf
 ) {
     let schemas = [resolvedSchema]
     // Process dependencies updating the local schema properties as appropriate.
@@ -625,7 +681,8 @@ export function processDependencies(
                 dependencyValue,
                 expandAllBranches,
                 recurseList,
-                formData
+                formData,
+                experimental_customMergeAllOf
             )
         }
         return schemas.flatMap(schema =>
@@ -636,7 +693,8 @@ export function processDependencies(
                 rootSchema,
                 expandAllBranches,
                 recurseList,
-                formData
+                formData,
+                experimental_customMergeAllOf
             )
         )
     }
@@ -671,6 +729,7 @@ export function withDependentProperties(schema, additionallyRequired) {
  *          as a list of schemas
  * @param recurseList - The list of recursive references already processed
  * @param [formData]- The current formData to assist retrieving a schema
+ * @param [experimental_customMergeAllOf] - Optional function that allows for custom merging of `allOf` schemas
  * @returns - The list of schemas with the dependent schema resolved into them
  */
 export function withDependentSchema(
@@ -681,7 +740,8 @@ export function withDependentSchema(
     dependencyValue,
     expandAllBranches,
     recurseList,
-    formData
+    formData,
+    experimental_customMergeAllOf
 ) {
     const dependentSchemas = retrieveSchemaInternal(
         validator,
@@ -689,7 +749,8 @@ export function withDependentSchema(
         rootSchema,
         formData,
         expandAllBranches,
-        recurseList
+        recurseList,
+        experimental_customMergeAllOf
     )
     return dependentSchemas.flatMap(dependent => {
         const {oneOf, ...dependentSchema} = dependent
@@ -722,7 +783,8 @@ export function withDependentSchema(
                 resolvedOneOf,
                 expandAllBranches,
                 recurseList,
-                formData
+                formData,
+                experimental_customMergeAllOf
             )
         )
     })
@@ -741,6 +803,7 @@ export function withDependentSchema(
  *          as a list of schemas
  * @param recurseList - The list of recursive references already processed
  * @param [formData] - The current formData to assist retrieving a schema
+ * @param [experimental_customMergeAllOf] - Optional function that allows for custom merging of `allOf` schemas
  * @returns - Either an array containing the best matching option or all options if `expandAllBranches` is true
  */
 export function withExactlyOneSubschema(
@@ -751,24 +814,15 @@ export function withExactlyOneSubschema(
     oneOf,
     expandAllBranches,
     recurseList,
-    formData
+    formData,
+    experimental_customMergeAllOf
 ) {
-    const value = formData[dependencyKey]
     const validSubschemas = oneOf.filter(subschema => {
         if (typeof subschema === "boolean" || !subschema || !subschema.properties) {
             return false
         }
         const {[dependencyKey]: conditionPropertySchema} = subschema.properties
         if (conditionPropertySchema) {
-            const {
-                enum: enumValues,
-                const: constValue
-            } = conditionPropertySchema
-            if (enumValues && !enumValues.includes(value)) {
-                return false
-            } else if (constValue !== undefined && constValue !== value) {
-                return false
-            }
             const conditionSchema = {
                 type: "object",
 
@@ -803,7 +857,8 @@ export function withExactlyOneSubschema(
             rootSchema,
             formData,
             expandAllBranches,
-            recurseList
+            recurseList,
+            experimental_customMergeAllOf
         )
         return schemas.map(s => mergeSchemas(schema, s))
     })

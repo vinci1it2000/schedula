@@ -3,6 +3,7 @@ import set from 'lodash/set';
 import defaultsDeep from 'lodash/defaultsDeep';
 import has from "lodash/has"
 import isEqual from "lodash/isEqual"
+
 import {
     ALL_OF_KEY,
     ANY_OF_KEY,
@@ -13,7 +14,7 @@ import {
     ONE_OF_KEY,
     PROPERTIES_KEY,
     REF_KEY,
-    RJSF_ADDITONAL_PROPERTIES_FLAG,
+    RJSF_ADDITIONAL_PROPERTIES_FLAG,
     getDiscriminatorFieldFromSchema,
     retrieveSchema
 } from "@rjsf/utils"
@@ -113,7 +114,7 @@ function cascaderFind(p, v) {
         let oneOf = p.oneOf
         for (let i = 0; i < oneOf.length; i++) {
             let r = cascaderFind(oneOf[i], v)
-            if (r !== null)
+            if (r)
                 return r
         }
     }
@@ -129,6 +130,7 @@ function cascaderFind(p, v) {
  * @param [rootSchema] - The root schema, used to primarily to look up `$ref`s
  * @param [formData] - The current formData, if any, to assist retrieving a schema
  * @param [_recurseList=[]] - The list of retrieved schemas currently being recursed, used to prevent infinite recursion
+ * @param [experimental_customMergeAllOf] - Optional function that allows for custom merging of `allOf` schemas
  * @returns - The `PathSchema` object for the `schema`
  */
 function toPathSchemaInternal(
@@ -137,10 +139,17 @@ function toPathSchemaInternal(
     name,
     rootSchema,
     formData,
-    _recurseList = []
+    _recurseList = [],
+    experimental_customMergeAllOf
 ) {
     if (REF_KEY in schema || DEPENDENCIES_KEY in schema || ALL_OF_KEY in schema) {
-        const _schema = retrieveSchema(validator, schema, rootSchema, formData)
+        const _schema = retrieveSchema(
+            validator,
+            schema,
+            rootSchema,
+            formData,
+            experimental_customMergeAllOf
+        )
         const sameSchemaIndex = _recurseList.findIndex(item =>
             isEqual(item, _schema)
         )
@@ -151,7 +160,8 @@ function toPathSchemaInternal(
                 name,
                 rootSchema,
                 formData,
-                _recurseList.concat(_schema)
+                _recurseList.concat(_schema),
+                experimental_customMergeAllOf
             )
         }
     }
@@ -161,7 +171,7 @@ function toPathSchemaInternal(
     }
     if (schema.cascader) {
         let _schema
-        if (formData !== undefined) {
+        if (formData !== undefined && schema.cascader.every(key => formData.hasOwnProperty(key))) {
             _schema = schema.cascader.reduce(({schema, properties}, k) => {
                 let v = formData[k],
                     s = get(schema, 'oneOf', [schema]).find(({properties}) => {
@@ -196,7 +206,8 @@ function toPathSchemaInternal(
             formData,
             xxxOf,
             0,
-            discriminator
+            discriminator,
+            experimental_customMergeAllOf
         )
         const _schema = xxxOf[index]
         pathSchema = {
@@ -207,7 +218,8 @@ function toPathSchemaInternal(
                 name,
                 rootSchema,
                 formData,
-                _recurseList
+                _recurseList,
+                experimental_customMergeAllOf
             )
         }
     } else {
@@ -215,7 +227,7 @@ function toPathSchemaInternal(
             ADDITIONAL_PROPERTIES_KEY in schema &&
             schema[ADDITIONAL_PROPERTIES_KEY] !== false
         ) {
-            set(pathSchema, RJSF_ADDITONAL_PROPERTIES_FLAG, true)
+            set(pathSchema, RJSF_ADDITIONAL_PROPERTIES_FLAG, true)
         }
 
         if (ITEMS_KEY in schema && Array.isArray(formData)) {
@@ -233,7 +245,8 @@ function toPathSchemaInternal(
                             `${name}.${i}`,
                             rootSchema,
                             element,
-                            _recurseList
+                            _recurseList,
+                            experimental_customMergeAllOf
                         )
                     } else if (schemaAdditionalItems) {
                         pathSchema[i] = toPathSchemaInternal(
@@ -242,7 +255,8 @@ function toPathSchemaInternal(
                             `${name}.${i}`,
                             rootSchema,
                             element,
-                            _recurseList
+                            _recurseList,
+                            experimental_customMergeAllOf
                         )
                     } else {
                         console.warn(
@@ -258,7 +272,8 @@ function toPathSchemaInternal(
                         `${name}.${i}`,
                         rootSchema,
                         element,
-                        _recurseList
+                        _recurseList,
+                        experimental_customMergeAllOf
                     )
                 })
             }
@@ -273,12 +288,12 @@ function toPathSchemaInternal(
                     // It's possible that formData is not an object -- this can happen if an
                     // array item has just been added, but not populated with data yet
                     get(formData, [property]),
-                    _recurseList
+                    _recurseList,
+                    experimental_customMergeAllOf
                 )
             }
         }
     }
-
     return pathSchema
 }
 
@@ -289,6 +304,7 @@ function toPathSchemaInternal(
  * @param [name=''] - The base name for the schema
  * @param [rootSchema] - The root schema, used to primarily to look up `$ref`s
  * @param [formData] - The current formData, if any, to assist retrieving a schema
+ * @param [experimental_customMergeAllOf] - Optional function that allows for custom merging of `allOf` schemas
  * @returns - The `PathSchema` object for the `schema`
  */
 export default function toPathSchema(
@@ -296,7 +312,16 @@ export default function toPathSchema(
     schema,
     name = "",
     rootSchema,
-    formData
+    formData,
+    experimental_customMergeAllOf
 ) {
-    return toPathSchemaInternal(validator, schema, name, rootSchema, formData)
+    return toPathSchemaInternal(
+        validator,
+        schema,
+        name,
+        rootSchema,
+        formData,
+        undefined,
+        experimental_customMergeAllOf
+    )
 }
