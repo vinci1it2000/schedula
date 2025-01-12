@@ -1,6 +1,19 @@
 Changelog
 =========
 
+v1.5.51 (2025-01-12)
+--------------------
+
+Feat
+~~~~
+- (form): Update resources.
+
+
+Fix
+~~~
+- (form): Correct cascader schema definition to avoid overwrite.
+
+
 v1.5.50 (2025-01-11)
 --------------------
 
