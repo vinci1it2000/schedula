@@ -1,6 +1,7 @@
 import get from 'lodash/get';
 import set from 'lodash/set';
 import defaultsDeep from 'lodash/defaultsDeep';
+import cloneDeep from 'lodash/cloneDeep';
 import has from "lodash/has"
 import isEqual from "lodash/isEqual"
 
@@ -179,12 +180,13 @@ function toPathSchemaInternal(
                     })
                 return {
                     schema: s,
-                    properties: defaultsDeep(properties, s.properties)
+                    properties: defaultsDeep({}, properties, get(s, 'properties', {}))
                 }
             }, {schema, properties: schema.properties})
         } else {
             _schema = {properties: schema.properties};
         }
+        delete _schema.schema
 
         pathSchema = {
             ...pathSchema,
@@ -194,7 +196,8 @@ function toPathSchemaInternal(
                 name,
                 rootSchema,
                 formData,
-                _recurseList
+                _recurseList,
+                experimental_customMergeAllOf
             )
         }
     } else if (ONE_OF_KEY in schema || ANY_OF_KEY in schema) {
