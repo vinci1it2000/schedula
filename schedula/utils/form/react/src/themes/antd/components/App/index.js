@@ -46,7 +46,7 @@ const LanguageNav = React.lazy(() => import('./Language'))
 const ContactNav = React.lazy(() => import('./Contact'))
 const ContentPage = React.lazy(() => import('./ContentPages'))
 const {useToken} = theme;
-const formatItem = ({path, label, children,href, ...item}, index) => {
+const formatItem = ({path, label, children, href, ...item}, index) => {
     if (path && typeof label === 'string') {
         label = <Link to={path}>{label}</Link>
     } else if (href && typeof label === 'string') {
@@ -193,7 +193,8 @@ const App = (
                 <div key={'logo'} style={{
                     height: "100%",
                     textAlign: 'center',
-                    lineHeight: 'normal'
+                    lineHeight: 'normal',
+                    display: "contents"
                 }}>{logoElement}</div>
                 {_items.length ? <Menu
                     key={'left-menu'}
