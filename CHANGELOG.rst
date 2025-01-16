@@ -1,6 +1,19 @@
 Changelog
 =========
 
+v1.5.54 (2025-01-18)
+--------------------
+
+Feat
+~~~~
+- (form): Update resources.
+
+
+Fix
+~~~
+- (form): Correct App Logo width in Firefox.
+
+
 v1.5.53 (2025-01-17)
 --------------------
 
