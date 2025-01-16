@@ -1,6 +1,16 @@
 Changelog
 =========
 
+v1.5.52 (2025-01-16)
+--------------------
+
+Fix
+~~~
+- (form): Correct App Logo width in Firefox.
+
+- (test): Correct chromedriver options for testing.
+
+
 v1.5.51 (2025-01-12)
 --------------------
 
