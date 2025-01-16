@@ -203,8 +203,8 @@ class BlueDispatcher(Blueprint):
        :code:
 
         >>> sol = blue({'a': 1}); sol
-        Solution([('a', 1), ('b', 2), ('c', 1), ('d', 0.0),
-                  ('f', 0.0), ('e', 1), ('g', 0.0)])
+        Solution({'a': 1, 'b': 2, 'c': 1, 'd': 0.0,
+                  'f': 0.0, 'e': 1, 'g': 0.0})
     """
 
     def __init__(self, dmap=None, name='', default_values=None, raises=False,

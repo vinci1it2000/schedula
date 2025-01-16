@@ -673,7 +673,7 @@ class SubDispatch(Base):
 
         >>> sol = o.workflow.nodes['Sub-dispatch']['solution']
         >>> sol
-        Solution([('a', 3), ('b', 4), ('c', 2)])
+        Solution({'a': 3, 'b': 4, 'c': 2})
         >>> sol == o['e']
         True
 
@@ -867,9 +867,9 @@ class run_model:
         'max'
         >>> sol = dsp({'dsp_model': dsp_model, 'inputs': {'b': 1, 'a': 2}})
         >>> sol['outputs']
-        Solution([('a', 2), ('b', 1), ('c', 2)])
+        Solution({'a': 2, 'b': 1, 'c': 2})
         >>> sol.workflow.nodes['execute_dsp']['solution']
-        Solution([('a', 2), ('b', 1), ('c', 2)])
+        Solution({'a': 2, 'b': 1, 'c': 2})
 
     Moreover, it can be used also with all
     :func:`~schedula.utils.dsp.SubDispatcher` like objects::
@@ -879,7 +879,7 @@ class run_model:
         >>> sol['outputs']
         [2]
         >>> sol.workflow.nodes['execute_dsp']['solution']
-        Solution([('a', 2), ('b', 1), ('c', 2)])
+        Solution({'a': 2, 'b': 1, 'c': 2})
     """
 
     def __init__(self, func, *args, _init=None, **kwargs):
@@ -957,9 +957,9 @@ class MapDispatch(SubDispatch):
 
         >>> map_func = MapDispatch(dsp, recursive_inputs={'c': 'b'})
         >>> map_func([{'a': 1, 'b': 1}, {'a': 2}, {'a': 3}])
-        [Solution([('a', 1), ('b', 1), ('c', 2), ('d', 0)]),
-         Solution([('a', 2), ('b', 2), ('c', 4), ('d', 0)]),
-         Solution([('a', 3), ('b', 4), ('c', 7), ('d', -1)])]
+        [Solution({'a': 1, 'b': 1, 'c': 2, 'd': 0}),
+         Solution({'a': 2, 'b': 2, 'c': 4, 'd': 0}),
+         Solution({'a': 3, 'b': 4, 'c': 7, 'd': -1})]
     """
 
     def __init__(self, dsp, defaults=None, recursive_inputs=None,
@@ -1697,8 +1697,8 @@ def add_function(dsp, inputs_kwargs=False, inputs_defaults=False, **kw):
         ... def g(e, i, *args, d=0):
         ...     return e + i + d
         >>> sol = dsp({'a': 1, 'b': 2, 'c': 3}); sol
-        Solution([('a', 1), ('b', 2), ('c', 3), ('h', 1), ('e', 1), ('i', 4),
-                  ('d', 5), ('l', 5)])
+        Solution({'a': 1, 'b': 2, 'c': 3, 'h': 1, 'e': 1, 'i': 4,
+                  'd': 5, 'l': 5})
     """
 
     def decorator(f):

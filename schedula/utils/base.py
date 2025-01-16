@@ -90,7 +90,7 @@ class Base:
 
             >>> print("Starting...\\n"); site = dsp.web(); site
             Starting...
-            Site(WebMap([(Dispatcher, WebMap())]), host='localhost', ...)
+            Site(WebMap({Dispatcher: WebMap({})}), host='localhost', ...)
             >>> import requests
             >>> url = '%s/%s/%s' % (site.url, dsp.name, fun.__name__)
             >>> requests.post(url, json={'args': (0,)}).json()['return']
@@ -363,7 +363,7 @@ class Base:
             >>> dsp.add_function('fun', fun, ['a'], ['b', 'c'])
             'fun'
             >>> dsp.plot(view=False, graph_attr={'ratio': '1'})
-            SiteMap([(Dispatcher, SiteMap())])
+            SiteMap({Dispatcher: SiteMap({})})
         """
 
         d = {

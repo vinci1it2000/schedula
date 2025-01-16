@@ -253,7 +253,7 @@ def get_sub_node(dsp, path, node_attr='auto', solution=NONE, _level=0,
 
         >>> sol, p = get_sub_node(dsp, ('Sub-dispatcher',), node_attr='output')
         >>> sol, p
-        (Solution([('a', 3), ('b', 1), ('c', 4)]), ('Sub-dispatcher',))
+        (Solution({'a': 3, 'b': 1, 'c': 4}), ('Sub-dispatcher',))
     """
 
     path = list(path)

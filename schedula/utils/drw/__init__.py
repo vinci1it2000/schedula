@@ -1593,6 +1593,11 @@ class SiteMap(collections.OrderedDict):
         # noinspection PyArgumentList
         super(SiteMap, self).__setitem__(key, value, *args, **kwargs)
 
+    def __repr__(self):
+        return '%s({%s})' % (self.__class__.__name__, ", ".join(
+            f"{repr(k)}: {repr(v)}" for k, v in self.items()
+        ))
+
     def _repr_svg_(self):
         dot = list(self)[-1].dot()
         return dot.pipe(format='svg').decode(dot._encoding)

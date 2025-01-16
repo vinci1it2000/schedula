@@ -128,7 +128,7 @@ class Dispatcher(Base):
         >>> outputs = dsp.dispatch(inputs={'a': 0}, outputs=['d'])
         (log(1) + 4) / 2 = 2.0
         >>> outputs
-        Solution([('a', 0), ('b', 1), ('c', 1), ('d', 2.0)])
+        Solution({'a': 0, 'b': 1, 'c': 1, 'd': 2.0})
     """
 
     def __getstate__(self):
@@ -714,8 +714,8 @@ class Dispatcher(Base):
             >>> dsp.add_func(g, ['e'], inputs_defaults=True)
             'g'
             >>> sol = dsp({'a': 1, 'b': 3, 'c': 0}); sol
-            Solution([('a', 1), ('b', 3), ('c', 0), ('l', 3), ('d', 2),
-                      ('e', 0), ('m', 0), ('i', 6)])
+            Solution({'a': 1, 'b': 3, 'c': 0, 'l': 3, 'd': 2,
+                      'e': 0, 'm': 0, 'i': 6})
         """
         from .utils.blue import _init
         from .utils.dsp import _get_par_args
@@ -1691,7 +1691,7 @@ class Dispatcher(Base):
 
             >>> outputs = dsp.dispatch()
             >>> outputs
-            Solution([('a', 0), ('b', 5), ('d', 1), ('c', 0), ('e', 0.0)])
+            Solution({'a': 0, 'b': 5, 'd': 1, 'c': 0, 'e': 0.0})
 
         Dispatch until data node `c` is estimated:
 
@@ -1701,7 +1701,7 @@ class Dispatcher(Base):
 
             >>> outputs = dsp.dispatch(outputs=['c'])
             >>> outputs
-            Solution([('a', 0), ('b', 5), ('c', 0)])
+            Solution({'a': 0, 'b': 5, 'c': 0})
 
         Dispatch with one inputs. The default value of `a` is not used as
         inputs:
@@ -1712,7 +1712,7 @@ class Dispatcher(Base):
 
             >>> outputs = dsp.dispatch(inputs={'a': 3})
             >>> outputs
-            Solution([('a', 3), ('b', 5), ('d', 1), ('c', 3)])
+            Solution({'a': 3, 'b': 5, 'd': 1, 'c': 3})
         """
 
         dsp = self

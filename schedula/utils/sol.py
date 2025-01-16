@@ -32,6 +32,11 @@ class Solution(Base, collections.OrderedDict):
     def __hash__(self):
         return id(self)
 
+    def __repr__(self):
+        return '%s({%s})' % (self.__class__.__name__, ", ".join(
+            f"{repr(k)}: {repr(v)}" for k, v in self.items()
+        ))
+
     def __init__(self, dsp=None, inputs=None, outputs=None, wildcard=False,
                  inputs_dist=None, no_call=False,
                  rm_unused_nds=False, wait_in=None, no_domain=False,

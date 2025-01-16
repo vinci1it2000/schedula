@@ -23,11 +23,11 @@
     >>> inputs = {'path': 'schedula/_version.py'}
     >>> o = dsp.dispatch(inputs=inputs)
     >>> o
-    Solution([('path', 'schedula/_version.py'),
-              ('basename', '_version.py'),
-              ('dirname', 'schedula'),
-              ('fname', '_version'),
-              ('suffix', '.py')])
+    Solution({'path': 'schedula/_version.py',
+              'basename': '_version.py',
+              'dirname': 'schedula',
+              'fname': '_version',
+              'suffix': '.py'})
 
 3:
 
@@ -37,7 +37,7 @@
 
     >>> o = dsp.dispatch(inputs=inputs, outputs=['basename'])
     >>> o
-    Solution([('path', 'schedula/_version.py'), ('basename', '_version.py')])
+    Solution({'path': 'schedula/_version.py', 'basename': '_version.py'})
 
 
 4:
@@ -63,7 +63,7 @@
 
     >>> out = dsp.dispatch(inputs={'v1': 0, 'v4': 1}, outputs=['v2', 'v6'])
     >>> out
-    Solution([('v1', 0), ('v4', 1), ('v2', 1), ('v5', 0), ('v6', -1)])
+    Solution({'v1': 0, 'v4': 1, 'v2': 1, 'v5': 0, 'v6': -1})
 
 .. testsetup::
     >>> import schedula

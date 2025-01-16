@@ -4,3 +4,4 @@ ddt
 coveralls
 cryptography
 python-dateutil
+setuptools
