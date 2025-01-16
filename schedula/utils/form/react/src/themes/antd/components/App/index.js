@@ -185,57 +185,57 @@ const App = (
                     zIndex: 1,
                     width: '100%',
                     padding: 0,
-                    display: "flex",
                     borderBottomWidth: 1,
                     borderBottomColor: token.colorBorder,
                     borderBottomStyle: 'solid',
                 }}>
-                <div key={'logo'} style={{
-                    height: "100%",
-                    textAlign: 'center',
-                    lineHeight: 'normal',
-                    display: "contents"
-                }}>{logoElement}</div>
-                {_items.length ? <Menu
-                    key={'left-menu'}
-                    theme={theme}
-                    mode="horizontal"
-                    style={{flex: "auto", minWidth: 0, border: 0}}
-                    selectedKeys={selectedKeys}
-                    items={_items}
-                    onSelect={({key}) => {
-                        setSelectedKeys([key])
-                    }}
-                    {...props}
-                /> : <div key={'left-menu-place'}
-                          style={{flex: "auto", minWidth: 0}}/>}
-                {currentDataId || urlContact || languages || userProps ?
-                    <Flex key={'right-element'}
-                          style={{
-                              paddingLeft: '16px',
-                              paddingRight: '16px',
-                              cursor: 'pointer'
-                          }}
-                          gap="middle">
-                        {currentDataId ? <Typography.Text keyboard>
-                            # {currentDataId.id} - {currentDataId.name}
-                        </Typography.Text> : null}
-                        {urlContact ? <Suspense><ContactNav
-                            key={'contact'}
-                            render={render}
-                            containerRef={mainLayout}
-                            urlContact={urlContact}/></Suspense> : null}
-                        <Suspense><LanguageNav
-                            key={'language'}
-                            render={render}
-                            languages={languages}/></Suspense>
-                        {userProps ?
-                            <Suspense><UserNav
-                                key={'user'}
+                <Flex style={{height: '63px'}}>
+                    <div key={'logo'} style={{
+                        height: "100%",
+                        textAlign: 'center',
+                        lineHeight: 'normal'
+                    }}>{logoElement}</div>
+                    {_items.length ? <Menu
+                        key={'left-menu'}
+                        theme={theme}
+                        mode="horizontal"
+                        style={{flex: "auto", minWidth: 0, border: 0}}
+                        selectedKeys={selectedKeys}
+                        items={_items}
+                        onSelect={({key}) => {
+                            setSelectedKeys([key])
+                        }}
+                        {...props}
+                    /> : <div key={'left-menu-place'}
+                              style={{flex: "auto", minWidth: 0}}/>}
+                    {currentDataId || urlContact || languages || userProps ?
+                        <Flex key={'right-element'}
+                              style={{
+                                  paddingLeft: '16px',
+                                  paddingRight: '16px',
+                                  cursor: 'pointer'
+                              }}
+                              gap="middle">
+                            {currentDataId ? <Typography.Text keyboard>
+                                # {currentDataId.id} - {currentDataId.name}
+                            </Typography.Text> : null}
+                            {urlContact ? <Suspense><ContactNav
+                                key={'contact'}
                                 render={render}
                                 containerRef={mainLayout}
-                                {...userProps}/></Suspense> : null}
-                    </Flex> : null}
+                                urlContact={urlContact}/></Suspense> : null}
+                            <Suspense><LanguageNav
+                                key={'language'}
+                                render={render}
+                                languages={languages}/></Suspense>
+                            {userProps ?
+                                <Suspense><UserNav
+                                    key={'user'}
+                                    render={render}
+                                    containerRef={mainLayout}
+                                    {...userProps}/></Suspense> : null}
+                        </Flex> : null}
+                </Flex>
             </Header> : null}
         <Layout hasSider key={"main"} ref={mainLayout} style={{
             position: 'relative'
