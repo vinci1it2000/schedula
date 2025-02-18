@@ -9,13 +9,35 @@
 """
 It provides a base class for dispatcher objects.
 """
-import glob
+import os
+import sys
 import copy
+import traceback
 import os.path as osp
 from .cst import NONE
 
 
-class Base:
+def get_loaded_module_name_from_filename(filename):
+    filename = osp.abspath(filename)
+    for mod_name, module_obj in sys.modules.items():
+        if getattr(module_obj, '__file__', None):
+            if osp.abspath(module_obj.__file__) == filename:
+                return mod_name
+    return None
+
+
+class _Base:
+    def __init__(self):
+        if os.environ.get("SPHINX_BUILD") == "1":
+            for info in traceback.extract_stack()[::-1]:
+                if info.name == '<module>':
+                    mdl = get_loaded_module_name_from_filename(info.filename)
+                    if mdl:
+                        self.__module__ = mdl
+                    break
+
+
+class Base(_Base):
     """Base class for dispatcher objects."""
 
     def __new__(cls, *args, **kwargs):

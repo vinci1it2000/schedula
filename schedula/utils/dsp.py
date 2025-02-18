@@ -750,7 +750,7 @@ class SubDispatch(Base):
             Function name.
         :type function_id: str, optional
         """
-
+        super(Base, self).__init__()
         self.dsp = dsp
         self.outputs = outputs
         self.wildcard = wildcard

@@ -10,8 +10,8 @@
 It provides a Blueprint class to construct a Dispatcher and SubDispatch objects.
 """
 from .cst import EMPTY
+from .base import _Base
 from ..dispatcher import Dispatcher
-
 
 def _init(obj, memo=None):
     return obj.register(memo=memo) if isinstance(obj, Blueprint) else obj
@@ -24,11 +24,12 @@ def _safe_call(fn, *args, memo=None, **kwargs):
     )
 
 
-class Blueprint:
+class Blueprint(_Base):
     """Base Blueprint class."""
     cls = Dispatcher
 
     def __init__(self, *args, **kwargs):
+        _Base.__init__(self)
         self.args = args
         self.kwargs = kwargs
         self.deferred = []

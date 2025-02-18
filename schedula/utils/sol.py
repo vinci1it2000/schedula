@@ -42,6 +42,7 @@ class Solution(Base, collections.OrderedDict):
                  rm_unused_nds=False, wait_in=None, no_domain=False,
                  _empty=False, index=(-1,), full_name=(), verbose=False,
                  excluded_defaults=()):
+        super(Base, self).__init__()
         super(Solution, self).__init__()
         self.index = index
         self.rm_unused_nds = rm_unused_nds

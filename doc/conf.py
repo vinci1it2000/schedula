@@ -18,6 +18,7 @@ import os
 from os.path import abspath, join, dirname
 from schedula._version import __version__
 
+os.environ["SPHINX_BUILD"] = "1"
 on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 
 # If extensions (or modules to document with autodoc) are in another directory,

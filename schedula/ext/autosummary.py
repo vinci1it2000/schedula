@@ -12,6 +12,7 @@ It is a patch to sphinx.ext.autosummary.
 import warnings
 import logging
 import os.path as osp
+from pathlib import Path
 from typing import Any
 from sphinx.util.inspect import getall
 from sphinx.util.osutil import ensuredir
@@ -32,11 +33,21 @@ warnings.filterwarnings(
 
 
 def generate_autosummary_content(
-        name, obj, parent, template, template_name, imported_members, app,
-        recursive, context, modname=None, qualname=None):
+        name,
+        obj,
+        parent,
+        template,
+        template_name,
+        imported_members,
+        app,
+        recursive,
+        context,
+        modname=None,
+        qualname=None,
+):
     doc = get_documenter(app, obj, parent)
 
-    ns: dict[str, Any] = {}
+    ns = {}
     ns.update(context)
 
     if doc.objtype == 'module':
@@ -45,32 +56,34 @@ def generate_autosummary_content(
 
         respect_module_all = not app.config.autosummary_ignore_module_all
         imported_members = imported_members or (
-                '__all__' in dir(obj) and respect_module_all)
+                '__all__' in dir(obj) and respect_module_all
+        )
+        ns['functions'], ns['all_functions'] = _get_members(
+            doc, app, obj, {'function'}, imported=imported_members
+        )
+        ns['classes'], ns['all_classes'] = _get_members(
+            doc, app, obj, {'class'}, imported=imported_members
+        )
+        ns['exceptions'], ns['all_exceptions'] = _get_members(
+            doc, app, obj, {'exception'}, imported=imported_members
+        )
+        ns['attributes'], ns['all_attributes'] = _get_module_attrs(
+            name, ns['members']
+        )
+        ns['dispatchers'], ns['all_dispatchers'] = _get_members(
+            doc, app, obj, {'dispatcher'}, imported=imported_members
+        )
 
-        ns['functions'], ns['all_functions'] = \
-            _get_members(doc, app, obj, {'function'}, imported=imported_members)
-        ns['functions'], ns['all_functions'] = \
-            _get_members(doc, app, obj, {'function'}, imported=imported_members)
-        ns['classes'], ns['all_classes'] = \
-            _get_members(doc, app, obj, {'class'}, imported=imported_members)
-        ns['exceptions'], ns['all_exceptions'] = \
-            _get_members(doc, app, obj, {'exception'},
-                         imported=imported_members)
-        ns['attributes'], ns['all_attributes'] = \
-            _get_module_attrs(name, ns['members'])
-        ns['dispatchers'], ns['all_dispatchers'] = \
-            _get_members(doc, app, obj, {'dispatcher'},
-                         imported=imported_members)
         ispackage = hasattr(obj, '__path__')
         if ispackage and recursive:
             # Use members that are not modules as skip list, because it would then mean
             # that module was overwritten in the package namespace
             skip = (
-                    ns["all_functions"]
-                    + ns["all_classes"]
-                    + ns["all_exceptions"]
-                    + ns["all_attributes"]
-                    + ns["all_dispatchers"]
+                    ns['all_functions']
+                    + ns['all_classes']
+                    + ns['all_exceptions']
+                    + ns['all_attributes']
+                    + ns['all_dispatchers']
             )
 
             # If respect_module_all and module has a __all__ attribute, first get
@@ -80,42 +93,40 @@ def generate_autosummary_content(
             #
             # Otherwise, use get_modules method normally
             if respect_module_all and '__all__' in dir(obj):
-                imported_modules, all_imported_modules = \
-                    _get_members(doc, app, obj, {'module'}, imported=True)
+                imported_modules, all_imported_modules = _get_members(
+                    doc, app, obj, {'module'}, imported=True
+                )
                 skip += all_imported_modules
-                imported_modules = [name + '.' + modname for modname in
-                                    imported_modules]
-                all_imported_modules = \
-                    [name + '.' + modname for modname in all_imported_modules]
                 public_members = getall(obj)
             else:
                 imported_modules, all_imported_modules = [], []
                 public_members = None
 
-            modules, all_modules = _get_modules(obj, skip=skip, name=name,
-                                                public_members=public_members)
+            modules, all_modules = _get_modules(
+                obj, skip=skip, name=name, public_members=public_members
+            )
             ns['modules'] = imported_modules + modules
-            ns["all_modules"] = all_imported_modules + all_modules
+            ns['all_modules'] = all_imported_modules + all_modules
     elif doc.objtype == 'class':
-        if not app.emit_firstresult('autodoc-skip-member', doc.objtype, name, obj, False, {}):
-            ns['members'] = dir(obj)
-            ns['inherited_members'] = \
-                set(dir(obj)) - set(obj.__dict__.keys())
-            ns['methods'], ns['all_methods'] = \
-                _get_members(doc, app, obj, {'method'}, include_public={'__init__'})
-            ns['attributes'], ns['all_attributes'] = \
-                _get_members(doc, app, obj, {'attribute', 'property'})
+        ns['members'] = dir(obj)
+        ns['inherited_members'] = set(dir(obj)) - set(obj.__dict__.keys())
+        ns['methods'], ns['all_methods'] = _get_members(
+            doc, app, obj, {'method'}, include_public={'__init__'}
+        )
+        ns['attributes'], ns['all_attributes'] = _get_members(
+            doc, app, obj, {'attribute', 'property'}
+        )
 
     if modname is None or qualname is None:
         modname, qualname = _split_full_qualified_name(name)
 
     if doc.objtype in ('method', 'attribute', 'property'):
-        ns['class'] = qualname.rsplit(".", 1)[0]
+        ns['class'] = qualname.rsplit('.', 1)[0]
 
-    if doc.objtype in ('class',):
+    if doc.objtype == 'class':
         shortname = qualname
     else:
-        shortname = qualname.rsplit(".", 1)[-1]
+        shortname = qualname.rsplit('.', 1)[-1]
 
     ns['fullname'] = name
     ns['module'] = modname
@@ -132,16 +143,29 @@ def generate_autosummary_content(
 
 
 def generate_autosummary_docs(
-        sources, output_dir=None, suffix='.rst', base_path=None,
-        imported_members=False, app=None, overwrite=True, encoding='utf-8'):
+        sources,
+        output_dir=None,
+        suffix='.rst',
+        base_path=None,
+        imported_members=False,
+        app=None,
+        overwrite=True,
+        encoding='utf-8',
+):
+    """Generate autosummary documentation for the given sources.
+
+    :returns: list of generated files (both new and existing ones)
+    """
+    assert app is not None, 'app is required'
+
     showed_sources = sorted(sources)
     if len(showed_sources) > 20:
         showed_sources = showed_sources[:10] + ['...'] + showed_sources[-10:]
-    logger.info(__('[autosummary] generating autosummary for: %s') %
-                ', '.join(map(str, showed_sources)))
+    logger.info(__('[autosummary] generating autosummary for: %s'),
+                ', '.join(showed_sources))
 
     if output_dir:
-        logger.info(__('[autosummary] writing to %s') % output_dir)
+        logger.info(__('[autosummary] writing to %s'), output_dir)
 
     if base_path is not None:
         sources = [osp.join(base_path, filename) for filename in sources]
@@ -153,11 +177,9 @@ def generate_autosummary_docs(
 
     # keep track of new files
     new_files = []
+    all_files = []
 
-    if app:
-        filename_map = app.config.autosummary_filename_map
-    else:
-        filename_map = {}
+    filename_map = app.config.autosummary_filename_map
 
     # write
     for entry in sorted(set(items), key=str):
@@ -171,64 +193,77 @@ def generate_autosummary_docs(
 
         try:
             name, obj, parent, modname = import_by_name(entry.name)
-            qualname = name.replace(modname + ".", "")
+            qualname = name.replace(modname + '.', '')
         except ImportExceptionGroup as exc:
             try:
                 # try to import as an instance attribute
                 name, obj, parent, modname = import_ivar_by_name(entry.name)
-                qualname = name.replace(modname + ".", "")
+                qualname = name.replace(modname + '.', '')
             except ImportError as exc2:
                 if exc2.__cause__:
-                    exceptions: list[BaseException] = exc.exceptions + [
-                        exc2.__cause__]
+                    exceptions: list[BaseException] = [*exc.exceptions,
+                                                       exc2.__cause__]
                 else:
-                    exceptions = exc.exceptions + [exc2]
+                    exceptions = [*exc.exceptions, exc2]
 
                 errors = list(
-                    {f"* {type(e).__name__}: {e}" for e in exceptions})
+                    {f'* {type(e).__name__}: {e}' for e in exceptions}
+                )
                 logger.warning(
                     __('[autosummary] failed to import %s.\nPossible hints:\n%s'),
-                    entry.name, '\n'.join(errors))
+                    entry.name,
+                    '\n'.join(errors),
+                )
                 continue
-        except RuntimeError as exc:
-            errors = [f"* {type(exc).__name__}: {exc}"]
-            logger.warning(
-                __('[autosummary] failed to import %s.\nPossible hints:\n%s'),
-                entry.name, '\n'.join(errors))
-            continue
 
-        context: dict[str, Any] = {}
-        if app:
-            context.update(app.config.autosummary_context)
+        context: dict[str, Any] = {**app.config.autosummary_context}
 
-        content = generate_autosummary_content(name, obj, parent, template,
-                                               entry.template,
-                                               imported_members, app,
-                                               entry.recursive, context,
-                                               modname, qualname)
+        content = generate_autosummary_content(
+            name,
+            obj,
+            parent,
+            template,
+            entry.template,
+            imported_members,
+            app,
+            entry.recursive,
+            context,
+            modname,
+            qualname,
+        )
 
-        filename = osp.join(path, filename_map.get(name, name) + suffix)
-        if osp.isfile(filename):
-            with open(filename, encoding=encoding) as f:
+        file_path = Path(path, filename_map.get(name, name) + suffix)
+        all_files.append(file_path)
+        if file_path.is_file():
+            with file_path.open(encoding=encoding) as f:
                 old_content = f.read()
 
             if content == old_content:
                 continue
             if overwrite:  # content has changed
-                with open(filename, 'w', encoding=encoding) as f:
+                with file_path.open('w', encoding=encoding) as f:
                     f.write(content)
-                new_files.append(filename)
+                new_files.append(file_path)
         else:
-            with open(filename, 'w', encoding=encoding) as f:
+            with open(file_path, 'w', encoding=encoding) as f:
                 f.write(content)
-            new_files.append(filename)
+            new_files.append(file_path)
 
     # descend recursively to new files
     if new_files:
-        generate_autosummary_docs(new_files, output_dir=output_dir,
-                                  suffix=suffix, base_path=base_path,
-                                  imported_members=imported_members, app=app,
-                                  overwrite=overwrite)
+        all_files.extend(
+            generate_autosummary_docs(
+                [str(f) for f in new_files],
+                output_dir=output_dir,
+                suffix=suffix,
+                base_path=base_path,
+                imported_members=imported_members,
+                app=app,
+                overwrite=overwrite,
+            )
+        )
+
+    return all_files
 
 
 def process_generate_options(app):
@@ -236,7 +271,7 @@ def process_generate_options(app):
 
     if genfiles is True:
         env = app.builder.env
-        genfiles = [env.doc2path(x, base=False) for x in env.found_docs
+        genfiles = [str(env.doc2path(x, base=False)) for x in env.found_docs
                     if osp.isfile(env.doc2path(x))]
     elif genfiles is False:
         pass
@@ -257,19 +292,16 @@ def process_generate_options(app):
 
     suffix = get_rst_suffix(app)
     if suffix is None:
-        logger.warning(__('autosummary generats .rst files internally. '
+        logger.warning(__('autosummary generates .rst files internally. '
                           'But your source_suffix does not contain .rst. Skipped.'))
         return
 
     imported_members = app.config.autosummary_imported_members
     with mock(app.config.autosummary_mock_imports):
-        try:
-            generate_autosummary_docs(genfiles, suffix=suffix, base_path=app.srcdir,
+        generate_autosummary_docs(genfiles, suffix=suffix, base_path=app.srcdir,
                                   app=app, imported_members=imported_members,
                                   overwrite=app.config.autosummary_generate_overwrite,
                                   encoding=app.config.source_encoding)
-        except Exception as exc:
-            raise exc
 
 
 def setup(app):

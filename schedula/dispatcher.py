@@ -181,7 +181,7 @@ class Dispatcher(Base):
 
         :type executor: str, optional
         """
-
+        super(Base, self).__init__()
         from .utils.graph import DiGraph
         #: The directed graph that stores data & functions parameters.
         self.dmap = dmap or DiGraph()
