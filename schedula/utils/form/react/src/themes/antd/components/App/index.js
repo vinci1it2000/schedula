@@ -484,41 +484,42 @@ const App = (
             }}>
             {footer}
         </Footer> : null}
-        <FloatButton.Group key={"buttonFloat"}>
-            {errors.length && !hideErrors ? (openErrors ?
-                <Suspense fallback={<Skeleton/>}><Errors
-                    render={render}
+        {debugUrl || !hideErrors ?
+            <FloatButton.Group key={"buttonFloat"}>
+                {errors.length && !hideErrors ? (openErrors ?
+                    <Suspense fallback={<Skeleton/>}><Errors
+                        render={render}
+                        onClose={() => {
+                            setOpenErrors(false)
+                        }}
+                        open={openErrors}
+                    /></Suspense>
+                    : <FloatButton
+                        icon={<WarningOutlined/>}
+                        badge={{
+                            count: errors.length,
+                        }}
+                        onClick={() => {
+                            setOpenErrors(true)
+                        }}/>) : null}
+                {debugUrl ? (openDebug ? <Drawer
+                    closable
+                    placement="left"
+                    size="large"
                     onClose={() => {
-                        setOpenErrors(false)
+                        setOpenDebug(false)
                     }}
-                    open={openErrors}
-                /></Suspense>
-                : <FloatButton
-                    icon={<WarningOutlined/>}
-                    badge={{
-                        count: errors.length,
-                    }}
+                    open={openDebug}
+                    key={'debug'}>
+                    <Suspense fallback={<Skeleton/>}>
+                        <Debug render={render}/>
+                    </Suspense>
+                </Drawer> : <FloatButton
+                    icon={<BugOutlined/>}
                     onClick={() => {
-                        setOpenErrors(true)
+                        setOpenDebug(true)
                     }}/>) : null}
-            {debugUrl ? (openDebug ? <Drawer
-                closable
-                placement="left"
-                size="large"
-                onClose={() => {
-                    setOpenDebug(false)
-                }}
-                open={openDebug}
-                key={'debug'}>
-                <Suspense fallback={<Skeleton/>}>
-                    <Debug render={render}/>
-                </Suspense>
-            </Drawer> : <FloatButton
-                icon={<BugOutlined/>}
-                onClick={() => {
-                    setOpenDebug(true)
-                }}/>) : null}
-        </FloatButton.Group>
+            </FloatButton.Group> : null}
     </Layout>
 };
 export default App;
