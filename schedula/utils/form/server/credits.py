@@ -120,7 +120,7 @@ class Wallet(db.Model):
                 Txn.expired_at == None, Txn.expired_at >= day
             )).group_by(Txn.product).all()
         }
-        balance = {k: min(v, alive_balance.get(k, v)) for k, v in (
+        balance = {k: min(v, alive_balance.get(k, 0)) for k, v in (
             (r.product, r.total_credits)
             for r in base.group_by(Txn.product).all()
         )}
