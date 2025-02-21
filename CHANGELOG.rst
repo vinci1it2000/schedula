@@ -1,6 +1,23 @@
 Changelog
 =========
 
+v1.5.55 (2025-02-21)
+--------------------
+
+Feat
+~~~~
+- (form): Update resources.
+
+- (form): Hide Errors in App component.
+
+
+Fix
+~~~
+- (form): Correct credits balance calculation.
+
+- (sphinx): Correct autosummary.
+
+
 v1.5.54 (2025-01-18)
 --------------------
 
