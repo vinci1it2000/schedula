@@ -21,6 +21,7 @@ import {useLocaleStore} from "../../../models/locale";
 import pick from 'lodash/pick';
 import omit from "lodash/omit";
 import {useDropzone} from "react-dropzone";
+import isEmpty from "lodash/isEmpty";
 
 export default function RegisterForm(
     {
@@ -80,8 +81,8 @@ export default function RegisterForm(
             data: newData
         }, ({data: {response}}) => {
             setSpinning(false)
-            if (response) {
-                const {user = {}} = response
+            if (!isEmpty(response?.user)) {
+                const user = response?.user
                 form.setState((state) => ({
                     ...state,
                     userInfo: user,

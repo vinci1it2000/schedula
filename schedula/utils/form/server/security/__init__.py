@@ -19,7 +19,7 @@ import flask_security
 import os.path as osp
 from ..extensions import db
 from sqlalchemy import Column, String, JSON
-from flask import request, Blueprint, jsonify
+from flask import request, Blueprint, jsonify, current_app
 from werkzeug.datastructures import MultiDict
 from wtforms import StringField, TextAreaField
 from wtforms.validators import ValidationError
@@ -62,16 +62,17 @@ class User(db.Model, fsqla.FsUserMixin):
         return f'User({self.id}) - {self.firstname} {self.lastname} <{self.email}>'
 
     def get_security_payload(self):
-        return {k: v for k, v in {
-            'id': self.id,
-            'email': self.email,
-            'username': self.username,
-            'firstname': self.firstname,
-            'lastname': self.lastname,
-            'avatar': self.avatar,
-            'settings': self.settings,
-            'custom_data': self.custom_data
-        }.items() if v is not None}
+        if not current_app.security.confirmable or self.confirmed_at:
+            return {k: v for k, v in {
+                'id': self.id,
+                'email': self.email,
+                'username': self.username,
+                'firstname': self.firstname,
+                'lastname': self.lastname,
+                'avatar': self.avatar,
+                'settings': self.settings,
+                'custom_data': self.custom_data
+            }.items() if v is not None}
 
 
 class JSONField(StringField):
