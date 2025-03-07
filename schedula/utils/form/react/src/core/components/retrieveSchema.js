@@ -1,9 +1,9 @@
 import get from "lodash/get"
-import isEqual from "lodash/isEqual"
 import set from "lodash/set"
 import times from "lodash/times"
 import transform from "lodash/transform"
 import merge from "lodash/merge"
+import omit from 'lodash/omit'
 import flattenDeep from "lodash/flattenDeep"
 import uniq from "lodash/uniq"
 import mergeAllOf from "json-schema-merge-allof"
@@ -15,18 +15,24 @@ import {
     ANY_OF_KEY,
     DEPENDENCIES_KEY,
     IF_KEY,
-    ONE_OF_KEY,
-    REF_KEY,
-    PROPERTIES_KEY,
     ITEMS_KEY,
+    ONE_OF_KEY,
+    PROPERTIES_KEY,
+    REF_KEY,
     findSchemaDefinition,
     getDiscriminatorFieldFromSchema,
-    mergeSchemas,
+    guessType,
     isObject,
-    guessType
+    mergeSchemas,
+    deepEquals
 } from "@rjsf/utils"
 import {getFirstMatchingOption} from './toPathSchema'
-import {splitKeyElementFromObject} from "@rjsf/utils/lib/findSchemaDefinition"
+
+function splitKeyElementFromObject(key, object) {
+    const value = object[key]
+    const remaining = omit(object, [key])
+    return [remaining, value]
+}
 
 /** Retrieves an expanded schema that has had all of its conditions, additional properties, references and dependencies
  * resolved and merged into the `schema` given a `validator`, `rootSchema` and `rawFormData` that is used to do the
@@ -357,7 +363,7 @@ export function resolveAllReferences(schema, rootSchema, recurseList) {
         }
     }
 
-    return isEqual(schema, resolvedSchema) ? schema : resolvedSchema
+    return deepEquals(schema, resolvedSchema) ? schema : resolvedSchema
 }
 
 /** Creates new 'properties' items for each key in the `formData`

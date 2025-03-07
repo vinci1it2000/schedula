@@ -255,6 +255,7 @@ const App = (
                         uploadJSON(render.parent.props.onChange, event)
                     }}/>
                     <Menu
+                        className="schedula-ant-menu"
                         key={'menu'}
                         mode="inline"
                         theme={theme}

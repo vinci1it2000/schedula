@@ -18,8 +18,7 @@ const StepContent = ({isActive, children, style}) => {
     }
 
     return <div style={{
-        height: "100%",
-        width: "100%", ...style,
+        height: "100%", ...style,
         display: isActive ? 'block' : 'none'
     }}>
         {hasRendered && children}

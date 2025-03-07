@@ -1,14 +1,12 @@
 import get from 'lodash/get';
 import set from 'lodash/set';
 import defaultsDeep from 'lodash/defaultsDeep';
-import cloneDeep from 'lodash/cloneDeep';
 import has from "lodash/has"
-import isEqual from "lodash/isEqual"
 
 import {
+    ADDITIONAL_PROPERTIES_KEY,
     ALL_OF_KEY,
     ANY_OF_KEY,
-    ADDITIONAL_PROPERTIES_KEY,
     DEPENDENCIES_KEY,
     ITEMS_KEY,
     NAME_KEY,
@@ -17,7 +15,8 @@ import {
     REF_KEY,
     RJSF_ADDITIONAL_PROPERTIES_FLAG,
     getDiscriminatorFieldFromSchema,
-    retrieveSchema
+    retrieveSchema,
+    deepEquals
 } from "@rjsf/utils"
 
 export function getFirstMatchingOption(
@@ -152,7 +151,7 @@ function toPathSchemaInternal(
             experimental_customMergeAllOf
         )
         const sameSchemaIndex = _recurseList.findIndex(item =>
-            isEqual(item, _schema)
+            deepEquals(item, _schema)
         )
         if (sameSchemaIndex === -1) {
             return toPathSchemaInternal(
