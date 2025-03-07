@@ -33,6 +33,7 @@ from dateutil.relativedelta import relativedelta
 from dateutil.rrule import (
     rrule, YEARLY, MONTHLY, WEEKLY, DAILY, HOURLY, MINUTELY, SECONDLY
 )
+from flask_caching import Cache
 
 FREQUENCIES = {
     'M': MONTHLY, 'W': WEEKLY, 'D': DAILY, 'Y': YEARLY, 'h': HOURLY,
@@ -351,27 +352,35 @@ def compute_line_items(quantity, tiers, type='graduated'):
     return line_items
 
 
-def user2stripe_customer(user=cu, limit=1, **kwargs):
+def search_stripe_customer(api_key, user=cu):
+    for customer in stripe.Customer.search(
+            query=f"email:'{user.email}'", api_key=api_key, limit=1
+    ).data:
+        if customer.metadata.user_id != str(user.id):
+            customer = stripe.Customer.modify(
+                customer.id, api_key=api_key,
+                metadata={"user_id": str(user.id)}
+            )
+        return customer
+
+
+def user2stripe_customer(user=cu):
     from flask import current_app as ca
     api_key = ca.config['STRIPE_SECRET_KEY']
-    with Lock(f'Stripe-customer-{user.id}'):
-        for customer in stripe.Customer.search(
-                query=f"email:'{user.email}'", api_key=api_key, limit=1,
-                **kwargs
-        ).data:
-            if customer.metadata.user_id != str(user.id):
-                customer = stripe.Customer.modify(
-                    customer.id, api_key=api_key,
-                    metadata={"user_id": str(user.id)}
-                )
-            break
-        else:
+    key = f'Stripe-customer-{user.id}'
+    with Lock(key, timeout=30):
+        customer = ca.extensions['schedula_cache'].get(key)
+        if customer:
+            return customer
+        customer = search_stripe_customer(api_key=api_key, user=user)
+        if not customer or customer.get('deleted'):
             customer = stripe.Customer.create(
                 api_key=api_key, email=user.email,
                 name=f'{user.firstname} {user.lastname}',
                 metadata={'user_id': str(user.id)}
             )
-
+        customer = customer.id
+        ca.extensions['schedula_cache'].set(key, customer, timeout=60)
     return customer
 
 
@@ -416,7 +425,7 @@ def create_pricing_table():
         session = stripe.CustomerSession.create(
             api_key=ca.config['STRIPE_SECRET_KEY'],
             **sh.combine_nested_dicts(data, base={
-                "customer": customer.id,
+                "customer": customer,
                 "components": {"pricing_table": {"enabled": True}}
             })
         )
@@ -437,17 +446,22 @@ def create_portal(skip_data=False):
         else:
             data = request.get_json() if request.is_json else dict(request.form)
             data = json_secrets.secrets(data, False)
-        customer = user2stripe_customer(expand=['data.subscriptions'])
-
-        if customer.subscriptions.data:
-            plan = customer.subscriptions.data[0].plan
+        customer = user2stripe_customer()
+        from flask import current_app as ca
+        api_key = ca.config['STRIPE_SECRET_KEY']
+        for sub in stripe.Subscription.list(
+                customer=customer, api_key=api_key, status="active", limit=1
+        ).auto_paging_iter():
+            plan = sub.get('items').data[0].plan
             subscription = plan.nickname or plan.id
+            break
         else:
             subscription = ''
+
         session = Session.create(
             api_key=ca.config['STRIPE_SECRET_KEY'],
             **sh.combine_nested_dicts(data, base={
-                "customer": customer.id,
+                "customer": customer,
                 'return_url': request.referrer,
                 'locale': session.get('locale', 'en_US').split('_')[0]
             })
@@ -572,12 +586,14 @@ def create_payment():
     try:
         data = request.get_json() if request.is_json else dict(request.form)
         data = json_secrets.secrets(data, False)
+        customer = user2stripe_customer()
         if data['mode'] == 'subscription':
-            customer = user2stripe_customer(expand=['data.subscriptions'])
-            if any(v.status == 'active' for v in customer.subscriptions.data):
+            from flask import current_app as ca
+            api_key = ca.config['STRIPE_SECRET_KEY']
+            for _ in stripe.Subscription.list(
+                    customer=customer, api_key=api_key, status='active', limit=1
+            ).auto_paging_iter():
                 return create_portal(True)
-        else:
-            customer = user2stripe_customer()
 
         metadata = {f'customer_{k}': getattr(cu, k) for k in (
             'id', 'firstname', 'lastname', 'email'
@@ -610,7 +626,7 @@ def create_payment():
             api_key=api_key,
             **sh.combine_nested_dicts(data, base={
                 'ui_mode': 'embedded',
-                'customer': customer.id,
+                'customer': customer,
                 'customer_update': {"address": "auto"},
                 'automatic_tax': {'enabled': True},
                 'redirect_on_completion': 'never',
@@ -918,9 +934,19 @@ class Credits:
         ):
             app.config[k] = app.config.get(k, os.environ.get(k))
             assert app.config[k], f'`{k}` is required!'
+        for k, v in {
+            "CACHE_TYPE": "SimpleCache",
+            "CACHE_DEFAULT_TIMEOUT": 300
+        }.items():
+            app.config[k] = app.config.get(k, os.environ.get(k, v))
+            if isinstance(v, int):
+                app.config[k] = int(app.config[k])
+
         app.stripe_event_handler = sitemap.stripe_event_handler
         app.register_blueprint(bp, url_prefix='/stripe')
         app.extensions['schedula_credits'] = self
+        app.extensions['schedula_cache'] = Cache(app)
+
         import sherlock
         lock_config = sherlock._configuration
         try:
