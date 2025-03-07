@@ -559,8 +559,8 @@ export default class Form extends BaseForm {
             form: this,
             method: 'POST',
             headers: {}, ...kwargs
-        }).then(({data, debugUrl}) => {
-            this.flashMessages(data.messages)
+        }).then(({data, debugUrl, messages}) => {
+            this.flashMessages(messages)
             return {debugUrl, data}
         }).then((response) => {
             let {data: {error, errors = []}} = response
