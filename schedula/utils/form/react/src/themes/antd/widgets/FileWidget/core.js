@@ -4,6 +4,7 @@ import {useState, useEffect, useMemo, useCallback} from 'react';
 import './FileWidget.css'
 import format from 'python-format-js'
 import {useLocaleStore} from '../../models/locale'
+import isEqual from "lodash/isEqual";
 
 
 function dataURLtoFile(dataurl) {
@@ -102,22 +103,23 @@ const FileWidget = (
         if (isAccepted) nFiles++;
         return isAccepted || Upload.LIST_IGNORE;
     }, [accept, fileList, locale, nFiles, schema.maxItems]);
-    const onChange_ = useCallback(({file, fileList: newFileList}) => {
-        if (file.status === 'done') {
-            if (multiple) {
-                const newValue = value ? (multiple ? value : [value]) : []
-                newValue.push(file.response)
-                onChange(newValue)
+    useEffect(() => {
+        if (!fileList.some(({status}) => status === 'uploading')) {
+            const values = fileList.filter(file => file.status === 'done').map(({response}) => response)
+            let newValue
+            if (values.length === 0) {
+                newValue = multiple ? [] : undefined
             } else {
-                onChange(file.response)
+                newValue = multiple ? values : values[0]
             }
-            setFileList(newFileList)
-        } else if (file.status === 'error') {
-            onRemove(file)
-        } else if (file.status === 'uploading') {
-            setFileList(newFileList)
+            if (!isEqual(newValue, value)) {
+                onChange(newValue)
+            }
         }
-    }, [multiple, value, onChange, onRemove])
+    }, [fileList, multiple, value])
+    const onChange_ = useCallback(({fileList}) => {
+        setFileList(fileList)
+    }, [])
     const customRequest = useCallback(async (
         {onProgress, onError, onSuccess, file}
     ) => {
