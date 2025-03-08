@@ -51,12 +51,30 @@ const FileWidget = (
     const {getLocale} = useLocaleStore()
     const locale = getLocale('FileWidget')
     const [fileList, setFileList] = useState([])
+    const [uploading, setUploading] = useState(false)
     let nFiles = fileList.length
     useEffect(() => {
-        setFileList((value ? (multiple ? value : [value]) : []).filter(
-            v => !!v
-        ).map(dataURLtoFile))
-    }, [value, multiple])
+        if (uploading && !fileList.some(({status}) => status === 'uploading')) {
+            const values = fileList.filter(file => file.status === 'done').map(({response}) => response)
+            let newValue
+            if (values.length === 0) {
+                newValue = multiple ? [] : undefined
+            } else {
+                newValue = multiple ? values : values[0]
+            }
+            if (!isEqual(newValue, value)) {
+                onChange(newValue)
+            }
+            setUploading(false)
+        }
+    }, [uploading, fileList, value, multiple])
+    useEffect(() => {
+        if (!uploading) {
+            setFileList((value ? (multiple ? value : [value]) : []).filter(
+                v => !!v
+            ).map(dataURLtoFile))
+        }
+    }, [uploading, value, multiple])
     const {accept, ...opt} = options;
     const onRemove = useCallback((file) => {
         if (!multiple) {
@@ -103,21 +121,9 @@ const FileWidget = (
         if (isAccepted) nFiles++;
         return isAccepted || Upload.LIST_IGNORE;
     }, [accept, fileList, locale, nFiles, schema.maxItems]);
-    useEffect(() => {
-        if (!fileList.some(({status}) => status === 'uploading')) {
-            const values = fileList.filter(file => file.status === 'done').map(({response}) => response)
-            let newValue
-            if (values.length === 0) {
-                newValue = multiple ? [] : undefined
-            } else {
-                newValue = multiple ? values : values[0]
-            }
-            if (!isEqual(newValue, value)) {
-                onChange(newValue)
-            }
-        }
-    }, [fileList, multiple, value])
     const onChange_ = useCallback(({fileList}) => {
+        if (fileList.some(({status}) => status === 'uploading'))
+            setUploading(true)
         setFileList(fileList)
     }, [])
     const customRequest = useCallback(async (

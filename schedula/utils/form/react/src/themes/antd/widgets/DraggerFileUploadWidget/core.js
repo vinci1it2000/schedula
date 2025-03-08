@@ -47,14 +47,34 @@ const DraggerFileUploadWidget = (
     const {getLocale} = useLocaleStore()
     const locale = getLocale('FileWidget')
     const [fileList, setFileList] = useState([])
+    const [uploading, setUploading] = useState(false)
     const {token} = useToken();
 
     let nFiles = fileList.length
+
     useEffect(() => {
-        setFileList((value ? (multiple ? value : [value]) : []).filter(
-            v => !!v
-        ).map(dataURLtoFile))
-    }, [value, multiple])
+        if (uploading && !fileList.some(({status}) => status === 'uploading')) {
+            const values = fileList.filter(file => file.status === 'done').map(({response}) => response)
+            let newValue
+            if (values.length === 0) {
+                newValue = multiple ? [] : undefined
+            } else {
+                newValue = multiple ? values : values[0]
+            }
+            if (!isEqual(newValue, value)) {
+                onChange(newValue)
+            }
+            setUploading(false)
+        }
+    }, [uploading, fileList, value, multiple])
+    useEffect(() => {
+        if (!uploading) {
+            setFileList((value ? (multiple ? value : [value]) : []).filter(
+                v => !!v
+            ).map(dataURLtoFile))
+        }
+    }, [uploading, value, multiple])
+
     const {accept, action, ...opt} = options;
     const onRemove = useCallback((file) => {
         if (!multiple) {
@@ -63,9 +83,6 @@ const DraggerFileUploadWidget = (
             const index = fileList.map(({uid}) => uid).indexOf(file.uid);
             const newValue = value.slice();
             newValue.splice(index, 1);
-            setFileList((value ? (multiple ? value : [value]) : []).filter(
-                v => !!v
-            ).map(dataURLtoFile))
             onChange(newValue)
         }
     }, [value, multiple, onChange, fileList])
@@ -104,21 +121,9 @@ const DraggerFileUploadWidget = (
         if (isAccepted) nFiles++;
         return isAccepted || Upload.LIST_IGNORE;
     }, [accept, fileList, locale, nFiles, schema.maxItems]);
-    useEffect(() => {
-        if (!fileList.some(({status}) => status === 'uploading')) {
-            const values = fileList.filter(file => file.status === 'done').map(({response}) => response)
-            let newValue
-            if (values.length === 0) {
-                newValue = multiple ? [] : undefined
-            } else {
-                newValue = multiple ? values : values[0]
-            }
-            if (!isEqual(newValue, value)) {
-                onChange(newValue)
-            }
-        }
-    }, [fileList, multiple, value])
     const onChange_ = useCallback(({fileList}) => {
+        if (fileList.some(({status}) => status === 'uploading'))
+            setUploading(true)
         setFileList(fileList)
     }, [])
     const customRequest = useCallback(async (
@@ -216,7 +221,6 @@ const DraggerFileUploadWidget = (
             <p className="ant-upload-text">{locale.dropMessage}</p>
         </Dragger>
     </ConfigProvider>
-
 };
 
 export default DraggerFileUploadWidget;
