@@ -26,6 +26,9 @@ body {
     font-weight: 700;
 }
 
-.schedula-ant-menu > a {
+.schedula-ant-menu.ant-menu-light .ant-menu-submenu a,
+.schedula-ant-menu.ant-menu-light > .ant-menu .ant-menu-submenu a,
+.schedula-ant-menu.ant-menu-light .ant-menu-submenu a:hover,
+.schedula-ant-menu.ant-menu-light > .ant-menu .ant-menu-submenu a:hover {
     color: inherit;
 }
