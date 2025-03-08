@@ -14,11 +14,11 @@ jobs:
       matrix:
         os: [ ubuntu-latest ]
         extra: [ base, io, web, form, plot, sphinx, parallel, all, dev ]
-        python-version: [ '3.10', '3.11', '3.12' ]
+        python-version: [ '3.11', '3.12', '3.13' ]
         include:
           - os: windows-latest
             extra: all
-            python-version: '3.11'
+            python-version: '3.12'
     env:
       ACTION: "true"
       EXTRAS: ${{ matrix.extra }}
@@ -60,6 +60,6 @@ jobs:
 
       - name: Run Test
         run: coverage run --source=schedula -m unittest discover -s tests -p 'test_*.py'
-      - if: matrix.python-version == '3.11' && matrix.extra == 'all' && matrix.os == 'ubuntu-latest'
+      - if: matrix.python-version == '3.12' && matrix.extra == 'all' && matrix.os == 'ubuntu-latest'
         name: Run Coveralls
         run: coveralls --service=github
