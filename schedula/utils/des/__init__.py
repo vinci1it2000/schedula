@@ -131,7 +131,7 @@ def _search_doc_in_func(dsp, node_id, where_succ=True, node_type='function',
                 else:
                     try:
                         sig = inspect.signature(fun)
-                    except ValueError:
+                    except (ValueError, TypeError):
                         return None, ''
                     var_positional = inspect.Parameter.VAR_POSITIONAL
                     for i, param in enumerate(sig.parameters.values()):
