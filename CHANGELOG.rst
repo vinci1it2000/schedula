@@ -1,6 +1,21 @@
 Changelog
 =========
 
+v1.5.57 (2025-03-08)
+--------------------
+
+Feat
+~~~~
+- (form): Update resources.
+
+
+Fix
+~~~
+- (form): Correct FileWidget effects.
+
+- (form): Correct nav menu colors.
+
+
 v1.5.56 (2025-03-08)
 --------------------
 
