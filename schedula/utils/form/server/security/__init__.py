@@ -25,8 +25,10 @@ from wtforms import StringField, TextAreaField
 from wtforms.validators import ValidationError
 from flask_principal import Permission, RoleNeed
 from flask_security.models import fsqla_v3 as fsqla
-from flask_security.forms import ConfirmRegisterForm, Required, Form
 from flask_security.utils import base_render_json, suppress_form_csrf
+from flask_security.forms import (
+    ConfirmRegisterForm, RequiredLocalize, Form, get_form_field_label
+)
 from flask_security import (
     Security as _Security, SQLAlchemyUserDatastore, current_user as cu,
     auth_required
@@ -101,10 +103,24 @@ def is_base64_encoded_image(form, field):
 
 # Setup Flask-Security
 class EditForm(Form):
-    firstname = StringField('firstname', [Required()])
-    lastname = StringField('lastname', [Required()])
-    avatar = StringField('avatar', [is_base64_encoded_image])
-    custom_data = TextAreaField('custom_data', [validate_json])
+    firstname = StringField(
+        get_form_field_label('firstname'),
+        render_kw={"autocomplete": "firstname"},
+        validators=[RequiredLocalize()]
+    )
+    lastname = StringField(
+        get_form_field_label('lastname'),
+        render_kw={"autocomplete": "lastname"},
+        validators=[RequiredLocalize()]
+    )
+    avatar = StringField(
+        get_form_field_label('avatar'),
+        validators=[is_base64_encoded_image]
+    )
+    custom_data = TextAreaField(
+        get_form_field_label('custom_data'),
+        validators=[validate_json]
+    )
 
 
 class ExtendedConfirmRegisterForm(ConfirmRegisterForm, EditForm):
@@ -176,7 +192,6 @@ class Security:
         SECURITY_I18N_DIRNAME = [
             "translations",
             os.environ.get('SECURITY_I18N_DIRNAME', 'translations'),
-            osp.join(osp.dirname(__file__), 'translations')
         ]
         SECURITY_I18N_DIRNAME.append(osp.join(
             osp.dirname(inspect.getfile(flask_security)), 'translations'

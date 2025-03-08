@@ -5,7 +5,7 @@ flask-sqlalchemy
 flask-babel
 flask-wtf
 flask-principal
-flask-security-too[common]
+flask-security[common]>=5.6.0
 flask-admin
 flask-caching
 sqlalchemy

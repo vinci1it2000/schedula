@@ -25,7 +25,10 @@ from flask import flash, Blueprint, redirect, request, current_app as ca
 from flask_security.utils import (
     base_render_json, suppress_form_csrf, get_post_action_redirect
 )
-from flask_security.forms import Required, StringField, Form, EmailField
+from flask_security.forms import (
+    RequiredLocalize, get_form_field_label, StringField, Form, EmailField,
+    email_required, EmailValidation
+)
 from .locale import lazy_gettext
 
 log = logging.getLogger(__name__)
@@ -77,10 +80,23 @@ class Mail(_Mail):
 
 
 class ContactForm(Form):
-    name = StringField('name', [Required()])
-    email = EmailField('email', [Required()])
-    subject = StringField('subject', [Required()])
-    message = StringField('message', [Required()])
+    name = StringField(
+        get_form_field_label('name'),
+        validators=[RequiredLocalize()]
+    )
+    email = EmailField(
+        get_form_field_label("email"),
+        render_kw={"autocomplete": "email"},
+        validators=[email_required, EmailValidation(verify=True)],
+    )
+    subject = StringField(
+        get_form_field_label('subject'),
+        validators=[RequiredLocalize()]
+    )
+    message = StringField(
+        get_form_field_label('message'),
+        validators=[RequiredLocalize()]
+    )
     recaptcha = RecaptchaField('g-recaptcha-response')
 
 
