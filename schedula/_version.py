@@ -9,11 +9,11 @@ __all__ = ['__version__', '__updated__', '__title__', '__author__',
            '__license__', '__copyright__']
 
 #: Authoritative project's PEP 440 version.
-__version__ = version = "1.5.55"  # Also update README.rst
+__version__ = version = "1.5.56"  # Also update README.rst
 
 # Please UPDATE TIMESTAMP WHEN BUMPING VERSIONS AND BEFORE RELEASE.
 #: Release date.
-__updated__ = "2025-02-21 16:50:00"
+__updated__ = "2025-03-08 12:50:00"
 
 __title__ = 'schedula'
 

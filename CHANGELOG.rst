@@ -1,6 +1,33 @@
 Changelog
 =========
 
+v1.5.56 (2025-03-08)
+--------------------
+
+Feat
+~~~~
+- (setup): Add python 3.13 as supported version.
+
+- (test): Update python versions.
+
+- (form): Update resources.
+
+- (form): Update flask_security==5.6.0.
+
+
+Fix
+~~~
+- (sphinx): Correct sphinx version 8.2.3.
+
+- (form): Correct FileWidget multiple uploads.
+
+- (form): Correct flash messages.
+
+- (form): Correct register behaviour.
+
+- (form): Correct stripe user duplication.
+
+
 v1.5.55 (2025-02-21)
 --------------------
 
