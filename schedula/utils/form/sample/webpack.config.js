@@ -372,7 +372,6 @@ module.exports = function (_env, argv) {
                                 }
                             });
                         });
-
                     });
                 }
             },
