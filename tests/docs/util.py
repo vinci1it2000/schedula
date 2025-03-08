@@ -109,8 +109,10 @@ class TestApp(Sphinx):
         self._saved_path = sys.path[:]
 
         super(TestApp, self).__init__(
-            srcdir, confdir, outdir, doctreedir, buildername, confoverrides,
-            status, warning, freshenv, warningiserror, tags
+            srcdir=srcdir, confdir=confdir, outdir=outdir,
+            doctreedir=doctreedir, buildername=buildername,
+            confoverrides=confoverrides, status=status, warning=warning,
+            freshenv=freshenv, warningiserror=warningiserror, tags=tags
         )
 
     def cleanup(self, doctrees=False):

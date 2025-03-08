@@ -44,7 +44,8 @@ def _setup(**kw):
         deprecated=False,
         members=[],
         member_order='alphabetic',
-        exclude_members=set()
+        exclude_members=set(),
+        no_index_entry=False
     )
     options.__dict__.update(kw.pop('options', {}))
     settings = Struct(tab_width=8)

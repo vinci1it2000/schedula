@@ -11,13 +11,12 @@ It is a patch to sphinx.ext.autosummary.
 """
 import warnings
 import logging
-import os.path as osp
 from pathlib import Path
 from typing import Any
 from sphinx.util.inspect import getall
 from sphinx.util.osutil import ensuredir
 from sphinx.ext.autosummary import (
-    import_by_name, get_documenter, get_rst_suffix, mock, import_ivar_by_name,
+    import_by_name, _get_documenter, get_rst_suffix, mock, import_ivar_by_name,
     ImportExceptionGroup
 )
 from sphinx.ext.autosummary.generate import (
@@ -39,39 +38,67 @@ def generate_autosummary_content(
         template,
         template_name,
         imported_members,
-        app,
         recursive,
         context,
-        modname=None,
+        modname,
         qualname=None,
+        *,
+        config,
+        events,
+        registry,
 ):
-    doc = get_documenter(app, obj, parent)
+    doc = _get_documenter(obj, parent, registry=registry)
 
     ns = {}
     ns.update(context)
 
     if doc.objtype == 'module':
-        scanner = ModuleScanner(app, obj)
+        scanner = ModuleScanner(obj, config=config, events=events,
+                                registry=registry)
         ns['members'] = scanner.scan(imported_members)
 
-        respect_module_all = not app.config.autosummary_ignore_module_all
+        respect_module_all = not config.autosummary_ignore_module_all
         imported_members = imported_members or (
                 '__all__' in dir(obj) and respect_module_all
         )
+
         ns['functions'], ns['all_functions'] = _get_members(
-            doc, app, obj, {'function'}, imported=imported_members
+            doc,
+            obj,
+            {'function'},
+            config=config,
+            events=events,
+            registry=registry,
+            imported=imported_members,
         )
         ns['classes'], ns['all_classes'] = _get_members(
-            doc, app, obj, {'class'}, imported=imported_members
+            doc,
+            obj,
+            {'class'},
+            config=config,
+            events=events,
+            registry=registry,
+            imported=imported_members,
         )
         ns['exceptions'], ns['all_exceptions'] = _get_members(
-            doc, app, obj, {'exception'}, imported=imported_members
+            doc,
+            obj,
+            {'exception'},
+            config=config,
+            events=events,
+            registry=registry,
+            imported=imported_members,
         )
-        ns['attributes'], ns['all_attributes'] = _get_module_attrs(
-            name, ns['members']
-        )
+        ns['attributes'], ns['all_attributes'] = _get_module_attrs(name, ns[
+            'members'])
         ns['dispatchers'], ns['all_dispatchers'] = _get_members(
-            doc, app, obj, {'dispatcher'}, imported=imported_members
+            doc,
+            obj,
+            {'dispatcher'},
+            config=config,
+            events=events,
+            registry=registry,
+            imported=imported_members,
         )
 
         ispackage = hasattr(obj, '__path__')
@@ -83,7 +110,6 @@ def generate_autosummary_content(
                     + ns['all_classes']
                     + ns['all_exceptions']
                     + ns['all_attributes']
-                    + ns['all_dispatchers']
             )
 
             # If respect_module_all and module has a __all__ attribute, first get
@@ -94,7 +120,13 @@ def generate_autosummary_content(
             # Otherwise, use get_modules method normally
             if respect_module_all and '__all__' in dir(obj):
                 imported_modules, all_imported_modules = _get_members(
-                    doc, app, obj, {'module'}, imported=True
+                    doc,
+                    obj,
+                    {'module'},
+                    config=config,
+                    events=events,
+                    registry=registry,
+                    imported=True,
                 )
                 skip += all_imported_modules
                 public_members = getall(obj)
@@ -111,16 +143,27 @@ def generate_autosummary_content(
         ns['members'] = dir(obj)
         ns['inherited_members'] = set(dir(obj)) - set(obj.__dict__.keys())
         ns['methods'], ns['all_methods'] = _get_members(
-            doc, app, obj, {'method'}, include_public={'__init__'}
+            doc,
+            obj,
+            {'method'},
+            config=config,
+            events=events,
+            registry=registry,
+            include_public={'__init__'},
         )
         ns['attributes'], ns['all_attributes'] = _get_members(
-            doc, app, obj, {'attribute', 'property'}
+            doc,
+            obj,
+            {'attribute', 'property'},
+            config=config,
+            events=events,
+            registry=registry,
         )
 
     if modname is None or qualname is None:
         modname, qualname = _split_full_qualified_name(name)
 
-    if doc.objtype in ('method', 'attribute', 'property'):
+    if doc.objtype in {'method', 'attribute', 'property'}:
         ns['class'] = qualname.rsplit('.', 1)[0]
 
     if doc.objtype == 'class':
@@ -161,19 +204,24 @@ def generate_autosummary_docs(
     showed_sources = sorted(sources)
     if len(showed_sources) > 20:
         showed_sources = showed_sources[:10] + ['...'] + showed_sources[-10:]
-    logger.info(__('[autosummary] generating autosummary for: %s'),
-                ', '.join(showed_sources))
+    logger.info(
+        __('[autosummary] generating autosummary for: %s'),
+        ', '.join(showed_sources)
+    )
 
     if output_dir:
         logger.info(__('[autosummary] writing to %s'), output_dir)
 
     if base_path is not None:
-        sources = [osp.join(base_path, filename) for filename in sources]
+        base_path = Path(base_path)
+        source_paths = [base_path / filename for filename in sources]
+    else:
+        source_paths = list(map(Path, sources))
 
     template = AutosummaryRenderer(app)
 
     # read
-    items = find_autosummary_in_files(sources)
+    items = find_autosummary_in_files(source_paths)
 
     # keep track of new files
     new_files = []
@@ -188,7 +236,7 @@ def generate_autosummary_docs(
             # a :toctree: option
             continue
 
-        path = output_dir or osp.abspath(entry.path)
+        path = output_dir or Path(entry.path).resolve()
         ensuredir(path)
 
         try:
@@ -225,11 +273,13 @@ def generate_autosummary_docs(
             template,
             entry.template,
             imported_members,
-            app,
             entry.recursive,
             context,
             modname,
             qualname,
+            config=app.config,
+            events=app.events,
+            registry=app.registry,
         )
 
         file_path = Path(path, filename_map.get(name, name) + suffix)
@@ -270,19 +320,23 @@ def process_generate_options(app):
     genfiles = app.config.autosummary_generate
 
     if genfiles is True:
-        env = app.builder.env
-        genfiles = [str(env.doc2path(x, base=False)) for x in env.found_docs
-                    if osp.isfile(env.doc2path(x))]
+        env = app.env
+        genfiles = [
+            str(env.doc2path(x, base=False))
+            for x in env.found_docs
+            if env.doc2path(x).is_file()
+        ]
     elif genfiles is False:
         pass
     else:
         ext = list(app.config.source_suffix)
         genfiles = [
             genfile + (ext[0] if not genfile.endswith(tuple(ext)) else '')
-            for genfile in genfiles]
+            for genfile in genfiles
+        ]
 
         for entry in genfiles[:]:
-            if not osp.isfile(osp.join(app.srcdir, entry)):
+            if not (app.srcdir / entry).is_file():
                 logger.warning(__('autosummary_generate: file not found: %s'),
                                entry)
                 genfiles.remove(entry)
@@ -292,16 +346,25 @@ def process_generate_options(app):
 
     suffix = get_rst_suffix(app)
     if suffix is None:
-        logger.warning(__('autosummary generates .rst files internally. '
-                          'But your source_suffix does not contain .rst. Skipped.'))
+        logger.warning(
+            __(
+                'autosummary generates .rst files internally. '
+                'But your source_suffix does not contain .rst. Skipped.'
+            )
+        )
         return
 
     imported_members = app.config.autosummary_imported_members
     with mock(app.config.autosummary_mock_imports):
-        generate_autosummary_docs(genfiles, suffix=suffix, base_path=app.srcdir,
-                                  app=app, imported_members=imported_members,
-                                  overwrite=app.config.autosummary_generate_overwrite,
-                                  encoding=app.config.source_encoding)
+        generate_autosummary_docs(
+            genfiles,
+            suffix=suffix,
+            base_path=app.srcdir,
+            app=app,
+            imported_members=imported_members,
+            overwrite=app.config.autosummary_generate_overwrite,
+            encoding=app.config.source_encoding,
+        )
 
 
 def setup(app):
