@@ -36,6 +36,7 @@ const Steps = (
         nextButton = {},
         setCurrentStep = null,
         initial = 0,
+        contentStyle: _contentStyle,
         ...props
     }
 ) => {
@@ -64,8 +65,9 @@ const Steps = (
         border: `1px dashed ${token.colorBorder}`,
         overflowY: 'hidden',
         flexGrow: 1,
-        padding: 16
-    }), [token]);
+        padding: 16,
+        ..._contentStyle
+    }), [token, _contentStyle]);
 
     const {status, hasErrors} = useMemo(() => {
         let status, hasErrors;
@@ -139,7 +141,6 @@ const Steps = (
             </StepContent>
         ))}
         {_controls}
-        <div key={'placeholder'}></div>
     </Flex>
 };
 export default Steps;
