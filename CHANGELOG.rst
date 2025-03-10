@@ -1,6 +1,21 @@
 Changelog
 =========
 
+v1.5.58 (2025-03-10)
+--------------------
+
+Feat
+~~~~
+- (form): Update resources.
+
+- (form): Improve Steps styles.
+
+
+Fix
+~~~
+- (form): Add missing Antd translations.
+
+
 v1.5.57 (2025-03-08)
 --------------------
 
