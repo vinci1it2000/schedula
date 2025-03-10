@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 1.0\n"
 "Report-Msgid-Bugs-To: vinci1it2000@gmail.com\n"
-"PO-Revision-Date: 2024-11-14 10:06+0000\n"
+"PO-Revision-Date: 2025-03-10 13:40+0000\n"
 "Last-Translator: Vincenzo Arcidiacono <vinci1it2000@gmail.com>\n"
 "Language-Team: English <vinci1it2000@gmail.com>\n"
 "MIME-Version: 1.0\n"
@@ -1653,3 +1653,15 @@ msgstr "Informações adicionais"
 # traslated
 msgid "FileWidget.modalTitleImgCrop"
 msgstr "Editar imagem"
+
+# traslated
+msgid "DatePicker.lang.week"
+msgstr "Semana"
+
+# traslated
+msgid "Calendar.lang.week"
+msgstr "Semana"
+
+# traslated
+msgid "Table.filterCheckAll"
+msgstr "Selecione todos os itens"
