@@ -1,6 +1,19 @@
 Changelog
 =========
 
+v1.5.59 (2025-03-16)
+--------------------
+
+Feat
+~~~~
+- (form): Update resources.
+
+
+Fix
+~~~
+- (form): Correct all css overwrite styles.
+
+
 v1.5.58 (2025-03-10)
 --------------------
 
