@@ -107,7 +107,7 @@ export default function RegisterForm(
         if (field_errors.avatar)
             setFieldErrors({...field_errors, avatar: undefined})
     }, []);
-    return <Spin spinning={spinning}><Form
+    return <Spin wrapperClassName={"full-height-spin"} spinning={spinning}><Form
         style={{maxWidth: '300px', margin: 'auto', paddingBottom: '15px'}}
         layout={'vertical'}
         onFinish={(data) => onFinish({...data, avatar: userImage})}>

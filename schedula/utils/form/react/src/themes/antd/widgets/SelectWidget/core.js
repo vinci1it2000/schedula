@@ -71,6 +71,7 @@ export default function SelectWidget(
         name: id
     };
     return <Select
+        className={'schedula-select'}
         autoFocus={autofocus}
         disabled={disabled || (readonlyAsDisabled && readonly)}
         getPopupContainer={getPopupContainer}

@@ -17,8 +17,6 @@
         "Table": {
           "fontWeightStrong": 700
         },
-        "Card": {
-        },
         "Tabs": {
           "cardBg": "#d9d9d9"
         },
@@ -351,11 +349,6 @@
               },
               {
                 "component": "div",
-                "props": {
-                  "style": {
-                    "height": "400px"
-                  }
-                },
                 "children": [
                   {
                     "path": "input/kwargs/inputs/plot",

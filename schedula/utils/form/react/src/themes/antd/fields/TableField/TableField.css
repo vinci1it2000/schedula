@@ -1,38 +1,33 @@
-.ant-table-wrapper {
+.TableField .ant-table-wrapper {
     height: 100%;
 }
 
-.ant-table {
+.TableField.ant-table {
     flex-direction: column;
     display: flex;
 }
 
-.ant-table-container {
+.TableField .ant-table-container {
     flex: 1;
-    height: 0;
 }
 
-.ant-table-fixed-header {
+.TableField .ant-table-fixed-header {
     height: 100%;
 }
 
-.ant-table-fixed-header > .ant-table-container {
+.TableField .ant-table-fixed-header > .ant-table-container {
     flex-direction: column;
     display: flex;
 }
 
-.ant-table-fixed-header > .ant-table-container > .ant-table-header {
-    overflow: unset !important;
-}
-
-.ant-table-fixed-header > .ant-table-container > .ant-table-body {
+.TableField .ant-table-fixed-header > .ant-table-container > .ant-table-body {
     flex-grow: 1;
 }
 
-.ant-table-label-custom > label::after {
+.TableField .ant-table-label-custom > label::after {
     content: unset !important;
 }
 
-.ant-table-label-custom {
+.TableField .ant-table-label-custom {
     text-align: unset !important;
 }

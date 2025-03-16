@@ -43,7 +43,7 @@ export default function LoginForm(
     }, [form, urlLogin])
     const {getLocale} = useLocaleStore()
     const locale = getLocale('User.Login')
-    return <Spin spinning={spinning}><Form
+    return <Spin wrapperClassName={"full-height-spin"} spinning={spinning}><Form
         style={{maxWidth: '300px', margin: 'auto', paddingBottom: '15px'}}
         initialValues={{remember: true}}
         onFinish={onFinish}

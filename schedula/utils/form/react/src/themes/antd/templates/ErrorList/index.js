@@ -1,6 +1,5 @@
 import React, {useState, Suspense} from "react";
 import {FloatButton, List, Badge, Modal} from 'antd';
-import './index.css'
 import {useLocaleStore} from "../../models/locale";
 
 const ErrorList = ({errors}) => {

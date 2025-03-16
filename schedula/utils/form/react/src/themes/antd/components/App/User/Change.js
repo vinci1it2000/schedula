@@ -45,7 +45,7 @@ export default function ChangePasswordForm(
     }, [form, urlChangePassword, setAuth, setOpen])
     const {getLocale} = useLocaleStore()
     const locale = getLocale('User.ChangePassword')
-    return <Spin spinning={spinning}><Form
+    return <Spin wrapperClassName={"full-height-spin"} spinning={spinning}><Form
         style={{maxWidth: '300px', margin: 'auto', paddingBottom: '15px'}}
         onFinish={onFinish}>
         <Form.Item

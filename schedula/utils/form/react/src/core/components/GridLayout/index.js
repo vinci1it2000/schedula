@@ -11,7 +11,7 @@ class Layout extends Component {
         onLayoutChange: function () {
         },
         compactType: null,
-        cols: {lg: 12, md: 12, sm: 6, xs: 3, xxs: 1},
+        cols: {lg: 12, md: 12, sm: 12, xs: 12, xxs: 12},
     };
 
     state = {

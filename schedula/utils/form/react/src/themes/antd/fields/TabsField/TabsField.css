@@ -1,8 +1,12 @@
-.ant-tabs-left > .ant-tabs-nav, .ant-tabs-right > .ant-tabs-nav, .ant-tabs-left > div > .ant-tabs-nav, .ant-tabs-right > div > .ant-tabs-nav {
+.schedula-antd-tabs-field .ant-tabs-left > .ant-tabs-nav,
+.schedula-antd-tabs-field .ant-tabs-right > .ant-tabs-nav,
+.schedula-antd-tabs-field .ant-tabs-left > div > .ant-tabs-nav,
+.schedula-antd-tabs-field .ant-tabs-right > div > .ant-tabs-nav {
     min-width: 24px;
 }
 
-.ant-tabs.ant-tabs-left .ant-tabs-extra-content, .ant-tabs.ant-tabs-right .ant-tabs-extra-content {
+.schedula-antd-tabs-field.ant-tabs.ant-tabs-left .ant-tabs-extra-content,
+.schedula-antd-tabs-field.ant-tabs.ant-tabs-right .ant-tabs-extra-content {
     width: 100%;
     padding: 2px;
 }
@@ -11,11 +15,13 @@
     overflow: auto;
 }
 
-.hide-fieldset-border fieldset:first-child, .hide-div-border div:first-child {
+.hide-fieldset-border fieldset:first-child,
+.hide-div-border div:first-child {
     border: 0
 }
 
-.ant-tabs-tabpane, .h-100 {
+.schedula-antd-tabs-field .ant-tabs-tabpane,
+.h-100 {
     height: 100%
 }
 
@@ -25,55 +31,55 @@
     cursor: default !important;
 }
 
-.ant-tabs-dropdown .ant-tabs-dropdown-menu-item-remove {
+.schedula-antd-tabs-field.ant-tabs-dropdown .ant-tabs-dropdown-menu-item-remove {
     display: none !important;
 }
 
-.ant-tabs-dropdown .ant-tabs-dropdown-menu-item {
+.schedula-antd-tabs-field.ant-tabs-dropdown .ant-tabs-dropdown-menu-item {
     cursor: default !important;
 }
 
-.ant-tabs-nav {
+.schedula-antd-tabs-field .ant-tabs-nav {
     margin-bottom: 0 !important;
 }
 
-.ant-tabs.ant-tabs-card.ant-tabs-left .ant-tabs-nav-add,
-.ant-tabs.ant-tabs-card.ant-tabs-left .ant-tabs-nav-more {
+.schedula-antd-tabs-field.ant-tabs.ant-tabs-card.ant-tabs-left .ant-tabs-nav-add,
+.schedula-antd-tabs-field.ant-tabs.ant-tabs-card.ant-tabs-left .ant-tabs-nav-more {
     border-radius: 4px 0 0 4px;
     margin: 2px 0 0 0;
 }
 
-.ant-tabs-card.ant-tabs-left > .ant-tabs-nav .ant-tabs-tab,
-.ant-tabs-card.ant-tabs-left > div > .ant-tabs-nav .ant-tabs-tab {
+.schedula-antd-tabs-field.ant-tabs-card.ant-tabs-left > .ant-tabs-nav .ant-tabs-tab,
+.schedula-antd-tabs-field.ant-tabs-card.ant-tabs-left > div > .ant-tabs-nav .ant-tabs-tab {
     border-radius: 4px 0 0 4px;
 }
 
-.ant-tabs-card.ant-tabs-right > .ant-tabs-nav .ant-tabs-tab,
-.ant-tabs-card.ant-tabs-right > div > .ant-tabs-nav .ant-tabs-tab {
+.schedula-antd-tabs-field.ant-tabs-card.ant-tabs-right > .ant-tabs-nav .ant-tabs-tab,
+.schedula-antd-tabs-field.ant-tabs-card.ant-tabs-right > div > .ant-tabs-nav .ant-tabs-tab {
     border-radius: 0 4px 4px 0;
 }
 
-.ant-tabs-card.ant-tabs-bottom > .ant-tabs-nav .ant-tabs-tab,
-.ant-tabs-card.ant-tabs-bottom > div > .ant-tabs-nav .ant-tabs-tab {
+.schedula-antd-tabs-field.ant-tabs-card.ant-tabs-bottom > .ant-tabs-nav .ant-tabs-tab,
+.schedula-antd-tabs-field.ant-tabs-card.ant-tabs-bottom > div > .ant-tabs-nav .ant-tabs-tab {
     border-radius: 0 0 4px 4px;
 }
 
-.ant-tabs-card.ant-tabs-top > .ant-tabs-nav .ant-tabs-tab,
-.ant-tabs-card.ant-tabs-top > div > .ant-tabs-nav .ant-tabs-tab {
+.schedula-antd-tabs-field.ant-tabs-card.ant-tabs-top > .ant-tabs-nav .ant-tabs-tab,
+.schedula-antd-tabs-field.ant-tabs-card.ant-tabs-top > div > .ant-tabs-nav .ant-tabs-tab {
     border-radius: 4px 4px 0 0;
 }
 
-.ant-tabs.ant-tabs-card.ant-tabs-bottom > .ant-tabs-nav .ant-tabs-nav-add,
-.ant-tabs.ant-tabs-card.ant-tabs-bottom > div > .ant-tabs-nav .ant-tabs-nav-add,
-.ant-tabs.ant-tabs-card.ant-tabs-bottom > .ant-tabs-nav .ant-tabs-nav-more,
-.ant-tabs.ant-tabs-card.ant-tabs-bottom > div > .ant-tabs-nav .ant-tabs-nav-more {
+.schedula-antd-tabs-field.ant-tabs.ant-tabs-card.ant-tabs-bottom > .ant-tabs-nav .ant-tabs-nav-add,
+.schedula-antd-tabs-field.ant-tabs.ant-tabs-card.ant-tabs-bottom > div > .ant-tabs-nav .ant-tabs-nav-add,
+.schedula-antd-tabs-field.ant-tabs.ant-tabs-card.ant-tabs-bottom > .ant-tabs-nav .ant-tabs-nav-more,
+.schedula-antd-tabs-field.ant-tabs.ant-tabs-card.ant-tabs-bottom > div > .ant-tabs-nav .ant-tabs-nav-more {
     border-radius: 0 0 4px 4px;
 }
 
-.ant-tabs.ant-tabs-card.ant-tabs-right > .ant-tabs-nav .ant-tabs-nav-add,
-.ant-tabs.ant-tabs-card.ant-tabs-right > div > .ant-tabs-nav .ant-tabs-nav-add,
-.ant-tabs.ant-tabs-card.ant-tabs-right > .ant-tabs-nav .ant-tabs-nav-more,
-.ant-tabs.ant-tabs-card.ant-tabs-right > div > .ant-tabs-nav .ant-tabs-nav-more {
+.schedula-antd-tabs-field.ant-tabs.ant-tabs-card.ant-tabs-right > .ant-tabs-nav .ant-tabs-nav-add,
+.schedula-antd-tabs-field.ant-tabs.ant-tabs-card.ant-tabs-right > div > .ant-tabs-nav .ant-tabs-nav-add,
+.schedula-antd-tabs-field.ant-tabs.ant-tabs-card.ant-tabs-right > .ant-tabs-nav .ant-tabs-nav-more,
+.schedula-antd-tabs-field.ant-tabs.ant-tabs-card.ant-tabs-right > div > .ant-tabs-nav .ant-tabs-nav-more {
     border-radius: 0 4px 4px 0;
     margin: 2px 0 0 0
 }
@@ -96,7 +102,7 @@
     border-end-end-radius: 0;
 }
 
-.ant-tabs-left > .ant-tabs-nav {
+.schedula-antd-tabs-field.ant-tabs-left > .ant-tabs-nav {
     align-items: end;
 }
 
@@ -108,12 +114,12 @@
     border-start-end-radius: 0;
 }
 
-.ant-tabs-tab-remove {
+.schedula-antd-tabs-field .ant-tabs-tab-remove {
     display: none;
 }
 
-.ant-tabs-nav-add,
-.ant-tabs-nav-more {
+.schedula-antd-tabs-field .ant-tabs-nav-add,
+.schedula-antd-tabs-field .ant-tabs-nav-more {
     min-height: 24px !important;
     min-width: 24px !important;
     padding: 0 !important;
@@ -122,10 +128,10 @@
 }
 
 
-.ant-tabs .ant-tabs-tab .anticon {
+.schedula-antd-tabs-field.ant-tabs .ant-tabs-tab .anticon {
     margin-right: unset;
 }
 
-.tab-array .ant-tabs-tab, .ant-tabs-tabpane {
+.schedula-antd-tabs-field .ant-tabs-tabpane {
     padding: 0 !important;
 }

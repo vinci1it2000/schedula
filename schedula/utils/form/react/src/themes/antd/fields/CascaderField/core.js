@@ -96,6 +96,8 @@ export default function CascaderField(
         registry={registry}
         {...props}>
         <Cascader
+            className="schedula-cascader"
+            popupClassName="schedula-cascader"
             status={rawErrors && rawErrors.length > 0 ? "error" : null}
             style={{width: '100%'}}
             value={value}

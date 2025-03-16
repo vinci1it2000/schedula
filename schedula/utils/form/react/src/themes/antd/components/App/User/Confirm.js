@@ -43,7 +43,7 @@ export default function ConfirmForm(
     }, [form, urlConfirmMail, setAuth, setOpen])
     const {getLocale} = useLocaleStore()
     const locale = getLocale('User.Confirm')
-    return <Spin spinning={spinning}><Form
+    return <Spin wrapperClassName={"full-height-spin"} spinning={spinning}><Form
         style={{maxWidth: '300px', margin: 'auto', paddingBottom: '15px'}}
         onFinish={onFinish}>
         <Form.Item

@@ -68,6 +68,10 @@ const FlexLayout = ({children, render, model: rawJSONModel, ...props}) => {
         return Model.fromJson(JSONModel)
     }, [JSONModel])
     const factory = (node) => (children[node.getComponent()]);
-    return <Layout model={model} factory={factory} {...props}/>
+    return <Layout
+        classNameMapper={(defaultClassName) => `${defaultClassName} schedula-flex-layout`}
+        model={model}
+        factory={factory} {...props}
+    />
 };
 export default FlexLayout;

@@ -471,11 +471,12 @@ export default class TabField extends ArrayField {
                     }}
                     tabPosition={tabPosition}
                     type="editable-card"
-                    className={'schedula-antd-tabs-field'}
+                    popupClassName="schedula-antd-tabs-field"
+                    rootClassName={'schedula-antd-tabs-field'}
                     activeKey={Math.min(activeKey, tabItems.length - 1)}
                     onEdit={onEdit}
                     items={tabItems}
-                    destroyInactiveTabPane={true}
+                    destroyInactiveTabPane={false}
                     {...props}
                 />
             }}

@@ -73,7 +73,7 @@ export default function CloudUploadField({uiSchema, formData, formContext}) {
             setCurrentKey(_currentKey)
     }, [_currentKey])
     let content = <Form key={'form'} form={_form} component={false}>
-        <Spin spinning={loading}>
+        <Spin wrapperClassName={"full-height-spin"} spinning={loading}>
             <Modal
                 title={locale.titleSaveNew}
                 footer={<div style={{display: "flex"}}>

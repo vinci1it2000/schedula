@@ -26,6 +26,10 @@ body {
     font-weight: 700;
 }
 
+.full-height-spin, .full-height-spin > .ant-spin-container {
+    height: 100%;
+}
+
 .schedula-ant-menu.ant-menu-light .ant-menu-submenu a,
 .schedula-ant-menu.ant-menu-light > .ant-menu .ant-menu-submenu a,
 .schedula-ant-menu.ant-menu-light .ant-menu-submenu a:hover,

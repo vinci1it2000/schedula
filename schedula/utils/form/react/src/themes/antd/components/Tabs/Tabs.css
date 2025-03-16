@@ -1,46 +1,46 @@
 
-.ant-tabs-nav {
+.schedula-ant-tabs .ant-tabs-nav {
     margin-bottom: 0 !important;
 }
 
-.ant-tabs.ant-tabs-top .ant-tabs-content-holder {
+.schedula-ant-tabs.ant-tabs.ant-tabs-top .ant-tabs-content-holder {
     border-left: 1px solid rgba(5, 5, 5, 0.06);
     border-right: 1px solid rgba(5, 5, 5, 0.06);
     border-bottom: 1px solid rgba(5, 5, 5, 0.06);
 }
 
-.ant-tabs.ant-tabs-left .ant-tabs-content-holder {
+.schedula-ant-tabs.ant-tabs.ant-tabs-left .ant-tabs-content-holder {
     border-top: 1px solid rgba(5, 5, 5, 0.06);
     border-right: 1px solid rgba(5, 5, 5, 0.06);
     border-bottom: 1px solid rgba(5, 5, 5, 0.06);
 }
 
-.ant-tabs.ant-tabs-right .ant-tabs-content-holder {
+.schedula-ant-tabs.ant-tabs.ant-tabs-right .ant-tabs-content-holder {
     border-top: 1px solid rgba(5, 5, 5, 0.06);
     border-left: 1px solid rgba(5, 5, 5, 0.06);
     border-bottom: 1px solid rgba(5, 5, 5, 0.06);
 }
 
-.ant-tabs.ant-tabs-bottom .ant-tabs-content-holder {
+.schedula-ant-tabs.ant-tabs.ant-tabs-bottom .ant-tabs-content-holder {
     border-top: 1px solid rgba(5, 5, 5, 0.06);
     border-left: 1px solid rgba(5, 5, 5, 0.06);
     border-right: 1px solid rgba(5, 5, 5, 0.06);
 }
 
-.ant-tabs.ant-tabs-card.ant-tabs-left .ant-tabs-nav-add {
+.schedula-ant-tabs.ant-tabs.ant-tabs-card.ant-tabs-left .ant-tabs-nav-add {
     border-radius: 8px 0 0 8px;
     margin: 2px 0 0 0
 }
 
-.ant-tabs.ant-tabs-card.ant-tabs-bottom > .ant-tabs-nav .ant-tabs-nav-add, .ant-tabs.ant-tabs-card.ant-tabs-bottom > div > .ant-tabs-nav .ant-tabs-nav-add {
+.schedula-ant-tabs.ant-tabs.ant-tabs-card.ant-tabs-bottom > .ant-tabs-nav .ant-tabs-nav-add, .ant-tabs.ant-tabs-card.ant-tabs-bottom > div > .ant-tabs-nav .ant-tabs-nav-add {
     border-radius: 0 0 8px 8px;
 }
 
-.ant-tabs.ant-tabs-card.ant-tabs-right > .ant-tabs-nav .ant-tabs-nav-add, .ant-tabs.ant-tabs-card.ant-tabs-right > div > .ant-tabs-nav .ant-tabs-nav-add {
+.schedula-ant-tabs.ant-tabs.ant-tabs-card.ant-tabs-right > .ant-tabs-nav .ant-tabs-nav-add, .ant-tabs.ant-tabs-card.ant-tabs-right > div > .ant-tabs-nav .ant-tabs-nav-add {
     border-radius: 0 8px 8px 0;
     margin: 2px 0 0 0
 }
 
-.ant-tabs-content {
+.schedula-ant-tabs .ant-tabs-content {
     height: 100%;
 }

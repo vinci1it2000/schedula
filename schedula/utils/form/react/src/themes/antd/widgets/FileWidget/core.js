@@ -1,7 +1,6 @@
 import {UploadOutlined} from '@ant-design/icons';
 import {Button, notification, Upload} from 'antd';
 import {useState, useEffect, useMemo, useCallback} from 'react';
-import './FileWidget.css'
 import format from 'python-format-js'
 import {useLocaleStore} from '../../models/locale'
 import isEqual from "lodash/isEqual";

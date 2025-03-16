@@ -448,6 +448,7 @@ export default class TableField extends ArrayField {
                         'ant-table-label-custom'
                     );
                     const table = <Table
+                        className="TableField"
                         locale={getLocale('Table')}
                         title={() => <Row justify="space-between"
                                           align="middle">

@@ -6,6 +6,7 @@ const Tabs = ({children, render, items, ...props}) => {
         {...item, key: index, children: children[index]}
     ))
     return <BaseTabs
+        className="schedula-ant-tabs"
         type="card" size="small" items={_items} destroyInactiveTabPane={true}
         tabBarGutter={2}
         {...props}

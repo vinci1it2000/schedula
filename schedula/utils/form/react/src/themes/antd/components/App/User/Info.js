@@ -127,7 +127,7 @@ export default function InfoForm(
             }
         })
     }, [form, urlEdit, customData])
-    return <Spin spinning={spinning}>
+    return <Spin wrapperClassName={"full-height-spin"} spinning={spinning}>
         <Form
             layout="vertical"
             key={'form'}

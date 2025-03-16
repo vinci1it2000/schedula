@@ -42,7 +42,7 @@ const ContactNav = ({key, render: {formContext}, urlContact, containerRef}) => {
             }}
             getContainer={() => getContainerElement(containerRef)}
             open={open}>
-            <Spin key={'page'} spinning={spinning}>
+            <Spin wrapperClassName={"full-height-spin"} key={'page'} spinning={spinning}>
                 <Suspense>
                     <ContactForm
                         key={'contact'}

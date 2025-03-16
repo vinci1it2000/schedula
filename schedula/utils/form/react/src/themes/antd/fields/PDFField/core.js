@@ -108,7 +108,7 @@ export default function PDFField({idSchema, uiSchema, formData, ...props}) {
             <Row gutter={24} style={{height: '100%'}}>
                 <Col key={0} span={treeData.length ? 18 : 24}
                      style={{height: '100%'}}>
-                    <Spin size={"large"} spinning={!url}>
+                    <Spin wrapperClassName={"full-height-spin"} size={"large"} spinning={!url}>
                         {!url ? null : <iframe
                             title={nanoid()}
                             className={'pdf-viewer'}

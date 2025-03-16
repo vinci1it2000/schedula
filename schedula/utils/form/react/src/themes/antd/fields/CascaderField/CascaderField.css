@@ -1,9 +1,11 @@
-.ant-cascader-menu {
+.schedula-cascader .ant-cascader-menu {
     min-width: unset !important;
+    height: auto;
+    max-height: 180px;
 }
 
-.ant-cascader-dropdown > div {
-    overflow-y: auto
+.schedula-cascader.ant-cascader-dropdown > div {
+    overflow: auto
 }
 
 .unset-height {

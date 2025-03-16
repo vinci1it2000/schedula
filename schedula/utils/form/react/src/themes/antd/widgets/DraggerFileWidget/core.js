@@ -2,7 +2,6 @@ import {notification, Upload, theme, ConfigProvider} from 'antd';
 import {useState, useEffect, useMemo, useCallback} from 'react';
 import {InboxOutlined} from '@ant-design/icons';
 import format from 'python-format-js'
-import './DraggerFileWidget.css'
 import {useLocaleStore} from '../../models/locale'
 import isEqual from 'lodash/isEqual'
 
