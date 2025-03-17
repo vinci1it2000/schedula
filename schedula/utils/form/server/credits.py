@@ -24,11 +24,12 @@ from .security import User
 from .. import json_secrets
 from .security import is_admin
 from .locale import lazy_gettext
-from sqlalchemy.sql import func, column
 from flask_security import current_user as cu, auth_required
 from flask import jsonify, flash, Blueprint, abort
 from sherlock import Lock
-from sqlalchemy import Column, String, Integer, DateTime, JSON, or_, event, desc
+from sqlalchemy import (
+    Column, String, Integer, DateTime, JSON, or_, event, desc, asc
+)
 from dateutil.relativedelta import relativedelta
 from dateutil.rrule import (
     rrule, YEARLY, MONTHLY, WEEKLY, DAILY, HOURLY, MINUTELY, SECONDLY
@@ -56,6 +57,8 @@ users_wallet = db.Table(
     Column('user_id', Integer, db.ForeignKey('user.id'), primary_key=True),
     Column('wallet_id', Integer, db.ForeignKey('wallet.id'), primary_key=True)
 )
+
+max_date = datetime.datetime(9999, 12, 21, 23, 59, 59)
 
 
 class Wallet(db.Model):
@@ -110,21 +113,33 @@ class Wallet(db.Model):
 
     def balance(self, product=None, day=None, session=db.session):
         day = datetime.datetime.today() if day is None else day
-        base = session.query(Txn).with_entities(
-            func.sum(Txn.credits).label('total_credits'), column('product')
-        ).filter_by(
-            wallet_id=self.id,
-            **({} if product is None else {"product": product})
-        ).filter(Txn.valid_from <= day)
-        alive_balance = {
-            r.product: r.total_credits for r in base.filter(or_(
-                Txn.expired_at == None, Txn.expired_at >= day
-            )).group_by(Txn.product).all()
-        }
-        balance = {k: min(v, alive_balance.get(k, 0)) for k, v in (
-            (r.product, r.total_credits)
-            for r in base.group_by(Txn.product).all()
-        )}
+        balance = {}
+        for r in session.query(Txn).filter_by(
+                wallet_id=self.id,
+                **({} if product is None else {"product": product})
+        ).filter(Txn.valid_from <= day).filter(Txn.credits != 0).order_by(asc(
+            Txn.valid_from
+        )).all():
+            bal = sh.get_nested_dicts(balance, r.product)
+            if r.credits > 0:
+                key = r.expired_at or max_date
+            else:
+                while bal:
+                    key = min(bal)
+                    if key < r.valid_from:
+                        bal.pop(key)
+                    else:
+                        break
+
+            new_bal = bal.get(key, 0) + r.credits
+            while bal and new_bal < 0:
+                bal.pop(key)
+                key = min(bal)
+                new_bal = bal.get(key, 0) + new_bal
+            bal[key] = new_bal
+        balance = {k: sum([
+            i for t, i in v.items() if t >= day
+        ], 0) for k, v in balance.items()}
         if product is not None:
             balance = balance.get(product, 0)
         return balance
