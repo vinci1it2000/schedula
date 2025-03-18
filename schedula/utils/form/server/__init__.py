@@ -58,6 +58,10 @@ def basic_app(sitemap, app):
     # Create database connection object
     db.init_app(app)
 
+    if app.config['SCHEDULA_SECRETS_ENABLED']:
+        from .json_secrets import Secrets
+        Secrets(app)
+
     if app.config['SCHEDULA_LOCALE_ENABLED']:
         from .locale import Locales
         Locales(app)

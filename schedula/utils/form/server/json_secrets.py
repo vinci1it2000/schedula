@@ -13,23 +13,38 @@ with JSON.
 
 import json
 import hashlib
+from .extensions import db
+from flask import current_app as ca
+from sqlalchemy import Column, String, JSON
+
+
+class Secret(db.Model):
+    __tablename__ = 'secret'
+    id = Column(String(64), primary_key=True, unique=True, nullable=False)
+    data = Column(JSON(), nullable=False)
+
+    def __repr__(self):
+        return f'Secret({self.id})'
 
 
 def dumps_secret(o):
     dhash = hashlib.sha256()
     dhash.update(json.dumps(o, sort_keys=True).encode())
     key = dhash.hexdigest()
-    from flask import session
-    if not '$secrets' in session:
-        session['$secrets'] = {}
-    if key not in session['$secrets']:
-        session['$secrets'] = {**session['$secrets'], key: o}
+    existing_secret = Secret.query.get(key)
+    if not existing_secret:
+        new_secret = Secret(id=key, data=o)
+        db.session.add(new_secret)
+        db.session.commit()
     return key
 
 
 def loads_secret(key):
-    from flask import session
-    return session['$secrets'][key]
+    secret = Secret.query.get(key)
+    if secret:
+        return secret.data
+    else:
+        return None
 
 
 def resolve_refs(schema, base=None):
@@ -67,9 +82,11 @@ def secrets(obj, dumps=True, base=None):
         }
         if '$secret' in obj:
             if dumps:
-                res['$secret'] = dumps_secret(resolve_refs(
-                    obj['$secret'], base
-                ))
+                obj = resolve_refs(obj['$secret'], base)
+                if ca.config.get('SCHEDULA_SECRETS_ENABLED'):
+                    res['$secret'] = dumps_secret(obj)
+                else:
+                    res.update(obj)
             else:
                 obj = loads_secret(obj['$secret'])
                 if res:
@@ -86,3 +103,16 @@ def dumps(obj, **kwargs):
 
 def loads(s, **kwargs):
     return secrets(json.loads(s, **kwargs), dumps=False)
+
+
+class Secrets:
+    def __init__(self, app, *args, **kwargs):
+        if app is not None:
+            self.init_app(app, *args, **kwargs)
+
+    def init_app(self, app, *args, **kwargs):
+        app.extensions = getattr(app, 'extensions', {})
+        if 'schedula_admin' in app.extensions:
+            admin = app.extensions['schedula_admin']
+            for v in (Secret,):
+                admin.add_model(v, category="Secrets")

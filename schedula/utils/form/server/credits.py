@@ -21,7 +21,7 @@ import schedula as sh
 from .csrf import csrf
 from .extensions import db
 from .security import User
-from .. import json_secrets
+from . import json_secrets
 from .security import is_admin
 from .locale import lazy_gettext
 from flask_security import current_user as cu, auth_required

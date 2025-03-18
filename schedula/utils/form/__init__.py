@@ -20,7 +20,6 @@ Sub-Modules:
     cli
     config
     gapp
-    json_secrets
     server
 """
 import functools
@@ -33,7 +32,6 @@ import mimetypes
 import webbrowser
 import os.path as osp
 from ..web import WebMap
-from . import json_secrets
 from jinja2 import TemplateNotFound
 from collections import OrderedDict
 from werkzeug.exceptions import NotFound
@@ -120,6 +118,7 @@ def send_static_file(
             try:
                 with _open(fp, "rb") as f:
                     if is_form:
+                        from .server import json_secrets
                         data = json_secrets.dumps(json.load(f)).encode()
                     else:
                         data = f.read()
