@@ -323,7 +323,7 @@ event.listen(
 )
 
 
-def compute_line_items(quantity, tiers, type='graduated'):
+def compute_line_items(quantity, tiers, type='graduated', extra=None):
     tiers = sorted(tiers, key=lambda x: x.get('last_unit', float('inf')))
     tiers[-1] = {k: v for k, v in tiers[-1].items() if k != 'last_unit'}
     line_items = []
@@ -364,6 +364,11 @@ def compute_line_items(quantity, tiers, type='graduated'):
             if quantity <= last_unit:
                 break
             prev_unit = tier['last_unit']
+    if extra:
+        line_items = [
+            sh.combine_dicts(extra, v)
+            for v in line_items
+        ]
     return line_items
 
 
@@ -594,6 +599,37 @@ def format_line_items(line_items):
     return line_items
 
 
+def get_tax_rates(tax_rates):
+    res = []
+    tax_rates_list = None
+    for tax_rate in tax_rates:
+        if isinstance(tax_rate, dict):
+            metadata = tax_rate.get('metadata', {})
+            kwargs = {k: v for k, v in tax_rate.items() if k != 'metadata'}
+            import hashlib
+            from flask import current_app as ca
+            api_key = ca.config['STRIPE_SECRET_KEY']
+            hash = hashlib.sha256(json.dumps(
+                kwargs, sort_keys=True
+            ).encode()).hexdigest()
+            if tax_rates_list is None:
+                tax_rates_list = list(
+                    stripe.TaxRate.list(api_key=api_key).auto_paging_iter()
+                )
+            for tax_rate in tax_rates_list:
+                if tax_rate.metadata.get('hash') == hash:
+                    tax_rate = tax_rate.id
+                    break
+            else:
+                tax_rate = stripe.TaxRate.create(
+                    api_key=api_key,
+                    metadata=sh.combine_dicts(metadata, {'hash': hash}),
+                    **kwargs
+                ).id
+        res.append(tax_rate)
+    return res
+
+
 @bp.route('/create-checkout-session', methods=['POST'])
 def create_payment():
     from stripe.checkout import Session
@@ -625,12 +661,17 @@ def create_payment():
                 it = [it]
             line_items = []
             for d in it:
+                for i in ('dynamic_tax_rates', 'tax_rates'):
+                    if i in d:
+                        d[i] = get_tax_rates(d[i])
                 if 'tiers' in d:
                     line_items.extend(compute_line_items(
-                        d['quantity'], **d.pop('tiers')
+                        d.pop('quantity'), extra=d,
+                        **d.pop('tiers')
                     ))
                 else:
                     line_items.append(d)
+
             line_items = format_line_items(line_items)
             metadata['line_items'] = json.dumps([
                 d.pop('metadata', None) for d in line_items
