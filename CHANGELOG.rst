@@ -1,6 +1,21 @@
 Changelog
 =========
 
+v1.5.60 (2025-03-18)
+--------------------
+
+Feat
+~~~~
+- (form): Enable $ref with in $secrets.
+
+- (credits): Add tax rates support.
+
+
+Fix
+~~~
+- (form): Correct balance calculation.
+
+
 v1.5.59 (2025-03-16)
 --------------------
 
