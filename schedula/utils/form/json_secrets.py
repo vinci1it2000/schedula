@@ -32,17 +32,44 @@ def loads_secret(key):
     return session['$secrets'][key]
 
 
-def secrets(obj, dumps=True):
+def resolve_refs(schema, base=None):
+    """
+    Recursively resolve all $ref references in a JSON schema-like dictionary.
+    """
+    if isinstance(schema, dict):
+        # If this is a $ref, resolve it
+        if "$ref" in schema:
+            ref_path = schema["$ref"]
+            resolved_value = base
+            for part in ref_path.lstrip('#/').split('/'):
+                resolved_value = resolved_value[part]
+            # Return the fully resolved value
+            return resolve_refs(resolved_value, base)
+        # Otherwise, process all dictionary values
+        return {k: resolve_refs(v, base) for k, v in schema.items()}
+    elif isinstance(schema, list):
+        # Process all items in a list
+        return [resolve_refs(item, base) for item in schema]
+    else:
+        # If it’s a plain value, return as is
+        return schema
+
+
+def secrets(obj, dumps=True, base=None):
+    if base is None:
+        base = obj
     if isinstance(obj, list):
-        return [secrets(v, dumps) for v in obj]
+        return [secrets(v, dumps, base) for v in obj]
     elif isinstance(obj, dict):
         res = {
-            k: secrets(v, dumps)
+            k: secrets(v, dumps, base)
             for k, v in obj.items() if '$secret' != k
         }
         if '$secret' in obj:
             if dumps:
-                res['$secret'] = dumps_secret(obj['$secret'])
+                res['$secret'] = dumps_secret(resolve_refs(
+                    obj['$secret'], base
+                ))
             else:
                 obj = loads_secret(obj['$secret'])
                 if res:
