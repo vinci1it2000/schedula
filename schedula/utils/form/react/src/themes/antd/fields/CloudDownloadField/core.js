@@ -173,16 +173,17 @@ export default function CloudDownloadField(
             const row = await _form.validateFields();
             if (id !== undefined) {
                 if (row.data) {  //put
-                    postUpdate(data, 'PUT', row.name, id, id === currentKey.id)
+                    postUpdate(data, 'PUT', row.name, id, id === currentKey?.id)
                 } else {  //patch
-                    postUpdate({}, 'PATCH', row.name, id, id === currentKey.id)
+                    postUpdate({}, 'PATCH', row.name, id, id === currentKey?.id)
                 }
             } else if (openSave === 2) {
-                postUpdate(data, 'PUT', row['new-name'], currentKey.id, true)
+                postUpdate(data, 'PUT', row['new-name'], currentKey?.id, true)
             } else {  // post
                 postUpdate(data, 'POST', row['new-name'], undefined, true)
             }
         } catch (errInfo) {
+            console.log(errInfo)
         }
     };
     const handleGet = (id) => {
@@ -222,7 +223,7 @@ export default function CloudDownloadField(
             fetchData();
     }, [openModal, modal, fetchData]);
     useEffect(() => {
-        _form.setFieldsValue(openSave === 2 ? {'new-name': currentKey.name} : {})
+        _form.setFieldsValue(openSave === 2 ? {'new-name': currentKey?.name} : {})
     }, [openSave, currentKey]);
     useEffect(() => {
         if (!isEqual(_currentKey, currentKey))
