@@ -47,10 +47,10 @@ class DiGraph:
         return self.succ
 
     def _add_node(self, n, attr):
-        nodes, succ, pred = self.nodes, self.succ, self.pred
+        nodes = self.nodes
         if n not in nodes:  # Add nodes.
-            succ[n] = {}
-            pred[n] = {}
+            self.succ[n] = {}
+            self.pred[n] = {}
             nodes[n] = attr
         elif attr:
             nodes[n].update(attr)
@@ -125,8 +125,7 @@ class DiGraph:
 
     @property
     def edges(self):
-        from .dsp import stack_nested_keys
-        return dict(stack_nested_keys(self.succ, depth=2))
+        return {(i, j): v for i, d in self.succ.items() for j, v in d.items()}
 
     def has_edge(self, u, v):
         try:

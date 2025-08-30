@@ -141,7 +141,9 @@ def _process_funcs(
         exe_id, funcs, executor, *args, stopper=None, sol_name=None,
         verbose=False, **kw):
     from ...dispatcher import Dispatcher
-    res, sid = [], exe_id[-1]
+    res = []
+    sid = exe_id[-1]
+    res_append = res.append
     for fn in funcs:
         if stopper and stopper.is_set():
             raise DispatcherAbort
@@ -167,7 +169,7 @@ def _process_funcs(
         else:
             e = EXECUTORS.get_executor(exe_id)
             r['res'] = e.process(sid, fn, *args, **kw) if e else fn(*args, **kw)
-        res.append(r)
+        res_append(r)
         if 'err' in r:
             break
         args, kw = (r['res'],), {}

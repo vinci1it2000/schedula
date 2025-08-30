@@ -653,8 +653,11 @@ class Solution(Base, collections.OrderedDict):
             succ_fun = []
 
             # namespace shortcuts for speed.
-            n, has, sub_sol = self.nodes, self.workflow.has_edge, self.sub_sol
-            index, add_succ_fun = self.index, succ_fun.append
+            n = self.nodes
+            has = self.workflow.has_edge
+            sub_sol = self.sub_sol
+            index = self.index
+            add_succ_fun = succ_fun.append
 
             for u in self._succ[node_id]:  # no_visited_in_sub_dsp.
                 node = n[u]
@@ -679,10 +682,11 @@ class Solution(Base, collections.OrderedDict):
         if 'filters' in node_attr:
             self._started(attr, node_id)
             attr['solution_filters'] = filters = [res]
+            append_result = filters.append
 
             # noinspection PyUnusedLocal
             def _callback(is_sol, sol):
-                filters.append(sol)
+                append_result(sol)
 
             res = async_process(
                 node_attr['filters'], res, stopper=stopper, executor=executor,

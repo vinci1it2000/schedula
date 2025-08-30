@@ -514,8 +514,9 @@ def stack_nested_keys(nested_dict, key=(), depth=-1):
     """
 
     if depth != 0 and hasattr(nested_dict, 'items'):
+        depth = depth - 1
         for k, v in nested_dict.items():
-            yield from stack_nested_keys(v, key=key + (k,), depth=depth - 1)
+            yield from stack_nested_keys(v, key=key + (k,), depth=depth)
     else:
         yield key, nested_dict
 
@@ -1806,26 +1807,39 @@ class inf:
     __radd__ = __add__
     __rmul__ = __mul__
 
-    def __ge__(self, other):
-        other = isinstance(other, self.__class__) and tuple(other) or (0, other)
-        return tuple(self) >= other
-
-    def __gt__(self, other):
-        other = isinstance(other, self.__class__) and tuple(other) or (0, other)
-        return tuple(self) > other
-
     def __eq__(self, other):
-        other = isinstance(other, self.__class__) and tuple(other) or (0, other)
-        return tuple(self) == other
-
-    def __le__(self, other):
-        other = isinstance(other, self.__class__) and tuple(other) or (0, other)
-        return tuple(self) <= other
+        try:
+            return self._inf == other._inf and self._num == other._num
+        except AttributeError:
+            return self._inf == 0 and self._num == other
 
     def __lt__(self, other):
-        other = isinstance(other, self.__class__) and tuple(other) or (0, other)
-        return tuple(self) < other
+        try:
+            a = other._inf
+            return self._inf < a or (self._inf == a and self._num < other._num)
+        except AttributeError:
+            return self._inf < 0 or (self._inf == 0 and self._num < other._num)
+
+    def __le__(self, other):
+        try:
+            a = other._inf
+            return self._inf < a or (self._inf == a and self._num <= other._num)
+        except AttributeError:
+            return self._inf < 0 or (self._inf == 0 and self._num <= other)
+
+    def __gt__(self, other):
+        try:
+            a = other._inf
+            return self._inf > a or (self._inf == a and self._num > other._num)
+        except AttributeError:
+            return self._inf > 0 or (self._inf == 0 and self._num > other)
+
+    def __ge__(self, other):
+        try:
+            a = other._inf
+            return self._inf > a or (self._inf == a and self._num >= other._num)
+        except AttributeError:
+            return self._inf > 0 or (self._inf == 0 and self._num >= other)
 
     def __ne__(self, other):
-        other = isinstance(other, self.__class__) and tuple(other) or (0, other)
-        return tuple(self) != other
+        return not self == other
