@@ -31,12 +31,11 @@ import isUndefined from "lodash/isUndefined"
 
 export default function InfoForm(
     {
-        render: {formContext: {form}},
-        urlEdit,
-        addUsername = false,
-        customData
-    }) {
+        render: {formContext: {form}}, urlEdit, addUsername = false, customData
+    }
+) {
     const {state: {userInfo}} = form
+    const [hasErrors, setHasErrors] = useState(false);
     const [spinning, setSpinning] = useState(false);
     const [editing, setEditing] = useState(false);
     const [field_errors, setFieldErrors] = useState({});
@@ -127,6 +126,11 @@ export default function InfoForm(
             }
         })
     }, [form, urlEdit, customData])
+    const onFieldsChange = useCallback(() => {
+        setHasErrors(_form
+            .getFieldsError()
+            .some(({errors}) => errors.length > 0));
+    }, [_form]);
     return <Spin wrapperClassName={"full-height-spin"} spinning={spinning}>
         <Form
             layout="vertical"
@@ -143,6 +147,7 @@ export default function InfoForm(
             onValuesChange={(_, allValues) => {
                 setEdited((edited) => ({...edited, ...allValues}))
             }}
+            onFieldsChange={onFieldsChange}
             onFinish={(data) => onFinish({...data, avatar: userImage})}>
             <Form.Item
                 name="avatar"
@@ -231,7 +236,8 @@ export default function InfoForm(
                 }]}>
                 <Input
                     prefix={<IdcardOutlined
-                        className="site-form-item-icon"/>}
+                        className="site-form-item-icon"
+                    />}
                     placeholder={locale.lastnamePlaceholder}
                     onChange={() => {
                         if (field_errors.lastname)
@@ -255,26 +261,36 @@ export default function InfoForm(
                 </Form.Item> : null}
             {customData ?
                 <Divider plain>{locale.titleCustomData}</Divider> : null}
-            {(customData || []).map(({name, itemProps, inputProps}) =>
-                <Form.Item
+            {(customData || []).map((
+                {name, itemProps, inputProps, itemElementComponent}
+            ) => {
+                const onChange = () => {
+                    if (field_errors[name])
+                        setFieldErrors({...field_errors, [name]: undefined})
+                }
+                return <Form.Item
                     name={name}
                     validateStatus={field_errors[name] ? "error" : undefined}
                     help={field_errors[name]}
-                    {...itemProps}>
-                    <Input {...inputProps} onChange={() => {
-                        if (field_errors[name])
-                            setFieldErrors({
-                                ...field_errors,
-                                [name]: undefined
-                            })
-                    }}/>
-                </Form.Item>)}
+                    {...itemProps}
+                >
+                    {itemElementComponent ? itemElementComponent({
+                            ...inputProps,
+                            disabled: !editing,
+                            onChange
+                        }) :
+                        <Input {...inputProps} onChange={onChange}/>}
+                </Form.Item>
+            })}
             <Form.Item>
                 {!editing ? null :
                     <Space>
-                        <Button type="primary" htmlType="submit"
-                                disabled={!modified}
-                                icon={<SaveOutlined/>}>
+                        <Button
+                            type="primary"
+                            htmlType="submit"
+                            disabled={hasErrors || !modified}
+                            icon={<SaveOutlined/>}
+                        >
                             {locale.submitButton}
                         </Button>
                         <Button icon={<ReloadOutlined/>} onClick={() => {

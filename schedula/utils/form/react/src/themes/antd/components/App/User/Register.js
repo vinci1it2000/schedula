@@ -32,6 +32,8 @@ export default function RegisterForm(
         customData,
         addUsername = false
     }) {
+    const [_form] = Form.useForm();
+    const [hasErrors, setHasErrors] = useState(false);
     const [spinning, setSpinning] = useState(false);
     const [field_errors, setFieldErrors] = useState({});
     const [userImage, setUserImage] = useState();
@@ -107,9 +109,16 @@ export default function RegisterForm(
         if (field_errors.avatar)
             setFieldErrors({...field_errors, avatar: undefined})
     }, []);
+    const onFieldsChange = useCallback(() => {
+        setHasErrors(_form
+            .getFieldsError()
+            .some(({errors}) => errors.length > 0));
+    }, [_form]);
     return <Spin wrapperClassName={"full-height-spin"} spinning={spinning}><Form
         style={{maxWidth: '300px', margin: 'auto', paddingBottom: '15px'}}
         layout={'vertical'}
+        form={_form}
+        onFieldsChange={onFieldsChange}
         onFinish={(data) => onFinish({...data, avatar: userImage})}>
         <Form.Item
             name="avatar"
@@ -252,19 +261,31 @@ export default function RegisterForm(
             }}/>
         </Form.Item>
         {customData ? <Divider plain>{locale.titleCustomData}</Divider> : null}
-        {(customData || []).map(({name, itemProps, inputProps}) => <Form.Item
-            name={name}
-            validateStatus={field_errors[name] ? "error" : undefined}
-            help={field_errors[name]}
-            {...itemProps}>
-            <Input {...inputProps} onChange={() => {
+        {(customData || []).map((
+            {name, itemProps, inputProps, itemElementComponent}
+        ) => {
+            const onChange = () => {
                 if (field_errors[name])
                     setFieldErrors({...field_errors, [name]: undefined})
-            }}/>
-        </Form.Item>)}
+            }
+            return <Form.Item
+                name={name}
+                validateStatus={field_errors[name] ? "error" : undefined}
+                help={field_errors[name]}
+                {...itemProps}>
+                {itemElementComponent ? itemElementComponent({
+                        ...inputProps,
+                        onChange
+                    }) :
+                    <Input {...inputProps} onChange={onChange}/>}
+            </Form.Item>
+        })}
         <Form.Item>
-            <Button type="primary" htmlType="submit"
-                    style={{width: '100%'}}>
+            <Button
+                type="primary"
+                htmlType="submit"
+                disabled={hasErrors}
+                style={{width: '100%'}}>
                 {locale.submitButton}
             </Button>
             {locale.or}
