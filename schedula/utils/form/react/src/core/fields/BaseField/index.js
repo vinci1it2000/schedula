@@ -11,7 +11,7 @@ import {
     UI_OPTIONS_KEY
 } from "@rjsf/utils"
 import omit from "lodash/omit"
-import Markdown from "markdown-to-jsx"
+import ReactMarkdown from "react-markdown";
 
 
 /** The `SchemaFieldRender` component is the work-horse of react-jsonschema-form, determining what kind of real field to
@@ -120,7 +120,23 @@ function BaseFieldRender(props) {
         ""
 
     const richDescription = uiOptions.enableMarkdownInDescription ? (
-        <Markdown>{description}</Markdown>
+        <ReactMarkdown
+            skipHtml={true}
+            components={{
+                a: ({node, href, children, ...props}) => (
+                    <a
+                        href={href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        {...props}
+                    >
+                        {children}
+                    </a>
+                ),
+            }}
+        >
+            {description}
+        </ReactMarkdown>
     ) : (
         description
     )
