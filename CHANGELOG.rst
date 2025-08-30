@@ -1,6 +1,25 @@
 Changelog
 =========
 
+v1.5.63 (2025-08-30)
+--------------------
+
+Feat
+~~~~
+- (form): Update resources.
+
+- (form): Update js building lib from `react-app-rewired` to `webpack`.
+
+- (form): Add possibility of custom item in User info and registration.
+
+- (core): Improve performances.
+
+
+Fix
+~~~
+- (form): Improve links when `enableMarkdownInDescription` is true.
+
+
 v1.5.62 (2025-04-09)
 --------------------
 
