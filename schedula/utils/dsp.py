@@ -1818,7 +1818,7 @@ class inf:
             a = other._inf
             return self._inf < a or (self._inf == a and self._num < other._num)
         except AttributeError:
-            return self._inf < 0 or (self._inf == 0 and self._num < other._num)
+            return self._inf < 0 or (self._inf == 0 and self._num < other)
 
     def __le__(self, other):
         try:
