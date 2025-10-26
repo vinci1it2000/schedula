@@ -32,6 +32,38 @@ const registerPlasmicComponents = (PLASMIC, render, components) => {
     }
 }
 
+const registerPlasmicGlobalContext = (PLASMIC, render, {
+    context,
+    meta: {name, ...metaProps}
+}) => {
+    if (typeof context === "string") {
+        if (!name) name = context
+        context = getComponents({render, component: context});
+    }
+    if (context)
+        PLASMIC.registerGlobalContext(withProps(context, {render}), {name, ...metaProps});
+}
+
+const registerPlasmicGlobalContexts = (PLASMIC, render, contexts) => {
+    if (PLASMIC && contexts) {
+        if (!Array.isArray(contexts))
+            contexts = [contexts]
+        contexts.forEach((context) => {
+            registerPlasmicGlobalContext(PLASMIC, render, context);
+        })
+    }
+}
+
+const registerPlasmicTokens = (PLASMIC, render, tokens) => {
+    if (PLASMIC && tokens) {
+        if (!Array.isArray(tokens))
+            tokens = [tokens]
+        tokens.forEach((token) => {
+            PLASMIC.registerToken(token)
+        })
+    }
+}
+
 function usePlasmic() {
     const [plasmicOpts, setPlasmicOpts] = useState(null)
 
@@ -45,7 +77,25 @@ function usePlasmic() {
         }
     }, [PLASMIC])
 
-    return {PLASMIC, setPlasmicOpts, registerComponents};
+    const registerContexts = useCallback((render, contexts) => {
+        if (PLASMIC) {
+            registerPlasmicGlobalContexts(PLASMIC, render, contexts)
+        }
+    }, [PLASMIC])
+
+    const registerTokens = useCallback((render, tokens) => {
+        if (PLASMIC) {
+            registerPlasmicTokens(PLASMIC, render, tokens)
+        }
+    }, [PLASMIC])
+
+    return {
+        PLASMIC,
+        setPlasmicOpts,
+        registerComponents,
+        registerContexts,
+        registerTokens
+    };
 }
 
 export const [usePlasmicStore] = createGlobalStore(usePlasmic);

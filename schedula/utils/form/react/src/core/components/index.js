@@ -10,7 +10,9 @@ const GridLayout = React.lazy(() => import('./GridLayout'));
 const Plasmic_Component = React.lazy(() => import('./Plasmic/component'));
 const Plasmic_Host = React.lazy(() => import('./Plasmic/host'));
 const Plasmic_Page = React.lazy(() => import('./Plasmic/page'));
-const Plasmic_Register_Components = React.lazy(() => import('./Plasmic/register'));
+const Plasmic_Register_Components = React.lazy(() => import('./Plasmic/register/components'));
+const Plasmic_Register_Contexts = React.lazy(() => import('./Plasmic/register/contexts'));
+const Plasmic_Register_Tokens = React.lazy(() => import('./Plasmic/register/tokens'));
 const Router_Link = React.lazy(() => import('./Router/link'));
 const Router_Route = React.lazy(() => import('./Router/route'));
 const Router_Routes = React.lazy(() => import('./Router/routes'));
@@ -34,6 +36,8 @@ export function generateComponents() {
         "Plasmic.Host": Plasmic_Host,
         "Plasmic.Page": Plasmic_Page,
         "Plasmic.Register.Components": Plasmic_Register_Components,
+        "Plasmic.Register.GlobalContexts": Plasmic_Register_Contexts,
+        "Plasmic.Register.Tokens": Plasmic_Register_Tokens,
         "Router.Link": Router_Link,
         "Router.Route": Router_Route,
         "Router.Routes": Router_Routes,
