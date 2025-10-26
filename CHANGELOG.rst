@@ -1,6 +1,26 @@
 Changelog
 =========
 
+v1.5.65 (2025-10-26)
+--------------------
+
+Feat
+~~~~
+- (form): Update resources.
+
+- (form): Add `Plasmic.Register.GlobalContexts` and
+  `Plasmic.Register.Tokens`.
+
+- (form): Expose form in Context provider.
+
+- (form): Expose useLocaleStore ad form props.
+
+
+Fix
+~~~
+- (form): Correct hideNav behaviour of App component.
+
+
 v1.5.64 (2025-08-30)
 --------------------
 
