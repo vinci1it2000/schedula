@@ -175,7 +175,7 @@ const App = (
     }, [logo, render])
 
     return <Layout key={'main'} style={{height: '100%'}}>
-        {!hideNav || currentDataId || urlContact || languages || userProps || _items.length || logo ?
+        {hideNav || !(currentDataId || urlContact || languages || userProps || _items.length || logo) ? null :
             <Header
                 key={'bar'}
                 className={`ant-menu-${theme}`}
@@ -237,7 +237,7 @@ const App = (
                                     {...userProps}/></Suspense> : null}
                         </Flex> : null}
                 </Flex>
-            </Header> : null}
+            </Header>}
         <Layout hasSider key={"main"} ref={mainLayout} style={{
             position: 'relative'
         }}>
