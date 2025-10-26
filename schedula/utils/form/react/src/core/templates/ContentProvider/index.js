@@ -1,5 +1,5 @@
 import React, {useEffect} from "react";
-import {PlasmicRootProvider} from '@plasmicapp/loader-react';
+import {PlasmicRootProvider, DataProvider} from '@plasmicapp/loader-react';
 import {usePlasmicStore} from "../../models/plasmic";
 import {Trans, useTranslation} from 'react-i18next';
 // Defined as a hook; should be used and passed as translator
@@ -17,6 +17,7 @@ function usePlasmicTranslator() {
 
 export default function ContentProvider(
     {
+        form,
         children,
         options,
         ...props
@@ -27,10 +28,16 @@ export default function ContentProvider(
         setPlasmicOpts(options);
     }, [options]);
     const translator = usePlasmicTranslator()
+    const {state: {language}} = form
     return PLASMIC ?
         <PlasmicRootProvider
             loader={PLASMIC}
-            translator={translator} {...props}>
-            {children}
+            translator={translator}
+            globalVariants={[{name: 'locale', value: language}]}
+            {...props}
+        >
+            <DataProvider name={'form'} value={{form, language}}>
+                {children}
+            </DataProvider>
         </PlasmicRootProvider> : children
 }

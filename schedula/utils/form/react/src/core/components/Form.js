@@ -761,7 +761,7 @@ export default class Form extends BaseForm {
                 <ConfigProvider {...{
                     ...propsConfigProvider, form: this
                 }}>
-                    <ContentProvider {...propsContentProvider}>
+                    <ContentProvider form={this} {...propsContentProvider}>
                         <Loader loading={this.state.loading}>
                             <ModalProvider>
                                 {showErrorList === "top" && this.renderErrors(registry)}
