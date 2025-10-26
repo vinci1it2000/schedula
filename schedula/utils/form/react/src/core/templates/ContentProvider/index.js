@@ -28,7 +28,7 @@ export default function ContentProvider(
         setPlasmicOpts(options);
     }, [options]);
     const translator = usePlasmicTranslator()
-    const {state: {language}} = form
+    const {state: {language, userInfo = {}}} = form
     return PLASMIC ?
         <PlasmicRootProvider
             loader={PLASMIC}
@@ -36,8 +36,24 @@ export default function ContentProvider(
             globalVariants={[{name: 'locale', value: language}]}
             {...props}
         >
-            <DataProvider name={'form'} value={{form, language}}>
-                {children}
+            <DataProvider name={'form'} data={form}>
+                <DataProvider name={'user'} data={{
+                    id: null,
+                    settings: null,
+                    firstname: null,
+                    lastname: null,
+                    avatar: null,
+                    email: null,
+                    username: null,
+                    custom_data: null,
+                    roles: ['Anonymous'],
+                    logged: userInfo?.id !== undefined && userInfo?.id !== null,
+                    ...userInfo,
+                }}>
+                    <DataProvider name={'language'} data={language}>
+                        {children}
+                    </DataProvider>
+                </DataProvider>
             </DataProvider>
         </PlasmicRootProvider> : children
 }

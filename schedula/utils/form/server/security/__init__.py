@@ -73,7 +73,8 @@ class User(db.Model, fsqla.FsUserMixin):
                 'lastname': self.lastname,
                 'avatar': self.avatar,
                 'settings': self.settings,
-                'custom_data': self.custom_data
+                'custom_data': self.custom_data,
+                'roles':  [r.name for r in self.roles]
             }.items() if v is not None}
 
 
