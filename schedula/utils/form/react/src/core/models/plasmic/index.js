@@ -19,7 +19,10 @@ const registerPlasmicComponent = (PLASMIC, render, {
         component = getComponents({render, component});
     }
     if (component)
-        PLASMIC.registerComponent(withProps(component, {render}), {name, ...metaProps});
+        PLASMIC.registerComponent(withProps(component, {
+            render,
+            PLASMIC
+        }), {name, ...metaProps});
 }
 
 const registerPlasmicComponents = (PLASMIC, render, components) => {
@@ -41,7 +44,10 @@ const registerPlasmicGlobalContext = (PLASMIC, render, {
         context = getComponents({render, component: context});
     }
     if (context)
-        PLASMIC.registerGlobalContext(withProps(context, {render}), {name, ...metaProps});
+        PLASMIC.registerGlobalContext(withProps(context, {
+            render,
+            PLASMIC
+        }), {name, ...metaProps});
 }
 
 const registerPlasmicGlobalContexts = (PLASMIC, render, contexts) => {
