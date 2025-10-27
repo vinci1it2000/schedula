@@ -1,7 +1,7 @@
 import React from 'react';
 import {createGlobalStore} from "hox";
 import {useMemo, useState, useCallback} from "react";
-import {initPlasmicLoader} from "@plasmicapp/loader-react";
+import {initPlasmicLoader, useSelector} from "@plasmicapp/loader-react";
 import {getComponents} from "../../fields/utils";
 
 function withProps(Component, extraProps) {
@@ -21,7 +21,7 @@ const registerPlasmicComponent = (PLASMIC, render, {
     if (component)
         PLASMIC.registerComponent(withProps(component, {
             render,
-            PLASMIC
+            PLASMIC: {useSelector, ...PLASMIC}
         }), {name, ...metaProps});
 }
 
@@ -46,7 +46,7 @@ const registerPlasmicGlobalContext = (PLASMIC, render, {
     if (context)
         PLASMIC.registerGlobalContext(withProps(context, {
             render,
-            PLASMIC
+            PLASMIC: {useSelector, ...PLASMIC}
         }), {name, ...metaProps});
 }
 
