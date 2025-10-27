@@ -1,6 +1,23 @@
 Changelog
 =========
 
+v1.5.66 (2025-10-27)
+--------------------
+
+Feat
+~~~~
+- (form): Update resources.
+
+- (form): Add PLASMIC variable when registering components.
+
+
+Fix
+~~~
+- (form): Add `useSelector` to retrieve plasmic data.
+
+- (form): Correct form DataProvider and add user.
+
+
 v1.5.65 (2025-10-26)
 --------------------
 
