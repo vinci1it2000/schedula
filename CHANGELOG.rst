@@ -1,6 +1,18 @@
 Changelog
 =========
 
+(unreleased)
+------------
+
+Feat
+~~~~
+- (form): Update resources.
+
+- (form): Update translations.
+
+- (form): Export plasmicLoaderReact.
+
+
 v1.5.66 (2025-10-27)
 --------------------
 
