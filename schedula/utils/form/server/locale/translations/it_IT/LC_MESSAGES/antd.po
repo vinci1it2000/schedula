@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 1.0\n"
 "Report-Msgid-Bugs-To: vinci1it2000@gmail.com\n"
-"PO-Revision-Date: 2025-03-10 13:40+0000\n"
+"PO-Revision-Date: 2025-10-28 13:03+0000\n"
 "Last-Translator: Vincenzo Arcidiacono <vinci1it2000@gmail.com>\n"
 "Language-Team: English <vinci1it2000@gmail.com>\n"
 "MIME-Version: 1.0\n"
@@ -1204,11 +1204,11 @@ msgstr "Deseleziona tutti i dati"
 
 # traslated
 msgid "User.Settings.revertButton"
-msgstr "Regredire"
+msgstr "Ripristina"
 
 # traslated
 msgid "User.Settings.submitButton"
-msgstr "Salvare"
+msgstr "Salva"
 
 # traslated
 msgid "QRCode.scanned"
@@ -1469,3 +1469,15 @@ msgstr "Settimana"
 # traslated
 msgid "Table.filterCheckAll"
 msgstr "Seleziona tutto"
+
+# traslated
+msgid "ArrayAccordion.close"
+msgstr "Chiudi"
+
+# traslated
+msgid "ArrayCopy.close"
+msgstr "Chiudi"
+
+# traslated
+msgid "global.close"
+msgstr "Chiudi"
