@@ -77,7 +77,8 @@ export default function SettingsForm(
                 {value: true, icon: <BulbOutlined/>},
                 {value: false, icon: <EditOutlined/>},
             ]}
-            onChange={setDisabled}/></div>
+            onChange={setDisabled}/>
+        </div>
         <SchedulaForm
             key='form'
             disabled={disabled}
