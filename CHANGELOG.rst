@@ -1,11 +1,28 @@
 Changelog
 =========
 
-(unreleased)
-------------
+v1.5.68 (2025-10-29)
+--------------------
 
 Feat
 ~~~~
+- (form): Update resources.
+
+- (form): Remove unnecessary dependency lodash.
+
+
+Fix
+~~~
+- (form): Correct admin dependencies.
+
+
+v1.5.67 (2025-10-28)
+--------------------
+
+Feat
+~~~~
+- (ver): bump 1.5.66 --> 1.5.67.
+
 - (form): Update resources.
 
 - (form): Update translations.
