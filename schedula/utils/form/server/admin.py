@@ -88,12 +88,21 @@ class Admin(flask_admin.Admin):
 
         @app.security.context_processor
         def security_context_processor():
-            return dict(
-                admin_base_template=self.base_template,
-                admin_view=self.index_view,
-                h=admin_helpers,
-                get_url=url_for
-            )
+            try:  # Version 2.x.
+                return dict(
+                    admin_base_template=self.theme.base_template,
+                    admin_view=self.index_view,
+                    theme=self.theme,
+                    h=admin_helpers,
+                    get_url=url_for
+                )
+            except AttributeError:  # Version 1.x.
+                return dict(
+                    admin_base_template=self.base_template,
+                    admin_view=self.index_view,
+                    h=admin_helpers,
+                    get_url=url_for
+                )
 
         datastore = app.security.datastore
         for k in ('user_model', 'role_model', 'webauthn_model'):
