@@ -10,7 +10,6 @@ import {
     validationDataMerge,
     UI_GLOBAL_OPTIONS_KEY
 } from "@rjsf/utils"
-import _ from "lodash"
 import get from "lodash/get";
 import cloneDeep from "lodash/cloneDeep";
 import isEqual from "lodash/isEqual"
@@ -54,7 +53,7 @@ export default class Form extends BaseForm {
             func = _func
         }
         keys = Object.keys(locals)
-        return new Function('form', "_", ...keys, "return " + func)(this, _, ...keys.map(k => locals[k]))
+        return new Function('form', ...keys, "return " + func)(this, ...keys.map(k => locals[k]))
     }
 
     t(object, options, t) {
@@ -331,7 +330,6 @@ export default class Form extends BaseForm {
             return editOnChange({
                 ...props,
                 formData: cloneDeep(formData),
-                _,
                 form: this
             }, id);
         }
@@ -341,7 +339,7 @@ export default class Form extends BaseForm {
     postSubmit({data, input, formData}) {
         if (this.props.postSubmit) {
             const {postSubmit, ...props} = this.props
-            data = postSubmit({...props, data, input, formData, _, form: this});
+            data = postSubmit({...props, data, input, formData, form: this});
         }
         return {data}
     }
@@ -349,7 +347,7 @@ export default class Form extends BaseForm {
     preSubmit({input, formData}) {
         if (this.props.preSubmit) {
             const {preSubmit, ...props} = this.props
-            return preSubmit({...props, input, formData, _, form: this});
+            return preSubmit({...props, input, formData, form: this});
         }
         return input
     }

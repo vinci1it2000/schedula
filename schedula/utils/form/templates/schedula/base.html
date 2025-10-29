@@ -127,13 +127,15 @@
                 })
             });
         }
+
+        window.addEventListener('DOMContentLoaded', onLoad);
     </script>
     {% endblock %}
     {% block head_content %}
     {% endblock %}
     {% endblock %}
 </head>
-<body style="background-color: white; height: 100%" onload="onLoad()">
+<body style="background-color: white; height: 100%">
 <div id="content" style="height: 100%">
     {% block content %}
     <div id="root" style="height: 100%"></div>

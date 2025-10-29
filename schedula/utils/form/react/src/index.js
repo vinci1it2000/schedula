@@ -1,6 +1,5 @@
 import React from 'react'
-import ReactDOM from 'react-dom'
-import lodash from 'lodash'
+import ReactDOM from 'react-dom/client'
 import * as plasmicLoaderReact from '@plasmicapp/loader-react'
 import renderForm, {
     registerComponent,
@@ -11,7 +10,6 @@ import renderForm, {
 } from './core'
 import './main.css'
 
-window.lodash = lodash
 window.React = React
 window.ReactDOM = ReactDOM
 window.plasmicLoaderReact = plasmicLoaderReact
