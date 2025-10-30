@@ -1,6 +1,16 @@
 Changelog
 =========
 
+v1.5.69 (2025-10-30)
+--------------------
+
+Feat
+~~~~
+- (form): Update resources.
+
+- (form): Add Plasmic.Pages component.
+
+
 v1.5.68 (2025-10-29)
 --------------------
 
