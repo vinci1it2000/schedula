@@ -10,6 +10,7 @@ const GridLayout = React.lazy(() => import('./GridLayout'));
 const Plasmic_Component = React.lazy(() => import('./Plasmic/component'));
 const Plasmic_Host = React.lazy(() => import('./Plasmic/host'));
 const Plasmic_Page = React.lazy(() => import('./Plasmic/page'));
+const Plasmic_Pages = React.lazy(() => import('./Plasmic/pages'));
 const Plasmic_Register_Components = React.lazy(() => import('./Plasmic/register/components'));
 const Plasmic_Register_Contexts = React.lazy(() => import('./Plasmic/register/contexts'));
 const Plasmic_Register_Tokens = React.lazy(() => import('./Plasmic/register/tokens'));
@@ -35,6 +36,7 @@ export function generateComponents() {
         "Plasmic.Component": Plasmic_Component,
         "Plasmic.Host": Plasmic_Host,
         "Plasmic.Page": Plasmic_Page,
+        "Plasmic.Pages": Plasmic_Pages,
         "Plasmic.Register.Components": Plasmic_Register_Components,
         "Plasmic.Register.GlobalContexts": Plasmic_Register_Contexts,
         "Plasmic.Register.Tokens": Plasmic_Register_Tokens,

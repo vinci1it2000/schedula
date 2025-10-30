@@ -1,5 +1,5 @@
 import React, {useContext, useEffect, useState, useMemo} from "react";
-import {PlasmicComponent, PlasmicRootProvider} from '@plasmicapp/loader-react';
+import {PlasmicComponent, PageParamsProvider} from '@plasmicapp/loader-react';
 import {usePlasmicStore} from "../../models/plasmic";
 import {getTemplate, getUiOptions} from "@rjsf/utils";
 import {useLocation} from "react-router-dom";
@@ -12,7 +12,6 @@ export default function PlasmicPage(
         pathname: path,
         homePath = '/',
         componentProps,
-        plasmicRootProviderProps,
         ...props
     }
 ) {
@@ -22,7 +21,7 @@ export default function PlasmicPage(
     const [loading, setLoading] = useState(true);
     const [plasmicData, setPlasmicData] = useState(null);
     const uiOptions = getUiOptions(uiSchema);
-    const Skeleton = getTemplate('Skeleton', registry, uiOptions);
+    const Loader = getTemplate('Loader', registry, uiOptions);
     const NotFound = getTemplate('NotFound', registry, uiOptions);
     const location = useLocation()
     const {
@@ -48,19 +47,18 @@ export default function PlasmicPage(
     }, [PLASMIC, pathname]);
 
     const content = plasmicData ?
-        <div key={pathname} style={{overflowY: "auto", height: "100%"}}>
-            <PlasmicRootProvider
-                loader={PLASMIC}
-                prefetchedData={plasmicData}
-                pageRoute={plasmicData.entryCompMetas[0].path}
-                pageParams={plasmicData.entryCompMetas[0].params}
-                pageQuery={Object.fromEntries(queryParams)}
-                {...plasmicRootProviderProps}>
+        <div style={{overflowY: "auto", height: "100%"}}>
+            <PageParamsProvider
+                route={plasmicData.entryCompMetas[0].path}
+                params={plasmicData.entryCompMetas[0].params}
+                query={Object.fromEntries(queryParams)}
+            >
                 <PlasmicComponent
                     component={plasmicData.entryCompMetas[0].displayName}
                     componentProps={{form, render, ...componentProps}}
-                    {...props}/>
-            </PlasmicRootProvider>
+                    {...props}
+                />
+            </PageParamsProvider>
         </div> : (
             PLASMIC ?
                 (
@@ -70,7 +68,7 @@ export default function PlasmicPage(
                 ) :
                 <div>PLASMIC not configured!</div>
         )
-    return <Skeleton loading={loading} style={{padding: 16}} active>
+    return <Loader loading={loading}>
         {content}
-    </Skeleton>
+    </Loader>
 }

@@ -1,5 +1,6 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
+import * as ReactRouterDOM from "react-router-dom";
 import * as plasmicLoaderReact from '@plasmicapp/loader-react'
 import renderForm, {
     registerComponent,
@@ -12,6 +13,7 @@ import './main.css'
 
 window.React = React
 window.ReactDOM = ReactDOM
+window.ReactRouterDOM = ReactRouterDOM
 window.plasmicLoaderReact = plasmicLoaderReact
 window.schedula = {
     renderForm,

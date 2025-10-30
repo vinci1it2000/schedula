@@ -1,5 +1,6 @@
 import React, {useEffect} from "react";
 import {PlasmicRootProvider, DataProvider} from '@plasmicapp/loader-react';
+import {Link as _Link} from "react-router-dom";
 import {usePlasmicStore} from "../../models/plasmic";
 import {Trans, useTranslation} from 'react-i18next';
 // Defined as a hook; should be used and passed as translator
@@ -14,7 +15,11 @@ function usePlasmicTranslator() {
         }
     };
 }
-
+function Link({href, ...props}) {
+    return (
+        <_Link to={href} {...props}></_Link>
+    );
+}
 export default function ContentProvider(
     {
         form,
@@ -32,6 +37,7 @@ export default function ContentProvider(
     return PLASMIC ?
         <PlasmicRootProvider
             loader={PLASMIC}
+            Link={Link}
             translator={translator}
             globalVariants={[{name: 'locale', value: language}]}
             {...props}

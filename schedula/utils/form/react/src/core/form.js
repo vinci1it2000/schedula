@@ -93,7 +93,7 @@ function Form(
                 {...futureProps}
                 {...props}
                 {...optionsProps}
-            /> : <div>loading...</div>}
+            /> : null}
         </HoxRoot>
     </SafeBrowserRouter>
 }
