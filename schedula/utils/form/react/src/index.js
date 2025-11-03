@@ -1,5 +1,5 @@
 import React from 'react'
-import ReactDOM from 'react-dom/client'
+import ReactDOM from 'react-dom'
 import * as ReactRouterDOM from "react-router-dom";
 import * as plasmicLoaderReact from '@plasmicapp/loader-react'
 import renderForm, {
