@@ -25,7 +25,7 @@ i18n.use(Backend).init({
     defaultNS: 'messages',
     keySeparator: false,
     parseMissingKeyHandler: (key) => (
-        key.startsWith(`messages:`) ? key.slice(9) : key
+        key.startsWith(`messages:::`) ? key.slice(11) : key
     ),
     appendNamespaceToMissingKey: true,
     interpolation: {
