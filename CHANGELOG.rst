@@ -1,6 +1,23 @@
 Changelog
 =========
 
+v1.5.70 (2025-11-03)
+--------------------
+
+Feat
+~~~~
+- (form): Update resources.
+
+- (form): Update translator.js.
+
+
+Fix
+~~~
+- (form): Drop OverPack, Pricing, QueueAnim, TweenOne compoments.
+
+- (form): Correct ReactDOM export.
+
+
 v1.5.69 (2025-10-30)
 --------------------
 
