@@ -63,12 +63,9 @@ const List_Item = React.lazy(() => import('./List/Item'));
 const List_Item_Meta = React.lazy(() => import('./List/Item/Meta'));
 const Locale = React.lazy(() => import('./Locale'));
 const Markdown = React.lazy(() => import('./Markdown'));
-const OverPack = React.lazy(() => import('./OverPack'));
 const Popconfirm = React.lazy(() => import('./Popconfirm'));
 const Popover = React.lazy(() => import('./Popover'));
-const Pricing = React.lazy(() => import('./Pricing'));
 const Progress = React.lazy(() => import('./Progress'));
-const QueueAnim = React.lazy(() => import('./QueueAnim'));
 const Result = React.lazy(() => import('./Result'));
 const Segmented = React.lazy(() => import('./Segmented'));
 const Skeleton = React.lazy(() => import('./Skeleton'));
@@ -91,7 +88,6 @@ const Tag = React.lazy(() => import('./Tag'));
 const Timeline = React.lazy(() => import('./Timeline'));
 const Tooltip = React.lazy(() => import('./Tooltip'));
 const Tour = React.lazy(() => import('./Tour'));
-const TweenOne = React.lazy(() => import('./TweenOne'));
 const Typography_Paragraph = React.lazy(() => import('./Typography/Paragraph'));
 const Typography_Text = React.lazy(() => import('./Typography/Text'));
 const Typography_Title = React.lazy(() => import('./Typography/Title'));
@@ -155,12 +151,9 @@ export function generateComponents(register = true, registerDomains = true) {
         "List.Item.Meta": List_Item_Meta,
         Locale,
         Markdown,
-        OverPack,
         Popconfirm,
         Popover,
-        Pricing,
         Progress,
-        QueueAnim,
         Result,
         Segmented,
         Skeleton,
@@ -183,7 +176,6 @@ export function generateComponents(register = true, registerDomains = true) {
         Timeline,
         Tooltip,
         Tour,
-        TweenOne,
         "Typography.Paragraph": Typography_Paragraph,
         "Typography.Text": Typography_Text,
         "Typography.Title": Typography_Title,
