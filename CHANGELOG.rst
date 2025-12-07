@@ -1,6 +1,15 @@
 Changelog
 =========
 
+v1.5.71 (2025-12-07)
+--------------------
+
+Feat
+~~~~
+- (form): Refactor item storage service with MongoDB and MySQL
+  integration.
+
+
 v1.5.70 (2025-11-03)
 --------------------
 
