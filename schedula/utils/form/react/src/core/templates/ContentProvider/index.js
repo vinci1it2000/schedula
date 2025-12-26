@@ -1,10 +1,9 @@
-import React, {useEffect} from "react";
+import React, {useEffect, useState} from "react";
 import {PlasmicRootProvider, DataProvider} from '@plasmicapp/loader-react';
 import {Link as _Link} from "react-router-dom";
 import {usePlasmicStore} from "../../models/plasmic";
 import {Trans, useTranslation} from 'react-i18next';
-// Defined as a hook; should be used and passed as translator
-// prop to PlasmicRootProvider
+
 function usePlasmicTranslator() {
     const {t} = useTranslation();
     return (key, opts) => {
@@ -15,35 +14,67 @@ function usePlasmicTranslator() {
         }
     };
 }
+
 function Link({href, ...props}) {
-    return (
-        <_Link to={href} {...props}></_Link>
-    );
+    return <_Link to={href} {...props} />;
 }
+
 export default function ContentProvider(
     {
         form,
         children,
         options,
+        authProviderEndpoint = "/user/plasmic",
         ...props
     }
 ) {
-    const {PLASMIC, setPlasmicOpts} = usePlasmicStore()
+    const {PLASMIC, setPlasmicOpts} = usePlasmicStore();
+    const [plasmicAuth, setPlasmicAuth] = useState({user: null, token: null});
+
     useEffect(() => {
         setPlasmicOpts(options);
     }, [options]);
-    const translator = usePlasmicTranslator()
-    const {state: {language, userInfo = {}}} = form
-    return PLASMIC ?
+
+    // Fetch Plasmic user+token (server validated) once per session/page load
+    useEffect(() => {
+        let cancelled = false;
+        (async () => {
+            try {
+                const res = await fetch(authProviderEndpoint, {credentials: "include"});
+                const data = await res.json();
+                if (!cancelled) setPlasmicAuth({
+                    user: data.user ?? null,
+                    token: data.token ?? null
+                });
+            } catch (e) {
+                if (!cancelled) setPlasmicAuth({user: null, token: null});
+            }
+        })();
+        return () => {
+            cancelled = true;
+        };
+    }, [authProviderEndpoint]);
+
+    const translator = usePlasmicTranslator();
+    const {state: {language, userInfo = {}}} = form;
+
+    if (!PLASMIC) return children;
+
+    return (
         <PlasmicRootProvider
             loader={PLASMIC}
             Link={Link}
             translator={translator}
             globalVariants={[{name: 'locale', value: language}]}
+
+            // ✅ this is the key part
+            user={plasmicAuth.user ?? undefined}
+            userAuthToken={plasmicAuth.token ?? undefined}
+
             {...props}
         >
-            <DataProvider name={'form'} data={form}>
-                <DataProvider name={'user'} data={{
+            <DataProvider name="form" data={form}>
+                <DataProvider name="user" data={{
                     id: null,
                     settings: null,
                     firstname: null,
@@ -56,10 +87,11 @@ export default function ContentProvider(
                     logged: userInfo?.id !== undefined && userInfo?.id !== null,
                     ...userInfo,
                 }}>
-                    <DataProvider name={'language'} data={language}>
+                    <DataProvider name="language" data={language}>
                         {children}
                     </DataProvider>
                 </DataProvider>
             </DataProvider>
-        </PlasmicRootProvider> : children
+        </PlasmicRootProvider>
+    );
 }
