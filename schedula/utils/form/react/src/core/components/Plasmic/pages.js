@@ -72,7 +72,8 @@ function CatchAllPage({PLASMIC, loadingPage, notFoundPage, form, render}) {
     // The page will already be cached from the `load` call above.
     return (
         <PageParamsProvider
-            route={location.pathname}
+            route={pageData.entryCompMetas[0].path}
+            params={pageData.entryCompMetas[0].params}
             query={Object.fromEntries(searchParams)}>
             {pageData ? <PlasmicComponent
                 component={location.pathname}
