@@ -1,6 +1,26 @@
 Changelog
 =========
 
+v1.5.72 (2025-12-27)
+--------------------
+
+Feat
+~~~~
+- (form): Integrate Plasmic authentication with session-based caching
+  and user token lifecycle management.
+
+
+Fix
+~~~
+- (form): Update Plasmic.Pages component to use correct route and
+  params.
+
+
+Other
+~~~~~
+- Chore(form): Update static assets for schedula module.
+
+
 v1.5.71 (2025-12-07)
 --------------------
 
