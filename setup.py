@@ -95,10 +95,10 @@ if __name__ == '__main__':
         'fasteners', 'click', 'gunicorn', 'click_log', 'sherlock', 'flask-mail',
         'sqlalchemy-file', 'stripe',
     ]
-    extras['sphinx'] = ['sphinx>=8.2.3', 'sphinx-click'] + extras['plot']
+    extras['sphinx'] = ['sphinx>=9.0.4', 'sphinx-click'] + extras['plot']
     extras['all'] = sorted(functools.reduce(set.union, extras.values(), set()))
     extras['dev'] = extras['all'] + [
-        'wheel', 'sphinx>=8.2.3', 'gitchangelog', 'mako', 'sphinx_rtd_theme',
+        'wheel', 'sphinx>=9.0.4', 'gitchangelog', 'mako', 'sphinx_rtd_theme',
         'setuptools>=36.0.1', 'sphinxcontrib-restbuilder', 'coveralls', 'polib',
         'requests', 'readthedocs-sphinx-ext', 'twine', 'ddt', 'translators',
         'livereload>=2.6.3'

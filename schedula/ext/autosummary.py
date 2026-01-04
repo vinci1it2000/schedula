@@ -47,14 +47,12 @@ def generate_autosummary_content(
         events,
         registry,
 ):
-    doc = _get_documenter(obj, parent, registry=registry)
-
+    obj_type = _get_documenter(obj, parent)
     ns = {}
     ns.update(context)
 
-    if doc.objtype == 'module':
-        scanner = ModuleScanner(obj, config=config, events=events,
-                                registry=registry)
+    if obj_type == 'module':
+        scanner = ModuleScanner(obj, config=config, events=events)
         ns['members'] = scanner.scan(imported_members)
 
         respect_module_all = not config.autosummary_ignore_module_all
@@ -63,41 +61,38 @@ def generate_autosummary_content(
         )
 
         ns['functions'], ns['all_functions'] = _get_members(
-            doc,
+            obj_type,
             obj,
             {'function'},
             config=config,
             events=events,
-            registry=registry,
             imported=imported_members,
         )
         ns['classes'], ns['all_classes'] = _get_members(
-            doc,
+            obj_type,
             obj,
             {'class'},
             config=config,
             events=events,
-            registry=registry,
             imported=imported_members,
         )
         ns['exceptions'], ns['all_exceptions'] = _get_members(
-            doc,
+            obj_type,
             obj,
             {'exception'},
             config=config,
             events=events,
-            registry=registry,
             imported=imported_members,
         )
         ns['attributes'], ns['all_attributes'] = _get_module_attrs(name, ns[
             'members'])
+
         ns['dispatchers'], ns['all_dispatchers'] = _get_members(
-            doc,
+            obj_type,
             obj,
             {'dispatcher'},
             config=config,
             events=events,
-            registry=registry,
             imported=imported_members,
         )
 
@@ -120,12 +115,11 @@ def generate_autosummary_content(
             # Otherwise, use get_modules method normally
             if respect_module_all and '__all__' in dir(obj):
                 imported_modules, all_imported_modules = _get_members(
-                    doc,
+                    obj_type,
                     obj,
                     {'module'},
                     config=config,
                     events=events,
-                    registry=registry,
                     imported=True,
                 )
                 skip += all_imported_modules
@@ -139,34 +133,32 @@ def generate_autosummary_content(
             )
             ns['modules'] = imported_modules + modules
             ns['all_modules'] = all_imported_modules + all_modules
-    elif doc.objtype == 'class':
+    elif obj_type == 'class':
         ns['members'] = dir(obj)
         ns['inherited_members'] = set(dir(obj)) - set(obj.__dict__.keys())
         ns['methods'], ns['all_methods'] = _get_members(
-            doc,
+            obj_type,
             obj,
             {'method'},
             config=config,
             events=events,
-            registry=registry,
             include_public={'__init__'},
         )
         ns['attributes'], ns['all_attributes'] = _get_members(
-            doc,
+            obj_type,
             obj,
             {'attribute', 'property'},
             config=config,
             events=events,
-            registry=registry,
         )
 
     if modname is None or qualname is None:
         modname, qualname = _split_full_qualified_name(name)
 
-    if doc.objtype in {'method', 'attribute', 'property'}:
+    if obj_type in {'method', 'attribute', 'property'}:
         ns['class'] = qualname.rsplit('.', 1)[0]
 
-    if doc.objtype == 'class':
+    if obj_type == 'class':
         shortname = qualname
     else:
         shortname = qualname.rsplit('.', 1)[-1]
@@ -176,13 +168,13 @@ def generate_autosummary_content(
     ns['objname'] = qualname
     ns['name'] = shortname
 
-    ns['objtype'] = doc.objtype
+    ns['objtype'] = obj_type
     ns['underline'] = len(name) * '='
 
     if template_name:
         return template.render(template_name, ns)
     else:
-        return template.render(doc.objtype, ns)
+        return template.render(obj_type, ns)
 
 
 def generate_autosummary_docs(
