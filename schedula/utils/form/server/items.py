@@ -1,66 +1,118 @@
 # coding=utf-8
 # -*- coding: UTF-8 -*-
 #
-# Copyright 2015-2025, Vincenzo Arcidiacono;
+# Copyright 2015-2026, Vincenzo Arcidiacono;
 # Licensed under the EUPL (the 'Licence');
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 #
 """
-Item Storage Service:
+Item Storage Service (files as dict, no sharing):
 - Dynamic categories stored in MySQL (ItemSchema)
 - JSON Schema validation per category (applied to `data` only)
 - ACL per category + role
 - Items stored in MongoDB (single collection "items")
 - CRUD + optional Mongo query (?mq=<json>)
-- Files stored in GridFS or S3/MinIO; references inside `data` as "$ref": "/files/<key>"
-- File metadata stored in top-level `files` dict:
+- Public data support:
+    - GET is allowed anonymously but returns ONLY is_public=True
+    - POST/PUT/PATCH/DELETE require authentication
+    - Files can be downloaded anonymously ONLY if the *item itself* is public
+- Files stored in GridFS or S3/MinIO; references inside `data` as "$ref": "/files/<name>"
+
+FILES FORMAT (Mongo):
     "files": {
-      "<key>": {
-        "id": "<file_id>",              # GridFS ObjectId string or S3 id
-        "filename": "...",
-        "content_type": "...",
-        "size": <int>
+      "<name>": {
+        "id": "<file_id>",            # GridFS ObjectId string or S3 uuid
+        "user_id": "<user_id>",       # owner (required)
+        "content_type": "...",        # cache
+        "size": <int>                 # cache
       }
     }
-- Orphan files are deleted when the item is deleted and when
-  updates drop or stop referencing them in `data`, but only if no
-  other document in MongoDB still references the same file id.
+
+NOTE:
+- API responses will NOT expose sensitive fields in `files` (id/user_id).
+- Item `user_id` is hidden from anonymous users and from non-admin users when reading others' public items.
 """
 
 import os
+import re
 import json
 import uuid
 import datetime
 import schedula as sh
-from bson import ObjectId
-import gridfs
 import boto3
+import gridfs
+from bson import ObjectId
 from botocore.config import Config as BotoConfig
 
 from flask import (
-    request,
-    jsonify,
-    Blueprint,
-    abort,
-    current_app,
-    Response,
+    request, jsonify, Blueprint, abort, current_app, Response, g,
+    stream_with_context
 )
-from flask_security import current_user as cu, auth_required
+from flask_security import current_user as cu
 from jsonschema import validate, ValidationError
 from flask_pymongo import PyMongo
 from sqlalchemy.exc import SQLAlchemyError
+from werkzeug.exceptions import HTTPException
 
 from .extensions import db
 
 bp = Blueprint("items", __name__)
-files_bp = Blueprint("item_files", __name__)  # /files/<file_id>
+files_bp = Blueprint("item_files", __name__)  # /item-file/<item_id>/<file_name>
 
 
 # ---------------------------------------------------------------------------
-# SQLALCHEMY MODEL: CATEGORY SCHEMA + ACL
+# STREAMING HELPERS
 # ---------------------------------------------------------------------------
 
+def _iter_gridfs(grid_out, chunk_size=1024 * 1024):
+    while True:
+        chunk = grid_out.read(chunk_size)
+        if not chunk:
+            break
+        yield chunk
+
+
+def _iter_s3(streaming_body, chunk_size=1024 * 1024):
+    try:
+        while True:
+            chunk = streaming_body.read(chunk_size)
+            if not chunk:
+                break
+            yield chunk
+    finally:
+        # chiudi sempre lo stream S3
+        try:
+            streaming_body.close()
+        except Exception:
+            pass
+
+
+# ---------------------------------------------------------------------------
+# ERROR HANDLERS (always JSON)
+# ---------------------------------------------------------------------------
+
+def _abort(code: int, description: str):
+    abort(code, description=description)
+
+
+@bp.errorhandler(HTTPException)
+@files_bp.errorhandler(HTTPException)
+def _handle_http_exc(e: HTTPException):
+    payload = {"error": e.description or e.name}
+    return jsonify(payload), (e.code or 500)
+
+
+@bp.errorhandler(Exception)
+@files_bp.errorhandler(Exception)
+def _handle_unexpected_exc(e: Exception):
+    current_app.logger.exception("Unhandled error: %s", e)
+    return jsonify({"error": "Internal server error"}), 500
+
+
+# ---------------------------------------------------------------------------
+# SQLALCHEMY MODEL
+# ---------------------------------------------------------------------------
 
 class ItemSchema(db.Model):
     __tablename__ = "item_schema"
@@ -106,7 +158,6 @@ class ItemSchema(db.Model):
 # ERRORS
 # ---------------------------------------------------------------------------
 
-
 class FileRefsError(Exception):
     """Raised when data/files references are inconsistent."""
 
@@ -117,23 +168,26 @@ class FileRefsError(Exception):
 
 
 # ---------------------------------------------------------------------------
-# HELPERS FOR SCHEMA, ACL, MONGO, FILE STORAGE
+# AUTH / ACL / SCHEMA
 # ---------------------------------------------------------------------------
+
+def is_authenticated_user(user) -> bool:
+    try:
+        return bool(user) and bool(getattr(user, "is_authenticated", False))
+    except Exception:
+        return False
+
+
+def require_auth_for_write(method: str):
+    if method in (
+            "POST", "PUT", "PATCH", "DELETE"
+    ) and not is_authenticated_user(cu):
+        _abort(401, "Authentication required")
 
 
 def get_mongo():
-    """
-    Return MongoDB database instance used by the Item Storage Service.
-
-    It expects that the Items extension has been initialized and that
-    app.extensions["item_storage"].mongo_db is set in Items.init_app().
-    """
-    app = current_app
-    storage = app.extensions.get("item_storage")
+    storage = current_app.extensions.get("item_storage")
     if storage is None or getattr(storage, "mongo_db", None) is None:
-        app.logger.error(
-            "Item storage not initialized: 'item_storage.mongo_db' is missing."
-        )
         raise RuntimeError(
             "Item storage not initialized. "
             "Call Items(app) or Items().init_app(app) and configure ITEMS_MONGO_URI."
@@ -141,198 +195,61 @@ def get_mongo():
     return storage.mongo_db
 
 
-def get_file_backend():
-    """
-    Return the active file backend: "gridfs" (default) or "s3".
-
-    If app.config["S3_ITEMS_FILE_STORAGE"] is truthy (str or dict), S3/MinIO is used.
-    Otherwise, GridFS is used.
-    """
-    cfg = current_app.config.get("S3_ITEMS_FILE_STORAGE")
-    return "s3" if cfg else "gridfs"
-
-
-def get_s3_client_and_bucket():
-    """
-    Build and return (s3_client, bucket_name, prefix) from
-    app.config["S3_ITEMS_FILE_STORAGE"].
-
-    Supported formats:
-
-      1) Simple string (recommended for MinIO / simple S3):
-         S3_ITEMS_FILE_STORAGE = "my-bucket"
-
-         Optional extra config (all via app.config):
-
-           S3_ITEMS_FILE_ENDPOINT    = "http://minio:9000"
-           S3_ITEMS_FILE_REGION      = "us-east-1"
-           S3_ITEMS_FILE_ACCESS_KEY  = "minioadmin"
-           S3_ITEMS_FILE_SECRET_KEY  = "minioadmin"
-           S3_ITEMS_FILE_USE_SSL     = False
-           S3_ITEMS_FILE_PREFIX      = "items/"
-
-      2) Dict (advanced config, S3 or MinIO):
-         S3_ITEMS_FILE_STORAGE = {
-             "bucket": "my-bucket",
-             "prefix": "items/",
-             "endpoint_url": "http://minio:9000",
-             "region_name": "us-east-1",
-             "aws_access_key_id": "minioadmin",
-             "aws_secret_access_key": "minioadmin",
-             "use_ssl": False,
-         }
-    """
-    raw_cfg = current_app.config.get("S3_ITEMS_FILE_STORAGE")
-    logger = current_app.logger
-
-    # Case 1: simple string → bucket name + S3_ITEMS_FILE_* config
-    if isinstance(raw_cfg, str):
-        bucket = raw_cfg.strip()
-        if not bucket:
-            logger.error("S3_ITEMS_FILE_STORAGE is an empty string.")
-            raise RuntimeError(
-                "S3_ITEMS_FILE_STORAGE is an empty string. "
-                "Provide a non-empty bucket name."
-            )
-
-        endpoint_url = current_app.config.get("S3_ITEMS_FILE_ENDPOINT")
-        region_name = current_app.config.get("S3_ITEMS_FILE_REGION",
-                                             "us-east-1")
-        access_key = current_app.config.get("S3_ITEMS_FILE_ACCESS_KEY")
-        secret_key = current_app.config.get("S3_ITEMS_FILE_SECRET_KEY")
-        use_ssl = current_app.config.get("S3_ITEMS_FILE_USE_SSL")
-        prefix = current_app.config.get("S3_ITEMS_FILE_PREFIX", "") or ""
-
-        client_kwargs = {
-            "config": BotoConfig(
-                signature_version="s3v4",
-                s3={"addressing_style": "path"},
-            ),
-        }
-
-        if endpoint_url:
-            client_kwargs["endpoint_url"] = endpoint_url
-        if region_name:
-            client_kwargs["region_name"] = region_name
-        if access_key and secret_key:
-            client_kwargs["aws_access_key_id"] = access_key
-            client_kwargs["aws_secret_access_key"] = secret_key
-        if use_ssl is not None:
-            client_kwargs["use_ssl"] = bool(use_ssl)
-
-        logger.debug(
-            "Initializing S3/MinIO client (string mode) for bucket '%s'.",
-            bucket
-        )
-        s3 = boto3.client("s3", **client_kwargs)
-        return s3, bucket, prefix
-
-    # Case 2: dict → advanced config
-    cfg = raw_cfg or {}
-    bucket = cfg.get("bucket")
-    if not bucket:
-        logger.error(
-            "S3_ITEMS_FILE_STORAGE dict is missing 'bucket' key: %r", cfg
-        )
-        raise RuntimeError(
-            "S3_ITEMS_FILE_STORAGE is set but missing 'bucket'. "
-            "If you use a dict, expected at least: {'bucket': 'my-bucket-name', ...} "
-            "If you use a string, set S3_ITEMS_FILE_STORAGE = 'my-bucket-name'."
-        )
-
-    prefix = cfg.get("prefix", "") or ""
-
-    client_kwargs = {}
-
-    for key in (
-            "endpoint_url", "region_name", "aws_access_key_id",
-            "aws_secret_access_key"
-    ):
-        if cfg.get(key):
-            client_kwargs[key] = cfg[key]
-
-    use_ssl = cfg.get("use_ssl")
-    if use_ssl is not None:
-        client_kwargs["use_ssl"] = bool(use_ssl)
-
-    client_kwargs["config"] = BotoConfig(
-        signature_version="s3v4",
-        s3={"addressing_style": "path"},
-    )
-
-    logger.debug(
-        "Initializing S3/MinIO client (dict mode) for bucket '%s'.", bucket
-    )
-    s3 = boto3.client("s3", **client_kwargs)
-    return s3, bucket, prefix
+def _schema_cache():
+    if not hasattr(g, "_item_schema_cache"):
+        g._item_schema_cache = {}
+    return g._item_schema_cache
 
 
 def get_category_config(category: str):
     """
-    Returns the ItemSchema row for the given category.
-    If not found, returns the default schema (is_default=True).
-
-    On DB error, logs and returns None.
+    Per-request cached:
+      - category config by category
+      - default config under key "__default__"
     """
     logger = current_app.logger
+    cache = _schema_cache()
+
+    if category in cache:
+        return cache[category]
+
     try:
         cs = ItemSchema.query.filter_by(category=category).first()
     except SQLAlchemyError as exc:
         logger.exception(
             "Error querying ItemSchema for category '%s': %s", category, exc
         )
-        return None
+        cs = None
 
     if cs:
+        cache[category] = cs
         return cs
 
+    if "__default__" in cache:
+        cache[category] = cache["__default__"]
+        return cache[category]
+
     try:
-        return ItemSchema.query.filter_by(is_default=True).first()
+        default_cs = ItemSchema.query.filter_by(is_default=True).first()
     except SQLAlchemyError as exc:
         logger.exception("Error querying default ItemSchema: %s", exc)
-        return None
+        default_cs = None
+
+    cache["__default__"] = default_cs
+    cache[category] = default_cs
+    return default_cs
 
 
 def get_schema_for_category(category: str):
-    """
-    Return JSON Schema for the category, or a permissive schema
-    if not found or if the DB access fails.
-    """
-    logger = current_app.logger
     cs = get_category_config(category)
-    if not cs:
-        logger.warning(
-            "No ItemSchema found for category '%s'; using permissive schema.",
-            category,
-        )
+    if not cs or not isinstance(cs.schema, dict):
         return {"type": "object", "additionalProperties": True}
-
-    schema = cs.schema or {}
-    if not isinstance(schema, dict):
-        logger.error(
-            "Invalid schema for category '%s' (expected dict, got %r). "
-            "Falling back to permissive schema.",
-            category,
-            type(schema),
-        )
-        return {"type": "object", "additionalProperties": True}
-
-    return schema
+    return cs.schema
 
 
 def get_acl_for_category(category: str) -> dict:
-    """
-    Return ACL rules for the category.
-    If missing or invalid, returns a default ACL:
-      - admin: full access
-      - user: only own items
-    """
-    logger = current_app.logger
     cs = get_category_config(category)
-    if not cs or not cs.acl:
-        logger.warning(
-            "No ACL configured for category '%s'; using default ACL.", category
-        )
+    if not cs or not isinstance(cs.acl, dict) or not cs.acl:
         return {
             "roles": {
                 "admin": {
@@ -352,369 +269,429 @@ def get_acl_for_category(category: str) -> dict:
             },
             "default_role": "user",
         }
-
-    if not isinstance(cs.acl, dict):
-        logger.error(
-            "Invalid ACL for category '%s' (expected dict, got %r); "
-            "falling back to default ACL.",
-            category,
-            type(cs.acl),
-        )
-        return {
-            "roles": {
-                "admin": {
-                    "create": "all",
-                    "list": "all",
-                    "read": "all",
-                    "update": "all",
-                    "delete": "all",
-                },
-                "user": {
-                    "create": "own",
-                    "list": "own",
-                    "read": "own",
-                    "update": "own",
-                    "delete": "own",
-                },
-            },
-            "default_role": "user",
-        }
-
     return cs.acl
 
 
 def get_user_roles(user):
-    """Return a list of role names for Flask-Security-Too users."""
-    return [r.name for r in getattr(user, "roles", [])]
+    try:
+        roles = getattr(user, "roles", None) or []
+        return [r.name for r in roles]
+    except Exception:
+        return []
+
+
+def is_admin(user) -> bool:
+    return "admin" in (get_user_roles(user) or [])
 
 
 def get_acl_scope_for_action(category: str, action: str, user) -> str:
-    """
-    Determine access scope for (category, action, user).
-
-    Possible return values:
-      - "all"  → can access all items of that category
-      - "own"  → only items belonging to current user
-      - "none" → forbidden
-
-    Security notes:
-      - Deny-by-default: if roles are not explicitly matched, returns "none".
-      - default_role is applied only when the user has no roles at all.
-    """
-    logger = current_app.logger
     acl = get_acl_for_category(category)
     roles_cfg = acl.get("roles") or {}
     default_role = acl.get("default_role", "user")
-
     user_roles = get_user_roles(user) or []
 
-    # Admin override if specified explicitly
     if "admin" in user_roles and "admin" in roles_cfg:
-        scope = roles_cfg["admin"].get(action, "all")
-        logger.debug(
-            "ACL: user '%s' is admin for category '%s', action '%s' -> scope '%s'.",
-            getattr(user, "id", None),
-            category,
-            action,
-            scope,
-        )
-        return scope
+        return roles_cfg["admin"].get(action, "all")
 
-    # Role-specific rules (first match wins)
     for role_name in user_roles:
         if role_name in roles_cfg:
-            scope = roles_cfg[role_name].get(action, "none")
-            logger.debug(
-                "ACL: user '%s' role '%s' for category '%s', action '%s' -> scope '%s'.",
-                getattr(user, "id", None),
-                role_name,
-                category,
-                action,
-                scope,
-            )
-            return scope
+            return roles_cfg[role_name].get(action, "none")
 
-    # No roles -> fallback to default_role if configured
     if not user_roles and default_role in roles_cfg:
-        scope = roles_cfg[default_role].get(action, "none")
-        logger.debug(
-            "ACL: user '%s' has no roles; using default_role '%s' "
-            "for category '%s', action '%s' -> scope '%s'.",
-            getattr(user, "id", None),
-            default_role,
-            category,
-            action,
-            scope,
-        )
-        return scope
+        return roles_cfg[default_role].get(action, "none")
 
-    # Deny by default for unknown/mismatched roles
-    logger.warning(
-        "ACL: user '%s' with roles %r has no matching ACL for category '%s', "
-        "action '%s'. Denying access (scope='none').",
-        getattr(user, "id", None),
-        user_roles,
-        category,
-        action,
-    )
     return "none"
 
 
 def build_base_filter(category: str, action: str, user):
-    """
-    Build the base Mongo filter using ACL rules:
-      - always filter by category
-      - if ACL scope is "own": filter by user_id
-      - if ACL scope is "all": no user_id filter
-      - if ACL scope is "none": forbid access
-    """
-    logger = current_app.logger
+    # Anonymous: only public items
+    if not is_authenticated_user(user):
+        return {"category": category, "is_public": True}
+
     scope = get_acl_scope_for_action(category, action, user)
-
     if scope == "none":
-        logger.info(
-            "Access denied by ACL: category='%s', action='%s', user_id='%s'.",
-            category,
-            action,
-            getattr(user, "id", None),
-        )
-        abort(403, description="Access denied")
+        _abort(403, "Access denied")
 
+    # list/read: own OR public (unless admin/all)
+    if action in ("list", "read"):
+        if scope == "all":
+            return {"category": category}
+        return {
+            "category": category,
+            "$or": [{"user_id": str(user.id)}, {"is_public": True}]
+        }
+
+    # write: own/all only, public doesn't grant write
     base = {"category": category}
     if scope == "own":
-        base["user_id"] = user.id
-
+        base["user_id"] = str(user.id)
     return base
 
 
 def validate_category_data(category: str, data: dict):
-    """
-    Validate `data` against stored JSON Schema.
-
-    Logs validation errors and re-raises ValidationError so that callers
-    can return a proper 400 response.
-    """
-    logger = current_app.logger
     schema = get_schema_for_category(category)
-    try:
-        validate(instance=data, schema=schema)
-    except ValidationError as exc:
-        logger.info(
-            "JSON Schema validation failed for category '%s': %s",
-            category,
-            exc.message,
-        )
-        raise
+    validate(instance=data, schema=schema)
 
 
-def default_name(category: str) -> str:
-    """Default item name pattern."""
-    return f"Item ({category})"
+def prune_nulls(data):
+    if isinstance(data, dict):
+        result = {}
+        for k, v in data.items():
+            if v is not None:
+                result[k] = prune_nulls(v)
+    elif isinstance(data, list):
+        result = []
+        for v in data:
+            if v is not None:
+                result.append(prune_nulls(v))
+    else:
+        result = data
+    return result
 
 
-def serialize_item(doc, include_data: bool = False):
+# ---------------------------------------------------------------------------
+# SERIALIZATION
+# ---------------------------------------------------------------------------
+
+def serialize_files_public(item_id: str, files_meta: dict):
     """
-    Serialize a MongoDB document into JSON response structure.
-
-    When include_data=True:
-      - include `data`
-      - include `files` (metadata only)
+    Expose ONLY non-sensitive file info to clients.
     """
+    if not isinstance(files_meta, dict):
+        return {}
+
+    out = {}
+    for name, meta in files_meta.items():
+        if not isinstance(meta, dict):
+            continue
+        out[name] = {
+            "name": name,
+            "url": f"/item-file/{item_id}/{name}",
+            "content_type": meta.get("content_type"),
+            "size": meta.get("size"),
+        }
+    return out
+
+
+def _should_include_item_user_id(doc, requester) -> bool:
+    """
+    Hide item.user_id:
+      - anonymous: never
+      - admin: always
+      - non-admin: only if owner
+    """
+    if not is_authenticated_user(requester):
+        return False
+    if is_admin(requester):
+        return True
+    return str(getattr(requester, "id", "")) == str(doc.get("user_id", ""))
+
+
+def serialize_item(doc, include_data: bool = False, requester=None):
     if not doc:
         return None
 
+    requester = requester if requester is not None else cu
+    item_id = str(doc["_id"])
+
     res = {
-        "id": str(doc["_id"]),
-        "name": doc.get("name"),
+        "id": item_id,
         "category": doc.get("category"),
-        "user_id": doc.get("user_id"),
-        "created_at": None,
-        "updated_at": None,
+        "is_public": bool(doc.get("is_public", False)),
+        "created_at": doc.get("created_at").isoformat() if doc.get(
+            "created_at"
+        ) else None,
+        "updated_at": doc.get("updated_at").isoformat() if doc.get(
+            "updated_at"
+        ) else None,
     }
 
-    for field in ("created_at", "updated_at"):
-        if doc.get(field):
-            res[field] = doc[field].isoformat()
+    if _should_include_item_user_id(doc, requester):
+        res["user_id"] = doc.get("user_id")
 
     if include_data:
         res["data"] = doc.get("data", {}) or {}
-        res["files"] = doc.get("files", {}) or {}
+        res["files"] = serialize_files_public(
+            item_id, doc.get("files", {}) or {}
+        )
 
     return res
 
 
+def parse_include_data_arg(default: bool = False) -> bool:
+    raw = request.args.get("include_data") or request.args.get("include")
+    if raw is None:
+        return default
+    raw = str(raw).strip().lower()
+    return raw in ("1", "true", "yes", "y", "on", "data", "full")
+
+
 # ---------------------------------------------------------------------------
-# FILE HANDLING & REQUEST PARSING
+# FILE HELPERS
 # ---------------------------------------------------------------------------
 
+_FILE_NAME_RE = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$")
 
-def store_uploaded_file(file_key, storage, mongo_db, user):
-    """
-    Store a single uploaded file in the configured backend (GridFS or S3/MinIO)
-    and return file metadata to be placed inside document["files"][file_key].
 
-    Metadata structure:
-    {
-      "id": "<file_id>",      # GridFS ObjectId string or S3 id (opaque string)
-      "filename": "...",
-      "content_type": "...",
-      "size": <int>
-    }
+def normalize_file_name(name: str) -> str:
+    if not isinstance(name, str):
+        _abort(400, "Invalid file name")
+    name = name.strip()
+    if not name or len(name) > 128:
+        _abort(400, "Invalid file name")
+    # disallow path separators and oddities
+    if "/" in name or "\\" in name or "\x00" in name:
+        _abort(400, "Invalid file name")
+    if not _FILE_NAME_RE.match(name):
+        _abort(400, "Invalid file name")
+    return name
 
-    In `data` you can then reference it as:
-      "$ref": "/files/<file_key>"
-    """
+
+def get_file_backend():
+    return "s3" if current_app.config.get("S3_ITEMS_FILE_STORAGE") else "gridfs"
+
+
+def get_s3_client_and_bucket():
+    raw_cfg = current_app.config.get("S3_ITEMS_FILE_STORAGE")
     logger = current_app.logger
 
-    filename = storage.filename
-    content_type = storage.mimetype
-    file_bytes = storage.read()
+    def _normalize_prefix(pfx: str) -> str:
+        pfx = (pfx or "").strip()
+        if not pfx:
+            return ""
+        return pfx if pfx.endswith("/") else (pfx + "/")
 
-    if not file_bytes:
-        logger.warning(
-            "Uploaded file '%s' (key='%s') has no content; skipping.",
-            filename,
-            file_key,
+    if isinstance(raw_cfg, str):
+        s = raw_cfg.strip()
+        if s.startswith("{") and s.endswith("}"):
+            raw_cfg = json.loads(s)
+        else:
+            bucket = s
+            endpoint_url = current_app.config.get("S3_ITEMS_FILE_ENDPOINT")
+            region_name = current_app.config.get(
+                "S3_ITEMS_FILE_REGION", "us-east-1"
+            )
+            access_key = current_app.config.get("S3_ITEMS_FILE_ACCESS_KEY")
+            secret_key = current_app.config.get("S3_ITEMS_FILE_SECRET_KEY")
+            use_ssl = current_app.config.get("S3_ITEMS_FILE_USE_SSL")
+            prefix = _normalize_prefix(
+                current_app.config.get("S3_ITEMS_FILE_PREFIX", "") or ""
+            )
+
+            client_kwargs = {"config": BotoConfig(
+                signature_version="s3v4", s3={"addressing_style": "path"}
+            )}
+            if endpoint_url:
+                client_kwargs["endpoint_url"] = endpoint_url
+            if region_name:
+                client_kwargs["region_name"] = region_name
+            if access_key and secret_key:
+                client_kwargs["aws_access_key_id"] = access_key
+                client_kwargs["aws_secret_access_key"] = secret_key
+            if use_ssl is not None:
+                client_kwargs["use_ssl"] = bool(use_ssl)
+
+            return boto3.client("s3", **client_kwargs), bucket, prefix
+
+    cfg = raw_cfg or {}
+    if not isinstance(cfg, dict) or not cfg.get("bucket"):
+        logger.error("Invalid S3_ITEMS_FILE_STORAGE: %r", raw_cfg)
+        raise RuntimeError(
+            "S3_ITEMS_FILE_STORAGE must be a bucket string or dict with 'bucket'."
         )
-        return None
 
-    size = len(file_bytes)
+    bucket = cfg["bucket"]
+    prefix = cfg.get("prefix", "") or ""
+    prefix = prefix if not prefix else (
+        prefix if prefix.endswith("/") else prefix + "/")
+
+    client_kwargs = {"config": BotoConfig(
+        signature_version="s3v4", s3={"addressing_style": "path"}
+    )}
+    for key in ("endpoint_url", "region_name", "aws_access_key_id",
+                "aws_secret_access_key", "use_ssl"):
+        if cfg.get(key) is not None:
+            client_kwargs[key] = cfg[key]
+
+    return boto3.client("s3", **client_kwargs), bucket, prefix
+
+
+class _CountingReader:
+    """
+    Wrap a file-like object and count bytes read, without buffering entire content.
+    Works with boto3 upload_fileobj and GridFS fs.put.
+    """
+
+    def __init__(self, fp):
+        self._fp = fp
+        self.bytes_read = 0
+
+    def read(self, n=-1):
+        chunk = self._fp.read(n)
+        if chunk:
+            self.bytes_read += len(chunk)
+        return chunk
+
+    def __getattr__(self, item):
+        return getattr(self._fp, item)
+
+
+def store_uploaded_file(file_name, storage, mongo_db, user):
+    logger = current_app.logger
+
+    file_name = normalize_file_name(file_name)
+
+    content_type = getattr(
+        storage, "mimetype", None
+    ) or "application/octet-stream"
     backend = get_file_backend()
+    user_id = str(getattr(user, "id", "") or "")
+
+    # prefer stream, do not read whole file into RAM
+    stream = getattr(storage, "stream", None) or storage
+    counting_stream = _CountingReader(stream)
 
     if backend == "gridfs":
         fs = gridfs.GridFS(mongo_db)
         try:
             file_id = fs.put(
-                file_bytes,
-                filename=filename,
+                counting_stream,
+                filename=file_name,
                 contentType=content_type,
-                length=size,
-                user_id=user.id,
+                user_id=user_id,
             )
         except Exception as exc:
-            logger.exception(
-                "Failed to store file '%s' (key='%s') in GridFS: %s",
-                filename,
-                file_key,
-                exc,
-            )
-            raise
+            logger.exception("GridFS put failed for '%s': %s", file_name, exc)
+            _abort(500, "File storage error")
+
         file_id_str = str(file_id)
-    else:  # "s3" / MinIO
+        size = counting_stream.bytes_read
+
+    else:
         s3, bucket, prefix = get_s3_client_and_bucket()
         file_id_str = uuid.uuid4().hex
         key = f"{prefix}{file_id_str}" if prefix else file_id_str
 
         extra_args = {
-            "ContentType": content_type or "application/octet-stream",
-            "Metadata": {
-                "user_id": str(user.id) if getattr(user, "id",
-                                                   None) is not None else "",
-                "filename": filename or "",
-            },
+            "ContentType": content_type,
+            "Metadata": {"name": file_name, "user_id": user_id},
         }
-
         try:
-            s3.put_object(Bucket=bucket, Key=key, Body=file_bytes, **extra_args)
-        except Exception as exc:
-            logger.exception(
-                "Failed to store file '%s' (key='%s') to S3/MinIO (bucket='%s', key='%s'): %s",
-                filename,
-                file_key,
-                bucket,
-                key,
-                exc,
+            s3.upload_fileobj(
+                counting_stream, bucket, key, ExtraArgs=extra_args
             )
-            raise
+        except Exception as exc:
+            logger.exception("S3 upload failed for '%s': %s", file_name, exc)
+            _abort(500, "File storage error")
+
+        size = counting_stream.bytes_read
+
+    if size <= 0:
+        logger.warning(
+            "Uploaded file (name='%s') has no content; skipping.", file_name
+        )
+        return None
 
     return {
         "id": file_id_str,
-        "filename": filename,
+        "user_id": user_id,
         "content_type": content_type,
-        "size": size,
+        "size": size
     }
 
 
-def parse_request_payload(args, user):
-    """
-    Parse incoming request to extract:
-      - name (str or None)
-      - data (dict)
-      - uploads (dict[str, FileStorage])  -> files to potentially store later
-
-    Supports:
-      - application/json
-      - multipart/form-data with:
-          - field 'data' containing JSON string
-          - any file fields in request.files
-
-    NOTE:
-      This function DOES NOT store files in the backend.
-      It only collects FileStorage objects; actual storage is done
-      after JSON Schema validation.
-    """
+def delete_files_meta(files_meta: dict, mongo_db):
     logger = current_app.logger
+    if not isinstance(files_meta, dict) or not files_meta:
+        return
+
+    fs = None
+    s3 = bucket = prefix = None
+
+    for name, meta in files_meta.items():
+        if not isinstance(meta, dict):
+            continue
+        fid = meta.get("id")
+        if not isinstance(fid, str) or not fid:
+            continue
+
+        backend = get_file_backend()
+
+        if backend == "gridfs":
+            if fs is None:
+                fs = gridfs.GridFS(mongo_db)
+            try:
+                fs.delete(ObjectId(fid))
+            except Exception as exc:
+                logger.exception(
+                    "Failed to delete GridFS file '%s' (name='%s'): %s", fid,
+                    name, exc
+                )
+        else:
+            try:
+                if s3 is None:
+                    s3, bucket, prefix = get_s3_client_and_bucket()
+                key = f"{prefix}{fid}" if prefix else fid
+                s3.delete_object(Bucket=bucket, Key=key)
+            except Exception as exc:
+                logger.exception(
+                    "Failed to delete S3 object '%s' (name='%s'): %s", fid,
+                    name, exc)
+
+
+# ---------------------------------------------------------------------------
+# REQUEST PARSING + REF VALIDATION
+# ---------------------------------------------------------------------------
+def _parse_is_public(val):
+    if isinstance(val, bool):
+        return val
+    if isinstance(val, str):
+        return val.strip().lower() in ("1", "true", "yes", "y", "on")
+    return None
+
+
+def parse_request_payload():
+    """
+    Returns: (data, uploads, is_public)
+
+    Strict is_public:
+      - multipart: only from form field is_public
+      - json: only from top-level is_public
+    """
     content_type = request.content_type or ""
 
-    # Multipart form: JSON inside form + files
     if content_type.startswith("multipart/form-data"):
         data_str = request.form.get("data")
         if data_str:
             try:
                 data = json.loads(data_str)
-            except ValueError as exc:
-                logger.info("Invalid JSON in form field 'data': %s", exc)
-                data = {}
+            except ValueError:
+                _abort(400, "Invalid JSON in form field 'data'")
         else:
             data = {}
 
-        # 'name' can arrive in form or inside JSON 'data'
-        name = (
-                request.form.get("name")
-                or args.get("name", type=str)
-        )
+        uploads = {normalize_file_name(k): v for k, v in request.files.items()}
+        is_public = _parse_is_public(request.form.get("is_public"))
+        return data, uploads, is_public
 
-        uploads = {
-            field_name: storage for field_name, storage in request.files.items()
-        }
-        return name, data, uploads
-
-    # Default: JSON body
-    try:
-        body_raw = request.get_json() or {}
-    except Exception as exc:
-        logger.info("Invalid JSON body: %s", exc)
-        body_raw = {}
-
-    body = dict(body_raw)
-    name = args.get("name", type=str)
-    data = body
+    # JSON
+    body = request.get_json(silent=True) or {}
+    data = body.get("data", {}) or {}
     uploads = {}
-    return name, data, uploads
+    is_public = _parse_is_public(body.get("is_public"))
+    return data, uploads, is_public
 
 
-def collect_file_keys_in_data(data):
-    """
-    Walk `data` recursively and collect all file keys that appear in
-    $ref values of the form "/files/<key>".
-
-    Returns a set of keys (strings).
-    """
-    keys = set()
+def collect_file_names_in_data(data):
+    names = set()
 
     def _walk(node):
         if isinstance(node, dict):
-            # Check for $ref
             ref = node.get("$ref")
             if isinstance(ref, str) and "/files/" in ref:
-                try:
-                    key = ref.split("/files/", 1)[1].split("/", 1)[0]
-                    if key:
-                        keys.add(key)
-                except Exception:
-                    # Ignore malformed refs
-                    pass
-            # Recurse into values
+                fname = ref.split("/files/", 1)[1].split("/", 1)[0]
+                if fname:
+                    names.add(normalize_file_name(fname))
             for v in node.values():
                 _walk(v)
         elif isinstance(node, list):
@@ -722,215 +699,206 @@ def collect_file_keys_in_data(data):
                 _walk(v)
 
     _walk(data)
-    return keys
+    return names
 
 
-def extract_file_ids_from_files(files_meta: dict, allowed_keys=None):
-    """
-    Extract file ids (strings) from a `files` metadata dict.
-
-    files_meta format:
-      {
-        "<key>": {
-          "id": "<file_id>",
-          "filename": "...",
-          "content_type": "...",
-          "size": <int>
-        },
-        ...
-      }
-
-    If allowed_keys is provided, only entries whose key is in allowed_keys
-    are considered.
-
-    NOTE:
-      This function returns a set of file id strings, not ObjectIds,
-      so it works for both GridFS (ObjectId string) and S3/MinIO (random id).
-    """
-    ids = set()
-    if isinstance(files_meta, dict):
-        for key, meta in files_meta.items():
-            if allowed_keys is not None and key not in allowed_keys:
-                continue
-            if not isinstance(meta, dict):
-                continue
-            file_id_str = meta.get("id")
-            if not file_id_str or not isinstance(file_id_str, str):
-                continue
-            ids.add(file_id_str)
-
-    return ids
-
-
-def validate_file_refs(data, files_meta):
-    """
-    Optional cross-validation between `data` and `files` metadata.
-
-    Ensures that:
-      - every $ref "/files/<key>" in `data` has a corresponding `files[key]`
-      - every `files[key]` is actually referenced somewhere in `data`
-    """
-
-    referenced_keys = collect_file_keys_in_data(data)
-    files_keys = set()
-    if isinstance(files_meta, dict):
-        files_keys = set(files_meta.keys())
-    missing_files = referenced_keys - files_keys
-    orphan_files = files_keys - referenced_keys
-
-    if missing_files or orphan_files:
+def validate_file_refs(referenced, files_meta: dict):
+    keys = set(files_meta.keys()) if isinstance(files_meta, dict) else set()
+    missing = referenced - keys
+    orphan = keys - referenced
+    if missing or orphan:
         raise FileRefsError(
             "File references between data and files are inconsistent",
-            missing_files=missing_files,
-            orphan_files=orphan_files,
+            missing_files=missing,
+            orphan_files=orphan,
         )
 
 
-def is_file_id_referenced_anywhere(
-        mongo_db,
-        file_id_str: str,
-        exclude_doc_id=None,
-) -> bool:
+# ---------------------------------------------------------------------------
+# PAGINATION HELPERS (offset + cursor)
+# ---------------------------------------------------------------------------
+
+def _parse_int_arg(
+        name: str, default: int, min_v: int = None, max_v: int = None
+):
+    raw = request.args.get(name, None)
+    if raw is None or raw == "":
+        v = default
+    else:
+        try:
+            v = int(raw)
+        except (TypeError, ValueError):
+            _abort(400, f"Invalid '{name}' (must be int)")
+    if min_v is not None and v < min_v:
+        v = min_v
+    if max_v is not None and v > max_v:
+        v = max_v
+    return v
+
+
+def parse_pagination_args(default_limit=50, max_limit=200):
     """
-    Check if a file id (string) is still referenced in ANY document
-    of the 'items' collection (in the 'files' dict).
-
-    If exclude_doc_id is provided, that document _id is excluded
-    from the search (useful when you are in the middle of updating
-    or deleting the current document).
+    Supports either:
+      - limit + offset
+      - page + page_size   (page is 1-based)
     """
-    coll = mongo_db.items
+    page = request.args.get("page")
+    page_size = request.args.get("page_size") or request.args.get("per_page")
 
-    query = {"files": {"$exists": True}}
-    if exclude_doc_id is not None:
-        # Accept both str and ObjectId for exclude_doc_id
-        if isinstance(exclude_doc_id, str):
-            try:
-                exclude_doc_id = ObjectId(exclude_doc_id)
-            except Exception:
-                exclude_doc_id = None
-        if isinstance(exclude_doc_id, ObjectId):
-            query["_id"] = {"$ne": exclude_doc_id}
+    if page is not None or page_size is not None:
+        p = _parse_int_arg("page", 1, min_v=1)
+        ps = _parse_int_arg(
+            "page_size", default_limit, min_v=1, max_v=max_limit
+        )
+        offset = (p - 1) * ps
+        limit = ps
+        return limit, offset
 
-    cursor = coll.find(query, {"files": 1})
-    for doc in cursor:
-        files_meta = doc.get("files") or {}
-        if not isinstance(files_meta, dict):
-            continue
-        for meta in files_meta.values():
-            if isinstance(meta, dict) and meta.get("id") == file_id_str:
-                return True
-    return False
+    limit = _parse_int_arg("limit", default_limit, min_v=1, max_v=max_limit)
+    offset = _parse_int_arg("offset", 0, min_v=0)
+    return limit, offset
 
 
-def delete_files_by_ids(file_ids, mongo_db, exclude_doc_id=None):
+def parse_sort_arg():
     """
-    Delete a set of files by their id strings.
-
-    - For GridFS, file_ids are interpreted as ObjectId strings.
-    - For S3/MinIO, file_ids are S3 ids (we build the full key with prefix).
-
-    A file is actually deleted only if it is NOT referenced anywhere
-    in the 'items' collection (checked against the 'files' dict).
-
-    If exclude_doc_id is provided, that document _id is not considered
-    when checking references.
-
-    Any deletion failures are logged (with stack trace) but do not raise,
-    to avoid breaking the main request flow.
+    sort examples:
+      sort=_id           -> asc
+      sort=-_id          -> desc
+      sort=updated_at    -> asc
+      sort=-updated_at   -> desc
+    Allowed: _id, created_at, updated_at
+    Default: -updated_at
     """
-    logger = current_app.logger
+    raw = (request.args.get("sort") or "-updated_at").strip()
+    direction = -1 if raw.startswith("-") else 1
+    field = raw[1:] if raw.startswith("-") else raw
 
-    if not file_ids:
-        return
+    allowed = {"_id", "created_at", "updated_at"}
+    if field not in allowed:
+        _abort(
+            400, f"Invalid 'sort' (allowed: {', '.join(sorted(allowed))})"
+        )
 
-    backend = get_file_backend()
-    logger.debug(
-        "Deleting file ids %r using backend '%s' (exclude_doc_id=%r).",
-        list(file_ids),
-        backend,
-        exclude_doc_id,
-    )
+    return field, direction
 
-    if backend == "gridfs":
-        fs = gridfs.GridFS(mongo_db)
-        for fid_str in file_ids:
-            if is_file_id_referenced_anywhere(
-                    mongo_db, fid_str, exclude_doc_id=exclude_doc_id
-            ):
-                logger.debug(
-                    "Skipping delete of GridFS file '%s' because it is "
-                    "still referenced by another document.",
-                    fid_str,
-                )
-                continue
-            try:
-                fs.delete(ObjectId(fid_str))
-            except Exception as exc:
-                logger.exception(
-                    "Failed to delete GridFS file '%s': %s", fid_str, exc
-                )
-    else:  # "s3"/MinIO
-        s3, bucket, prefix = get_s3_client_and_bucket()
-        for fid_str in file_ids:
-            if is_file_id_referenced_anywhere(
-                    mongo_db, fid_str, exclude_doc_id=exclude_doc_id
-            ):
-                logger.debug(
-                    "Skipping delete of S3/MinIO file '%s' because it is "
-                    "still referenced by another document.",
-                    fid_str,
-                )
-                continue
-            key = f"{prefix}{fid_str}" if prefix else fid_str
-            try:
-                s3.delete_object(Bucket=bucket, Key=key)
-            except Exception as exc:
-                logger.exception(
-                    "Failed to delete S3/MinIO object '%s' (bucket='%s'): %s",
-                    key,
-                    bucket,
-                    exc,
-                )
+
+def parse_cursor_after():
+    """
+    Cursor pagination param.
+    Returns ObjectId or None from query param 'after'.
+    """
+    after = request.args.get("after")
+    if not after:
+        return None
+    try:
+        return ObjectId(after)
+    except Exception:
+        _abort(400, "Invalid 'after' (must be a valid ObjectId)")
 
 
 # ---------------------------------------------------------------------------
-# MONGO CRUD ROUTES
+# MQ SANITIZATION (safe operators)
 # ---------------------------------------------------------------------------
 
+_SAFE_MQ_OPS = {
+    "$and", "$or", "$nor",
+    "$eq", "$ne",
+    "$gt", "$gte", "$lt", "$lte",
+    "$in", "$nin",
+    "$exists",
+    "$regex", "$options",
+}
+
+_PROTECTED_FIELDS = {"category", "user_id", "_id", "is_public"}
+
+_MAX_MQ_DEPTH = 10
+_MAX_MQ_KEYS = 200
+_MAX_REGEX_LEN = 128
+
+
+def _sanitize_mq(node, depth=0, _counter=None):
+    """
+    Recursively sanitize a MongoDB query dict:
+      - allow only a restricted set of $operators
+      - forbid any key starting with '$' unless in allowlist
+      - remove protected fields anywhere
+      - limit depth and key count
+      - limit regex pattern size
+    """
+    if _counter is None:
+        _counter = {"keys": 0}
+
+    if depth > _MAX_MQ_DEPTH:
+        _abort(400, "mq too deep")
+
+    if isinstance(node, dict):
+        out = {}
+        for k, v in node.items():
+            _counter["keys"] += 1
+            if _counter["keys"] > _MAX_MQ_KEYS:
+                _abort(400, "mq too large")
+
+            if not isinstance(k, str):
+                _abort(400, "mq contains invalid key")
+
+            # drop protected fields anywhere
+            if k in _PROTECTED_FIELDS:
+                continue
+
+            if k.startswith("$"):
+                if k not in _SAFE_MQ_OPS:
+                    _abort(400, f"mq operator not allowed: {k}")
+                out[k] = _sanitize_mq(v, depth + 1, _counter)
+                continue
+
+            # normal field: sanitize subtree
+            out[k] = _sanitize_mq(v, depth + 1, _counter)
+
+        # regex hardening: if dict looks like {"$regex": "...", "$options": "..."}
+        if "$regex" in out:
+            pat = out.get("$regex")
+            if isinstance(pat, str) and len(pat) > _MAX_REGEX_LEN:
+                _abort(400, "mq regex too long")
+
+        return out
+
+    if isinstance(node, list):
+        return [_sanitize_mq(v, depth + 1, _counter) for v in node]
+
+    # primitives ok
+    return node
+
+
+def parse_mq_arg():
+    mq_raw = request.args.get("mq")
+    if not mq_raw:
+        return {}
+    try:
+        mongo_query = json.loads(mq_raw)
+    except ValueError:
+        _abort(400, "Invalid mq JSON")
+    if not isinstance(mongo_query, dict):
+        _abort(400, "mq must be a JSON object")
+    return _sanitize_mq(mongo_query)
+
+
+def _mongo_maxtime_ms() -> int:
+    return int(current_app.config.get("ITEMS_MONGO_MAX_TIME_MS", 2000))
+
+
+# ---------------------------------------------------------------------------
+# CRUD
+# ---------------------------------------------------------------------------
 
 @bp.route("/<category>", methods=["GET", "POST"])
 @bp.route("/<category>/<item_id>", methods=["GET", "PUT", "PATCH", "DELETE"])
-@auth_required()
 def item(category, item_id=None):
-    """
-    CRUD for MongoDB collection "items".
-
-    Features:
-    - Role-based ACL per category
-    - JSON Schema validation per category (on `data`)
-    - Optional MongoDB filter via ?mq=<json>
-    - PATCH uses deep merge via schedula.combine_nested_dicts on `data`
-    - GET pagination: ?page=1&per_page=20
-    - GET filter by name: ?name=...
-    - File upload in the same object via multipart/form-data:
-        - Files stored in GridFS or S3/MinIO
-        - Metadata stored in `files` dict
-        - References inside `data` using "$ref": "/files/<key>"
-    - Orphan files are removed:
-        - on DELETE (all files of the item, only if no other document references them)
-        - on PUT/PATCH (files no longer referenced in data, only if no other
-          document references them)
-    """
-    logger = current_app.logger
-
     db_mongo = get_mongo()
     coll = db_mongo.items
-
-    args = request.args
     method = request.method
 
-    # Map HTTP method → ACL action
+    require_auth_for_write(method)
+
     if method == "POST":
         acl_action = "create"
     elif method == "GET":
@@ -940,462 +908,353 @@ def item(category, item_id=None):
     elif method == "DELETE":
         acl_action = "delete"
     else:
-        acl_action = "read"
+        _abort(405, "Method not allowed")
 
-    logger.debug(
-        "Handling %s on /item/%s (item_id=%r, acl_action=%s, user_id=%s).",
-        method,
-        category,
-        item_id,
-        acl_action,
-        getattr(cu, "id", None),
-    )
-
-    # Build ACL-based filter
     base_filter = build_base_filter(category, acl_action, cu)
 
-    # Optional filter by name
-    name_filter = args.get("name", type=str)
-    if name_filter:
-        base_filter["name"] = name_filter
+    mongo_query = parse_mq_arg()
 
-    # Optional client-side Mongo query (?mq={...})
-    mongo_query = {}
-    mq_raw = args.get("mq")
-    if mq_raw:
-        try:
-            mongo_query = json.loads(mq_raw)
-        except ValueError as exc:
-            logger.info("Invalid mq JSON '%s': %s", mq_raw, exc)
-            return jsonify({"error": "Invalid mq JSON"}), 400
-
-        if not isinstance(mongo_query, dict):
-            return jsonify({"error": "mq must be a JSON object"}), 400
-
-        # Prevent overriding protected fields
-        mongo_query.pop("category", None)
-        mongo_query.pop("user_id", None)
-        mongo_query.pop("_id", None)
-
-    # Handle item_id → overwrite _id filter
     if item_id is not None:
         try:
             base_filter["_id"] = ObjectId(item_id)
         except Exception:
-            logger.info("Invalid item_id '%s'.", item_id)
-            return jsonify({"error": "Invalid item_id"}), 400
+            _abort(400, "Invalid item_id")
 
-    full_filter = {**base_filter, **mongo_query}
+    full_filter = {
+        "$and": [base_filter, mongo_query]
+    } if mongo_query else base_filter
 
-    # --------------------------------------------------------
-    # CREATE (POST)
-    # --------------------------------------------------------
+    include_data = parse_include_data_arg(
+        default=method == "GET" and item_id is not None
+    )
+
+    # CREATE
     if method == "POST":
-        # Parse without storing files
-        name, data, uploads = parse_request_payload(args, cu)
-
-        # 1) Validate only `data`
+        data, uploads, is_public = parse_request_payload()
+        if is_public is None:
+            is_public = False
+        data = prune_nulls(data)
         try:
             validate_category_data(category, data)
         except ValidationError as exc:
-            return jsonify({
-                "error": "Schema validation failed",
-                "details": exc.message,
-            }), 400
+            _abort(400, f"Schema validation failed: {exc.message}")
 
-        # 2) Determine file keys actually referenced in `data`
-        referenced_keys = collect_file_keys_in_data(data)
+        referenced = collect_file_names_in_data(data)
 
-        # Optionally require that every referenced key has a corresponding upload
-        missing_keys = referenced_keys - set(uploads.keys())
-        if missing_keys:
-            logger.info(
-                "Missing file uploads for referenced keys %r in POST /item/%s.",
-                missing_keys,
-                category,
+        missing = referenced - set(uploads.keys())
+        orphan = set(uploads.keys()) - referenced
+        if missing or orphan:
+            _abort(
+                400,
+                f"File references validation failed: missing={missing}, orphan={orphan}"
             )
-            return jsonify({
-                "error": "Missing file uploads for referenced keys",
-                "details": sorted(missing_keys),
-            }), 400
 
-        # 3) Store in backend only the referenced files
         files_meta = {}
-        for key in referenced_keys:
-            storage = uploads.get(key)
-            if storage is None:
-                continue
-            meta = store_uploaded_file(key, storage, db_mongo, cu)
-            if meta is not None:
-                files_meta[key] = meta
-
-        # 4) Cross-check data/files consistency (optional)
         try:
-            validate_file_refs(data, files_meta)
-        except FileRefsError as exc:
-            logger.info(
-                "File references validation failed on POST /item/%s: missing=%r orphan=%r",
-                category,
-                exc.missing_files,
-                exc.orphan_files,
-            )
-            return jsonify({
-                "error": "File references validation failed",
-                "details": {
-                    "missing_files": exc.missing_files,
-                    "orphan_files": exc.orphan_files,
-                },
-            }), 400
+            for fname in sorted(referenced):
+                meta = store_uploaded_file(fname, uploads[fname], db_mongo, cu)
+                if meta is not None:
+                    files_meta[fname] = meta
+            validate_file_refs(referenced, files_meta)
+        except Exception as exc:
+            delete_files_meta(files_meta, db_mongo)
+            if isinstance(exc, FileRefsError):
+                _abort(
+                    400,
+                    f"File references validation failed: missing={exc.missing_files}, orphan={exc.orphan_files}"
+                )
+            raise
 
-        now = datetime.datetime.utcnow()
+        now = datetime.datetime.now(datetime.timezone.utc)
         doc = {
-            "name": name or default_name(category),
             "category": category,
             "data": data,
             "files": files_meta,
-            "user_id": cu.id,
+            "user_id": str(cu.id),
+            "is_public": bool(is_public),
             "created_at": now,
             "updated_at": now,
         }
 
         try:
-            result = coll.insert_one(doc)
-            inserted = coll.find_one({"_id": result.inserted_id})
-        except Exception as exc:
-            logger.exception(
-                "MongoDB insert failed for category '%s': %s", category, exc
+            res = coll.insert_one(doc)
+            inserted = coll.find_one(
+                {"_id": res.inserted_id}, max_time_ms=_mongo_maxtime_ms()
             )
-            return jsonify({"error": "Database error"}), 500
+        except Exception:
+            delete_files_meta(files_meta, db_mongo)
+            _abort(500, "Database error")
 
-        payload = serialize_item(inserted, include_data=False)
-        return jsonify(payload), 201
+        return jsonify(serialize_item(
+            inserted, include_data=include_data, requester=cu
+        )), 201
 
-    # --------------------------------------------------------
-    # LIST (GET without item_id)
-    # --------------------------------------------------------
+    # LIST (cursor-based preferred; offset fallback)
     if method == "GET" and item_id is None:
-        try:
-            query = coll.find(full_filter).sort("_id", 1)
-        except Exception as exc:
-            logger.exception(
-                "MongoDB find failed on LIST for category '%s': %s",
-                category,
-                exc,
+        limit, offset = parse_pagination_args(default_limit=50, max_limit=200)
+        sort_field, sort_dir = parse_sort_arg()
+        after_oid = parse_cursor_after()
+
+        use_cursor = after_oid is not None
+        if use_cursor and sort_field != "_id":
+            _abort(400, "Cursor pagination requires sort=_id or sort=-_id")
+        if use_cursor and offset != 0:
+            _abort(
+                400, "Use either 'after' (cursor) OR 'offset', not both"
             )
-            return jsonify({"error": "Database error"}), 500
 
-        if "page" in args and "per_page" in args:
-            page = args.get("page", type=int) or 1
-            per_page = args.get("per_page", type=int) or 20
-            skip = (page - 1) * per_page
+        try:
+            total = coll.count_documents(
+                full_filter, maxTimeMS=_mongo_maxtime_ms()
+            )
 
-            try:
-                items_cursor = query.skip(skip).limit(per_page)
-                items = [
-                    serialize_item(doc, include_data=False)
-                    for doc in items_cursor
-                ]
-                total = coll.count_documents(full_filter)
-            except Exception as exc:
-                logger.exception(
-                    "MongoDB pagination failed on LIST for category '%s': %s",
-                    category,
-                    exc,
-                )
-                return jsonify({"error": "Database error"}), 500
+            query = dict(full_filter)
 
-            payload = {"page": page, "items": items, "total": total}
-        else:
-            try:
-                docs = list(query)
-            except Exception as exc:
-                logger.exception(
-                    "MongoDB list failed on LIST for category '%s': %s",
-                    category,
-                    exc,
-                )
-                return jsonify({"error": "Database error"}), 500
+            if use_cursor:
+                op = "$gt" if sort_dir == 1 else "$lt"
+                if "$and" in query and isinstance(query["$and"], list):
+                    query["$and"].append({"_id": {op: after_oid}})
+                else:
+                    query["_id"] = {op: after_oid}
 
-            payload = {
+                cursor = coll.find(query, max_time_ms=_mongo_maxtime_ms()).sort(
+                    "_id", sort_dir
+                ).limit(limit)
+                docs = list(cursor)
+
+                next_after = str(docs[-1]["_id"]) if docs else None
+                return jsonify({
+                    "items": [serialize_item(
+                        d, include_data=include_data, requester=cu
+                    ) for d in docs],
+                    "total": total,
+                    "limit": limit,
+                    "after": str(after_oid),
+                    "next_after": next_after,
+                }), 200
+
+            cursor = (
+                coll.find(query, max_time_ms=_mongo_maxtime_ms())
+                .sort(sort_field, sort_dir)
+                .skip(offset)
+                .limit(limit)
+            )
+            docs = list(cursor)
+
+            next_offset = offset + len(docs)
+            if next_offset >= total:
+                next_offset = None
+
+            return jsonify({
                 "items": [
-                    serialize_item(doc, include_data=False) for doc in docs
+                    serialize_item(d, include_data=include_data, requester=cu)
+                    for d in docs
                 ],
-                "total": len(docs),
-            }
+                "total": total,
+                "limit": limit,
+                "offset": offset,
+                "next_offset": next_offset,
+            }), 200
 
-        return jsonify(payload), 200
-
-    # --------------------------------------------------------
-    # SINGLE DOCUMENT: GET / PUT / PATCH / DELETE
-    # --------------------------------------------------------
-    try:
-        doc = coll.find_one(full_filter)
-    except Exception as exc:
-        logger.exception(
-            "MongoDB find_one failed for category '%s', filter=%r: %s",
-            category,
-            full_filter,
-            exc,
-        )
-        return jsonify({"error": "Database error"}), 500
-
-    if not doc:
-        return jsonify({"error": "Item not found"}), 404
+        except HTTPException:
+            raise
+        except Exception:
+            _abort(500, "Database error")
 
     # READ ONE
+    try:
+        doc = coll.find_one(full_filter, max_time_ms=_mongo_maxtime_ms())
+    except Exception:
+        _abort(500, "Database error")
+
+    if not doc:
+        _abort(404, "Item not found")
+
     if method == "GET":
-        return jsonify(serialize_item(doc, include_data=True)), 200
+        return jsonify(
+            serialize_item(doc, include_data=include_data, requester=cu)
+        ), 200
 
     # DELETE
     if method == "DELETE":
         old_files = doc.get("files", {}) or {}
-        old_ids = extract_file_ids_from_files(old_files)
-
         try:
             coll.delete_one({"_id": doc["_id"]})
-        except Exception as exc:
-            logger.exception(
-                "MongoDB delete_one failed for item '%s': %s",
-                doc.get("_id"),
-                exc,
-            )
-            return jsonify({"error": "Database error"}), 500
-
-        delete_files_by_ids(old_ids, db_mongo, exclude_doc_id=doc["_id"])
+        except Exception:
+            _abort(500, "Database error")
+        delete_files_meta(old_files, db_mongo)
         return jsonify({"status": "deleted"}), 200
 
-    # UPDATE (PUT/PATCH)
+    # UPDATE
     if method in ("PUT", "PATCH"):
-        name, new_data, uploads = parse_request_payload(args, cu)
+        new_data, uploads, is_public = parse_request_payload()
 
         old_data = doc.get("data", {}) or {}
         old_files = doc.get("files", {}) or {}
 
-        # 1) Merge/replace data
-        if method == "PATCH":
-            merged_data = sh.combine_nested_dicts(old_data, new_data)
-        else:  # PUT
-            merged_data = new_data
+        merged_data = prune_nulls(sh.combine_nested_dicts(
+            old_data, new_data
+        ) if method == "PATCH" else new_data)
 
-        # 2) Validate only `data` (merged)
         try:
             validate_category_data(category, merged_data)
         except ValidationError as exc:
-            return jsonify({
-                "error": "Schema validation failed",
-                "details": exc.message,
-            }), 400
+            _abort(400, f"Schema validation failed: {exc.message}")
 
-        # 3) Determine file keys actually referenced in the *new* data
-        referenced_keys = collect_file_keys_in_data(merged_data)
+        referenced = collect_file_names_in_data(merged_data)
 
-        # Start from old_files, keep only those still referenced
-        merged_files = {
-            k: v for k, v in old_files.items() if k in referenced_keys
+        # keep only referenced
+        merged_files = {k: v for k, v in old_files.items() if k in referenced}
+        dropped_files = {
+            k: v for k, v in old_files.items() if k not in referenced
         }
+        replaced_files = {}
 
-        # 4) For each referenced key that has a new upload, override metadata
-        for key in referenced_keys:
-            storage = uploads.get(key)
-            if storage is None:
-                continue
-            meta = store_uploaded_file(key, storage, db_mongo, cu)
-            if meta is not None:
-                merged_files[key] = meta
-
-        # 5) Cross-check data/files consistency (optional)
+        new_uploaded = {}
         try:
-            validate_file_refs(merged_data, merged_files)
-        except FileRefsError as exc:
-            logger.info(
-                "File references validation failed on %s /item/%s/%s: missing=%r orphan=%r",
-                method,
-                category,
-                item_id,
-                exc.missing_files,
-                exc.orphan_files,
-            )
-            return jsonify({
-                "error": "File references validation failed",
-                "details": {
-                    "missing_files": exc.missing_files,
-                    "orphan_files": exc.orphan_files,
-                },
-            }), 400
+            for fname in sorted(referenced):
+                if fname in uploads:
+                    if fname in merged_files:
+                        replaced_files[fname] = merged_files[fname]
+                    meta = store_uploaded_file(fname, uploads[fname], db_mongo,
+                                               cu)
+                    if meta is not None:
+                        merged_files[fname] = meta
+                        new_uploaded[fname] = meta
 
-        # 6) Compute orphan file ids logically:
-        old_ids = extract_file_ids_from_files(old_files)
-        new_ids = extract_file_ids_from_files(
-            merged_files, allowed_keys=referenced_keys
-        )
-        orphan_ids = old_ids - new_ids
+            validate_file_refs(referenced, merged_files)
+        except Exception as exc:
+            delete_files_meta(new_uploaded, db_mongo)
+            if isinstance(exc, FileRefsError):
+                _abort(400,
+                       f"File references validation failed: missing={exc.missing_files}, orphan={exc.orphan_files}")
+            raise
 
         update_doc = {
             "data": merged_data,
             "files": merged_files,
-            "updated_at": datetime.datetime.utcnow(),
+            "updated_at": datetime.datetime.now(datetime.timezone.utc),
         }
-        if isinstance(name, str) and name:
-            update_doc["name"] = name
+        if is_public is not None:
+            update_doc["is_public"] = bool(is_public)
 
         try:
             coll.update_one({"_id": doc["_id"]}, {"$set": update_doc})
-        except Exception as exc:
-            logger.exception(
-                "MongoDB update_one failed for item '%s': %s",
-                doc.get("_id"),
-                exc,
-            )
-            return jsonify({"error": "Database error"}), 500
+        except Exception:
+            delete_files_meta(new_uploaded, db_mongo)
+            _abort(500, "Database error")
 
-        delete_files_by_ids(orphan_ids, db_mongo, exclude_doc_id=doc["_id"])
+        delete_files_meta(dropped_files, db_mongo)
+        delete_files_meta(replaced_files, db_mongo)
 
-        try:
-            updated = coll.find_one({"_id": doc["_id"]})
-        except Exception as exc:
-            logger.exception(
-                "MongoDB find_one (post-update) failed for item '%s': %s",
-                doc.get("_id"),
-                exc,
-            )
-            return jsonify({"error": "Database error"}), 500
-
-        return jsonify(serialize_item(updated, include_data=False)), 200
-
-    return jsonify({"error": "Method not allowed"}), 405
+        updated = coll.find_one({"_id": doc["_id"]},
+                                max_time_ms=_mongo_maxtime_ms())
+        return jsonify(serialize_item(updated, include_data=include_data,
+                                      requester=cu)), 200
 
 
 # ---------------------------------------------------------------------------
-# FILE DOWNLOAD ROUTE: /files/<file_id>
+# FILE DOWNLOAD
 # ---------------------------------------------------------------------------
 
-
-@files_bp.route("/<file_id>", methods=["GET"])
-@auth_required()
-def download_file(file_id):
-    """
-    Download a file stored in the configured backend by its id.
-
-    Usage with the item structure:
-
-      item["files"][key]["id"] → <file_id>
-      GET /files/<file_id>     → actual file stream
-
-    ACL:
-      - admin can access anything
-      - for GridFS: we rely on file metadata.user_id
-      - for S3/MinIO: we rely on S3 object metadata["user_id"]
-    """
-    logger = current_app.logger
-    backend = get_file_backend()
+@files_bp.route("/<item_id>/<file_name>", methods=["GET"])
+def download_file(item_id, file_name):
     db_mongo = get_mongo()
 
-    if backend == "gridfs":
-        fs = gridfs.GridFS(db_mongo)
-
-        try:
-            grid_out = fs.get(ObjectId(file_id))
-        except Exception:
-            logger.info("GridFS file '%s' not found.", file_id)
-            return jsonify({"error": "File not found"}), 404
-
-        user_roles = get_user_roles(cu)
-        is_admin = "admin" in user_roles
-        file_user_id = getattr(grid_out, "user_id", None)
-
-        if not is_admin and file_user_id is not None and str(
-                file_user_id) != str(cu.id):
-            logger.info(
-                "Access denied to GridFS file '%s' for user '%s'.",
-                file_id,
-                getattr(cu, "id", None),
-            )
-            abort(403, description="Access denied")
-
-        content = grid_out.read()
-        content_type = getattr(
-            grid_out, "content_type", None
-        ) or "application/octet-stream"
-        filename = getattr(grid_out, "filename", None) or "download"
-
-        headers = {
-            "Content-Disposition": f'attachment; filename="{filename}"'
-        }
-        return Response(content, mimetype=content_type, headers=headers)
-
-    # S3/MinIO backend
-    s3, bucket, prefix = get_s3_client_and_bucket()
-    key = f"{prefix}{file_id}" if prefix else file_id
+    file_name = normalize_file_name(file_name)
 
     try:
-        head = s3.head_object(Bucket=bucket, Key=key)
+        item_oid = ObjectId(item_id)
     except Exception:
-        logger.info(
-            "S3/MinIO object '%s' (bucket='%s') not found.", key, bucket
-        )
-        return jsonify({"error": "File not found"}), 404
-
-    user_roles = get_user_roles(cu)
-    is_admin = "admin" in user_roles
-    metadata = head.get("Metadata") or {}
-    file_user_id = metadata.get("user_id") or ""
-    filename = metadata.get("filename") or "download"
-    content_type = head.get("ContentType") or "application/octet-stream"
-
-    if not is_admin and file_user_id and file_user_id != str(cu.id):
-        logger.info(
-            "Access denied to S3/MinIO file '%s' (bucket='%s') for user '%s'.",
-            key,
-            bucket,
-            getattr(cu, "id", None),
-        )
-        abort(403, description="Access denied")
+        _abort(404, "Item not found")
 
     try:
-        obj = s3.get_object(Bucket=bucket, Key=key)
-        content = obj["Body"].read()
-    except Exception as exc:
-        logger.exception(
-            "Failed to read S3/MinIO object '%s' (bucket='%s'): %s",
-            key,
-            bucket,
-            exc,
+        item = db_mongo.items.find_one(
+            {"_id": item_oid},
+            {"is_public": 1, "user_id": 1, "files": 1},
+            max_time_ms=_mongo_maxtime_ms(),
         )
-        return jsonify({"error": "File read error"}), 500
+    except Exception:
+        _abort(500, "Database error")
 
-    headers = {
-        "Content-Disposition": f'attachment; filename="{filename}"'
-    }
-    return Response(content, mimetype=content_type, headers=headers)
+    if not item:
+        _abort(404, "Item not found")
+
+    files_meta = item.get("files") or {}
+    meta = files_meta.get(file_name)
+    if not isinstance(meta, dict):
+        _abort(404, "File not found")
+
+    # consistency check
+    item_user_id = str(item.get("user_id", "") or "")
+    meta_user_id = str(meta.get("user_id", "") or "")
+    if meta_user_id and item_user_id and meta_user_id != item_user_id:
+        _abort(409, "File metadata inconsistent")
+
+    # auth: owner/admin OR public item for anon download
+    is_auth = is_authenticated_user(cu)
+    block = True
+    if is_auth:
+        if item_user_id and str(getattr(cu, "id", None)) == item_user_id:
+            block = False
+        elif is_admin(cu):
+            block = False
+    if block and item.get("is_public"):
+        block = False
+    if block:
+        _abort(
+            403 if is_auth else 401,
+            "Access denied" if is_auth else "Authentication required"
+        )
+
+    backend = get_file_backend()
+    file_id_str = str(meta.get("id"))
+    cached_ct = meta.get("content_type")
+
+    if backend == "gridfs":
+        try:
+            oid = ObjectId(file_id_str)
+        except Exception:
+            _abort(404, "File not found")
+
+        fs = gridfs.GridFS(db_mongo)
+        try:
+            grid_out = fs.get(oid)
+        except Exception:
+            _abort(404, "File not found")
+
+        content_type = (
+                cached_ct
+                or getattr(grid_out, "contentType", None)
+                or getattr(grid_out, "content_type", None)
+                or "application/octet-stream"
+        )
+        content = _iter_gridfs(grid_out)
+    else:
+        s3, bucket, prefix = get_s3_client_and_bucket()
+        key = f"{prefix}{file_id_str}" if prefix else file_id_str
+        try:
+            obj = s3.get_object(Bucket=bucket, Key=key)
+            content = _iter_s3(obj["Body"])
+            content_type = cached_ct or obj.get(
+                "ContentType"
+            ) or "application/octet-stream"
+        except Exception:
+            _abort(404, "File not found")
+
+    headers = {"Content-Disposition": f'attachment; filename="{file_name}"'}
+    return Response(
+        stream_with_context(content), mimetype=content_type, headers=headers,
+        direct_passthrough=True
+    )
 
 
 # ---------------------------------------------------------------------------
-# APP EXTENSION
+# EXTENSION
 # ---------------------------------------------------------------------------
-
 
 class Items:
     def __init__(self, app=None, *args, **kwargs):
-        """
-        Flask extension for the Item Storage Service.
-
-        Configuration:
-          - app.config["ITEMS_MONGO_URI"]: MongoDB URI used by Flask-PyMongo
-
-          Optional S3/MinIO file storage:
-          - app.config["S3_ITEMS_FILE_STORAGE"]:
-                * string: bucket name (simple mode, recommended for MinIO/S3)
-                * dict: advanced config
-
-          If string mode:
-            S3_ITEMS_FILE_STORAGE       = "my-bucket"
-            S3_ITEMS_FILE_ENDPOINT      = "http://minio:9000"
-            S3_ITEMS_FILE_REGION        = "us-east-1"
-            S3_ITEMS_FILE_ACCESS_KEY    = "minioadmin"
-            S3_ITEMS_FILE_SECRET_KEY    = "minioadmin"
-            S3_ITEMS_FILE_USE_SSL       = False
-            S3_ITEMS_FILE_PREFIX        = "items/"
-        """
         self.mongo_db = None
         if app is not None:
             self.init_app(app, *args, **kwargs)
@@ -1403,23 +1262,15 @@ class Items:
     def init_app(self, app, *args, **kwargs):
         app.extensions = getattr(app, "extensions", {})
 
-        # ------------------------------------------------------------------
-        # Config bootstrap with env fallback (like SCHEDULA_POST_CONTACT_VIEW)
-        # ------------------------------------------------------------------
-
-        # Mongo URI
         app.config["ITEMS_MONGO_URI"] = app.config.get(
-            "ITEMS_MONGO_URI",
-            os.environ.get("ITEMS_MONGO_URI"),
+            "ITEMS_MONGO_URI", os.environ.get("ITEMS_MONGO_URI")
         )
 
-        # Optional: S3/MinIO storage config (bucket or JSON string)
         app.config["S3_ITEMS_FILE_STORAGE"] = app.config.get(
             "S3_ITEMS_FILE_STORAGE",
             os.environ.get("S3_ITEMS_FILE_STORAGE", None),
         )
 
-        # Optional S3/MinIO extra params, with coherent names
         for key, default in [
             ("S3_ITEMS_FILE_ENDPOINT", None),
             ("S3_ITEMS_FILE_REGION", "us-east-1"),
@@ -1427,36 +1278,36 @@ class Items:
             ("S3_ITEMS_FILE_SECRET_KEY", None),
             ("S3_ITEMS_FILE_USE_SSL", None),
             ("S3_ITEMS_FILE_PREFIX", ""),
+            ("ITEMS_MONGO_MAX_TIME_MS", 2000),
         ]:
-            app.config[key] = app.config.get(
-                key,
-                os.environ.get(key, default),
-            )
+            app.config[key] = app.config.get(key, os.environ.get(key, default))
 
-        # ------------------------------------------------------------------
-        # Register blueprints
-        # ------------------------------------------------------------------
         app.register_blueprint(bp, url_prefix="/item")
         app.register_blueprint(files_bp, url_prefix="/item-file")
 
-        # ------------------------------------------------------------------
-        # Configure MongoDB via Flask-PyMongo using app.config["ITEMS_MONGO_URI"]
-        # ------------------------------------------------------------------
         mongo_uri = app.config.get("ITEMS_MONGO_URI")
         if not mongo_uri:
-            app.logger.error("ITEMS_MONGO_URI is not configured.")
-            raise RuntimeError(
-                "ITEMS_MONGO_URI is not set in app.config or environment. "
-                "Please configure it before initializing Items."
-            )
+            raise RuntimeError("ITEMS_MONGO_URI is not set.")
 
         pymongo = PyMongo(app, uri=mongo_uri)
         self.mongo_db = pymongo.db
 
-        # Expose this extension instance
+        # MongoDB indexes (recommended)
+        try:
+            coll = self.mongo_db.items
+            coll.create_index(
+                [("category", 1), ("is_public", 1), ("updated_at", -1)]
+            )
+            coll.create_index(
+                [("category", 1), ("user_id", 1), ("updated_at", -1)]
+            )
+            coll.create_index([("category", 1), ("_id", -1)])
+        except Exception as exc:
+            # don't hard-fail app startup, but log loudly
+            app.logger.exception("Failed to create MongoDB indexes: %s", exc)
+
         app.extensions["item_storage"] = self
 
-        # Register MySQL model in schedula admin
         if "schedula_admin" in app.extensions:
             admin = app.extensions["schedula_admin"]
             admin.add_model(ItemSchema, category="Items")
