@@ -78,7 +78,8 @@ class User(db.Model, fsqla.FsUserMixin):
                 'avatar': self.avatar,
                 'settings': self.settings,
                 'custom_data': self.custom_data,
-                'roles': [r.name for r in self.roles]
+                'roles': [r.name for r in self.roles],
+                'token': self.get_auth_token()
             }.items() if v is not None}
 
 
