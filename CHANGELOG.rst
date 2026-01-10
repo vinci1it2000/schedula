@@ -1,6 +1,25 @@
 Changelog
 =========
 
+v1.5.73 (2026-01-10)
+--------------------
+
+Feat
+~~~~
+- (translations): Remove unused translation strings and update PO/MO
+  files across supported languages.
+
+- (form): Enhance file handling, ACL, and public item support.
+
+- (form): Add `token` field to user data serialization.
+
+
+Fix
+~~~
+- (sphinx): bump `sphinx` to 9.0.4 and refactor `autosummary` module for
+  streamlined `objtype` handling.
+
+
 v1.5.72 (2025-12-27)
 --------------------
 
