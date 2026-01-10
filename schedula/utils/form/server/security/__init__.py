@@ -22,7 +22,7 @@ import requests
 
 from ..extensions import db
 from sqlalchemy import Column, String, JSON
-from flask import request, Blueprint, jsonify, current_app, session
+from flask import request, Blueprint, jsonify, current_app, session, g
 from werkzeug.datastructures import MultiDict
 from wtforms import StringField, TextAreaField
 from wtforms.validators import ValidationError
@@ -235,6 +235,45 @@ def get_or_create_plasmic_token_for_current_user():
     session[PLASMIC_SESSION_TOKEN] = new_token
     session[PLASMIC_SESSION_EXP] = now + PLASMIC_TOKEN_TTL
     return new_token
+
+
+@bp.before_request
+def auto_login_if_trusted():
+    if cu.is_authenticated:
+        return None
+
+    if not getattr(g, "csrf_valid", False):
+        return None
+
+    token = request.headers.get("x-plasmic-data-user-auth-token")
+    if not token:
+        return None
+
+    plasmic_user, err = get_plasmic_app_user_from_token(token=token)
+    if err or not plasmic_user:
+        return None
+
+    external_id = plasmic_user.get("externalId") or plasmic_user.get(
+        "external_id"
+    )
+    email = plasmic_user.get("email")
+
+    user = None
+    if external_id:
+        user = User.query.get(external_id)
+        if user is None and str(external_id).isdigit():
+            user = User.query.get(int(external_id))
+
+    if user is None and email:
+        user = User.query.filter_by(email=email).first()
+
+    if not user or not getattr(user, "active", True):
+        return None
+
+    from flask_security.utils import login_user
+    login_user(user, remember=True, authn_via=["plasmic+csrf"])
+
+    return None
 
 
 # ---------------------------------------------------------------------
