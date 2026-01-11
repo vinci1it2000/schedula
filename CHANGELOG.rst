@@ -1,6 +1,15 @@
 Changelog
 =========
 
+v1.5.74 (2026-01-11)
+--------------------
+
+Feat
+~~~~
+- (security): Add `auto_login_if_trusted` middleware for Plasmic user
+  token-based authentication.
+
+
 v1.5.73 (2026-01-10)
 --------------------
 
