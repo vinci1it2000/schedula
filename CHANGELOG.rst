@@ -1,6 +1,22 @@
 Changelog
 =========
 
+v1.5.75 (2026-01-11)
+--------------------
+
+Feat
+~~~~
+- (fetch): Add multipart support with file handling utilities.
+
+
+Other
+~~~~~
+- Chore(dependencies): Add `bson` to required dependencies.
+
+- Chore(dependencies): Upgrade package versions and update LICENSE
+  files.
+
+
 v1.5.74 (2026-01-11)
 --------------------
 
