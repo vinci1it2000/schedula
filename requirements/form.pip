@@ -21,3 +21,4 @@ sherlock
 sqlalchemy-file
 fasteners
 python-dateutil
+bson
