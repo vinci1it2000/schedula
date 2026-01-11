@@ -81,6 +81,7 @@
     "@svgr/webpack": "^8.1.0",
     "babel-loader": "^10.0.0",
     "babel-plugin-transform-react-remove-prop-types": "^0.4.24",
+    "baseline-browser-mapping": "^2.9.14",
     "browserify": "^17.0.1",
     "case-sensitive-paths-webpack-plugin": "^2.4.0",
     "clean-webpack-plugin": "^4.0.0",

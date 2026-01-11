@@ -23,7 +23,7 @@ git add ../static/schedula/js/*.js.gz --force
 git add ../static/schedula/js/*.LICENSE.txt --force
 find ../static/schedula/css/ -name "*.css" -exec gzip {} \;
 git add ../static/schedula/css/*.css.gz --force
-find ../static/schedula/media/ -name "*" -exec gzip {} \;
+find ../static/schedula/media/ -name "*.*" -exec gzip {} \;
 git add ../static/schedula/media/*.gz --force
 
 echo "Done $f!"
