@@ -10,7 +10,6 @@ import unittest
 import datetime as dt
 import json
 import io
-import werkzeug
 from unittest import mock
 
 EXTRAS = os.environ.get('EXTRAS', 'all')
@@ -465,6 +464,7 @@ class _BaseItemsServiceTests:
                 ext.init_app(app)
 
     def test_method_not_allowed(self):
+        import werkzeug
         with self.app.test_request_context("/item/docs", method="TRACE"):
             with self._as(USER_A):
                 with self.assertRaises(werkzeug.exceptions.MethodNotAllowed):
@@ -1302,12 +1302,13 @@ class TestItemsServiceS3(_BaseItemsServiceTests, unittest.TestCase):
 # ======================================================================
 # EXTRA DIRECT BRANCH TESTS (items.py helpers / edge branches)
 # ======================================================================
-from werkzeug.exceptions import HTTPException
+
 
 
 class TestItemsServiceItemsPyFullBranches(unittest.TestCase):
     def test__abort_direct(self):
         from flask import Flask
+        from werkzeug.exceptions import HTTPException
         app = Flask("x")
         with app.test_request_context("/"):
             with self.assertRaises(HTTPException) as ctx:
@@ -1339,6 +1340,7 @@ class TestItemsServiceItemsPyFullBranches(unittest.TestCase):
         self.assertIn("inconsistent", str(ctx.exception).lower())
 
     def test_sanitize_mq_more_branches(self):
+        from werkzeug.exceptions import HTTPException
         with self.assertRaises(HTTPException):
             items_mod._sanitize_mq({"$where": "x"})
 
