@@ -40,7 +40,7 @@ class Config:
             "CONTACT_ENABLED", 'true'
         ).lower() == 'true'
         self.ITEMS_STORAGE_ENABLED = os.environ.get(
-            "ITEMS_STORAGE_ENABLED", 'true'
+            "ITEMS_STORAGE_ENABLED", 'false'
         ).lower() == 'true'
         self.FILES_STORAGE_ENABLED = os.environ.get(
             "FILES_STORAGE_ENABLED", 'true'
