@@ -478,6 +478,11 @@ class _BaseItemsServiceTests:
 # ======================================================================
 # GRIDFS BACKEND
 # ======================================================================
+@unittest.skipIf(
+    EXTRAS not in ('form', 'all') and GITHUB, 'Not for extra %s.' % EXTRAS
+)
+@unittest.skipIf(PLATFORM not in ('darwin', 'linux'),
+                 'Not for platform %s.' % PLATFORM)
 @unittest.skipIf(not GRIDFS_MOCK_OK,
                  'mongomock gridfs integration not available.')
 class TestItemsServiceGridFS(_BaseItemsServiceTests, unittest.TestCase):
@@ -884,6 +889,11 @@ class _FakeBody:
         return bytes(chunk)
 
 
+@unittest.skipIf(
+    EXTRAS not in ('form', 'all') and GITHUB, 'Not for extra %s.' % EXTRAS
+)
+@unittest.skipIf(PLATFORM not in ('darwin', 'linux'),
+                 'Not for platform %s.' % PLATFORM)
 class TestItemsServiceS3(_BaseItemsServiceTests, unittest.TestCase):
     @classmethod
     def _make_app_config(cls):
@@ -1308,7 +1318,11 @@ class TestItemsServiceS3(_BaseItemsServiceTests, unittest.TestCase):
 # ======================================================================
 
 
-
+@unittest.skipIf(
+    EXTRAS not in ('form', 'all') and GITHUB, 'Not for extra %s.' % EXTRAS
+)
+@unittest.skipIf(PLATFORM not in ('darwin', 'linux'),
+                 'Not for platform %s.' % PLATFORM)
 class TestItemsServiceItemsPyFullBranches(unittest.TestCase):
     def test__abort_direct(self):
         from flask import Flask
