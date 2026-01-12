@@ -34,8 +34,12 @@ except Exception:
     GRIDFS_MOCK_OK = False
 
 # --- import module under test
-import schedula.utils.form.server.items as items_mod
-from schedula.utils.form.server.extensions import db
+try:
+    import schedula.utils.form.server.items as items_mod
+    from schedula.utils.form.server.extensions import db
+except Exception:
+    items_mod = None
+    db = None
 
 
 # -----------------------------
