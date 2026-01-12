@@ -1,6 +1,18 @@
 Changelog
 =========
 
+v1.5.76 (2026-01-12)
+--------------------
+
+Fix
+~~~
+- (security): Remove `auto_login_if_trusted` middleware and unused `g`
+  import.
+
+- (dependencies): Add `boto3`, `gridfs`, `jsonschema`, and `flask-
+  pymongo` to requirements.
+
+
 v1.5.75 (2026-01-11)
 --------------------
 
