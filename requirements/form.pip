@@ -21,7 +21,6 @@ sherlock
 sqlalchemy-file
 fasteners
 python-dateutil
-bson
 boto3
 jsonschema
 flask-pymongo
