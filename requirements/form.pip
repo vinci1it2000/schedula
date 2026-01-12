@@ -22,3 +22,7 @@ sqlalchemy-file
 fasteners
 python-dateutil
 bson
+boto3
+gridfs
+jsonschema
+flask-pymongo
