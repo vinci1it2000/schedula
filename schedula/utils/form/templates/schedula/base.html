@@ -89,7 +89,7 @@
                     ..._schedulaProps
                 } = window.schedulaProps || {},
                 element = document.getElementById('root'),
-                csrf_token = "{{ csrf_token() }}",
+                csrf_token = "{{ csrf_token and csrf_token() or '' }}",
                 formData = JSON.parse('{{ form.get_form_data() | tojson | safe}}');
             let formContext = {
                 ..._formContext,

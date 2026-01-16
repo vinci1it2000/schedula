@@ -69,6 +69,8 @@ def basic_app(sitemap, app):
     if app.config['SCHEDULA_CSRF_ENABLED']:
         from .csrf import csrf
         csrf.init_app(app)
+    elif app.config.get('WTF_CSRF_ENABLED') == None:
+        app.config['WTF_CSRF_ENABLED'] = False
 
     if app.config['SECURITY_ENABLED']:
         from .security import Security
