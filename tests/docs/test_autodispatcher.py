@@ -270,7 +270,7 @@ class TestDispatcherDirective(unittest.TestCase):
         app.builder.env.app = app
         app.builder.env.temp_data['docname'] = 'dummy'
         app.build(True)
-        s = 'while setting up extension'
+        s = 'is already registered and will not be overridden'
         errors = [v for v in app._warning.content if s not in v and v != '\n']
         self.assertEqual(errors, [], '\n'.join(errors))
 

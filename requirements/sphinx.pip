@@ -1,4 +1,4 @@
 -r plot.pip
 
-sphinx>=9.0.4,<9.1
+sphinx>=9.0.4
 sphinx-click
