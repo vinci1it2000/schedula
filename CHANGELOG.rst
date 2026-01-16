@@ -1,6 +1,34 @@
 Changelog
 =========
 
+v1.5.77 (2026-01-16)
+--------------------
+
+Fix
+~~~
+- (sphinx): Correct Sphinx error.
+
+- (form): Correct bug when no CSRF token.
+
+- (dependencies): Restrict `sphinx` version to <9.1 in
+  `requirements/sphinx.pip`.
+
+- (config): Change default for `ITEMS_STORAGE_ENABLED` to false.
+
+- (dependencies): Reorganize `setup.py` dependencies and remove `bson`
+  from requirements.
+
+- (tests): Add platform and extras constraints to `test_form_items.py`
+  test classes.
+
+- (tests): Handle import errors in `test_form_items.py` gracefully.
+
+- (tests): Resolve missing `werkzeug` imports in `test_form_items.py`.
+
+- (dependencies): Reorganize `extras['form']` entries and remove
+  `gridfs` from requirements.
+
+
 v1.5.76 (2026-01-12)
 --------------------
 
