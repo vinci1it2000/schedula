@@ -22,6 +22,7 @@ import requests
 
 from ..extensions import db
 from sqlalchemy import Column, String, JSON
+from sqlalchemy.exc import SQLAlchemyError
 from flask import request, Blueprint, jsonify, current_app, session
 from werkzeug.datastructures import MultiDict
 from wtforms import StringField, TextAreaField
@@ -271,7 +272,7 @@ class ExtendedConfirmRegisterForm(ConfirmRegisterForm, EditForm):
 # Routes
 # ---------------------------------------------------------------------
 
-@bp.route('/edit', methods=['POST'])
+@bp.route('/edit', methods=['POST', 'PATCH'])
 @auth_required()
 def edit():
     if request.is_json:
@@ -288,17 +289,55 @@ def edit():
     return base_render_json(form)
 
 
-@bp.route('/settings', methods=['POST'])
+def _parse_include():
+    """
+    include=user,settings
+    """
+    raw = request.args.get("include", "settings")
+    return {x.strip() for x in raw.split(",") if x.strip()}
+
+
+@bp.route("/settings", methods=["GET", "POST", "PATCH", "PUT"])
 @auth_required()
 def settings():
-    if request.is_json:
-        data = MultiDict(request.get_json())
-    else:
-        data = request.form
-    cu.settings = data
-    db.session.add(cu)
-    db.session.commit()
-    return jsonify({'user': cu.get_security_payload()})
+    include = _parse_include()
+
+    if request.method != "GET":
+        # Parse input
+        if request.is_json:
+            payload = request.get_json(silent=True) or {}
+        else:
+            payload = request.form.to_dict(flat=True)
+
+        if not isinstance(payload, dict):
+            return jsonify({"error": "invalid_payload"}), 400
+
+        current = cu.settings or {}
+
+        # Semantics
+        if request.method in ("POST", "PATCH"):
+            merged = {**current, **payload}
+            new_settings = {k: v for k, v in merged.items() if v is not None}
+        else:  # PUT
+            new_settings = {k: v for k, v in payload.items() if v is not None}
+
+        # Persist
+        try:
+            cu.settings = new_settings
+            db.session.add(cu)
+            db.session.commit()
+        except SQLAlchemyError as e:
+            db.session.rollback()
+            return jsonify({"error": "db_error", "details": str(e)}), 500
+
+    # Response (optional fields)
+    resp = {}
+    if "settings" in include:
+        resp["settings"] = cu.settings or {}
+    if "user" in include:
+        resp["user"] = cu.get_security_payload()
+
+    return jsonify(resp), 200
 
 
 @bp.route('/plasmic', methods=['GET'])
