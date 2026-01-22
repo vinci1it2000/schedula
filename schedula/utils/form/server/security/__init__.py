@@ -9,14 +9,19 @@
 """
 It provides functions to build the user authentication service.
 """
+
+import inspect
+import json
+import logging
 import os
 import re
-import json
-import time
-import inspect
 import secrets
-import logging
-import flask_security
+import time
+
+try:
+    import flask_security
+except Exception:  # pragma: no cover
+    flask_security = None
 import os.path as osp
 import requests
 
@@ -27,32 +32,33 @@ from flask import request, Blueprint, jsonify, current_app, session
 from werkzeug.datastructures import MultiDict
 from wtforms import StringField, TextAreaField
 from wtforms.validators import ValidationError
-from flask_principal import Permission, RoleNeed
 from flask_security.models import fsqla_v3 as fsqla
 from flask_security.utils import base_render_json, suppress_form_csrf
-from flask_security.forms import (
-    ConfirmRegisterForm, RequiredLocalize, Form, get_form_field_label
-)
+from flask_security.forms import RegisterFormV2, Form, get_form_field_label
+from flask_security.signals import user_registered
+
+try:  # Flask-Security-Too older/newer compat
+    from flask_security.forms import RequiredLocalize
+except Exception:  # pragma: no cover
+    from wtforms.validators import DataRequired as RequiredLocalize
 from flask_security import (
-    Security as _Security, SQLAlchemyUserDatastore, current_user as cu,
-    auth_required
+    Security as _Security,
+    SQLAlchemyUserDatastore,
+    current_user as cu,
+    auth_required,
 )
 from flask_login import user_logged_in, user_logged_out
 
-bp = Blueprint('schedula_security', __name__)
+bp = Blueprint("schedula_security", __name__)
 
 log = logging.getLogger(__name__)
 # Define models
 fsqla.FsModels.set_db_info(db)
 
 
-def is_admin():
-    return Permission(RoleNeed('admin')).can()
-
-
 class Role(db.Model, fsqla.FsRoleMixin):
     def __repr__(self):
-        return f'Role({self.id}) {self.name}'
+        return f"Role({self.id}) {self.name}"
 
 
 class User(db.Model, fsqla.FsUserMixin):
@@ -63,25 +69,41 @@ class User(db.Model, fsqla.FsUserMixin):
     settings = Column(JSON())
 
     def name(self):
-        return f'{self.firstname} {self.lastname}'
+        return f"{self.firstname} {self.lastname}"
 
     def __repr__(self):
-        return f'User({self.id}) - {self.firstname} {self.lastname} <{self.email}>'
+        return f"User({self.id}) - {self.firstname} {self.lastname} <{self.email}>"
 
     def get_security_payload(self):
         if not current_app.security.confirmable or self.confirmed_at:
-            return {k: v for k, v in {
-                'id': self.id,
-                'email': self.email,
-                'username': self.username,
-                'firstname': self.firstname,
-                'lastname': self.lastname,
-                'avatar': self.avatar,
-                'settings': self.settings,
-                'custom_data': self.custom_data,
-                'roles': [r.name for r in self.roles],
-                'token': self.get_auth_token()
-            }.items() if v is not None}
+            return {
+                k: v
+                for k, v in {
+                    "id": self.id,
+                    "email": self.email,
+                    "username": self.username,
+                    "firstname": self.firstname,
+                    "lastname": self.lastname,
+                    "avatar": self.avatar,
+                    "settings": self.settings,
+                    "custom_data": self.custom_data,
+                    "roles": [r.name for r in self.roles],
+                    "token": self.get_auth_token(),
+                }.items()
+                if v is not None
+            }
+
+    def public_json(self):
+        return {
+            k: v
+            for k, v in {
+                "id": self.id,
+                "firstname": self.firstname,
+                "lastname": self.lastname,
+                "avatar": self.avatar,
+            }.items()
+            if v is not None
+        }
 
 
 class JSONField(StringField):
@@ -97,7 +119,7 @@ def validate_json(form, field):
 
 
 _re_base64_image_pattern = re.compile(
-    r'^data:image\/[a-zA-Z]+;base64,[A-Za-z0-9+/]+={0,2}$'
+    r"^data:image\/[a-zA-Z]+;base64,[A-Za-z0-9+/]+={0,2}$"
 )
 
 
@@ -119,9 +141,7 @@ def _pick_plasmic_role_id(user: User):
     Provide mapping in app.config['PLASMIC_ROLE_MAP'] = {'admin': 'ROLE_ID', ...}
     Return None if you don't use Plasmic roles.
     """
-    role_map = current_app.config.get(
-        "PLASMIC_ROLE_MAP", {}
-    ) if current_app else {}
+    role_map = current_app.config.get("PLASMIC_ROLE_MAP", {}) if current_app else {}
     if not role_map:
         return None
     names = {r.name for r in getattr(user, "roles", [])}
@@ -131,9 +151,7 @@ def _pick_plasmic_role_id(user: User):
     return None
 
 
-def ensure_plasmic_app_user(
-        *, email=None, external_id=None, role_id=None, timeout=10
-):
+def ensure_plasmic_app_user(*, email=None, external_id=None, role_id=None, timeout=10):
     """
     TS equivalent: ensurePlasmicAppUser()
     POST https://data.plasmic.app/api/v1/app-auth/user
@@ -242,29 +260,28 @@ def get_or_create_plasmic_token_for_current_user():
 # Forms
 # ---------------------------------------------------------------------
 
+
 # Setup Flask-Security
 class EditForm(Form):
     firstname = StringField(
-        get_form_field_label('firstname'),
+        get_form_field_label("firstname"),
         render_kw={"autocomplete": "firstname"},
-        validators=[RequiredLocalize()]
+        validators=[RequiredLocalize()],
     )
     lastname = StringField(
-        get_form_field_label('lastname'),
+        get_form_field_label("lastname"),
         render_kw={"autocomplete": "lastname"},
-        validators=[RequiredLocalize()]
+        validators=[RequiredLocalize()],
     )
     avatar = StringField(
-        get_form_field_label('avatar'),
-        validators=[is_base64_encoded_image]
+        get_form_field_label("avatar"), validators=[is_base64_encoded_image]
     )
     custom_data = TextAreaField(
-        get_form_field_label('custom_data'),
-        validators=[validate_json]
+        get_form_field_label("custom_data"), validators=[validate_json]
     )
 
 
-class ExtendedConfirmRegisterForm(ConfirmRegisterForm, EditForm):
+class ExtendedRegisterForm(RegisterFormV2, EditForm):
     pass
 
 
@@ -272,7 +289,8 @@ class ExtendedConfirmRegisterForm(ConfirmRegisterForm, EditForm):
 # Routes
 # ---------------------------------------------------------------------
 
-@bp.route('/edit', methods=['POST', 'PATCH'])
+
+@bp.route("/edit", methods=["POST", "PATCH"])
 @auth_required()
 def edit():
     if request.is_json:
@@ -340,7 +358,7 @@ def settings():
     return jsonify(resp), 200
 
 
-@bp.route('/plasmic', methods=['GET'])
+@bp.route("/plasmic", methods=["GET"])
 def plasmic():
     """
     Frontend calls this endpoint to get plasmicUser + plasmicUserToken.
@@ -365,64 +383,93 @@ def plasmic():
 # Security wrapper
 # ---------------------------------------------------------------------
 
+
 class Security:
     def __init__(self, app, *args, **kwargs):
         if app is not None:
             self.init_app(app, *args, **kwargs)
 
     def init_app(self, app, *args, **kwargs):
-        app.extensions = getattr(app, 'extensions', {})
+        app.extensions = getattr(app, "extensions", {})
         defaults = {
-            "SECURITY_PASSWORD_SALT": f'{secrets.SystemRandom().getrandbits(128)}',
-            "SECURITY_BLUEPRINT_NAME": 'security',
-            "SECURITY_URL_PREFIX": '/user',
+            "SECURITY_PASSWORD_SALT": f"{secrets.SystemRandom().getrandbits(128)}",
+            "SECURITY_BLUEPRINT_NAME": "security",
+            "SECURITY_URL_PREFIX": "/user",
             "SECURITY_CONFIRMABLE": True,
             "SECURITY_CHANGEABLE": True,
             "SECURITY_AUTO_LOGIN_AFTER_CONFIRM": False,
             "SECURITY_AUTO_LOGIN_AFTER_RESET": True,
-            "SECURITY_POST_CONFIRM_VIEW": '/#login',
-            "SECURITY_CONFIRM_ERROR_VIEW": '/#login',
+            "SECURITY_POST_CONFIRM_VIEW": "/#login",
+            "SECURITY_CONFIRM_ERROR_VIEW": "/#login",
             "SECURITY_REGISTERABLE": True,
             "SECURITY_SEND_REGISTER_EMAIL": True,
             "SECURITY_RECOVERABLE": True,
-            "SECURITY_RESET_VIEW": '/#reset',
-            "SECURITY_RESET_ERROR_VIEW": '/#login',
-            "SECURITY_REDIRECT_BEHAVIOR": 'spa',
+            "SECURITY_RESET_VIEW": "/#reset",
+            "SECURITY_RESET_ERROR_VIEW": "/#login",
+            "SECURITY_REDIRECT_BEHAVIOR": "spa",
             "SECURITY_TRACKABLE": True,
+            "SECURITY_GROUPS_ENABLED": True,
             "REMEMBER_COOKIE_SAMESITE": "strict",
             "SESSION_COOKIE_SAMESITE": "strict",
             "PLASMIC_HOST": "https://data.plasmic.app",
             "PLASMIC_SESSION_TOKEN": "plasmic_user_token",
             "PLASMIC_SESSION_EXP": "plasmic_user_token_exp",  # epoch seconds
-            "PLASMIC_TOKEN_TTL": 7 * 24 * 3600  # 7 days
+            "PLASMIC_TOKEN_TTL": 7 * 24 * 3600,  # 7 days
         }
         for k, v in defaults.items():
             app.config[k] = app.config.get(k, os.environ.get(k, v))
             if isinstance(v, bool):
-                app.config[k] = str(app.config[k]).lower() == 'true'
+                app.config[k] = str(app.config[k]).lower() == "true"
             elif isinstance(v, int):
                 app.config[k] = int(app.config[k])
 
         SECURITY_I18N_DIRNAME = [
             "translations",
-            os.environ.get('SECURITY_I18N_DIRNAME', 'translations'),
+            os.environ.get("SECURITY_I18N_DIRNAME", "translations"),
         ]
-        SECURITY_I18N_DIRNAME.append(osp.join(
-            osp.dirname(inspect.getfile(flask_security)), 'translations'
-        ))
-        app.config['SECURITY_I18N_DIRNAME'] = app.config.get(
-            'SECURITY_I18N_DIRNAME', SECURITY_I18N_DIRNAME
+        SECURITY_I18N_DIRNAME.append(
+            osp.join(osp.dirname(inspect.getfile(flask_security)), "translations")
+        )
+        app.config["SECURITY_I18N_DIRNAME"] = app.config.get(
+            "SECURITY_I18N_DIRNAME", SECURITY_I18N_DIRNAME
         )
         user_datastore = SQLAlchemyUserDatastore(db, User, Role)
         app.security = _Security(
-            app, user_datastore,
-            confirm_register_form=ExtendedConfirmRegisterForm,
-            register_blueprint=True
+            app,
+            user_datastore,
+            register_form=ExtendedRegisterForm,
+            register_blueprint=True,
         )
 
         # register our extra routes under SECURITY_URL_PREFIX (default: /user)
         app.register_blueprint(bp, url_prefix=app.config["SECURITY_URL_PREFIX"])
-        app.extensions['schedula_security'] = self
+        app.extensions["schedula_security"] = self
+
+        if app.config.get("SECURITY_GROUPS_ENABLED", True):
+            from .groups import bp as groups_bp
+
+            if "groups_panel" not in app.extensions:
+                app.register_blueprint(groups_bp, url_prefix="/groups")
+                app.extensions["groups_panel"] = True
+
+        # -------------------------
+        # Casbin bootstrap (public role/group)
+        # -------------------------
+
+        def _casbin_bootstrap():
+            try:
+                from .casbin.models import ensure_public_group
+
+                ensure_public_group()
+            except Exception:
+                pass
+
+        if hasattr(app, "before_first_request"):
+            app.before_first_request(_casbin_bootstrap)
+        elif hasattr(app, "before_app_first_request"):
+            app.before_app_first_request(_casbin_bootstrap)
+        else:
+            app.before_request(_casbin_bootstrap)
 
         # -------------------------
         # Plasmic session lifecycle
@@ -444,3 +491,24 @@ class Security:
                     _ = get_or_create_plasmic_token_for_current_user()
                 except Exception:
                     pass
+
+        @user_registered.connect_via(app)
+        def after_user_registered(sender, user, confirm_token, **extra):
+            from .casbin import bootstrap_user
+
+            db.session.flush()
+            assert user.id is not None
+            bootstrap_user(user.id)
+
+
+def is_admin():
+    """Check if the current user is a system administrator."""
+    if not cu.is_authenticated:
+        return False
+    try:
+        from .casbin.helpers import is_system_admin, get_current_sub
+
+        return is_system_admin(get_current_sub())
+    except Exception:
+        # Fallback: check if user has admin role
+        return any(r.name == "admin" for r in getattr(cu, "roles", []))

@@ -17,7 +17,6 @@ Sub-Modules:
     :nosignatures:
     :toctree: form/
 
-    admin
     contact
     credits
     csrf
@@ -29,6 +28,7 @@ Sub-Modules:
     locale
     security
 """
+
 import logging
 import schedula as sh
 
@@ -38,74 +38,94 @@ log = logging.getLogger(__name__)
 def default_get_form_context():
     from flask import current_app
     from flask_security import current_user as cu
+
     return {
-        'reCAPTCHA': current_app.config.get('RECAPTCHA_PUBLIC_KEY'),
-        'stripeKey': current_app.config.get('STRIPE_PUBLISHABLE_KEY'),
-        'userInfo': sh.combine_dicts(*(
-            getattr(cu, k, lambda: {})()
-            for k in ("get_security_payload",)
-        )),
+        "reCAPTCHA": current_app.config.get("RECAPTCHA_PUBLIC_KEY"),
+        "stripeKey": current_app.config.get("STRIPE_PUBLISHABLE_KEY"),
+        "userInfo": sh.combine_dicts(
+            *(getattr(cu, k, lambda: {})() for k in ("get_security_payload",))
+        ),
     }
 
 
-def basic_app(sitemap, app):
+def basic_app(sitemap, app, config=None):
     from ..config import Config
     from .extensions import db
-    app.config.from_object(Config())
-    if getattr(sitemap, 'basic_app_config'):
-        app.config.from_object(sitemap.basic_app_config)
 
+    app.config.from_object(Config())
+    if getattr(sitemap, "basic_app_config"):
+        app.config.from_object(sitemap.basic_app_config)
+    if config:
+        app.config.update(config)
     # Create database connection object
     db.init_app(app)
 
-    if app.config['SCHEDULA_SECRETS_ENABLED']:
+    if app.config["SCHEDULA_SECRETS_ENABLED"]:
         from .json_secrets import Secrets
+
         Secrets(app)
 
-    if app.config['SCHEDULA_LOCALE_ENABLED']:
+    if app.config["SCHEDULA_LOCALE_ENABLED"]:
         from .locale import Locales
+
         Locales(app)
 
-    if app.config['SCHEDULA_CSRF_ENABLED']:
+    if app.config["SCHEDULA_CSRF_ENABLED"]:
         from .csrf import csrf
-        csrf.init_app(app)
-    elif app.config.get('WTF_CSRF_ENABLED') == None:
-        app.config['WTF_CSRF_ENABLED'] = False
 
-    if app.config['SECURITY_ENABLED']:
+        csrf.init_app(app)
+    elif app.config.get("WTF_CSRF_ENABLED") == None:
+        app.config["WTF_CSRF_ENABLED"] = False
+
+    if app.config["SECURITY_ENABLED"]:
         from .security import Security
+
         Security(app)
 
-    if app.config.get('ADMIN_ENABLED'):
-        from .admin import Admin
-        Admin(app)
-
-    if app.config.get('SCHEDULA_CREDITS_ENABLED'):
+    if app.config.get("SCHEDULA_CREDITS_ENABLED"):
         from .credits import Credits
+
         Credits(app, sitemap)
 
-    if app.config.get('CONTACT_ENABLED'):
+    if app.config.get("CONTACT_ENABLED"):
         from .contact import Contact
+
         Contact(app)
 
-    if app.config.get('ITEMS_STORAGE_ENABLED'):
+    if app.config.get("ITEMS_STORAGE_ENABLED"):
         from .items import Items
+
         Items(app, sitemap)
 
-    if app.config.get('FILES_STORAGE_ENABLED'):
+    if app.config.get("FILES_STORAGE_ENABLED"):
         from .files import Files
+
         Files(app, sitemap)
 
-    if app.config['SCHEDULA_GDPR_ENABLED']:
+    # OpenAPI + Swagger UI
+    if app.config.get("OPENAPI_ENABLED", True):
+        from .openapi import OpenAPI
+
+        OpenAPI(app)
+
+    # Casbin policy admin (Casbin-authz only)
+    if app.config.get("CASBIN_ADMIN_ENABLED", True):
+        # from .security.casbin import CasbinAdminPanel
+        # CasbinAdminPanel(app)  # Temporarily disabled - module not found
+        pass
+
+    if app.config["SCHEDULA_GDPR_ENABLED"]:
         from .gdpr import GDPR
+
         GDPR(app, sitemap)
 
-    if app.config['SCHEDULA_EXPORT_FORM_ENABLED']:
+    if app.config["SCHEDULA_EXPORT_FORM_ENABLED"]:
         from .export import ExportForm
+
         ExportForm(app, sitemap)
 
     @app.context_processor
     def inject_application_root():
-        return dict(app_root=app.config.get('APPLICATION_ROOT', ''))
+        return dict(app_root=app.config.get("APPLICATION_ROOT", ""))
 
     return app

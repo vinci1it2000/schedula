@@ -14,7 +14,7 @@ import datetime
 from flask import current_app, session, g, request
 from itsdangerous import URLSafeTimedSerializer
 from flask_wtf.csrf import CSRFProtect, CSRFError, generate_csrf
-
+from .utils import now_utc
 
 class CSRF(CSRFProtect):
     def setup_form(self, form):
@@ -61,7 +61,7 @@ class CSRF(CSRFProtect):
                     self._error_response("The CSRF tokens do not match.")
                 time_limit = current_app.config["WTF_CSRF_TIME_LIMIT"] or 0
                 if time_limit >= 0:
-                    now = datetime.datetime.now(tz=datetime.timezone.utc)
+                    now = now_utc()
                     if not (0 <= (now - ts).total_seconds() <= time_limit):
                         g.csrf_refresh = True
                 g.csrf_valid = True

@@ -23,18 +23,20 @@ Sub-Modules:
     server
 """
 import functools
-import io
-import os
-import gzip
 import glob
+import gzip
+import io
 import json
 import mimetypes
-import webbrowser
+import os
 import os.path as osp
-from ..web import WebMap
-from jinja2 import TemplateNotFound
+import webbrowser
 from collections import OrderedDict
+
+from jinja2 import TemplateNotFound
 from werkzeug.exceptions import NotFound
+
+from ..web import WebMap
 
 try:
     from smart_open import open as _open
@@ -240,11 +242,14 @@ class FormMap(WebMap):
         app.register_blueprint(bp)
         return app
 
-    def basic_app(self, root_path, mute=True, blueprint_name=None, **kwargs):
+    def basic_app(
+            self, root_path, mute=True, blueprint_name=None, config=None,
+            **kwargs
+    ):
         app = super(FormMap, self).basic_app(
             root_path, mute=mute, blueprint_name=blueprint_name, **kwargs
         )
         if blueprint_name is None:
             from .server import basic_app
-            app = basic_app(self, app)
+            app = basic_app(self, app, config)
         return app

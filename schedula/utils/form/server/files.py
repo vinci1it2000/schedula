@@ -221,6 +221,7 @@ class FileName(db.Model):
 ])
 @auth_required()
 def file(category, id_item=None):
+    category = normalize_category(category)
     args = request.args
     method = request.method
     is_get = method == 'GET'
@@ -324,7 +325,3 @@ class Files:
         app.extensions = getattr(app, 'extensions', {})
         app.register_blueprint(bp, url_prefix='/file')
         app.extensions['file_storage'] = self
-        if 'schedula_admin' in app.extensions:
-            admin = app.extensions['schedula_admin']
-            for v in (FileName, File):
-                admin.add_model(v, category="Files")

@@ -12,7 +12,6 @@ It provides functions to build the contact service.
 import os
 import rst2txt
 import logging
-import datetime
 import schedula as sh
 from flask import render_template
 from docutils.core import publish_string
@@ -30,6 +29,7 @@ from flask_security.forms import (
     email_required, EmailValidation
 )
 from .locale import lazy_gettext
+from .utils import now_utc
 
 log = logging.getLogger(__name__)
 bp = Blueprint('contact', __name__)
@@ -121,8 +121,7 @@ def contact():
                 to=[form.data['email'], ca.config.get('MAIL_DEFAULT_SENDER')],
                 rst='contact', reply_to=form.data['email'], data={
                     'user': cu, 'data': data,
-                    'created': datetime.datetime.now().strftime(
-                        "%d/%m/%Y-%H:%M:%S")
+                    'created': now_utc().strftime("%d/%m/%Y-%H:%M:%S")
                 }
             )
             flash(str(lazy_gettext(
