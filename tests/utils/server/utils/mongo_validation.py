@@ -1,13 +1,13 @@
 # coding: utf-8
 from __future__ import annotations
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict
+from mongomock import Database, Collection
 
-import jsonschema
 from jsonschema import Draft202012Validator
 
 
-class ValidatingMongoCollection:
+class ValidatingMongoCollection(Collection):
     """
     Wrap a mongomock collection to enforce a Mongo-like $jsonSchema validator.
 
@@ -71,7 +71,7 @@ class ValidatingMongoCollection:
         return self._c.update_many(filter, update, *args, **kwargs)
 
 
-class ValidatingMongoDatabase:
+class ValidatingMongoDatabase(Database):
     """
     Wrap a mongomock database and implement `.command("collMod", ...)`.
     """
@@ -105,6 +105,8 @@ class ValidatingMongoDatabase:
         if hasattr(raw, "name"):
             return ValidatingMongoCollection(raw, self._validators)
         return raw
+
+    __getitem__ = __getattr__
 
     def get_collection(self, name: str):
         return ValidatingMongoCollection(

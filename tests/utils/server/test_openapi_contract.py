@@ -1,12 +1,11 @@
 # coding: utf-8
 from __future__ import annotations
 
-from typing import Dict, Set
 import importlib.resources as ir
+from typing import Dict, Set
 
 import pytest
 from schemathesis.openapi import from_path
-
 from tests.utils.server.utils.openapi import is_multipart
 
 

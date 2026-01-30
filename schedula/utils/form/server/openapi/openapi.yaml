@@ -5,22 +5,24 @@ info:
   description: OpenAPI spec generato dal codice server (Flask). Alcuni endpoint sono
     condizionati da feature-flag di configurazione.
 servers:
-- url: /
+  - url: /
 tags:
-- name: OpenAPI
-- name: Security
-- name: Groups
-- name: Casbin
-- name: Items
-- name: Item ACL
-- name: Item Files
-- name: Item Schemas
-- name: Export
-- name: Stripe
-- name: GDPR
-- name: Contact
-- name: Locales
-- name: Files
+  - name: OpenAPI
+  - name: Security
+  - name: Groups
+  - name: Casbin
+  - name: Items
+  - name: Item ACL
+  - name: Item Files
+  - name: Item Schemas
+  - name: Export
+  - name: Stripe
+  - name: GDPR
+  - name: Contact
+  - name: Locales
+  - name: Files
+  - name: Notifications
+  - name: Templates
 components:
   securitySchemes:
     bearerAuth:
@@ -35,6 +37,10 @@ components:
       type: apiKey
       in: header
       name: Authentication-Token
+    ApiSecret:
+      type: apiKey
+      in: header
+      name: X-Notif-Secret
   schemas:
     Error:
       type: object
@@ -51,6 +57,230 @@ components:
       properties:
         status:
           type: string
+    StripeCheckoutSessionResponse:
+      type: object
+      properties:
+        clientSecret:
+          type: string
+          nullable: true
+        sessionId:
+          type: string
+    StripeSessionStatusResponse:
+      type: object
+      properties:
+        status:
+          type: string
+        customer_email:
+          type: string
+          nullable: true
+        userInfo:
+          type: object
+          additionalProperties: true
+    StripeBalanceWallet:
+      type: object
+      properties:
+        name:
+          type: string
+        balance:
+          type: object
+          additionalProperties: true
+        main:
+          type: boolean
+    StripeBalanceResponse:
+      type: object
+      additionalProperties:
+        $ref: '#/components/schemas/StripeBalanceWallet'
+    StripeSubscriptionResponse:
+      type: object
+      additionalProperties: true
+    StripePortalSessionResponse:
+      type: object
+      properties:
+        session_url:
+          type: string
+        error:
+          type: string
+          nullable: true
+    StripePricingTableSessionResponse:
+      type: object
+      properties:
+        clientSecret:
+          type: string
+        error:
+          type: string
+          nullable: true
+    StripeWebhookResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+    NotificationCreateRequest:
+      type: object
+      required: [ event, targets, payload ]
+      properties:
+        event:
+          type: string
+          example: report.ready
+        actor:
+          type: string
+          example: u:1
+        targets:
+          type: object
+          description: >
+            Map of target principals to channel list. Example:
+            {"u:2": ["in_app"], "u:3": ["mail"]}
+          additionalProperties:
+            type: array
+            items:
+              type: string
+          example:
+            u:2: [ "mail" ]
+            u:3: [ "push" ]
+        severity:
+          type: string
+          enum: [ info, warning, error, critical ]
+          default: info
+        sender_user_id:
+          type: integer
+          nullable: true
+        sender_principal:
+          type: string
+          nullable: true
+        sender_is_system:
+          type: boolean
+          default: false
+        persist:
+          description: >
+            Persistence policy. true=store, false=ephemeral (still delivered),
+            auto=store only when needed.
+          oneOf:
+            - type: boolean
+            - type: string
+              enum: [ auto ]
+          default: auto
+        payload:
+          type: object
+          additionalProperties: true
+          example:
+            title: Report ready
+            message: ACME Q4 report is ready
+            url: https://example.com/reports/abc
+            data:
+              report_id: abc
+    NotificationCreateResponse:
+      type: object
+      properties:
+        id:
+          type: string
+    NotificationListResponse:
+      type: object
+      properties:
+        notifications:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        total:
+          type: integer
+        next_offset:
+          type: integer
+          nullable: true
+    UnreadCountResponse:
+      type: object
+      properties:
+        unread:
+          type: integer
+          example: 3
+    TemplateUpsertRequest:
+      type: object
+      properties:
+        id:
+          type: string
+        event:
+          type: string
+        scope:
+          type: object
+          properties:
+            category:
+              type: string
+            event:
+              type: string
+            dom:
+              type: string
+        channel:
+          type: string
+        enabled:
+          type: boolean
+          default: true
+        title:
+          type: string
+        body:
+          type: string
+        channel_overrides:
+          type: object
+          additionalProperties: true
+    WatcherRequest:
+      type: object
+      properties:
+        event:
+          type: string
+          example: update
+        category:
+          type: string
+          example: note
+        object_id:
+          type: string
+          example: '*'
+        dom:
+          type: string
+          example: 'acl:group:123'
+        channels:
+          type: array
+          items:
+            type: string
+        enabled:
+          type: boolean
+          default: true
+    WatcherListResponse:
+      type: object
+      properties:
+        watchers:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+    NotificationRuleInput:
+      type: object
+      properties:
+        scope:
+          type: object
+          properties:
+            category:
+              type: string
+            dom:
+              type: string
+        defaults:
+          type: array
+          items:
+            type: string
+        mandatory:
+          type: array
+          items:
+            type: string
+        allowed:
+          type: array
+          items:
+            type: string
+        enabled:
+          type: boolean
+          default: true
+    NotificationRule:
+      allOf:
+        - $ref: '#/components/schemas/NotificationRuleInput'
+        - type: object
+          properties:
+            id:
+              type: string
     Item:
       type: object
       properties:
@@ -116,8 +346,8 @@ components:
     ShareEntry:
       type: object
       required:
-      - target
-      - actions
+        - target
+        - actions
       properties:
         target:
           type: string
@@ -127,13 +357,13 @@ components:
           items:
             type: string
             enum:
-            - read
-            - write
-            - manage
+              - read
+              - write
+              - manage
     ShareReplacePayload:
       type: object
       required:
-      - entries
+        - entries
       properties:
         entries:
           type: array
@@ -157,8 +387,8 @@ components:
         status:
           type: string
           enum:
-          - draft
-          - published
+            - draft
+            - published
         is_enabled:
           type: boolean
         is_placeholder:
@@ -212,8 +442,8 @@ components:
     ItemSchemaDraftCreate:
       type: object
       required:
-      - version
-      - schema
+        - version
+        - schema
       properties:
         version:
           type: string
@@ -247,18 +477,26 @@ components:
         is_enabled:
           type: boolean
 security:
-- bearerAuth: []
-- cookieAuth: []
-- authToken: []
+  - bearerAuth: [ ]
+  - cookieAuth: [ ]
+  - authToken: [ ]
 paths:
   /docs:
     get:
       tags:
-      - OpenAPI
+        - OpenAPI
       summary: Swagger UI
+      description: >
+        Serves the interactive Swagger UI for this API. This is a public
+        endpoint intended for exploration and manual testing. The response
+        is an HTML document.
       responses:
         '200':
           description: OK
+          content:
+            text/html:
+              schema:
+                type: string
         '400':
           description: Bad Request
           content:
@@ -289,15 +527,24 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-      security: []
+      security: [ ]
   /openapi.json:
     get:
       tags:
-      - OpenAPI
+        - OpenAPI
       summary: OpenAPI JSON
+      description: >
+        Returns the OpenAPI document in JSON format. This endpoint is public
+        and intended for tooling, SDK generation, and contract checks. The
+        payload is the full API schema.
       responses:
         '200':
           description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
         '400':
           description: Bad Request
           content:
@@ -328,15 +575,22 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-      security: []
+      security: [ ]
   /openapi.yaml:
     get:
       tags:
-      - OpenAPI
+        - OpenAPI
       summary: OpenAPI YAML
+      description: >
+        Returns the OpenAPI document in YAML format. This endpoint is public
+        and intended for documentation tooling. The response is a YAML string.
       responses:
         '200':
           description: OK
+          content:
+            application/yaml:
+              schema:
+                type: string
         '400':
           description: Bad Request
           content:
@@ -367,12 +621,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-      security: []
+      security: [ ]
   /user/login:
     post:
       tags:
-      - Security
+        - Security
       summary: Login (Flask-Security)
+      description: >
+        Authenticates a user by email and password via Flask-Security. On success
+        it returns a user payload and an authentication token. This endpoint is
+        public and does not require prior authentication.
       responses:
         '200':
           description: Authenticated
@@ -395,17 +653,26 @@ paths:
                 remember:
                   type: boolean
               required:
-              - email
-              - password
-      security: []
+                - email
+                - password
+      security: [ ]
   /user/logout:
     post:
       tags:
-      - Security
+        - Security
       summary: Logout (Flask-Security)
+      description: >
+        Logs out the current user session or token. This endpoint requires
+        authentication and invalidates the active credentials. It returns a
+        generic status payload.
       responses:
         '200':
           description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
         '400':
           description: Bad Request
           content:
@@ -439,11 +706,20 @@ paths:
   /user/register:
     post:
       tags:
-      - Security
+        - Security
       summary: Register (Flask-Security)
+      description: >
+        Creates a new user account using Flask-Security. Email confirmation may
+        be required depending on configuration. Returns a registration status
+        and user payload on success.
       responses:
         '200':
           description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
         '400':
           description: Bad Request
           content:
@@ -481,15 +757,23 @@ paths:
             schema:
               type: object
               additionalProperties: true
-      security: []
+      security: [ ]
   /user/confirm/{token}:
     get:
       tags:
-      - Security
+        - Security
       summary: Confirm email (Flask-Security)
+      description: >
+        Confirms a user account using a confirmation token. The token is typically
+        delivered via email. Returns a status payload indicating the outcome.
       responses:
         '200':
           description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
         '400':
           description: Bad Request
           content:
@@ -521,20 +805,29 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
       parameters:
-      - name: token
-        in: path
-        required: true
-        schema:
-          type: string
-      security: []
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+      security: [ ]
   /user/confirm:
     post:
       tags:
-      - Security
+        - Security
       summary: Re-send confirmation (Flask-Security)
+      description: >
+        Resends email confirmation instructions for a user. This endpoint is
+        public and accepts the user email in the payload. It returns a status
+        response regardless of whether the email exists.
       responses:
         '200':
           description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
         '400':
           description: Bad Request
           content:
@@ -572,15 +865,24 @@ paths:
             schema:
               type: object
               additionalProperties: true
-      security: []
+      security: [ ]
   /user/reset:
     post:
       tags:
-      - Security
+        - Security
       summary: Request password reset (Flask-Security)
+      description: >
+        Starts a password reset flow by email. For security, the response is
+        always a generic success payload. If the email exists, reset instructions
+        are sent.
       responses:
         '200':
           description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
         '400':
           description: Bad Request
           content:
@@ -621,16 +923,25 @@ paths:
                 email:
                   type: string
               required:
-              - email
-      security: []
+                - email
+      security: [ ]
   /user/reset/{token}:
     post:
       tags:
-      - Security
+        - Security
       summary: Perform password reset (Flask-Security)
+      description: >
+        Completes a password reset using a valid token and a new password. The
+        token is supplied in the URL and must match an issued reset request. The
+        response indicates whether the reset succeeded.
       responses:
         '200':
           description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
         '400':
           description: Bad Request
           content:
@@ -662,11 +973,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
       parameters:
-      - name: token
-        in: path
-        required: true
-        schema:
-          type: string
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
       requestBody:
         required: true
         content:
@@ -677,13 +988,17 @@ paths:
                 password:
                   type: string
               required:
-              - password
-      security: []
+                - password
+      security: [ ]
   /user/change:
     post:
       tags:
-      - Security
+        - Security
       summary: Change password (Flask-Security)
+      description: >
+        Changes the password for the authenticated user. Requires the current
+        password and a new password in the request body. Returns a status payload
+        indicating success or failure.
       responses:
         '200':
           description: OK
@@ -729,13 +1044,17 @@ paths:
                 new_password:
                   type: string
               required:
-              - password
-              - new_password
+                - password
+                - new_password
   /user/verify:
     get:
       tags:
-      - Security
+        - Security
       summary: Verify (Flask-Security, se abilitato)
+      description: >
+        Returns verification status for the current user or verification token.
+        This endpoint is available only when verification is enabled in config.
+        The response is a status payload.
       responses:
         '200':
           description: OK
@@ -772,8 +1091,12 @@ paths:
   /user/edit:
     post:
       tags:
-      - Security
+        - Security
       summary: Edit current user profile fields
+      description: >
+        Replaces editable profile fields for the current user. This endpoint
+        requires authentication and accepts a JSON object of fields. The
+        response includes the updated user profile.
       responses:
         '200':
           description: OK
@@ -816,8 +1139,12 @@ paths:
               additionalProperties: true
     patch:
       tags:
-      - Security
+        - Security
       summary: Patch current user profile fields
+      description: >
+        Applies a partial update to the current user's profile fields. Only the
+        provided fields are modified. The response includes the updated profile
+        data.
       responses:
         '200':
           description: OK
@@ -861,8 +1188,11 @@ paths:
   /user/settings:
     get:
       tags:
-      - Security
+        - Security
       summary: Get user settings
+      description: >
+        Returns the full settings object for the current user. Requires
+        authentication. The response is a JSON dictionary of settings.
       responses:
         '200':
           description: OK
@@ -897,16 +1227,19 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
       parameters:
-      - name: include
-        in: query
-        required: false
-        schema:
-          type: string
-        description: 'Comma-separated: settings,user'
+        - name: include
+          in: query
+          required: false
+          schema:
+            type: string
+          description: 'Comma-separated: settings,user'
     post:
       tags:
-      - Security
+        - Security
       summary: Merge settings (POST)
+      description: >
+        Merges the provided settings into the existing user settings. Keys not
+        provided are left unchanged. Returns the updated settings object.
       responses:
         '200':
           description: OK
@@ -941,11 +1274,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
       parameters:
-      - name: include
-        in: query
-        required: false
-        schema:
-          type: string
+        - name: include
+          in: query
+          required: false
+          schema:
+            type: string
       requestBody:
         required: true
         content:
@@ -953,10 +1286,52 @@ paths:
             schema:
               type: object
               additionalProperties: true
+  /user/notifications/devices:
+    post:
+      tags:
+        - Security
+      summary: Set push device ids
+      description: >
+        Stores push device ids for the current user inside settings.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                device_ids:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
     patch:
       tags:
-      - Security
+        - Security
       summary: Merge settings (PATCH)
+      description: >
+        Applies a partial merge of user settings. Only provided keys are merged
+        into the existing settings. Returns the updated settings object.
       responses:
         '200':
           description: OK
@@ -991,11 +1366,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
       parameters:
-      - name: include
-        in: query
-        required: false
-        schema:
-          type: string
+        - name: include
+          in: query
+          required: false
+          schema:
+            type: string
       requestBody:
         required: true
         content:
@@ -1005,8 +1380,12 @@ paths:
               additionalProperties: true
     put:
       tags:
-      - Security
+        - Security
       summary: Replace settings (PUT)
+      description: >
+        Replaces the entire settings object for the current user. Any previous
+        settings are overwritten by the provided payload. Returns the new
+        settings object.
       responses:
         '200':
           description: OK
@@ -1041,11 +1420,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
       parameters:
-      - name: include
-        in: query
-        required: false
-        schema:
-          type: string
+        - name: include
+          in: query
+          required: false
+          schema:
+            type: string
       requestBody:
         required: true
         content:
@@ -1056,8 +1435,12 @@ paths:
   /user/plasmic:
     get:
       tags:
-      - Security
+        - Security
       summary: Get Plasmic app-auth user+token (null when anonymous)
+      description: >
+        Returns the user identity and token for Plasmic integration. If the
+        request is anonymous, the response contains null user information. This
+        endpoint is used by external tooling and UI builders.
       responses:
         '200':
           description: OK
@@ -1091,12 +1474,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-      security: []
+      security: [ ]
   /groups:
     get:
       tags:
-      - Groups
+        - Groups
       summary: List my groups
+      description: >
+        Lists groups visible to the current authenticated user. Supports
+        pagination and optional filtering by name/type. Returns group summaries
+        and pagination metadata.
       responses:
         '200':
           description: OK
@@ -1131,62 +1518,65 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
       parameters:
-      - &id002
-        name: limit
-        in: query
-        required: false
-        schema:
-          type: integer
-          minimum: 1
-          maximum: 200
-      - &id003
-        name: offset
-        in: query
-        required: false
-        schema:
-          type: integer
-          minimum: 0
-      - &id004
-        name: page
-        in: query
-        required: false
-        schema:
-          type: integer
-          minimum: 1
-      - &id005
-        name: page_size
-        in: query
-        required: false
-        schema:
-          type: integer
-          minimum: 1
-          maximum: 200
-      - &id007
-        name: sort
-        in: query
-        required: false
-        schema:
-          type: string
-        description: 'Campo e direzione, es: created_at:-1'
-      - name: admin_only
-        in: query
-        required: false
-        schema:
-          type: boolean
-      - name: type
-        in: query
-        required: false
-        schema:
-          type: string
-      - name: name
-        in: query
-        required: false
-        schema:
-          type: string
+        - &id002
+          name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+        - &id003
+          name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+        - &id004
+          name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+        - &id005
+          name: page_size
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+        - &id007
+          name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+          description: 'Campo e direzione, es: created_at:-1'
+        - name: admin_only
+          in: query
+          required: false
+          schema:
+            type: boolean
+        - name: type
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: name
+          in: query
+          required: false
+          schema:
+            type: string
     post:
       tags:
-      - Groups
+        - Groups
       summary: Create group
+      description: >
+        Creates a new group for the authenticated user. The creator becomes
+        group admin by default. Returns the created group object.
       responses:
         '201':
           description: Created
@@ -1222,12 +1612,15 @@ paths:
                 type:
                   type: string
               required:
-              - name
+                - name
   /groups/{gid}:
     get:
       tags:
-      - Groups
+        - Groups
       summary: Get group
+      description: >
+        Returns details for a specific group. The caller must have read access
+        to the group. The response includes group metadata.
       responses:
         '200':
           description: OK
@@ -1262,16 +1655,19 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
       parameters:
-      - &id001
-        name: gid
-        in: path
-        required: true
-        schema:
-          type: string
+        - &id001
+          name: gid
+          in: path
+          required: true
+          schema:
+            type: string
     put:
       tags:
-      - Groups
+        - Groups
       summary: Update group (PUT)
+      description: >
+        Replaces mutable group fields such as name or type. Requires group
+        manage permission. Returns the updated group.
       responses:
         '200':
           description: OK
@@ -1306,7 +1702,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
       parameters:
-      - *id001
+        - *id001
       requestBody:
         required: true
         content:
@@ -1319,11 +1715,14 @@ paths:
                 type:
                   type: string
               required:
-              - name
+                - name
     patch:
       tags:
-      - Groups
+        - Groups
       summary: Update group (PATCH)
+      description: >
+        Partially updates group fields. Only provided fields are modified, and
+        the caller must have group manage permission. Returns the updated group.
       responses:
         '200':
           description: OK
@@ -1358,7 +1757,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
       parameters:
-      - *id001
+        - *id001
       requestBody:
         required: true
         content:
@@ -1373,8 +1772,12 @@ paths:
   /groups/{gid}/memberships:
     patch:
       tags:
-      - Groups
+        - Groups
       summary: Edit group memberships (batch)
+      description: >
+        Applies a batch of membership changes to a group. Supports add/remove,
+        promote/demote, and ban/unban operations in one request. Requires group
+        manage permission and returns a simple status payload.
       responses:
         '200':
           description: OK
@@ -1409,7 +1812,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
       parameters:
-      - *id001
+        - *id001
       requestBody:
         required: true
         content:
@@ -1433,11 +1836,22 @@ paths:
                   type: array
                   items:
                     type: string
+                ban_members:
+                  type: array
+                  items:
+                    type: string
+                unban_members:
+                  type: array
+                  items:
+                    type: string
   /admin/casbin/policies:
     get:
       tags:
-      - Casbin
+        - Casbin
       summary: List Casbin policies
+      description: >
+        Lists authorization policies in the Casbin model. Supports filtering,
+        sorting, and offset pagination. Requires system admin privileges.
       responses:
         '200':
           description: OK
@@ -1472,14 +1886,17 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
       parameters: &id006
-      - *id002
-      - *id003
-      - *id004
-      - *id005
+        - *id002
+        - *id003
+        - *id004
+        - *id005
     post:
       tags:
-      - Casbin
+        - Casbin
       summary: Add Casbin policy/policies
+      description: >
+        Adds one or more policy rows to Casbin. Input is a list of policy
+        objects matching the model schema. Requires system admin privileges.
       responses:
         '200':
           description: OK
@@ -1522,8 +1939,11 @@ paths:
               additionalProperties: true
     delete:
       tags:
-      - Casbin
+        - Casbin
       summary: Delete Casbin policy/policies
+      description: >
+        Removes one or more policy rows from Casbin. Input is a list of policy
+        objects matching the model schema. Requires system admin privileges.
       responses:
         '200':
           description: OK
@@ -1567,8 +1987,11 @@ paths:
   /admin/casbin/grouping:
     get:
       tags:
-      - Casbin
+        - Casbin
       summary: List Casbin grouping rules
+      description: >
+        Lists grouping (role) rules in Casbin. Supports filtering, sorting, and
+        offset pagination. Requires system admin privileges.
       responses:
         '200':
           description: OK
@@ -1605,8 +2028,11 @@ paths:
       parameters: *id006
     post:
       tags:
-      - Casbin
+        - Casbin
       summary: Add grouping rule(s)
+      description: >
+        Adds one or more grouping rules to Casbin. Input is a list of grouping
+        objects with subject and role. Requires system admin privileges.
       responses:
         '200':
           description: OK
@@ -1649,8 +2075,11 @@ paths:
               additionalProperties: true
     delete:
       tags:
-      - Casbin
+        - Casbin
       summary: Delete grouping rule(s)
+      description: >
+        Deletes one or more grouping rules from Casbin. Input is a list of
+        grouping objects with subject and role. Requires system admin privileges.
       responses:
         '200':
           description: OK
@@ -1694,8 +2123,12 @@ paths:
   /item/{category}:
     get:
       tags:
-      - Items
+        - Items
       summary: List items (/item)
+      description: >
+        Lists items for a given category. Results are filtered by Casbin ACLs
+        and can be further refined using the optional mq query parameter.
+        Supports limit/offset pagination.
       responses:
         '200':
           description: OK
@@ -1704,48 +2137,51 @@ paths:
               schema:
                 $ref: '#/components/schemas/ItemListResponse'
       parameters:
-      - &id008
-        name: category
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: mode
-        in: query
-        required: false
-        schema:
-          type: string
-          enum:
-          - read
-          - write
-      - name: group_id
-        in: query
-        required: false
-        schema:
-          type: string
-      - &id009
-        name: include_data
-        in: query
-        required: false
-        schema:
-          type: string
-        description: Se true/1/yes/... include anche data+files; altrimenti metadata-only.
-      - &id012
-        name: mq
-        in: query
-        required: false
-        schema:
-          type: string
-        description: Filtro MongoDB in JSON (sanitizzato).
-      - *id002
-      - *id003
-      - *id004
-      - *id005
-      - *id007
+        - &id008
+          name: category
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: mode
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - read
+              - write
+        - name: group_id
+          in: query
+          required: false
+          schema:
+            type: string
+        - &id009
+          name: include_data
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Se true/1/yes/... include anche data+files; altrimenti metadata-only.
+        - &id012
+          name: mq
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filtro MongoDB in JSON (sanitizzato).
+        - *id002
+        - *id003
+        - *id004
+        - *id005
+        - *id007
     post:
       tags:
-      - Items
+        - Items
       summary: Create item (/item)
+      description: >
+        Creates a new item in the specified category. The caller must have
+        create permission in the target domain. Returns the created item.
       responses:
         '201':
           description: Created
@@ -1754,8 +2190,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/Item'
       parameters:
-      - *id008
-      - *id009
+        - *id008
+        - *id009
       requestBody:
         required: false
         content:
@@ -1777,8 +2213,11 @@ paths:
   /item/{category}/{item_id}:
     get:
       tags:
-      - Items
+        - Items
       summary: Get item (/item)
+      description: >
+        Fetches a single item by id in the given category. The caller must have
+        read permission on the item's ACL domain. Returns the item document.
       responses:
         '200':
           description: OK
@@ -1787,18 +2226,21 @@ paths:
               schema:
                 $ref: '#/components/schemas/Item'
       parameters:
-      - *id008
-      - &id010
-        name: item_id
-        in: path
-        required: true
-        schema:
-          type: string
-      - *id009
+        - *id008
+        - &id010
+          name: item_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - *id009
     put:
       tags:
-      - Items
+        - Items
       summary: Replace item data (/item)
+      description: >
+        Replaces the entire data payload of an item. Requires write permission
+        for the item's domain. Returns the updated item.
       responses:
         '200':
           description: OK
@@ -1807,9 +2249,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/Item'
       parameters:
-      - *id008
-      - *id010
-      - *id009
+        - *id008
+        - *id010
+        - *id009
       requestBody: &id011
         required: false
         content:
@@ -1826,8 +2268,11 @@ paths:
               additionalProperties: true
     patch:
       tags:
-      - Items
+        - Items
       summary: Patch item data (/item)
+      description: >
+        Applies a partial update to the item's data payload. Only provided
+        fields are modified. Requires write permission.
       responses:
         '200':
           description: OK
@@ -1836,14 +2281,17 @@ paths:
               schema:
                 $ref: '#/components/schemas/Item'
       parameters:
-      - *id008
-      - *id010
-      - *id009
+        - *id008
+        - *id010
+        - *id009
       requestBody: *id011
     delete:
       tags:
-      - Items
+        - Items
       summary: Delete item (/item)
+      description: >
+        Deletes an item and its associated metadata. Requires manage permission
+        on the item's domain. Returns a status payload.
       responses:
         '200':
           description: OK
@@ -1852,13 +2300,16 @@ paths:
               schema:
                 $ref: '#/components/schemas/Status'
       parameters:
-      - *id008
-      - *id010
+        - *id008
+        - *id010
   /items/{category}:
     get:
       tags:
-      - Items
+        - Items
       summary: List items (/items)
+      description: >
+        Lists items for a given category using the /items alias. Results are
+        filtered by Casbin ACLs and optional mq filters. Supports pagination.
       responses:
         '200':
           description: OK
@@ -1867,31 +2318,34 @@ paths:
               schema:
                 $ref: '#/components/schemas/ItemListResponse'
       parameters:
-      - *id008
-      - name: mode
-        in: query
-        required: false
-        schema:
-          type: string
-          enum:
-          - read
-          - write
-      - name: group_id
-        in: query
-        required: false
-        schema:
-          type: string
-      - *id009
-      - *id012
-      - *id002
-      - *id003
-      - *id004
-      - *id005
-      - *id007
+        - *id008
+        - name: mode
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - read
+              - write
+        - name: group_id
+          in: query
+          required: false
+          schema:
+            type: string
+        - *id009
+        - *id012
+        - *id002
+        - *id003
+        - *id004
+        - *id005
+        - *id007
     post:
       tags:
-      - Items
+        - Items
       summary: Create item (/items)
+      description: >
+        Creates a new item using the /items alias. Requires create permission
+        in the target domain. Returns the created item.
       responses:
         '201':
           description: Created
@@ -1900,8 +2354,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/Item'
       parameters:
-      - *id008
-      - *id009
+        - *id008
+        - *id009
       requestBody:
         required: false
         content:
@@ -1923,8 +2377,11 @@ paths:
   /items/{category}/{item_id}:
     get:
       tags:
-      - Items
+        - Items
       summary: Get item (/items)
+      description: >
+        Fetches a single item using the /items alias. Requires read permission
+        on the item's ACL domain. Returns the item document.
       responses:
         '200':
           description: OK
@@ -1933,13 +2390,16 @@ paths:
               schema:
                 $ref: '#/components/schemas/Item'
       parameters:
-      - *id008
-      - *id010
-      - *id009
+        - *id008
+        - *id010
+        - *id009
     put:
       tags:
-      - Items
+        - Items
       summary: Replace item data (/items)
+      description: >
+        Replaces item data using the /items alias. Requires write permission and
+        returns the updated item document.
       responses:
         '200':
           description: OK
@@ -1948,9 +2408,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/Item'
       parameters:
-      - *id008
-      - *id010
-      - *id009
+        - *id008
+        - *id010
+        - *id009
       requestBody: &id013
         required: false
         content:
@@ -1967,8 +2427,11 @@ paths:
               additionalProperties: true
     patch:
       tags:
-      - Items
+        - Items
       summary: Patch item data (/items)
+      description: >
+        Applies a partial update to item data using the /items alias. Requires
+        write permission. Returns the updated item.
       responses:
         '200':
           description: OK
@@ -1977,14 +2440,17 @@ paths:
               schema:
                 $ref: '#/components/schemas/Item'
       parameters:
-      - *id008
-      - *id010
-      - *id009
+        - *id008
+        - *id010
+        - *id009
       requestBody: *id013
     delete:
       tags:
-      - Items
+        - Items
       summary: Delete item (/items)
+      description: >
+        Deletes an item using the /items alias. Requires manage permission and
+        returns a status payload.
       responses:
         '200':
           description: OK
@@ -1993,13 +2459,16 @@ paths:
               schema:
                 $ref: '#/components/schemas/Status'
       parameters:
-      - *id008
-      - *id010
+        - *id008
+        - *id010
   /item/{category}/{item_id}/acl/share:
     put:
       tags:
-      - Item ACL
+        - Item ACL
       summary: Replace share ACL (/item)
+      description: >
+        Replaces the share ACL entries for an item. Requires manage permission
+        on the item domain. Returns the updated ACL entries.
       responses:
         '200':
           description: OK
@@ -2011,8 +2480,8 @@ paths:
                   ok:
                     type: boolean
       parameters:
-      - *id008
-      - *id010
+        - *id008
+        - *id010
       requestBody:
         required: true
         content:
@@ -2021,8 +2490,11 @@ paths:
               $ref: '#/components/schemas/ShareReplacePayload'
     get:
       tags:
-      - Item ACL
+        - Item ACL
       summary: List share ACL (/item)
+      description: >
+        Lists the current share ACL entries for an item. Requires manage
+        permission on the item domain. Returns the ACL entry list.
       responses:
         '200':
           description: OK
@@ -2031,13 +2503,16 @@ paths:
               schema:
                 $ref: '#/components/schemas/ShareListResponse'
       parameters:
-      - *id008
-      - *id010
+        - *id008
+        - *id010
   /item/{category}/{item_id}/acl/publish:
     post:
       tags:
-      - Item ACL
+        - Item ACL
       summary: Publish item (public read) (/item)
+      description: >
+        Grants public read access to an item by adding a public-read policy.
+        Requires manage permission on the item domain. Returns publish status.
       responses:
         '200':
           description: OK
@@ -2051,12 +2526,15 @@ paths:
                   public:
                     type: boolean
       parameters:
-      - *id008
-      - *id010
+        - *id008
+        - *id010
     get:
       tags:
-      - Item ACL
+        - Item ACL
       summary: Check publish status (/item)
+      description: >
+        Returns whether an item is currently published for public read. Requires
+        manage permission on the item domain. Returns a published flag.
       responses:
         '200':
           description: OK
@@ -2068,13 +2546,16 @@ paths:
                   public:
                     type: boolean
       parameters:
-      - *id008
-      - *id010
+        - *id008
+        - *id010
   /item/{category}/{item_id}/acl/unpublish:
     post:
       tags:
-      - Item ACL
+        - Item ACL
       summary: Unpublish item (/item)
+      description: >
+        Revokes public read access for an item. Requires manage permission on
+        the item domain. Returns publish status.
       responses:
         '200':
           description: OK
@@ -2088,13 +2569,16 @@ paths:
                   public:
                     type: boolean
       parameters:
-      - *id008
-      - *id010
+        - *id008
+        - *id010
   /items/{category}/{item_id}/acl/share:
     put:
       tags:
-      - Item ACL
+        - Item ACL
       summary: Replace share ACL (/items)
+      description: >
+        Replaces the share ACL entries using the /items alias. Requires manage
+        permission on the item domain. Returns the updated ACL entries.
       responses:
         '200':
           description: OK
@@ -2106,8 +2590,8 @@ paths:
                   ok:
                     type: boolean
       parameters:
-      - *id008
-      - *id010
+        - *id008
+        - *id010
       requestBody:
         required: true
         content:
@@ -2116,8 +2600,11 @@ paths:
               $ref: '#/components/schemas/ShareReplacePayload'
     get:
       tags:
-      - Item ACL
+        - Item ACL
       summary: List share ACL (/items)
+      description: >
+        Lists the share ACL entries using the /items alias. Requires manage
+        permission on the item domain. Returns the ACL entry list.
       responses:
         '200':
           description: OK
@@ -2126,13 +2613,16 @@ paths:
               schema:
                 $ref: '#/components/schemas/ShareListResponse'
       parameters:
-      - *id008
-      - *id010
+        - *id008
+        - *id010
   /items/{category}/{item_id}/acl/publish:
     post:
       tags:
-      - Item ACL
+        - Item ACL
       summary: Publish item (public read) (/items)
+      description: >
+        Grants public read access using the /items alias. Requires manage
+        permission and returns publish status.
       responses:
         '200':
           description: OK
@@ -2146,12 +2636,15 @@ paths:
                   public:
                     type: boolean
       parameters:
-      - *id008
-      - *id010
+        - *id008
+        - *id010
     get:
       tags:
-      - Item ACL
+        - Item ACL
       summary: Check publish status (/items)
+      description: >
+        Returns publish status using the /items alias. Requires manage
+        permission on the item domain. Returns a published flag.
       responses:
         '200':
           description: OK
@@ -2163,13 +2656,16 @@ paths:
                   public:
                     type: boolean
       parameters:
-      - *id008
-      - *id010
+        - *id008
+        - *id010
   /items/{category}/{item_id}/acl/unpublish:
     post:
       tags:
-      - Item ACL
+        - Item ACL
       summary: Unpublish item (/items)
+      description: >
+        Revokes public read access using the /items alias. Requires manage
+        permission on the item domain. Returns publish status.
       responses:
         '200':
           description: OK
@@ -2183,13 +2679,16 @@ paths:
                   public:
                     type: boolean
       parameters:
-      - *id008
-      - *id010
+        - *id008
+        - *id010
   /item-file/{item_id}/{file_name}:
     get:
       tags:
-      - Item Files
+        - Item Files
       summary: Download item file (/item-file)
+      description: >
+        Downloads a file associated with an item and file name. Requires read
+        permission on the item. Returns the file content with correct headers.
       responses:
         '200':
           description: File content
@@ -2199,18 +2698,21 @@ paths:
                 type: string
                 format: binary
       parameters:
-      - *id010
-      - &id014
-        name: file_name
-        in: path
-        required: true
-        schema:
-          type: string
+        - *id010
+        - &id014
+          name: file_name
+          in: path
+          required: true
+          schema:
+            type: string
   /items-file/{item_id}/{file_name}:
     get:
       tags:
-      - Item Files
+        - Item Files
       summary: Download item file (/items-file)
+      description: >
+        Downloads a file using the /items-file alias. Requires read permission
+        on the item and returns the file content.
       responses:
         '200':
           description: File content
@@ -2220,13 +2722,17 @@ paths:
                 type: string
                 format: binary
       parameters:
-      - *id010
-      - *id014
+        - *id010
+        - *id014
   /admin/item-schema/:
     get:
       tags:
-      - Item Schemas
+        - Item Schemas
       summary: List categories with schemas (/admin/item-schema)
+      description: >
+        Lists all item schema categories and their available versions. Requires
+        system admin access. Returns category summaries including published and
+        enabled versions.
       responses:
         '200':
           description: OK
@@ -2267,8 +2773,11 @@ paths:
   /admin/item-schema/{category}:
     get:
       tags:
-      - Item Schemas
+        - Item Schemas
       summary: Get schema info for category (/admin/item-schema)
+      description: >
+        Returns all schema versions for a specific category. Requires system
+        admin access. The response includes draft and published versions.
       responses:
         '200':
           description: OK
@@ -2307,12 +2816,15 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
       parameters:
-      - *id008
+        - *id008
   /admin/item-schema/{category}/drafts:
     post:
       tags:
-      - Item Schemas
+        - Item Schemas
       summary: Create schema draft (/admin/item-schema)
+      description: >
+        Creates a draft schema version for a category. Requires system admin
+        access. Returns the created draft schema document.
       responses:
         '201':
           description: Created
@@ -2327,7 +2839,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
       parameters:
-      - *id008
+        - *id008
       requestBody:
         required: true
         content:
@@ -2337,8 +2849,11 @@ paths:
   /admin/item-schema/{category}/drafts/{version}:
     put:
       tags:
-      - Item Schemas
+        - Item Schemas
       summary: Update schema draft (/admin/item-schema)
+      description: >
+        Updates an existing draft schema for a category and version. Requires
+        system admin access. Returns the updated draft schema document.
       responses:
         '200':
           description: OK
@@ -2383,13 +2898,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
       parameters:
-      - *id008
-      - &id015
-        name: version
-        in: path
-        required: true
-        schema:
-          type: string
+        - *id008
+        - &id015
+          name: version
+          in: path
+          required: true
+          schema:
+            type: string
       requestBody:
         required: true
         content:
@@ -2399,8 +2914,11 @@ paths:
   /admin/item-schema/{category}/drafts/{version}/publish:
     post:
       tags:
-      - Item Schemas
+        - Item Schemas
       summary: Publish schema draft (/admin/item-schema)
+      description: >
+        Publishes a draft schema version, making it eligible for enablement.
+        Requires system admin access. Returns the publish status.
       responses:
         '200':
           description: OK
@@ -2445,13 +2963,16 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
       parameters:
-      - *id008
-      - *id015
+        - *id008
+        - *id015
   /admin/item-schema/{category}/versions/{version}/enable:
     post:
       tags:
-      - Item Schemas
+        - Item Schemas
       summary: Enable schema version (/admin/item-schema)
+      description: >
+        Enables a published schema version for validation. Requires system
+        admin access. Returns the enable status.
       responses:
         '200':
           description: OK
@@ -2490,13 +3011,16 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
       parameters:
-      - *id008
-      - *id015
+        - *id008
+        - *id015
   /admin/item-schema/{category}/versions/{version}/disable:
     post:
       tags:
-      - Item Schemas
+        - Item Schemas
       summary: Disable schema version (/admin/item-schema)
+      description: >
+        Disables a published schema version. Requires system admin access.
+        Returns the disable status.
       responses:
         '200':
           description: OK
@@ -2535,13 +3059,17 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
       parameters:
-      - *id008
-      - *id015
+        - *id008
+        - *id015
   /export-form/{form}:
     get:
       tags:
-      - Export
+        - Export
       summary: Export form (feature-flag)
+      description: >
+        Exports a form or schema for a given item/category. This endpoint is
+        available only when the export feature is enabled. Returns the exported
+        document or an error.
       responses:
         '200':
           description: OK
@@ -2576,16 +3104,19 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
       parameters:
-      - &id016
-        name: form
-        in: path
-        required: true
-        schema:
-          type: string
+        - &id016
+          name: form
+          in: path
+          required: true
+          schema:
+            type: string
     post:
       tags:
-      - Export
+        - Export
       summary: Export form (feature-flag)
+      description: >
+        Exports a form using an alternate path variant. This endpoint is
+        feature-flagged and returns an exported document or an error response.
       responses:
         '200':
           description: OK
@@ -2620,7 +3151,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
       parameters:
-      - *id016
+        - *id016
       requestBody:
         required: false
         content:
@@ -2631,11 +3162,19 @@ paths:
   /stripe/balance:
     get:
       tags:
-      - Stripe
+        - Stripe
       summary: Get current balance (feature-flag)
+      description: >
+        Returns balances for all wallets associated with the current user. An
+        admin may request a different user_id via query. Requires authentication
+        and Stripe credits feature enabled.
       responses:
         '200':
           description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StripeBalanceResponse'
         '400':
           description: Bad Request
           content:
@@ -2669,11 +3208,19 @@ paths:
   /stripe/balance/{wallet_id}:
     get:
       tags:
-      - Stripe
+        - Stripe
       summary: Get balance for wallet (feature-flag)
+      description: >
+        Returns balance for a specific wallet id. Requires authentication and
+        access to the requested wallet. Available only when Stripe credits are
+        enabled.
       responses:
         '200':
           description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StripeBalanceResponse'
         '400':
           description: Bad Request
           content:
@@ -2705,20 +3252,28 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
       parameters:
-      - &id017
-        name: wallet_id
-        in: path
-        required: true
-        schema:
-          type: integer
+        - &id017
+          name: wallet_id
+          in: path
+          required: true
+          schema:
+            type: integer
   /stripe/create-checkout-session:
     post:
       tags:
-      - Stripe
+        - Stripe
       summary: create-checkout-session
+      description: >
+        Creates a Stripe Checkout session for purchasing credits. Requires
+        authentication and Stripe configuration. Returns a session id and
+        client secret when available.
       responses:
         '200':
           description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StripeCheckoutSessionResponse'
         '400':
           description: Bad Request
           content:
@@ -2759,11 +3314,19 @@ paths:
   /stripe/create-customer-portal-session:
     post:
       tags:
-      - Stripe
+        - Stripe
       summary: create-customer-portal-session
+      description: >
+        Creates a Stripe billing portal session for the current user. Requires
+        authentication and Stripe configuration. Returns the portal session URL
+        or an error.
       responses:
         '200':
           description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StripePortalSessionResponse'
         '400':
           description: Bad Request
           content:
@@ -2804,11 +3367,19 @@ paths:
   /stripe/create-customer-pricing-table-session:
     post:
       tags:
-      - Stripe
+        - Stripe
       summary: create-customer-pricing-table-session
+      description: >
+        Creates a Stripe pricing table session for the current user. Requires
+        authentication and Stripe configuration. Returns a client secret or an
+        error message.
       responses:
         '200':
           description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StripePricingTableSessionResponse'
         '400':
           description: Bad Request
           content:
@@ -2849,11 +3420,18 @@ paths:
   /stripe/session-status/{session_id}:
     get:
       tags:
-      - Stripe
+        - Stripe
       summary: Get checkout session status
+      description: >
+        Returns the status of a checkout session and associated customer email.
+        Requires authentication. Useful for polling session completion status.
       responses:
         '200':
           description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StripeSessionStatusResponse'
         '400':
           description: Bad Request
           content:
@@ -2885,19 +3463,27 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
       parameters:
-      - name: session_id
-        in: path
-        required: true
-        schema:
-          type: string
+        - name: session_id
+          in: path
+          required: true
+          schema:
+            type: string
   /stripe/subscription:
     get:
       tags:
-      - Stripe
+        - Stripe
       summary: Get subscription
+      description: >
+        Returns subscription metadata for the current user. Requires
+        authentication and Stripe configuration. The response includes product
+        and feature metadata when available.
       responses:
         '200':
           description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StripeSubscriptionResponse'
         '400':
           description: Bad Request
           content:
@@ -2931,11 +3517,19 @@ paths:
   /stripe/subscription/{wallet_id}:
     get:
       tags:
-      - Stripe
+        - Stripe
       summary: Get subscription for wallet
+      description: >
+        Returns subscription metadata for a specific wallet. Requires
+        authentication and access to the wallet. Returns subscription details
+        or an empty object.
       responses:
         '200':
           description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StripeSubscriptionResponse'
         '400':
           description: Bad Request
           content:
@@ -2967,15 +3561,23 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
       parameters:
-      - *id017
+        - *id017
   /stripe/webhooks:
     post:
       tags:
-      - Stripe
+        - Stripe
       summary: Stripe webhooks (no auth)
+      description: >
+        Receives Stripe webhook events and processes credit-related updates.
+        The request must include a valid Stripe signature header. Returns a
+        success flag after processing.
       responses:
         '200':
           description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StripeWebhookResponse'
         '400':
           description: Bad Request
           content:
@@ -3017,12 +3619,690 @@ paths:
             schema:
               type: object
               additionalProperties: true
-      security: []
+      security: [ ]
+  /notification:
+    get:
+      tags:
+        - Notifications
+      summary: List notifications for the current user
+      description: >
+        Lists notifications targeted to the authenticated user. Supports
+        pagination via limit/offset or page/page_size. Returns notification
+        records with pagination metadata.
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: page_size
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+        - in: query
+          name: offset
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: List
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationListResponse'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /notification/read/{nid}:
+    post:
+      tags:
+        - Notifications
+      summary: Mark a notification as read
+      description: >
+        Marks a specific notification as read for the current user. Requires
+        authentication and records the principal in the read_by list. Returns
+        a simple status payload.
+      parameters:
+        - in: path
+          name: nid
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /notification/unread-count:
+    get:
+      tags:
+        - Notifications
+      summary: Get unread notifications count
+      description: >
+        Returns the unread notification count for the current user. Requires
+        authentication and is optimized for badge counts. The response includes
+        a single integer field.
+      responses:
+        '200':
+          description: Count
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnreadCountResponse'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /notification/watchers:
+    get:
+      tags:
+        - Notifications
+      summary: List notification watchers
+      description: >
+        Returns the current user's notification watchers. Watchers can filter
+        by event, category, object id, or domain. Supports optional query params
+        for narrowing results.
+      parameters:
+        - in: query
+          name: event
+          schema:
+            type: string
+        - in: query
+          name: category
+          schema:
+            type: string
+        - in: query
+          name: object_id
+          schema:
+            type: string
+        - in: query
+          name: dom
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WatcherListResponse'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      tags:
+        - Notifications
+      summary: Create a watcher
+      description: >
+        Creates a watcher for the current user. Watchers subscribe the user to
+        notification events based on event/category/object/domain filters and
+        optional channel overrides.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WatcherRequest'
+      responses:
+        '200':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationCreateResponse'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /notification/watchers/{watcher_id}:
+    patch:
+      tags:
+        - Notifications
+      summary: Update watcher
+      description: >
+        Updates an existing watcher owned by the current user. Supports
+        enabling/disabling and changing filters or channels.
+      parameters:
+        - in: path
+          name: watcher_id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WatcherRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      tags:
+        - Notifications
+      summary: Delete watcher
+      description: >
+        Deletes a watcher owned by the current user. Returns a status payload
+        indicating success.
+      parameters:
+        - in: path
+          name: watcher_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /admin/notification/settings/rules:
+    get:
+      tags:
+        - Notifications
+      summary: List notification rules (admin only)
+      description: >
+        Lists notification channel rules. Supports optional filters by category
+        or dom and can include disabled rules.
+      parameters:
+        - in: query
+          name: category
+          schema:
+            type: string
+        - in: query
+          name: dom
+          schema:
+            type: string
+        - in: query
+          name: include_disabled
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  rules:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/NotificationRule'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      tags:
+        - Notifications
+      summary: Create notification rule (admin only)
+      description: >
+        Creates a new notification rule. Returns the created rule id.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotificationRuleInput'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /admin/notification/settings/rules/{rule_id}:
+    patch:
+      tags:
+        - Notifications
+      summary: Update notification rule (admin only)
+      description: >
+        Updates an existing notification rule. Returns a status payload.
+      parameters:
+        - in: path
+          name: rule_id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotificationRuleInput'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /admin/notification/notify:
+    post:
+      tags:
+        - Notifications
+      summary: Send notification (admin only)
+      description: >
+        Sends a notification as a system admin. Requires admin authorization.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotificationCreateRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationCreateResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      tags:
+        - Notifications
+      summary: Delete notification rule (admin only)
+      description: >
+        Deletes a notification rule. Returns a status payload.
+      parameters:
+        - in: path
+          name: rule_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /admin/notification/templates:
+    get:
+      tags:
+        - Templates
+      summary: List notification templates (admin only)
+      description: >
+        Lists notification templates available for rendering. Requires system
+        admin privileges. Returns a list of template objects.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  templates:
+                    type: array
+                    items:
+                      type: object
+                      additionalProperties: true
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      tags:
+        - Templates
+      summary: Create template (admin only)
+      description: >
+        Creates a new notification template. Requires system admin privileges
+        and accepts a template payload. Returns the created template document.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TemplateUpsertRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  id:
+                    type: string
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /admin/notification/templates/{templateId}:
+    get:
+      tags:
+        - Templates
+      summary: Get template by id (admin only)
+      description: >
+        Returns a notification template by id. Requires system admin
+        privileges. Returns 404 when the template does not exist.
+      parameters:
+        - in: path
+          name: templateId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    put:
+      tags:
+        - Templates
+      summary: Upsert template by id (admin only)
+      description: >
+        Creates or replaces a template with the given id. Requires system admin
+        privileges. Returns the upserted template document.
+      parameters:
+        - in: path
+          name: templateId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TemplateUpsertRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  id:
+                    type: string
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      tags:
+        - Templates
+      summary: Delete template (admin only)
+      description: >
+        Deletes a template by id. Requires system admin privileges. Returns a
+        status payload indicating success.
+      parameters:
+        - in: path
+          name: templateId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
   /gdpr/consent:
     post:
       tags:
-      - GDPR
+        - GDPR
       summary: Create/update consent (feature-flag)
+      description: >
+        Creates or updates a GDPR consent record for the current user. This
+        endpoint is available only when GDPR features are enabled. Returns the
+        stored consent document.
       responses:
         '200':
           description: OK
@@ -3069,13 +4349,16 @@ paths:
                   type: object
                   additionalProperties: true
               required:
-              - consents
-      security: []
+                - consents
+      security: [ ]
   /gdpr/consent/{consent_id}:
     get:
       tags:
-      - GDPR
+        - GDPR
       summary: Get consent
+      description: >
+        Retrieves a GDPR consent record by id. Requires authentication and the
+        GDPR feature flag. Returns the consent document if found.
       responses:
         '200':
           description: OK
@@ -3110,17 +4393,20 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
       parameters:
-      - name: consent_id
-        in: path
-        required: true
-        schema:
-          type: string
-      security: []
+        - name: consent_id
+          in: path
+          required: true
+          schema:
+            type: string
+      security: [ ]
   /gdpr/files/cookies-policy:
     get:
       tags:
-      - GDPR
+        - GDPR
       summary: Get cookies-policy PDF
+      description: >
+        Returns the cookies policy document as a PDF. This is a public endpoint
+        intended for compliance and UI links. The response is a PDF file.
       responses:
         '200':
           description: PDF
@@ -3129,12 +4415,16 @@ paths:
               schema:
                 type: string
                 format: binary
-      security: []
+      security: [ ]
   /gdpr/files/terms-conditions:
     get:
       tags:
-      - GDPR
+        - GDPR
       summary: Get terms-conditions PDF
+      description: >
+        Returns the terms and conditions document as a PDF. This is a public
+        endpoint intended for compliance and UI links. The response is a PDF
+        file.
       responses:
         '200':
           description: PDF
@@ -3143,12 +4433,16 @@ paths:
               schema:
                 type: string
                 format: binary
-      security: []
+      security: [ ]
   /mail/contact:
     post:
       tags:
-      - Contact
+        - Contact
       summary: Send contact email (feature-flag)
+      description: >
+        Sends a contact message via email using the configured mail backend.
+        Available only when the contact feature is enabled. Returns a status
+        payload indicating success.
       responses:
         '200':
           description: OK
@@ -3189,12 +4483,15 @@ paths:
             schema:
               type: object
               additionalProperties: true
-      security: []
+      security: [ ]
   /locales/languages.json:
     get:
       tags:
-      - Locales
+        - Locales
       summary: List languages
+      description: >
+        Lists available localization languages. This endpoint is public and
+        intended for UI language selection. Returns language metadata.
       responses:
         '200':
           description: OK
@@ -3228,12 +4525,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-      security: []
+      security: [ ]
   /locales/{lang}:
     get:
       tags:
-      - Locales
+        - Locales
       summary: Get locales for lang
+      description: >
+        Returns all locale strings for a given language code. This endpoint is
+        public and used to hydrate client translations. The response includes
+        namespace groupings.
       responses:
         '200':
           description: OK
@@ -3268,16 +4569,19 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
       parameters:
-      - name: lang
-        in: path
-        required: true
-        schema:
-          type: string
-      security: []
+        - name: lang
+          in: path
+          required: true
+          schema:
+            type: string
+      security: [ ]
     post:
       tags:
-      - Locales
+        - Locales
       summary: Update locales for lang
+      description: >
+        Updates locale strings for a given language code. Requires appropriate
+        permissions for localization management. Returns the updated locale map.
       responses:
         '200':
           description: OK
@@ -3312,11 +4616,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
       parameters:
-      - name: lang
-        in: path
-        required: true
-        schema:
-          type: string
+        - name: lang
+          in: path
+          required: true
+          schema:
+            type: string
       requestBody:
         required: false
         content:
@@ -3327,8 +4631,12 @@ paths:
   /locales/{language}/{namespace}:
     get:
       tags:
-      - Locales
+        - Locales
       summary: Get namespace locales
+      description: >
+        Returns locale strings for a specific namespace and language. This
+        endpoint is public and used for incremental translation loading. The
+        response contains the namespace dictionary.
       responses:
         '200':
           description: OK
@@ -3363,22 +4671,25 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
       parameters:
-      - name: language
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: namespace
-        in: path
-        required: true
-        schema:
-          type: string
-      security: []
+        - name: language
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: namespace
+          in: path
+          required: true
+          schema:
+            type: string
+      security: [ ]
   /file/{category}:
     get:
       tags:
-      - Files
+        - Files
       summary: List files in category (feature-flag)
+      description: >
+        Lists files stored in a given category. Available only when the files
+        feature is enabled. Returns file metadata and pagination info.
       responses:
         '200':
           description: OK
@@ -3413,20 +4724,24 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
       parameters:
-      - &id018
-        name: category
-        in: path
-        required: true
-        schema:
-          type: string
-      - *id002
-      - *id003
-      - *id004
-      - *id005
+        - &id018
+          name: category
+          in: path
+          required: true
+          schema:
+            type: string
+        - *id002
+        - *id003
+        - *id004
+        - *id005
     post:
       tags:
-      - Files
+        - Files
       summary: Create file in category (feature-flag)
+      description: >
+        Uploads a new file into a category using the files API. Requires
+        authentication and the files feature flag. Returns the created file
+        metadata.
       responses:
         '200':
           description: OK
@@ -3461,7 +4776,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
       parameters:
-      - *id018
+        - *id018
       requestBody:
         required: false
         content:
@@ -3476,8 +4791,12 @@ paths:
   /file/{category}/{id_item}:
     get:
       tags:
-      - Files
+        - Files
       summary: Get file metadata/content (feature-flag)
+      description: >
+        Fetches a file's metadata or content by id within a category. Requires
+        authentication and the files feature flag. Returns metadata or binary
+        content depending on parameters.
       responses:
         '200':
           description: OK
@@ -3512,17 +4831,20 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
       parameters:
-      - *id018
-      - &id019
-        name: id_item
-        in: path
-        required: true
-        schema:
-          type: integer
+        - *id018
+        - &id019
+          name: id_item
+          in: path
+          required: true
+          schema:
+            type: integer
     put:
       tags:
-      - Files
+        - Files
       summary: Replace file metadata/content (feature-flag)
+      description: >
+        Replaces a file's metadata and/or content. Requires authentication and
+        the files feature flag. Returns the updated file metadata.
       responses:
         '200':
           description: OK
@@ -3557,8 +4879,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
       parameters:
-      - *id018
-      - *id019
+        - *id018
+        - *id019
       requestBody:
         required: false
         content:
@@ -3572,8 +4894,11 @@ paths:
               additionalProperties: true
     patch:
       tags:
-      - Files
+        - Files
       summary: Patch file metadata (feature-flag)
+      description: >
+        Applies a partial update to file metadata. Requires authentication and
+        the files feature flag. Returns the updated metadata.
       responses:
         '200':
           description: OK
@@ -3608,8 +4933,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
       parameters:
-      - *id018
-      - *id019
+        - *id018
+        - *id019
       requestBody:
         required: false
         content:
@@ -3619,8 +4944,11 @@ paths:
               additionalProperties: true
     delete:
       tags:
-      - Files
+        - Files
       summary: Delete file (feature-flag)
+      description: >
+        Deletes a file and its stored content. Requires authentication and the
+        files feature flag. Returns a status payload.
       responses:
         '200':
           description: OK
@@ -3655,5 +4983,5 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
       parameters:
-      - *id018
-      - *id019
+        - *id018
+        - *id019

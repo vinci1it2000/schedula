@@ -2,18 +2,15 @@
 from __future__ import annotations
 
 import os
-import types
 from dataclasses import dataclass
-from typing import Any, Dict, Generator, Optional, Tuple
+from typing import Any, Dict, Optional
 
-import pytest
 import mongomock
+import pytest
 from flask import Flask
 from flask.testing import FlaskClient
-
 from schedula.utils.form.server import basic_app
 from schedula.utils.form.server.extensions import db as _db
-from flask_security.utils import hash_password
 
 from .utils.mongo_validation import ValidatingMongoDatabase
 from .utils.seed import seed_admin_user, seed_regular_user, try_login_for_token
@@ -118,9 +115,8 @@ def app(monkeypatch: pytest.MonkeyPatch) -> Flask:
     vdb = ValidatingMongoDatabase(
         mm_db
     )  # adds db.command(collMod) + JSONSchema validation
-    # Items extension is installed by Items(app) under key "item_storage"
-    if "item_storage" in app.extensions:
-        app.extensions["item_storage"].mongo_db = vdb
+
+    app.config["MONGO_DB"] = vdb
 
     yield app
 

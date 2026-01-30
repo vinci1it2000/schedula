@@ -11,7 +11,6 @@ import mongomock
 from flask_security.confirmable import generate_confirmation_token
 from flask_security.recoverable import generate_reset_password_token
 from flask_security.utils import hash_password
-
 from schedula.utils.form.server import basic_app
 from schedula.utils.form.server.extensions import db as _db
 from schedula.utils.form.server.security import User
@@ -73,13 +72,10 @@ class TestUserAuthApis(unittest.TestCase):
             MAIL_PASSWORD="pas,",
         )
 
-        basic_app(DummySitemap(), self.app, config)
-
+        self.app.config["MONGO_DB"] = vdb
         with self.app.app_context():
+            basic_app(DummySitemap(), self.app, config)
             _db.create_all()
-
-        if "item_storage" in self.app.extensions:
-            self.app.extensions["item_storage"].mongo_db = vdb
 
         self.anon_client = self.app.test_client()
         self.auth_client = self.app.test_client()

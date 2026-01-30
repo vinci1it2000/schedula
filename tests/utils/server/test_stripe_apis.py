@@ -5,16 +5,18 @@ import hashlib
 import hmac
 import json
 import os
+import shutil
 import socket
+import subprocess
 import sys
 import time
 import unittest
 from datetime import datetime
+from unittest.mock import patch
 from urllib.parse import urlparse
 
 import mongomock
 import stripe
-from unittest.mock import patch
 from flask import Flask
 from flask_security.utils import hash_password
 
@@ -31,7 +33,7 @@ from tests.utils.server.utils.mongo_validation import ValidatingMongoDatabase
 class TestStripeApis(unittest.TestCase):
     def setUp(self):
         self.stripe_base = os.environ.get("STRIPE_MOCK_URL", "http://localhost:12111")
-        self._assert_stripe_mock_available(self.stripe_base)
+        self._ensure_stripe_mock_available(self.stripe_base)
 
         self.app = Flask("schedula_test_app")
 
@@ -77,9 +79,8 @@ class TestStripeApis(unittest.TestCase):
             STRIPE_API_BASE=self.stripe_base,
         )
 
-        basic_app(DummySitemap(), self.app, config)
-
         with self.app.app_context():
+            basic_app(DummySitemap(), self.app, config)
             _db.create_all()
             ensure_public_group()
 
@@ -122,6 +123,9 @@ class TestStripeApis(unittest.TestCase):
         if getattr(self, "_patchers", None):
             for patcher in self._patchers:
                 patcher.stop()
+        if getattr(self, "_stripe_mock_proc", None):
+            self._stripe_mock_proc.terminate()
+            self._stripe_mock_proc.wait(timeout=2)
 
     def _sign_webhook(self, payload: str, secret: str) -> str:
         timestamp = int(time.time())
@@ -142,6 +146,40 @@ class TestStripeApis(unittest.TestCase):
             sock.close()
         except OSError as exc:
             raise unittest.SkipTest(f"stripe-mock not reachable at {base_url}: {exc}")
+
+    def _ensure_stripe_mock_available(self, base_url: str):
+        try:
+            self._assert_stripe_mock_available(base_url)
+            return
+        except unittest.SkipTest:
+            pass
+
+        parsed = urlparse(base_url)
+        host = parsed.hostname or "localhost"
+        port = parsed.port or (443 if parsed.scheme == "https" else 80)
+
+        stripe_mock_bin = shutil.which("stripe-mock")
+        if not stripe_mock_bin:
+            raise unittest.SkipTest("stripe-mock binary not found")
+
+        self._stripe_mock_proc = subprocess.Popen(
+            [stripe_mock_bin, "-http-port", str(port)],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+
+        deadline = time.time() + 2.0
+        while time.time() < deadline:
+            try:
+                sock = socket.create_connection((host, port), timeout=0.2)
+                sock.close()
+                return
+            except OSError:
+                time.sleep(0.1)
+
+        self._stripe_mock_proc.terminate()
+        self._stripe_mock_proc.wait(timeout=2)
+        raise unittest.SkipTest(f"stripe-mock not reachable at {base_url}")
 
     def _login_token(self, email: str) -> str:
         resp = self.client.post(

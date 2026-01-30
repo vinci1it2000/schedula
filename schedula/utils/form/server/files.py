@@ -9,27 +9,29 @@
 """
 It provides functions to build the item storage service.
 """
-import hashlib
 import datetime
+import hashlib
+from urllib.parse import urlparse, parse_qs
+
 import schedula as sh
-from .extensions import db
-from .security import is_admin
 from flask import (
     after_this_request, request, jsonify, Blueprint, url_for, current_app as ca,
     send_file, abort
 )
+from flask_security import current_user as cu, auth_required
+from flask_security.utils import view_commit
+from itsdangerous import URLSafeTimedSerializer
+from libcloud.storage.drivers.local import LocalStorageDriver
+from libcloud.storage.types import ObjectDoesNotExistError
 from sqlalchemy import (
     Column, String, Integer, DateTime, ForeignKey, JSON, and_
 )
-from flask_security.utils import view_commit
-from flask_security import current_user as cu, auth_required
 from sqlalchemy.orm import validates
 from sqlalchemy_file import File as SQLFile, FileField
 from sqlalchemy_file.storage import StorageManager
-from libcloud.storage.drivers.local import LocalStorageDriver
-from libcloud.storage.types import ObjectDoesNotExistError
-from urllib.parse import urlparse, parse_qs
-from itsdangerous import URLSafeTimedSerializer
+
+from .extensions import db
+from .security import is_admin
 
 bp = Blueprint('files', __name__)
 

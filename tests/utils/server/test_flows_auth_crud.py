@@ -1,9 +1,9 @@
 # coding: utf-8
 from __future__ import annotations
 
-import unittest
-import sys
 import os
+import sys
+import unittest
 import uuid
 from datetime import datetime
 
@@ -82,16 +82,12 @@ class TestServerFlowsAuthCrud(unittest.TestCase):
             verify_file_handler = None
             basic_app_config = None
 
-        basic_app(DummySitemap(), self.app, config)
-
         # --- SQL init per-test
+        self.app.config["MONGO_DB"] = vdb
         with self.app.app_context():
+            basic_app(DummySitemap(), self.app, config)
             _db.create_all()
             ensure_public_group()
-
-        # Items extension is installed by Items(app) under key "item_storage"
-        if "item_storage" in self.app.extensions:
-            self.app.extensions["item_storage"].mongo_db = vdb
 
         self.client = self.app.test_client()
 
@@ -183,7 +179,7 @@ class TestServerFlowsAuthCrud(unittest.TestCase):
         body = r.get_json(silent=True) or {}
         self.assertIsInstance(body, dict)
         item_id = (
-            body.get("id") or body.get("_id") or (body.get("item") or {}).get("id")
+                body.get("id") or body.get("_id") or (body.get("item") or {}).get("id")
         )
         self.assertTrue(item_id)
 

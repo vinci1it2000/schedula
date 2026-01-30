@@ -28,12 +28,12 @@ OutputMode = Literal["principal", "ids", "models", "mixed"]
 
 
 def set_subject_to_group(
-    group_id: str,
-    subject_id: str | int,
-    subject_type: str = "user",  # "user" | "group"
-    *,
-    admin: bool = False,
-    enabled: bool = True,
+        group_id: str,
+        subject_id: str | int,
+        subject_type: str = "user",  # "user" | "group"
+        *,
+        admin: bool = False,
+        enabled: bool = True,
 ):
     e = get_enforcer()
 
@@ -231,7 +231,7 @@ class Group(db.Model):
         )
 
     def public_json(
-        self, include_members=False, include_models=False
+            self, include_members=False, include_models=False
     ) -> Dict[str, Any]:
         out = {
             "id": self.id,

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 from functools import wraps
+
 from .helpers import get_current_sub, get_auth_sub, enforce_or_403, ADMIN_DOMAIN
 
 

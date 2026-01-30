@@ -83,6 +83,3 @@ def enforce_or_403(sub: str, dom: str, obj: str, act: str):
     e = get_enforcer()
     if not e.enforce(sub, dom, obj, act):
         abort_json(403, "Forbidden")
-
-
-

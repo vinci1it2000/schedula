@@ -9,12 +9,13 @@
 """
 It provides functions to build the export page services.
 """
-import io
 import glob
 import gzip
+import io
 import json
-import zipfile
 import os.path as osp
+import zipfile
+
 from flask import request, send_file, Blueprint, current_app as ca, url_for
 
 bp = Blueprint('schedula_export', __name__)

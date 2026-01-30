@@ -13,25 +13,16 @@ This module exposes the /stripe APIs, wallet bookkeeping, and credit
 transaction helpers used by the application.
 """
 
-import os
-import re
 import copy
-import math
-import json
-import stripe
 import datetime
 import itertools
+import json
+import math
+import os
+import re
+
 import schedula as sh
-from .csrf import csrf
-from .extensions import db
-from .security import User
-from . import json_secrets
-from .security import is_admin
-from .locale import lazy_gettext
-from flask_security import current_user as cu, auth_required
-from flask import jsonify, flash, Blueprint, abort
-from sherlock import Lock
-from sqlalchemy import Column, String, Integer, DateTime, JSON, or_, event, desc, asc
+import stripe
 from dateutil.relativedelta import relativedelta
 from dateutil.rrule import (
     rrule,
@@ -43,7 +34,18 @@ from dateutil.rrule import (
     MINUTELY,
     SECONDLY,
 )
+from flask import jsonify, flash, Blueprint, abort
 from flask_caching import Cache
+from flask_security import current_user as cu, auth_required
+from sherlock import Lock
+from sqlalchemy import Column, String, Integer, DateTime, JSON, or_, event, desc, asc
+
+from . import json_secrets
+from .csrf import csrf
+from .extensions import db
+from .locale import lazy_gettext
+from .security import User
+from .security import is_admin
 
 FREQUENCIES = {
     "M": MONTHLY,
@@ -104,10 +106,10 @@ class Wallet(db.Model):
         products = {}
 
         for subscription in stripe.Subscription.list(
-            customer=user2stripe_customer(),
-            status="active",
-            expand=["data.items.data.price"],
-            api_key=api_key,
+                customer=user2stripe_customer(),
+                status="active",
+                expand=["data.items.data.price"],
+                api_key=api_key,
         ).auto_paging_iter():
             subs = {}
             for item in subscription.get("items").data:
@@ -120,7 +122,7 @@ class Wallet(db.Model):
                         product_id: dict(product.metadata),
                     }
                     for v in stripe.Product.list_features(
-                        product_id, api_key=api_key
+                            product_id, api_key=api_key
                     ).data:
                         feat = v.entitlement_feature
                         features[feat.lookup_key] = dict(feat.metadata or {})
@@ -133,14 +135,14 @@ class Wallet(db.Model):
         day = datetime.datetime.today() if day is None else day
         balance = {}
         for r in (
-            session.query(Txn)
-            .filter_by(
-                wallet_id=self.id, **({} if product is None else {"product": product})
-            )
-            .filter(Txn.valid_from <= day)
-            .filter(Txn.credits != 0)
-            .order_by(asc(Txn.valid_from))
-            .all()
+                session.query(Txn)
+                        .filter_by(
+                    wallet_id=self.id, **({} if product is None else {"product": product})
+                )
+                        .filter(Txn.valid_from <= day)
+                        .filter(Txn.credits != 0)
+                        .order_by(asc(Txn.valid_from))
+                        .all()
         ):
             bal = sh.get_nested_dicts(balance, r.product)
             if r.credits > 0:
@@ -507,7 +509,7 @@ def create_pricing_table():
 @auth_required()
 def create_portal(skip_data=False):
     from stripe.billing_portal import Session
-    from flask import request, current_app as ca, session
+    from flask import request, session
 
     try:
         if skip_data:
@@ -520,7 +522,7 @@ def create_portal(skip_data=False):
 
         api_key = ca.config["STRIPE_SECRET_KEY"]
         for sub in stripe.Subscription.list(
-            customer=customer, api_key=api_key, status="active", limit=1
+                customer=customer, api_key=api_key, status="active", limit=1
         ).auto_paging_iter():
             plan = sub.get("items").data[0].plan
             subscription = plan.nickname or plan.id
@@ -560,15 +562,15 @@ def get_discounts():
         price_discounts = {}
         product_discounts = {}
         for prod, name in (
-            (product, product.name)
-            for product in stripe.Product.list(
-                active=True, api_key=api_key
-            ).auto_paging_iter()
-            if product.name in discounts
+                (product, product.name)
+                for product in stripe.Product.list(
+            active=True, api_key=api_key
+        ).auto_paging_iter()
+                if product.name in discounts
         ):
             product_discounts[prod.id] = name
             for price in stripe.Price.list(
-                active=True, product=prod.id, api_key=api_key
+                    active=True, product=prod.id, api_key=api_key
             ).auto_paging_iter():
                 price_discounts[price.id] = name
         return {
@@ -634,10 +636,10 @@ def format_line_items(line_items):
 
         api_key = ca.config["STRIPE_SECRET_KEY"]
         for price in stripe.Price.list(
-            active=True,
-            api_key=api_key,
-            expand=["data.product"],
-            lookup_keys=list(lookup_keys.keys()),
+                active=True,
+                api_key=api_key,
+                expand=["data.product"],
+                lookup_keys=list(lookup_keys.keys()),
         ).auto_paging_iter():
             discount = discounts.get("prod_name", {}).get(price.product.name)
             for i in lookup_keys[price.lookup_key]:
@@ -703,7 +705,7 @@ def create_payment():
 
             api_key = ca.config["STRIPE_SECRET_KEY"]
             for _ in stripe.Subscription.list(
-                customer=customer, api_key=api_key, status="active", limit=1
+                    customer=customer, api_key=api_key, status="active", limit=1
             ).auto_paging_iter():
                 return create_portal(True)
 
@@ -771,7 +773,7 @@ def checkout_session_completed(session_id):
 
     with Lock(f"Txn-stripe-{session_id}"):
         if db.session.query(
-            Txn.query.filter_by(stripe_id=session_id).exists()
+                Txn.query.filter_by(stripe_id=session_id).exists()
         ).scalar():
             return False
         session = Session.retrieve(
@@ -858,16 +860,16 @@ def subscription_invoice_paid(event):
     invoice = event.data.object
     billing_reason = invoice.billing_reason
     if billing_reason not in (
-        "subscription_create",
-        "subscription_update",
-        "subscription_cycle",
+            "subscription_create",
+            "subscription_update",
+            "subscription_cycle",
     ):
         return
     from flask import current_app as ca
 
     with Lock(f"Txn-stripe-{invoice.id}"):
         if db.session.query(
-            Txn.query.filter_by(stripe_id=invoice.id).exists()
+                Txn.query.filter_by(stripe_id=invoice.id).exists()
         ).scalar():
             return False
 
@@ -926,13 +928,13 @@ def subscription_invoice_paid(event):
                 products = json.loads(product.metadata.get("products", "[]"))
                 products.extend(json.loads(item.price.metadata.get("products", "[]")))
                 for feat in stripe.Product.list_features(
-                    product.id, api_key=api_key
+                        product.id, api_key=api_key
                 ).data:
                     metadata = feat.entitlement_feature.metadata or {}
                     products.extend(json.loads(metadata.get("products", "[]")))
                 for name, credits, freq in products:
                     for valid_from, expired_at in date_range(
-                        start_time, end_time, freq
+                            start_time, end_time, freq
                     ):
                         transactions.append(
                             Txn(
@@ -1077,9 +1079,9 @@ class Credits:
     def init_app(self, app, sitemap, *args, **kwargs):
         app.extensions = getattr(app, "extensions", {})
         for k in (
-            "STRIPE_SECRET_KEY",
-            "STRIPE_PUBLISHABLE_KEY",
-            "STRIPE_WEBHOOK_SECRET_KEY",
+                "STRIPE_SECRET_KEY",
+                "STRIPE_PUBLISHABLE_KEY",
+                "STRIPE_WEBHOOK_SECRET_KEY",
         ):
             app.config[k] = app.config.get(k, os.environ.get(k))
             assert app.config[k], f"`{k}` is required!"

@@ -9,25 +9,27 @@
 """
 It provides functions to build the contact service.
 """
-import os
-import rst2txt
 import logging
+import os
+
+import rst2txt
 import schedula as sh
-from flask import render_template
 from docutils.core import publish_string
-from flask_security import current_user as cu
-from flask_mail import Message, Mail as _Mail
-from werkzeug.datastructures import MultiDict
-from flask_wtf.recaptcha import RecaptchaField
-from flask_babel import get_locale
 from flask import flash, Blueprint, redirect, request, current_app as ca
-from flask_security.utils import (
-    base_render_json, suppress_form_csrf, get_post_action_redirect
-)
+from flask import render_template
+from flask_babel import get_locale
+from flask_mail import Message, Mail as _Mail
+from flask_security import current_user as cu
 from flask_security.forms import (
     RequiredLocalize, get_form_field_label, StringField, Form, EmailField,
     email_required, EmailValidation
 )
+from flask_security.utils import (
+    base_render_json, suppress_form_csrf, get_post_action_redirect
+)
+from flask_wtf.recaptcha import RecaptchaField
+from werkzeug.datastructures import MultiDict
+
 from .locale import lazy_gettext
 from .utils import now_utc
 

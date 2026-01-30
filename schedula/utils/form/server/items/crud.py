@@ -53,8 +53,9 @@ from flask import request, jsonify, Blueprint
 from flask_security import current_user as cu
 from werkzeug.exceptions import HTTPException
 
+from . import normalize_category
 from .files import store_uploaded_file, delete_files_meta, normalize_file_name
-from .utils import get_mongo, get_mongo_maxtime_ms, normalize_category
+from ..notifications import notify_item_event_safe
 from ..security.casbin.helpers import (
     g,
     get_auth_sub,
@@ -70,6 +71,14 @@ from ..security.casbin.helpers import (
 )
 from ..security.casbin.item_acl import authorize_item, item_obj
 from ..utils import (
+    mongo_count_documents,
+    mongo_delete_one,
+    mongo_find,
+    mongo_find_one,
+    mongo_insert_one,
+    mongo_update_one,
+    get_mongo,
+    config_get,
     now_utc,
     set_bp_error_handlers,
     parse_pagination_args,
@@ -104,23 +113,13 @@ class FileRefsError(Exception):
 # AUTH / ACL / STORAGE
 # ---------------------------------------------------------------------------
 def _policy_fields(policy: Tuple[str, ...]) -> Dict[str, str]:
-    if len(policy) >= 6:
-        return {
-            "sub": policy[0],
-            "dom": policy[1],
-            "obj": policy[2],
-            "act": policy[3],
-            "eft": policy[4],
-        }
-    if len(policy) >= 5:
-        return {
-            "sub": policy[0],
-            "dom": policy[1],
-            "obj": policy[2],
-            "act": policy[3],
-            "eft": policy[4],
-        }
-    return {}
+    return {
+        "sub": policy[0],
+        "dom": policy[1],
+        "obj": policy[2],
+        "act": policy[3],
+        "eft": policy[4],
+    }
 
 
 def _match_item_obj(category: str, obj: str):
@@ -130,7 +129,7 @@ def _match_item_obj(category: str, obj: str):
     if obj == f"{prefix}*":
         return "all", None
     if obj.startswith(prefix):
-        item_id = obj[len(prefix) :]
+        item_id = obj[len(prefix):]
         if item_id:
             return "item", item_id
     return None, None
@@ -167,20 +166,16 @@ def build_listing_filter(category: str, sub: str, mode: str) -> Dict:
         if not fields:
             continue
 
-        if fields.get("act") != mode:
+        if fields.get("act") not in (mode, "*"):
             continue
 
         obj = fields.get("obj")
-        if not isinstance(obj, str):
-            continue
 
         match_kind, item_id = _match_item_obj(category, obj)
         if not match_kind:
             continue
 
         dom = fields.get("dom")
-        if not isinstance(dom, str):
-            continue
         eft = (fields.get("eft") or "allow").lower()
         is_public = dom == PUBLIC_DOMAIN
         is_share = dom == SHARE_DOMAIN
@@ -649,12 +644,9 @@ def item_create(category):
     - Enforced via Casbin for the resolved workspace domain.
     """
     category = normalize_category(category)
-    db_mongo = get_mongo()
-    coll = db_mongo.items
 
     sub = get_auth_sub()
     include_data = parse_include_data_arg()
-    max_time_ms = get_mongo_maxtime_ms()
 
     acl_dom = None
     group_id = None
@@ -674,11 +666,11 @@ def item_create(category):
         acl_dom = acl_group(group_id)
     else:
         acl_dom = acl_user(cu.id)
+    db_mongo = get_mongo()
+    coll = db_mongo[config_get("ITEMS_COLLECTION", "items")]
 
     # First-item bootstrap: only admins can create the very first item of a category
-    exists = coll.find_one(
-        {"category": category}, projection={"_id": 1}, max_time_ms=max_time_ms
-    )
+    exists = mongo_find_one(coll, {"category": category}, projection={"_id": 1})
     if not exists:
         enforce_or_403(sub, ADMIN_DOMAIN, "item", "create")
 
@@ -699,11 +691,13 @@ def item_create(category):
     }
 
     try:
-        res = coll.insert_one(doc)
-        inserted = coll.find_one({"_id": res.inserted_id}, max_time_ms=max_time_ms)
+        res = mongo_insert_one(coll, doc)
+        inserted = mongo_find_one(coll, {"_id": res.inserted_id})
     except Exception:
         delete_files_meta(files_meta, db_mongo)
         abort_json(500, "Database error")
+
+    notify_item_event_safe(event="creation", item_doc=inserted)
 
     return jsonify(
         serialize_item(inserted, include_data=include_data, requester=cu)
@@ -722,7 +716,6 @@ def _item_get(category, item_id, act):
     Returns:
         Raw MongoDB document (not serialized).
     """
-    coll = get_mongo().items
     sub = get_current_sub()
 
     try:
@@ -730,8 +723,9 @@ def _item_get(category, item_id, act):
     except Exception:
         abort_json(400, "Invalid item_id")
 
+    coll = get_mongo(collection=config_get("ITEMS_COLLECTION", "items"))
     try:
-        doc = coll.find_one(full_filter, max_time_ms=get_mongo_maxtime_ms())
+        doc = mongo_find_one(coll, full_filter)
     except Exception:
         abort_json(500, "Database error")
 
@@ -755,6 +749,7 @@ def item_get(category, item_id):
     category = normalize_category(category)
     include_data = parse_include_data_arg(default=True)
     doc = _item_get(category, item_id, "read")
+    notify_item_event_safe(event="read", item_doc=doc)
     return jsonify(serialize_item(doc, include_data=include_data, requester=cu)), 200
 
 
@@ -774,7 +769,6 @@ def item_list(category):
     - Base filter always includes category + Casbin-derived ACL restriction.
     """
     category = normalize_category(category)
-    coll = get_mongo().items
     sub = get_current_sub()
 
     filters = [{"category": category}]
@@ -806,11 +800,11 @@ def item_list(category):
     limit, offset = parse_pagination_args(default_limit=50, max_limit=200)
     sort_field, sort_dir = parse_sort_arg()
 
+    coll = get_mongo(collection=config_get("ITEMS_COLLECTION", "items"))
     try:
-        max_time_ms = get_mongo_maxtime_ms()
-        total = coll.count_documents(full_filter, maxTimeMS=max_time_ms)
+        total = mongo_count_documents(coll, full_filter)
         cursor = (
-            coll.find(full_filter, max_time_ms=max_time_ms)
+            mongo_find(coll, full_filter)
             .sort(sort_field, sort_dir)
             .skip(offset)
             .limit(limit)
@@ -859,9 +853,6 @@ def item_update(category, item_id):
     method = request.method
     include_data = parse_include_data_arg(default=False)
 
-    db_mongo = get_mongo()
-    coll = db_mongo.items
-
     doc = _item_get(category, item_id, "write")
     old_data = doc.get("data") or {}
     old_files = doc.get("files") or {}
@@ -878,6 +869,7 @@ def item_update(category, item_id):
     dropped_files = {k: v for k, v in old_files.items() if k not in referenced}
     replaced_files = {}
     new_uploaded = {}
+    db_mongo = get_mongo()
 
     try:
         for fname in sorted(referenced):
@@ -907,10 +899,12 @@ def item_update(category, item_id):
         "updated_at": now_utc(),
         "updated_by": str(cu.id),
     }
-
+    coll = db_mongo[config_get("ITEMS_COLLECTION", "items")]
     try:
-        res = coll.update_one(
-            {"_id": doc["_id"], "category": category}, {"$set": update_doc}
+        res = mongo_update_one(
+            coll,
+            {"_id": doc["_id"], "category": category},
+            {"$set": update_doc},
         )
         if res.matched_count != 1:
             delete_files_meta(new_uploaded, db_mongo)
@@ -923,7 +917,9 @@ def item_update(category, item_id):
     delete_files_meta(dropped_files, db_mongo)
     delete_files_meta(replaced_files, db_mongo)
 
-    updated = coll.find_one({"_id": doc["_id"]}, max_time_ms=get_mongo_maxtime_ms())
+    updated = mongo_find_one(coll, {"_id": doc["_id"]})
+    if updated:
+        notify_item_event_safe(event="update", item_doc=updated)
     return jsonify(
         serialize_item(updated, include_data=include_data, requester=cu)
     ), 200
@@ -943,12 +939,12 @@ def item_delete(category, item_id):
     doc = _item_get(category, item_id, act="write")
 
     db_mongo = get_mongo()
-    coll = db_mongo.items
+    coll = db_mongo[config_get("ITEMS_COLLECTION", "items")]
 
     old_files = doc.get("files") or {}
 
     try:
-        res = coll.delete_one({"_id": doc["_id"], "category": category})
+        res = mongo_delete_one(coll, {"_id": doc["_id"], "category": category})
     except Exception:
         abort_json(500, "Database error")
 
@@ -960,5 +956,7 @@ def item_delete(category, item_id):
     except Exception:
         # Best-effort cleanup: do not fail request after DB deletion
         pass
+
+    notify_item_event_safe(event="delete", item_doc=doc)
 
     return jsonify({"status": "deleted"}), 200

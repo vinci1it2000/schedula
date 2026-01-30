@@ -4,8 +4,8 @@ from __future__ import annotations
 import io
 import os
 import sys
-import uuid
 import unittest
+import uuid
 from datetime import datetime
 
 import mongomock
@@ -18,10 +18,15 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 
 from schedula.utils.form.server import basic_app
 from schedula.utils.form.server.extensions import db as _db
-from schedula.utils.form.server.items import Items
 from schedula.utils.form.server.security import User
 from schedula.utils.form.server.security.casbin.bootstrap import bootstrap_user
 from schedula.utils.form.server.security.casbin.enforcer import get_enforcer
+from schedula.utils.form.server.security.casbin.helpers import (
+    acl_group,
+    g_admin,
+    u,
+)
+from schedula.utils.form.server.utils import get_mongo, config_get
 from schedula.utils.form.server.security.casbin.models import ensure_public_group
 from tests.utils.server.utils.mongo_validation import ValidatingMongoDatabase
 
@@ -71,12 +76,9 @@ class TestItemsAclApis(unittest.TestCase):
             SCHEDULA_SECRETS_ENABLED=False,
             OPENAPI_ENABLED=True,
             CASBIN_ADMIN_ENABLED=True,
+            NOTIF_ENABLED=True,
         )
-
         basic_app(DummySitemap(), self.app, config)
-
-        if "item_storage" in self.app.extensions:
-            self.app.extensions["item_storage"].mongo_db = vdb._db
 
         with self.app.app_context():
             _db.create_all()
@@ -96,6 +98,15 @@ class TestItemsAclApis(unittest.TestCase):
             bootstrap_user(other.id)
             self.other_id = other.id
             _db.session.commit()
+
+            get_mongo(collection=config_get("NOTIF_SETTINGS_COLLECTION", "notification_settings")).insert_one(
+                {
+                    "scope": {"category": "note"},
+                    "allowed": ["in_app"],
+                    "defaults": ["in_app"],
+                    "enabled": True,
+                }
+            )
 
         self.creator_client = self.app.test_client(use_cookies=False)
         self.reader_client = self.app.test_client(use_cookies=False)
@@ -182,6 +193,38 @@ class TestItemsAclApis(unittest.TestCase):
         data = r.get_json(silent=True) or {}
         self.assertIn("ok", data)
         self.assertTrue(data.get("ok"))
+
+    def _latest_notification(self, event: str, category: str):
+        coll = get_mongo(collection=config_get("NOTIF_COLLECTION", "notifications"))
+        doc = coll.find_one(
+            {"event": f"item.{category}.{event}", "payload.category": category},
+            sort=[("created_at", -1)],
+        )
+        return doc
+
+    def _assert_rendered(self, doc, target):
+        self.assertIsInstance(doc, dict)
+        rendered = doc.get("rendered") if isinstance(doc, dict) else None
+        self.assertIsInstance(rendered, dict)
+        per_target = rendered.get(target) if isinstance(rendered, dict) else None
+        self.assertIsInstance(per_target, dict)
+        in_app = per_target.get("in_app") if isinstance(per_target, dict) else None
+        self.assertIsInstance(in_app, dict)
+        if not isinstance(in_app, dict):
+            self.fail("missing rendered.in_app")
+        self.assertIsInstance(in_app.get("title"), str)
+        self.assertIsInstance(in_app.get("body"), str)
+
+    def _create_watcher(self, token: str, payload: dict):
+        r = self.creator_client.post(
+            "/notification/watchers",
+            json=payload,
+            headers=self._auth_headers(token),
+        )
+        self.assertEqual(r.status_code, 200)
+        data = r.get_json(silent=True) or {}
+        self.assertIsInstance(data.get("id"), str)
+        return data.get("id")
 
     def _create_group_item_with_file(self) -> str:
         # Call item create with multipart upload and group_id.
@@ -346,6 +389,286 @@ class TestItemsAclApis(unittest.TestCase):
             headers=self._auth_headers(self.reader_token),
         )
         self.assertEqual(r.status_code, 200)
+
+    def test_item_creation_triggers_notify_policies(self):
+        dom = acl_group(self.group_id)
+        self._create_watcher(
+            self.creator_token,
+            {
+                "event": "creation",
+                "category": "note",
+                "object_id": "*",
+                "dom": dom,
+                "channels": ["in_app"],
+            },
+        )
+        self._create_watcher(
+            self.admin_token,
+            {
+                "event": "creation",
+                "category": "note",
+                "object_id": "*",
+                "dom": dom,
+                "channels": ["in_app"],
+            },
+        )
+
+        r = self.creator_client.post(
+            "/item/note",
+            json={"data": {"title": "notify"}, "group_id": self.group_id},
+            headers=self._auth_headers(self.creator_token),
+        )
+        self.assertEqual(r.status_code, 201)
+
+        with self.app.app_context():
+            coll = get_mongo(collection=config_get("NOTIF_COLLECTION", "notifications"))
+            docs = list(coll.find({"event": "item.note.creation"}))
+            self.assertTrue(docs)
+            doc = docs[-1]
+            targets = set((doc.get("targets") or {}).keys())
+            self.assertIn(u(self.creator_id), targets)
+            self.assertIn(u(self.admin_id), targets)
+            self.assertNotIn(u(self.reader_id), targets)
+            self.assertIsInstance(doc.get("targets"), dict)
+
+    def test_item_update_triggers_notify_policies(self):
+        category = "note"
+        dom = acl_group(self.group_id)
+        self._create_watcher(
+            self.creator_token,
+            {
+                "event": "update",
+                "category": category,
+                "object_id": "*",
+                "dom": dom,
+                "channels": ["in_app"],
+            },
+        )
+        self._create_watcher(
+            self.admin_token,
+            {
+                "event": "update",
+                "category": category,
+                "object_id": "*",
+                "dom": dom,
+                "channels": ["in_app"],
+            },
+        )
+
+        r = self.creator_client.patch(
+            f"/item/{category}/{self.item_id}",
+            json={"data": {"title": "updated"}},
+            headers=self._auth_headers(self.creator_token),
+        )
+        self.assertEqual(r.status_code, 200)
+
+        with self.app.app_context():
+            doc = self._latest_notification("update", category)
+            self.assertIsNotNone(doc)
+            self._assert_rendered(doc, u(self.creator_id))
+            targets = set((doc.get("targets") or {}).keys())
+            self.assertIn(u(self.creator_id), targets)
+            self.assertIn(u(self.admin_id), targets)
+            self.assertNotIn(u(self.reader_id), targets)
+            self.assertIsInstance(doc.get("targets"), dict)
+
+    def test_item_delete_triggers_notify_policies(self):
+        category = "note"
+        dom = acl_group(self.group_id)
+        self._create_watcher(
+            self.creator_token,
+            {
+                "event": "delete",
+                "category": category,
+                "object_id": "*",
+                "dom": dom,
+                "channels": ["in_app"],
+            },
+        )
+        self._create_watcher(
+            self.admin_token,
+            {
+                "event": "delete",
+                "category": category,
+                "object_id": "*",
+                "dom": dom,
+                "channels": ["in_app"],
+            },
+        )
+
+        r = self.creator_client.delete(
+            f"/item/{category}/{self.item_id}",
+            headers=self._auth_headers(self.creator_token),
+        )
+        self.assertEqual(r.status_code, 200)
+
+        with self.app.app_context():
+            doc = self._latest_notification("delete", category)
+            self.assertIsNotNone(doc)
+            self._assert_rendered(doc, u(self.creator_id))
+            targets = set((doc.get("targets") or {}).keys())
+            self.assertIn(u(self.creator_id), targets)
+            self.assertIn(u(self.admin_id), targets)
+            self.assertNotIn(u(self.reader_id), targets)
+            self.assertIsInstance(doc.get("targets"), dict)
+
+    def test_item_read_triggers_notify_policies(self):
+        category = "note"
+        dom = acl_group(self.group_id)
+        self._create_watcher(
+            self.creator_token,
+            {
+                "event": "read",
+                "category": category,
+                "object_id": "*",
+                "dom": dom,
+                "channels": ["in_app"],
+            },
+        )
+        self._create_watcher(
+            self.admin_token,
+            {
+                "event": "read",
+                "category": category,
+                "object_id": "*",
+                "dom": dom,
+                "channels": ["in_app"],
+            },
+        )
+
+        r = self.reader_client.get(
+            f"/item/{category}/{self.item_id}",
+            headers=self._auth_headers(self.reader_token),
+        )
+        self.assertEqual(r.status_code, 200)
+
+        with self.app.app_context():
+            doc = self._latest_notification("read", category)
+            self.assertIsNotNone(doc)
+            self._assert_rendered(doc, u(self.creator_id))
+            targets = set((doc.get("targets") or {}).keys())
+            self.assertIn(u(self.creator_id), targets)
+            self.assertIn(u(self.admin_id), targets)
+            self.assertNotIn(u(self.reader_id), targets)
+            self.assertIsInstance(doc.get("targets"), dict)
+
+    def test_item_publish_triggers_notify_policies(self):
+        category = "note"
+        dom = acl_group(self.group_id)
+        self._create_watcher(
+            self.creator_token,
+            {
+                "event": "publish",
+                "category": category,
+                "object_id": "*",
+                "dom": dom,
+                "channels": ["in_app"],
+            },
+        )
+        self._create_watcher(
+            self.admin_token,
+            {
+                "event": "publish",
+                "category": category,
+                "object_id": "*",
+                "dom": dom,
+                "channels": ["in_app"],
+            },
+        )
+
+        r = self.creator_client.post(
+            f"/item/{category}/{self.item_id}/acl/publish",
+            headers=self._auth_headers(self.creator_token),
+        )
+        self.assertEqual(r.status_code, 200)
+
+        with self.app.app_context():
+            doc = self._latest_notification("publish", category)
+            self.assertIsNotNone(doc)
+            self._assert_rendered(doc, u(self.creator_id))
+            targets = set((doc.get("targets") or {}).keys())
+            self.assertIn(u(self.creator_id), targets)
+            self.assertIn(u(self.admin_id), targets)
+            self.assertNotIn(u(self.reader_id), targets)
+            self.assertIsInstance(doc.get("targets"), dict)
+
+    def test_item_unpublish_triggers_notify_policies(self):
+        category = "note"
+        dom = acl_group(self.group_id)
+        self._create_watcher(
+            self.creator_token,
+            {
+                "event": "unpublish",
+                "category": category,
+                "object_id": "*",
+                "dom": dom,
+                "channels": ["in_app"],
+            },
+        )
+        self._create_watcher(
+            self.admin_token,
+            {
+                "event": "unpublish",
+                "category": category,
+                "object_id": "*",
+                "dom": dom,
+                "channels": ["in_app"],
+            },
+        )
+
+        r = self.creator_client.post(
+            f"/item/{category}/{self.item_id}/acl/unpublish",
+            headers=self._auth_headers(self.creator_token),
+        )
+        self.assertEqual(r.status_code, 200)
+
+        with self.app.app_context():
+            doc = self._latest_notification("unpublish", category)
+            self.assertIsNotNone(doc)
+            self._assert_rendered(doc, u(self.creator_id))
+            targets = set((doc.get("targets") or {}).keys())
+            self.assertIn(u(self.creator_id), targets)
+            self.assertIn(u(self.admin_id), targets)
+            self.assertNotIn(u(self.reader_id), targets)
+            self.assertIsInstance(doc.get("targets"), dict)
+
+    def test_item_notify_deny_overrides_allow(self):
+        category = "note"
+        with self.app.app_context():
+            e = get_enforcer()
+            dom = acl_group(self.group_id)
+            e.add_policy(
+                g_admin(self.group_id),
+                dom,
+                f"item:{category}:*",
+                "read",
+                "deny",
+            )
+
+        self._create_watcher(
+            self.admin_token,
+            {
+                "event": "update",
+                "category": category,
+                "dom": dom,
+                "channels": ["in_app"],
+            },
+        )
+
+        with self.app.app_context():
+            coll = get_mongo(collection=config_get("NOTIF_COLLECTION", "notifications"))
+            coll.delete_many({"event": f"item.{category}.update"})
+
+        r = self.creator_client.patch(
+            f"/item/{category}/{self.item_id}",
+            json={"data": {"title": "updated"}},
+            headers=self._auth_headers(self.creator_token),
+        )
+        self.assertEqual(r.status_code, 200)
+
+        with self.app.app_context():
+            doc = self._latest_notification("update", category)
+            self.assertIsNone(doc)
 
     def test_item_acl_anonymous_denied(self):
         # Call item get as anonymous.

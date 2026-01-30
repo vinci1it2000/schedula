@@ -105,7 +105,7 @@ def bootstrap_user(user_id: str | int):
     e.add_policies(
         [
             [sub, dom, "item:*", act, "allow"]
-            for act in ("create", "read", "write", "manage")
+            for act in ("create", "read", "write", "manage", "notify")
         ]
     )
 
@@ -128,12 +128,15 @@ def bootstrap_group(group_id: str, creator_id: str):
         ]
     )
 
-    # baseline: members can read items; admins can read/write/share/manage/create
-    policies = [[member, dom, "item:*", "read", "allow"]]
+    # baseline: members can read/notify items; admins can read/write/share/manage/create/notify
+    policies = [
+        [member, dom, "item:*", "read", "allow"],
+        [member, dom, "item:*", "notify", "allow"],
+    ]
     policies.extend(
         [
             [admin, dom, "item:*", act, "allow"]
-            for act in ("create", "read", "write", "share", "manage")
+            for act in ("create", "read", "write", "share", "manage", "notify")
         ]
     )
 
@@ -158,14 +161,14 @@ def set_system_admin(user_id: str | int, enabled: bool = True):
 
 
 def set_subject_banned_in_group(
-    group_id: str,
-    subject_id: str | int,
-    subject_type: str = "user",  # "user" | "group"
-    obj_any: str = "item:*",
-    *,
-    enabled: bool = True,
-    reason: str | None = None,
-    act_any: str = "*",
+        group_id: str,
+        subject_id: str | int,
+        subject_type: str = "user",  # "user" | "group"
+        obj_any: str = "item:*",
+        *,
+        enabled: bool = True,
+        reason: str | None = None,
+        act_any: str = "*",
 ):
     """
     Ban/unban a subject (user or group) from a group domain.

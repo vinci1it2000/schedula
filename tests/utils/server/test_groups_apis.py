@@ -1,18 +1,16 @@
 # coding: utf-8
 from __future__ import annotations
 
-import uuid
 import unittest
+import uuid
 from datetime import datetime
 
 import mongomock
 from flask import Flask
 from flask_security.utils import hash_password
-
 from schedula.utils.form.server import basic_app
 from schedula.utils.form.server.extensions import db as _db
 from schedula.utils.form.server.security import User
-from schedula.utils.form.server.security.casbin.models import ensure_public_group
 from schedula.utils.form.server.security.casbin.bootstrap import bootstrap_user
 from schedula.utils.form.server.security.casbin.enforcer import get_enforcer
 from schedula.utils.form.server.security.casbin.helpers import (
@@ -23,6 +21,7 @@ from schedula.utils.form.server.security.casbin.helpers import (
     g_admin,
     u,
 )
+from schedula.utils.form.server.security.casbin.models import ensure_public_group
 from tests.utils.server.utils.mongo_validation import ValidatingMongoDatabase
 
 
@@ -67,12 +66,10 @@ class TestGroupsApis(unittest.TestCase):
             OPENAPI_ENABLED=True,
             CASBIN_ADMIN_ENABLED=True,
         )
-        basic_app(DummySitemap(), self.app, config)
 
-        if "item_storage" in self.app.extensions:
-            self.app.extensions["item_storage"].mongo_db = vdb
-
+        self.app.config["MONGO_DB"] = vdb
         with self.app.app_context():
+            basic_app(DummySitemap(), self.app, config)
             _db.create_all()
             ensure_public_group()
 

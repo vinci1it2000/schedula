@@ -15,10 +15,11 @@ If you need an air‑gapped deployment, vendor swagger-ui-dist and point
 SWAGGER_UI_DIST_URL to your local static path.
 """
 from __future__ import annotations
-import yaml
+
 import os.path as osp
 from dataclasses import dataclass
 
+import yaml
 from flask import Blueprint, current_app, jsonify, Response, send_file, request
 
 OPENAPI_YAML_PATH = osp.join(

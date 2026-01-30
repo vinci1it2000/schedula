@@ -4,15 +4,14 @@
 from __future__ import annotations
 
 import os.path as osp
-
-from flask import current_app, has_app_context
-
 from contextlib import contextmanager
 
 import casbin
-from casbin import util
 import sqlalchemy_adapter
+from casbin import util
+from flask import current_app, has_app_context
 from mongo_watcher import new_watcher
+
 from ...extensions import db
 
 _EXT_KEY = "casbin_enforcer"
@@ -36,7 +35,26 @@ class Adapter(sqlalchemy_adapter.Adapter):
             pass
 
 
-def get_enforcer() -> casbin.SyncedEnforcer:
+def _yield_users(e, role, _seen=None):
+    if role not in _seen:
+        _seen.add(role)
+        if role.startswith("u:"):
+            yield role
+        else:
+            for v in e.get_users_for_role(role):
+                if v not in _seen:
+                    yield from _yield_users(e, v, _seen)
+
+
+class Enforcer(casbin.SyncedEnforcer):
+    def get_implicit_users_for_role(self, role, _seen=None):
+        with self._rl:
+            if _seen is None:
+                _seen = set()
+            return sorted(set(list(_yield_users(self._e, role, _seen))))
+
+
+def get_enforcer() -> Enforcer:
     """Return a cached Casbin enforcer.
 
     The enforcer is stored in `current_app.extensions['casbin_enforcer']`.
@@ -51,7 +69,7 @@ def get_enforcer() -> casbin.SyncedEnforcer:
         "CASBIN_MODEL_CONF",
         osp.join(osp.dirname(__file__), "model.conf"),
     )
-    e = casbin.SyncedEnforcer(model_path, adapter)
+    e = Enforcer(model_path, adapter)
     e.add_function("key_match", util.key_match)
     e.enable_auto_save(True)
     uri = app.config.get("MONGO_URI", None)

@@ -4,26 +4,25 @@ from __future__ import annotations
 import io
 import os
 import sys
-import uuid
 import unittest
+import uuid
 from datetime import datetime, timezone
-
-import gridfs
 from typing import Any, cast
 from unittest.mock import Mock, patch
+
+import gridfs
 import mongomock
 import mongomock.gridfs
+from botocore.config import Config as BotoConfig
 from bson import ObjectId
 from flask import Flask
 from flask_security.utils import hash_password
-from botocore.config import Config as BotoConfig
 
 # Add project root to Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 
 from schedula.utils.form.server import basic_app
 from schedula.utils.form.server.extensions import db as _db
-from schedula.utils.form.server.items import Items
 from schedula.utils.form.server.security import User
 from schedula.utils.form.server.security.casbin.bootstrap import bootstrap_user
 from schedula.utils.form.server.security.casbin.enforcer import get_enforcer
@@ -80,12 +79,8 @@ class TestItemsFilesApis(unittest.TestCase):
             CASBIN_ADMIN_ENABLED=True,
         )
 
-        basic_app(DummySitemap(), self.app, config)
-
-        if "item_storage" in self.app.extensions:
-            self.app.extensions["item_storage"].mongo_db = self.vdb._db
-
         with self.app.app_context():
+            basic_app(DummySitemap(), self.app, config)
             _db.create_all()
             ensure_public_group()
             get_enforcer()
@@ -283,8 +278,8 @@ class TestItemsFilesApis(unittest.TestCase):
         }
 
         with patch(
-            "schedula.utils.form.server.items.files.get_s3_client_and_bucket",
-            return_value=(fake_client, "test-bucket", ""),
+                "schedula.utils.form.server.items.files.get_s3_client_and_bucket",
+                return_value=(fake_client, "test-bucket", ""),
         ):
             # Call file download with valid S3 file metadata.
             r = self.auth_client.get(

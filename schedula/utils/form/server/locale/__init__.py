@@ -9,15 +9,16 @@
 """
 It provides functions to build the language service.
 """
-import os
 import functools
+import os
 import os.path as osp
-from flask_babel import Babel, Domain
-from werkzeug.exceptions import NotFound
-from werkzeug.datastructures.accept import LanguageAccept
+
 from flask import (
     jsonify, current_app, request, session, Blueprint, send_from_directory
 )
+from flask_babel import Babel, Domain
+from werkzeug.datastructures.accept import LanguageAccept
+from werkzeug.exceptions import NotFound
 
 bp = Blueprint('locales', __name__)
 

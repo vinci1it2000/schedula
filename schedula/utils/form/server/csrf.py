@@ -10,11 +10,13 @@
 It provides functions to build the CSRF service.
 """
 import hmac
-import datetime
+
 from flask import current_app, session, g, request
-from itsdangerous import URLSafeTimedSerializer
 from flask_wtf.csrf import CSRFProtect, CSRFError, generate_csrf
+from itsdangerous import URLSafeTimedSerializer
+
 from .utils import now_utc
+
 
 class CSRF(CSRFProtect):
     def setup_form(self, form):

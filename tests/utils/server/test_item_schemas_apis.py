@@ -3,8 +3,8 @@ from __future__ import annotations
 
 import os
 import sys
-import uuid
 import unittest
+import uuid
 from datetime import datetime, timezone
 
 import mongomock
@@ -71,12 +71,9 @@ class TestItemSchemasApis(unittest.TestCase):
             CASBIN_ADMIN_ENABLED=True,
         )
 
-        basic_app(DummySitemap(), self.app, config)
-
-        if "item_storage" in self.app.extensions:
-            self.app.extensions["item_storage"].mongo_db = vdb
-
+        self.app.config["MONGO_DB"] = vdb
         with self.app.app_context():
+            basic_app(DummySitemap(), self.app, config)
             _db.create_all()
             ensure_public_group()
 

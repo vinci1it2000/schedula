@@ -10,13 +10,15 @@
 It provides functions to build the credit application services.
 """
 
-import uuid
 import datetime
-from .extensions import db
-from flask_security.utils import view_commit
-from flask_security import current_user as cu
-from sqlalchemy import Column, String, DateTime, JSON
+import uuid
+
 from flask import request, jsonify, Blueprint, after_this_request, current_app
+from flask_security import current_user as cu
+from flask_security.utils import view_commit
+from sqlalchemy import Column, String, DateTime, JSON
+
+from .extensions import db
 
 bp = Blueprint("schedula_gdpr", __name__)
 

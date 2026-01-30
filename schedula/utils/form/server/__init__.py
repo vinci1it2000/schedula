@@ -30,6 +30,7 @@ Sub-Modules:
 """
 
 import logging
+
 import schedula as sh
 
 log = logging.getLogger(__name__)
@@ -97,6 +98,11 @@ def basic_app(sitemap, app, config=None):
 
         Items(app, sitemap)
 
+    if app.config.get("NOTIF_ENABLED"):
+        from .notifications import Notifications
+
+        Notifications(app, sitemap)
+
     if app.config.get("FILES_STORAGE_ENABLED"):
         from .files import Files
 
@@ -110,9 +116,9 @@ def basic_app(sitemap, app, config=None):
 
     # Casbin policy admin (Casbin-authz only)
     if app.config.get("CASBIN_ADMIN_ENABLED", True):
-        # from .security.casbin import CasbinAdminPanel
-        # CasbinAdminPanel(app)  # Temporarily disabled - module not found
-        pass
+        from .security.admin_panel import CasbinAdminPanel
+
+        CasbinAdminPanel(app)
 
     if app.config["SCHEDULA_GDPR_ENABLED"]:
         from .gdpr import GDPR

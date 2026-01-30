@@ -11,11 +11,13 @@ It provides functions to dump and load secrets from flask session when dealing
 with JSON.
 """
 
-import json
 import hashlib
-from .extensions import db
+import json
+
 from flask import current_app as ca
 from sqlalchemy import Column, String, JSON
+
+from .extensions import db
 
 
 class Secret(db.Model):

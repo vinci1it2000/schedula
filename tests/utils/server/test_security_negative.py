@@ -1,9 +1,9 @@
 # coding: utf-8
 from __future__ import annotations
 
-import unittest
-import sys
 import os
+import sys
+import unittest
 import uuid
 from datetime import datetime
 
@@ -72,15 +72,11 @@ class TestServerSecurityNegative(unittest.TestCase):
             verify_file_handler = None
             basic_app_config = None
 
-        basic_app(DummySitemap(), self.app, config)
-
         # --- SQL init per-test
+        self.app.config["MONGO_DB"] = vdb
         with self.app.app_context():
+            basic_app(DummySitemap(), self.app, config)
             _db.create_all()
-
-        # Items extension is installed by Items(app) under key "item_storage"
-        if "item_storage" in self.app.extensions:
-            self.app.extensions["item_storage"].mongo_db = vdb
 
         self.anon_client = self.app.test_client()
         self.auth_client = self.app.test_client()

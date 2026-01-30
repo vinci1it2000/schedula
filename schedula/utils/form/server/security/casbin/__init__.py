@@ -1,13 +1,13 @@
 # coding=utf-8
 # -*- coding: UTF-8 -*-
 
-from .enforcer import get_enforcer
 from .bootstrap import (
     bootstrap_platform,
     bootstrap_user,
     bootstrap_group,
     set_system_admin,
 )
+from .enforcer import get_enforcer
 from .helpers import (
     u,
     g,

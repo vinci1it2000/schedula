@@ -44,8 +44,9 @@ from typing import Dict, List, Set, Tuple
 from bson import ObjectId
 from flask import Blueprint, jsonify, request
 
-from .utils import get_mongo, get_mongo_maxtime_ms, normalize_category
+from . import normalize_category
 from ..extensions import db
+from ..notifications import notify_item_event_safe
 from ..security.casbin.enforcer import get_enforcer
 from ..security.casbin.helpers import (
     PUBLIC_DOMAIN,
@@ -56,7 +57,7 @@ from ..security.casbin.helpers import (
     item_obj,
 )
 from ..security.casbin.item_acl import authorize_item, set_item_public_read
-from ..utils import set_bp_error_handlers
+from ..utils import mongo_find_one, set_bp_error_handlers, get_mongo, config_get
 
 bp = Blueprint("items_acl", __name__)
 set_bp_error_handlers(bp)
@@ -73,14 +74,10 @@ def _load_item_or_404(category: str, item_id: str) -> Dict:
     except Exception:
         abort_json(400, "Invalid item_id")
 
-    mongo_db = get_mongo()
-    coll = mongo_db.items
+    coll = get_mongo(collection=config_get("ITEMS_COLLECTION", "items"))
 
     try:
-        doc = coll.find_one(
-            {"_id": oid, "category": category},
-            max_time_ms=get_mongo_maxtime_ms(),
-        )
+        doc = mongo_find_one(coll, {"_id": oid, "category": category})
     except Exception:
         abort_json(500, "Database error")
 
@@ -264,6 +261,7 @@ def replace_item_share_acl(category: str, item_id: str):
     except Exception:
         abort_json(500, "Database error")
 
+    notify_item_event_safe(event="publish", item_doc=item_doc)
     db.session.commit()
 
     return jsonify({"ok": True, "applied": applied}), 200
@@ -337,8 +335,8 @@ def publish_item(category: str, item_id: str):
     except ValueError as exc:
         abort_json(400, str(exc))
 
+    notify_item_event_safe(event="publish", item_doc=item_doc)
     db.session.commit()
-
     return jsonify(
         {
             "ok": True,
@@ -363,6 +361,8 @@ def unpublish_item(category: str, item_id: str):
     except ValueError as exc:
         abort_json(400, str(exc))
 
+    notify_item_event_safe(event="unpublish", item_doc=item_doc)
+
     db.session.commit()
 
     return jsonify(
@@ -384,9 +384,7 @@ def get_publish_status(category: str, item_id: str):
     if not authorize_item(sub=sub, item_doc=item_doc, act="manage"):
         abort_json(403, "Forbidden")
 
-    return jsonify(
-        {
-            "ok": True,
-            "published": _is_item_public_read(item_doc),
-        }
-    ), 200
+    return jsonify({
+        "ok": True,
+        "published": _is_item_public_read(item_doc),
+    }), 200

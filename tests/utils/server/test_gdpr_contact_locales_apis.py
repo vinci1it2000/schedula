@@ -62,9 +62,8 @@ class BaseApiTestCase(unittest.TestCase):
             },
         )
 
-        basic_app(DummySitemap(), self.app, config)
-
         with self.app.app_context():
+            basic_app(DummySitemap(), self.app, config)
             _db.create_all()
             ensure_public_group()
 

@@ -17,6 +17,7 @@ except Exception:  # pragma: no cover
         is_authenticated = False
         id = None
 
+
     cu = _CU()
 
 from ..extensions import db
@@ -371,12 +372,12 @@ def edit_members(gid: str):
     data = request.get_json(silent=True) or {}
 
     for key in (
-        "add_members",
-        "remove_members",
-        "promote_admins",
-        "demote_admins",
-        "ban_members",
-        "unban_members",
+            "add_members",
+            "remove_members",
+            "promote_admins",
+            "demote_admins",
+            "ban_members",
+            "unban_members",
     ):
         v = data.get(key) or []
         if not isinstance(v, list):

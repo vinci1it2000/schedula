@@ -70,16 +70,13 @@ class TestUserRegistration(unittest.TestCase):
             CASBIN_ADMIN_ENABLED=True,
         )
 
-        basic_app(DummySitemap(), self.app, config)
         # Core test config - SENZA EMAIL DI CONFERMA per primo admin
 
         # --- SQL init per-test
+        self.app.config["MONGO_DB"] = vdb
         with self.app.app_context():
+            basic_app(DummySitemap(), self.app, config)
             _db.create_all()
-
-        # Items extension is installed by Items(app) under key "item_storage"
-        if "item_storage" in self.app.extensions:
-            self.app.extensions["item_storage"].mongo_db = vdb
 
         self.client = self.app.test_client()
 

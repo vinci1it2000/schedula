@@ -63,16 +63,25 @@ from flask_security import current_user as cu
 from jsonschema.exceptions import SchemaError
 from mongo_schema import MongoValidator
 
-from .utils import get_mongo, get_mongo_maxtime_ms
-from .utils import normalize_category
+from . import normalize_category
 from ..security.casbin.decorators import require_system_admin
-from ..utils import now_utc, abort_json, set_bp_error_handlers
+from ..utils import (
+    now_utc,
+    abort_json,
+    set_bp_error_handlers,
+    get_mongo,
+    config_get,
+    mongo_command,
+    mongo_find,
+    mongo_find_one,
+    mongo_insert_one,
+    mongo_update_one,
+)
 
 bp = Blueprint("schemas", __name__)
 set_bp_error_handlers(bp)
 
 SCHEMAS_COLL = "item_schemas"
-ITEMS_COLL = "items"
 SEMVER_RE = re.compile(r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$")
 
 
@@ -122,33 +131,24 @@ def _serialize_schema_doc(d: Dict[str, Any]) -> Dict[str, Any]:
         "is_enabled": bool(d.get("is_enabled", False)),
         "note": d.get("note"),
         "schema": d.get("schema") if isinstance(d.get("schema"), dict) else {},
-        "created_at": d.get("created_at").isoformat() if d.get(
-            "created_at"
-        ) else None,
-        "updated_at": d.get("updated_at").isoformat() if d.get(
-            "updated_at"
-        ) else None,
-        "published_at": d.get("published_at").isoformat() if d.get(
-            "published_at"
-        ) else None,
+        "created_at": d.get("created_at").isoformat() if d.get("created_at") else None,
+        "updated_at": d.get("updated_at").isoformat() if d.get("updated_at") else None,
+        "published_at": d.get("published_at").isoformat()
+        if d.get("published_at")
+        else None,
     }
 
 
-def _list_versions_raw(mongo_db, category: str) -> List[Dict[str, Any]]:
-    coll = getattr(mongo_db, SCHEMAS_COLL)
+def _list_versions_raw(coll_schemas, category: str) -> List[Dict[str, Any]]:
     try:
-        docs = list(coll.find(
-            {"category": category},
-            projection={"_id": 0},
-            max_time_ms=get_mongo_maxtime_ms(),
-        ))
+        docs = list(mongo_find(coll_schemas, {"category": category}, projection={"_id": 0}))
     except Exception:
         abort_json(500, "Database error")
     return docs
 
 
-def _max_version_semver(mongo_db, category: str) -> Tuple[int, int, int]:
-    docs = _list_versions_raw(mongo_db, category)
+def _max_version_semver(coll_schemas, category: str) -> Tuple[int, int, int]:
+    docs = _list_versions_raw(coll_schemas, category)
     if not docs:
         return 0, 0, 0
     keys: List[Tuple[int, int, int]] = []
@@ -159,13 +159,12 @@ def _max_version_semver(mongo_db, category: str) -> Tuple[int, int, int]:
     return max(keys) if keys else (0, 0, 0)
 
 
-def _get_doc(mongo_db, category: str, version: str) -> Optional[Dict[str, Any]]:
-    coll = getattr(mongo_db, SCHEMAS_COLL)
+def _get_doc(coll_schemas, category: str, version: str) -> Optional[Dict[str, Any]]:
     try:
-        return coll.find_one(
+        return mongo_find_one(
+            coll_schemas,
             {"category": category, "version": version},
             projection={"_id": 0},
-            max_time_ms=get_mongo_maxtime_ms(),
         )
     except Exception:
         abort_json(500, "Database error")
@@ -192,15 +191,17 @@ def _build_items_validator(active_docs: List[Dict[str, Any]]) -> Dict[str, Any]:
         cat = d.get("category")
         sch = d.get("schema")
         if isinstance(cat, str) and cat.strip() and isinstance(sch, dict):
-            branches.append({
-                "bsonType": "object",
-                "required": ["category", "data"],
-                "properties": {
-                    "category": {"bsonType": "string", "enum": [cat]},
-                    "data": sch,
-                },
-                "additionalProperties": True,
-            })
+            branches.append(
+                {
+                    "bsonType": "object",
+                    "required": ["category", "data"],
+                    "properties": {
+                        "category": {"bsonType": "string", "enum": [cat]},
+                        "data": sch,
+                    },
+                    "additionalProperties": True,
+                }
+            )
 
     if branches:
         base["oneOf"] = branches
@@ -211,22 +212,25 @@ def _build_items_validator(active_docs: List[Dict[str, Any]]) -> Dict[str, Any]:
 def _sync_items_validator(
         mongo_db, *, level="moderate", action="error"
 ) -> Dict[str, Any]:
-    coll = getattr(mongo_db, SCHEMAS_COLL)
+    coll = mongo_db[config_get("ITEM_SCHEMA_COLLECTION", "item_schemas")]
     try:
-        active_docs = list(coll.find(
-            {"status": "published", "is_enabled": True},
-            projection={"_id": 0, "category": 1, "schema": 1, "version": 1},
-            max_time_ms=get_mongo_maxtime_ms(),
-        ))
+        active_docs = list(
+            mongo_find(
+                coll,
+                {"status": "published", "is_enabled": True},
+                projection={"_id": 0, "category": 1, "schema": 1, "version": 1},
+            )
+        )
     except Exception:
         abort_json(500, "Database error")
 
     validator = _build_items_validator(active_docs)
 
     try:
-        mongo_res = mongo_db.command(
+        mongo_res = mongo_command(
+            mongo_db,
             "collMod",
-            ITEMS_COLL,
+            config_get("ITEMS_COLLECTION", "items"),
             validator=validator,
             validationLevel=level,
             validationAction=action,
@@ -235,9 +239,8 @@ def _sync_items_validator(
         abort_json(500, f"Failed to apply Mongo validator (collMod): {e}")
 
     cats = sorted(
-        [{"category": d["category"], "version": d["version"]}
-         for d in active_docs],
-        key=lambda x: (x["category"], _parse_semver(x["version"]))
+        [{"category": d["category"], "version": d["version"]} for d in active_docs],
+        key=lambda x: (x["category"], _parse_semver(x["version"])),
     )
     return {"mongo_result": mongo_res, "active_categories": cats}
 
@@ -246,12 +249,13 @@ def _sync_items_validator(
 # API: list categories (GUI)
 # ---------------------------------------------------------------------
 
+
 @bp.get("/")
 @require_system_admin("schema:items", "manage")
 def list_categories():
     mongo_db = get_mongo()
-    schemas = getattr(mongo_db, SCHEMAS_COLL)
-    items = getattr(mongo_db, ITEMS_COLL)
+    schemas = mongo_db[config_get("ITEM_SCHEMA_COLLECTION", "item_schemas")]
+    items = mongo_db[config_get("ITEMS_COLLECTION", "items")]
 
     try:
         cats_from_items: Set[str] = set(items.distinct("category"))
@@ -264,13 +268,15 @@ def list_categories():
     out = []
     for cat in all_categories:
         if cat not in cats_from_schemas:
-            out.append({
-                "category": cat,
-                "max_version": "0.0.0",
-                "published_enabled_versions": [],
-            })
+            out.append(
+                {
+                    "category": cat,
+                    "max_version": "0.0.0",
+                    "published_enabled_versions": [],
+                }
+            )
             continue
-        docs = _list_versions_raw(mongo_db, cat)
+        docs = _list_versions_raw(schemas, cat)
         versions = []
         pub_enabled = []
         for d in docs:
@@ -295,12 +301,13 @@ def list_categories():
 # API: category detail (GUI)
 # ---------------------------------------------------------------------
 
+
 @bp.get("/<category>")
 @require_system_admin("schema:items", "manage")
 def get_category_detail(category: str):
     category = normalize_category(category)
-    mongo_db = get_mongo()
-    docs = _list_versions_raw(mongo_db, category)
+    coll = get_mongo(collection=config_get("ITEM_SCHEMA_COLLECTION", "item_schemas"))
+    docs = _list_versions_raw(coll, category)
     docs = sorted(docs, key=lambda d: _parse_semver(d["version"]))
     versions = [_serialize_schema_doc(d) for d in docs]
     return jsonify({
@@ -312,6 +319,7 @@ def get_category_detail(category: str):
 # ---------------------------------------------------------------------
 # API: create draft with user-defined version
 # ---------------------------------------------------------------------
+
 
 @bp.post("/<category>/drafts")
 @require_system_admin("schema:items", "manage")
@@ -325,15 +333,12 @@ def create_draft(category: str):
     schema = _parse_schema(payload.get("schema"))
     note = payload.get("note")
 
-    mongo_db = get_mongo()
-    coll = getattr(mongo_db, SCHEMAS_COLL)
+    coll = get_mongo(collection=config_get("ITEM_SCHEMA_COLLECTION", "item_schemas"))
 
     # Must be strictly greater than current max
-    max_vt = _max_version_semver(mongo_db, category)
+    max_vt = _max_version_semver(coll, category)
     if vt <= max_vt:
-        abort_json(
-            409, f"Version must be > {max_vt[0]}.{max_vt[1]}.{max_vt[2]}"
-        )
+        abort_json(409, f"Version must be > {max_vt[0]}.{max_vt[1]}.{max_vt[2]}")
 
     now = now_utc()
     doc = {
@@ -350,18 +355,19 @@ def create_draft(category: str):
     }
 
     try:
-        coll.insert_one(doc)
+        mongo_insert_one(coll, doc)
     except Exception:
         abort_json(409, "Schema version already exists")
 
-    return jsonify({
-        "ok": True, "category": category, "version": version, "status": "draft"
-    }), 201
+    return jsonify(
+        {"ok": True, "category": category, "version": version, "status": "draft"}
+    ), 201
 
 
 # ---------------------------------------------------------------------
 # API: update draft (only while draft)
 # ---------------------------------------------------------------------
+
 
 @bp.put("/<category>/drafts/<version>")
 @require_system_admin("schema:items", "manage")
@@ -371,9 +377,7 @@ def update_draft(category: str, version: str):
     _parse_semver(version)
 
     payload = request.get_json(force=True, silent=True) or {}
-    set_doc: Dict[str, Any] = {
-        "updated_at": now_utc(), "updated_by": str(cu.id)
-    }
+    set_doc: Dict[str, Any] = {"updated_at": now_utc(), "updated_by": str(cu.id)}
 
     if "schema" in payload:
         set_doc["schema"] = _parse_schema(payload["schema"])
@@ -383,11 +387,11 @@ def update_draft(category: str, version: str):
     if len(set_doc) <= 2:
         abort_json(400, "Nothing to update")
 
-    mongo_db = get_mongo()
-    coll = getattr(mongo_db, SCHEMAS_COLL)
+    coll = get_mongo(collection=config_get("ITEM_SCHEMA_COLLECTION", "item_schemas"))
 
     try:
-        res = coll.update_one(
+        res = mongo_update_one(
+            coll,
             {"category": category, "version": version, "status": "draft"},
             {"$set": set_doc},
         )
@@ -395,11 +399,11 @@ def update_draft(category: str, version: str):
         abort_json(500, "Database error")
 
     if res.matched_count != 1:
-        doc = _get_doc(mongo_db, category, version)
+        doc = _get_doc(coll, category, version)
         if doc and doc.get("status") == "published":
             abort_json(
                 409,
-                "Published versions are immutable; you can only enable/disable them"
+                "Published versions are immutable; you can only enable/disable them",
             )
         abort_json(404, "Draft not found")
 
@@ -410,6 +414,7 @@ def update_draft(category: str, version: str):
 # API: publish draft (becomes immutable)
 # ---------------------------------------------------------------------
 
+
 @bp.post("/<category>/drafts/<version>/publish")
 @require_system_admin("schema:items", "manage")
 def publish_draft(category: str, version: str):
@@ -418,33 +423,39 @@ def publish_draft(category: str, version: str):
     _parse_semver(version)
 
     mongo_db = get_mongo()
-    coll = getattr(mongo_db, SCHEMAS_COLL)
+    coll = mongo_db[config_get("ITEM_SCHEMA_COLLECTION", "item_schemas")]
     now = now_utc()
 
     try:
-        res = coll.update_one(
+        res = mongo_update_one(
+            coll,
             {"category": category, "version": version, "status": "draft"},
-            {"$set": {
-                "status": "published",
-                "is_enabled": True,
-                "published_at": now,
-                "published_by": str(cu.id),
-                "updated_at": now,
-                "updated_by": str(cu.id),
-            }},
+            {
+                "$set": {
+                    "status": "published",
+                    "is_enabled": True,
+                    "published_at": now,
+                    "published_by": str(cu.id),
+                    "updated_at": now,
+                    "updated_by": str(cu.id),
+                }
+            },
         )
     except Exception:
         abort_json(500, "Database error")
 
     if res.matched_count != 1:
-        doc = _get_doc(mongo_db, category, version)
+        doc = _get_doc(coll, category, version)
         if doc and doc.get("status") == "published":
             abort_json(409, "Already published")
         abort_json(404, "Draft not found")
     _sync_items_validator(mongo_db)
     return jsonify({
-        "ok": True, "category": category, "version": version,
-        "status": "published", "is_enabled": True
+        "ok": True,
+        "category": category,
+        "version": version,
+        "status": "published",
+        "is_enabled": True,
     }), 200
 
 
@@ -452,16 +463,23 @@ def publish_draft(category: str, version: str):
 # API: enable/disable published version
 # ---------------------------------------------------------------------
 
+
 def _toggle_published(category: str, version: str, enabled: bool):
     mongo_db = get_mongo()
-    coll = getattr(mongo_db, SCHEMAS_COLL)
+    coll = mongo_db[config_get("ITEM_SCHEMA_COLLECTION", "item_schemas")]
     now = now_utc()
 
     try:
-        res = coll.update_one(
+        res = mongo_update_one(
+            coll,
             {"category": category, "version": version, "status": "published"},
-            {"$set": {"is_enabled": bool(enabled), "updated_at": now,
-                      "updated_by": str(cu.id)}},
+            {
+                "$set": {
+                    "is_enabled": bool(enabled),
+                    "updated_at": now,
+                    "updated_by": str(cu.id),
+                }
+            },
         )
     except Exception:
         abort_json(500, "Database error")
@@ -470,8 +488,10 @@ def _toggle_published(category: str, version: str, enabled: bool):
         abort_json(404, "Published version not found")
     _sync_items_validator(mongo_db)
     return jsonify({
-        "ok": True, "category": category, "version": version,
-        "is_enabled": bool(enabled)
+        "ok": True,
+        "category": category,
+        "version": version,
+        "is_enabled": bool(enabled),
     }), 200
 
 

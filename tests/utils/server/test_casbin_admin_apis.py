@@ -1,19 +1,17 @@
 # coding: utf-8
 from __future__ import annotations
 
-import uuid
 import unittest
+import uuid
 from datetime import datetime
 
 import mongomock
 from flask import Flask
 from flask_security.utils import hash_password
-
 from schedula.utils.form.server import basic_app
 from schedula.utils.form.server.extensions import db as _db
 from schedula.utils.form.server.security import User
 from schedula.utils.form.server.security.admin_panel import (
-    CasbinAdminPanel,
     bp as admin_bp,
 )
 from schedula.utils.form.server.security.casbin.bootstrap import (
@@ -24,7 +22,6 @@ from schedula.utils.form.server.security.casbin.enforcer import get_enforcer
 from schedula.utils.form.server.security.casbin.models import ensure_public_group
 from schedula.utils.form.server.utils import set_bp_error_handlers
 from tests.utils.server.utils.mongo_validation import ValidatingMongoDatabase
-
 
 if not getattr(admin_bp, "_got_registered_once", False):
     set_bp_error_handlers(admin_bp)
@@ -71,12 +68,10 @@ class TestCasbinAdminApis(unittest.TestCase):
             OPENAPI_ENABLED=True,
             CASBIN_ADMIN_ENABLED=True,
         )
-        basic_app(DummySitemap(), self.app, config)
-        if "item_storage" in self.app.extensions:
-            self.app.extensions["item_storage"].mongo_db = vdb
-        CasbinAdminPanel(self.app, url_prefix="/admin/casbin")
 
+        self.app.config["MONGO_DB"] = vdb
         with self.app.app_context():
+            basic_app(DummySitemap(), self.app, config)
             if "casbin_enforcer" in self.app.extensions:
                 del self.app.extensions["casbin_enforcer"]
             _db.create_all()

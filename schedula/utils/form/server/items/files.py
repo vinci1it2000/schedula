@@ -43,11 +43,12 @@ from botocore.config import Config as BotoConfig
 from bson import ObjectId
 from flask import Blueprint, current_app, Response, stream_with_context
 from flask_security import current_user as cu
+from utils.form.server.utils import get_mongo, config_get
 
 from ..security.casbin.helpers import get_current_sub
 from ..security.casbin.item_acl import authorize_item
-from ..utils import abort_json, set_bp_error_handlers
-from .utils import normalize_category
+from ..utils import abort_json, mongo_find_one, set_bp_error_handlers
+
 bp = Blueprint("item_files", __name__)  # /item-file/<item_id>/<file_name>
 set_bp_error_handlers(bp)
 
@@ -55,6 +56,7 @@ set_bp_error_handlers(bp)
 # ---------------------------------------------------------------------------
 # STREAMING HELPERS
 # ---------------------------------------------------------------------------
+
 
 def _iter_gridfs(grid_out, chunk_size=1024 * 1024):
     while True:
@@ -113,6 +115,7 @@ def get_file_backend():
 
 def get_s3_client_and_bucket():
     import boto3
+
     raw_cfg = current_app.config.get("S3_ITEMS_FILE_STORAGE")
     logger = current_app.logger
 
@@ -128,11 +131,10 @@ def get_s3_client_and_bucket():
             raw_cfg = json.loads(s)
         else:
             import boto3
+
             bucket = s
             endpoint_url = current_app.config.get("S3_ITEMS_FILE_ENDPOINT")
-            region_name = current_app.config.get(
-                "S3_ITEMS_FILE_REGION", "us-east-1"
-            )
+            region_name = current_app.config.get("S3_ITEMS_FILE_REGION", "us-east-1")
             access_key = current_app.config.get("S3_ITEMS_FILE_ACCESS_KEY")
             secret_key = current_app.config.get("S3_ITEMS_FILE_SECRET_KEY")
             use_ssl = current_app.config.get("S3_ITEMS_FILE_USE_SSL")
@@ -140,9 +142,11 @@ def get_s3_client_and_bucket():
                 current_app.config.get("S3_ITEMS_FILE_PREFIX", "") or ""
             )
 
-            client_kwargs = {"config": BotoConfig(
-                signature_version="s3v4", s3={"addressing_style": "path"}
-            )}
+            client_kwargs = {
+                "config": BotoConfig(
+                    signature_version="s3v4", s3={"addressing_style": "path"}
+                )
+            }
             if endpoint_url:
                 client_kwargs["endpoint_url"] = endpoint_url
             if region_name:
@@ -164,14 +168,20 @@ def get_s3_client_and_bucket():
 
     bucket = cfg["bucket"]
     prefix = cfg.get("prefix", "") or ""
-    prefix = prefix if not prefix else (
-        prefix if prefix.endswith("/") else prefix + "/")
+    prefix = (
+        prefix if not prefix else (prefix if prefix.endswith("/") else prefix + "/")
+    )
 
-    client_kwargs = {"config": BotoConfig(
-        signature_version="s3v4", s3={"addressing_style": "path"}
-    )}
-    for key in ("endpoint_url", "region_name", "aws_access_key_id",
-                "aws_secret_access_key", "use_ssl"):
+    client_kwargs = {
+        "config": BotoConfig(signature_version="s3v4", s3={"addressing_style": "path"})
+    }
+    for key in (
+            "endpoint_url",
+            "region_name",
+            "aws_access_key_id",
+            "aws_secret_access_key",
+            "use_ssl",
+    ):
         if cfg.get(key) is not None:
             client_kwargs[key] = cfg[key]
 
@@ -203,9 +213,7 @@ def store_uploaded_file(file_name, storage, mongo_db, user):
 
     file_name = normalize_file_name(file_name)
 
-    content_type = getattr(
-        storage, "mimetype", None
-    ) or "application/octet-stream"
+    content_type = getattr(storage, "mimetype", None) or "application/octet-stream"
     backend = get_file_backend()
     user_id = str(getattr(user, "id", "") or "")
 
@@ -215,6 +223,7 @@ def store_uploaded_file(file_name, storage, mongo_db, user):
 
     if backend == "gridfs":
         import gridfs
+
         fs = gridfs.GridFS(mongo_db)
         try:
             file_id = fs.put(
@@ -240,9 +249,7 @@ def store_uploaded_file(file_name, storage, mongo_db, user):
             "Metadata": {"name": file_name, "user_id": user_id},
         }
         try:
-            s3.upload_fileobj(
-                counting_stream, bucket, key, ExtraArgs=extra_args
-            )
+            s3.upload_fileobj(counting_stream, bucket, key, ExtraArgs=extra_args)
         except Exception as exc:
             logger.exception("S3 upload failed for '%s': %s", file_name, exc)
             abort_json(500, "File storage error")
@@ -250,16 +257,14 @@ def store_uploaded_file(file_name, storage, mongo_db, user):
         size = counting_stream.bytes_read
 
     if size <= 0:
-        logger.warning(
-            "Uploaded file (name='%s') has no content; skipping.", file_name
-        )
+        logger.warning("Uploaded file (name='%s') has no content; skipping.", file_name)
         return None
 
     return {
         "id": file_id_str,
         "user_id": user_id,
         "content_type": content_type,
-        "size": size
+        "size": size,
     }
 
 
@@ -283,13 +288,13 @@ def delete_files_meta(files_meta: dict, mongo_db):
         if backend == "gridfs":
             if fs is None:
                 import gridfs
+
                 fs = gridfs.GridFS(mongo_db)
             try:
                 fs.delete(ObjectId(fid))
             except Exception as exc:
                 logger.exception(
-                    "Failed to delete GridFS file '%s' (name='%s'): %s", fid,
-                    name, exc
+                    "Failed to delete GridFS file '%s' (name='%s'): %s", fid, name, exc
                 )
         else:
             try:
@@ -299,8 +304,7 @@ def delete_files_meta(files_meta: dict, mongo_db):
                 s3.delete_object(Bucket=bucket, Key=key)
             except Exception as exc:
                 logger.exception(
-                    "Failed to delete S3 object '%s' (name='%s'): %s", fid,
-                    name, exc
+                    "Failed to delete S3 object '%s' (name='%s'): %s", fid, name, exc
                 )
 
 
@@ -308,24 +312,18 @@ def delete_files_meta(files_meta: dict, mongo_db):
 # FILE DOWNLOAD
 # ---------------------------------------------------------------------------
 
+
 @bp.route("/<item_id>/<file_name>", methods=["GET"])
 def download_file(item_id, file_name):
-    storage = current_app.extensions.get("item_storage")
-    if storage is None or getattr(storage, "mongo_db", None) is None:
-        raise RuntimeError(
-            "Item storage not initialized. "
-            "Call Items(app) or Items().init_app(app) and configure MONGO_URI."
-        )
+    mongo_db = get_mongo()
 
     file_name = normalize_file_name(file_name)
 
     try:
-        item = storage.mongo_db.items.find_one(
+        item = mongo_find_one(
+            mongo_db[config_get("ITEMS_COLLECTION", "items")],
             {"_id": ObjectId(item_id)},
             {"category": 1, "acl_dom": 1, "files": 1},
-            max_time_ms=int(current_app.config.get(
-                "ITEMS_MONGO_MAX_TIME_MS", 2000
-            )),
         )
     except Exception:
         abort_json(500, "Database error")
@@ -347,7 +345,7 @@ def download_file(item_id, file_name):
     cached_ct = meta.get("content_type")
 
     if backend == "gridfs":
-        fs = gridfs.GridFS(storage.mongo_db)
+        fs = gridfs.GridFS(mongo_db)
         try:
             grid_out = fs.get(ObjectId(file_id_str))
         except Exception:
@@ -366,14 +364,16 @@ def download_file(item_id, file_name):
         try:
             obj = s3.get_object(Bucket=bucket, Key=key)
             content = _iter_s3(obj["Body"])
-            content_type = cached_ct or obj.get(
-                "ContentType"
-            ) or "application/octet-stream"
+            content_type = (
+                    cached_ct or obj.get("ContentType") or "application/octet-stream"
+            )
         except Exception:
             abort_json(404, "File not found")
 
     headers = {"Content-Disposition": f'attachment; filename="{file_name}"'}
     return Response(
-        stream_with_context(content), mimetype=content_type, headers=headers,
-        direct_passthrough=True
+        stream_with_context(content),
+        mimetype=content_type,
+        headers=headers,
+        direct_passthrough=True,
     )

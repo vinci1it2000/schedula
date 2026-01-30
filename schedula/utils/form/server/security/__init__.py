@@ -358,6 +358,46 @@ def settings():
     return jsonify(resp), 200
 
 
+@bp.route("/notifications/devices", methods=["POST", "PATCH", "PUT"])
+@auth_required()
+def notifications_devices():
+    if request.is_json:
+        payload = request.get_json(silent=True) or {}
+    else:
+        payload = request.form.to_dict(flat=True)
+
+    if not isinstance(payload, dict):
+        return jsonify({"error": "invalid_payload"}), 400
+
+    device_ids = payload.get("device_ids")
+    if not isinstance(device_ids, list):
+        return jsonify({"error": "device_ids must be list"}), 400
+    clean_ids = [d for d in device_ids if isinstance(d, str) and d.strip()]
+
+    settings = cu.settings or {}
+    if not isinstance(settings, dict):
+        settings = {}
+    notifications = settings.get("notifications")
+    if not isinstance(notifications, dict):
+        notifications = {}
+    targets = notifications.get("targets")
+    if not isinstance(targets, dict):
+        targets = {}
+    targets["push_device_ids"] = clean_ids
+    notifications["targets"] = targets
+    settings["notifications"] = notifications
+
+    try:
+        cu.settings = settings
+        db.session.add(cu)
+        db.session.commit()
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        return jsonify({"error": "db_error", "details": str(e)}), 500
+
+    return jsonify({"ok": True, "device_ids": clean_ids}), 200
+
+
 @bp.route("/plasmic", methods=["GET"])
 def plasmic():
     """
