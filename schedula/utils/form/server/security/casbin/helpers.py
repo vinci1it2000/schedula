@@ -54,10 +54,7 @@ def item_obj(category: str, item_id: str) -> str:
 
 def get_current_sub() -> str:
     if has_request_context():
-        try:
-            current_app.login_manager._load_user()
-        except Exception:
-            pass
+        current_app.login_manager._load_user()
     if getattr(cu, "is_authenticated", False):
         return u(str(cu.id))
     return "u:anonymous"
@@ -65,10 +62,8 @@ def get_current_sub() -> str:
 
 def get_auth_sub() -> str:
     if has_request_context():
-        try:
-            current_app.login_manager._load_user()
-        except Exception:
-            pass
+        current_app.login_manager._load_user()
+
     if getattr(cu, "is_authenticated", False):
         return u(str(cu.id))
     abort_json(401, "Authentication required")

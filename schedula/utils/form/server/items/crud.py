@@ -7,7 +7,7 @@
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 #
 """
-Item Storage Service (files as dict; Casbin-authz; no legacy is_public)
+Item Storage Service (files as dict; Casbin-authz)
 
 High-level:
 - Items are stored in MongoDB (single collection: "items")
@@ -21,7 +21,6 @@ Security model (important):
 - Casbin is the single source of truth for read/write/create/manage permissions.
 - Public visibility is modeled via Casbin policies in the public/share domains;
   deny rules override allow by the model policy_effect.
-- Legacy `is_public` is rejected (400) to avoid ambiguous semantics.
 - Listing queries always apply category + ACL restrictions, and *then* optionally apply mq filters.
 
 FILES FORMAT (Mongo):
@@ -51,7 +50,6 @@ import schedula as sh
 from bson import ObjectId
 from flask import request, jsonify, Blueprint
 from flask_security import current_user as cu
-from werkzeug.exceptions import HTTPException
 
 from . import normalize_category
 from .files import store_uploaded_file, delete_files_meta, normalize_file_name
@@ -67,7 +65,7 @@ from ..security.casbin.helpers import (
     get_enforcer,
     ADMIN_DOMAIN,
     PUBLIC_DOMAIN,
-    SHARE_DOMAIN,
+    SHARE_DOMAIN
 )
 from ..security.casbin.item_acl import authorize_item, item_obj
 from ..utils import (
@@ -94,19 +92,11 @@ set_bp_error_handlers(bp)
 # ---------------------------------------------------------------------------
 
 
-class FileRefsError(Exception):
-    """
-    Raised when `data` references and `files` metadata are inconsistent.
-
-    Attributes:
-        missing_files: referenced in data but missing in files_meta
-        orphan_files: present in files_meta but not referenced in data
-    """
-
-    def __init__(self, message, missing_files=None, orphan_files=None):
+class FileEmptyError(Exception):
+    def __init__(self, filename):
+        message = f"Uploaded file (name='{filename}') has no content."
         super().__init__(message)
-        self.missing_files = sorted(missing_files or [])
-        self.orphan_files = sorted(orphan_files or [])
+        self.message = message
 
 
 # ---------------------------------------------------------------------------
@@ -163,8 +153,6 @@ def build_listing_filter(category: str, sub: str, mode: str) -> Dict:
 
     for p in perms:
         fields = _policy_fields(p)
-        if not fields:
-            continue
 
         if fields.get("act") not in (mode, "*"):
             continue
@@ -304,13 +292,8 @@ def serialize_files_public(item_id: str, files_meta: dict):
       including any public-read policies.
     - Sensitive storage fields (id/user_id) are intentionally hidden.
     """
-    if not isinstance(files_meta, dict):
-        return {}
-
     out = {}
     for name, meta in files_meta.items():
-        if not isinstance(meta, dict):
-            continue
         out[name] = {
             "name": name,
             "url": f"/item-file/{item_id}/{name}",
@@ -320,17 +303,14 @@ def serialize_files_public(item_id: str, files_meta: dict):
     return out
 
 
-def serialize_item(doc, include_data: bool = False, requester=None):
+def serialize_item(doc, include_data: bool = False):
     """
     Serialize an item for API responses.
 
     - include_data=False: metadata-only (fast listing mode).
     - include_data=True: includes `data` and public file descriptors.
     """
-    if not doc:
-        return None
 
-    requester = requester if requester is not None else cu
     item_id = str(doc["_id"])
 
     res = {
@@ -340,12 +320,8 @@ def serialize_item(doc, include_data: bool = False, requester=None):
         "grants_ref": doc.get("grants_ref"),
         "created_by": doc.get("created_by"),
         "updated_by": doc.get("updated_by"),
-        "created_at": doc.get("created_at").isoformat()
-        if doc.get("created_at")
-        else None,
-        "updated_at": doc.get("updated_at").isoformat()
-        if doc.get("updated_at")
-        else None,
+        "created_at": doc.get("created_at").isoformat() if doc.get("created_at") else None,
+        "updated_at": doc.get("updated_at").isoformat() if doc.get("updated_at") else None,
     }
 
     if include_data:
@@ -386,9 +362,6 @@ def parse_request_payload():
         - files: request.files (keyed by filename; normalized)
     - application/json:
         - {"data": {...}} (uploads not supported in pure JSON)
-
-    Legacy:
-    - `is_public` is rejected (400). Public visibility must be expressed via ACL policies.
     """
     content_type = request.content_type or ""
 
@@ -404,19 +377,12 @@ def parse_request_payload():
 
         uploads = {normalize_file_name(k): v for k, v in request.files.items()}
 
-        # Explicitly reject old visibility toggle
-        if request.form.get("is_public") is not None:
-            abort_json(400, "is_public is deprecated; use ACL publish")
-
         return data, uploads
 
     # JSON
     body = request.get_json(silent=True) or {}
     data = body.get("data", {}) or {}
     uploads = {}
-
-    if "is_public" in body:
-        abort_json(400, "is_public is deprecated; use ACL publish")
 
     return data, uploads
 
@@ -446,27 +412,6 @@ def collect_file_names_in_data(data):
 
     _walk(data)
     return names
-
-
-def validate_file_refs(referenced, files_meta: dict):
-    """
-    Validate that data->files references are consistent.
-
-    - referenced: set of filenames extracted from data
-    - files_meta: dict mapping filename -> storage metadata
-
-    Raises:
-        FileRefsError if there are missing or orphaned files.
-    """
-    keys = set(files_meta.keys()) if isinstance(files_meta, dict) else set()
-    missing = referenced - keys
-    orphan = keys - referenced
-    if missing or orphan:
-        raise FileRefsError(
-            "File references between data and files are inconsistent",
-            missing_files=missing,
-            orphan_files=orphan,
-        )
 
 
 # ---------------------------------------------------------------------------
@@ -581,7 +526,7 @@ def parse_mq_arg():
     return _sanitize_mq(mongo_query)
 
 
-def parse_data(db_mongo):
+def parse_data(db_mongo, sub):
     """
     Parse request payload for CREATE and store referenced uploads.
 
@@ -605,18 +550,14 @@ def parse_data(db_mongo):
     files_meta = {}
     try:
         for fname in sorted(referenced):
-            meta = store_uploaded_file(fname, uploads[fname], db_mongo, cu)
-            if meta is not None:
-                files_meta[fname] = meta
-        validate_file_refs(referenced, files_meta)
-    except Exception as exc:
+            files_meta[fname] = meta = store_uploaded_file(fname, uploads[fname], db_mongo, sub)
+            if meta["size"] <= 0:
+                raise FileEmptyError(fname)
+    except Exception as exe:
         delete_files_meta(files_meta, db_mongo)
-        if isinstance(exc, FileRefsError):
-            abort_json(
-                400,
-                f"File references validation failed: missing={exc.missing_files}, orphan={exc.orphan_files}",
-            )
-        raise
+        if isinstance(exe, FileEmptyError):
+            abort_json(400, exe.message)
+        abort_json(500, "File storage error")
 
     return data, files_meta
 
@@ -676,7 +617,7 @@ def item_create(category):
 
     enforce_or_403(sub, acl_dom, item_obj(category, "*"), "create")
 
-    data, files_meta = parse_data(db_mongo)
+    data, files_meta = parse_data(db_mongo, sub)
     now = now_utc()
 
     doc = {
@@ -700,11 +641,11 @@ def item_create(category):
     notify_item_event_safe(event="creation", item_doc=inserted)
 
     return jsonify(
-        serialize_item(inserted, include_data=include_data, requester=cu)
+        serialize_item(inserted, include_data=include_data)
     ), 201
 
 
-def _item_get(category, item_id, act):
+def _item_get(category, item_id, act, sub):
     """
     Load a single item by (category, item_id) and enforce authorization.
 
@@ -716,7 +657,6 @@ def _item_get(category, item_id, act):
     Returns:
         Raw MongoDB document (not serialized).
     """
-    sub = get_current_sub()
 
     try:
         full_filter = {"category": category, "_id": ObjectId(item_id)}
@@ -746,11 +686,12 @@ def item_get(category, item_id):
     Authorization:
     - Enforced at item level via authorize_item(..., act="read").
     """
+    sub = get_current_sub()
     category = normalize_category(category)
     include_data = parse_include_data_arg(default=True)
-    doc = _item_get(category, item_id, "read")
+    doc = _item_get(category, item_id, "read", sub)
     notify_item_event_safe(event="read", item_doc=doc)
-    return jsonify(serialize_item(doc, include_data=include_data, requester=cu)), 200
+    return jsonify(serialize_item(doc, include_data=include_data)), 200
 
 
 @bp.route("/<category>", methods=["GET"])
@@ -776,12 +717,9 @@ def item_list(category):
 
     group_id = request.args.get("group_id")
     if group_id:
-        # Group-scoped listing requires authentication
-        if not sub:
-            abort_json(401, "Authentication required")
-
+        group_id = g(group_id)
         e = get_enforcer()
-        if not e.has_role_for_user(sub, g(group_id)):
+        if not e.has_role_for_user(sub, group_id):
             abort_json(403, "Forbidden")
 
     # Apply ACL restriction
@@ -811,27 +749,24 @@ def item_list(category):
         )
         docs = list(cursor)
 
-        next_offset = offset + len(docs)
-        if next_offset >= total:
-            next_offset = None
-
-        return jsonify(
-            {
-                "items": [
-                    serialize_item(d, include_data=include_data, requester=cu)
-                    for d in docs
-                ],
-                "total": total,
-                "limit": limit,
-                "offset": offset,
-                "next_offset": next_offset,
-            }
-        ), 200
-
-    except HTTPException:
-        raise
     except Exception:
         abort_json(500, "Database error")
+    next_offset = offset + len(docs)
+    if next_offset >= total:
+        next_offset = None
+
+    return jsonify(
+        {
+            "items": [
+                serialize_item(d, include_data=include_data)
+                for d in docs
+            ],
+            "total": total,
+            "limit": limit,
+            "offset": offset,
+            "next_offset": next_offset,
+        }
+    ), 200
 
 
 @bp.route("/<category>/<item_id>", methods=["PUT", "PATCH"])
@@ -849,11 +784,12 @@ def item_update(category, item_id):
     - uploads may replace existing referenced files
     - after successful DB update, dropped/replaced old files are deleted
     """
+    sub = get_current_sub()
     category = normalize_category(category)
     method = request.method
     include_data = parse_include_data_arg(default=False)
 
-    doc = _item_get(category, item_id, "write")
+    doc = _item_get(category, item_id, "write", sub)
     old_data = doc.get("data") or {}
     old_files = doc.get("files") or {}
 
@@ -871,27 +807,28 @@ def item_update(category, item_id):
     new_uploaded = {}
     db_mongo = get_mongo()
 
+    missing = referenced - set(uploads.keys()) - set(merged_files.keys())
+    orphan = set(uploads.keys()) - referenced
+    if missing or orphan:
+        abort_json(
+            400,
+            f"File references validation failed: missing={missing}, orphan={orphan}",
+        )
     try:
         for fname in sorted(referenced):
             if fname in uploads:
                 if fname in merged_files:
                     replaced_files[fname] = merged_files[fname]
+                meta = store_uploaded_file(fname, uploads[fname], db_mongo, sub)
+                new_uploaded[fname] = merged_files[fname] = meta
+                if meta["size"] <= 0:
+                    raise FileEmptyError(fname)
 
-                meta = store_uploaded_file(fname, uploads[fname], db_mongo, cu)
-                if meta is not None:
-                    merged_files[fname] = meta
-                    new_uploaded[fname] = meta
-
-        validate_file_refs(referenced, merged_files)
-
-    except Exception as exc:
+    except Exception as exe:
         delete_files_meta(new_uploaded, db_mongo)
-        if isinstance(exc, FileRefsError):
-            abort_json(
-                400,
-                f"File references validation failed: missing={exc.missing_files}, orphan={exc.orphan_files}",
-            )
-        raise
+        if isinstance(exe, FileEmptyError):
+            abort_json(400, exe.message)
+        abort_json(500, "File storage error")
 
     update_doc = {
         "data": merged_data,
@@ -907,8 +844,7 @@ def item_update(category, item_id):
             {"$set": update_doc},
         )
         if res.matched_count != 1:
-            delete_files_meta(new_uploaded, db_mongo)
-            abort_json(500, "Database error")
+            raise ValueError("Unexpected DB update count")
     except Exception:
         delete_files_meta(new_uploaded, db_mongo)
         abort_json(500, "Database error")
@@ -921,7 +857,7 @@ def item_update(category, item_id):
     if updated:
         notify_item_event_safe(event="update", item_doc=updated)
     return jsonify(
-        serialize_item(updated, include_data=include_data, requester=cu)
+        serialize_item(updated, include_data=include_data)
     ), 200
 
 
@@ -935,8 +871,9 @@ def item_delete(category, item_id):
     - This implementation requires act="write" (write implies delete in this model).
       If you want strict separation, change to act="delete" and update Casbin policies.
     """
+    sub = get_current_sub()
     category = normalize_category(category)
-    doc = _item_get(category, item_id, act="write")
+    doc = _item_get(category, item_id, "write", sub)
 
     db_mongo = get_mongo()
     coll = db_mongo[config_get("ITEMS_COLLECTION", "items")]
@@ -945,17 +882,12 @@ def item_delete(category, item_id):
 
     try:
         res = mongo_delete_one(coll, {"_id": doc["_id"], "category": category})
+        if res.deleted_count != 1:
+            raise ValueError("Unexpected DB delete count")
     except Exception:
         abort_json(500, "Database error")
 
-    if res.deleted_count != 1:
-        abort_json(500, "Database error")
-
-    try:
-        delete_files_meta(old_files, db_mongo)
-    except Exception:
-        # Best-effort cleanup: do not fail request after DB deletion
-        pass
+    delete_files_meta(old_files, db_mongo)
 
     notify_item_event_safe(event="delete", item_doc=doc)
 

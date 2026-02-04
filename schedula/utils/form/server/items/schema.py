@@ -133,9 +133,7 @@ def _serialize_schema_doc(d: Dict[str, Any]) -> Dict[str, Any]:
         "schema": d.get("schema") if isinstance(d.get("schema"), dict) else {},
         "created_at": d.get("created_at").isoformat() if d.get("created_at") else None,
         "updated_at": d.get("updated_at").isoformat() if d.get("updated_at") else None,
-        "published_at": d.get("published_at").isoformat()
-        if d.get("published_at")
-        else None,
+        "published_at": d.get("published_at").isoformat() if d.get("published_at") else None,
     }
 
 

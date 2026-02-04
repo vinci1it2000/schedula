@@ -17,28 +17,14 @@ from flask import current_app
 from jinja2 import StrictUndefined
 from jinja2.sandbox import SandboxedEnvironment
 from schedula.utils.form.server.security.casbin.item_acl import authorize_item
-from schedula.utils.form.server.utils import mongo_find_one, get_mongo
-
-from .storage import get_template, get_template_for_event, list_templates
+from schedula.utils.form.server.utils import config_get, get_mongo, mongo_find_one
 
 _RE_USER = re.compile(r"^/users/(?P<id>\d+)$")
 _RE_ITEM_ID = re.compile(r"^/items/(?P<id>[A-Za-z0-9:_-]+)$")
 _RE_ITEM_CAT = re.compile(r"^/items/(?P<cat>[A-Za-z0-9:_-]+)/(?P<id>[A-Za-z0-9:_-]+)$")
 
 _RE_PRINCIPAL_USER = re.compile(r"^u:(?P<id>\d+)$")
-
-
-def make_env() -> SandboxedEnvironment:
-    """Create a sandboxed Jinja environment for notification templates."""
-    env = SandboxedEnvironment(
-        autoescape=False,
-        undefined=StrictUndefined,
-        trim_blocks=True,
-        lstrip_blocks=True,
-    )
-    env.filters["default"] = lambda v, d="": v if v not in (None, "", [], {}, ()) else d
-    env.filters["json"] = lambda v: __import__("json").dumps(v, ensure_ascii=False)
-    return env
+_RE_PRINCIPAL_GROUP = re.compile(r"^g:(?P<id>[A-Za-z0-9_-]+)(:admin)?$")
 
 
 def _jsonify(value: Any) -> Any:
@@ -72,8 +58,112 @@ def _principal_user_id(p: Optional[str]) -> Optional[int]:
         return None
 
 
+def _principal_group_id(p: Optional[str]) -> Optional[str]:
+    """Extract a group id from a principal string."""
+    if not p or not isinstance(p, str):
+        return None
+    m = _RE_PRINCIPAL_GROUP.match(p.strip())
+    if not m:
+        return None
+    return m.group("id")
+
+
+def _principal_info(p: Any) -> Dict[str, Any]:
+    """Resolve principal info for users or groups."""
+    if not p or not isinstance(p, str):
+        return {}
+
+    if p == "u:anonymous":
+        return {"id": "anonymous", "type": "user", "anonymous": True}
+
+    if p.startswith("u:"):
+        from schedula.utils.form.server.security import User
+
+        u = User.query.get(int(p[2:]))
+        if not u:
+            return {"id": p[2:], "type": "user", "_missing": True}
+        out = u.public_json()
+        out["type"] = "user"
+        return out
+
+    if p.startswith("g:"):
+        from schedula.utils.form.server.security.casbin.models import Group
+
+        g = Group.query.get(p.split(":")[1])
+        if not g:
+            return {"id": p.split(":")[1], "type": "group", "_missing": True}
+        out = g.public_json()
+        out["type"] = "group"
+        return out
+
+    return {"id": p}
+
+
+def _get_ref_max_depth() -> int:
+    """Return max resolution depth for $ref expansion."""
+    try:
+        return int(current_app.config.get("NOTIF_REF_MAX_DEPTH", 3))
+    except Exception:
+        return 3
+
+
+def _resolve_refs_filter(
+    obj: Any,
+    viewer_principal: Optional[str] = None,
+    sender_principal: Optional[str] = None,
+    max_depth: Optional[int] = None,
+) -> Any:
+    """Resolve {$ref} entries for templates."""
+    resolver = RefResolver(
+        viewer_principal=viewer_principal,
+        sender_principal=sender_principal,
+    )
+    depth = _get_ref_max_depth() if max_depth is None else int(max_depth)
+    return resolve_refs(obj, resolver, max_depth=depth)
+
+
+def _get_item_filter(
+    item_id_or_ref: Any,
+    viewer_principal: Optional[str] = None,
+    sender_principal: Optional[str] = None,
+    category: Optional[str] = None,
+) -> Any:
+    """Resolve a single item reference using ACL-aware lookup."""
+    resolver = RefResolver(
+        viewer_principal=viewer_principal,
+        viewer_is_admin=False,
+        sender_principal=sender_principal,
+    )
+    if isinstance(item_id_or_ref, dict) and "$ref" in item_id_or_ref:
+        return resolver.fetch(str(item_id_or_ref.get("$ref")))
+    if isinstance(item_id_or_ref, str):
+        ref = item_id_or_ref
+        if category and not ref.startswith("/items/"):
+            ref = f"/items/{category}/{ref}"
+        elif not ref.startswith("/items/"):
+            ref = f"/items/{ref}"
+        return resolver.fetch(ref)
+    return {"_ref_error": True, "error": "invalid_item_ref"}
+
+
+def make_env() -> SandboxedEnvironment:
+    """Create a sandboxed Jinja environment for notification templates."""
+    env = SandboxedEnvironment(
+        autoescape=False,
+        undefined=StrictUndefined,
+        trim_blocks=True,
+        lstrip_blocks=True,
+    )
+    env.filters["default"] = lambda v, d="": v if v not in (None, "", [], {}, ()) else d
+    env.filters["json"] = lambda v: __import__("json").dumps(v, ensure_ascii=False)
+    env.filters["principal_info"] = _principal_info
+    env.filters["resolve_refs"] = _resolve_refs_filter
+    env.filters["get_item"] = _get_item_filter
+    return env
+
+
 def _acl_allows(
-        doc: Dict[str, Any], principal: Optional[str], admin_like: bool
+    doc: Dict[str, Any], principal: Optional[str], admin_like: bool
 ) -> bool:
     """Best-effort ACL check for item-like documents.
 
@@ -125,9 +215,9 @@ def _user_public_payload(u: Any) -> Dict[str, Any]:
     first = getattr(u, "firstname", None) or ""
     last = getattr(u, "lastname", None) or ""
     dn = (
-            (first + " " + last).strip()
-            or getattr(u, "username", None)
-            or f"user:{getattr(u, 'id', None)}"
+        (first + " " + last).strip()
+        or getattr(u, "username", None)
+        or f"user:{getattr(u, 'id', None)}"
     )
     return {
         "id": getattr(u, "id", None),
@@ -216,7 +306,7 @@ class RefResolver:
 
         # Viewer must be allowed unless admin-like
         if not _acl_allows(
-                doc, self.viewer_principal, admin_like=bool(self.viewer_is_admin)
+            doc, self.viewer_principal, admin_like=bool(self.viewer_is_admin)
         ):
             return {"_ref_forbidden_viewer": True, "type": "item", "id": item_id}
 
@@ -255,7 +345,7 @@ class RefResolver:
             }
 
         if not _acl_allows(
-                doc, self.viewer_principal, admin_like=bool(self.viewer_is_admin)
+            doc, self.viewer_principal, admin_like=bool(self.viewer_is_admin)
         ):
             return {
                 "_ref_forbidden_viewer": True,
@@ -268,11 +358,11 @@ class RefResolver:
 
 
 def resolve_refs(
-        obj: Any,
-        resolver: RefResolver,
-        max_depth: int = 3,
-        _depth: int = 0,
-        _seen: Optional[Set[str]] = None,
+    obj: Any,
+    resolver: RefResolver,
+    max_depth: int = 3,
+    _depth: int = 0,
+    _seen: Optional[Set[str]] = None,
 ) -> Any:
     """Resolve dicts that look like {'$ref': '...'} recursively."""
     if _seen is None:
@@ -304,64 +394,6 @@ def resolve_refs(
     return obj
 
 
-def _get_ref_max_depth() -> int:
-    """Return max resolution depth for $ref expansion."""
-    try:
-        return int(current_app.config.get("NOTIF_REF_MAX_DEPTH", 3))
-    except Exception:
-        return 3
-
-
-def _safe_template_get(template_dict: Dict[str, Any], channel: str) -> Dict[str, Any]:
-    """Return a template dict for a channel (supports channel_overrides)."""
-    if not isinstance(template_dict, dict):
-        return {}
-    if not template_dict:
-        return {}
-
-    overrides = template_dict.get("channel_overrides")
-    if (
-            isinstance(overrides, dict)
-            and channel in overrides
-            and isinstance(overrides[channel], dict)
-    ):
-        out = dict(template_dict)
-        out.update(overrides[channel])
-        return out
-    return template_dict
-
-
-def _load_external_template(payload: Dict[str, Any], event: str) -> Dict[str, Any]:
-    """Load template from external store.
-
-    Precedence:
-    1) payload.template_id
-    2) most recent enabled template for event
-    """
-    if not isinstance(payload, dict):
-        return {}
-
-    tpl_id = payload.get("template_id") or payload.get("templateId")
-    if isinstance(tpl_id, str) and tpl_id.strip():
-        d = get_template(tpl_id.strip())
-        if d and isinstance(d, dict):
-            return {
-                "title": d.get("title") or "",
-                "body": d.get("body") or "",
-                "channel_overrides": d.get("channel_overrides") or {},
-            }
-
-    d = get_template_for_event(event)
-    if d and isinstance(d, dict):
-        return {
-            "title": d.get("title") or "",
-            "body": d.get("body") or "",
-            "channel_overrides": d.get("channel_overrides") or {},
-        }
-
-    return {}
-
-
 def _has_ref(obj: Any) -> bool:
     """Return True if an object contains at least one $ref."""
     if isinstance(obj, dict):
@@ -373,78 +405,63 @@ def _has_ref(obj: Any) -> bool:
     return False
 
 
-def _template_score(
-        tpl: Dict[str, Any],
-        *,
-        category: Optional[str],
-        event: Optional[str],
-        dom: Optional[str],
-        channel: Optional[str],
-) -> int:
-    """Score a template against scope criteria for selection."""
-    scope = tpl.get("scope") if isinstance(tpl.get("scope"), dict) else {}
-    scope_event = scope.get("event") or tpl.get("event")
-    scope_category = scope.get("category")
-    scope_dom = scope.get("dom")
-    scope_channel = tpl.get("channel")
-
-    def _match(val: Optional[str], target: Optional[str]) -> bool:
-        return val is None or val == target
-
-    if not _match(scope_event, event):
-        return -1
-    if not _match(scope_category, category):
-        return -1
-    if not _match(scope_dom, dom):
-        return -1
-    if scope_channel is not None and scope_channel != channel:
-        return -1
-
-    score = 0
-    if scope_event:
-        score += 8
-    if scope_category:
-        score += 4
-    if scope_dom:
-        score += 4
-    if scope_channel:
-        score += 2
-    return score
-
-
 def _select_template(
-        *,
-        category: Optional[str],
-        event: Optional[str],
-        dom: Optional[str],
-        channel: Optional[str],
+    *,
+    event: Optional[str],
+    dom: Optional[str],
+    channel: Optional[str],
 ) -> Dict[str, Any]:
     """Pick the best matching template for the given scope."""
-    templates = list_templates(
-        limit=500, offset=0, sort_field="updated_at", sort_dir=-1
+    if not event:
+        return {}
+
+    coll = get_mongo(
+        collection=config_get("NOTIF_TEMPLATES_COLLECTION", "notification_templates")
     )
-    best: Optional[Dict[str, Any]] = None
-    best_score = -1
-    for tpl in templates:
-        if tpl.get("enabled") is False:
-            continue
-        score = _template_score(
-            tpl,
-            category=category,
-            event=event,
-            dom=dom,
-            channel=channel,
-        )
-        if score > best_score:
-            best_score = score
-            best = tpl
-    return best or {}
+    dom_filter = [dom, "*"] if dom is not None else [None, "*"]
+    channel_filter = [channel, "*"] if channel is not None else [None, "*"]
+
+    pipeline = [
+        {
+            "$addFields": {
+                "_tpl_event": {
+                    "$ifNull": ["$scope.event", {"$ifNull": ["$event", "*"]}]
+                },
+                "_tpl_dom": {"$ifNull": ["$scope.dom", {"$ifNull": ["$dom", "*"]}]},
+                "_tpl_channel": {"$ifNull": ["$channel", "*"]},
+            }
+        },
+        {
+            "$match": {
+                "$and": [
+                    {"$or": [{"enabled": {"$exists": False}}, {"enabled": True}]},
+                    {"$expr": {"$in": ["$_tpl_event", [event, "*"]]}},
+                    {"$expr": {"$in": ["$_tpl_dom", dom_filter]}},
+                    {"$expr": {"$in": ["$_tpl_channel", channel_filter]}},
+                ]
+            }
+        },
+        {
+            "$addFields": {
+                "_tpl_score": {
+                    "$add": [
+                        {"$cond": [{"$ne": ["$_tpl_event", "*"]}, 4, 0]},
+                        {"$cond": [{"$ne": ["$_tpl_channel", "*"]}, 2, 0]},
+                        {"$cond": [{"$ne": ["$_tpl_dom", "*"]}, 1, 0]},
+                    ]
+                }
+            }
+        },
+        {"$sort": {"_tpl_score": -1, "_id": 1}},
+        {"$limit": 1},
+    ]
+
+    doc = next(coll.aggregate(pipeline), None)
+    return doc or {}
 
 
 def render_title_body(
-        n: Dict[str, Any],
-        viewer_principal: str,
-        channel: str = "generic"
+    n: Dict[str, Any], viewer_principal: str, channel: str = "generic"
 ) -> Tuple[str, str]:
     """Render title/body for a notification.
 
@@ -454,52 +471,17 @@ def render_title_body(
         2) payload.template_id
         3) external template store by event
     """
-    payload = n.get("payload") or {}
-
-    # Resolve refs
-    if _has_ref(payload):
-        payload_resolved = resolve_refs(
-            payload,
-            resolver=RefResolver(
-                viewer_principal=viewer_principal,
-                sender_principal=n.get("sender_principal"),
-            ),
-            max_depth=_get_ref_max_depth(),
-        )
-    else:
-        payload_resolved = payload
 
     event = n.get("event") or "notification"
     severity = (n.get("severity") or "info").upper()
 
-    ctx: Dict[str, Any] = {
-        "payload": payload_resolved,
-        "event": event,
-        "severity": severity,
-    }
-    if isinstance(payload_resolved, dict):
-        for k, v in payload_resolved.items():
-            if k not in ctx:
-                ctx[k] = v
+
 
     # Pick template
-    tpl = {}
-    if isinstance(payload_resolved, dict) and isinstance(
-            payload_resolved.get("template"), dict
-    ):
-        tpl = _safe_template_get(payload_resolved.get("template") or {}, channel)
-    if not tpl:
-        dom = (
-            payload_resolved.get("acl_dom")
-            if isinstance(payload_resolved, dict)
-            else None
-        )
-        cat = (
-            payload_resolved.get("category")
-            if isinstance(payload_resolved, dict)
-            else None
-        )
-        tpl = _select_template(category=cat, event=event, dom=dom, channel=channel)
+    payload_raw = n.get("payload")
+    payload: Dict[str, Any] = payload_raw if isinstance(payload_raw, dict) else {}
+    dom = n.get("acl_dom") or payload.get("acl_dom")
+    tpl = _select_template(event=event, dom=dom, channel=channel)
 
     if not tpl:
         title = f"[{severity}] {event}"
@@ -508,6 +490,6 @@ def render_title_body(
     env = make_env()
     title_t = tpl.get("title") or f"[{severity}] {event}"
     body_t = tpl.get("body") or ""
-    title = env.from_string(str(title_t)).render(**ctx)
-    body = env.from_string(str(body_t)).render(**ctx).strip()
+    title = env.from_string(str(title_t)).render(**n)
+    body = env.from_string(str(body_t)).render(**n).strip()
     return title, body

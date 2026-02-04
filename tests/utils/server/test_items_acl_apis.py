@@ -99,7 +99,11 @@ class TestItemsAclApis(unittest.TestCase):
             self.other_id = other.id
             _db.session.commit()
 
-            get_mongo(collection=config_get("NOTIF_SETTINGS_COLLECTION", "notification_settings")).insert_one(
+            get_mongo(
+                collection=config_get(
+                    "NOTIF_SETTINGS_COLLECTION", "notification_settings"
+                )
+            ).insert_one(
                 {
                     "scope": {"category": "note"},
                     "allowed": ["in_app"],
@@ -390,6 +394,40 @@ class TestItemsAclApis(unittest.TestCase):
         )
         self.assertEqual(r.status_code, 200)
 
+    def test_item_acl_ban_group_member(self):
+        other_group_id = self._create_group()
+
+        r = self.creator_client.patch(
+            f"/groups/{other_group_id}/memberships",
+            json={"add_members": [f"u:{self.reader_id}"]},
+            headers=self._auth_headers(self.creator_token),
+        )
+        self.assertEqual(r.status_code, 200)
+
+        r = self.creator_client.patch(
+            f"/groups/{self.group_id}/memberships",
+            json={"ban_members": [f"g:{other_group_id}"]},
+            headers=self._auth_headers(self.creator_token),
+        )
+        self.assertEqual(r.status_code, 200)
+
+        r = self.reader_client.get(
+            f"/item/note/{self.item_id}", headers=self._auth_headers(self.reader_token)
+        )
+        self.assertEqual(r.status_code, 403)
+        data = r.get_json(silent=True) or {}
+        self.assertEqual(data.get("error"), "Forbidden")
+
+    def test_item_acl_ban_group_self_fails(self):
+        r = self.creator_client.patch(
+            f"/groups/{self.group_id}/memberships",
+            json={"ban_members": [f"g:{self.group_id}"]},
+            headers=self._auth_headers(self.creator_token),
+        )
+        self.assertEqual(r.status_code, 500)
+        data = r.get_json(silent=True) or {}
+        self.assertEqual(data.get("error"), "Internal server error")
+
     def test_item_creation_triggers_notify_policies(self):
         dom = acl_group(self.group_id)
         self._create_watcher(
@@ -471,6 +509,34 @@ class TestItemsAclApis(unittest.TestCase):
             self.assertIn(u(self.admin_id), targets)
             self.assertNotIn(u(self.reader_id), targets)
             self.assertIsInstance(doc.get("targets"), dict)
+
+    def test_item_update_replaces_file(self):
+        r = self.creator_client.get(
+            f"/item-file/{self.item_id}/attachment",
+            headers=self._auth_headers(self.creator_token),
+        )
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data, b"group file")
+
+        new_bytes = b"updated file"
+        data = {
+            "data": '{"doc": {"$ref": "/files/attachment"}}',
+            "attachment": (io.BytesIO(new_bytes), "updated.txt"),
+        }
+        r = self.creator_client.patch(
+            f"/item/note/{self.item_id}",
+            data=data,
+            headers=self._auth_headers(self.creator_token),
+            content_type="multipart/form-data",
+        )
+        self.assertEqual(r.status_code, 200)
+
+        r = self.creator_client.get(
+            f"/item-file/{self.item_id}/attachment",
+            headers=self._auth_headers(self.creator_token),
+        )
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data, new_bytes)
 
     def test_item_delete_triggers_notify_policies(self):
         category = "note"
@@ -703,6 +769,48 @@ class TestItemsAclApis(unittest.TestCase):
         data = r.get_json(silent=True) or {}
         self.assertIn("items", data)
         self.assertEqual(len(data.get("items", [])), 0)
+
+    def test_item_list_group_scope_with_group_id(self):
+        create_r = self.creator_client.post(
+            "/item/note",
+            json={"data": {"title": "group-scope"}, "group_id": self.group_id},
+            headers=self._auth_headers(self.creator_token),
+        )
+        self.assertEqual(create_r.status_code, 201)
+        create_data = create_r.get_json(silent=True) or {}
+        group_item_id = create_data.get("id")
+        self.assertIsNotNone(group_item_id)
+
+        r = self.reader_client.get(
+            f"/item/note?group_id={self.group_id}",
+            headers=self._auth_headers(self.reader_token),
+        )
+        self.assertEqual(r.status_code, 200)
+        data = r.get_json(silent=True) or {}
+        ids = [item.get("id") for item in data.get("items", [])]
+        self.assertIn(group_item_id, ids)
+
+        r = self.other_client.get(
+            f"/item/note?group_id={self.group_id}",
+            headers=self._auth_headers(self.other_token),
+        )
+        self.assertEqual(r.status_code, 403)
+
+        r = self.creator_client.patch(
+            f"/groups/{self.group_id}/memberships",
+            json={"add_members": [f"u:{self.other_id}"]},
+            headers=self._auth_headers(self.creator_token),
+        )
+        self.assertEqual(r.status_code, 200)
+
+        r = self.other_client.get(
+            f"/item/note?group_id={self.group_id}",
+            headers=self._auth_headers(self.other_token),
+        )
+        self.assertEqual(r.status_code, 200)
+        data = r.get_json(silent=True) or {}
+        ids = [item.get("id") for item in data.get("items", [])]
+        self.assertIn(group_item_id, ids)
 
     def test_item_acl_manage_requires_admin(self):
         # Reader cannot publish.

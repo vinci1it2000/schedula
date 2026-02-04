@@ -307,6 +307,37 @@ class TestNotificationsApis(unittest.TestCase):
         self.assertEqual(rules[0].get("scope", {}).get("category"), "event")
         self.assertEqual(rules[0].get("mandatory"), ["in_app"])
 
+    def test_delete_settings_rule(self):
+        r = self.client.post(
+            "/admin/notification/settings/rules",
+            json={
+                "scope": {"category": "event"},
+                "defaults": ["in_app"],
+                "allowed": ["in_app"],
+                "enabled": True,
+            },
+            headers=self._auth_headers(self.admin_token),
+        )
+        self.assertEqual(r.status_code, 200)
+        rule_id = (r.get_json(silent=True) or {}).get("id")
+        self.assertIsInstance(rule_id, str)
+
+        r = self.client.delete(
+            f"/admin/notification/settings/rules/{rule_id}",
+            headers=self._auth_headers(self.admin_token),
+        )
+        self.assertEqual(r.status_code, 200)
+        data = r.get_json(silent=True) or {}
+        self.assertTrue(data.get("ok"))
+
+        r = self.client.delete(
+            f"/admin/notification/settings/rules/{rule_id}",
+            headers=self._auth_headers(self.admin_token),
+        )
+        self.assertEqual(r.status_code, 404)
+        data = r.get_json(silent=True) or {}
+        self.assertEqual(data.get("error"), "not_found")
+
     def test_rules_pagination_sort(self):
         for category in ("b", "a"):
             r = self.client.post(
@@ -374,6 +405,226 @@ class TestNotificationsApis(unittest.TestCase):
                 self.fail("missing rendered.in_app")
             self.assertIsInstance(in_app.get("title"), str)
             self.assertIsInstance(in_app.get("body"), str)
+
+    def test_admin_test_templates(self):
+        for category in ("message", "event"):
+            r = self.client.post(
+                "/admin/notification/settings/rules",
+                json={
+                    "scope": {"category": category},
+                    "defaults": ["in_app", "mail"],
+                    "allowed": ["in_app", "mail"],
+                    "enabled": True,
+                },
+                headers=self._auth_headers(self.admin_token),
+            )
+            self.assertEqual(r.status_code, 200)
+
+            r = self.client.post(
+                "/admin/notification/templates",
+                json={
+                    "event": f"item.{category}.update",
+                    "title": "Title {{category}}",
+                    "body": "Body {{event}}",
+                },
+                headers=self._auth_headers(self.admin_token),
+            )
+            self.assertEqual(r.status_code, 200)
+
+        r = self.client.post(
+            "/admin/notification/templates/test",
+            json={
+                "event": "update",
+                "event_format": "item.{category}.{event}",
+                "payload": {"foo": "bar"},
+                "channels": ["in_app", "mail"],
+                "preferences": {"mail": False},
+            },
+            headers=self._auth_headers(self.admin_token),
+        )
+        self.assertEqual(r.status_code, 200)
+        data = r.get_json(silent=True) or {}
+        cats = {d.get("category"): d for d in data.get("categories", [])}
+        self.assertIn("message", cats)
+        self.assertIn("event", cats)
+        message = cats.get("message") or {}
+        rendered = message.get("rendered") or {}
+        self.assertIn("in_app", rendered)
+        self.assertNotIn("mail", rendered)
+        in_app = rendered.get("in_app") or {}
+        self.assertTrue(in_app.get("title", "").startswith("Title"))
+
+    def test_message_creation_template_selection(self):
+        r = self.client.post(
+            "/admin/notification/settings/rules",
+            json={
+                "scope": {"category": "message"},
+                "defaults": ["in_app"],
+                "allowed": ["in_app"],
+                "enabled": True,
+            },
+            headers=self._auth_headers(self.admin_token),
+        )
+        self.assertEqual(r.status_code, 200)
+
+        dom = f"acl:user:{self.admin_id}"
+
+        r = self.client.post(
+            "/notification/watchers",
+            json={
+                "event": "creation",
+                "category": "message",
+                "object_id": "*",
+                "dom": dom,
+                "channels": ["in_app"],
+            },
+            headers=self._auth_headers(self.admin_token),
+        )
+        self.assertEqual(r.status_code, 200)
+
+        templates = [
+            {
+                "event": "item.message.creation",
+                "dom": dom,
+                "channel": "*",
+                "title": "Tpl-Dom",
+                "body": "B-Dom",
+            },
+            {
+                "event": "item.message.creation",
+                "dom": "*",
+                "channel": "in_app",
+                "title": "Tpl-Channel",
+                "body": "B-Channel",
+            },
+            {
+                "event": "item.message.creation",
+                "dom": "*",
+                "channel": "*",
+                "title": "Tpl-Event",
+                "body": "B-Event",
+            },
+            {
+                "event": "item.message.creation",
+                "dom": dom,
+                "title": "Tpl-Dom-NoChannel",
+                "body": "B-Dom-NoChannel",
+            },
+            {
+                "event": "item.message.creation",
+                "dom": dom,
+                "channel": "in_app",
+                "title": "Tpl-InApp",
+                "body": "B-InApp",
+            },
+        ]
+
+        for payload in templates:
+            r = self.client.post(
+                "/admin/notification/templates",
+                json=payload,
+                headers=self._auth_headers(self.admin_token),
+            )
+            self.assertEqual(r.status_code, 200)
+
+        r = self.client.post(
+            "/item/message",
+            json={"data": {"text": "Hello"}},
+            headers=self._auth_headers(self.admin_token),
+        )
+        self.assertEqual(r.status_code, 201)
+
+        with self.app.app_context():
+            coll = get_mongo(collection=config_get("NOTIF_COLLECTION", "notifications"))
+            doc = coll.find_one(
+                {"event": "item.message.creation"},
+                sort=[("created_at", -1)],
+            )
+            self.assertIsNotNone(doc)
+            rendered = (
+                doc.get("rendered", {}).get(f"u:{self.admin_id}", {}).get("in_app", {})
+            )
+            self.assertEqual(rendered.get("title"), "Tpl-InApp")
+
+    def test_template_filters(self):
+        r = self.client.post(
+            "/admin/notification/settings/rules",
+            json={
+                "scope": {"category": "message"},
+                "defaults": ["in_app"],
+                "allowed": ["in_app"],
+                "enabled": True,
+            },
+            headers=self._auth_headers(self.admin_token),
+        )
+        self.assertEqual(r.status_code, 200)
+
+        dom = f"acl:user:{self.admin_id}"
+        r = self.client.post(
+            "/notification/watchers",
+            json={
+                "event": "creation",
+                "category": "message",
+                "object_id": "*",
+                "dom": dom,
+                "channels": ["in_app"],
+            },
+            headers=self._auth_headers(self.admin_token),
+        )
+        self.assertEqual(r.status_code, 200)
+
+        title_tpl = (
+            "category {{ payload.category }} was "
+            "{{ event }} by "
+            "{{ (created_by | principal_info).id }}"
+        )
+        body_tpl = (
+            "created {{ payload.category }} "
+            "{{ payload.item_id | get_item("
+            "viewer_principal=sender_principal, "
+            "sender_principal=sender_principal, "
+            "category=payload.category).data.text }} "
+            "{{ ({'$ref': '/items/' ~ payload.category ~ '/' ~ payload.item_id} "
+            "| resolve_refs(viewer_principal=sender_principal, "
+            "sender_principal=sender_principal)).data.text }}"
+        )
+
+        r = self.client.post(
+            "/admin/notification/templates",
+            json={
+                "event": "item.message.creation",
+                "dom": dom,
+                "channel": "in_app",
+                "title": title_tpl,
+                "body": body_tpl,
+            },
+            headers=self._auth_headers(self.admin_token),
+        )
+        self.assertEqual(r.status_code, 200)
+
+        r = self.client.post(
+            "/item/message",
+            json={"data": {"text": "Hello"}},
+            headers=self._auth_headers(self.admin_token),
+        )
+        self.assertEqual(r.status_code, 201)
+
+        with self.app.app_context():
+            coll = get_mongo(collection=config_get("NOTIF_COLLECTION", "notifications"))
+            doc = coll.find_one(
+                {"event": "item.message.creation"},
+                sort=[("created_at", -1)],
+            )
+            self.assertIsNotNone(doc)
+            rendered = (
+                doc.get("rendered", {}).get(f"u:{self.admin_id}", {}).get("in_app", {})
+            )
+            title = rendered.get("title") or ""
+            body = rendered.get("body") or ""
+            self.assertIn("category message was creation by", title)
+            self.assertIn(str(self.admin_id), title)
+            self.assertIn("created message", body)
+            self.assertIn("Hello", body)
 
 
 if __name__ == "__main__":

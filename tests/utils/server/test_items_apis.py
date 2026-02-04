@@ -1,6 +1,7 @@
 # coding: utf-8
 from __future__ import annotations
 
+import io
 import json
 import os
 import sys
@@ -10,9 +11,11 @@ from datetime import datetime, timezone
 from urllib.parse import quote
 
 import mongomock
+import mongomock.gridfs
 from bson import ObjectId
 from flask import Flask
 from flask_security.utils import hash_password
+from unittest import mock
 
 # Add project root to Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", ".."))
@@ -29,6 +32,7 @@ from schedula.utils.form.server.security.casbin.helpers import (
     acl_user,
     u,
 )
+from schedula.utils.form.server.items.crud import prune_nulls
 from schedula.utils.form.server.security.casbin.models import ensure_public_group
 from tests.utils.server.utils.mongo_validation import ValidatingMongoDatabase
 from tests.utils.server.utils.factories import item_payload, item_patch_payload
@@ -39,6 +43,7 @@ class TestItemsApis(unittest.TestCase):
 
     def setUp(self):
         os.environ.pop("MONGO_URI", None)
+        mongomock.gridfs.enable_gridfs_integration()
 
         self.app = Flask("schedula_test_app")
 
@@ -48,6 +53,7 @@ class TestItemsApis(unittest.TestCase):
 
         self.mm_client = mongomock.MongoClient()
         mm_db = self.mm_client["schedula_test"]
+        self.mm_db = mm_db
         vdb = ValidatingMongoDatabase(mm_db)
         self.vdb = vdb
 
@@ -209,6 +215,17 @@ class TestItemsApis(unittest.TestCase):
         self.assertEqual(data.get("category"), "note")
         self.assertIn("id", data)
         self.assertIn("acl_dom", data)
+
+    def test_item_create_with_acl_dom(self):
+        acl_dom = acl_user(self.user.id)
+        r = self.auth_client.post(
+            "/item/note",
+            json={"data": {"title": "acl-dom"}, "acl_dom": acl_dom},
+            headers=self._auth_headers(),
+        )
+        self.assertEqual(r.status_code, 201)
+        data = r.get_json(silent=True) or {}
+        self.assertEqual(data.get("acl_dom"), acl_dom)
 
     def test_item_list_returns_items(self):
         # Call item list and expect items array.
@@ -765,6 +782,339 @@ class TestItemsApis(unittest.TestCase):
         self.assertEqual(r.status_code, 200)
         data = r.get_json(silent=True) or {}
         self.assertEqual(data.get("status"), "deleted")
+
+    def test_prune_nulls_prunes_list_items(self):
+        data = {
+            "a": [1, None, {"b": None, "c": 2}, [None, 3], None],
+            "d": None,
+            "e": {"f": [None], "g": None},
+        }
+
+        self.assertEqual(
+            prune_nulls(data),
+            {"a": [1, {"c": 2}, [3]], "e": {"f": []}},
+        )
+
+    def test_item_create_missing_and_orphan_files_error(self):
+        data = {
+            "data": '{"doc": {"$ref": "/files/needed"}}',
+            "extra": (io.BytesIO(b"orphan"), "extra.txt"),
+        }
+        r = self.auth_client.post(
+            "/item/note",
+            data=data,
+            headers=self._auth_headers(),
+            content_type="multipart/form-data",
+        )
+        self.assertEqual(r.status_code, 400)
+        body = r.get_json(silent=True) or {}
+        error = body.get("error") or ""
+        self.assertIsInstance(error, str)
+        self.assertIn("missing={'needed'}", error)
+        self.assertIn("orphan={'extra'}", error)
+
+    def test_item_update_missing_and_orphan_files_error(self):
+        data = {
+            "data": '{"doc": {"$ref": "/files/needed"}}',
+            "extra": (io.BytesIO(b"orphan"), "extra.txt"),
+        }
+        r = self.auth_client.patch(
+            f"/item/note/{self.item_id}",
+            data=data,
+            headers=self._auth_headers(),
+            content_type="multipart/form-data",
+        )
+        self.assertEqual(r.status_code, 400)
+        body = r.get_json(silent=True) or {}
+        error = body.get("error") or ""
+        self.assertIsInstance(error, str)
+        self.assertIn("missing={'needed'}", error)
+        self.assertIn("orphan={'extra'}", error)
+
+    def test_item_create_empty_file_errors_as_missing(self):
+        data = {
+            "data": '{"doc": {"$ref": "/files/empty"}}',
+            "empty": (io.BytesIO(b""), "empty.txt"),
+        }
+        r = self.auth_client.post(
+            "/item/note",
+            data=data,
+            headers=self._auth_headers(),
+            content_type="multipart/form-data",
+        )
+        self.assertEqual(r.status_code, 400)
+        body = r.get_json(silent=True) or {}
+        error = body.get("error") or ""
+        self.assertIsInstance(error, str)
+        self.assertIn("name='empty'", error)
+
+    def test_item_create_error_does_not_store_files(self):
+        payload = json.dumps(
+            {
+                "doc": {"$ref": "/files/f1"},
+                "doc2": {"$ref": "/files/f2"},
+                "doc3": {"$ref": "/files/f3"},
+            }
+        )
+        data = {
+            "data": payload,
+            "f1": (io.BytesIO(b"good-1"), "ok1.txt"),
+            "f2": (io.BytesIO(b"good-2"), "ok2.txt"),
+            "f3": (io.BytesIO(b""), "bad.txt"),
+        }
+        r = self.auth_client.post(
+            "/item/note",
+            data=data,
+            headers=self._auth_headers(),
+            content_type="multipart/form-data",
+        )
+        self.assertEqual(r.status_code, 400)
+
+        files_count = self.mm_db["fs.files"].count_documents({})
+        chunks_count = self.mm_db["fs.chunks"].count_documents({})
+        self.assertEqual(files_count, 0)
+        self.assertEqual(chunks_count, 0)
+
+    def test_item_update_error_does_not_store_files(self):
+        payload = json.dumps(
+            {
+                "doc": {"$ref": "/files/ok1"},
+                "doc2": {"$ref": "/files/ok2"},
+                "doc3": {"$ref": "/files/bad"},
+            }
+        )
+        data = {
+            "data": payload,
+            "ok1": (io.BytesIO(b"good-1"), "ok1.txt"),
+            "ok2": (io.BytesIO(b"good-2"), "ok2.txt"),
+            "bad": (io.BytesIO(b""), "bad.txt"),
+        }
+        r = self.auth_client.patch(
+            f"/item/note/{self.item_id}",
+            data=data,
+            headers=self._auth_headers(),
+            content_type="multipart/form-data",
+        )
+        self.assertEqual(r.status_code, 400)
+
+        files_count = self.mm_db["fs.files"].count_documents({})
+        chunks_count = self.mm_db["fs.chunks"].count_documents({})
+        self.assertEqual(files_count, 0)
+        self.assertEqual(chunks_count, 0)
+
+        doc = self.vdb.items.find_one({"_id": self.item_id}) or {}
+        self.assertEqual(doc.get("files") or {}, {})
+
+    def test_item_create_file_as_data_in_multipart(self):
+        data = {
+            "data": (io.BytesIO(b"not-json"), "data.json"),
+        }
+        r = self.auth_client.post(
+            "/item/note",
+            data=data,
+            headers=self._auth_headers(),
+            content_type="multipart/form-data",
+        )
+        self.assertEqual(r.status_code, 400)
+        body = r.get_json(silent=True) or {}
+        error = body.get("error") or ""
+        self.assertIsInstance(error, str)
+        self.assertIn("missing=set()", error)
+        self.assertIn("orphan={'data'}", error)
+
+    def test_item_create_invalid_json_in_multipart_data(self):
+        data = {
+            "data": "{",
+        }
+        r = self.auth_client.post(
+            "/item/note",
+            data=data,
+            headers=self._auth_headers(),
+            content_type="multipart/form-data",
+        )
+        self.assertEqual(r.status_code, 400)
+        body = r.get_json(silent=True) or {}
+        self.assertEqual(body.get("error"), "Invalid JSON in form field 'data'")
+
+    def test_item_create_s3_error_does_not_store_files(self):
+        old_cfg = self.app.config.get("S3_ITEMS_FILE_STORAGE")
+        self.app.config["S3_ITEMS_FILE_STORAGE"] = {
+            "bucket": "invalid-bucket",
+            "endpoint_url": "http://127.0.0.1:1",
+            "region_name": "us-east-1",
+            "aws_access_key_id": "test",
+            "aws_secret_access_key": "test",
+            "use_ssl": False,
+        }
+        try:
+            payload = json.dumps(
+                {
+                    "doc": {"$ref": "/files/ok1"},
+                    "doc2": {"$ref": "/files/ok2"},
+                    "doc3": {"$ref": "/files/bad"},
+                }
+            )
+            data = {
+                "data": payload,
+                "ok1": (io.BytesIO(b"good-1"), "ok1.txt"),
+                "ok2": (io.BytesIO(b"good-2"), "ok2.txt"),
+                "bad": (io.BytesIO(b"bad"), "bad.txt"),
+            }
+            before_count = self.vdb.items.count_documents({})
+            r = self.auth_client.post(
+                "/item/note",
+                data=data,
+                headers=self._auth_headers(),
+                content_type="multipart/form-data",
+            )
+            self.assertEqual(r.status_code, 500)
+            after_count = self.vdb.items.count_documents({})
+            self.assertEqual(before_count, after_count)
+        finally:
+            self.app.config["S3_ITEMS_FILE_STORAGE"] = old_cfg
+
+    def test_item_update_s3_error_does_not_store_files(self):
+        old_cfg = self.app.config.get("S3_ITEMS_FILE_STORAGE")
+        self.app.config["S3_ITEMS_FILE_STORAGE"] = {
+            "bucket": "invalid-bucket",
+            "endpoint_url": "http://127.0.0.1:1",
+            "region_name": "us-east-1",
+            "aws_access_key_id": "test",
+            "aws_secret_access_key": "test",
+            "use_ssl": False,
+        }
+        try:
+            payload = json.dumps(
+                {
+                    "doc": {"$ref": "/files/ok1"},
+                    "doc2": {"$ref": "/files/ok2"},
+                    "doc3": {"$ref": "/files/bad"},
+                }
+            )
+            data = {
+                "data": payload,
+                "ok1": (io.BytesIO(b"good-1"), "ok1.txt"),
+                "ok2": (io.BytesIO(b"good-2"), "ok2.txt"),
+                "bad": (io.BytesIO(b"bad"), "bad.txt"),
+            }
+            r = self.auth_client.patch(
+                f"/item/note/{self.item_id}",
+                data=data,
+                headers=self._auth_headers(),
+                content_type="multipart/form-data",
+            )
+            self.assertEqual(r.status_code, 500)
+
+            doc = self.vdb.items.find_one({"_id": self.item_id}) or {}
+            self.assertEqual(doc.get("files") or {}, {})
+        finally:
+            self.app.config["S3_ITEMS_FILE_STORAGE"] = old_cfg
+
+    def test_item_create_error_does_not_store_files_s3(self):
+        class FakeS3:
+            def __init__(self):
+                self.objects = set()
+                self.uploaded = []
+                self.deleted = []
+
+            def upload_fileobj(self, fileobj, bucket, key, ExtraArgs=None):
+                fileobj.read()
+                self.objects.add((bucket, key))
+                self.uploaded.append((bucket, key))
+
+            def delete_object(self, Bucket, Key):
+                self.objects.discard((Bucket, Key))
+                self.deleted.append((Bucket, Key))
+
+        fake = FakeS3()
+        old_cfg = self.app.config.get("S3_ITEMS_FILE_STORAGE")
+        self.app.config["S3_ITEMS_FILE_STORAGE"] = {"bucket": "test-bucket"}
+        try:
+            with mock.patch(
+                "schedula.utils.form.server.items.files.get_s3_client_and_bucket",
+                return_value=(fake, "test-bucket", ""),
+            ):
+                payload = json.dumps(
+                    {
+                        "doc": {"$ref": "/files/f1"},
+                        "doc2": {"$ref": "/files/f2"},
+                        "doc3": {"$ref": "/files/f3"},
+                    }
+                )
+                data = {
+                    "data": payload,
+                    "f1": (io.BytesIO(b"good-1"), "ok1.txt"),
+                    "f2": (io.BytesIO(b"good-2"), "ok2.txt"),
+                    "f3": (io.BytesIO(b""), "bad.txt"),
+                }
+                before_count = self.vdb.items.count_documents({})
+                r = self.auth_client.post(
+                    "/item/note",
+                    data=data,
+                    headers=self._auth_headers(),
+                    content_type="multipart/form-data",
+                )
+                self.assertEqual(r.status_code, 400)
+                after_count = self.vdb.items.count_documents({})
+                self.assertEqual(before_count, after_count)
+                self.assertEqual(len(fake.uploaded), 3)
+                self.assertEqual(len(fake.deleted), 3)
+                self.assertEqual(fake.objects, set())
+        finally:
+            self.app.config["S3_ITEMS_FILE_STORAGE"] = old_cfg
+
+    def test_item_update_error_does_not_store_files_s3(self):
+        class FakeS3:
+            def __init__(self):
+                self.objects = set()
+                self.uploaded = []
+                self.deleted = []
+
+            def upload_fileobj(self, fileobj, bucket, key, ExtraArgs=None):
+                fileobj.read()
+                self.objects.add((bucket, key))
+                self.uploaded.append((bucket, key))
+
+            def delete_object(self, Bucket, Key):
+                self.objects.discard((Bucket, Key))
+                self.deleted.append((Bucket, Key))
+
+        fake = FakeS3()
+        old_cfg = self.app.config.get("S3_ITEMS_FILE_STORAGE")
+        self.app.config["S3_ITEMS_FILE_STORAGE"] = {"bucket": "test-bucket"}
+        try:
+            with mock.patch(
+                "schedula.utils.form.server.items.files.get_s3_client_and_bucket",
+                return_value=(fake, "test-bucket", ""),
+            ):
+                payload = json.dumps(
+                    {
+                        "doc": {"$ref": "/files/f1"},
+                        "doc2": {"$ref": "/files/f2"},
+                        "doc3": {"$ref": "/files/f3"},
+                    }
+                )
+                data = {
+                    "data": payload,
+                    "f1": (io.BytesIO(b"good-1"), "ok1.txt"),
+                    "f2": (io.BytesIO(b"good-2"), "ok2.txt"),
+                    "f3": (io.BytesIO(b""), "bad.txt"),
+                }
+                r = self.auth_client.patch(
+                    f"/item/note/{self.item_id}",
+                    data=data,
+                    headers=self._auth_headers(),
+                    content_type="multipart/form-data",
+                )
+                self.assertEqual(r.status_code, 400)
+                self.assertEqual(len(fake.uploaded), 3)
+                self.assertEqual(len(fake.deleted), 3)
+                self.assertEqual(fake.objects, set())
+
+                doc = self.vdb.items.find_one({"_id": self.item_id}) or {}
+                self.assertEqual(doc.get("files") or {}, {})
+        finally:
+            self.app.config["S3_ITEMS_FILE_STORAGE"] = old_cfg
 
 
 if __name__ == "__main__":

@@ -190,6 +190,79 @@ class TestGroupsApis(unittest.TestCase):
         data = r.get_json(silent=True) or {}
         self.assertEqual(data.get("group", {}).get("type"), "workspace")
 
+    def test_remove_last_group_admin_fails(self):
+        r = self.api_client.post(
+            "/groups/",
+            json={"name": "Admins Only"},
+            headers=self._auth_headers(self.admin_token),
+        )
+        self.assertEqual(r.status_code, 201)
+        gid = (r.get_json(silent=True) or {}).get("group", {}).get("id")
+        self.assertIsNotNone(gid)
+
+        r = self.api_client.patch(
+            f"/groups/{gid}/memberships",
+            json={"remove_members": [f"u:{self.admin_user_id}"]},
+            headers=self._auth_headers(self.admin_token),
+        )
+        self.assertEqual(r.status_code, 500)
+        data = r.get_json(silent=True) or {}
+        self.assertEqual(data.get("error"), "Internal server error")
+
+    def test_group_cannot_be_member_of_itself(self):
+        r = self.api_client.post(
+            "/groups/",
+            json={"name": "Self Member"},
+            headers=self._auth_headers(self.admin_token),
+        )
+        self.assertEqual(r.status_code, 201)
+        gid = (r.get_json(silent=True) or {}).get("group", {}).get("id")
+        self.assertIsNotNone(gid)
+
+        r = self.api_client.patch(
+            f"/groups/{gid}/memberships",
+            json={"add_members": [f"g:{gid}"]},
+            headers=self._auth_headers(self.admin_token),
+        )
+        self.assertEqual(r.status_code, 500)
+        data = r.get_json(silent=True) or {}
+        self.assertEqual(data.get("error"), "Internal server error")
+
+    def test_add_group_to_group(self):
+        r = self.api_client.post(
+            "/groups/",
+            json={"name": "Parent"},
+            headers=self._auth_headers(self.admin_token),
+        )
+        self.assertEqual(r.status_code, 201)
+        parent_id = (r.get_json(silent=True) or {}).get("group", {}).get("id")
+        self.assertIsNotNone(parent_id)
+
+        r = self.api_client.post(
+            "/groups/",
+            json={"name": "Child"},
+            headers=self._auth_headers(self.admin_token),
+        )
+        self.assertEqual(r.status_code, 201)
+        child_id = (r.get_json(silent=True) or {}).get("group", {}).get("id")
+        self.assertIsNotNone(child_id)
+
+        r = self.api_client.patch(
+            f"/groups/{parent_id}/memberships",
+            json={"add_members": [f"g:{child_id}"]},
+            headers=self._auth_headers(self.admin_token),
+        )
+        self.assertEqual(r.status_code, 200)
+
+        r = self.api_client.get(
+            f"/groups/{parent_id}", headers=self._auth_headers(self.admin_token)
+        )
+        self.assertEqual(r.status_code, 200)
+        data = r.get_json(silent=True) or {}
+        group = data.get("group", {})
+        members = group.get("members", [])
+        self.assertTrue(any(m.get("id") == f"g:{child_id}" for m in members))
+
     def test_list_groups_member_and_admin_only(self):
         # Call group create as admin.
         r = self.api_client.post(

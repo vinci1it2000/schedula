@@ -10,7 +10,7 @@ import casbin
 import sqlalchemy_adapter
 from casbin import util
 from flask import current_app, has_app_context
-from mongo_watcher import new_watcher
+from .watcher import new_watcher
 
 from ...extensions import db
 
@@ -49,8 +49,7 @@ def _yield_users(e, role, _seen=None):
 class Enforcer(casbin.SyncedEnforcer):
     def get_implicit_users_for_role(self, role, _seen=None):
         with self._rl:
-            if _seen is None:
-                _seen = set()
+            _seen = set() if _seen is None or _seen is False else _seen
             return sorted(set(list(_yield_users(self._e, role, _seen))))
 
 
@@ -78,7 +77,8 @@ def get_enforcer() -> Enforcer:
         enable_watcher = not app.config.get("TESTING", False)
     if uri and enable_watcher:
         watcher = new_watcher(uri)
-        watcher.set_update_callback(lambda: e.load_policy())
+        watcher.bind_enforcer(e)
+        e.set_watcher(watcher)
     # Load from DB
     e.load_policy()
 

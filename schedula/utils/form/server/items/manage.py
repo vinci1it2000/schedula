@@ -286,16 +286,9 @@ def get_item_share_acl(category: str, item_id: str):
     by_target: Dict[str, Set[str]] = {}
     for p in rules:
         # p: [sub, dom, obj, act, eft]
-        if len(p) < 5:
-            continue
-        if len(p) >= 6:
-            t = p[1]
-            act = p[4]
-            eft = p[5]
-        else:
-            t = p[0]
-            act = p[3]
-            eft = p[4] if len(p) >= 5 else "allow"
+        t = p[0]
+        act = p[3]
+        eft = p[4]
         if eft != "allow":
             continue
         if act in _ALLOWED_SHARE_ACTIONS:
@@ -365,13 +358,11 @@ def unpublish_item(category: str, item_id: str):
 
     db.session.commit()
 
-    return jsonify(
-        {
-            "ok": True,
-            "published": False,
-            "changed": bool(changed),
-        }
-    ), 200
+    return jsonify({
+        "ok": True,
+        "published": False,
+        "changed": bool(changed),
+    }), 200
 
 
 @bp.route("/<category>/<item_id>/acl/publish", methods=["GET"])

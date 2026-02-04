@@ -8,13 +8,16 @@
 from __future__ import annotations
 
 import uuid
-from typing import Any, Dict
+from typing import Any, Dict, Iterable, List, Optional
 
 from flask import Blueprint, jsonify, request
 from schedula.utils.form.server.security.casbin.decorators import require_system_admin
 from schedula.utils.form.server.security.casbin.helpers import get_current_sub
+from schedula.utils.form.server.security import User
 from schedula.utils.form.server.utils import (
     abort_json,
+    config_get,
+    get_mongo,
     parse_pagination_args,
     parse_sort_arg,
     set_bp_error_handlers,
@@ -33,12 +36,93 @@ from .storage import (
     upsert_template,
     delete_template,
 )
+from .templates import render_title_body
 
 admin_bp = Blueprint("item_notifications_admin", __name__)
 set_bp_error_handlers(admin_bp)
 
 templates_bp = Blueprint("notification_templates", __name__)
 set_bp_error_handlers(templates_bp)
+
+
+def _principal_user_id(principal: Optional[str]) -> Optional[int]:
+    if not principal or not isinstance(principal, str):
+        return None
+    if not principal.startswith("u:"):
+        return None
+    try:
+        return int(principal.split(":", 1)[1])
+    except Exception:
+        return None
+
+
+def _coerce_bool(value: object) -> Optional[bool]:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        v = value.strip().lower()
+        if v in ("true", "1", "yes", "y", "on"):
+            return True
+        if v in ("false", "0", "no", "n", "off"):
+            return False
+    if isinstance(value, int):
+        return bool(value)
+    return None
+
+
+def _normalize_preferences(prefs: object) -> Dict[str, bool]:
+    if not isinstance(prefs, dict):
+        return {}
+    out: Dict[str, bool] = {}
+    for k, v in prefs.items():
+        if not isinstance(k, str):
+            continue
+        b = _coerce_bool(v)
+        if b is not None:
+            out[k] = b
+    return out
+
+
+def _normalize_list(value: object) -> List[str]:
+    if not isinstance(value, list):
+        return []
+    out = [v.strip() for v in value if isinstance(v, str) and v.strip()]
+    return out
+
+
+def _apply_preferences(channels: Iterable[str], prefs: Dict[str, bool]) -> List[str]:
+    out = []
+    for ch in channels:
+        if prefs.get(ch) is False:
+            continue
+        out.append(ch)
+    return out
+
+
+def _load_categories(explicit: Optional[List[str]]) -> List[str]:
+    if explicit:
+        return sorted({c for c in explicit if isinstance(c, str) and c.strip()})
+
+    cats: set[str] = set()
+    try:
+        mongo = get_mongo()
+        items = mongo[config_get("ITEMS_COLLECTION", "items")]
+        schemas = mongo[config_get("ITEM_SCHEMA_COLLECTION", "item_schemas")]
+        cats.update(c for c in items.distinct("category") if isinstance(c, str) and c)
+        cats.update(c for c in schemas.distinct("category") if isinstance(c, str) and c)
+    except Exception:
+        pass
+
+    try:
+        mongo = get_mongo()
+        coll = mongo[config_get("NOTIF_SETTINGS_COLLECTION", "notification_settings")]
+        cats.update(
+            c for c in coll.distinct("scope.category") if isinstance(c, str) and c
+        )
+    except Exception:
+        pass
+
+    return sorted(cats)
 
 
 @admin_bp.get("/settings/rules")
@@ -202,6 +286,116 @@ def api_delete_template(template_id: str):
     return jsonify({"ok": ok})
 
 
+@templates_bp.post("/test")
+@require_system_admin("notification:settings", "manage")
+def api_test_templates():
+    """Render notification templates across categories for preview."""
+    data: Dict[str, Any] = request.get_json(force=True, silent=True) or {}
+
+    event = (data.get("event") or "event").strip()
+    event_format = data.get("event_format") or "item.{category}.{event}"
+    if not isinstance(event_format, str):
+        abort_json(400, "event_format must be a string")
+
+    categories = _load_categories(_normalize_list(data.get("categories")))
+    if not categories:
+        return jsonify(
+            {"event": event, "event_format": event_format, "categories": []}
+        ), 200
+
+    dom = data.get("dom")
+    payload = data.get("payload") or {}
+    if not isinstance(payload, dict):
+        abort_json(400, "payload must be an object")
+
+    channels_input = _normalize_list(data.get("channels"))
+
+    principal = data.get("principal") or get_current_sub()
+    sender_principal = data.get("sender_principal") or principal
+
+    prefs = _normalize_preferences(data.get("preferences"))
+    if not prefs:
+        uid = _principal_user_id(principal)
+        if uid is not None:
+            user = User.query.get(uid)
+            if user:
+                prefs = _normalize_preferences(
+                    (user.settings or {}).get("notifications", {}).get("channels", {})
+                )
+
+    severity = data.get("severity") or "info"
+
+    out = []
+    for category in categories:
+        try:
+            event_full = event_format.format(category=category, event=event)
+        except Exception as e:
+            abort_json(400, f"invalid event_format: {e}")
+
+        defaults: set[str] = set()
+        mandatory: set[str] = set()
+        allowed: set[str] = set()
+        for rule in list_rules(category=category, dom=dom):
+            defaults.update(rule.get("defaults") or [])
+            mandatory.update(rule.get("mandatory") or [])
+            allowed.update(rule.get("allowed") or [])
+
+        allowed_channels = allowed | defaults | mandatory
+        if not allowed_channels:
+            out.append(
+                {
+                    "category": category,
+                    "event": event_full,
+                    "allowed_channels": [],
+                    "mandatory_channels": [],
+                    "enabled_channels": [],
+                    "rendered": {},
+                }
+            )
+            continue
+
+        base_channels = set(channels_input) if channels_input else defaults
+        base_channels = base_channels.intersection(allowed_channels)
+        enabled = set(_apply_preferences(base_channels, prefs))
+        enabled |= mandatory
+
+        payload_with_scope = dict(payload)
+        payload_with_scope["category"] = category
+        if dom and "acl_dom" not in payload_with_scope:
+            payload_with_scope["acl_dom"] = dom
+
+        n = {
+            "event": event_full,
+            "severity": severity,
+            "payload": payload_with_scope,
+            "sender_principal": sender_principal,
+        }
+
+        rendered = {}
+        for ch in sorted(enabled):
+            title, body = render_title_body(n, viewer_principal=principal, channel=ch)
+            rendered[ch] = {"title": title, "body": body}
+
+        out.append(
+            {
+                "category": category,
+                "event": event_full,
+                "allowed_channels": sorted(allowed_channels),
+                "mandatory_channels": sorted(mandatory),
+                "enabled_channels": sorted(enabled),
+                "rendered": rendered,
+            }
+        )
+
+    return jsonify(
+        {
+            "event": event,
+            "event_format": event_format,
+            "categories": out,
+        }
+    )
+
+
 @admin_bp.post("/notify")
 @require_system_admin("notification:settings", "manage")
 def admin_send_notification():
@@ -221,6 +415,6 @@ def admin_send_notification():
         payload=payload,
         severity=severity,
         persist=persist,
-        sender_principal=sub
+        sender_principal=sub,
     )
     return jsonify({"id": nid})

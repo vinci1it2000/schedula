@@ -23,7 +23,7 @@ FILES FORMAT (Mongo):
     "files": {
       "<name>": {
         "id": "<file_id>",            # GridFS ObjectId string or S3 uuid
-        "user_id": "<user_id>",       # owner (required)
+        "user_id": "u:<user_id>",       # owner (required)
         "content_type": "...",        # cache
         "size": <int>                 # cache
       }
@@ -82,10 +82,7 @@ def _iter_s3(streaming_body, chunk_size=1024 * 1024):
 
 
 def is_authenticated_user(user) -> bool:
-    try:
-        return bool(user) and bool(getattr(user, "is_authenticated", False))
-    except Exception:
-        return False
+    return bool(user) and bool(getattr(user, "is_authenticated", False))
 
 
 # ---------------------------------------------------------------------------
@@ -208,14 +205,11 @@ class _CountingReader:
         return getattr(self._fp, item)
 
 
-def store_uploaded_file(file_name, storage, mongo_db, user):
-    logger = current_app.logger
-
+def store_uploaded_file(file_name, storage, mongo_db, sub):
     file_name = normalize_file_name(file_name)
 
     content_type = getattr(storage, "mimetype", None) or "application/octet-stream"
     backend = get_file_backend()
-    user_id = str(getattr(user, "id", "") or "")
 
     # prefer stream, do not read whole file into RAM
     stream = getattr(storage, "stream", None) or storage
@@ -225,16 +219,13 @@ def store_uploaded_file(file_name, storage, mongo_db, user):
         import gridfs
 
         fs = gridfs.GridFS(mongo_db)
-        try:
-            file_id = fs.put(
-                counting_stream,
-                filename=file_name,
-                contentType=content_type,
-                user_id=user_id,
-            )
-        except Exception as exc:
-            logger.exception("GridFS put failed for '%s': %s", file_name, exc)
-            abort_json(500, "File storage error")
+
+        file_id = fs.put(
+            counting_stream,
+            filename=file_name,
+            contentType=content_type,
+            user_id=sub,
+        )
 
         file_id_str = str(file_id)
         size = counting_stream.bytes_read
@@ -246,23 +237,15 @@ def store_uploaded_file(file_name, storage, mongo_db, user):
 
         extra_args = {
             "ContentType": content_type,
-            "Metadata": {"name": file_name, "user_id": user_id},
+            "Metadata": {"name": file_name, "user_id": sub},
         }
-        try:
-            s3.upload_fileobj(counting_stream, bucket, key, ExtraArgs=extra_args)
-        except Exception as exc:
-            logger.exception("S3 upload failed for '%s': %s", file_name, exc)
-            abort_json(500, "File storage error")
+        s3.upload_fileobj(counting_stream, bucket, key, ExtraArgs=extra_args)
 
         size = counting_stream.bytes_read
 
-    if size <= 0:
-        logger.warning("Uploaded file (name='%s') has no content; skipping.", file_name)
-        return None
-
     return {
         "id": file_id_str,
-        "user_id": user_id,
+        "user_id": sub,
         "content_type": content_type,
         "size": size,
     }
@@ -276,15 +259,9 @@ def delete_files_meta(files_meta: dict, mongo_db):
     fs = None
     s3 = bucket = prefix = None
 
+    backend = get_file_backend()
     for name, meta in files_meta.items():
-        if not isinstance(meta, dict):
-            continue
         fid = meta.get("id")
-        if not isinstance(fid, str) or not fid:
-            continue
-
-        backend = get_file_backend()
-
         if backend == "gridfs":
             if fs is None:
                 import gridfs
@@ -364,9 +341,7 @@ def download_file(item_id, file_name):
         try:
             obj = s3.get_object(Bucket=bucket, Key=key)
             content = _iter_s3(obj["Body"])
-            content_type = (
-                    cached_ct or obj.get("ContentType") or "application/octet-stream"
-            )
+            content_type = cached_ct or obj.get("ContentType") or "application/octet-stream"
         except Exception:
             abort_json(404, "File not found")
 

@@ -124,6 +124,17 @@ class TestCasbinAdminApis(unittest.TestCase):
         r = self.admin_client.get("/admin/item-schema/", headers=other_admin_headers)
         self.assertEqual(r.status_code, 200)
 
+    def test_remove_last_system_admin_fails(self):
+        payload = [{"sub": f"u:{self.admin_user_id}", "role": "g:system:admin"}]
+        r = self.admin_client.delete(
+            "/admin/casbin/grouping",
+            json=payload,
+            headers=self._auth_headers(self.admin_token),
+        )
+        self.assertEqual(r.status_code, 400)
+        data = r.get_json(silent=True) or {}
+        self.assertEqual(data.get("error"), "Cannot remove the last system admin")
+
     def tearDown(self):
         with self.app.app_context():
             _db.session.remove()

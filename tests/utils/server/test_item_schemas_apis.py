@@ -206,6 +206,40 @@ class TestItemSchemasApis(unittest.TestCase):
         self.assertEqual(versions[0].get("status"), "published")
         self.assertTrue(versions[0].get("is_enabled"))
 
+    def test_category_detail_returns_versions(self):
+        headers = self._auth_headers(self.admin_token)
+        category = "note"
+
+        draft = {"version": "1.0.0", "schema": self._schema_required_title()}
+        r = self.admin_client.post(
+            f"/admin/item-schema/{category}/drafts", json=draft, headers=headers
+        )
+        self.assertEqual(r.status_code, 201)
+
+        r = self.admin_client.post(
+            f"/admin/item-schema/{category}/drafts/1.0.0/publish", headers=headers
+        )
+        self.assertEqual(r.status_code, 200)
+
+        draft = {"version": "1.1.0", "schema": self._schema_required_title_and_value()}
+        r = self.admin_client.post(
+            f"/admin/item-schema/{category}/drafts", json=draft, headers=headers
+        )
+        self.assertEqual(r.status_code, 201)
+
+        r = self.admin_client.get(f"/admin/item-schema/{category}", headers=headers)
+        self.assertEqual(r.status_code, 200)
+        data = r.get_json(silent=True) or {}
+        versions = data.get("versions", [])
+        self.assertEqual([v.get("version") for v in versions], ["1.0.0", "1.1.0"])
+
+        self.assertEqual(versions[0].get("status"), "published")
+        self.assertTrue(versions[0].get("is_enabled"))
+        self.assertEqual(versions[1].get("status"), "draft")
+        self.assertFalse(versions[1].get("is_enabled"))
+        self.assertFalse(versions[0].get("is_placeholder", False))
+        self.assertFalse(versions[1].get("is_placeholder", False))
+
     def test_create_update_publish_enable_disable_and_validation(self):
         headers = self._auth_headers(self.admin_token)
         category = "note"

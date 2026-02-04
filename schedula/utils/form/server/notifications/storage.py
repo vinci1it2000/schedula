@@ -129,17 +129,14 @@ def _ensure_settings_schema() -> None:
     mongo = get_mongo()
     coll_id = config_get("NOTIF_SETTINGS_COLLECTION", "notification_settings")
     _ = mongo[coll_id]
-    try:
-        mongo_command(
-            mongo,
-            "collMod",
-            coll_id,
-            validator=_settings_validator(),
-            validationLevel="moderate",
-            validationAction="error",
-        )
-    except Exception:
-        pass
+    mongo_command(
+        mongo,
+        "collMod",
+        coll_id,
+        validator=_settings_validator(),
+        validationLevel="moderate",
+        validationAction="error",
+    )
     _SETTINGS_SCHEMA_APPLIED = True
 
 
@@ -151,17 +148,14 @@ def _ensure_watchers_schema() -> None:
     mongo = get_mongo()
     coll_id = config_get("NOTIF_WATCHERS_COLLECTION", "notification_watchers")
     _ = mongo[coll_id]
-    try:
-        mongo_command(
-            mongo,
-            "collMod",
-            coll_id,
-            validator=_watchers_validator(),
-            validationLevel="moderate",
-            validationAction="error",
-        )
-    except Exception:
-        pass
+    mongo_command(
+        mongo,
+        "collMod",
+        coll_id,
+        validator=_watchers_validator(),
+        validationLevel="moderate",
+        validationAction="error",
+    )
     _WATCHERS_SCHEMA_APPLIED = True
 
 
@@ -174,17 +168,15 @@ def _ensure_templates_schema() -> None:
     mongo = get_mongo()
     coll_id = config_get("NOTIF_TEMPLATES_COLLECTION", "notification_templates")
     _ = mongo[coll_id]
-    try:
-        mongo_command(
-            mongo,
-            "collMod",
-            coll_id,
-            validator=_templates_validator(),
-            validationLevel="moderate",
-            validationAction="error",
-        )
-    except Exception:
-        pass
+
+    mongo_command(
+        mongo,
+        "collMod",
+        coll_id,
+        validator=_templates_validator(),
+        validationLevel="moderate",
+        validationAction="error",
+    )
     _TEMPLATES_SCHEMA_APPLIED = True
 
 

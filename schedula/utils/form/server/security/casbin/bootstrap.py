@@ -167,7 +167,6 @@ def set_subject_banned_in_group(
         obj_any: str = "item:*",
         *,
         enabled: bool = True,
-        reason: str | None = None,
         act_any: str = "*",
 ):
     """
@@ -207,9 +206,5 @@ def set_subject_banned_in_group(
     for sub in subs:
         if enabled:
             e.add_policy(sub, dom, obj_any, act_any, eft)
-            if reason:
-                log.info("Banned %s from group %s: %s", sub, gid, reason)
         else:
             e.remove_policy(sub, dom, obj_any, act_any, eft)
-            if reason:
-                log.info("Unbanned %s from group %s: %s", sub, gid, reason)

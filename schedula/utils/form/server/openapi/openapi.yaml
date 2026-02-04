@@ -2,8 +2,8 @@ openapi: 3.0.3
 info:
   title: Schedula API
   version: 1.0.0
-  description: OpenAPI spec generato dal codice server (Flask). Alcuni endpoint sono
-    condizionati da feature-flag di configurazione.
+  description: OpenAPI spec generated from the Flask server code. Some endpoints
+    are enabled only when the related feature flags are on.
 servers:
   - url: /
 tags:
@@ -219,6 +219,85 @@ components:
         channel_overrides:
           type: object
           additionalProperties: true
+    NotificationTemplateTestRequest:
+      type: object
+      properties:
+        event:
+          type: string
+          description: Base event name used in event_format.
+          example: update
+        event_format:
+          type: string
+          description: >
+            Python format string for event names. Supports {category} and {event}.
+          default: item.{category}.{event}
+        categories:
+          type: array
+          items:
+            type: string
+          description: Optional explicit categories to render.
+        dom:
+          type: string
+          description: Optional dom scope for channel rules.
+        channels:
+          type: array
+          items:
+            type: string
+          description: Optional channel list to test (filtered by rules).
+        preferences:
+          type: object
+          additionalProperties:
+            type: boolean
+          description: Optional channel preferences map.
+        principal:
+          type: string
+          description: Viewer principal used for rendering.
+        sender_principal:
+          type: string
+          description: Sender principal used for ref ACL checks.
+        severity:
+          type: string
+          enum: [info, warning, error, critical]
+        payload:
+          type: object
+          additionalProperties: true
+    NotificationTemplateTestResponse:
+      type: object
+      properties:
+        event:
+          type: string
+        event_format:
+          type: string
+        categories:
+          type: array
+          items:
+            type: object
+            properties:
+              category:
+                type: string
+              event:
+                type: string
+              allowed_channels:
+                type: array
+                items:
+                  type: string
+              mandatory_channels:
+                type: array
+                items:
+                  type: string
+              enabled_channels:
+                type: array
+                items:
+                  type: string
+              rendered:
+                type: object
+                additionalProperties:
+                  type: object
+                  properties:
+                    title:
+                      type: string
+                    body:
+                      type: string
     WatcherRequest:
       type: object
       properties:
@@ -4016,6 +4095,47 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+    delete:
+      tags:
+        - Notifications
+      summary: Delete notification rule (admin only)
+      description: >
+        Deletes a notification rule by id. Returns a status payload or not_found
+        if the rule does not exist.
+      parameters:
+        - in: path
+          name: rule_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
   /admin/notification/notify:
     post:
       tags:
@@ -4152,6 +4272,45 @@ paths:
                     type: boolean
                   id:
                     type: string
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /admin/notification/templates/test:
+    post:
+      tags:
+        - Templates
+      summary: Test notification templates (admin only)
+      description: >
+        Renders notification templates across categories using channel rules
+        and optional preferences. Requires system admin privileges.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotificationTemplateTestRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationTemplateTestResponse'
         '400':
           description: Bad Request
           content:

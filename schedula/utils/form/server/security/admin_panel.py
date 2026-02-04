@@ -39,8 +39,10 @@ from typing import Any, Dict, List, Tuple
 
 from flask import Blueprint, jsonify, request
 
+from .casbin.bootstrap import set_system_admin
 from .casbin.decorators import require_system_admin
 from .casbin.enforcer import get_enforcer
+from .casbin.helpers import SYSTEM_ADMIN_ROLE
 from ..extensions import db
 from ..utils import abort_json, parse_pagination_args, parse_sort_arg
 
@@ -55,7 +57,7 @@ _ALLOWED_SORT_FIELDS_G = {"sub": 0, "role": 1}
 
 
 def _sort_key(
-        rule: List[str], sort_field: str, allowed_sort_fields: Dict[str, int]
+    rule: List[str], sort_field: str, allowed_sort_fields: Dict[str, int]
 ) -> Tuple[str, int]:
     """
     Deterministic sort: primary by chosen field, tie-breaker by full tuple.
@@ -67,7 +69,7 @@ def _sort_key(
 
 
 def _parse_rows(
-        payload: List[Dict[str, Any]], allowed_sort_fields: Dict[str, int], what="policy"
+    payload: List[Dict[str, Any]], allowed_sort_fields: Dict[str, int], what="policy"
 ) -> List[List[str]]:
     """
     Parse policy/grouping rows.
@@ -97,13 +99,13 @@ def _parse_rows(
 
 
 def _filter_policies(
-        policies: List[List[str]],
-        *,
-        dom=None,
-        sub=None,
-        obj=None,
-        act=None,
-        eft=None,
+    policies: List[List[str]],
+    *,
+    dom=None,
+    sub=None,
+    obj=None,
+    act=None,
+    eft=None,
 ):
     out: List[List[str]] = []
     for r in policies:
@@ -205,7 +207,7 @@ def list_policies():
     )
 
     # Offset page
-    page = rules[offset: offset + limit]
+    page = rules[offset : offset + limit]
 
     next_offset = offset + len(page)
     if next_offset >= total:
@@ -350,7 +352,7 @@ def list_grouping():
     )
 
     # offset page
-    page = out[offset: offset + limit]
+    page = out[offset : offset + limit]
 
     next_offset = offset + len(page)
     if next_offset >= total:
@@ -406,9 +408,30 @@ def edit_grouping():
     groups = _parse_rows(payload, _ALLOWED_SORT_FIELDS_G, what="group")
     e = get_enforcer()
     if request.method == "POST":
-        e.add_grouping_policies(groups)
+        remaining = []
+        for sub, role in groups:
+            if role == SYSTEM_ADMIN_ROLE:
+                if not isinstance(sub, str) or not sub.startswith("u:"):
+                    abort_json(400, "system admin must be a user")
+                set_system_admin(sub.split(":", 1)[1], enabled=True)
+            else:
+                remaining.append([sub, role])
+        if remaining:
+            e.add_grouping_policies(remaining)
     else:
-        e.remove_grouping_policies(groups)
+        remaining = []
+        for sub, role in groups:
+            if role == SYSTEM_ADMIN_ROLE:
+                if not isinstance(sub, str) or not sub.startswith("u:"):
+                    abort_json(400, "system admin must be a user")
+                try:
+                    set_system_admin(sub.split(":", 1)[1], enabled=False)
+                except ValueError as exc:
+                    abort_json(400, str(exc))
+            else:
+                remaining.append([sub, role])
+        if remaining:
+            e.remove_grouping_policies(remaining)
     db.session.commit()
     return jsonify({"ok": True})
 
