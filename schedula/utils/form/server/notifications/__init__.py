@@ -9,7 +9,8 @@ Package layout:
 """
 
 from flask import current_app
-from utils.form.server.security.casbin.helpers import get_current_sub
+
+from ..security.casbin import get_current_sub
 
 
 class Notifications:

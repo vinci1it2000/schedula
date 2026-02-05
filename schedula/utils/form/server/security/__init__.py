@@ -498,7 +498,7 @@ class Security:
 
         def _casbin_bootstrap():
             try:
-                from .casbin.models import ensure_public_group
+                from .casbin import ensure_public_group
 
                 ensure_public_group()
             except Exception:
@@ -546,7 +546,7 @@ def is_admin():
     if not cu.is_authenticated:
         return False
     try:
-        from .casbin.helpers import is_system_admin, get_current_sub
+        from .casbin import is_system_admin, get_current_sub
 
         return is_system_admin(get_current_sub())
     except Exception:

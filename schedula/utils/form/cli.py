@@ -14,11 +14,12 @@ Define the command line interface for web forms.
    :show-nested:
 
 """
-import os
-import click
 import logging
-import click_log
+import os
 import os.path as osp
+
+import click
+import click_log
 
 log = logging.getLogger('schedula.utils.form.cli')
 

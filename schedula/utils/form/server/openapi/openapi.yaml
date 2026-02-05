@@ -257,7 +257,7 @@ components:
           description: Sender principal used for ref ACL checks.
         severity:
           type: string
-          enum: [info, warning, error, critical]
+          enum: [ info, warning, error, critical ]
         payload:
           type: object
           additionalProperties: true

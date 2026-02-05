@@ -54,20 +54,20 @@ from flask_security import current_user as cu
 from . import normalize_category
 from .files import store_uploaded_file, delete_files_meta, normalize_file_name
 from ..notifications import notify_item_event_safe
-from ..security.casbin.helpers import (
+from ..security.casbin import (
     g,
     get_auth_sub,
     get_current_sub,
     acl_group,
     acl_user,
     enforce_or_403,
-    abort_json,
+    authorize_item,
+    item_obj,
     get_enforcer,
     ADMIN_DOMAIN,
     PUBLIC_DOMAIN,
     SHARE_DOMAIN
 )
-from ..security.casbin.item_acl import authorize_item, item_obj
 from ..utils import (
     mongo_count_documents,
     mongo_delete_one,
@@ -81,6 +81,7 @@ from ..utils import (
     set_bp_error_handlers,
     parse_pagination_args,
     parse_sort_arg,
+    abort_json
 )
 
 bp = Blueprint("items", __name__)

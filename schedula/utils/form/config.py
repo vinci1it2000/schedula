@@ -23,48 +23,48 @@ class Config:
     def __init__(self):
         self.DEBUG = False
         self.WTF_CSRF_CHECK_DEFAULT = (
-            os.environ.get("WTF_CSRF_CHECK_DEFAULT", "false").lower() == "true"
+                os.environ.get("WTF_CSRF_CHECK_DEFAULT", "false").lower() == "true"
         )
         self.SCHEDULA_CSRF_ENABLED = (
-            os.environ.get("SCHEDULA_CSRF_ENABLED", "true").lower() == "true"
+                os.environ.get("SCHEDULA_CSRF_ENABLED", "true").lower() == "true"
         )
         self.SCHEDULA_GDPR_ENABLED = (
-            os.environ.get("SCHEDULA_GDPR_ENABLED", "true").lower() == "true"
+                os.environ.get("SCHEDULA_GDPR_ENABLED", "true").lower() == "true"
         )
         self.SECURITY_ENABLED = (
-            os.environ.get("SECURITY_ENABLED", "true").lower() == "true"
+                os.environ.get("SECURITY_ENABLED", "true").lower() == "true"
         )
         self.ADMIN_ENABLED = (
-            os.environ.get(
-                "ADMIN_ENABLED", self.SECURITY_ENABLED and "true" or "false"
-            ).lower()
-            == "true"
+                os.environ.get(
+                    "ADMIN_ENABLED", self.SECURITY_ENABLED and "true" or "false"
+                ).lower()
+                == "true"
         )
         self.CONTACT_ENABLED = (
-            os.environ.get("CONTACT_ENABLED", "true").lower() == "true"
+                os.environ.get("CONTACT_ENABLED", "true").lower() == "true"
         )
         self.ITEMS_STORAGE_ENABLED = (
-            os.environ.get("ITEMS_STORAGE_ENABLED", "false").lower() == "true"
+                os.environ.get("ITEMS_STORAGE_ENABLED", "false").lower() == "true"
         )
         self.FILES_STORAGE_ENABLED = (
-            os.environ.get("FILES_STORAGE_ENABLED", "true").lower() == "true"
+                os.environ.get("FILES_STORAGE_ENABLED", "true").lower() == "true"
         )
         self.SCHEDULA_CREDITS_ENABLED = (
-            os.environ.get("SCHEDULA_CREDITS_ENABLED", "false").lower() == "true"
+                os.environ.get("SCHEDULA_CREDITS_ENABLED", "false").lower() == "true"
         )
         self.SCHEDULA_LOCALE_ENABLED = (
-            os.environ.get("SCHEDULA_LOCALE_ENABLED", "true").lower() == "true"
+                os.environ.get("SCHEDULA_LOCALE_ENABLED", "true").lower() == "true"
         )
         self.SCHEDULA_SECRETS_ENABLED = (
-            os.environ.get("SCHEDULA_SECRETS_ENABLED", "true").lower() == "true"
+                os.environ.get("SCHEDULA_SECRETS_ENABLED", "true").lower() == "true"
         )
         self.SCHEDULA_EXPORT_FORM_ENABLED = (
-            os.environ.get("SCHEDULA_EXPORT_FORM_ENABLED", "false").lower() == "true"
+                os.environ.get("SCHEDULA_EXPORT_FORM_ENABLED", "false").lower() == "true"
         )
 
         self.NOTIF_ENABLED = os.environ.get("NOTIF_ENABLED", "false").lower() == "true"
         self.NOTIF_CELERY_ENABLED = (
-            os.environ.get("NOTIF_CELERY_ENABLED", "false").lower() == "true"
+                os.environ.get("NOTIF_CELERY_ENABLED", "false").lower() == "true"
         )
 
         # reCAPTCHA configuration
@@ -102,5 +102,5 @@ class Config:
         # many DBaaS options automatically close idle connections.
         self.SQLALCHEMY_ENGINE_OPTIONS = {"pool_pre_ping": True}
         self.SQLALCHEMY_TRACK_MODIFICATIONS = (
-            os.environ.get("SQLALCHEMY_TRACK_MODIFICATIONS", "false").lower() == "true"
+                os.environ.get("SQLALCHEMY_TRACK_MODIFICATIONS", "false").lower() == "true"
         )

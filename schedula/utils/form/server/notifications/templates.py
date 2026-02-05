@@ -16,8 +16,10 @@ from bson import ObjectId
 from flask import current_app
 from jinja2 import StrictUndefined
 from jinja2.sandbox import SandboxedEnvironment
-from schedula.utils.form.server.security.casbin.item_acl import authorize_item
-from schedula.utils.form.server.utils import config_get, get_mongo, mongo_find_one
+
+from ..security import User
+from ..security.casbin import authorize_item, Group
+from ..utils import config_get, get_mongo, mongo_find_one
 
 _RE_USER = re.compile(r"^/users/(?P<id>\d+)$")
 _RE_ITEM_ID = re.compile(r"^/items/(?P<id>[A-Za-z0-9:_-]+)$")
@@ -77,8 +79,6 @@ def _principal_info(p: Any) -> Dict[str, Any]:
         return {"id": "anonymous", "type": "user", "anonymous": True}
 
     if p.startswith("u:"):
-        from schedula.utils.form.server.security import User
-
         u = User.query.get(int(p[2:]))
         if not u:
             return {"id": p[2:], "type": "user", "_missing": True}
@@ -87,8 +87,6 @@ def _principal_info(p: Any) -> Dict[str, Any]:
         return out
 
     if p.startswith("g:"):
-        from schedula.utils.form.server.security.casbin.models import Group
-
         g = Group.query.get(p.split(":")[1])
         if not g:
             return {"id": p.split(":")[1], "type": "group", "_missing": True}
@@ -108,10 +106,10 @@ def _get_ref_max_depth() -> int:
 
 
 def _resolve_refs_filter(
-    obj: Any,
-    viewer_principal: Optional[str] = None,
-    sender_principal: Optional[str] = None,
-    max_depth: Optional[int] = None,
+        obj: Any,
+        viewer_principal: Optional[str] = None,
+        sender_principal: Optional[str] = None,
+        max_depth: Optional[int] = None,
 ) -> Any:
     """Resolve {$ref} entries for templates."""
     resolver = RefResolver(
@@ -123,10 +121,10 @@ def _resolve_refs_filter(
 
 
 def _get_item_filter(
-    item_id_or_ref: Any,
-    viewer_principal: Optional[str] = None,
-    sender_principal: Optional[str] = None,
-    category: Optional[str] = None,
+        item_id_or_ref: Any,
+        viewer_principal: Optional[str] = None,
+        sender_principal: Optional[str] = None,
+        category: Optional[str] = None,
 ) -> Any:
     """Resolve a single item reference using ACL-aware lookup."""
     resolver = RefResolver(
@@ -163,7 +161,7 @@ def make_env() -> SandboxedEnvironment:
 
 
 def _acl_allows(
-    doc: Dict[str, Any], principal: Optional[str], admin_like: bool
+        doc: Dict[str, Any], principal: Optional[str], admin_like: bool
 ) -> bool:
     """Best-effort ACL check for item-like documents.
 
@@ -215,9 +213,9 @@ def _user_public_payload(u: Any) -> Dict[str, Any]:
     first = getattr(u, "firstname", None) or ""
     last = getattr(u, "lastname", None) or ""
     dn = (
-        (first + " " + last).strip()
-        or getattr(u, "username", None)
-        or f"user:{getattr(u, 'id', None)}"
+            (first + " " + last).strip()
+            or getattr(u, "username", None)
+            or f"user:{getattr(u, 'id', None)}"
     )
     return {
         "id": getattr(u, "id", None),
@@ -257,10 +255,6 @@ class RefResolver:
 
     def _user_by_id(self, user_id: int) -> Dict[str, Any]:
         """Load a user payload based on viewer permissions."""
-        try:
-            from schedula.utils.form.server.security import User
-        except Exception as e:
-            raise RuntimeError(f"User model not available: {e}")
 
         u = User.query.get(user_id)
         if not u:
@@ -306,7 +300,7 @@ class RefResolver:
 
         # Viewer must be allowed unless admin-like
         if not _acl_allows(
-            doc, self.viewer_principal, admin_like=bool(self.viewer_is_admin)
+                doc, self.viewer_principal, admin_like=bool(self.viewer_is_admin)
         ):
             return {"_ref_forbidden_viewer": True, "type": "item", "id": item_id}
 
@@ -345,7 +339,7 @@ class RefResolver:
             }
 
         if not _acl_allows(
-            doc, self.viewer_principal, admin_like=bool(self.viewer_is_admin)
+                doc, self.viewer_principal, admin_like=bool(self.viewer_is_admin)
         ):
             return {
                 "_ref_forbidden_viewer": True,
@@ -358,11 +352,11 @@ class RefResolver:
 
 
 def resolve_refs(
-    obj: Any,
-    resolver: RefResolver,
-    max_depth: int = 3,
-    _depth: int = 0,
-    _seen: Optional[Set[str]] = None,
+        obj: Any,
+        resolver: RefResolver,
+        max_depth: int = 3,
+        _depth: int = 0,
+        _seen: Optional[Set[str]] = None,
 ) -> Any:
     """Resolve dicts that look like {'$ref': '...'} recursively."""
     if _seen is None:
@@ -406,10 +400,10 @@ def _has_ref(obj: Any) -> bool:
 
 
 def _select_template(
-    *,
-    event: Optional[str],
-    dom: Optional[str],
-    channel: Optional[str],
+        *,
+        event: Optional[str],
+        dom: Optional[str],
+        channel: Optional[str],
 ) -> Dict[str, Any]:
     """Pick the best matching template for the given scope."""
     if not event:
@@ -461,7 +455,7 @@ def _select_template(
 
 
 def render_title_body(
-    n: Dict[str, Any], viewer_principal: str, channel: str = "generic"
+        n: Dict[str, Any], viewer_principal: str, channel: str = "generic"
 ) -> Tuple[str, str]:
     """Render title/body for a notification.
 
@@ -474,8 +468,6 @@ def render_title_body(
 
     event = n.get("event") or "notification"
     severity = (n.get("severity") or "info").upper()
-
-
 
     # Pick template
     payload_raw = n.get("payload")

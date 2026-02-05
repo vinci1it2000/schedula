@@ -64,7 +64,7 @@ from jsonschema.exceptions import SchemaError
 from mongo_schema import MongoValidator
 
 from . import normalize_category
-from ..security.casbin.decorators import require_system_admin
+from ..security.casbin import require_system_admin
 from ..utils import (
     now_utc,
     abort_json,

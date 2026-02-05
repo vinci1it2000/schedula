@@ -10,8 +10,8 @@ import casbin
 import sqlalchemy_adapter
 from casbin import util
 from flask import current_app, has_app_context
-from .watcher import new_watcher
 
+from .watcher import new_watcher
 from ...extensions import db
 
 _EXT_KEY = "casbin_enforcer"

@@ -47,17 +47,17 @@ from flask import Blueprint, jsonify, request
 from . import normalize_category
 from ..extensions import db
 from ..notifications import notify_item_event_safe
-from ..security.casbin.enforcer import get_enforcer
-from ..security.casbin.helpers import (
+from ..security.casbin import (
+    get_enforcer,
     PUBLIC_DOMAIN,
     PUBLIC_ROLE,
     SHARE_DOMAIN,
-    abort_json,
     get_auth_sub,
     item_obj,
+    authorize_item,
+    set_item_public_read,
 )
-from ..security.casbin.item_acl import authorize_item, set_item_public_read
-from ..utils import mongo_find_one, set_bp_error_handlers, get_mongo, config_get
+from ..utils import mongo_find_one, set_bp_error_handlers, get_mongo, config_get, abort_json
 
 bp = Blueprint("items_acl", __name__)
 set_bp_error_handlers(bp)

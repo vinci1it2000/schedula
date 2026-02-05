@@ -9,11 +9,12 @@
 """
 It provides the `gunicorn` BaseApplication to run the server in production.
 """
-import sys
-import runpy
 import functools
-import os.path as osp
 import multiprocessing
+import os.path as osp
+import runpy
+import sys
+
 from gunicorn.app.base import BaseApplication
 
 

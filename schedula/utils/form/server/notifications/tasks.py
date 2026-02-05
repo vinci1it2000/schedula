@@ -12,10 +12,10 @@ from urllib.parse import quote
 
 import apprise
 from celery import Celery, shared_task
-from schedula.utils.form.server.security import User
-from schedula.utils.form.server.utils import mongo_find_one, mongo_update_one, get_mongo, now_utc, config_get
 
 from .templates import render_title_body
+from ..security import User
+from ..utils import mongo_find_one, mongo_update_one, get_mongo, now_utc, config_get
 
 
 def _settings_for_user(user: User) -> dict:

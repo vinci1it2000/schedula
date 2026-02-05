@@ -1,15 +1,16 @@
 import functools
 import glob
+import inspect
 import json
 import os
-import tqdm
-import polib
-import inspect
-import subprocess
-import flask_security
 import os.path as osp
-import schedula as sh
+import subprocess
 from datetime import datetime
+
+import flask_security
+import polib
+import schedula as sh
+import tqdm
 import translators as ts
 
 data = {'en_US'}
@@ -25,7 +26,6 @@ data = {lng: json.loads(subprocess.check_output([
         cdir, 'translate.js'
     ), {'zh_Hans_CN': 'zh_CN'}.get(lng, lng)
 ], cwd=cdir)) for lng in data}
-
 
 data = {i: {
     '.'.join(k): v for k, v in sh.stack_nested_keys(d) if isinstance(v, str)

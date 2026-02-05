@@ -8,13 +8,13 @@
 from __future__ import annotations
 
 from flask import Blueprint, jsonify, request
-from schedula.utils.form.server.security.casbin.helpers import get_auth_sub
-from schedula.utils.form.server.utils import (
-    abort_json, parse_pagination_args, mongo_count_documents, mongo_find, set_bp_error_handlers, get_mongo, config_get
-)
 
 from .service import mark_read, unread_count
 from .storage import create_watcher, list_watchers, update_watcher, delete_watcher
+from ..security.casbin import get_auth_sub
+from ..utils import (
+    abort_json, parse_pagination_args, mongo_count_documents, mongo_find, set_bp_error_handlers, get_mongo, config_get
+)
 
 bp = Blueprint("item_notifications", __name__)
 set_bp_error_handlers(bp)

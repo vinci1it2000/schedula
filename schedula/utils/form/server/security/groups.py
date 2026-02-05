@@ -7,7 +7,7 @@ from typing import Set
 
 from flask import Blueprint, jsonify, request
 
-from ..utils import parse_pagination_args, parse_sort_arg, set_bp_error_handlers
+from ..utils import parse_pagination_args, parse_sort_arg, set_bp_error_handlers, abort_json
 
 try:
     from flask_security import current_user as cu
@@ -21,15 +21,14 @@ except Exception:  # pragma: no cover
     cu = _CU()
 
 from ..extensions import db
-from .casbin.enforcer import get_enforcer
-from .casbin.models import Group
-from .casbin.helpers import (
+from .casbin import (
+    Group,
+    get_enforcer,
+    bootstrap_group,
     ADMIN_DOMAIN,
     acl_group,
-    abort_json,
     get_auth_sub,
 )
-from .casbin.bootstrap import bootstrap_group
 
 bp = Blueprint("groups", __name__)
 set_bp_error_handlers(bp)

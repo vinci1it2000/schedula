@@ -12,17 +12,6 @@ from typing import Any, Dict, Iterable, List, Optional
 
 from flask import Blueprint, jsonify, request
 from jinja2 import TemplateSyntaxError
-from schedula.utils.form.server.security.casbin.decorators import require_system_admin
-from schedula.utils.form.server.security.casbin.helpers import get_current_sub
-from schedula.utils.form.server.security import User
-from schedula.utils.form.server.utils import (
-    abort_json,
-    config_get,
-    get_mongo,
-    parse_pagination_args,
-    parse_sort_arg,
-    set_bp_error_handlers,
-)
 
 from .service import create_notification
 from .storage import (
@@ -38,6 +27,16 @@ from .storage import (
     delete_template,
 )
 from .templates import make_env, render_title_body
+from ..security import User
+from ..security.casbin import require_system_admin, get_current_sub
+from ..utils import (
+    abort_json,
+    config_get,
+    get_mongo,
+    parse_pagination_args,
+    parse_sort_arg,
+    set_bp_error_handlers,
+)
 
 admin_bp = Blueprint("item_notifications_admin", __name__)
 set_bp_error_handlers(admin_bp)
@@ -93,18 +92,6 @@ def _validate_template_syntax(payload: Dict[str, Any]) -> None:
         parts.append(title)
     if isinstance(body, str) and body:
         parts.append(body)
-
-    overrides = payload.get("channel_overrides")
-    if isinstance(overrides, dict):
-        for override in overrides.values():
-            if not isinstance(override, dict):
-                continue
-            o_title = override.get("title")
-            o_body = override.get("body")
-            if isinstance(o_title, str) and o_title:
-                parts.append(o_title)
-            if isinstance(o_body, str) and o_body:
-                parts.append(o_body)
 
     for text in parts:
         try:
@@ -272,7 +259,6 @@ def api_create_template():
         "enabled": data.get("enabled", True),
         "title": data.get("title") or "",
         "body": data.get("body") or "",
-        "channel_overrides": data.get("channel_overrides") or {},
         "meta": data.get("meta") or {},
     }
     if payload.get("scope") is None:
@@ -300,7 +286,6 @@ def api_put_template(template_id: str):
         "enabled": data.get("enabled", True),
         "title": data.get("title") or "",
         "body": data.get("body") or "",
-        "channel_overrides": data.get("channel_overrides") or {},
         "meta": data.get("meta") or {},
     }
     if payload.get("scope") is None:
