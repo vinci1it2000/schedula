@@ -42,9 +42,7 @@ import gridfs
 from botocore.config import Config as BotoConfig
 from bson import ObjectId
 from flask import Blueprint, current_app, Response, stream_with_context
-from flask_security import current_user as cu
-
-from ..security.casbin import get_current_sub, authorize_item
+from ..security.casbin import get_current_sub, authorize_item, ANON_USER
 from ..utils import abort_json, mongo_find_one, set_bp_error_handlers, get_mongo, config_get
 
 bp = Blueprint("item_files", __name__)  # /item-file/<item_id>/<file_name>
@@ -77,10 +75,6 @@ def _iter_s3(streaming_body, chunk_size=1024 * 1024):
             streaming_body.close()
         except Exception:
             pass
-
-
-def is_authenticated_user(user) -> bool:
-    return bool(user) and bool(getattr(user, "is_authenticated", False))
 
 
 # ---------------------------------------------------------------------------
@@ -313,7 +307,7 @@ def download_file(item_id, file_name):
 
     sub = get_current_sub()
     if not authorize_item(sub=sub, item_doc=item, act="read"):
-        abort_json(403 if is_authenticated_user(cu) else 401, "Access denied")
+        abort_json(403 if sub != ANON_USER else 401, "Access denied")
 
     backend = get_file_backend()
     file_id_str = str(meta.get("id"))

@@ -424,7 +424,7 @@ class TestNotificationsApis(unittest.TestCase):
                 "/admin/notification/templates",
                 json={
                     "event": f"item.{category}.update",
-                    "title": "Title {{category}}",
+                    "title": "Title {{ payload.category }}",
                     "body": "Body {{event}}",
                 },
                 headers=self._auth_headers(self.admin_token),
@@ -612,7 +612,8 @@ class TestNotificationsApis(unittest.TestCase):
         with self.app.app_context():
             coll = get_mongo(collection=config_get("NOTIF_COLLECTION", "notifications"))
             doc = coll.find_one(
-                {"event": "item.message.creation"}, sort=[("created_at", -1)],
+                {"event": "item.message.creation"},
+                sort=[("created_at", -1)],
             )
             self.assertIsNotNone(doc)
             rendered = (

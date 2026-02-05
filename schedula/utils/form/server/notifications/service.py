@@ -225,12 +225,11 @@ def _render_by_target_channel(
         doc: Dict[str, Any],
         targets: Dict[str, List[str]],
 ) -> Dict[str, Dict[str, Dict[str, str]]]:
-    _parse = lambda x: {"title": x[0], "body": x[1]}
-    return {target: {ch: _parse(render_title_body(
+    return {target: {ch: render_title_body(
         doc,
         channel=ch,
         viewer_principal=target,
-    ))} for target, chs in targets.items() for ch in chs}
+    )} for target, chs in targets.items() for ch in chs}
 
 
 def create_notification(

@@ -646,7 +646,7 @@ def item_create(category):
     ), 201
 
 
-def _item_get(category, item_id, act, sub):
+def _item_get(category, item_id, act, sub, enforce_acl=True):
     """
     Load a single item by (category, item_id) and enforce authorization.
 
@@ -673,7 +673,7 @@ def _item_get(category, item_id, act, sub):
     if not doc:
         abort_json(404, "Item not found")
 
-    if not authorize_item(sub=sub, item_doc=doc, act=act):
+    if enforce_acl and not authorize_item(sub=sub, item_doc=doc, act=act):
         abort_json(403, "Forbidden")
 
     return doc
