@@ -580,10 +580,10 @@ class TestNotificationsApis(unittest.TestCase):
         )
         body_tpl = (
             "created {{ payload.category }} "
-            "{{ payload.item_id | get_item("
+            "{{ (payload.item_id | get_item("
             "viewer_principal=sender_principal, "
             "sender_principal=sender_principal, "
-            "category=payload.category).data.text }} "
+            "category=payload.category)).data.text }} "
             "{{ ({'$ref': '/items/' ~ payload.category ~ '/' ~ payload.item_id} "
             "| resolve_refs(viewer_principal=sender_principal, "
             "sender_principal=sender_principal)).data.text }}"
@@ -612,8 +612,7 @@ class TestNotificationsApis(unittest.TestCase):
         with self.app.app_context():
             coll = get_mongo(collection=config_get("NOTIF_COLLECTION", "notifications"))
             doc = coll.find_one(
-                {"event": "item.message.creation"},
-                sort=[("created_at", -1)],
+                {"event": "item.message.creation"}, sort=[("created_at", -1)],
             )
             self.assertIsNotNone(doc)
             rendered = (
@@ -621,7 +620,7 @@ class TestNotificationsApis(unittest.TestCase):
             )
             title = rendered.get("title") or ""
             body = rendered.get("body") or ""
-            self.assertIn("category message was creation by", title)
+            self.assertIn("category message was item.message.creation by", title)
             self.assertIn(str(self.admin_id), title)
             self.assertIn("created message", body)
             self.assertIn("Hello", body)

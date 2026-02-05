@@ -11,6 +11,7 @@ import uuid
 from typing import Any, Dict, Iterable, List, Optional
 
 from flask import Blueprint, jsonify, request
+from jinja2 import TemplateSyntaxError
 from schedula.utils.form.server.security.casbin.decorators import require_system_admin
 from schedula.utils.form.server.security.casbin.helpers import get_current_sub
 from schedula.utils.form.server.security import User
@@ -36,7 +37,7 @@ from .storage import (
     upsert_template,
     delete_template,
 )
-from .templates import render_title_body
+from .templates import make_env, render_title_body
 
 admin_bp = Blueprint("item_notifications_admin", __name__)
 set_bp_error_handlers(admin_bp)
@@ -81,6 +82,35 @@ def _normalize_preferences(prefs: object) -> Dict[str, bool]:
         if b is not None:
             out[k] = b
     return out
+
+
+def _validate_template_syntax(payload: Dict[str, Any]) -> None:
+    env = make_env()
+    parts: List[str] = []
+    title = payload.get("title")
+    body = payload.get("body")
+    if isinstance(title, str) and title:
+        parts.append(title)
+    if isinstance(body, str) and body:
+        parts.append(body)
+
+    overrides = payload.get("channel_overrides")
+    if isinstance(overrides, dict):
+        for override in overrides.values():
+            if not isinstance(override, dict):
+                continue
+            o_title = override.get("title")
+            o_body = override.get("body")
+            if isinstance(o_title, str) and o_title:
+                parts.append(o_title)
+            if isinstance(o_body, str) and o_body:
+                parts.append(o_body)
+
+    for text in parts:
+        try:
+            env.parse(text)
+        except TemplateSyntaxError as exc:
+            abort_json(400, f"Invalid template syntax: {exc}")
 
 
 def _normalize_list(value: object) -> List[str]:
@@ -247,6 +277,7 @@ def api_create_template():
     }
     if payload.get("scope") is None:
         payload.pop("scope")
+    _validate_template_syntax(payload)
     upsert_template(template_id, payload)
     return jsonify({"ok": True, "id": template_id})
 
@@ -274,6 +305,7 @@ def api_put_template(template_id: str):
     }
     if payload.get("scope") is None:
         payload.pop("scope")
+    _validate_template_syntax(payload)
     upsert_template(template_id, payload)
     return jsonify({"ok": True, "id": template_id})
 
@@ -326,7 +358,9 @@ def api_test_templates():
     severity = data.get("severity") or "info"
 
     out = []
+    event_full = event
     for category in categories:
+        event_full = event
         try:
             event_full = event_format.format(category=category, event=event)
         except Exception as e:
