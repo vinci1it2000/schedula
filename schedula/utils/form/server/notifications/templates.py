@@ -13,6 +13,7 @@ from typing import Any, Dict, Optional
 from jinja2 import StrictUndefined
 from jinja2.sandbox import SandboxedEnvironment
 
+from ..extensions import db
 from ..security import User
 from ..security.casbin import Group
 from ..utils import config_get, get_mongo
@@ -27,7 +28,7 @@ def principal_info(p: Any) -> Dict[str, Any]:
         return {"id": None, "firstname": "", "lastname": "", "avatar": None, "type": "anonymous"}
 
     if p.startswith("u:"):
-        u = User.query.get(int(p[2:]))
+        u = db.session.get(User, int(p[2:]))
         if not u:
             return None
         out = u.public_json()
@@ -35,7 +36,7 @@ def principal_info(p: Any) -> Dict[str, Any]:
         return out
 
     if p.startswith("g:"):
-        g = Group.query.get(p.split(":")[1])
+        g = db.session.get(Group, p.split(":")[1])
         if not g:
             return {"id": p.split(":")[1], "type": "group", "_missing": True}
         out = g.public_json()

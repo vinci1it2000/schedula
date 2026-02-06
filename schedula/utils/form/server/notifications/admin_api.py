@@ -27,6 +27,7 @@ from .storage import (
     delete_template,
 )
 from .templates import make_env, render_title_body
+from ..extensions import db
 from ..security import User
 from ..security.casbin import require_system_admin, get_current_sub
 from ..utils import (
@@ -334,7 +335,7 @@ def api_test_templates():
     if not prefs:
         uid = _principal_user_id(principal)
         if uid is not None:
-            user = User.query.get(uid)
+            user = db.session.get(User, uid)
             if user:
                 prefs = _normalize_preferences(
                     (user.settings or {}).get("notifications", {}).get("channels", {})
