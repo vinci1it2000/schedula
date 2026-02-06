@@ -13,7 +13,6 @@ from typing import Any, Dict, Optional
 from jinja2 import StrictUndefined
 from jinja2.sandbox import SandboxedEnvironment
 
-from ..items.crud import _item_get, serialize_item
 from ..security import User
 from ..security.casbin import Group
 from ..utils import config_get, get_mongo
@@ -72,6 +71,7 @@ class RefResolver:
             args = ref.split("/", maxsplit=3)[2:]
             if len(args) == 2:
                 category, item_id = args
+                from ..items.crud import _item_get, serialize_item
                 for sub in (self.sender_principal, self.viewer_principal):
                     try:
                         return serialize_item(
@@ -151,7 +151,7 @@ def make_env(sender_principal, viewer_principal, enforce_acl) -> SandboxedEnviro
     env.filters["default"] = lambda v, d="": v if v not in (None, "", [], {}, ()) else d
     env.filters["json"] = lambda v: __import__("json").dumps(v, ensure_ascii=False)
     env.filters["principal_info"] = principal_info
-    env.filters["get_item"] = RefResolver(
+    env.filters["ref_resolve"] = RefResolver(
         viewer_principal=viewer_principal,
         sender_principal=sender_principal,
         enforce_acl=enforce_acl,
@@ -228,17 +228,17 @@ def render_title_body(n: Dict[str, Any], viewer_principal: str, channel: str) ->
     dom = n.get("acl_dom") or payload.get("acl_dom")
     tpl = _select_template(event=event, dom=dom, channel=channel)
 
-    if not tpl:
-        title = f"[{severity}] {event}"
-        return title, ""
-    enforce_acl = tpl.get("enforce_acl")
-    if enforce_acl is None:
-        enforce_acl = config_get("NOTIF_REF_ENFORCE_ACL", "true").lower().strip() in (
-            "1", "true", "yes", "on", "y"
-        )
-    env = make_env(viewer_principal, n.get("sender_principal"), enforce_acl)
-    title_t = tpl.get("title", f"[{severity}] {event}") or ""
-    body_t = tpl.get("body", "") or ""
-    title = env.from_string(str(title_t)).render(**n, viewer_principal=viewer_principal)
-    body = env.from_string(str(body_t)).render(**n, viewer_principal=viewer_principal).strip()
+    title = f"[{severity}] {event}"
+    body = ""
+    if tpl:
+        enforce_acl = tpl.get("enforce_acl")
+        if enforce_acl is None:
+            enforce_acl = config_get("NOTIF_REF_ENFORCE_ACL", "true").lower().strip() in (
+                "1", "true", "yes", "on", "y"
+            )
+        env = make_env(viewer_principal, n.get("sender_principal"), enforce_acl)
+        title_t = tpl.get("title", title) or ""
+        body_t = tpl.get("body", body) or ""
+        title = env.from_string(str(title_t)).render(**n, viewer_principal=viewer_principal)
+        body = env.from_string(str(body_t)).render(**n, viewer_principal=viewer_principal).strip()
     return {"title": title, "body": body}

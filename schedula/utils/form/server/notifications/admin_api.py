@@ -84,7 +84,7 @@ def _normalize_preferences(prefs: object) -> Dict[str, bool]:
 
 
 def _validate_template_syntax(payload: Dict[str, Any]) -> None:
-    env = make_env()
+    env = make_env(sender_principal=None, viewer_principal=None, enforce_acl=None)
     parts: List[str] = []
     title = payload.get("title")
     body = payload.get("body")
@@ -343,7 +343,6 @@ def api_test_templates():
     severity = data.get("severity") or "info"
 
     out = []
-    event_full = event
     for category in categories:
         event_full = event
         try:
@@ -392,8 +391,7 @@ def api_test_templates():
 
         rendered = {}
         for ch in sorted(enabled):
-            title, body = render_title_body(n, viewer_principal=principal, channel=ch)
-            rendered[ch] = {"title": title, "body": body}
+            rendered[ch] = render_title_body(n, viewer_principal=principal, channel=ch)
 
         out.append(
             {

@@ -400,9 +400,7 @@ class TestNotificationsApis(unittest.TestCase):
             )
             self.assertIsInstance(per_target, dict)
             in_app = per_target.get("in_app") if isinstance(per_target, dict) else None
-            self.assertIsInstance(in_app, dict)
-            if not isinstance(in_app, dict):
-                self.fail("missing rendered.in_app")
+            self.assertIsInstance(in_app, dict, "missing rendered.in_app")
             self.assertIsInstance(in_app.get("title"), str)
             self.assertIsInstance(in_app.get("body"), str)
 
@@ -425,7 +423,7 @@ class TestNotificationsApis(unittest.TestCase):
                 json={
                     "event": f"item.{category}.update",
                     "title": "Title {{ payload.category }}",
-                    "body": "Body {{event}}",
+                    "body": "Body {{ event }}",
                 },
                 headers=self._auth_headers(self.admin_token),
             )
@@ -575,18 +573,12 @@ class TestNotificationsApis(unittest.TestCase):
 
         title_tpl = (
             "category {{ payload.category }} was "
-            "{{ event }} by "
+            "{{ payload.event }} by "
             "{{ (created_by | principal_info).id }}"
         )
         body_tpl = (
             "created {{ payload.category }} "
-            "{{ (payload.item_id | get_item("
-            "viewer_principal=sender_principal, "
-            "sender_principal=sender_principal, "
-            "category=payload.category)).data.text }} "
-            "{{ ({'$ref': '/items/' ~ payload.category ~ '/' ~ payload.item_id} "
-            "| resolve_refs(viewer_principal=sender_principal, "
-            "sender_principal=sender_principal)).data.text }}"
+            "{{ (('/items/' ~ payload.category ~ '/' ~ payload.item_id) | ref_resolve).data.text }} "
         )
 
         r = self.client.post(
@@ -621,7 +613,7 @@ class TestNotificationsApis(unittest.TestCase):
             )
             title = rendered.get("title") or ""
             body = rendered.get("body") or ""
-            self.assertIn("category message was item.message.creation by", title)
+            self.assertIn("category message was creation by", title)
             self.assertIn(str(self.admin_id), title)
             self.assertIn("created message", body)
             self.assertIn("Hello", body)

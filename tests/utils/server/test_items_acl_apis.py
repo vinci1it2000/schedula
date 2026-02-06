@@ -213,9 +213,7 @@ class TestItemsAclApis(unittest.TestCase):
         per_target = rendered.get(target) if isinstance(rendered, dict) else None
         self.assertIsInstance(per_target, dict)
         in_app = per_target.get("in_app") if isinstance(per_target, dict) else None
-        self.assertIsInstance(in_app, dict)
-        if not isinstance(in_app, dict):
-            self.fail("missing rendered.in_app")
+        self.assertIsInstance(in_app, dict, "missing rendered.in_app")
         self.assertIsInstance(in_app.get("title"), str)
         self.assertIsInstance(in_app.get("body"), str)
 
