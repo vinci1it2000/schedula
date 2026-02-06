@@ -747,7 +747,7 @@ class TestNotificationsApis(unittest.TestCase):
             title = rendered.get("title") or ""
             body = rendered.get("body") or ""
             self.assertEqual("unknown u:999999 type unknown type anonymous", title)
-            self.assertEqual("refs R1 R2 cycle R1 missing None", body)
+            self.assertEqual("refs R1 R2 cycle R1 missing None invalid None", body)
 
 
 if __name__ == "__main__":
