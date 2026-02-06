@@ -32,7 +32,7 @@ from ..utils import (
     mongo_update_one,
     get_mongo,
     config_get,
-    now_utc
+    now_utc,
 )
 
 
@@ -106,17 +106,19 @@ def get_readers(*, item_doc: Dict[str, Any]) -> Set[str]:
             if act in ("read", "*"):
                 readers.update(enforcer.get_implicit_users_for_role(sub, seen_readers))
             if act in ("notify", "*"):
-                notifiers.update(enforcer.get_implicit_users_for_role(sub, seen_notifiers))
+                notifiers.update(
+                    enforcer.get_implicit_users_for_role(sub, seen_notifiers)
+                )
 
     return readers.intersection(notifiers) - banned
 
 
 def notify_item_event(
-        *,
-        event: str,
-        item_doc: Dict[str, Any],
-        created_by: Optional[str],
-        payload: Optional[Dict[str, Any]] = None,
+    *,
+    event: str,
+    item_doc: Dict[str, Any],
+    created_by: Optional[str],
+    payload: Optional[Dict[str, Any]] = None,
 ) -> None:
     """Dispatch item notifications based on Casbin policies.
 
@@ -149,7 +151,9 @@ def notify_item_event(
     if not readers:
         return
 
-    coll = get_mongo(collection=config_get("NOTIF_WATCHERS_COLLECTION", "notification_watchers"))
+    coll = get_mongo(
+        collection=config_get("NOTIF_WATCHERS_COLLECTION", "notification_watchers")
+    )
     watchers = mongo_find(
         coll,
         {
@@ -184,7 +188,9 @@ def notify_item_event(
             for ch in default_channels.union(chans):
                 if prf.get(ch, True):
                     targets.setdefault(uid, set()).add(ch)
-    targets: Dict[str, list[str]] = {target: sorted(set(chans)) for target, chans in targets.items() if chans}
+    targets: Dict[str, list[str]] = {
+        target: sorted(set(chans)) for target, chans in targets.items() if chans
+    }
 
     if not targets:
         return
@@ -223,24 +229,30 @@ def _normalize_persist(v: Optional[object], channels: Set[str]) -> bool:
 
 
 def _render_by_target_channel(
-        doc: Dict[str, Any],
-        targets: Dict[str, List[str]],
+    doc: Dict[str, Any],
+    targets: Dict[str, List[str]],
 ) -> Dict[str, Dict[str, Dict[str, str]]]:
-    return {target: {ch: render_title_body(
-        doc,
-        channel=ch,
-        viewer_principal=target,
-    )} for target, chs in targets.items() for ch in chs}
+    return {
+        target: {
+            ch: render_title_body(
+                doc,
+                channel=ch,
+                viewer_principal=target,
+            )
+            for ch in chs
+        }
+        for target, chs in targets.items()
+    }
 
 
 def create_notification(
-        event: str,
-        targets: Dict[str, List[str]],
-        created_by: Optional[str] = None,
-        payload: Optional[Dict[str, Any]] = None,
-        severity: str = "info",
-        persist: Optional[object] = None,
-        sender_principal: Optional[str] = None,
+    event: str,
+    targets: Dict[str, List[str]],
+    created_by: Optional[str] = None,
+    payload: Optional[Dict[str, Any]] = None,
+    severity: str = "info",
+    persist: Optional[object] = None,
+    sender_principal: Optional[str] = None,
 ) -> str:
     """Create a notification.
 
@@ -251,6 +263,8 @@ def create_notification(
     """
 
     channels = {c for v in targets.values() for c in v}
+    if not targets or not channels:
+        raise ValueError("notification_targets_required")
     do_persist = _normalize_persist(persist, channels)
 
     n = Notification(
