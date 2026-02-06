@@ -16,6 +16,7 @@ from casbin.util import key_match
 from flask import current_app
 
 from .storage import list_rules
+from .tasks import get_apprise_channels
 from .templates import render_title_body
 from ..security import User
 from ..security.casbin import (
@@ -262,7 +263,7 @@ def create_notification(
         sender_principal=sender_principal,
     )
 
-    apprise_channels = config_get("APPRISE_CHANNELS", {})
+    apprise_channels = get_apprise_channels()
     deliver = channels.intersection(apprise_channels)
     if do_persist or deliver:
         doc = n.to_doc()

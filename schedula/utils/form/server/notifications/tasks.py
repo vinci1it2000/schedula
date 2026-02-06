@@ -7,7 +7,8 @@
 
 from __future__ import annotations
 
-from typing import Dict, Any
+import os
+from typing import Dict, Any, cast
 from urllib.parse import quote
 
 import apprise
@@ -19,99 +20,93 @@ from ..security import User
 from ..utils import mongo_find_one, mongo_update_one, get_mongo, now_utc, config_get
 
 
-def _settings_for_user(user: User) -> dict:
+def _settings_for_user(user: User) -> Dict[str, Any]:
     """Extract notification settings subdocument from a user."""
     settings = {"email": quote(str(user.email))}
     settings.update((user.settings or {}).get("notifications", {}))
     return settings
 
 
-def _mail_url(user: User) -> str | None:
-    """Build an Apprise mail URL for a user."""
-    username = config_get("MAIL_USERNAME")
-    password = config_get("MAIL_PASSWORD")
-    server = config_get("MAIL_SERVER")
-    port = config_get("MAIL_PORT")
-    default_sender = config_get("MAIL_DEFAULT_SENDER")
-    if not (username and password and server and user.email):
-        return None
-    smtp = f"{server}:{port}" if port else str(server)
-    from_value = default_sender or f"{username}"
-    from_value = quote(str(from_value))
-    to_value = quote(str(user.email))
-    return (
-        f"mailtos://{quote(str(username))}:{quote(str(password))}@{server}"
-        f"?smtp={quote(str(smtp))}&from={from_value}&to={to_value}"
-    )
+def get_apprise_default_channels(app=None) -> Dict[str, str]:
+    """Return default APPRISE_CHANNELS templates with Jinja placeholders."""
+    out: Dict[str, str] = {}
+    if "email" not in out:
+        username = config_get("MAIL_USERNAME", app=app)
+        password = config_get("MAIL_PASSWORD", app=app)
+        server = config_get("MAIL_SERVER", app=app)
+        port = config_get("MAIL_PORT", app=app)
+        default_sender = config_get("MAIL_DEFAULT_SENDER", app=app)
+        if username and password and server:
+            smtp = f"{server}:{port}" if port else str(server)
+            from_value = default_sender or f"{username}"
+            out["email"] = (
+                f"mailtos://{quote(str(username))}:{quote(str(password))}@{server}"
+                f"?smtp={quote(str(smtp))}&from={quote(str(from_value))}&to={{{{email}}}}"
+            )
+    if "sms" not in out:
+        apprise_sms_user = config_get("APPRISE_SMS_USER", app=app)
+        apprise_sms_pass = config_get("APPRISE_SMS_PASS", app=app)
+        if apprise_sms_user and apprise_sms_pass:
+            out["sms"] = (
+                f"bulksms://{apprise_sms_user}:{apprise_sms_pass}@{{{{sms_phone}}}}"
+            )
+    if "push" not in out:
+        apprise_fcm_api_key = config_get("APPRISE_FCM_API_KEY", app=app)
+        if apprise_fcm_api_key:
+            out["push"] = (
+                f"fcm://{apprise_fcm_api_key}/{{{{ push_device_ids | join('/') }}}}"
+            )
+    if "whatsapp" not in out:
+        apprise_whatsapp_token = config_get("APPRISE_WHATSAPP_TOKEN", app=app)
+        apprise_whatsapp_from_phone_id = config_get("APPRISE_WHATSAPP_FROM_PHONE_ID", app=app)
+        apprise_whatsapp_template = config_get("APPRISE_WHATSAPP_TEMPLATE", app=app)
+        if apprise_whatsapp_token and apprise_whatsapp_from_phone_id:
+            template_prefix = (
+                f"{apprise_whatsapp_template}:" if apprise_whatsapp_template else ""
+            )
+            out["whatsapp"] = (
+                f"whatsapp://{template_prefix}{apprise_whatsapp_token}"
+                f"@{apprise_whatsapp_from_phone_id}/"
+                "{{ whatsapp_targets | join(',') }}"
+            )
+    if "telegram" not in out:
+        apprise_telegram_bot_token = config_get("APPRISE_TELEGRAM_BOT_TOKEN", app=app)
+        if apprise_telegram_bot_token:
+            out["telegram"] = (
+                f"tgram://{apprise_telegram_bot_token}/"
+                "{{ telegram_chat_id }}"
+                "{% if telegram_topic %}:{{ telegram_topic }}{% endif %}/"
+            )
+    return out
 
 
-def _sms_url(notif_settings: dict) -> str | None:
-    """Build an Apprise SMS URL from settings."""
-    phone = _get_target_value(notif_settings, "sms_phone")
-    apprise_sms_user = config_get("APPRISE_SMS_USER")
-    apprise_sms_pass = config_get("APPRISE_SMS_PASS")
-    if not (apprise_sms_user and apprise_sms_pass and phone):
-        return None
-    return f"bulksms://{apprise_sms_user}:{apprise_sms_pass}@{{phone}}"
+def get_apprise_channels(app=None) -> Dict[str, str]:
+    """Return default APPRISE_CHANNELS templates with Jinja placeholders."""
+    cfg = (app or current_app).config
+    if "APPRISE_CHANNELS" in cfg:
+        return cfg["APPRISE_CHANNELS"]
+    elif "APPRISE_CHANNELS" in os.environ:
+        return config_get("APPRISE_CHANNELS", {})
+    cfg["APPRISE_CHANNELS"] = get_apprise_default_channels(app=app)
+    return cfg["APPRISE_CHANNELS"]
 
 
-def _push_url(notif_settings: dict) -> str | None:
-    """Build an Apprise FCM push URL from settings."""
-    device_ids = _get_target_value(notif_settings, "push_device_ids")
-    if not isinstance(device_ids, list):
-        return None
-    device_ids = [d for d in device_ids if isinstance(d, str) and d.strip()]
-    apprise_fcm_api_key = config_get("APPRISE_FCM_API_KEY")
-    if not (apprise_fcm_api_key and device_ids):
-        return None
-    devices = "/".join(device_ids)
-    return f"fcm://{apprise_fcm_api_key}/{devices}"
-
-
-def _whatsapp_url(notif_settings: dict) -> str | None:
-    """Build an Apprise WhatsApp URL from settings."""
-    targets = _get_target_value(notif_settings, "whatsapp_targets")
-    if isinstance(targets, list):
-        targets = ",".join([t for t in targets if isinstance(t, str) and t.strip()])
-    apprise_whatsapp_token = config_get("APPRISE_WHATSAPP_TOKEN")
-    apprise_whatsapp_from_phone_id = config_get("APPRISE_WHATSAPP_FROM_PHONE_ID")
-    if not (apprise_whatsapp_token and apprise_whatsapp_from_phone_id and targets):
-        return None
-    template = config_get("APPRISE_WHATSAPP_TEMPLATE")
-    if template:
-        return (
-            f"whatsapp://{template}:{apprise_whatsapp_token}"
-            f"@{apprise_whatsapp_from_phone_id}/{targets}"
-        )
-    return (
-        f"whatsapp://{apprise_whatsapp_token}"
-        f"@{apprise_whatsapp_from_phone_id}/{targets}"
-    )
-
-
-def _telegram_url(notif_settings: dict) -> str | None:
-    """Build an Apprise Telegram URL from settings."""
-    chat_id = _get_target_value(notif_settings, "telegram_chat_id")
-    topic = _get_target_value(notif_settings, "telegram_topic")
-    apprise_telegram_bot_token = config_get("APPRISE_TELEGRAM_BOT_TOKEN")
-    if not (apprise_telegram_bot_token and chat_id):
-        return None
-    if topic:
-        return f"tgram://{apprise_telegram_bot_token}/{chat_id}:{topic}/"
-    return f"tgram://{apprise_telegram_bot_token}/{chat_id}/"
-
-
-def _build_urls(user: User, channels: list[str]) -> set[str]:
+def _build_urls(user: User, channels: list[str] | set[str]) -> Dict[str, str]:
     """Build Apprise URLs for a user and channel list."""
     notif_settings = _settings_for_user(user)
-    urls: dict[str] = {}
-    apprise_channels = config_get("APPRISE_CHANNELS", {})
-    env = make_env(None, None, False)
+    urls: Dict[str, str] = {}
+    apprise_channels = get_apprise_channels()
+    env = make_env(None, None, True)
     for ch in set(channels):
         try:
-            urls[ch] = env.from_string(str(apprise_channels.get(ch, ""))).render(**notif_settings)
+            urls[ch] = env.from_string(apprise_channels.get(ch, "")).render(
+                **notif_settings
+            )
         except Exception as exe:
-            current_app.logger.warning(f"Error rendering Apprise URL for {ch} and user {user.id}: {exe}")
+            current_app.logger.warning(
+                f"Error rendering Apprise URL for {ch} and user {user.id}: {exe}"
+            )
+            urls[ch] = None
     return urls
 
 
@@ -132,12 +127,15 @@ def deliver_apprise_sync(notification: str | Dict[str, Any]):
             coll = get_mongo(collection=config_get("NOTIF_COLLECTION", "notifications"))
             mongo_update_one(
                 coll,
-                {"_id": notification}, {"$set": {
-                    "status.apprise": {
-                        "state": "skipped_no_targets",
-                        "ts": now_utc(),
+                {"_id": notification},
+                {
+                    "$set": {
+                        "status.apprise": {
+                            "state": "skipped_no_targets",
+                            "ts": now_utc(),
+                        }
                     }
-                }},
+                },
             )
         return
 
@@ -146,9 +144,9 @@ def deliver_apprise_sync(notification: str | Dict[str, Any]):
 
     rendered = n.get("rendered", {})
     user_ids = set(int(p.split(":", 1)[1]) for p in targets)
-    users: Dict[str, User] = {
-        f"u:{u.id}": u for u in User.query.filter(User.id.in_(user_ids)).all()
-    }
+    user_id_col = cast(Any, getattr(User, "id"))
+    user_query = User.query.filter(user_id_col.in_(user_ids))
+    users: Dict[str, User] = {f"u:{u.id}": u for u in user_query.all()}
 
     for principal, channels in targets.items():
         user = users.get(principal)
@@ -164,7 +162,7 @@ def deliver_apprise_sync(notification: str | Dict[str, Any]):
             continue
 
         rendered_target = rendered.get(principal, {})
-        for ch, url in _build_urls(user, channels):
+        for ch, url in _build_urls(user, channels).items():
             if not url:
                 results.append({
                     "target": principal,
@@ -180,7 +178,9 @@ def deliver_apprise_sync(notification: str | Dict[str, Any]):
             apobj.add(url)
             ok = apobj.notify(body=body, title=title)
             ok_all = ok_all and ok
-            results.append({"target": principal, "channel": ch, "ok": ok, "ts": now_utc()})
+            results.append(
+                {"target": principal, "channel": ch, "ok": ok, "ts": now_utc()}
+            )
 
     if n.get("persist"):
         coll = get_mongo(collection=config_get("NOTIF_COLLECTION", "notifications"))
