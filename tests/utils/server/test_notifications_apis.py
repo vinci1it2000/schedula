@@ -686,6 +686,7 @@ class TestNotificationsApis(unittest.TestCase):
                     "{{ (payload.refs | ref_resolve)[1].data.text }} "
                     "cycle {{ (payload.refs | ref_resolve)[2].data.cycle.data.cycle.data.text }} "
                     "missing {{ (payload.refs | ref_resolve)[3] }} "
+                    "invalid {{ (payload.refs | ref_resolve)[4] }} "
                 ),
             },
             headers=self._auth_headers(self.admin_token),
@@ -725,6 +726,7 @@ class TestNotificationsApis(unittest.TestCase):
                         {"$ref": f"/items/message/{m2_id}"},
                         {"$ref": f"/items/message/{m1_id}"},
                         {"$ref": f"/items/message/missing"},
+                        {"$ref": f"/items/invalid"},
                     ],
                 },
                 "persist": True,
