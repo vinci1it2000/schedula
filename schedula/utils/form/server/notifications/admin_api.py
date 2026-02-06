@@ -426,13 +426,19 @@ def admin_send_notification():
     severity = data.get("severity") or "info"
     persist = data.get("persist")
 
-    nid = create_notification(
-        event=event,
-        created_by=sub,
-        targets=targets,
-        payload=payload,
-        severity=severity,
-        persist=persist,
-        sender_principal=sub,
-    )
+    if not isinstance(targets, dict) or not targets:
+        abort_json(400, "targets_required")
+
+    try:
+        nid = create_notification(
+            event=event,
+            created_by=sub,
+            targets=targets,
+            payload=payload,
+            severity=severity,
+            persist=persist,
+            sender_principal=sub,
+        )
+    except ValueError:
+        abort_json(400, "targets_required")
     return jsonify({"id": nid})

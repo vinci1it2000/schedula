@@ -121,24 +121,7 @@ def deliver_apprise_sync(notification: str | Dict[str, Any]):
     if not n:
         return
 
-    targets = n.get("targets")
-    if not targets:
-        if n.get("persist"):
-            coll = get_mongo(collection=config_get("NOTIF_COLLECTION", "notifications"))
-            mongo_update_one(
-                coll,
-                {"_id": notification},
-                {
-                    "$set": {
-                        "status.apprise": {
-                            "state": "skipped_no_targets",
-                            "ts": now_utc(),
-                        }
-                    }
-                },
-            )
-        return
-
+    targets = n["targets"]
     results = []
     ok_all = True
 

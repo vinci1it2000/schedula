@@ -178,7 +178,8 @@ def notify_item_event(
             targets.setdefault(user, set()).update(mandatory_channels)
     if watchers_by_user:
         users = sorted({int(p.split(":", 1)[1]) for p in watchers_by_user})
-        users = User.query.filter(User.id.in_(users)).all()
+        user_id_col = cast(Any, getattr(User, "id"))
+        users = User.query.filter(user_id_col.in_(users)).all()
         user_prefs = {
             f"u:{u.id}": (u.settings or {}).get("notifications", {}).get("channels", {})
             for u in users
