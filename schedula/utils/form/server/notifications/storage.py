@@ -233,7 +233,6 @@ def list_rules(
 
     out = []
     for d in docs:
-        scope = d.get("scope") if isinstance(d.get("scope"), dict) else {}
         d["id"] = str(d.pop("_id"))
         out.append(d)
     return out

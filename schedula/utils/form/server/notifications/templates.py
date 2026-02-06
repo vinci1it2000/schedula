@@ -78,7 +78,7 @@ class RefResolver:
                     except Exception:
                         continue
                 return None
-        return ref
+        return None
 
     def resolve_refs(self, obj: Any) -> Any:
         """
@@ -92,13 +92,11 @@ class RefResolver:
             # $ref object (string ref)
             if isinstance(x, dict):
                 if "$ref" in x and len(x) == 1:
-                    ref_val = x["$ref"]
+                    ref = x["$ref"]
 
                     # If $ref is not a string, treat it as "inline" content to resolve.
-                    if not isinstance(ref_val, str):
-                        return _walk(ref_val)
-
-                    ref = ref_val
+                    if not isinstance(ref, str):
+                        return _walk(ref)
 
                     # cycle / memo
                     if ref in self._seen:
