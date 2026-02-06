@@ -21,7 +21,7 @@ from ..utils import (
     mongo_update_one,
     get_mongo,
     now_utc,
-    config_get
+    config_get,
 )
 
 _SETTINGS_SCHEMA_APPLIED = False
@@ -44,6 +44,7 @@ def _settings_validator() -> Dict[str, Any]:
                     },
                     "additionalProperties": False,
                 },
+                "_id": {},
                 "defaults": {"bsonType": "array", "items": {"bsonType": "string"}},
                 "mandatory": {"bsonType": "array", "items": {"bsonType": "string"}},
                 "allowed": {"bsonType": "array", "items": {"bsonType": "string"}},
@@ -73,6 +74,7 @@ def _watchers_validator() -> Dict[str, Any]:
                 "enabled",
             ],
             "properties": {
+                "_id": {},
                 "user_id": {"bsonType": "string"},
                 "event": {"bsonType": "string"},
                 "category": {"bsonType": "string"},
