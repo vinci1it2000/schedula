@@ -95,38 +95,6 @@ def _parse_rows(
     return rows
 
 
-def _filter_policies(
-        policies: List[List[str]],
-        *,
-        dom=None,
-        sub=None,
-        obj=None,
-        act=None,
-        eft=None,
-):
-    out: List[List[str]] = []
-    for r in policies:
-        r_sub = r[0]
-        r_dom = r[1]
-        r_obj = r[2]
-        r_act = r[3]
-        r_eft = r[4]
-
-        if dom and r_dom != dom:
-            continue
-        if sub and r_sub != sub:
-            continue
-        if obj and r_obj != obj:
-            continue
-        if act and r_act != act:
-            continue
-        if eft and r_eft != eft:
-            continue
-
-        out.append(r)
-    return out
-
-
 bp = Blueprint("casbin_admin", __name__)
 
 
