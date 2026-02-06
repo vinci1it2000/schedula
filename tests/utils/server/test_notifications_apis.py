@@ -618,6 +618,135 @@ class TestNotificationsApis(unittest.TestCase):
             self.assertIn("created message", body)
             self.assertIn("Hello", body)
 
+    def test_template_group_principal_filter(self):
+        r = self.client.post(
+            "/groups/",
+            json={"name": "GTest", "type": "chat"},
+            headers=self._auth_headers(self.admin_token),
+        )
+        self.assertEqual(r.status_code, 201)
+        data = r.get_json(silent=True) or {}
+        group = data.get("group") or {}
+        gid = group.get("id")
+        self.assertIsInstance(gid, str)
+
+        r = self.client.post(
+            "/admin/notification/templates",
+            json={
+                "event": "admin.event",
+                "dom": "*",
+                "channel": "in_app",
+                "title": "Group {{ (payload.group_principal | principal_info).name }}",
+                "body": "Type {{ (payload.group_principal | principal_info).type }}",
+            },
+            headers=self._auth_headers(self.admin_token),
+        )
+        self.assertEqual(r.status_code, 200)
+
+        r = self.client.post(
+            "/admin/notification/notify",
+            json={
+                "event": "admin.event",
+                "targets": {f"u:{self.admin_id}": ["in_app"]},
+                "payload": {"group_principal": f"g:{gid}"},
+                "persist": True,
+            },
+            headers=self._auth_headers(self.admin_token),
+        )
+        self.assertEqual(r.status_code, 200)
+        nid = (r.get_json(silent=True) or {}).get("id")
+        self.assertIsInstance(nid, str)
+
+        with self.app.app_context():
+            coll = get_mongo(collection=config_get("NOTIF_COLLECTION", "notifications"))
+            doc = coll.find_one({"_id": nid})
+            self.assertIsNotNone(doc)
+            rendered = (
+                doc.get("rendered", {}).get(f"u:{self.admin_id}", {}).get("in_app", {})
+            )
+            title = rendered.get("title") or ""
+            body = rendered.get("body") or ""
+            self.assertIn("GTest", title)
+            self.assertIn("group", body)
+
+    def test_template_unknown_user_and_ref_list(self):
+        r = self.client.post(
+            "/admin/notification/templates",
+            json={
+                "event": "admin.event",
+                "dom": "*",
+                "channel": "in_app",
+                "title": (
+                    "unknown {{ (payload.actor | principal_info).id }} "
+                    "type {{ (payload.actor | principal_info).type }} "
+                    "type {{ ('u:anonymous' | principal_info).type }}"
+                ),
+                "body": (
+                    "refs {{ (payload.refs | ref_resolve)[0].data.text }} "
+                    "{{ (payload.refs | ref_resolve)[1].data.text }} "
+                    "cycle {{ (payload.refs | ref_resolve)[2].data.cycle.data.cycle.data.text }} "
+                    "missing {{ (payload.refs | ref_resolve)[3] }} "
+                ),
+            },
+            headers=self._auth_headers(self.admin_token),
+        )
+        self.assertEqual(r.status_code, 200)
+
+        r = self.client.post(
+            "/item/message",
+            json={"data": {"text": "R1"}},
+            headers=self._auth_headers(self.admin_token),
+        )
+        self.assertEqual(r.status_code, 201)
+        m1_id = (r.get_json(silent=True) or {}).get("id")
+
+        r = self.client.post(
+            "/item/message",
+            json={"data": {"text": "R2", "cycle": {"$ref": f"/items/message/{m1_id}"}}},
+            headers=self._auth_headers(self.admin_token),
+        )
+        self.assertEqual(r.status_code, 201)
+        m2_id = (r.get_json(silent=True) or {}).get("id")
+        r = self.client.put(
+            f"/item/message/{m1_id}",
+            json={"data": {"text": "R1", "cycle": {"$ref": f"/items/message/{m2_id}"}}},
+            headers=self._auth_headers(self.admin_token),
+        )
+        self.assertEqual(r.status_code, 200)
+        r = self.client.post(
+            "/admin/notification/notify",
+            json={
+                "event": "admin.event",
+                "targets": {f"u:{self.admin_id}": ["in_app"]},
+                "payload": {
+                    "actor": "u:999999",
+                    "refs": [
+                        {"$ref": f"/items/message/{m1_id}"},
+                        {"$ref": f"/items/message/{m2_id}"},
+                        {"$ref": f"/items/message/{m1_id}"},
+                        {"$ref": f"/items/message/missing"},
+                    ],
+                },
+                "persist": True,
+            },
+            headers=self._auth_headers(self.admin_token),
+        )
+        self.assertEqual(r.status_code, 200)
+        nid = (r.get_json(silent=True) or {}).get("id")
+        self.assertIsInstance(nid, str)
+
+        with self.app.app_context():
+            coll = get_mongo(collection=config_get("NOTIF_COLLECTION", "notifications"))
+            doc = coll.find_one({"_id": nid})
+            self.assertIsNotNone(doc)
+            rendered = (
+                doc.get("rendered", {}).get(f"u:{self.admin_id}", {}).get("in_app", {})
+            )
+            title = rendered.get("title") or ""
+            body = rendered.get("body") or ""
+            self.assertEqual("unknown u:999999 type unknown type anonymous", title)
+            self.assertEqual("refs R1 R2 cycle R1 missing None", body)
+
 
 if __name__ == "__main__":
     unittest.main()
