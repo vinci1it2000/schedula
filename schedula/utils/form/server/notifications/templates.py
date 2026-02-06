@@ -21,29 +21,25 @@ from ..utils import config_get, get_mongo
 
 def principal_info(p: Any) -> Dict[str, Any]:
     """Resolve principal info for users or groups."""
-    if not p or not isinstance(p, str):
-        return {}
+    if p and isinstance(p, str):
+        if p == "u:anonymous":
+            return {"id": None, "firstname": "", "lastname": "", "avatar": None, "type": "anonymous"}
 
-    if p == "u:anonymous":
-        return {"id": None, "firstname": "", "lastname": "", "avatar": None, "type": "anonymous"}
+        if p.startswith("u:"):
+            u = db.session.get(User, int(p[2:]))
+            if u:
+                out = u.public_json()
+                out["type"] = "user"
+                return out
 
-    if p.startswith("u:"):
-        u = db.session.get(User, int(p[2:]))
-        if not u:
-            return None
-        out = u.public_json()
-        out["type"] = "user"
-        return out
+        if p.startswith("g:"):
+            g = db.session.get(Group, p.split(":")[1])
+            if g:
+                out = g.public_json()
+                out["type"] = "group"
+                return out
 
-    if p.startswith("g:"):
-        g = db.session.get(Group, p.split(":")[1])
-        if not g:
-            return {"id": p.split(":")[1], "type": "group", "_missing": True}
-        out = g.public_json()
-        out["type"] = "group"
-        return out
-
-    return {"id": p, "firstname": "", "lastname": "", "avatar": None, "type": "unknown"}
+    return {"id": p, "type": "unknown"}
 
 
 @dataclass
@@ -73,7 +69,7 @@ class RefResolver:
             if len(args) == 2:
                 category, item_id = args
                 from ..items.crud import _item_get, serialize_item
-                for sub in (self.sender_principal, self.viewer_principal):
+                for sub in (self.sender_principal, self.viewer_principal) if self.enforce_acl else [None]:
                     try:
                         return serialize_item(
                             _item_get(category, item_id, "read", sub, enforce_acl=self.enforce_acl),
@@ -94,42 +90,42 @@ class RefResolver:
 
         def _walk(x: Any) -> Any:
             # $ref object (string ref)
-            if isinstance(x, dict) and "$ref" in x:
-                ref_val = x["$ref"]
-
-                # If $ref is not a string, treat it as "inline" content to resolve.
-                if not isinstance(ref_val, str):
-                    return _walk(ref_val)
-
-                ref = ref_val
-
-                # cycle / memo
-                if ref in self._seen:
-                    return self._seen[ref]
-
-                fetched = self.fetch(ref)
-
-                # Placeholder BEFORE diving in, so cycles work
-                if isinstance(fetched, dict):
-                    placeholder: dict[str, Any] = {}
-                    self._seen[ref] = placeholder
-                    resolved_dict = _walk(fetched)
-                    placeholder.clear()
-                    placeholder.update(resolved_dict if isinstance(resolved_dict, dict) else {})
-                    return placeholder
-
-                if isinstance(fetched, list):
-                    placeholder_list: list[Any] = []
-                    self._seen[ref] = placeholder_list
-                    resolved_list = _walk(fetched)
-                    placeholder_list[:] = resolved_list if isinstance(resolved_list, list) else []
-                    return placeholder_list
-
-                self._seen[ref] = fetched
-                return fetched
-
-            # Normal dict
             if isinstance(x, dict):
+                if "$ref" in x and len(x) == 1:
+                    ref_val = x["$ref"]
+
+                    # If $ref is not a string, treat it as "inline" content to resolve.
+                    if not isinstance(ref_val, str):
+                        return _walk(ref_val)
+
+                    ref = ref_val
+
+                    # cycle / memo
+                    if ref in self._seen:
+                        return self._seen[ref]
+
+                    fetched = self.fetch(ref)
+
+                    # Placeholder BEFORE diving in, so cycles work
+                    if isinstance(fetched, dict):
+                        placeholder: dict[str, Any] = {}
+                        self._seen[ref] = placeholder
+                        resolved_dict = _walk(fetched)
+                        placeholder.clear()
+                        placeholder.update(resolved_dict if isinstance(resolved_dict, dict) else {})
+                        return placeholder
+
+                    if isinstance(fetched, list):
+                        placeholder_list: list[Any] = []
+                        self._seen[ref] = placeholder_list
+                        resolved_list = _walk(fetched)
+                        placeholder_list[:] = resolved_list if isinstance(resolved_list, list) else []
+                        return placeholder_list
+
+                    self._seen[ref] = fetched
+                    return fetched
+
+                # Normal dict
                 return {k: _walk(v) for k, v in x.items()}
 
             # Lists
