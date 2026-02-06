@@ -7,25 +7,23 @@
 
 from __future__ import annotations
 
-from typing import Dict, Any, cast
+from typing import Dict, Any
 from urllib.parse import quote
 
 import apprise
 from celery import Celery, shared_task
+from flask import current_app
 
-from .templates import render_title_body
+from .templates import make_env
 from ..security import User
 from ..utils import mongo_find_one, mongo_update_one, get_mongo, now_utc, config_get
 
 
 def _settings_for_user(user: User) -> dict:
     """Extract notification settings subdocument from a user."""
-    return (user.settings or {}).get("notifications", {})
-
-
-def _get_target_value(notif_settings: dict, key: str):
-    """Read a target value from notification settings."""
-    return notif_settings.get("targets", {}).get(key)
+    settings = {"email": quote(str(user.email))}
+    settings.update((user.settings or {}).get("notifications", {}))
+    return settings
 
 
 def _mail_url(user: User) -> str | None:
@@ -54,7 +52,7 @@ def _sms_url(notif_settings: dict) -> str | None:
     apprise_sms_pass = config_get("APPRISE_SMS_PASS")
     if not (apprise_sms_user and apprise_sms_pass and phone):
         return None
-    return f"bulksms://{apprise_sms_user}:{apprise_sms_pass}@{phone}"
+    return f"bulksms://{apprise_sms_user}:{apprise_sms_pass}@{{phone}}"
 
 
 def _push_url(notif_settings: dict) -> str | None:
@@ -106,23 +104,15 @@ def _telegram_url(notif_settings: dict) -> str | None:
 def _build_urls(user: User, channels: list[str]) -> set[str]:
     """Build Apprise URLs for a user and channel list."""
     notif_settings = _settings_for_user(user)
-    urls: list[str] = []
-    for ch in channels:
-        if ch == "mail":
-            url = _mail_url(user)
-        elif ch == "sms":
-            url = _sms_url(notif_settings)
-        elif ch == "push":
-            url = _push_url(notif_settings)
-        elif ch == "whatsapp":
-            url = _whatsapp_url(notif_settings)
-        elif ch == "telegram":
-            url = _telegram_url(notif_settings)
-        else:
-            url = None
-        if url:
-            urls.append(url)
-    return set(urls)
+    urls: dict[str] = {}
+    apprise_channels = config_get("APPRISE_CHANNELS", {})
+    env = make_env(None, None, False)
+    for ch in set(channels):
+        try:
+            urls[ch] = env.from_string(str(apprise_channels.get(ch, ""))).render(**notif_settings)
+        except Exception as exe:
+            current_app.logger.warning(f"Error rendering Apprise URL for {ch} and user {user.id}: {exe}")
+    return urls
 
 
 def deliver_apprise_sync(notification: str | Dict[str, Any]):
@@ -136,92 +126,61 @@ def deliver_apprise_sync(notification: str | Dict[str, Any]):
     if not n:
         return
 
-    targets_map = n.get("targets")
-    if not isinstance(targets_map, dict):
-        targets_map = {}
-    targets = [t for t in targets_map.keys() if isinstance(t, str)]
+    targets = n.get("targets")
     if not targets:
         if n.get("persist"):
             coll = get_mongo(collection=config_get("NOTIF_COLLECTION", "notifications"))
             mongo_update_one(
                 coll,
-                {"_id": notification},
-                {
-                    "$set": {
-                        "status.apprise": {
-                            "state": "skipped_no_targets",
-                            "ts": now_utc(),
-                        }
+                {"_id": notification}, {"$set": {
+                    "status.apprise": {
+                        "state": "skipped_no_targets",
+                        "ts": now_utc(),
                     }
-                },
+                }},
             )
         return
 
     results = []
     ok_all = True
 
-    channels_by_target = targets_map
-    rendered = n.get("rendered")
-    if not isinstance(rendered, dict):
-        rendered = {}
-
+    rendered = n.get("rendered", {})
     user_ids = set(int(p.split(":", 1)[1]) for p in targets)
-    user_id_col = cast(Any, getattr(User, "id"))
-    users: Dict[int, User] = {
-        int(u.id): u for u in User.query.filter(user_id_col.in_(user_ids)).all()
+    users: Dict[str, User] = {
+        f"u:{u.id}": u for u in User.query.filter(User.id.in_(user_ids)).all()
     }
 
-    for principal in targets:
-        uid = int(principal.split(":", 1)[1])
-        user = users.get(uid)
+    for principal, channels in targets.items():
+        user = users.get(principal)
         if not user:
             results.append(
                 {"target": principal, "state": "skipped_missing_user", "ts": now_utc()}
             )
             continue
-        channels = channels_by_target.get(principal)
-        if not isinstance(channels, list):
-            channels = []
         if not channels:
             results.append(
                 {"target": principal, "state": "skipped_no_channels", "ts": now_utc()}
             )
             continue
 
-        rendered_target = rendered.get(principal)
-        for ch in channels:
-            urls = _build_urls(user, [ch])
-            if not urls:
-                results.append(
-                    {
-                        "target": principal,
-                        "channel": ch,
-                        "state": "skipped_no_urls",
-                        "ts": now_utc(),
-                    }
-                )
+        rendered_target = rendered.get(principal, {})
+        for ch, url in _build_urls(user, channels):
+            if not url:
+                results.append({
+                    "target": principal,
+                    "channel": ch,
+                    "state": "skipped_no_urls",
+                    "ts": now_utc(),
+                })
                 continue
-            title = None
-            body = None
-            if isinstance(rendered_target, dict):
-                rendered_entry = rendered_target.get(ch) or rendered_target.get(
-                    "generic"
-                )
-                if isinstance(rendered_entry, dict):
-                    title = rendered_entry.get("title")
-                    body = rendered_entry.get("body")
-            if not title or body is None:
-                title, body = render_title_body(
-                    n, channel=ch, viewer_principal=principal
-                )
+            rendered_ch = rendered_target.get(ch, {})
+            title = rendered_ch.get("title", "")
+            body = rendered_ch.get("body", "")
             apobj = apprise.Apprise()
-            for url in urls:
-                apobj.add(url)
+            apobj.add(url)
             ok = apobj.notify(body=body, title=title)
             ok_all = ok_all and ok
-            results.append(
-                {"target": principal, "channel": ch, "ok": ok, "ts": now_utc()}
-            )
+            results.append({"target": principal, "channel": ch, "ok": ok, "ts": now_utc()})
 
     if n.get("persist"):
         coll = get_mongo(collection=config_get("NOTIF_COLLECTION", "notifications"))

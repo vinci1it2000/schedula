@@ -1,4 +1,5 @@
 import datetime as dt
+import json
 import os
 from typing import Tuple
 
@@ -13,7 +14,13 @@ def now_utc() -> dt.datetime:
 def config_get(key, default=None, app=None):
     cfg = (app or current_app).config
     if key not in cfg:
-        cfg[key] = os.environ.get(key) or default
+        value = os.environ.get(key)
+        if value:
+            if isinstance(default, (dict, list)):
+                value = json.loads(value)
+        else:
+            value = default
+        cfg[key] = value
     return cfg[key]
 
 

@@ -262,7 +262,7 @@ def create_notification(
         sender_principal=sender_principal,
     )
 
-    apprise_channels = {"sms", "mail", "push", "whatsapp", "telegram"}
+    apprise_channels = config_get("APPRISE_CHANNELS", {})
     deliver = channels.intersection(apprise_channels)
     if do_persist or deliver:
         doc = n.to_doc()
