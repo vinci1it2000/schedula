@@ -179,68 +179,6 @@ def validate_definition(
             if dedup_key is not None and not isinstance(dedup_key, str):
                 errors.append(f"event '{sname}.{ename}' dedupKey must be string")
 
-            ctx_update = edef.get("contextUpdate")
-            if ctx_update is not None and not isinstance(ctx_update, (dict, list)):
-                errors.append(
-                    f"event '{sname}.{ename}' contextUpdate must be object or list"
-                )
-            if isinstance(ctx_update, dict) and "byValue" in ctx_update:
-                by_value = ctx_update.get("byValue")
-                if not isinstance(by_value, dict):
-                    errors.append(
-                        f"event '{sname}.{ename}' contextUpdate.byValue must be object"
-                    )
-                else:
-                    cases = by_value.get("cases")
-                    if cases is not None and not isinstance(cases, dict):
-                        errors.append(
-                            f"event '{sname}.{ename}' contextUpdate.byValue.cases must be object"
-                        )
-            if isinstance(ctx_update, dict):
-                mongo_keys = [
-                    k
-                    for k in ctx_update.keys()
-                    if isinstance(k, str) and k.startswith("$")
-                ]
-                if mongo_keys:
-                    allowed = {"$set", "$inc", "$push", "$addToSet", "$merge", "$unset"}
-                    for k in mongo_keys:
-                        if k not in allowed:
-                            errors.append(
-                                f"event '{sname}.{ename}' contextUpdate unsupported operator '{k}'"
-                            )
-                        elif not isinstance(ctx_update.get(k), dict):
-                            errors.append(
-                                f"event '{sname}.{ename}' contextUpdate.{k} must be object"
-                            )
-            if isinstance(ctx_update, list):
-                allowed = {"$set", "$inc", "$push", "$addToSet", "$merge", "$unset"}
-                for i, stage in enumerate(ctx_update):
-                    if not isinstance(stage, dict):
-                        errors.append(
-                            f"event '{sname}.{ename}' contextUpdate[{i}] must be object"
-                        )
-                        continue
-                    mongo_keys = [
-                        k
-                        for k in stage.keys()
-                        if isinstance(k, str) and k.startswith("$")
-                    ]
-                    if not mongo_keys:
-                        errors.append(
-                            f"event '{sname}.{ename}' contextUpdate[{i}] missing operator"
-                        )
-                        continue
-                    for k in mongo_keys:
-                        if k not in allowed:
-                            errors.append(
-                                f"event '{sname}.{ename}' contextUpdate[{i}] unsupported operator '{k}'"
-                            )
-                        elif not isinstance(stage.get(k), dict):
-                            errors.append(
-                                f"event '{sname}.{ename}' contextUpdate[{i}].{k} must be object"
-                            )
-
             transitions = edef.get("transitions") or []
             if transitions and not isinstance(transitions, list):
                 errors.append(f"event '{sname}.{ename}' transitions must be list")
@@ -281,10 +219,16 @@ def validate_definition(
                 ef_type = ef.get("type")
                 if not isinstance(ef_type, str) or not ef_type.strip():
                     errors.append(f"event '{sname}.{ename}' effects[{i}] missing type")
-                elif not registry.has(ef_type):
+                elif not registry.has(ef_type) and ef_type != "context.update":
                     errors.append(
                         f"event '{sname}.{ename}' effects[{i}] unknown type '{ef_type}'"
                     )
+                if ef_type == "context.update":
+                    update = ef.get("update")
+                    if update is None or not isinstance(update, (dict, list)):
+                        errors.append(
+                            f"event '{sname}.{ename}' effects[{i}].update must be object or list"
+                        )
 
             normalized_events[ename] = {
                 **edef,
@@ -307,10 +251,16 @@ def validate_definition(
             ef_type = ef.get("type")
             if not isinstance(ef_type, str) or not ef_type.strip():
                 errors.append(f"state '{sname}'.onEnter.effects[{i}] missing type")
-            elif not registry.has(ef_type):
+            elif not registry.has(ef_type) and ef_type != "context.update":
                 errors.append(
                     f"state '{sname}'.onEnter.effects[{i}] unknown type '{ef_type}'"
                 )
+            if ef_type == "context.update":
+                update = ef.get("update")
+                if update is None or not isinstance(update, (dict, list)):
+                    errors.append(
+                        f"state '{sname}'.onEnter.effects[{i}].update must be object or list"
+                    )
 
         normalized["states"][sname] = {
             **sdef,

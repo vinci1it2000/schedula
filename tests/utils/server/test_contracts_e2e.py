@@ -93,34 +93,37 @@ def _definition() -> Dict[str, Any]:
                         },
                         "allowedPrincipals": ["g:anonymous"],
                         "dedupKey": "${payload.userId}",
-                        "contextUpdate": {
-                            "byValue": {
-                                "value": "${payload.choice}",
-                                "cases": {
-                                    "accept": {
-                                        "inc": {
-                                            "acceptedCount": 1,
-                                            "respondedCount": 1,
-                                        },
-                                        "pushUnique": {
-                                            "acceptedUsers": "${payload.userId}",
-                                            "respondedUsers": "${payload.userId}",
-                                        },
-                                    },
-                                    "reject": {
-                                        "inc": {
-                                            "rejectedCount": 1,
-                                            "respondedCount": 1,
-                                        },
-                                        "pushUnique": {
-                                            "rejectedUsers": "${payload.userId}",
-                                            "respondedUsers": "${payload.userId}",
-                                        },
-                                    },
-                                },
-                            }
-                        },
                         "effects": [
+                            {
+                                "type": "context.update",
+                                "update": {
+                                    "byValue": {
+                                        "value": "${payload.choice}",
+                                        "cases": {
+                                            "accept": {
+                                                "inc": {
+                                                    "acceptedCount": 1,
+                                                    "respondedCount": 1,
+                                                },
+                                                "pushUnique": {
+                                                    "acceptedUsers": "${payload.userId}",
+                                                    "respondedUsers": "${payload.userId}",
+                                                },
+                                            },
+                                            "reject": {
+                                                "inc": {
+                                                    "rejectedCount": 1,
+                                                    "respondedCount": 1,
+                                                },
+                                                "pushUnique": {
+                                                    "rejectedUsers": "${payload.userId}",
+                                                    "respondedUsers": "${payload.userId}",
+                                                },
+                                            },
+                                        },
+                                    }
+                                },
+                            },
                             {
                                 "type": "notify",
                                 "argsMapping": {
@@ -129,7 +132,7 @@ def _definition() -> Dict[str, Any]:
                                     "choice": "${payload.choice}",
                                     "ownerId": "${context.ownerId}",
                                 },
-                            }
+                            },
                         ],
                         "transitions": [
                             {
@@ -165,24 +168,27 @@ def _definition() -> Dict[str, Any]:
                         },
                         "allowedPrincipals": ["g:anonymous"],
                         "dedupKey": "${payload.userId}",
-                        "contextUpdate": {
-                            "byValue": {
-                                "value": "reject",
-                                "cases": {
-                                    "reject": {
-                                        "inc": {
-                                            "rejectedCount": 1,
-                                            "respondedCount": 1,
-                                        },
-                                        "pushUnique": {
-                                            "rejectedUsers": "${payload.userId}",
-                                            "respondedUsers": "${payload.userId}",
+                        "effects": [
+                            {
+                                "type": "context.update",
+                                "update": {
+                                    "byValue": {
+                                        "value": "reject",
+                                        "cases": {
+                                            "reject": {
+                                                "inc": {
+                                                    "rejectedCount": 1,
+                                                    "respondedCount": 1,
+                                                },
+                                                "pushUnique": {
+                                                    "rejectedUsers": "${payload.userId}",
+                                                    "respondedUsers": "${payload.userId}",
+                                                },
+                                            }
                                         },
                                     }
                                 },
-                            }
-                        },
-                        "effects": [
+                            },
                             {
                                 "type": "notify",
                                 "argsMapping": {
@@ -190,7 +196,7 @@ def _definition() -> Dict[str, Any]:
                                     "userId": "${payload.userId}",
                                     "ownerId": "${context.ownerId}",
                                 },
-                            }
+                            },
                         ],
                         "defaultTarget": "S_FINAL_REJECTED_QUORUM_STEP2",
                     },

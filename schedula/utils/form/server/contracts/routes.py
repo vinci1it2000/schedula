@@ -240,7 +240,7 @@ def _validate_schema(payload: Dict[str, Any], schema: Dict[str, Any]) -> List[st
 
 
 def _check_idempotency(
-        contract_id: str, event_id: Optional[str], idem_key: Optional[str]
+    contract_id: str, event_id: Optional[str], idem_key: Optional[str]
 ) -> Optional[Dict[str, Any]]:
     events = _events_coll()
     if event_id:
@@ -302,7 +302,7 @@ def _select_response_value(result: Any, ref: str) -> Any:
         data = result
     if data is None:
         return None
-    path = ref[len("/response/"):]
+    path = ref[len("/response/") :]
     parts = [p for p in path.split("/") if p]
     cur: Any = data
     for part in parts:
@@ -344,12 +344,12 @@ def _run_effects(contract_id: str, effect_ids: List[str]) -> List[Dict[str, Any]
 
 
 def _apply_on_enter(
-        definition: Dict[str, Any],
-        state: str,
-        *,
-        context: Dict[str, Any],
-        actor_id: str,
-        event_id: str,
+    definition: Dict[str, Any],
+    state: str,
+    *,
+    context: Dict[str, Any],
+    actor_id: str,
+    event_id: str,
 ) -> Tuple[str, List[Dict[str, Any]]]:
     effects: List[Dict[str, Any]] = []
     max_auto = int(config_get("CONTRACTS_MAX_AUTO_TRANSITIONS", 3))
@@ -360,9 +360,19 @@ def _apply_on_enter(
             break
         seen.add(current)
         for ef in resolve_on_enter_effects(definition, current):
+            ef_type = ef.get("type")
+            if ef_type == "context.update":
+                context = apply_context_update(
+                    context,
+                    ef.get("update") or {},
+                    payload={},
+                    actor_id=actor_id,
+                    event_id=event_id,
+                )
+                continue
             effects.append(
                 {
-                    "type": ef.get("type"),
+                    "type": ef_type,
                     "payload": build_effect_payload(
                         ef,
                         context=context,
@@ -381,7 +391,7 @@ def _apply_on_enter(
 
 
 def _find_event_any(
-        definition: Dict[str, Any], path: str
+    definition: Dict[str, Any], path: str
 ) -> Tuple[Optional[str], Optional[Dict[str, Any]]]:
     states = definition.get("states") or {}
     found = None
@@ -396,15 +406,15 @@ def _find_event_any(
 
 
 def _process_event(
-        *,
-        contract_id: str,
-        doc: Dict[str, Any],
-        dyn_path: str,
-        event_id: str,
-        actor_id: str,
-        body_payload: Dict[str, Any],
-        idem_key: Optional[str],
-        if_match: Optional[str],
+    *,
+    contract_id: str,
+    doc: Dict[str, Any],
+    dyn_path: str,
+    event_id: str,
+    actor_id: str,
+    body_payload: Dict[str, Any],
+    idem_key: Optional[str],
+    if_match: Optional[str],
 ) -> Tuple[Dict[str, Any], int]:
     if doc.get("status") in ("DONE", "CANCELED"):
         replay = _check_idempotency(contract_id, event_id, idem_key)
@@ -430,9 +440,9 @@ def _process_event(
             doc.get("definition") or {}, normalize_event_path({"path": dyn_path})
         )
         if (
-                ename_any
-                and isinstance(edef_any, dict)
-                and isinstance(edef_any.get("dedupKey"), str)
+            ename_any
+            and isinstance(edef_any, dict)
+            and isinstance(edef_any.get("dedupKey"), str)
         ):
             dedup_key = resolve_template(
                 edef_any.get("dedupKey"),
@@ -482,9 +492,18 @@ def _process_event(
     ename, edef = find_event_by_path(doc.get("definition") or {}, state, dyn_path)
     if not edef:
         abort_json(409, "Event not available in this state")
+    edef = cast(Dict[str, Any], edef)
 
     resolver = RefResolver(context=doc.get("context") or {}, enforce_acl=False)
-    allowed_set = set(resolver(edef.get("allowedPrincipals"))) or {doc.get("ownerId")}
+    allowed_principals = resolver(edef.get("allowedPrincipals"))
+    if isinstance(allowed_principals, str):
+        allowed_principals = [allowed_principals]
+    if not isinstance(allowed_principals, list):
+        allowed_principals = []
+    allowed_principals = _filter_allowed_subjects(
+        [r for r in allowed_principals if isinstance(r, str) and r]
+    )
+    allowed_set = set(allowed_principals)
     if allowed_set:
         enforcer = get_enforcer()
         if allowed_set.intersection(enforcer.get_roles_for_user(actor_id)):
@@ -498,7 +517,18 @@ def _process_event(
     if replay:
         abort_json(409, "Event replay")
 
-    dedup_key = resolver(edef.get("dedupKey"))
+    dedup_key = None
+    dedup_src = edef.get("dedupKey")
+    if isinstance(dedup_src, str):
+        dedup_key = resolve_template(
+            dedup_src,
+            context=doc.get("context") or {},
+            payload=body_payload,
+            actor_id=actor_id,
+            event_id=event_id,
+        )
+    else:
+        dedup_key = resolver(dedup_src)
     if dedup_key is not None:
         previous = mongo_find_one(
             _events_coll(),
@@ -530,14 +560,6 @@ def _process_event(
             abort_json(409, "Duplicate response")
 
     context = doc.get("context") or {}
-    context_update = edef.get("contextUpdate") or {}
-    context = apply_context_update(
-        context,
-        context_update,
-        payload=body_payload,
-        actor_id=actor_id,
-        event_id=event_id,
-    )
 
     next_state, reason = pick_transition(edef, context)
     state_before = state
@@ -545,9 +567,19 @@ def _process_event(
 
     effects: List[Dict[str, Any]] = []
     for ef in edef.get("effects") or []:
+        ef_type = ef.get("type")
+        if ef_type == "context.update":
+            context = apply_context_update(
+                context,
+                ef.get("update") or {},
+                payload=body_payload,
+                actor_id=actor_id,
+                event_id=event_id,
+            )
+            continue
         effects.append(
             {
-                "type": ef.get("type"),
+                "type": ef_type,
                 "payload": build_effect_payload(
                     ef,
                     context=context,
@@ -638,10 +670,10 @@ def _process_event(
 
     if config_get("CONTRACTS_FAIL_ON_EFFECT_ERROR", False):
         if any(
-                e
-                for e in _effects_coll().find(
-                    {"_id": {"$in": effect_ids}, "status": "ERROR"}
-                )
+            e
+            for e in _effects_coll().find(
+                {"_id": {"$in": effect_ids}, "status": "ERROR"}
+            )
         ):
             mongo_update_one(
                 _contracts_coll(),
