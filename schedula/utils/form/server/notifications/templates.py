@@ -7,7 +7,6 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import Any, Dict, Optional
 
 from jinja2 import StrictUndefined
@@ -16,7 +15,7 @@ from jinja2.sandbox import SandboxedEnvironment
 from ..extensions import db
 from ..security import User
 from ..security.casbin import Group
-from ..utils import config_get, get_mongo
+from ..utils import config_get, get_mongo, RefResolver
 
 
 def principal_info(p: Any) -> Dict[str, Any]:
@@ -40,99 +39,6 @@ def principal_info(p: Any) -> Dict[str, Any]:
                 return out
 
     return {"id": p, "type": "unknown"}
-
-
-@dataclass
-class RefResolver:
-    """Resolve {$ref: ...} enforcing ACL for both sender and viewer."""
-    viewer_principal: str = None
-    sender_principal: str = None
-    enforce_acl: bool = None
-
-    def __post_init__(self):
-        # memoization per resolver instance
-        self._seen: dict[str, Any] = {}
-
-    def __call__(self, ref_or_obj: Any) -> Any:
-        """
-        If you pass a string, it's treated as a ref.
-        Otherwise it's treated as an object that may contain $ref inside.
-        """
-        if isinstance(ref_or_obj, str):
-            return self.resolve_refs({"$ref": ref_or_obj})
-        return self.resolve_refs(ref_or_obj)
-
-    def fetch(self, ref: Any) -> Any:
-        """Resolve a ref string to its document payload (RAW, no recursive resolution)."""
-        if isinstance(ref, str) and ref.startswith("/items/"):
-            args = ref.split("/", maxsplit=3)[2:]
-            if len(args) == 2:
-                category, item_id = args
-                from ..items.crud import _item_get, serialize_item
-                for sub in (self.sender_principal, self.viewer_principal) if self.enforce_acl else [None]:
-                    try:
-                        return serialize_item(
-                            _item_get(category, item_id, "read", sub, enforce_acl=self.enforce_acl),
-                            include_data=True,
-                        )
-                    except Exception:
-                        continue
-                return None
-        return None
-
-    def resolve_refs(self, obj: Any) -> Any:
-        """
-        Resolve dicts that look like {'$ref': '...'} recursively.
-
-        Supports self-referential / cyclic references by memoizing refs early and
-        mutating placeholders in-place.
-        """
-
-        def _walk(x: Any) -> Any:
-            # $ref object (string ref)
-            if isinstance(x, dict):
-                if "$ref" in x and len(x) == 1:
-                    ref = x["$ref"]
-
-                    # If $ref is not a string, treat it as "inline" content to resolve.
-                    if not isinstance(ref, str):
-                        return _walk(ref)
-
-                    # cycle / memo
-                    if ref in self._seen:
-                        return self._seen[ref]
-
-                    fetched = self.fetch(ref)
-
-                    # Placeholder BEFORE diving in, so cycles work
-                    if isinstance(fetched, dict):
-                        placeholder: dict[str, Any] = {}
-                        self._seen[ref] = placeholder
-                        resolved_dict = _walk(fetched)
-                        placeholder.clear()
-                        placeholder.update(resolved_dict if isinstance(resolved_dict, dict) else {})
-                        return placeholder
-
-                    if isinstance(fetched, list):
-                        placeholder_list: list[Any] = []
-                        self._seen[ref] = placeholder_list
-                        resolved_list = _walk(fetched)
-                        placeholder_list[:] = resolved_list if isinstance(resolved_list, list) else []
-                        return placeholder_list
-
-                    self._seen[ref] = fetched
-                    return fetched
-
-                # Normal dict
-                return {k: _walk(v) for k, v in x.items()}
-
-            # Lists
-            if isinstance(x, list):
-                return [_walk(v) for v in x]
-
-            return x
-
-        return _walk(obj)
 
 
 def make_env(sender_principal, viewer_principal, enforce_acl) -> SandboxedEnvironment:
