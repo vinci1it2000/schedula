@@ -67,6 +67,11 @@ class Config:
                 os.environ.get("NOTIF_CELERY_ENABLED", "false").lower() == "true"
         )
 
+        self.CONTRACTS_ENABLED = (
+                os.environ.get("CONTRACTS_ENABLED", "true").lower() == "true"
+        )
+        self.CONTRACTS_ACTION_TYPES = os.environ.get("CONTRACTS_ACTION_TYPES", "noop")
+
         # reCAPTCHA configuration
         self.RECAPTCHA_PUBLIC_KEY = os.environ.get(
             "RECAPTCHA_PUBLIC_KEY", "6LcsgJglAAAAAMm7ilxkhBRevaCAuxlpefYZmxHU"

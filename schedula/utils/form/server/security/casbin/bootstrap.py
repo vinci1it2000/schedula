@@ -46,6 +46,22 @@ def bootstrap_platform():
             "manage",
             "allow",
         ],
+        # Allow system admins to manage contract templates.
+        [
+            SYSTEM_ADMIN_ROLE,
+            ADMIN_DOMAIN,
+            "contracts:templates",
+            "manage",
+            "allow",
+        ],
+        # Allow authenticated users to create contracts from public templates.
+        [
+            AUTHENTICATED_ROLE,
+            "acl:contracts",
+            "contracts:template:public",
+            "create",
+            "allow",
+        ],
         # Allow system admins to manage Items schemas via the editor/admin panel.
         [
             SYSTEM_ADMIN_ROLE,
