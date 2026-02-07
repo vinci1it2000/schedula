@@ -246,7 +246,7 @@ def _validate_schema(payload: Dict[str, Any], schema: Dict[str, Any]) -> List[st
 
 
 def _check_idempotency(
-        contract_id: str, event_id: Optional[str], idem_key: Optional[str]
+    contract_id: str, event_id: Optional[str], idem_key: Optional[str]
 ) -> Optional[Dict[str, Any]]:
     events = _events_coll()
     if event_id:
@@ -351,7 +351,7 @@ def _select_response_value(result: Any, ref: str) -> Any:
         data = result
     if data is None:
         return None
-    path = ref[len("/response/"):]
+    path = ref[len("/response/") :]
     parts = [p for p in path.split("/") if p]
     cur: Any = data
     for part in parts:
@@ -393,12 +393,12 @@ def _run_effects(contract_id: str, effect_ids: List[str]) -> List[Dict[str, Any]
 
 
 def _apply_on_enter(
-        definition: Dict[str, Any],
-        state: str,
-        *,
-        context: Dict[str, Any],
-        actor_id: str,
-        event_id: str,
+    definition: Dict[str, Any],
+    state: str,
+    *,
+    context: Dict[str, Any],
+    actor_id: str,
+    event_id: str,
 ) -> Tuple[str, List[Dict[str, Any]], Dict[str, Any]]:
     effects: List[Dict[str, Any]] = []
     max_auto = int(config_get("CONTRACTS_MAX_AUTO_TRANSITIONS", 3))
@@ -440,15 +440,15 @@ def _apply_on_enter(
 
 
 def _process_event(
-        *,
-        contract_id: str,
-        doc: Dict[str, Any],
-        dyn_path: str,
-        event_id: str,
-        actor_id: str,
-        body_payload: Dict[str, Any],
-        idem_key: Optional[str],
-        if_match: Optional[str],
+    *,
+    contract_id: str,
+    doc: Dict[str, Any],
+    dyn_path: str,
+    event_id: str,
+    actor_id: str,
+    body_payload: Dict[str, Any],
+    idem_key: Optional[str],
+    if_match: Optional[str],
 ) -> Tuple[Dict[str, Any], int]:
     if doc.get("status") in ("DONE", "CANCELED"):
         replay = _check_idempotency(contract_id, event_id, idem_key)
@@ -471,17 +471,24 @@ def _process_event(
     context = doc.get("context") or {}
     resolver = RefResolver(context=context, enforce_acl=False)
     if (
-            ("allowUserStates" in edef and actor_state_before not in set(resolver(edef.get("allowUserStates")) or []))
-            or
-            ("denyUserStates" in edef and actor_state_before in set(resolver(edef.get("denyUserStates")) or []))
+        "allowUserStates" in edef
+        and actor_state_before not in set(resolver(edef.get("allowUserStates")) or [])
+    ) or (
+        "denyUserStates" in edef
+        and actor_state_before in set(resolver(edef.get("denyUserStates")) or [])
     ):
         abort_json(409, "Event not available for actor state")
     if "allowedPrincipals" in edef or "denyPrincipals" in edef:
         enforcer = get_enforcer()
         roles = set(enforcer.get_roles_for_user(actor_id))
-        if "allowedPrincipals" in edef and not roles.intersection(set(resolver(edef.get("allowedPrincipals")) or [])):
+        roles.add(actor_id)
+        if "allowedPrincipals" in edef and not roles.intersection(
+            set(resolver(edef.get("allowedPrincipals")) or [])
+        ):
             abort_json(403, "Subject not allowed")
-        if "denyPrincipals" in edef and roles.intersection(set(resolver(edef.get("denyPrincipals")) or [])):
+        if "denyPrincipals" in edef and roles.intersection(
+            set(resolver(edef.get("denyPrincipals")) or [])
+        ):
             abort_json(403, "Subject denied")
 
     schema_errors = validate_payload(edef.get("payloadSchema"), body_payload)
@@ -623,10 +630,10 @@ def _process_event(
 
     if config_get("CONTRACTS_FAIL_ON_EFFECT_ERROR", False):
         if any(
-                e
-                for e in _effects_coll().find(
-                    {"_id": {"$in": effect_ids}, "status": "ERROR"}
-                )
+            e
+            for e in _effects_coll().find(
+                {"_id": {"$in": effect_ids}, "status": "ERROR"}
+            )
         ):
             mongo_update_one(
                 _contracts_coll(),
@@ -915,16 +922,28 @@ def validate_contract_definition():
 @bp.post("/contracts")
 def create_contract():
     payload = _parse_json_body()
-    definition = payload.get("definition")
+    template_id = payload.get("templateId")
     context = payload.get("context") or {}
-    metadata = payload.get("metadata") or {}
+
+    if "definition" in payload or "metadata" in payload:
+        abort_json(400, "definition and metadata are not allowed")
+    if not isinstance(template_id, str) or not template_id.strip():
+        abort_json(400, "templateId required")
 
     if not isinstance(context, dict):
         abort_json(400, "context must be object")
-    if not isinstance(metadata, dict):
-        abort_json(400, "metadata must be object")
 
     owner_id = get_auth_sub()
+
+    template = mongo_find_one(_templates_coll(), {"_id": template_id})
+    if not template:
+        abort_json(404, "Template not found")
+    if not bool(template.get("is_enabled", False)):
+        abort_json(409, "Template disabled")
+    _enforce_template_create(template)
+
+    metadata = template.get("metadata") or {}
+    definition = template.get("definition")
 
     reg = get_registry()
     res = validate_definition(definition if isinstance(definition, dict) else {}, reg)
@@ -968,6 +987,7 @@ def create_contract():
         "created_at": now,
         "updated_at": now,
         "last_error": None,
+        "template_id": template_id,
     }
     if idem_key:
         doc["idempotency_key"] = idem_key
@@ -1002,11 +1022,6 @@ def get_contract(contract_id: str):
     doc = _get_contract(contract_id)
     if not doc:
         abort_json(404, "Contract not found")
-    assert doc is not None
-    doc_obj: Dict[str, Any] = cast(Dict[str, Any], doc)
-    doc = cast(Dict[str, Any], doc)
-    assert doc is not None
-    doc = cast(Dict[str, Any], doc)
     return jsonify(_serialize_contract(doc)), 200
 
 
@@ -1016,7 +1031,6 @@ def get_contract_actions(contract_id: str):
     if not doc:
         abort_json(404, "Contract not found")
     assert doc is not None
-    doc = cast(Dict[str, Any], doc)
     actor_id = get_current_sub()
     actor_state = _actor_state(doc, actor_id)
     return jsonify(
@@ -1055,7 +1069,6 @@ def cancel_contract(contract_id: str):
     if not doc:
         abort_json(404, "Contract not found")
     assert doc is not None
-    doc = cast(Dict[str, Any], doc)
     return jsonify(_serialize_contract(doc)), 200
 
 

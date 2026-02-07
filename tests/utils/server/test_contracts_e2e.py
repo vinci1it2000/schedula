@@ -10,12 +10,19 @@ from typing import Any, Dict, List
 import httpx
 import mongomock
 from flask import Flask
+from flask_security.utils import hash_password
 
 from schedula.utils.form.server import basic_app
 from schedula.utils.form.server.contracts.registry import get_registry
 from schedula.utils.form.server.extensions import db as _db
+from schedula.utils.form.server.security import User
 from schedula.utils.form.server.security.casbin import get_enforcer
 from schedula.utils.form.server.security.casbin.helpers import ADMIN_DOMAIN, ANON_USER
+from schedula.utils.form.server.security.casbin.bootstrap import (
+    bootstrap_user,
+    set_system_admin,
+)
+from schedula.utils.form.server.security.casbin.models import ensure_public_group
 from schedula.utils.form.server.utils import get_mongo, now_utc
 from tests.utils.server.conftest import DummySitemap
 from tests.utils.server.utils.mongo_validation import ValidatingMongoDatabase
@@ -29,7 +36,7 @@ def _abort_event():
     return {
         "path": "abort",
         "method": "POST",
-        "allowedPrincipals": [],
+        "allowedPrincipals": ["g:authenticated"],
         "payloadSchema": {"type": "object"},
         "effects": [
             {
@@ -91,7 +98,7 @@ def _definition() -> Dict[str, Any]:
                             },
                             "required": ["userId", "choice"],
                         },
-                        "allowedPrincipals": [],
+                        "allowedPrincipals": ["g:authenticated"],
                         "dedupKey": {"$ctx": "payload.userId"},
                         "effects": [
                             {
@@ -174,7 +181,7 @@ def _definition() -> Dict[str, Any]:
                             },
                             "required": ["userId"],
                         },
-                        "allowedPrincipals": [],
+                        "allowedPrincipals": ["g:authenticated"],
                         "dedupKey": {"$ctx": "payload.userId"},
                         "effects": [
                             {
@@ -231,7 +238,7 @@ def _definition() -> Dict[str, Any]:
                             },
                             "required": ["approvedUsers", "verifiedCount"],
                         },
-                        "allowedPrincipals": [],
+                        "allowedPrincipals": ["g:authenticated"],
                         "effects": [
                             {
                                 "type": "context.update",
@@ -263,7 +270,7 @@ def _definition() -> Dict[str, Any]:
                             "type": "object",
                             "properties": {"reason": {"type": "string"}},
                         },
-                        "allowedPrincipals": [],
+                        "allowedPrincipals": ["g:authenticated"],
                         "effects": [
                             {
                                 "type": "notify",
@@ -296,7 +303,7 @@ def _definition() -> Dict[str, Any]:
                     "RejectBySystem": {
                         "path": "__system__/reject",
                         "method": "POST",
-                        "allowedPrincipals": [],
+                        "allowedPrincipals": ["g:authenticated"],
                         "payloadSchema": {"type": "object"},
                         "defaultTarget": "S_FINAL_SYSTEM_REJECTED_STEP3",
                     },
@@ -322,7 +329,7 @@ def _definition() -> Dict[str, Any]:
                     "CheckinTimeReached": {
                         "path": "__timer__/checkin",
                         "method": "POST",
-                        "allowedPrincipals": [],
+                        "allowedPrincipals": ["g:authenticated"],
                         "payloadSchema": {"type": "object"},
                         "defaultTarget": "S4B_SEND_CHECKIN",
                     },
@@ -330,7 +337,7 @@ def _definition() -> Dict[str, Any]:
                     "RejectBySystem": {
                         "path": "__system__/reject",
                         "method": "POST",
-                        "allowedPrincipals": [],
+                        "allowedPrincipals": ["g:authenticated"],
                         "payloadSchema": {"type": "object"},
                         "defaultTarget": "S_FINAL_SYSTEM_REJECTED_STEP4",
                     },
@@ -360,7 +367,7 @@ def _definition() -> Dict[str, Any]:
                             },
                             "required": ["userId", "answer"],
                         },
-                        "allowedPrincipals": [],
+                        "allowedPrincipals": ["g:authenticated"],
                         "dedupKey": {"$ctx": "payload.userId"},
                         "effects": [
                             {
@@ -416,7 +423,7 @@ def _definition() -> Dict[str, Any]:
                             },
                             "required": ["userId"],
                         },
-                        "allowedPrincipals": [],
+                        "allowedPrincipals": ["g:authenticated"],
                         "dedupKey": {"$ctx": "payload.userId"},
                         "effects": [
                             {
@@ -478,8 +485,16 @@ class ContractsE2ETest(unittest.TestCase):
             TESTING=True,
             SQLALCHEMY_DATABASE_URI="sqlite+pysqlite:///:memory:",
             SQLALCHEMY_TRACK_MODIFICATIONS=False,
-            SECURITY_ENABLED=False,
-            LOGIN_DISABLED=True,
+            SECURITY_ENABLED=True,
+            SECURITY_REGISTERABLE=True,
+            SECURITY_SEND_REGISTER_EMAIL=False,
+            SECURITY_CONFIRMABLE=True,
+            SECURITY_RECOVERABLE=True,
+            SECURITY_CHANGEABLE=True,
+            SECURITY_LOGIN_AFTER_REGISTER=False,
+            SECURITY_URL_PREFIX="/user",
+            WTF_CSRF_ENABLED=False,
+            SCHEDULA_CSRF_ENABLED=False,
             ITEMS_STORAGE_ENABLED=True,
             FILES_STORAGE_ENABLED=False,
             S3_ITEMS_FILE_STORAGE=False,
@@ -497,26 +512,30 @@ class ContractsE2ETest(unittest.TestCase):
         )
         sitemap = DummySitemap()
         basic_app(sitemap, self.app, config)
-        if not hasattr(self.app, "login_manager"):
-
-            class _LM:
-                @staticmethod
-                def _load_user():
-                    return None
-
-            setattr(self.app, "login_manager", _LM())
-
-        from schedula.utils.form.server.contracts import routes as contracts_routes
-
-        self._orig_get_auth_sub = contracts_routes.get_auth_sub
-        self._orig_get_current_sub = contracts_routes.get_current_sub
-        self._auth_sub = "owner-1"
-        self._current_sub = "owner-1"
-        contracts_routes.get_auth_sub = lambda: self._auth_sub
-        contracts_routes.get_current_sub = lambda: self._current_sub
 
         with self.app.app_context():
             _db.create_all()
+            ensure_public_group()
+
+            owner = self._create_user("owner-1@gmail.com")
+            u1 = self._create_user("u1@gmail.com")
+            u2 = self._create_user("u2@gmail.com")
+            u3 = self._create_user("u3@gmail.com")
+            admin = self._create_user("admin@gmail.com")
+
+            for u in (owner, u1, u2, u3, admin):
+                bootstrap_user(u.id)
+            set_system_admin(admin.id, enabled=True)
+
+            self.owner_sub = f"u:{owner.id}"
+            self.actor_sub_map = {
+                "owner-1": f"u:{owner.id}",
+                "u1": f"u:{u1.id}",
+                "u2": f"u:{u2.id}",
+                "u3": f"u:{u3.id}",
+                "admin": f"u:{admin.id}",
+            }
+
             self.app.config["CONTRACTS_ACTION_TYPES"] = [
                 "notify",
                 "db_create_group",
@@ -567,6 +586,14 @@ class ContractsE2ETest(unittest.TestCase):
             transport=httpx.WSGITransport(app=self.app),
             base_url="http://test",
         )
+        self.client = self.app.test_client(use_cookies=False)
+        self.actor_token_map = {
+            "owner-1": self._login_token("owner-1@gmail.com"),
+            "u1": self._login_token("u1@gmail.com"),
+            "u2": self._login_token("u2@gmail.com"),
+            "u3": self._login_token("u3@gmail.com"),
+            "admin": self._login_token("admin@gmail.com"),
+        }
 
     def tearDown(self) -> None:
         try:
@@ -577,18 +604,43 @@ class ContractsE2ETest(unittest.TestCase):
             _db.session.remove()
             _db.drop_all()
         try:
-            from schedula.utils.form.server.contracts import routes as contracts_routes
-
-            if hasattr(self, "_orig_get_auth_sub"):
-                contracts_routes.get_auth_sub = self._orig_get_auth_sub
-            if hasattr(self, "_orig_get_current_sub"):
-                contracts_routes.get_current_sub = self._orig_get_current_sub
-        except Exception:
-            pass
-        try:
             self.mm_client.close()
         except Exception:
             pass
+
+    def _create_user(self, email: str) -> User:
+        user = User.query.filter_by(email=email).first()
+        if not user:
+            user = User(
+                email=email,
+                password=hash_password("UserPass123!"),
+                active=True,
+                fs_uniquifier=str(uuid.uuid4()),
+            )
+            _db.session.add(user)
+        else:
+            user.password = hash_password("UserPass123!")
+            user.active = True
+            if not getattr(user, "fs_uniquifier", None):
+                user.fs_uniquifier = str(uuid.uuid4())
+        user.confirmed_at = dt.datetime.utcnow()
+        _db.session.commit()
+        return user
+
+    def _login_token(self, email: str) -> str:
+        resp = self.client.post(
+            "/user/login", json={"email": email, "password": "UserPass123!"}
+        )
+        self.assertEqual(resp.status_code, 200)
+        data = resp.get_json(silent=True) or {}
+        token = data.get("response", {}).get("user", {}).get("token")
+        self.assertIsNotNone(token)
+        return str(token)
+
+    def _auth_headers(self, actor: str) -> Dict[str, str]:
+        token = self.actor_token_map.get(actor)
+        self.assertIsNotNone(token)
+        return {"Authentication-Token": str(token)}
 
     def _post_event(
         self,
@@ -600,14 +652,11 @@ class ContractsE2ETest(unittest.TestCase):
         if_match: str | None = None,
         **_ignored: Any,
     ) -> httpx.Response:
-        headers: Dict[str, str] = {}
+        actor_id = _ignored.get("actor_id")
+        actor = actor_id if isinstance(actor_id, str) and actor_id else "owner-1"
+        headers: Dict[str, str] = dict(self._auth_headers(actor))
         if if_match:
             headers["If-Match"] = if_match
-        actor_id = _ignored.get("actor_id")
-        if isinstance(actor_id, str) and actor_id:
-            self._current_sub = actor_id
-        else:
-            self._current_sub = self._auth_sub
         body = {"eventId": event_id or str(uuid.uuid4()), "payload": payload}
         return self.httpx.post(
             f"/contracts/{contract_id}/{path}", json=body, headers=headers
@@ -617,6 +666,36 @@ class ContractsE2ETest(unittest.TestCase):
         with self.app.app_context():
             coll = get_mongo(collection="outbox_effects")
             return list(coll.find({"contract_id": contract_id}))
+
+    def _create_contract(
+        self,
+        *,
+        definition: Dict[str, Any],
+        context: Dict[str, Any],
+        actor: str = "owner-1",
+        name: str = "test",
+    ) -> Dict[str, Any]:
+        t = self.httpx.post(
+            "/contracts/templates",
+            json={
+                "name": f"tmpl-{uuid.uuid4()}",
+                "description": "auto",
+                "definition": definition,
+                "isEnabled": True,
+                "isPublic": True,
+                "metadata": {"name": name},
+            },
+            headers=self._auth_headers("admin"),
+        )
+        self.assertEqual(t.status_code, 201)
+        template_id = t.json()["id"]
+        c = self.httpx.post(
+            "/contracts",
+            json={"templateId": template_id, "context": context},
+            headers=self._auth_headers(actor),
+        )
+        self.assertEqual(c.status_code, 201)
+        return c.json()
 
     def test_success_negative_checkin(self) -> None:
         definition = _definition()
@@ -632,6 +711,7 @@ class ContractsE2ETest(unittest.TestCase):
                 "ownerId": "owner-1",
                 "metadata": {"name": "test"},
             },
+            headers=self._auth_headers("owner-1"),
         )
         self.assertEqual(create.status_code, 201)
         contract = create.json()
@@ -758,6 +838,7 @@ class ContractsE2ETest(unittest.TestCase):
                 "ownerId": "owner-1",
                 "metadata": {"name": "test"},
             },
+            headers=self._auth_headers("owner-1"),
         )
         contract_id = create.json()["id"]
 
@@ -808,6 +889,7 @@ class ContractsE2ETest(unittest.TestCase):
                 "ownerId": "owner-1",
                 "metadata": {"name": "test"},
             },
+            headers=self._auth_headers("owner-1"),
         )
         contract_id = create.json()["id"]
 
@@ -866,6 +948,7 @@ class ContractsE2ETest(unittest.TestCase):
                     "ownerId": "owner-1",
                     "metadata": {"name": "test"},
                 },
+                headers=self._auth_headers("owner-1"),
             )
             return resp.json()["id"]
 
@@ -950,21 +1033,28 @@ class ContractsE2ETest(unittest.TestCase):
                 "isPublic": True,
                 "metadata": {"kind": "demo"},
             },
+            headers=self._auth_headers("admin"),
         )
         self.assertEqual(create.status_code, 201)
         tmpl = create.json()
         template_id = tmpl["id"]
 
-        listed = self.httpx.get("/contracts/templates")
+        listed = self.httpx.get(
+            "/contracts/templates", headers=self._auth_headers("admin")
+        )
         self.assertEqual(listed.status_code, 200)
         ids = [t.get("id") for t in listed.json().get("templates", [])]
         self.assertIn(template_id, ids)
 
-        get_one = self.httpx.get(f"/contracts/templates/{template_id}")
+        get_one = self.httpx.get(
+            f"/contracts/templates/{template_id}", headers=self._auth_headers("admin")
+        )
         self.assertEqual(get_one.status_code, 200)
         self.assertEqual(get_one.json().get("id"), template_id)
 
-        available = self.httpx.get("/contracts/templates/available")
+        available = self.httpx.get(
+            "/contracts/templates/available", headers=self._auth_headers("owner-1")
+        )
         self.assertEqual(available.status_code, 200)
         avail_ids = [t.get("id") for t in available.json().get("templates", [])]
         self.assertIn(template_id, avail_ids)
@@ -972,9 +1062,12 @@ class ContractsE2ETest(unittest.TestCase):
         disable = self.httpx.put(
             f"/contracts/templates/{template_id}",
             json={"isEnabled": False},
+            headers=self._auth_headers("admin"),
         )
         self.assertEqual(disable.status_code, 200)
-        available_after = self.httpx.get("/contracts/templates/available")
+        available_after = self.httpx.get(
+            "/contracts/templates/available", headers=self._auth_headers("owner-1")
+        )
         self.assertEqual(available_after.status_code, 200)
         avail_after_ids = [
             t.get("id") for t in available_after.json().get("templates", [])
@@ -988,12 +1081,14 @@ class ContractsE2ETest(unittest.TestCase):
                 "ownerId": "owner-1",
                 "metadata": {"name": "test"},
             },
+            headers=self._auth_headers("owner-1"),
         )
         self.assertEqual(create_from_disabled.status_code, 409)
 
         enable = self.httpx.put(
             f"/contracts/templates/{template_id}",
             json={"isEnabled": True},
+            headers=self._auth_headers("admin"),
         )
         self.assertEqual(enable.status_code, 200)
 
@@ -1004,6 +1099,7 @@ class ContractsE2ETest(unittest.TestCase):
                 "ownerId": "owner-1",
                 "metadata": {"name": "from-template"},
             },
+            headers=self._auth_headers("owner-1"),
         )
         self.assertEqual(create_from_template.status_code, 201)
         self.assertIn("id", create_from_template.json())
@@ -1011,6 +1107,7 @@ class ContractsE2ETest(unittest.TestCase):
         invalid = self.httpx.post(
             "/contracts/templates",
             json={"name": "", "definition": {}, "extra": True},
+            headers=self._auth_headers("admin"),
         )
         self.assertEqual(invalid.status_code, 422)
 
@@ -1026,7 +1123,7 @@ class ContractsE2ETest(unittest.TestCase):
                             "path": "fetch",
                             "method": "POST",
                             "payloadSchema": {"type": "object"},
-                            "allowedPrincipals": [],
+                            "allowedPrincipals": ["g:authenticated"],
                             "effects": [
                                 {
                                     "type": "context.update",
@@ -1060,6 +1157,7 @@ class ContractsE2ETest(unittest.TestCase):
                 "ownerId": "owner-1",
                 "metadata": {"name": "http"},
             },
+            headers=self._auth_headers("owner-1"),
         )
         self.assertEqual(create.status_code, 201)
         contract_id = create.json()["id"]
@@ -1096,7 +1194,7 @@ class ContractsE2ETest(unittest.TestCase):
                                 "properties": {"userId": {"type": "string"}},
                                 "required": ["userId"],
                             },
-                            "allowedPrincipals": [],
+                            "allowedPrincipals": ["g:authenticated"],
                             "effects": [
                                 {
                                     "type": "context.update",
@@ -1128,6 +1226,7 @@ class ContractsE2ETest(unittest.TestCase):
                 "ownerId": "owner-1",
                 "metadata": {"name": "pipeline"},
             },
+            headers=self._auth_headers("owner-1"),
         )
         self.assertEqual(create.status_code, 201)
         contract_id = create.json()["id"]
