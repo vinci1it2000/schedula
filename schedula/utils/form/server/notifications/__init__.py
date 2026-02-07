@@ -10,8 +10,6 @@ Package layout:
 
 from flask import current_app
 
-from ..security.casbin import get_current_sub
-
 
 class Notifications:
     """Flask extension that wires notification blueprints and Celery."""
@@ -41,13 +39,12 @@ def notify_item_event_safe(*, event: str, item_doc: dict) -> None:
     if not current_app or not current_app.config.get("NOTIF_ENABLED"):
         return
     from .service import notify_item_event
-
-    notify_item_event(
-        event=event,
-        item_doc=item_doc,
-        created_by=get_current_sub(),
-    )
-
-
-# Public service helpers
-from .service import create_notification, mark_read, unread_count  # noqa: F401
+    from ..security.casbin import get_current_sub
+    try:
+        notify_item_event(
+            event=event,
+            item_doc=item_doc,
+            created_by=get_current_sub(),
+        )
+    except Exception as exc:
+        current_app.logger.exception(exc)
