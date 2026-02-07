@@ -240,7 +240,7 @@ def _validate_schema(payload: Dict[str, Any], schema: Dict[str, Any]) -> List[st
 
 
 def _check_idempotency(
-    contract_id: str, event_id: Optional[str], idem_key: Optional[str]
+        contract_id: str, event_id: Optional[str], idem_key: Optional[str]
 ) -> Optional[Dict[str, Any]]:
     events = _events_coll()
     if event_id:
@@ -302,7 +302,7 @@ def _select_response_value(result: Any, ref: str) -> Any:
         data = result
     if data is None:
         return None
-    path = ref[len("/response/") :]
+    path = ref[len("/response/"):]
     parts = [p for p in path.split("/") if p]
     cur: Any = data
     for part in parts:
@@ -344,12 +344,12 @@ def _run_effects(contract_id: str, effect_ids: List[str]) -> List[Dict[str, Any]
 
 
 def _apply_on_enter(
-    definition: Dict[str, Any],
-    state: str,
-    *,
-    context: Dict[str, Any],
-    actor_id: str,
-    event_id: str,
+        definition: Dict[str, Any],
+        state: str,
+        *,
+        context: Dict[str, Any],
+        actor_id: str,
+        event_id: str,
 ) -> Tuple[str, List[Dict[str, Any]]]:
     effects: List[Dict[str, Any]] = []
     max_auto = int(config_get("CONTRACTS_MAX_AUTO_TRANSITIONS", 3))
@@ -381,7 +381,7 @@ def _apply_on_enter(
 
 
 def _find_event_any(
-    definition: Dict[str, Any], path: str
+        definition: Dict[str, Any], path: str
 ) -> Tuple[Optional[str], Optional[Dict[str, Any]]]:
     states = definition.get("states") or {}
     found = None
@@ -396,15 +396,15 @@ def _find_event_any(
 
 
 def _process_event(
-    *,
-    contract_id: str,
-    doc: Dict[str, Any],
-    dyn_path: str,
-    event_id: str,
-    actor_id: str,
-    body_payload: Dict[str, Any],
-    idem_key: Optional[str],
-    if_match: Optional[str],
+        *,
+        contract_id: str,
+        doc: Dict[str, Any],
+        dyn_path: str,
+        event_id: str,
+        actor_id: str,
+        body_payload: Dict[str, Any],
+        idem_key: Optional[str],
+        if_match: Optional[str],
 ) -> Tuple[Dict[str, Any], int]:
     if doc.get("status") in ("DONE", "CANCELED"):
         replay = _check_idempotency(contract_id, event_id, idem_key)
@@ -430,9 +430,9 @@ def _process_event(
             doc.get("definition") or {}, normalize_event_path({"path": dyn_path})
         )
         if (
-            ename_any
-            and isinstance(edef_any, dict)
-            and isinstance(edef_any.get("dedupKey"), str)
+                ename_any
+                and isinstance(edef_any, dict)
+                and isinstance(edef_any.get("dedupKey"), str)
         ):
             dedup_key = resolve_template(
                 edef_any.get("dedupKey"),
@@ -498,16 +498,7 @@ def _process_event(
     if replay:
         abort_json(409, "Event replay")
 
-    dedup_key = None
-    if isinstance(edef.get("dedupKey"), str):
-        dedup_key = resolve_template(
-            edef.get("dedupKey"),
-            context=doc.get("context") or {},
-            payload=body_payload,
-            actor_id=actor_id,
-            event_id=event_id,
-        )
-
+    dedup_key = resolver(edef.get("dedupKey"))
     if dedup_key is not None:
         previous = mongo_find_one(
             _events_coll(),
@@ -647,10 +638,10 @@ def _process_event(
 
     if config_get("CONTRACTS_FAIL_ON_EFFECT_ERROR", False):
         if any(
-            e
-            for e in _effects_coll().find(
-                {"_id": {"$in": effect_ids}, "status": "ERROR"}
-            )
+                e
+                for e in _effects_coll().find(
+                    {"_id": {"$in": effect_ids}, "status": "ERROR"}
+                )
         ):
             mongo_update_one(
                 _contracts_coll(),
