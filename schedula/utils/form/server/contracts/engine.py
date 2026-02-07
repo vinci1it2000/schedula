@@ -19,7 +19,7 @@ from flask import current_app
 import httpx
 from jsonschema import Draft202012Validator
 
-from ..utils import abort_json
+from ..utils import abort_json, RefResolver
 from .registry import ActionRegistry
 
 
@@ -171,18 +171,45 @@ def validate_definition(
                         f"event '{sname}.{ename}' allowedPrincipals $ref must be string"
                     )
 
+            deny_principals = edef.get("denyPrincipals")
+            if deny_principals is not None and not isinstance(
+                deny_principals, (list, dict)
+            ):
+                errors.append(
+                    f"event '{sname}.{ename}' denyPrincipals must be list or $ref"
+                )
+            if isinstance(deny_principals, list):
+                for r in deny_principals:
+                    if not isinstance(r, str) or not (
+                        r.startswith("u:") or r.startswith("g:")
+                    ):
+                        errors.append(
+                            f"event '{sname}.{ename}' denyPrincipals entries must be 'u:' or 'g:'"
+                        )
+                        break
+            if isinstance(deny_principals, dict):
+                ref = deny_principals.get("$ref")
+                if not isinstance(ref, str) or not ref:
+                    errors.append(
+                        f"event '{sname}.{ename}' denyPrincipals $ref must be string"
+                    )
+
             payload_schema = edef.get("payloadSchema")
             if payload_schema is not None and not isinstance(payload_schema, dict):
                 errors.append(f"event '{sname}.{ename}' payloadSchema must be object")
 
-            dedup_key = edef.get("dedupKey")
-            if dedup_key is not None and not isinstance(dedup_key, str):
-                errors.append(f"event '{sname}.{ename}' dedupKey must be string")
-
             transitions = edef.get("transitions") or []
+            global_transitions = edef.get("globalTransitions") or []
+            user_transitions = edef.get("userTransitions") or []
             if transitions and not isinstance(transitions, list):
                 errors.append(f"event '{sname}.{ename}' transitions must be list")
                 transitions = []
+            if global_transitions and not isinstance(global_transitions, list):
+                errors.append(f"event '{sname}.{ename}' globalTransitions must be list")
+                global_transitions = []
+            if user_transitions and not isinstance(user_transitions, list):
+                errors.append(f"event '{sname}.{ename}' userTransitions must be list")
+                user_transitions = []
             for i, tr in enumerate(transitions):
                 if not isinstance(tr, dict):
                     errors.append(
@@ -201,10 +228,69 @@ def validate_definition(
                         errors=errors,
                         path=f"{sname}.{ename}.transitions[{i}].condition",
                     )
+            for i, tr in enumerate(global_transitions):
+                if not isinstance(tr, dict):
+                    errors.append(
+                        f"event '{sname}.{ename}' globalTransitions[{i}] must be object"
+                    )
+                    continue
+                target = tr.get("target")
+                if not isinstance(target, str) or not target.strip():
+                    errors.append(
+                        f"event '{sname}.{ename}' globalTransitions[{i}] missing target"
+                    )
+                cond = tr.get("condition")
+                if cond is not None:
+                    _validate_condition(
+                        cond,
+                        errors=errors,
+                        path=f"{sname}.{ename}.globalTransitions[{i}].condition",
+                    )
+            for i, tr in enumerate(user_transitions):
+                if not isinstance(tr, dict):
+                    errors.append(
+                        f"event '{sname}.{ename}' userTransitions[{i}] must be object"
+                    )
+                    continue
+                target = tr.get("target")
+                if not isinstance(target, str) or not target.strip():
+                    errors.append(
+                        f"event '{sname}.{ename}' userTransitions[{i}] missing target"
+                    )
+                cond = tr.get("condition")
+                if cond is not None:
+                    _validate_condition(
+                        cond,
+                        errors=errors,
+                        path=f"{sname}.{ename}.userTransitions[{i}].condition",
+                    )
 
             default_target = edef.get("defaultTarget")
             if default_target is not None and not isinstance(default_target, str):
                 errors.append(f"event '{sname}.{ename}' defaultTarget must be string")
+            default_global_target = edef.get("defaultGlobalTarget")
+            if default_global_target is not None and not isinstance(
+                default_global_target, str
+            ):
+                errors.append(
+                    f"event '{sname}.{ename}' defaultGlobalTarget must be string"
+                )
+            default_user_target = edef.get("defaultUserTarget")
+            if default_user_target is not None and not isinstance(
+                default_user_target, str
+            ):
+                errors.append(
+                    f"event '{sname}.{ename}' defaultUserTarget must be string"
+                )
+
+            allowed_user_states = edef.get("allowUserStates")
+            if allowed_user_states is not None and not isinstance(
+                allowed_user_states, list
+            ):
+                errors.append(f"event '{sname}.{ename}' allowUserStates must be list")
+            deny_user_states = edef.get("denyUserStates")
+            if deny_user_states is not None and not isinstance(deny_user_states, list):
+                errors.append(f"event '{sname}.{ename}' denyUserStates must be list")
 
             effects = edef.get("effects") or []
             if effects and not isinstance(effects, list):
@@ -315,6 +401,26 @@ def available_actions(definition: Dict[str, Any], state: str) -> List[Dict[str, 
     return out
 
 
+def available_actions_actor(
+    definition: Dict[str, Any], state: str, actor_state: Optional[str]
+) -> List[Dict[str, Any]]:
+    actions = available_actions(definition, state)
+    st = (definition.get("states") or {}).get(state) or {}
+    events = st.get("events") or {}
+    out: List[Dict[str, Any]] = []
+    for a in actions:
+        ename = a.get("event")
+        edef = events.get(ename) or {}
+        allowed = edef.get("allowUserStates")
+        deny = edef.get("denyUserStates")
+        if isinstance(allowed, list) and allowed and actor_state not in allowed:
+            continue
+        if isinstance(deny, list) and actor_state in deny:
+            continue
+        out.append(a)
+    return out
+
+
 def _normalize_ctx_var(var: Optional[str]) -> str:
     v = (var or "").strip()
     if v.startswith("/ctx/"):
@@ -367,41 +473,18 @@ def set_context_value(context: Dict[str, Any], path: str, value: Any) -> Dict[st
     return out
 
 
-def _resolve_template(
-    value: Any,
+def _resolver_context(
     *,
     context: Dict[str, Any],
     payload: Dict[str, Any],
     actor_id: str,
     event_id: str,
-) -> Any:
-    if isinstance(value, dict) and "$ref" in value:
-        ref = value.get("$ref")
-        if isinstance(ref, str):
-            if ref.startswith("/ctx/") or ref.startswith("/context/"):
-                return _get_var(context, ref)
-            if ref.startswith("/payload/"):
-                return _get_var(payload, ref[len("/payload/") :])
-            if ref.startswith("http://") or ref.startswith("https://"):
-                return _fetch_json_ref(ref)
-        return value
-    if not isinstance(value, str):
-        return value
-    if value.startswith("${") and value.endswith("}"):
-        ref = value[2:-1].strip()
-        if ref == "actorId":
-            return actor_id
-        if ref == "eventId":
-            return event_id
-        if ref.startswith("payload."):
-            return _get_var(payload, ref[len("payload.") :])
-        if (
-            ref.startswith("context.")
-            or ref.startswith("ctx.")
-            or ref.startswith("$ctx.")
-        ):
-            return _get_var(context, ref)
-    return value
+) -> Dict[str, Any]:
+    base = dict(context)
+    base["payload"] = payload
+    base["actorId"] = actor_id
+    base["eventId"] = event_id
+    return base
 
 
 def _fetch_json_ref(url: str) -> Any:
@@ -425,7 +508,7 @@ def _fetch_json_ref(url: str) -> Any:
         return None
 
 
-def resolve_template(
+def _resolve_value(
     value: Any,
     *,
     context: Dict[str, Any],
@@ -433,13 +516,15 @@ def resolve_template(
     actor_id: str,
     event_id: str,
 ) -> Any:
-    return _resolve_template(
-        value,
-        context=context,
-        payload=payload,
-        actor_id=actor_id,
-        event_id=event_id,
-    )
+    if isinstance(value, (dict, list)):
+        resolver = RefResolver(
+            context=_resolver_context(
+                context=context, payload=payload, actor_id=actor_id, event_id=event_id
+            ),
+            enforce_acl=False,
+        )
+        return resolver(value)
+    return value
 
 
 def _select_update_case(
@@ -455,7 +540,7 @@ def _select_update_case(
         raw_value = by_value.get("value")
         cases = by_value.get("cases") or {}
         default_case = by_value.get("default") or {}
-        val = _resolve_template(
+        val = _resolve_value(
             raw_value,
             context=context,
             payload=payload,
@@ -508,7 +593,7 @@ def apply_context_update(
     out = dict(context)
     setters = update.get("set") or {}
     for k, v in setters.items():
-        out[k] = _resolve_template(
+        out[k] = _resolve_value(
             v, context=out, payload=payload, actor_id=actor_id, event_id=event_id
         )
 
@@ -516,7 +601,7 @@ def apply_context_update(
     for k, v in increments.items():
         cur = out.get(k, 0)
         try:
-            inc = _resolve_template(
+            inc = _resolve_value(
                 v, context=out, payload=payload, actor_id=actor_id, event_id=event_id
             )
             out[k] = (cur or 0) + (inc or 0)
@@ -525,7 +610,7 @@ def apply_context_update(
 
     push_unique = update.get("pushUnique") or {}
     for k, v in push_unique.items():
-        val = _resolve_template(
+        val = _resolve_value(
             v, context=out, payload=payload, actor_id=actor_id, event_id=event_id
         )
         arr = out.get(k)
@@ -537,7 +622,7 @@ def apply_context_update(
 
     merges = update.get("merge") or {}
     for k, v in merges.items():
-        val = _resolve_template(
+        val = _resolve_value(
             v, context=out, payload=payload, actor_id=actor_id, event_id=event_id
         )
         if not isinstance(val, dict):
@@ -563,7 +648,7 @@ def _apply_mongo_update(
     setters = update.get("$set") or {}
     if isinstance(setters, dict):
         for k, v in setters.items():
-            out[k] = _resolve_template(
+            out[k] = _resolve_value(
                 v, context=out, payload=payload, actor_id=actor_id, event_id=event_id
             )
 
@@ -572,7 +657,7 @@ def _apply_mongo_update(
         for k, v in increments.items():
             cur = out.get(k, 0)
             try:
-                inc = _resolve_template(
+                inc = _resolve_value(
                     v,
                     context=out,
                     payload=payload,
@@ -586,7 +671,7 @@ def _apply_mongo_update(
     pushes = update.get("$push") or {}
     if isinstance(pushes, dict):
         for k, v in pushes.items():
-            val = _resolve_template(
+            val = _resolve_value(
                 v, context=out, payload=payload, actor_id=actor_id, event_id=event_id
             )
             arr = out.get(k)
@@ -598,7 +683,7 @@ def _apply_mongo_update(
     add_to_set = update.get("$addToSet") or {}
     if isinstance(add_to_set, dict):
         for k, v in add_to_set.items():
-            val = _resolve_template(
+            val = _resolve_value(
                 v, context=out, payload=payload, actor_id=actor_id, event_id=event_id
             )
             arr = out.get(k)
@@ -611,7 +696,7 @@ def _apply_mongo_update(
     merges = update.get("$merge") or {}
     if isinstance(merges, dict):
         for k, v in merges.items():
-            val = _resolve_template(
+            val = _resolve_value(
                 v, context=out, payload=payload, actor_id=actor_id, event_id=event_id
             )
             if not isinstance(val, dict):
@@ -725,7 +810,7 @@ def build_effect_payload(
         out.update(args)
     if isinstance(args_mapping, dict):
         for k, v in args_mapping.items():
-            out[k] = _resolve_template(
+            out[k] = _resolve_value(
                 v,
                 context=context,
                 payload=payload,

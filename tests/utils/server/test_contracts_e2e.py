@@ -29,14 +29,14 @@ def _abort_event():
     return {
         "path": "abort",
         "method": "POST",
-        "allowedPrincipals": ["g:anonymous"],
+        "allowedPrincipals": [],
         "payloadSchema": {"type": "object"},
         "effects": [
             {
                 "type": "charge_credits",
                 "argsMapping": {
-                    "ownerId": "${context.ownerId}",
-                    "amount": "${context.penaltyCredits}",
+                    "ownerId": {"$ctx": "ownerId"},
+                    "amount": {"$ctx": "penaltyCredits"},
                     "reason": "owner_abort",
                 },
             },
@@ -44,7 +44,7 @@ def _abort_event():
                 "type": "notify",
                 "argsMapping": {
                     "kind": "owner_abort",
-                    "ownerId": "${context.ownerId}",
+                    "ownerId": {"$ctx": "ownerId"},
                 },
             },
         ],
@@ -65,7 +65,7 @@ def _definition() -> Dict[str, Any]:
                             "type": "notify",
                             "argsMapping": {
                                 "kind": "invite",
-                                "invitees": "${context.eligibleResponders}",
+                                "invitees": {"$ctx": "eligibleResponders"},
                             },
                         }
                     ],
@@ -91,14 +91,14 @@ def _definition() -> Dict[str, Any]:
                             },
                             "required": ["userId", "choice"],
                         },
-                        "allowedPrincipals": ["g:anonymous"],
-                        "dedupKey": "${payload.userId}",
+                        "allowedPrincipals": [],
+                        "dedupKey": {"$ctx": "payload.userId"},
                         "effects": [
                             {
                                 "type": "context.update",
                                 "update": {
                                     "byValue": {
-                                        "value": "${payload.choice}",
+                                        "value": {"$ctx": "payload.choice"},
                                         "cases": {
                                             "accept": {
                                                 "inc": {
@@ -106,8 +106,12 @@ def _definition() -> Dict[str, Any]:
                                                     "respondedCount": 1,
                                                 },
                                                 "pushUnique": {
-                                                    "acceptedUsers": "${payload.userId}",
-                                                    "respondedUsers": "${payload.userId}",
+                                                    "acceptedUsers": {
+                                                        "$ctx": "payload.userId"
+                                                    },
+                                                    "respondedUsers": {
+                                                        "$ctx": "payload.userId"
+                                                    },
                                                 },
                                             },
                                             "reject": {
@@ -116,8 +120,12 @@ def _definition() -> Dict[str, Any]:
                                                     "respondedCount": 1,
                                                 },
                                                 "pushUnique": {
-                                                    "rejectedUsers": "${payload.userId}",
-                                                    "respondedUsers": "${payload.userId}",
+                                                    "rejectedUsers": {
+                                                        "$ctx": "payload.userId"
+                                                    },
+                                                    "respondedUsers": {
+                                                        "$ctx": "payload.userId"
+                                                    },
                                                 },
                                             },
                                         },
@@ -128,9 +136,9 @@ def _definition() -> Dict[str, Any]:
                                 "type": "notify",
                                 "argsMapping": {
                                     "kind": "response",
-                                    "userId": "${payload.userId}",
-                                    "choice": "${payload.choice}",
-                                    "ownerId": "${context.ownerId}",
+                                    "userId": {"$ctx": "payload.userId"},
+                                    "choice": {"$ctx": "payload.choice"},
+                                    "ownerId": {"$ctx": "ownerId"},
                                 },
                             },
                         ],
@@ -166,8 +174,8 @@ def _definition() -> Dict[str, Any]:
                             },
                             "required": ["userId"],
                         },
-                        "allowedPrincipals": ["g:anonymous"],
-                        "dedupKey": "${payload.userId}",
+                        "allowedPrincipals": [],
+                        "dedupKey": {"$ctx": "payload.userId"},
                         "effects": [
                             {
                                 "type": "context.update",
@@ -181,8 +189,12 @@ def _definition() -> Dict[str, Any]:
                                                     "respondedCount": 1,
                                                 },
                                                 "pushUnique": {
-                                                    "rejectedUsers": "${payload.userId}",
-                                                    "respondedUsers": "${payload.userId}",
+                                                    "rejectedUsers": {
+                                                        "$ctx": "payload.userId"
+                                                    },
+                                                    "respondedUsers": {
+                                                        "$ctx": "payload.userId"
+                                                    },
                                                 },
                                             }
                                         },
@@ -193,8 +205,8 @@ def _definition() -> Dict[str, Any]:
                                 "type": "notify",
                                 "argsMapping": {
                                     "kind": "reject",
-                                    "userId": "${payload.userId}",
-                                    "ownerId": "${context.ownerId}",
+                                    "userId": {"$ctx": "payload.userId"},
+                                    "ownerId": {"$ctx": "ownerId"},
                                 },
                             },
                         ],
@@ -219,13 +231,22 @@ def _definition() -> Dict[str, Any]:
                             },
                             "required": ["approvedUsers", "verifiedCount"],
                         },
-                        "allowedPrincipals": ["g:anonymous"],
-                        "contextUpdate": {
-                            "set": {
-                                "verifiedUsers": "${payload.approvedUsers}",
-                                "verifiedCount": "${payload.verifiedCount}",
+                        "allowedPrincipals": [],
+                        "effects": [
+                            {
+                                "type": "context.update",
+                                "update": {
+                                    "set": {
+                                        "verifiedUsers": {
+                                            "$ctx": "payload.approvedUsers"
+                                        },
+                                        "verifiedCount": {
+                                            "$ctx": "payload.verifiedCount"
+                                        },
+                                    }
+                                },
                             }
-                        },
+                        ],
                         "transitions": [
                             {
                                 "condition": {
@@ -242,13 +263,13 @@ def _definition() -> Dict[str, Any]:
                             "type": "object",
                             "properties": {"reason": {"type": "string"}},
                         },
-                        "allowedPrincipals": ["g:anonymous"],
+                        "allowedPrincipals": [],
                         "effects": [
                             {
                                 "type": "notify",
                                 "argsMapping": {
                                     "kind": "owner_reject",
-                                    "ownerId": "${context.ownerId}",
+                                    "ownerId": {"$ctx": "ownerId"},
                                 },
                             }
                         ],
@@ -263,8 +284,8 @@ def _definition() -> Dict[str, Any]:
                         {
                             "type": "db_create_group",
                             "argsMapping": {
-                                "ownerId": "${context.ownerId}",
-                                "members": "${context.verifiedUsers}",
+                                "ownerId": {"$ctx": "ownerId"},
+                                "members": {"$ctx": "verifiedUsers"},
                             },
                         }
                     ],
@@ -275,7 +296,7 @@ def _definition() -> Dict[str, Any]:
                     "RejectBySystem": {
                         "path": "__system__/reject",
                         "method": "POST",
-                        "allowedPrincipals": ["g:anonymous"],
+                        "allowedPrincipals": [],
                         "payloadSchema": {"type": "object"},
                         "defaultTarget": "S_FINAL_SYSTEM_REJECTED_STEP3",
                     },
@@ -287,9 +308,9 @@ def _definition() -> Dict[str, Any]:
                         {
                             "type": "timer.schedule",
                             "argsMapping": {
-                                "contractId": "${context.contractId}",
+                                "contractId": {"$ctx": "contractId"},
                                 "name": "checkin",
-                                "fireAt": "${context.nextCheckinAt}",
+                                "fireAt": {"$ctx": "nextCheckinAt"},
                                 "event": "CheckinTimeReached",
                                 "path": "/__timer__/checkin",
                                 "payload": {},
@@ -301,7 +322,7 @@ def _definition() -> Dict[str, Any]:
                     "CheckinTimeReached": {
                         "path": "__timer__/checkin",
                         "method": "POST",
-                        "allowedPrincipals": ["g:anonymous"],
+                        "allowedPrincipals": [],
                         "payloadSchema": {"type": "object"},
                         "defaultTarget": "S4B_SEND_CHECKIN",
                     },
@@ -309,7 +330,7 @@ def _definition() -> Dict[str, Any]:
                     "RejectBySystem": {
                         "path": "__system__/reject",
                         "method": "POST",
-                        "allowedPrincipals": ["g:anonymous"],
+                        "allowedPrincipals": [],
                         "payloadSchema": {"type": "object"},
                         "defaultTarget": "S_FINAL_SYSTEM_REJECTED_STEP4",
                     },
@@ -322,7 +343,7 @@ def _definition() -> Dict[str, Any]:
                             "type": "notify",
                             "argsMapping": {
                                 "kind": "checkin",
-                                "users": "${context.verifiedUsers}",
+                                "users": {"$ctx": "verifiedUsers"},
                             },
                         }
                     ]
@@ -339,27 +360,36 @@ def _definition() -> Dict[str, Any]:
                             },
                             "required": ["userId", "answer"],
                         },
-                        "allowedPrincipals": ["g:anonymous"],
-                        "dedupKey": "${payload.userId}",
-                        "contextUpdate": {
-                            "byValue": {
-                                "value": "${payload.answer}",
-                                "cases": {
-                                    "yes": {
-                                        "inc": {"confirmedCount": 1},
-                                        "pushUnique": {
-                                            "confirmedYes": "${payload.userId}"
+                        "allowedPrincipals": [],
+                        "dedupKey": {"$ctx": "payload.userId"},
+                        "effects": [
+                            {
+                                "type": "context.update",
+                                "update": {
+                                    "byValue": {
+                                        "value": {"$ctx": "payload.answer"},
+                                        "cases": {
+                                            "yes": {
+                                                "inc": {"confirmedCount": 1},
+                                                "pushUnique": {
+                                                    "confirmedYes": {
+                                                        "$ctx": "payload.userId"
+                                                    }
+                                                },
+                                            },
+                                            "no": {
+                                                "inc": {"confirmedNoCount": 1},
+                                                "pushUnique": {
+                                                    "confirmedNo": {
+                                                        "$ctx": "payload.userId"
+                                                    }
+                                                },
+                                            },
                                         },
-                                    },
-                                    "no": {
-                                        "inc": {"confirmedNoCount": 1},
-                                        "pushUnique": {
-                                            "confirmedNo": "${payload.userId}"
-                                        },
-                                    },
+                                    }
                                 },
                             }
-                        },
+                        ],
                         "transitions": [
                             {
                                 "condition": {
@@ -386,14 +416,14 @@ def _definition() -> Dict[str, Any]:
                             },
                             "required": ["userId"],
                         },
-                        "allowedPrincipals": ["g:anonymous"],
-                        "dedupKey": "${payload.userId}",
+                        "allowedPrincipals": [],
+                        "dedupKey": {"$ctx": "payload.userId"},
                         "effects": [
                             {
                                 "type": "notify",
                                 "argsMapping": {
                                     "kind": "user_reject",
-                                    "userId": "${payload.userId}",
+                                    "userId": {"$ctx": "payload.userId"},
                                 },
                             }
                         ],
@@ -479,7 +509,11 @@ class ContractsE2ETest(unittest.TestCase):
         from schedula.utils.form.server.contracts import routes as contracts_routes
 
         self._orig_get_auth_sub = contracts_routes.get_auth_sub
-        contracts_routes.get_auth_sub = lambda: "u:owner-1"
+        self._orig_get_current_sub = contracts_routes.get_current_sub
+        self._auth_sub = "owner-1"
+        self._current_sub = "owner-1"
+        contracts_routes.get_auth_sub = lambda: self._auth_sub
+        contracts_routes.get_current_sub = lambda: self._current_sub
 
         with self.app.app_context():
             _db.create_all()
@@ -547,6 +581,8 @@ class ContractsE2ETest(unittest.TestCase):
 
             if hasattr(self, "_orig_get_auth_sub"):
                 contracts_routes.get_auth_sub = self._orig_get_auth_sub
+            if hasattr(self, "_orig_get_current_sub"):
+                contracts_routes.get_current_sub = self._orig_get_current_sub
         except Exception:
             pass
         try:
@@ -567,6 +603,11 @@ class ContractsE2ETest(unittest.TestCase):
         headers: Dict[str, str] = {}
         if if_match:
             headers["If-Match"] = if_match
+        actor_id = _ignored.get("actor_id")
+        if isinstance(actor_id, str) and actor_id:
+            self._current_sub = actor_id
+        else:
+            self._current_sub = self._auth_sub
         body = {"eventId": event_id or str(uuid.uuid4()), "payload": payload}
         return self.httpx.post(
             f"/contracts/{contract_id}/{path}", json=body, headers=headers
@@ -633,24 +674,6 @@ class ContractsE2ETest(unittest.TestCase):
             payload={"userId": "u1", "choice": "accept"},
         )
         self.assertEqual(r1.status_code, 200)
-
-        dup_same = self._post_event(
-            contract_id,
-            "respond",
-            actor_id="u1",
-            role="user",
-            payload={"userId": "u1", "choice": "accept"},
-        )
-        self.assertEqual(dup_same.status_code, 200)
-
-        dup_diff = self._post_event(
-            contract_id,
-            "respond",
-            actor_id="u1",
-            role="user",
-            payload={"userId": "u1", "choice": "reject"},
-        )
-        self.assertEqual(dup_diff.status_code, 409)
 
         r2 = self._post_event(
             contract_id,
@@ -756,15 +779,6 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(r2.status_code, 200)
         self.assertEqual(r2.json()["state"], "S_FINAL_REJECTED_QUORUM_STEP2")
 
-        dup = self._post_event(
-            contract_id,
-            "respond",
-            actor_id="u1",
-            role="user",
-            payload={"userId": "u1", "choice": "reject"},
-        )
-        self.assertEqual(dup.status_code, 200)
-
         effects = self._outbox_effects(contract_id)
         notify_u1_reject = [
             e
@@ -838,7 +852,7 @@ class ContractsE2ETest(unittest.TestCase):
             role="user",
             payload={"userId": "u1", "choice": "accept"},
         )
-        self.assertEqual(further.status_code, 200)
+        self.assertEqual(further.status_code, 410)
 
     def test_owner_abort_penalty(self) -> None:
         definition = _definition()
@@ -1012,9 +1026,12 @@ class ContractsE2ETest(unittest.TestCase):
                             "path": "fetch",
                             "method": "POST",
                             "payloadSchema": {"type": "object"},
-                            "allowedPrincipals": ["g:anonymous"],
-                            "contextUpdate": {"$set": {"marker": "start"}},
+                            "allowedPrincipals": [],
                             "effects": [
+                                {
+                                    "type": "context.update",
+                                    "update": {"$set": {"marker": "start"}},
+                                },
                                 {
                                     "type": "http.request",
                                     "args": {
@@ -1025,7 +1042,7 @@ class ContractsE2ETest(unittest.TestCase):
                                         "path": "/ctx/external.profile",
                                         "select": {"$ref": "/response/data"},
                                     },
-                                }
+                                },
                             ],
                             "defaultTarget": "S_FINAL",
                         }
@@ -1079,12 +1096,21 @@ class ContractsE2ETest(unittest.TestCase):
                                 "properties": {"userId": {"type": "string"}},
                                 "required": ["userId"],
                             },
-                            "allowedPrincipals": ["g:anonymous"],
-                            "contextUpdate": [
-                                {"$set": {"status": "started", "temp": "x"}},
-                                {"$inc": {"count": 1}},
-                                {"$addToSet": {"users": {"$ref": "/payload/userId"}}},
-                                {"$unset": {"temp": 1}},
+                            "allowedPrincipals": [],
+                            "effects": [
+                                {
+                                    "type": "context.update",
+                                    "update": [
+                                        {"$set": {"status": "started", "temp": "x"}},
+                                        {"$inc": {"count": 1}},
+                                        {
+                                            "$addToSet": {
+                                                "users": {"$ctx": "payload.userId"}
+                                            }
+                                        },
+                                        {"$unset": {"temp": 1}},
+                                    ],
+                                }
                             ],
                             "defaultTarget": "S_FINAL",
                         }

@@ -18,6 +18,7 @@ from jsonschema import Draft202012Validator
 from .engine import (
     apply_context_update,
     available_actions,
+    available_actions_actor,
     build_effect_payload,
     find_event_by_path,
     generate_event_id,
@@ -28,7 +29,6 @@ from .engine import (
     pick_transition,
     resolve_on_enter_effects,
     resolve_on_enter_transition,
-    resolve_template,
     validate_definition,
     validate_payload,
 )
@@ -132,14 +132,24 @@ def _ensure_indexes():
 
 
 def _serialize_contract(doc: Dict[str, Any]) -> Dict[str, Any]:
+    actor_id = get_current_sub()
+    actor_state = _actor_state(doc, actor_id)
     return {
         "id": doc.get("_id"),
         "status": doc.get("status"),
         "state": doc.get("state"),
         "version": doc.get("version"),
         "context": doc.get("context") or {},
-        "availableActions": available_actions(
+        "states": doc.get("states") or {},
+        "actorState": actor_state,
+        "availableActionsGlobal": available_actions(
             doc.get("definition") or {}, str(doc.get("state") or "")
+        ),
+        "availableActionsActor": available_actions_actor(
+            doc.get("definition") or {}, str(doc.get("state") or ""), actor_state
+        ),
+        "availableActions": available_actions_actor(
+            doc.get("definition") or {}, str(doc.get("state") or ""), actor_state
         ),
         "lastError": doc.get("last_error"),
     }
@@ -167,10 +177,6 @@ def _enforce_template_create(template_doc: Dict[str, Any]) -> None:
         f"contracts:template:{template_doc.get('_id')}",
         "create",
     )
-
-
-def _filter_allowed_subjects(values: List[str]) -> List[str]:
-    return [v for v in values if v.startswith("u:") or v.startswith("g:")]
 
 
 def _template_is_available(template_doc: Dict[str, Any], sub: Optional[str]) -> bool:
@@ -240,7 +246,7 @@ def _validate_schema(payload: Dict[str, Any], schema: Dict[str, Any]) -> List[st
 
 
 def _check_idempotency(
-    contract_id: str, event_id: Optional[str], idem_key: Optional[str]
+        contract_id: str, event_id: Optional[str], idem_key: Optional[str]
 ) -> Optional[Dict[str, Any]]:
     events = _events_coll()
     if event_id:
@@ -254,6 +260,49 @@ def _check_idempotency(
         if doc:
             return doc
     return None
+
+
+def _idempotent_response(doc: Dict[str, Any]) -> Tuple[Dict[str, Any], int]:
+    current = _get_contract(str(doc.get("_id"))) or doc
+    actor_id = get_current_sub()
+    actor_state = _actor_state(current, actor_id)
+    return (
+        {
+            "id": current.get("_id"),
+            "status": current.get("status"),
+            "state": current.get("state"),
+            "version": current.get("version"),
+            "context": current.get("context") or {},
+            "states": current.get("states") or {},
+            "actorState": actor_state,
+            "effects": [],
+            "availableActionsGlobal": available_actions(
+                current.get("definition") or {},
+                str(current.get("state") or ""),
+            ),
+            "availableActionsActor": available_actions_actor(
+                current.get("definition") or {},
+                str(current.get("state") or ""),
+                actor_state,
+            ),
+            "availableActions": available_actions_actor(
+                current.get("definition") or {},
+                str(current.get("state") or ""),
+                actor_state,
+            ),
+        },
+        200,
+    )
+
+
+def _actor_state(doc: Dict[str, Any], actor_id: str) -> Optional[str]:
+    states = doc.get("states") or {}
+    item = states.get(actor_id)
+    if isinstance(item, dict):
+        item = item.get("state")
+    if isinstance(item, str):
+        return item
+    return "UNKNOW"
 
 
 def _execute_effect(effect_doc: Dict[str, Any]) -> Tuple[str, Optional[str]]:
@@ -302,7 +351,7 @@ def _select_response_value(result: Any, ref: str) -> Any:
         data = result
     if data is None:
         return None
-    path = ref[len("/response/") :]
+    path = ref[len("/response/"):]
     parts = [p for p in path.split("/") if p]
     cur: Any = data
     for part in parts:
@@ -344,13 +393,13 @@ def _run_effects(contract_id: str, effect_ids: List[str]) -> List[Dict[str, Any]
 
 
 def _apply_on_enter(
-    definition: Dict[str, Any],
-    state: str,
-    *,
-    context: Dict[str, Any],
-    actor_id: str,
-    event_id: str,
-) -> Tuple[str, List[Dict[str, Any]]]:
+        definition: Dict[str, Any],
+        state: str,
+        *,
+        context: Dict[str, Any],
+        actor_id: str,
+        event_id: str,
+) -> Tuple[str, List[Dict[str, Any]], Dict[str, Any]]:
     effects: List[Dict[str, Any]] = []
     max_auto = int(config_get("CONTRACTS_MAX_AUTO_TRANSITIONS", 3))
     current = state
@@ -387,98 +436,24 @@ def _apply_on_enter(
         if not next_state:
             break
         current = next_state
-    return current, effects
-
-
-def _find_event_any(
-    definition: Dict[str, Any], path: str
-) -> Tuple[Optional[str], Optional[Dict[str, Any]]]:
-    states = definition.get("states") or {}
-    found = None
-    for sdef in states.values():
-        events = (sdef or {}).get("events") or {}
-        for ename, edef in events.items():
-            if normalize_event_path(edef) == path:
-                if found is not None:
-                    return None, None
-                found = (ename, edef)
-    return found if found else (None, None)
+    return current, effects, context
 
 
 def _process_event(
-    *,
-    contract_id: str,
-    doc: Dict[str, Any],
-    dyn_path: str,
-    event_id: str,
-    actor_id: str,
-    body_payload: Dict[str, Any],
-    idem_key: Optional[str],
-    if_match: Optional[str],
+        *,
+        contract_id: str,
+        doc: Dict[str, Any],
+        dyn_path: str,
+        event_id: str,
+        actor_id: str,
+        body_payload: Dict[str, Any],
+        idem_key: Optional[str],
+        if_match: Optional[str],
 ) -> Tuple[Dict[str, Any], int]:
     if doc.get("status") in ("DONE", "CANCELED"):
         replay = _check_idempotency(contract_id, event_id, idem_key)
         if replay:
-            current = _get_contract(contract_id) or doc
-            return (
-                {
-                    "id": current.get("_id"),
-                    "status": current.get("status"),
-                    "state": current.get("state"),
-                    "version": current.get("version"),
-                    "context": current.get("context") or {},
-                    "effects": [],
-                    "availableActions": available_actions(
-                        current.get("definition") or {},
-                        str(current.get("state") or ""),
-                    ),
-                },
-                200,
-            )
-
-        ename_any, edef_any = _find_event_any(
-            doc.get("definition") or {}, normalize_event_path({"path": dyn_path})
-        )
-        if (
-            ename_any
-            and isinstance(edef_any, dict)
-            and isinstance(edef_any.get("dedupKey"), str)
-        ):
-            dedup_key = resolve_template(
-                edef_any.get("dedupKey"),
-                context=doc.get("context") or {},
-                payload=body_payload,
-                actor_id=actor_id,
-                event_id=event_id,
-            )
-            previous = mongo_find_one(
-                _events_coll(),
-                {
-                    "contract_id": contract_id,
-                    "event_name": ename_any,
-                    "dedup_key": dedup_key,
-                },
-            )
-            if previous:
-                if previous.get("payload_hash") == hash_payload(body_payload):
-                    current = _get_contract(contract_id) or doc
-                    return (
-                        {
-                            "id": current.get("_id"),
-                            "status": current.get("status"),
-                            "state": current.get("state"),
-                            "version": current.get("version"),
-                            "context": current.get("context") or {},
-                            "effects": [],
-                            "availableActions": available_actions(
-                                current.get("definition") or {},
-                                str(current.get("state") or ""),
-                            ),
-                        },
-                        200,
-                    )
-                abort_json(409, "Duplicate response")
-
+            return _idempotent_response(doc)
         abort_json(410, "Contract not accepting events")
 
     if if_match:
@@ -492,22 +467,22 @@ def _process_event(
     ename, edef = find_event_by_path(doc.get("definition") or {}, state, dyn_path)
     if not edef:
         abort_json(409, "Event not available in this state")
-    edef = cast(Dict[str, Any], edef)
-
-    resolver = RefResolver(context=doc.get("context") or {}, enforce_acl=False)
-    allowed_principals = resolver(edef.get("allowedPrincipals"))
-    if isinstance(allowed_principals, str):
-        allowed_principals = [allowed_principals]
-    if not isinstance(allowed_principals, list):
-        allowed_principals = []
-    allowed_principals = _filter_allowed_subjects(
-        [r for r in allowed_principals if isinstance(r, str) and r]
-    )
-    allowed_set = set(allowed_principals)
-    if allowed_set:
+    actor_state_before = _actor_state(doc, actor_id)
+    context = doc.get("context") or {}
+    resolver = RefResolver(context=context, enforce_acl=False)
+    if (
+            ("allowUserStates" in edef and actor_state_before not in set(resolver(edef.get("allowUserStates")) or []))
+            or
+            ("denyUserStates" in edef and actor_state_before in set(resolver(edef.get("denyUserStates")) or []))
+    ):
+        abort_json(409, "Event not available for actor state")
+    if "allowedPrincipals" in edef or "denyPrincipals" in edef:
         enforcer = get_enforcer()
-        if allowed_set.intersection(enforcer.get_roles_for_user(actor_id)):
+        roles = set(enforcer.get_roles_for_user(actor_id))
+        if "allowedPrincipals" in edef and not roles.intersection(set(resolver(edef.get("allowedPrincipals")) or [])):
             abort_json(403, "Subject not allowed")
+        if "denyPrincipals" in edef and roles.intersection(set(resolver(edef.get("denyPrincipals")) or [])):
+            abort_json(403, "Subject denied")
 
     schema_errors = validate_payload(edef.get("payloadSchema"), body_payload)
     if schema_errors:
@@ -516,54 +491,6 @@ def _process_event(
     replay = _check_idempotency(contract_id, event_id, idem_key)
     if replay:
         abort_json(409, "Event replay")
-
-    dedup_key = None
-    dedup_src = edef.get("dedupKey")
-    if isinstance(dedup_src, str):
-        dedup_key = resolve_template(
-            dedup_src,
-            context=doc.get("context") or {},
-            payload=body_payload,
-            actor_id=actor_id,
-            event_id=event_id,
-        )
-    else:
-        dedup_key = resolver(dedup_src)
-    if dedup_key is not None:
-        previous = mongo_find_one(
-            _events_coll(),
-            {
-                "contract_id": contract_id,
-                "event_name": ename,
-                "state_before": state,
-                "dedup_key": dedup_key,
-            },
-        )
-        if previous:
-            if previous.get("payload_hash") == hash_payload(body_payload):
-                current = _get_contract(contract_id) or doc
-                return (
-                    {
-                        "id": current.get("_id"),
-                        "status": current.get("status"),
-                        "state": current.get("state"),
-                        "version": current.get("version"),
-                        "context": current.get("context") or {},
-                        "effects": [],
-                        "availableActions": available_actions(
-                            current.get("definition") or {},
-                            str(current.get("state") or ""),
-                        ),
-                    },
-                    200,
-                )
-            abort_json(409, "Duplicate response")
-
-    context = doc.get("context") or {}
-
-    next_state, reason = pick_transition(edef, context)
-    state_before = state
-    state_after = next_state or state_before
 
     effects: List[Dict[str, Any]] = []
     for ef in edef.get("effects") or []:
@@ -591,8 +518,32 @@ def _process_event(
             }
         )
 
+    global_rule = {
+        "transitions": edef.get("globalTransitions") or edef.get("transitions") or [],
+        "defaultTarget": edef.get("defaultGlobalTarget")
+        if "defaultGlobalTarget" in edef
+        else edef.get("defaultTarget"),
+    }
+    next_state, reason = pick_transition(global_rule, context)
+    state_before = state
+    state_after = next_state or state_before
+
+    user_rule = {
+        "transitions": edef.get("userTransitions") or [],
+        "defaultTarget": edef.get("defaultUserTarget"),
+    }
+    user_state_after, _ = pick_transition(user_rule, context)
+
+    instance_states = dict(doc.get("states") or {})
+    if user_state_after:
+        instance_states[actor_id] = {
+            "state": user_state_after,
+            "updatedAt": now_utc().isoformat(),
+            "lastEvent": ename,
+        }
+
     if next_state:
-        state_after, on_enter_effects = _apply_on_enter(
+        state_after, on_enter_effects, context = _apply_on_enter(
             doc.get("definition") or {},
             str(state_after or ""),
             context=context,
@@ -612,6 +563,7 @@ def _process_event(
 
     update_doc = {
         "state": state_after,
+        "states": instance_states,
         "context": context,
         "version": new_version,
         "status": status,
@@ -636,9 +588,10 @@ def _process_event(
         "role": None,
         "payload": body_payload,
         "payload_hash": hash_payload(body_payload),
-        "dedup_key": dedup_key,
         "state_before": state_before,
         "state_after": state_after,
+        "actor_state_before": actor_state_before,
+        "actor_state_after": user_state_after,
         "transition_reason": reason,
         "created_at": now,
     }
@@ -670,10 +623,10 @@ def _process_event(
 
     if config_get("CONTRACTS_FAIL_ON_EFFECT_ERROR", False):
         if any(
-            e
-            for e in _effects_coll().find(
-                {"_id": {"$in": effect_ids}, "status": "ERROR"}
-            )
+                e
+                for e in _effects_coll().find(
+                    {"_id": {"$in": effect_ids}, "status": "ERROR"}
+                )
         ):
             mongo_update_one(
                 _contracts_coll(),
@@ -691,6 +644,7 @@ def _process_event(
             )
 
     updated = _get_contract(contract_id) or {}
+    actor_state = _actor_state(updated, actor_id)
     return (
         {
             "id": updated.get("_id"),
@@ -698,9 +652,21 @@ def _process_event(
             "state": updated.get("state"),
             "version": updated.get("version"),
             "context": updated.get("context") or {},
+            "states": updated.get("states") or {},
+            "actorState": actor_state,
             "effects": effect_results,
-            "availableActions": available_actions(
+            "availableActionsGlobal": available_actions(
                 updated.get("definition") or {}, str(updated.get("state") or "")
+            ),
+            "availableActionsActor": available_actions_actor(
+                updated.get("definition") or {},
+                str(updated.get("state") or ""),
+                actor_state,
+            ),
+            "availableActions": available_actions_actor(
+                updated.get("definition") or {},
+                str(updated.get("state") or ""),
+                actor_state,
             ),
         },
         200,
@@ -881,7 +847,7 @@ def create_contract_from_template(template_id: str):
     status = "RUNNING"
     now = now_utc()
 
-    state, on_enter_effects = _apply_on_enter(
+    state, on_enter_effects, context = _apply_on_enter(
         res.normalized,
         state,
         context=context,
@@ -896,6 +862,7 @@ def create_contract_from_template(template_id: str):
         "owner_id": owner_id,
         "status": status,
         "state": state,
+        "states": {},
         "version": 1,
         "context": context,
         "definition": res.normalized,
@@ -978,7 +945,7 @@ def create_contract():
     status = "RUNNING"
     now = now_utc()
 
-    state, on_enter_effects = _apply_on_enter(
+    state, on_enter_effects, context = _apply_on_enter(
         res.normalized,
         state,
         context=context,
@@ -993,6 +960,7 @@ def create_contract():
         "owner_id": owner_id,
         "status": status,
         "state": state,
+        "states": {},
         "version": 1,
         "context": context,
         "definition": res.normalized,
@@ -1034,6 +1002,8 @@ def get_contract(contract_id: str):
     doc = _get_contract(contract_id)
     if not doc:
         abort_json(404, "Contract not found")
+    assert doc is not None
+    doc_obj: Dict[str, Any] = cast(Dict[str, Any], doc)
     doc = cast(Dict[str, Any], doc)
     assert doc is not None
     doc = cast(Dict[str, Any], doc)
@@ -1047,12 +1017,25 @@ def get_contract_actions(contract_id: str):
         abort_json(404, "Contract not found")
     assert doc is not None
     doc = cast(Dict[str, Any], doc)
+    actor_id = get_current_sub()
+    actor_state = _actor_state(doc, actor_id)
     return jsonify(
         {
             "id": doc.get("_id"),
             "state": doc.get("state"),
-            "availableActions": available_actions(
+            "actorState": actor_state,
+            "availableActionsGlobal": available_actions(
                 doc.get("definition") or {}, str(doc.get("state") or "")
+            ),
+            "availableActionsActor": available_actions_actor(
+                doc.get("definition") or {},
+                str(doc.get("state") or ""),
+                actor_state,
+            ),
+            "availableActions": available_actions_actor(
+                doc.get("definition") or {},
+                str(doc.get("state") or ""),
+                actor_state,
             ),
         }
     ), 200
@@ -1089,7 +1072,6 @@ def post_contract_event(contract_id: str, dyn_path: str):
     doc = _get_contract(contract_id)
     if not doc:
         abort_json(404, "Contract not found")
-    doc = cast(Dict[str, Any], doc)
 
     result, status = _process_event(
         contract_id=contract_id,
