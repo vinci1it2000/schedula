@@ -29,7 +29,7 @@ def _abort_event():
     return {
         "path": "abort",
         "method": "POST",
-        "allowedRoles": ["g:anonymous"],
+        "allowedPrincipals": ["g:anonymous"],
         "payloadSchema": {"type": "object"},
         "effects": [
             {
@@ -91,8 +91,7 @@ def _definition() -> Dict[str, Any]:
                             },
                             "required": ["userId", "choice"],
                         },
-                        "allowedRoles": ["g:anonymous"],
-                        "allowedActorsContextPath": "eligibleResponders",
+                        "allowedPrincipals": ["g:anonymous"],
                         "dedupKey": "${payload.userId}",
                         "contextUpdate": {
                             "byValue": {
@@ -164,8 +163,7 @@ def _definition() -> Dict[str, Any]:
                             },
                             "required": ["userId"],
                         },
-                        "allowedRoles": ["g:anonymous"],
-                        "allowedActorsContextPath": "eligibleResponders",
+                        "allowedPrincipals": ["g:anonymous"],
                         "dedupKey": "${payload.userId}",
                         "contextUpdate": {
                             "byValue": {
@@ -215,7 +213,7 @@ def _definition() -> Dict[str, Any]:
                             },
                             "required": ["approvedUsers", "verifiedCount"],
                         },
-                        "allowedRoles": ["g:anonymous"],
+                        "allowedPrincipals": ["g:anonymous"],
                         "contextUpdate": {
                             "set": {
                                 "verifiedUsers": "${payload.approvedUsers}",
@@ -238,7 +236,7 @@ def _definition() -> Dict[str, Any]:
                             "type": "object",
                             "properties": {"reason": {"type": "string"}},
                         },
-                        "allowedRoles": ["g:anonymous"],
+                        "allowedPrincipals": ["g:anonymous"],
                         "effects": [
                             {
                                 "type": "notify",
@@ -271,7 +269,7 @@ def _definition() -> Dict[str, Any]:
                     "RejectBySystem": {
                         "path": "__system__/reject",
                         "method": "POST",
-                        "allowedRoles": ["g:anonymous"],
+                        "allowedPrincipals": ["g:anonymous"],
                         "payloadSchema": {"type": "object"},
                         "defaultTarget": "S_FINAL_SYSTEM_REJECTED_STEP3",
                     },
@@ -297,7 +295,7 @@ def _definition() -> Dict[str, Any]:
                     "CheckinTimeReached": {
                         "path": "__timer__/checkin",
                         "method": "POST",
-                        "allowedRoles": ["g:anonymous"],
+                        "allowedPrincipals": ["g:anonymous"],
                         "payloadSchema": {"type": "object"},
                         "defaultTarget": "S4B_SEND_CHECKIN",
                     },
@@ -305,7 +303,7 @@ def _definition() -> Dict[str, Any]:
                     "RejectBySystem": {
                         "path": "__system__/reject",
                         "method": "POST",
-                        "allowedRoles": ["g:anonymous"],
+                        "allowedPrincipals": ["g:anonymous"],
                         "payloadSchema": {"type": "object"},
                         "defaultTarget": "S_FINAL_SYSTEM_REJECTED_STEP4",
                     },
@@ -335,8 +333,7 @@ def _definition() -> Dict[str, Any]:
                             },
                             "required": ["userId", "answer"],
                         },
-                        "allowedRoles": ["g:anonymous"],
-                        "allowedActorsContextPath": "verifiedUsers",
+                        "allowedPrincipals": ["g:anonymous"],
                         "dedupKey": "${payload.userId}",
                         "contextUpdate": {
                             "byValue": {
@@ -383,8 +380,7 @@ def _definition() -> Dict[str, Any]:
                             },
                             "required": ["userId"],
                         },
-                        "allowedRoles": ["g:anonymous"],
-                        "allowedActorsContextPath": "verifiedUsers",
+                        "allowedPrincipals": ["g:anonymous"],
                         "dedupKey": "${payload.userId}",
                         "effects": [
                             {
@@ -1010,7 +1006,7 @@ class ContractsE2ETest(unittest.TestCase):
                             "path": "fetch",
                             "method": "POST",
                             "payloadSchema": {"type": "object"},
-                            "allowedRoles": ["g:anonymous"],
+                            "allowedPrincipals": ["g:anonymous"],
                             "contextUpdate": {"$set": {"marker": "start"}},
                             "effects": [
                                 {
@@ -1077,7 +1073,7 @@ class ContractsE2ETest(unittest.TestCase):
                                 "properties": {"userId": {"type": "string"}},
                                 "required": ["userId"],
                             },
-                            "allowedRoles": ["g:anonymous"],
+                            "allowedPrincipals": ["g:anonymous"],
                             "contextUpdate": [
                                 {"$set": {"status": "started", "temp": "x"}},
                                 {"$inc": {"count": 1}},

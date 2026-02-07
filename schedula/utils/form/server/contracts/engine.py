@@ -150,30 +150,26 @@ def validate_definition(
             if edef.get("method") and str(edef.get("method")).upper() != "POST":
                 errors.append(f"event '{sname}.{ename}' method must be POST")
 
-            roles = edef.get("allowedRoles")
-            if roles is not None and not isinstance(roles, (list, dict)):
+            principals = edef.get("allowedPrincipals")
+            if principals is not None and not isinstance(principals, (list, dict)):
                 errors.append(
-                    f"event '{sname}.{ename}' allowedRoles must be list or $ref"
+                    f"event '{sname}.{ename}' allowedPrincipals must be list or $ref"
                 )
-            if isinstance(roles, list):
-                for r in roles:
+            if isinstance(principals, list):
+                for r in principals:
                     if not isinstance(r, str) or not (
                         r.startswith("u:") or r.startswith("g:")
                     ):
                         errors.append(
-                            f"event '{sname}.{ename}' allowedRoles entries must be 'u:' or 'g:'"
+                            f"event '{sname}.{ename}' allowedPrincipals entries must be 'u:' or 'g:'"
                         )
                         break
-            if isinstance(roles, dict):
-                ref = roles.get("$ref")
+            if isinstance(principals, dict):
+                ref = principals.get("$ref")
                 if not isinstance(ref, str) or not ref:
                     errors.append(
-                        f"event '{sname}.{ename}' allowedRoles $ref must be string"
+                        f"event '{sname}.{ename}' allowedPrincipals $ref must be string"
                     )
-
-            actors = edef.get("allowedActors") or []
-            if actors and not isinstance(actors, list):
-                errors.append(f"event '{sname}.{ename}' allowedActors must be list")
 
             payload_schema = edef.get("payloadSchema")
             if payload_schema is not None and not isinstance(payload_schema, dict):
@@ -362,7 +358,7 @@ def available_actions(definition: Dict[str, Any], state: str) -> List[Dict[str, 
                 "method": "POST",
                 "path": path,
                 "event": ename,
-                "roles": edef.get("allowedRoles") or [],
+                "roles": edef.get("allowedPrincipals") or [],
                 "schema": edef.get("payloadSchema") or {},
             }
         )

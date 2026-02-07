@@ -21,7 +21,6 @@ from .engine import (
     build_effect_payload,
     find_event_by_path,
     generate_event_id,
-    get_context_value,
     set_context_value,
     hash_payload,
     is_final_state,
@@ -241,7 +240,7 @@ def _validate_schema(payload: Dict[str, Any], schema: Dict[str, Any]) -> List[st
 
 
 def _check_idempotency(
-        contract_id: str, event_id: Optional[str], idem_key: Optional[str]
+    contract_id: str, event_id: Optional[str], idem_key: Optional[str]
 ) -> Optional[Dict[str, Any]]:
     events = _events_coll()
     if event_id:
@@ -303,7 +302,7 @@ def _select_response_value(result: Any, ref: str) -> Any:
         data = result
     if data is None:
         return None
-    path = ref[len("/response/"):]
+    path = ref[len("/response/") :]
     parts = [p for p in path.split("/") if p]
     cur: Any = data
     for part in parts:
@@ -345,12 +344,12 @@ def _run_effects(contract_id: str, effect_ids: List[str]) -> List[Dict[str, Any]
 
 
 def _apply_on_enter(
-        definition: Dict[str, Any],
-        state: str,
-        *,
-        context: Dict[str, Any],
-        actor_id: str,
-        event_id: str,
+    definition: Dict[str, Any],
+    state: str,
+    *,
+    context: Dict[str, Any],
+    actor_id: str,
+    event_id: str,
 ) -> Tuple[str, List[Dict[str, Any]]]:
     effects: List[Dict[str, Any]] = []
     max_auto = int(config_get("CONTRACTS_MAX_AUTO_TRANSITIONS", 3))
@@ -382,7 +381,7 @@ def _apply_on_enter(
 
 
 def _find_event_any(
-        definition: Dict[str, Any], path: str
+    definition: Dict[str, Any], path: str
 ) -> Tuple[Optional[str], Optional[Dict[str, Any]]]:
     states = definition.get("states") or {}
     found = None
@@ -397,15 +396,15 @@ def _find_event_any(
 
 
 def _process_event(
-        *,
-        contract_id: str,
-        doc: Dict[str, Any],
-        dyn_path: str,
-        event_id: str,
-        actor_id: str,
-        body_payload: Dict[str, Any],
-        idem_key: Optional[str],
-        if_match: Optional[str],
+    *,
+    contract_id: str,
+    doc: Dict[str, Any],
+    dyn_path: str,
+    event_id: str,
+    actor_id: str,
+    body_payload: Dict[str, Any],
+    idem_key: Optional[str],
+    if_match: Optional[str],
 ) -> Tuple[Dict[str, Any], int]:
     if doc.get("status") in ("DONE", "CANCELED"):
         replay = _check_idempotency(contract_id, event_id, idem_key)
@@ -431,9 +430,9 @@ def _process_event(
             doc.get("definition") or {}, normalize_event_path({"path": dyn_path})
         )
         if (
-                ename_any
-                and isinstance(edef_any, dict)
-                and isinstance(edef_any.get("dedupKey"), str)
+            ename_any
+            and isinstance(edef_any, dict)
+            and isinstance(edef_any.get("dedupKey"), str)
         ):
             dedup_key = resolve_template(
                 edef_any.get("dedupKey"),
@@ -483,24 +482,13 @@ def _process_event(
     ename, edef = find_event_by_path(doc.get("definition") or {}, state, dyn_path)
     if not edef:
         abort_json(409, "Event not available in this state")
-    edef = cast(Dict[str, Any], edef)
 
     resolver = RefResolver(context=doc.get("context") or {}, enforce_acl=False)
-    allowed_roles = set(resolver(edef.get("allowedRoles")))
-    if allowed_roles:
+    allowed_set = set(resolver(edef.get("allowedPrincipals"))) or {doc.get("ownerId")}
+    if allowed_set:
         enforcer = get_enforcer()
-        if allowed_roles.intersection(enforcer.get_roles_for_user(actor_id)):
+        if allowed_set.intersection(enforcer.get_roles_for_user(actor_id)):
             abort_json(403, "Subject not allowed")
-    allowed_actors = edef.get("allowedActors") or []
-    if allowed_actors and actor_id not in allowed_actors:
-        abort_json(403, "Actor not allowed")
-
-    ctx_path = edef.get("allowedActorsContextPath")
-    if isinstance(ctx_path, str) and ctx_path.strip():
-        eligible = get_context_value(doc.get("context") or {}, ctx_path)
-        target_actor = body_payload.get("userId") or actor_id
-        if not isinstance(eligible, list) or target_actor not in eligible:
-            abort_json(403, "Actor not eligible")
 
     schema_errors = validate_payload(edef.get("payloadSchema"), body_payload)
     if schema_errors:
@@ -659,10 +647,10 @@ def _process_event(
 
     if config_get("CONTRACTS_FAIL_ON_EFFECT_ERROR", False):
         if any(
-                e
-                for e in _effects_coll().find(
-                    {"_id": {"$in": effect_ids}, "status": "ERROR"}
-                )
+            e
+            for e in _effects_coll().find(
+                {"_id": {"$in": effect_ids}, "status": "ERROR"}
+            )
         ):
             mongo_update_one(
                 _contracts_coll(),
@@ -833,11 +821,8 @@ def update_template(template_id: str):
 def create_contract_from_template(template_id: str):
     payload = _parse_json_body()
     context = payload.get("context") or {}
-    owner_id = payload.get("ownerId")
     metadata = payload.get("metadata") or {}
 
-    if not isinstance(owner_id, str) or not owner_id.strip():
-        abort_json(400, "ownerId required")
     if not isinstance(context, dict):
         abort_json(400, "context must be object")
     if not isinstance(metadata, dict):
@@ -850,6 +835,8 @@ def create_contract_from_template(template_id: str):
         abort_json(409, "Template disabled")
 
     _enforce_template_create(template)
+
+    owner_id = get_auth_sub()
 
     idem_key = request.headers.get("Idempotency-Key")
     if idem_key:
