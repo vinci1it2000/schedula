@@ -29,7 +29,7 @@ def _abort_event():
     return {
         "path": "abort",
         "method": "POST",
-        "allowedRoles": ["owner"],
+        "allowedRoles": ["g:anonymous"],
         "payloadSchema": {"type": "object"},
         "effects": [
             {
@@ -91,7 +91,7 @@ def _definition() -> Dict[str, Any]:
                             },
                             "required": ["userId", "choice"],
                         },
-                        "allowedRoles": ["user"],
+                        "allowedRoles": ["g:anonymous"],
                         "allowedActorsContextPath": "eligibleResponders",
                         "dedupKey": "${payload.userId}",
                         "contextUpdate": {
@@ -164,7 +164,7 @@ def _definition() -> Dict[str, Any]:
                             },
                             "required": ["userId"],
                         },
-                        "allowedRoles": ["user"],
+                        "allowedRoles": ["g:anonymous"],
                         "allowedActorsContextPath": "eligibleResponders",
                         "dedupKey": "${payload.userId}",
                         "contextUpdate": {
@@ -215,7 +215,7 @@ def _definition() -> Dict[str, Any]:
                             },
                             "required": ["approvedUsers", "verifiedCount"],
                         },
-                        "allowedRoles": ["owner"],
+                        "allowedRoles": ["g:anonymous"],
                         "contextUpdate": {
                             "set": {
                                 "verifiedUsers": "${payload.approvedUsers}",
@@ -238,7 +238,7 @@ def _definition() -> Dict[str, Any]:
                             "type": "object",
                             "properties": {"reason": {"type": "string"}},
                         },
-                        "allowedRoles": ["owner"],
+                        "allowedRoles": ["g:anonymous"],
                         "effects": [
                             {
                                 "type": "notify",
@@ -271,7 +271,7 @@ def _definition() -> Dict[str, Any]:
                     "RejectBySystem": {
                         "path": "__system__/reject",
                         "method": "POST",
-                        "allowedRoles": ["system"],
+                        "allowedRoles": ["g:anonymous"],
                         "payloadSchema": {"type": "object"},
                         "defaultTarget": "S_FINAL_SYSTEM_REJECTED_STEP3",
                     },
@@ -297,7 +297,7 @@ def _definition() -> Dict[str, Any]:
                     "CheckinTimeReached": {
                         "path": "__timer__/checkin",
                         "method": "POST",
-                        "allowedRoles": ["system"],
+                        "allowedRoles": ["g:anonymous"],
                         "payloadSchema": {"type": "object"},
                         "defaultTarget": "S4B_SEND_CHECKIN",
                     },
@@ -305,7 +305,7 @@ def _definition() -> Dict[str, Any]:
                     "RejectBySystem": {
                         "path": "__system__/reject",
                         "method": "POST",
-                        "allowedRoles": ["system"],
+                        "allowedRoles": ["g:anonymous"],
                         "payloadSchema": {"type": "object"},
                         "defaultTarget": "S_FINAL_SYSTEM_REJECTED_STEP4",
                     },
@@ -335,7 +335,7 @@ def _definition() -> Dict[str, Any]:
                             },
                             "required": ["userId", "answer"],
                         },
-                        "allowedRoles": ["user"],
+                        "allowedRoles": ["g:anonymous"],
                         "allowedActorsContextPath": "verifiedUsers",
                         "dedupKey": "${payload.userId}",
                         "contextUpdate": {
@@ -383,7 +383,7 @@ def _definition() -> Dict[str, Any]:
                             },
                             "required": ["userId"],
                         },
-                        "allowedRoles": ["user"],
+                        "allowedRoles": ["g:anonymous"],
                         "allowedActorsContextPath": "verifiedUsers",
                         "dedupKey": "${payload.userId}",
                         "effects": [
@@ -474,6 +474,11 @@ class ContractsE2ETest(unittest.TestCase):
 
             setattr(self.app, "login_manager", _LM())
 
+        from schedula.utils.form.server.contracts import routes as contracts_routes
+
+        self._orig_get_auth_sub = contracts_routes.get_auth_sub
+        contracts_routes.get_auth_sub = lambda: "u:owner-1"
+
         with self.app.app_context():
             _db.create_all()
             self.app.config["CONTRACTS_ACTION_TYPES"] = [
@@ -536,6 +541,13 @@ class ContractsE2ETest(unittest.TestCase):
             _db.session.remove()
             _db.drop_all()
         try:
+            from schedula.utils.form.server.contracts import routes as contracts_routes
+
+            if hasattr(self, "_orig_get_auth_sub"):
+                contracts_routes.get_auth_sub = self._orig_get_auth_sub
+        except Exception:
+            pass
+        try:
             self.mm_client.close()
         except Exception:
             pass
@@ -545,21 +557,15 @@ class ContractsE2ETest(unittest.TestCase):
         contract_id: str,
         path: str,
         *,
-        actor_id: str,
-        role: str,
         payload: Dict[str, Any],
         event_id: str | None = None,
         if_match: str | None = None,
+        **_ignored: Any,
     ) -> httpx.Response:
         headers: Dict[str, str] = {}
         if if_match:
             headers["If-Match"] = if_match
-        body = {
-            "eventId": event_id or str(uuid.uuid4()),
-            "actorId": actor_id,
-            "role": role,
-            "payload": payload,
-        }
+        body = {"eventId": event_id or str(uuid.uuid4()), "payload": payload}
         return self.httpx.post(
             f"/contracts/{contract_id}/{path}", json=body, headers=headers
         )
@@ -1004,7 +1010,7 @@ class ContractsE2ETest(unittest.TestCase):
                             "path": "fetch",
                             "method": "POST",
                             "payloadSchema": {"type": "object"},
-                            "allowedRoles": ["user"],
+                            "allowedRoles": ["g:anonymous"],
                             "contextUpdate": {"$set": {"marker": "start"}},
                             "effects": [
                                 {
@@ -1071,7 +1077,7 @@ class ContractsE2ETest(unittest.TestCase):
                                 "properties": {"userId": {"type": "string"}},
                                 "required": ["userId"],
                             },
-                            "allowedRoles": ["user"],
+                            "allowedRoles": ["g:anonymous"],
                             "contextUpdate": [
                                 {"$set": {"status": "started", "temp": "x"}},
                                 {"$inc": {"count": 1}},

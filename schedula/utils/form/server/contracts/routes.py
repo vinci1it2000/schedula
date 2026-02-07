@@ -35,7 +35,12 @@ from .engine import (
 )
 from .registry import get_registry
 from ..security.casbin import (
-    get_enforcer, require_system_admin, get_current_sub, enforce_or_403, get_auth_sub, is_system_admin
+    get_enforcer,
+    require_system_admin,
+    get_current_sub,
+    enforce_or_403,
+    get_auth_sub,
+    is_system_admin,
 )
 from ..utils import (
     RefResolver,
@@ -481,17 +486,10 @@ def _process_event(
     edef = cast(Dict[str, Any], edef)
 
     resolver = RefResolver(context=doc.get("context") or {}, enforce_acl=False)
-    allowed_roles = resolver(edef.get("allowedRoles"))
-    if isinstance(allowed_roles, str):
-        allowed_roles = [allowed_roles]
-    if not isinstance(allowed_roles, list):
-        allowed_roles = []
-    allowed_roles = _filter_allowed_subjects(
-        [r for r in allowed_roles if isinstance(r, str) and r]
-    )
-    if allowed_roles and _security_enabled():
+    allowed_roles = set(resolver(edef.get("allowedRoles")))
+    if allowed_roles:
         enforcer = get_enforcer()
-        if not any(enforcer.has_role_for_user(actor_id, r) for r in allowed_roles):
+        if allowed_roles.intersection(enforcer.get_roles_for_user(actor_id)):
             abort_json(403, "Subject not allowed")
     allowed_actors = edef.get("allowedActors") or []
     if allowed_actors and actor_id not in allowed_actors:
