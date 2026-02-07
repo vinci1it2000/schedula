@@ -833,7 +833,6 @@ def update_template(template_id: str):
 
 @bp.post("/contracts/templates/<template_id>/contracts")
 def create_contract_from_template(template_id: str):
-    _ensure_indexes()
     payload = _parse_json_body()
     context = payload.get("context") or {}
     owner_id = payload.get("ownerId")
@@ -940,19 +939,17 @@ def validate_contract_definition():
 
 @bp.post("/contracts")
 def create_contract():
-    _ensure_indexes()
     payload = _parse_json_body()
     definition = payload.get("definition")
     context = payload.get("context") or {}
-    owner_id = payload.get("ownerId")
     metadata = payload.get("metadata") or {}
 
-    if not isinstance(owner_id, str) or not owner_id.strip():
-        abort_json(400, "ownerId required")
     if not isinstance(context, dict):
         abort_json(400, "context must be object")
     if not isinstance(metadata, dict):
         abort_json(400, "metadata must be object")
+
+    owner_id = get_auth_sub()
 
     reg = get_registry()
     res = validate_definition(definition if isinstance(definition, dict) else {}, reg)
@@ -1073,7 +1070,6 @@ def cancel_contract(contract_id: str):
 
 @bp.post("/contracts/<contract_id>/<path:dyn_path>")
 def post_contract_event(contract_id: str, dyn_path: str):
-    _ensure_indexes()
     payload = _parse_json_body()
     event_id = generate_event_id(payload.get("eventId"))
     actor_id = get_current_sub()
@@ -1081,7 +1077,6 @@ def post_contract_event(contract_id: str, dyn_path: str):
 
     if not isinstance(body_payload, dict):
         abort_json(400, "payload must be object")
-    actor_id = str(actor_id)
 
     doc = _get_contract(contract_id)
     if not doc:

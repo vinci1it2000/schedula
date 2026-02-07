@@ -21,5 +21,9 @@ class Contracts:
         for k, v in defaults.items():
             app.config[k] = app.config.get(k, v)
         from .routes import bp
+        from .routes import _ensure_indexes
+
+        with app.app_context():
+            _ensure_indexes()
         app.register_blueprint(bp)
         app.extensions["contracts"] = self
