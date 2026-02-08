@@ -8,6 +8,7 @@
 
 from __future__ import annotations
 
+import uuid
 from typing import Any, Dict, List, Optional, Tuple
 
 import pydash
@@ -20,8 +21,27 @@ from ..security.casbin import (
 from ..utils import (
     RefResolver,
     abort_json,
+    config_get,
+    get_mongo,
+    mongo_find_one,
+    mongo_insert_one,
     mongo_update_one,
+    now_utc,
 )
+
+
+def _contracts_coll():
+    return get_mongo(collection=config_get("CONTRACTS_COLLECTION", "contracts"))
+
+
+def _templates_coll():
+    return get_mongo(
+        collection=config_get("CONTRACT_TEMPLATES_COLLECTION", "contract_templates")
+    )
+
+
+def _get_contract(contract_id: str) -> Optional[Dict[str, Any]]:
+    return mongo_find_one(_contracts_coll(), {"_id": contract_id})
 
 
 def validate_payload(
@@ -171,3 +191,48 @@ def _process_event(
             break
     doc = _close_contract(doc)
     return resolver(edef.get("response") or {"ok": True}, doc), 200
+
+
+def _create_contract_from_template_doc(
+        *,
+        template: Dict[str, Any],
+        template_id: str,
+        context: Dict[str, Any],
+        owner_id: str,
+        initial_state: Optional[str] = None,
+) -> Dict[str, Any]:
+    if not bool(template.get("is_enabled", False)):
+        abort_json(409, "Template disabled")
+
+    definition = template["definition"]
+
+    contract_id = str(uuid.uuid4())
+    context["contract_id"] = contract_id
+    default_initial_state = str(definition.get("initial_state") or "")
+    allowed_initial_states = set(template.get("allowed_initial_states", []))
+    allowed_initial_states.add(default_initial_state)
+    state = initial_state or default_initial_state
+    if state not in allowed_initial_states:
+        abort_json(409, f"Initial state '{state}' not allowed by template")
+    now = now_utc()
+
+    metadata = template.get("metadata") or {}
+    if not isinstance(metadata, dict):
+        metadata = {}
+
+    doc = {
+        "_id": contract_id,
+        "status": "RUNNING",
+        "state": state,
+        "states": {},
+        "context": context,
+        "definition": definition,
+        "metadata": metadata,
+        "created_by": owner_id,
+        "created_at": now,
+        "updated_at": now,
+        "template_id": template_id,
+    }
+    mongo_insert_one(_contracts_coll(), doc)
+
+    return _apply_on_enter(doc=_get_contract(contract_id), actor_id=str(owner_id))

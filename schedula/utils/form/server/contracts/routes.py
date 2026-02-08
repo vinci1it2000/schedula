@@ -10,15 +10,18 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List
 
 import pydash
 from flask import Blueprint, jsonify, request
 from jsonschema import Draft202012Validator
 
 from .engine import (
-    _apply_on_enter,
     _process_event,
+    _create_contract_from_template_doc,
+    _templates_coll,
+    _get_contract,
+    _contracts_coll
 )
 from ..security.casbin import (
     get_auth_sub,
@@ -27,8 +30,6 @@ from ..security.casbin import (
 )
 from ..utils import (
     abort_json,
-    config_get,
-    get_mongo,
     mongo_find,
     mongo_find_one,
     mongo_insert_one,
@@ -40,8 +41,6 @@ from ..utils import (
 bp = Blueprint("contracts", __name__)
 set_bp_error_handlers(bp)
 
-MAX_AUTO_TRANSITIONS = 100
-
 TEMPLATE_CREATE_SCHEMA = {
     "type": "object",
     "properties": {
@@ -49,13 +48,13 @@ TEMPLATE_CREATE_SCHEMA = {
         "description": {"type": "string"},
         "definition": {"type": "object"},
         "metadata": {"type": "object"},
-        "isEnabled": {"type": "boolean"},
-        "isPublic": {"type": "boolean"},
-        "allowedSubjects": {
+        "is_enabled": {"type": "boolean"},
+        "is_public": {"type": "boolean"},
+        "allowed_subjects": {
             "type": "array",
             "items": {"type": "string"},
         },
-        "allowedInitialStates": {
+        "allowed_initial_states": {
             "type": "array",
             "items": {"type": "string", "minLength": 1},
         },
@@ -67,30 +66,9 @@ TEMPLATE_CREATE_SCHEMA = {
 TEMPLATE_UPDATE_SCHEMA = {
     "type": "object",
     "properties": TEMPLATE_CREATE_SCHEMA["properties"],
+    "minProperties": 1,
     "additionalProperties": False,
 }
-
-
-def _contracts_coll():
-    return get_mongo(collection=config_get("CONTRACTS_COLLECTION", "contracts"))
-
-
-def _events_coll():
-    return get_mongo(
-        collection=config_get("CONTRACT_EVENTS_COLLECTION", "contract_events")
-    )
-
-
-def _effects_coll():
-    return get_mongo(
-        collection=config_get("CONTRACT_EFFECTS_COLLECTION", "outbox_effects")
-    )
-
-
-def _templates_coll():
-    return get_mongo(
-        collection=config_get("CONTRACT_TEMPLATES_COLLECTION", "contract_templates")
-    )
 
 
 def _ensure_indexes():
@@ -110,8 +88,8 @@ def _serialize_contract(doc: Dict[str, Any]) -> Dict[str, Any]:
         "version": doc.get("version"),
         "context": doc.get("context") or {},
         "states": doc.get("states") or {},
-        "userState": pydash.get(doc, f"states.{get_current_sub()}"),
-        "lastError": doc.get("last_error"),
+        "user_state": pydash.get(doc, f"states.{get_current_sub()}"),
+        "last_error": doc.get("last_error"),
     }
 
 
@@ -120,10 +98,6 @@ def _parse_json_body() -> Dict[str, Any]:
     if not isinstance(payload, dict):
         abort_json(400, "Invalid JSON payload")
     return payload
-
-
-def _get_contract(contract_id: str) -> Optional[Dict[str, Any]]:
-    return mongo_find_one(_contracts_coll(), {"_id": contract_id})
 
 
 def _serialize_template(doc: Dict[str, Any]) -> Dict[str, Any]:
@@ -139,14 +113,14 @@ def _serialize_template(doc: Dict[str, Any]) -> Dict[str, Any]:
         "id": doc.get("_id"),
         "name": doc.get("name"),
         "description": doc.get("description"),
-        "isEnabled": bool(doc.get("is_enabled", False)),
-        "isPublic": bool(doc.get("is_public", False)),
-        "allowedSubjects": doc.get("allowed_subjects") or [],
-        "allowedInitialStates": doc.get("allowed_initial_states") or [],
+        "is_enabled": bool(doc.get("is_enabled", False)),
+        "is_public": bool(doc.get("is_public", False)),
+        "allowed_subjects": doc.get("allowed_subjects") or [],
+        "allowed_initial_states": doc.get("allowed_initial_states") or [],
         "definition": doc.get("definition") or {},
         "metadata": doc.get("metadata") or {},
-        "createdAt": created_at_str,
-        "updatedAt": updated_at_str,
+        "created_at": created_at_str,
+        "updated_at": updated_at_str,
     }
 
 
@@ -165,65 +139,18 @@ def _validate_allowed_initial_states(
     if allowed_initial_states is None:
         return []
     if not isinstance(allowed_initial_states, list):
-        return ["allowedInitialStates must be array"]
+        return ["allowed_initial_states must be array"]
     states = definition.get("states") or {}
     if not isinstance(states, dict):
         return ["definition.states must be object"]
     errors: List[str] = []
     for state in allowed_initial_states:
         if not isinstance(state, str) or not state.strip():
-            errors.append("allowedInitialStates entries must be non-empty strings")
+            errors.append("allowed_initial_states entries must be non-empty strings")
             continue
         if state not in states:
-            errors.append(f"allowedInitialStates includes unknown state '{state}'")
+            errors.append(f"allowed_initial_states includes unknown state '{state}'")
     return errors
-
-
-def _create_contract_from_template_doc(
-        *,
-        template: Dict[str, Any],
-        template_id: str,
-        context: Dict[str, Any],
-        owner_id: str,
-        initial_state: Optional[str] = None,
-) -> Tuple[Dict[str, Any], int]:
-    if not bool(template.get("is_enabled", False)):
-        abort_json(409, "Template disabled")
-
-    definition = template["definition"]
-
-    contract_id = str(uuid.uuid4())
-    context["contractId"] = contract_id
-    default_initial_state = str(definition.get("initialState") or "")
-    allowed_initial_states = set(template.get("allowed_initial_states", []))
-    allowed_initial_states.add(default_initial_state)
-    state = initial_state or default_initial_state
-    if state not in allowed_initial_states:
-        abort_json(409, f"Initial state '{state}' not allowed by template")
-    now = now_utc()
-
-    metadata = template.get("metadata") or {}
-    if not isinstance(metadata, dict):
-        metadata = {}
-
-    doc = {
-        "_id": contract_id,
-        "status": "RUNNING",
-        "state": state,
-        "states": {},
-        "context": context,
-        "definition": definition,
-        "metadata": metadata,
-        "created_by": owner_id,
-        "created_at": now,
-        "updated_at": now,
-        "template_id": template_id,
-    }
-    mongo_insert_one(_contracts_coll(), doc)
-
-    doc = _apply_on_enter(doc=_get_contract(contract_id), actor_id=str(owner_id))
-
-    return _serialize_contract(doc), 201
 
 
 @bp.post("/contracts/templates")
@@ -238,10 +165,10 @@ def create_template():
     description = payload.get("description")
     definition = payload.get("definition")
     metadata = payload.get("metadata") or {}
-    is_enabled = payload.get("isEnabled", True)
-    is_public = payload.get("isPublic", False)
-    allowed_subjects = payload.get("allowedSubjects") or []
-    allowed_initial_states = payload.get("allowedInitialStates") or []
+    is_enabled = payload.get("is_enabled", True)
+    is_public = payload.get("is_public", False)
+    allowed_subjects = payload.get("allowed_subjects") or []
+    allowed_initial_states = payload.get("allowed_initial_states") or []
 
     if not name:
         abort_json(400, "name required")
@@ -295,62 +222,11 @@ def update_template(template_id: str):
     schema_errors = _validate_schema(payload, TEMPLATE_UPDATE_SCHEMA)
     if schema_errors:
         return jsonify({"error": "Invalid payload", "details": schema_errors}), 422
-    updates: Dict[str, Any] = {}
-    if "name" in payload:
-        name_value = payload.get("name")
-        if not isinstance(name_value, str):
-            abort_json(400, "name required")
-        name = str(name_value or "").strip()
-        if not name:
-            abort_json(400, "name required")
-        updates["name"] = name
-    if "description" in payload:
-        updates["description"] = payload.get("description")
-    if "metadata" in payload:
-        if not isinstance(payload.get("metadata"), dict):
-            abort_json(400, "metadata must be object")
-        updates["metadata"] = payload.get("metadata")
-    if "isEnabled" in payload:
-        if not isinstance(payload.get("isEnabled"), bool):
-            abort_json(400, "isEnabled must be boolean")
-        updates["is_enabled"] = payload.get("isEnabled")
-    if "isPublic" in payload:
-        if not isinstance(payload.get("isPublic"), bool):
-            abort_json(400, "isPublic must be boolean")
-        updates["is_public"] = payload.get("isPublic")
-    if "allowedSubjects" in payload:
-        allowed_subjects = payload.get("allowedSubjects")
-        if allowed_subjects and not isinstance(allowed_subjects, list):
-            abort_json(400, "allowedSubjects must be list")
-        updates["allowed_subjects"] = allowed_subjects or []
-    if "allowedInitialStates" in payload:
-        allowed_initial_states = payload.get("allowedInitialStates")
-        if allowed_initial_states and not isinstance(allowed_initial_states, list):
-            abort_json(400, "allowedInitialStates must be list")
-        updates["allowed_initial_states"] = allowed_initial_states or []
-    if "definition" in payload:
-        updates["definition"] = payload.get("definition")
-
     existing = mongo_find_one(_templates_coll(), {"_id": template_id})
     if not existing:
         abort_json(404, "Template not found")
-    next_definition = updates.get("definition") or existing.get("definition") or {}
-    next_allowed_initial_states = (
-        updates.get("allowed_initial_states")
-        if "allowed_initial_states" in updates
-        else existing.get("allowed_initial_states")
-    )
-    initial_state_errors = _validate_allowed_initial_states(
-        next_definition,
-        next_allowed_initial_states,
-    )
-    if initial_state_errors:
-        return jsonify(
-            {"error": "Invalid payload", "details": initial_state_errors}
-        ), 422
 
-    if not updates:
-        abort_json(400, "No updates provided")
+    updates: Dict[str, Any] = dict(payload)
 
     updates["updated_at"] = now_utc()
     res = mongo_update_one(_templates_coll(), {"_id": template_id}, {"$set": updates})
@@ -363,33 +239,33 @@ def update_template(template_id: str):
 @bp.post("/contracts/<template_id>")
 def create_contract(template_id: str):
     payload = _parse_json_body()
-    unexpected_keys = set(payload.keys()) - {"context", "initialState"}
+    unexpected_keys = set(payload.keys()) - {"context", "initial_state"}
     if unexpected_keys:
-        abort_json(400, "Only context and initialState are allowed")
+        abort_json(400, "Only context and initial_state are allowed")
     context = payload.get("context") or {}
     if not isinstance(context, dict):
         abort_json(400, "context must be object")
     initial_state = None
-    if "initialState" in payload:
-        initial_state = payload.get("initialState")
+    if "initial_state" in payload:
+        initial_state = payload.get("initial_state")
         initial_state = (
             initial_state.strip() if isinstance(initial_state, str) else None
         )
         if not initial_state:
-            abort_json(400, "initialState must be non-empty string")
+            abort_json(400, "initial_state must be non-empty string")
 
     owner_id = get_auth_sub()
     template = mongo_find_one(_templates_coll(), {"_id": template_id})
     if not template:
         abort_json(404, "Template not found")
-    result, status = _create_contract_from_template_doc(
+    doc = _create_contract_from_template_doc(
         template=template,
         template_id=template_id,
         context=context,
         owner_id=owner_id,
         initial_state=initial_state,
     )
-    return jsonify(result), status
+    return jsonify(_serialize_contract(doc)), 201
 
 
 @bp.get("/contracts/<contract_id>")
