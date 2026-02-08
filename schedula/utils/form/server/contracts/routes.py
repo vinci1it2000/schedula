@@ -281,8 +281,8 @@ def _apply_effect_step(
             "sender_principal": actor_id,
         }
         create_notification(**notify_kw)
-    elif ef_type == "item.db":
-        pass  # TODO: implement item.db effects
+    elif ef_type == "update.item":
+        pass  # TODO: implement update.item effects
     else:
         abort_json(400, f"Unknown effect type: {ef_type}")
 
