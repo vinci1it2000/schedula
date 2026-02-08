@@ -49,16 +49,19 @@ class RefResolver:
     def fetch(self, ref: Any) -> Any:
         """Resolve a ref string to its document payload (RAW, no recursive resolution)."""
         if isinstance(ref, str) and ref.startswith("/items/"):
-            args = ref.split("/", maxsplit=3)[2:]
-            if len(args) == 2:
-                category, item_id = args
+            args = ref.split("/", maxsplit=4)[2:]
+            if len(args) in (2, 3):
+                category, item_id = args[:2]
                 from .items.crud import _item_get, serialize_item
                 for sub in (self.sender_principal, self.viewer_principal) if self.enforce_acl else [None]:
                     try:
-                        return serialize_item(
+                        res = serialize_item(
                             _item_get(category, item_id, "read", sub, enforce_acl=self.enforce_acl),
                             include_data=True,
                         )
+                        if len(args) == 3:
+                            res = pydash.set_(res, args[2], None)
+                        return res
                     except Exception:
                         continue
                 return None

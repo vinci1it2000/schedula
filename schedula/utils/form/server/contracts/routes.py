@@ -4,7 +4,7 @@
 # Copyright 2015-2026, Vincenzo Arcidiacono;
 # Licensed under the EUPL (the 'Licence');
 
-"""Contracts API service (workflow JSON a stati)."""
+"""Contracts API service (JSON state-machine workflow)."""
 
 from __future__ import annotations
 
@@ -21,7 +21,7 @@ from .engine import (
     _create_contract_from_template_doc,
     _templates_coll,
     _get_contract,
-    _contracts_coll
+    _contracts_coll,
 )
 from ..security.casbin import (
     get_auth_sub,
@@ -42,25 +42,399 @@ bp = Blueprint("contracts", __name__)
 set_bp_error_handlers(bp)
 
 TEMPLATE_CREATE_SCHEMA = {
+    "title": "ContractTemplateCreate",
+    "description": "Schema for creating a contract template.",
     "type": "object",
     "properties": {
-        "name": {"type": "string", "minLength": 1},
-        "description": {"type": "string"},
-        "definition": {"type": "object"},
-        "metadata": {"type": "object"},
-        "is_enabled": {"type": "boolean"},
-        "is_public": {"type": "boolean"},
+        "name": {
+            "title": "Template Name",
+            "description": "Template name.",
+            "type": "string",
+            "minLength": 1,
+        },
+        "description": {
+            "title": "Template Description",
+            "description": "Optional template description.",
+            "type": "string",
+        },
+        "definition": {
+            "title": "Workflow Definition",
+            "description": "Template workflow definition.",
+            "$ref": "#/$defs/definition",
+        },
+        "metadata": {
+            "title": "Template Metadata",
+            "description": "Arbitrary metadata associated with the template.",
+            "type": "object",
+        },
+        "is_enabled": {
+            "title": "Is Enabled",
+            "description": "Enable or disable the template.",
+            "type": "boolean",
+        },
         "allowed_subjects": {
+            "title": "Allowed Subjects",
+            "description": "Subjects allowed to use the template.",
             "type": "array",
             "items": {"type": "string"},
         },
         "allowed_initial_states": {
+            "title": "Allowed Initial States",
+            "description": "Allowed initial states in addition to the definition default.",
             "type": "array",
             "items": {"type": "string", "minLength": 1},
         },
     },
     "required": ["name", "definition"],
     "additionalProperties": False,
+    "$defs": {
+        "effect": {
+            "title": "Effect",
+            "description": "Effect executed in event or on_enter.",
+            "type": "object",
+            "properties": {
+                "type": {
+                    "title": "Effect Type",
+                    "description": "Supported effect type.",
+                    "type": "string",
+                    "enum": [
+                        "update.context",
+                        "update.state",
+                        "update.item",
+                        "http.request",
+                        "notify",
+                    ],
+                },
+                "update": {
+                    "$ref": "#/$defs/update_payload",
+                },
+                "request": {
+                    "title": "HTTP Request",
+                    "description": "Kwargs compatible with requests.request for http.request effects.",
+                    "$ref": "#/$defs/request_kwargs",
+                },
+                "key": {
+                    "title": "Response Key",
+                    "description": "Logical key used to track the HTTP response.",
+                    "type": "string",
+                    "minLength": 1,
+                },
+                "response": {
+                    "title": "Response Template",
+                    "description": "Optional JSON response template. Supports $ref and $doc placeholders resolved at runtime.",
+                    "$ref": "#/$defs/json_with_refs",
+                },
+            },
+            "required": ["type"],
+            "additionalProperties": True,
+            "allOf": [
+                {
+                    "if": {
+                        "properties": {
+                            "type": {
+                                "enum": [
+                                    "update.context",
+                                    "update.state",
+                                    "update.item",
+                                ]
+                            }
+                        }
+                    },
+                    "then": {"required": ["update"]},
+                },
+                {
+                    "if": {"properties": {"type": {"const": "http.request"}}},
+                    "then": {"required": ["request", "key"]},
+                },
+            ],
+        },
+        "event": {
+            "type": "object",
+            "properties": {
+                "path": {"type": "string", "minLength": 1},
+                "method": {
+                    "type": "string",
+                    "enum": ["POST", "GET", "PUT", "PATCH", "DELETE"],
+                },
+                "payload_schema": {"type": "object"},
+                "allow_principals": {
+                    "oneOf": [
+                        {"type": "array", "items": {"type": "string"}},
+                        {"type": "object"},
+                    ]
+                },
+                "deny_principals": {
+                    "oneOf": [
+                        {"type": "array", "items": {"type": "string"}},
+                        {"type": "object"},
+                    ]
+                },
+                "allow_user_states": {
+                    "type": "array",
+                    "items": {"type": "string", "minLength": 1},
+                },
+                "deny_user_states": {
+                    "type": "array",
+                    "items": {"type": "string", "minLength": 1},
+                },
+                "effects": {
+                    "type": "array",
+                    "items": {"$ref": "#/$defs/effect"},
+                },
+                "response": {
+                    "title": "Event Response Template",
+                    "description": "JSON response template. Supports $ref and $doc placeholders resolved at runtime.",
+                    "$ref": "#/$defs/json_with_refs",
+                },
+            },
+            "required": ["path"],
+            "additionalProperties": False,
+        },
+        "json_with_refs": {
+            "title": "JSON with Runtime References",
+            "description": "Any JSON value where objects can include $ref and $doc placeholders resolved by RefResolver.",
+            "$ref": "#/$defs/json_value",
+        },
+        "json_value": {
+            "oneOf": [
+                {"type": "string"},
+                {"type": "number"},
+                {"type": "integer"},
+                {"type": "boolean"},
+                {"type": "null"},
+                {
+                    "type": "array",
+                    "items": {"$ref": "#/$defs/json_value"},
+                },
+                {
+                    "type": "object",
+                    "properties": {
+                        "$ref": {
+                            "type": "string",
+                            "pattern": "^/items(/[^/]+){2,3}$",
+                        },
+                        "$doc": {
+                            "type": "string",
+                            "pattern": "^[^/]+$",
+                        },
+                    },
+                    "additionalProperties": {"$ref": "#/$defs/json_value"},
+                },
+            ]
+        },
+        "request_kwargs": {
+            "title": "Requests Kwargs",
+            "description": "Subset of kwargs supported by requests.request.",
+            "type": "object",
+            "properties": {
+                "method": {
+                    "title": "HTTP Method",
+                    "description": "HTTP method.",
+                    "type": "string",
+                    "enum": [
+                        "GET",
+                        "POST",
+                        "PUT",
+                        "PATCH",
+                        "DELETE",
+                        "HEAD",
+                        "OPTIONS",
+                    ],
+                },
+                "url": {
+                    "title": "Request URL",
+                    "description": "Absolute request URL.",
+                    "type": "string",
+                    "minLength": 1,
+                },
+                "params": {
+                    "title": "Query Params",
+                    "description": "Query string parameters.",
+                    "oneOf": [
+                        {"type": "object"},
+                        {"type": "array"},
+                        {"type": "string"},
+                    ],
+                },
+                "data": {
+                    "title": "Request Data",
+                    "description": "Raw/form request body.",
+                    "oneOf": [
+                        {"type": "object"},
+                        {"type": "array"},
+                        {"type": "string"},
+                        {"type": "number"},
+                        {"type": "boolean"},
+                        {"type": "null"},
+                    ],
+                },
+                "json": {
+                    "title": "Request JSON",
+                    "description": "JSON-serializable request body.",
+                },
+                "headers": {
+                    "title": "Headers",
+                    "description": "HTTP headers.",
+                    "type": "object",
+                    "additionalProperties": {
+                        "oneOf": [{"type": "string"}, {"type": "null"}]
+                    },
+                },
+                "cookies": {
+                    "title": "Cookies",
+                    "description": "Request cookies.",
+                    "type": "object",
+                    "additionalProperties": {"type": "string"},
+                },
+                "files": {
+                    "title": "Files",
+                    "description": "Allegati file payload compatibile requests.",
+                    "type": "object",
+                    "additionalProperties": {},
+                },
+                "auth": {
+                    "title": "Auth",
+                    "description": "Basic auth credentials.",
+                    "oneOf": [
+                        {
+                            "type": "array",
+                            "minItems": 2,
+                            "maxItems": 2,
+                            "items": {"type": "string"},
+                        },
+                        {
+                            "type": "object",
+                            "properties": {
+                                "username": {"type": "string"},
+                                "password": {"type": "string"},
+                            },
+                            "required": ["username", "password"],
+                            "additionalProperties": False,
+                        },
+                    ],
+                },
+                "timeout": {
+                    "title": "Timeout",
+                    "description": "Single timeout or pair (connect, read).",
+                    "oneOf": [
+                        {"type": "number"},
+                        {
+                            "type": "array",
+                            "minItems": 2,
+                            "maxItems": 2,
+                            "items": {"type": "number"},
+                        },
+                    ],
+                },
+                "allow_redirects": {
+                    "title": "Allow Redirects",
+                    "description": "Follow HTTP redirects.",
+                    "type": "boolean",
+                },
+                "proxies": {
+                    "title": "Proxies",
+                    "description": "Proxy mapping by scheme.",
+                    "type": "object",
+                    "additionalProperties": {"type": "string"},
+                },
+                "hooks": {
+                    "title": "Hooks",
+                    "description": "Optional requests hooks.",
+                    "type": "object",
+                },
+                "stream": {
+                    "title": "Stream",
+                    "description": "Enable streaming response.",
+                    "type": "boolean",
+                },
+                "verify": {
+                    "title": "Verify TLS",
+                    "description": "Verifica TLS (bool o path CA bundle).",
+                    "oneOf": [
+                        {"type": "boolean"},
+                        {"type": "string"},
+                    ],
+                },
+                "cert": {
+                    "title": "Client Certificate",
+                    "description": "Certificato client (path o coppia cert/key).",
+                    "oneOf": [
+                        {"type": "string"},
+                        {
+                            "type": "array",
+                            "minItems": 2,
+                            "maxItems": 2,
+                            "items": {"type": "string"},
+                        },
+                    ],
+                },
+            },
+            "required": ["url"],
+            "additionalProperties": False,
+        },
+        "update_payload": {
+            "title": "Update Payload",
+            "description": "Patch object applied by update.* effects. Must contain at least one field.",
+            "type": "object",
+            "minProperties": 1,
+            "properties": {
+                "state": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Target state key when used with update.state.",
+                },
+                "context": {
+                    "type": "object",
+                    "description": "Context partial update object.",
+                },
+                "states": {
+                    "type": "object",
+                    "description": "Per-user states partial update object.",
+                },
+            },
+            "additionalProperties": True,
+        },
+        "state": {
+            "title": "State",
+            "description": "Workflow state definition.",
+            "type": "object",
+            "properties": {
+                "final": {"type": "boolean"},
+                "on_enter": {
+                    "type": "object",
+                    "properties": {
+                        "effects": {
+                            "type": "array",
+                            "items": {"$ref": "#/$defs/effect"},
+                        }
+                    },
+                    "additionalProperties": False,
+                },
+                "events": {
+                    "type": "object",
+                    "additionalProperties": {"$ref": "#/$defs/event"},
+                },
+            },
+            "additionalProperties": False,
+        },
+        "definition": {
+            "title": "Contract Definition",
+            "description": "Complete contract workflow definition.",
+            "type": "object",
+            "properties": {
+                "id": {"type": "string"},
+                "version": {"type": "string"},
+                "initial_state": {"type": "string", "minLength": 1},
+                "states": {
+                    "type": "object",
+                    "minProperties": 1,
+                    "additionalProperties": {"$ref": "#/$defs/state"},
+                },
+            },
+            "required": ["initial_state", "states"],
+            "additionalProperties": False,
+        },
+    },
 }
 
 TEMPLATE_UPDATE_SCHEMA = {
@@ -70,13 +444,23 @@ TEMPLATE_UPDATE_SCHEMA = {
     "additionalProperties": False,
 }
 
+CONTRACT_CREATE_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "context": {"type": "object"},
+        "initial_state": {"type": "string", "minLength": 1},
+    },
+    "required": ["context"],
+    "additionalProperties": False,
+}
+
 
 def _ensure_indexes():
     contracts = _contracts_coll()
     templates = _templates_coll()
     contracts.create_index([("template_id", 1), ("created_at", -1)])
     contracts.create_index([("status", 1), ("updated_at", -1)])
-    templates.create_index([("is_enabled", 1), ("is_public", 1), ("updated_at", -1)])
+    templates.create_index([("is_enabled", 1), ("updated_at", -1)])
     templates.create_index([("name", 1), ("updated_at", -1)])
 
 
@@ -114,7 +498,6 @@ def _serialize_template(doc: Dict[str, Any]) -> Dict[str, Any]:
         "name": doc.get("name"),
         "description": doc.get("description"),
         "is_enabled": bool(doc.get("is_enabled", False)),
-        "is_public": bool(doc.get("is_public", False)),
         "allowed_subjects": doc.get("allowed_subjects") or [],
         "allowed_initial_states": doc.get("allowed_initial_states") or [],
         "definition": doc.get("definition") or {},
@@ -133,8 +516,8 @@ def _validate_schema(payload: Dict[str, Any], schema: Dict[str, Any]) -> List[st
 
 
 def _validate_allowed_initial_states(
-        definition: Dict[str, Any],
-        allowed_initial_states: Any,
+    definition: Dict[str, Any],
+    allowed_initial_states: Any,
 ) -> List[str]:
     if allowed_initial_states is None:
         return []
@@ -166,7 +549,6 @@ def create_template():
     definition = payload.get("definition")
     metadata = payload.get("metadata") or {}
     is_enabled = payload.get("is_enabled", True)
-    is_public = payload.get("is_public", False)
     allowed_subjects = payload.get("allowed_subjects") or []
     allowed_initial_states = payload.get("allowed_initial_states") or []
 
@@ -189,7 +571,6 @@ def create_template():
         "definition": definition,
         "metadata": metadata,
         "is_enabled": is_enabled,
-        "is_public": is_public,
         "allowed_subjects": allowed_subjects,
         "allowed_initial_states": allowed_initial_states,
         "created_at": now,
@@ -239,23 +620,17 @@ def update_template(template_id: str):
 @bp.post("/contracts/<template_id>")
 def create_contract(template_id: str):
     payload = _parse_json_body()
-    unexpected_keys = set(payload.keys()) - {"context", "initial_state"}
-    if unexpected_keys:
-        abort_json(400, "Only context and initial_state are allowed")
-    context = payload.get("context") or {}
-    if not isinstance(context, dict):
-        abort_json(400, "context must be object")
-    initial_state = None
-    if "initial_state" in payload:
-        initial_state = payload.get("initial_state")
-        initial_state = (
-            initial_state.strip() if isinstance(initial_state, str) else None
-        )
-        if not initial_state:
-            abort_json(400, "initial_state must be non-empty string")
+    schema_errors = _validate_schema(payload, CONTRACT_CREATE_SCHEMA)
+    if schema_errors:
+        return jsonify({"error": "Invalid payload", "details": schema_errors}), 422
+
+    context = payload.get("context")
+    initial_state = payload.get("initial_state")
 
     owner_id = get_auth_sub()
-    template = mongo_find_one(_templates_coll(), {"_id": template_id})
+    template = mongo_find_one(
+        _templates_coll(), {"_id": template_id, "is_enabled": True}
+    )
     if not template:
         abort_json(404, "Template not found")
     doc = _create_contract_from_template_doc(

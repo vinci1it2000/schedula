@@ -56,17 +56,6 @@ def validate_payload(
         return [str(e)]
 
 
-def find_event_by_path(
-        definition: Dict[str, Any], state: str, path: str
-) -> Tuple[Optional[str], Optional[Dict[str, Any]]]:
-    st = (definition.get("states") or {}).get(state) or {}
-    events = st.get("events") or {}
-    for ename, edef in events.items():
-        if edef.get("path") == path:
-            return ename, edef
-    return None, None
-
-
 def _apply_effect_step(
         *,
         doc: Dict[str, Any],
@@ -85,20 +74,21 @@ def _apply_effect_step(
         mongo_update_one(
             _contracts_coll(),
             {"_id": contract_id},
-            [{"$set": {
-                f"{what}": {
-                    "$mergeObjects": [
-                        f"${what}",
-                        resolver(ef["update"], doc)
-                    ]
-                },
-                "updated_at": "$$NOW"
-            }}],
+            [
+                {
+                    "$set": {
+                        f"{what}": {
+                            "$mergeObjects": [f"${what}", resolver(ef["update"], doc)]
+                        },
+                        "updated_at": "$$NOW",
+                    }
+                }
+            ],
             let={
                 "doc": doc,
                 "user": actor_id,
                 "payload": payload,
-                "responses": responses
+                "responses": responses,
             },
         )
         doc = _get_contract(contract_id)
@@ -108,6 +98,7 @@ def _apply_effect_step(
         responses[ef["key"]] = requests.request(**request_kw).json()
     elif ef_type == "notify":
         from ..notifications.service import create_notification
+
         notify_kw = {
             "event": "",
             "created_by": actor_id,
@@ -126,7 +117,9 @@ def _apply_effect_step(
 
 def _close_contract(doc):
     if pydash.get(doc, f"definition.states.{doc.get('state')}.final", False):
-        mongo_update_one(_contracts_coll(), {"_id": doc.get('_id')}, {"$set": {"status": "DONE"}})
+        mongo_update_one(
+            _contracts_coll(), {"_id": doc.get("_id")}, {"$set": {"status": "DONE"}}
+        )
         return pydash.merge(doc, {"status": "DONE"})
     return doc
 
@@ -136,7 +129,9 @@ def _apply_on_enter(
         doc: dict[str, Any],
         actor_id: str,
 ) -> dict[str, Any]:
-    for ef in pydash.get(doc, f"definition.states.{doc.get('state')}.onEnter.effects", []):
+    for ef in pydash.get(
+            doc, f"definition.states.{doc.get('state')}.onEnter.effects", []
+    ):
         changed, doc = _apply_effect_step(doc=doc, ef=ef, actor_id=actor_id)
         if changed:
             return doc
@@ -154,39 +149,45 @@ def _process_event(
         abort_json(410, "Contract not accepting events")
 
     state = str(doc.get("state") or "")
-    ename, edef = find_event_by_path(doc.get("definition") or {}, state, dyn_path)
-    if not edef:
+    events = pydash.get(doc, f"definition.states.{state}.events", {})
+    for ename, edef in events.items():
+        if edef.get("path") == dyn_path:
+            break
+    else:
         abort_json(409, "Event not available in this state")
     actor_state_before = pydash.get(doc, f"states.{actor_id}")
     resolver = RefResolver(enforce_acl=False)
     if (
-            "allowUserStates" in edef
-            and actor_state_before not in set(resolver(edef.get("allowUserStates"), doc) or [])
+            "allow_user_states" in edef
+            and actor_state_before
+            not in set(resolver(edef.get("allow_user_states"), doc) or [])
     ) or (
-            "denyUserStates" in edef
-            and actor_state_before in set(resolver(edef.get("denyUserStates"), doc) or [])
+            "deny_user_states" in edef
+            and actor_state_before in set(resolver(edef.get("deny_user_states"), doc) or [])
     ):
         abort_json(409, "Event not available for actor state")
 
-    if "allowPrincipals" in edef or "denyPrincipals" in edef:
+    if "allow_principals" in edef or "deny_principals" in edef:
         enforcer = get_enforcer()
         roles = set(enforcer.get_roles_for_user(actor_id))
         roles.add(actor_id)
-        if "allowPrincipals" in edef and not roles.intersection(
-                set(resolver(edef.get("allowPrincipals"), doc) or [])
+        if "allow_principals" in edef and not roles.intersection(
+                set(resolver(edef.get("allow_principals"), doc) or [])
         ):
             abort_json(403, "Subject not allowed")
-        if "denyPrincipals" in edef and roles.intersection(
-                set(resolver(edef.get("denyPrincipals"), doc) or [])
+        if "deny_principals" in edef and roles.intersection(
+                set(resolver(edef.get("deny_principals"), doc) or [])
         ):
             abort_json(403, "Subject denied")
 
-    schema_errors = validate_payload(edef.get("payloadSchema"), body_payload)
+    schema_errors = validate_payload(edef.get("payload_schema"), body_payload)
     if schema_errors:
         return {"error": "Invalid payload", "details": schema_errors}, 422
 
     for ef in edef.get("effects") or []:
-        changed, doc = _apply_effect_step(doc=doc, ef=ef, payload=body_payload, actor_id=actor_id)
+        changed, doc = _apply_effect_step(
+            doc=doc, ef=ef, payload=body_payload, actor_id=actor_id
+        )
         if changed:
             break
     doc = _close_contract(doc)
@@ -201,9 +202,6 @@ def _create_contract_from_template_doc(
         owner_id: str,
         initial_state: Optional[str] = None,
 ) -> Dict[str, Any]:
-    if not bool(template.get("is_enabled", False)):
-        abort_json(409, "Template disabled")
-
     definition = template["definition"]
 
     contract_id = str(uuid.uuid4())
