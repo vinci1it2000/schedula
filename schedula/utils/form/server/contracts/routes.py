@@ -255,7 +255,7 @@ def _apply_effect_step(
                 f"{what}": {
                     "$mergeObjects": [
                         f"${what}",
-                        resolver(ef["update"])
+                        resolver(ef["update"], doc)
                     ]
                 },
                 "updated_at": "$$NOW"
@@ -317,14 +317,13 @@ def _process_event(
     if not edef:
         abort_json(409, "Event not available in this state")
     actor_state_before = pydash.get(doc, f"states.{actor_id}")
-    context = doc.get("context") or {}
-    resolver = RefResolver(context=context, enforce_acl=False)
+    resolver = RefResolver(enforce_acl=False)
     if (
             "allowUserStates" in edef
-            and actor_state_before not in set(resolver(edef.get("allowUserStates")) or [])
+            and actor_state_before not in set(resolver(edef.get("allowUserStates"), doc) or [])
     ) or (
             "denyUserStates" in edef
-            and actor_state_before in set(resolver(edef.get("denyUserStates")) or [])
+            and actor_state_before in set(resolver(edef.get("denyUserStates"), doc) or [])
     ):
         abort_json(409, "Event not available for actor state")
 
@@ -333,11 +332,11 @@ def _process_event(
         roles = set(enforcer.get_roles_for_user(actor_id))
         roles.add(actor_id)
         if "allowPrincipals" in edef and not roles.intersection(
-                set(resolver(edef.get("allowPrincipals")) or [])
+                set(resolver(edef.get("allowPrincipals"), doc) or [])
         ):
             abort_json(403, "Subject not allowed")
         if "denyPrincipals" in edef and roles.intersection(
-                set(resolver(edef.get("denyPrincipals")) or [])
+                set(resolver(edef.get("denyPrincipals"), doc) or [])
         ):
             abort_json(403, "Subject denied")
 
@@ -514,7 +513,6 @@ def create_contract(template_id: str):
         owner_id=owner_id,
         initial_state=initial_state,
     )
-    pydash.get(doc, f"definition.states.{state}.final", False)
     return jsonify(result), status
 
 
