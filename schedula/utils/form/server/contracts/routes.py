@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple, cast
+from typing import Any, Dict, List, Optional, Tuple
 
 import pydash
 import requests
@@ -238,12 +238,13 @@ def _apply_effect_step(
         *,
         doc: Dict[str, Any],
         ef: Dict[str, Any],
-        payload: Dict[str, Any],
         actor_id: str,
-) -> Dict[str, Any]:
+        payload: Dict[str, Any] = None,
+) -> tuple[bool, Dict[str, Any]]:
     ef_type = str(ef.get("type") or "")
     contract_id = str(doc.get("_id") or "")
     responses = {}
+    payload = payload or {}
     resolver = RefResolver(enforce_acl=False)
     initial_state = doc.get("state")
     if ef_type in ("update.context", "update.state", "update.states"):
@@ -349,7 +350,7 @@ def _process_event(
         if changed:
             break
     doc = _close_contract(doc)
-    return jsonify(resolver(edef.get("response") or {"ok": True}, doc)), 200
+    return resolver(edef.get("response") or {"ok": True}, doc), 200
 
 
 @bp.post("/contracts/templates")
@@ -524,7 +525,7 @@ def get_contract(contract_id: str):
     return jsonify(_serialize_contract(doc)), 200
 
 
-@bp.post("/contracts/<contract_id>/cancel")
+@bp.delete("/contracts/<contract_id>")
 def cancel_contract(contract_id: str):
     now = now_utc()
     res = mongo_update_one(
@@ -541,8 +542,8 @@ def cancel_contract(contract_id: str):
     return jsonify(_serialize_contract(doc)), 200
 
 
-@bp.post("/contracts/<contract_id>/<path:dyn_path>")
-def post_contract_event(contract_id: str, dyn_path: str):
+@bp.route("/contracts/<contract_id>/<path:dyn_path>", methods=["POST", "GET"])
+def contract_api_event(contract_id: str, dyn_path: str):
     payload = _parse_json_body()
     actor_id = get_current_sub()
     body_payload = payload.get("payload") or {}
@@ -561,86 +562,3 @@ def post_contract_event(contract_id: str, dyn_path: str):
         body_payload=body_payload,
     )
     return jsonify(result), status
-
-
-@bp.get("/contracts/<contract_id>/history")
-def get_contract_history(contract_id: str):
-    doc = _get_contract(contract_id)
-    if not doc:
-        abort_json(404, "Contract not found")
-    doc_obj: Dict[str, Any] = cast(Dict[str, Any], doc)
-
-    events = list(mongo_find(_events_coll(), {"contract_id": contract_id}))
-    effects = list(mongo_find(_effects_coll(), {"contract_id": contract_id}))
-
-    event_out = [
-        {
-            "eventId": e.get("event_id"),
-            "path": e.get("path"),
-            "event": e.get("event_name"),
-            "actorId": e.get("actor_id"),
-            "role": e.get("role"),
-            "payloadHash": e.get("payload_hash"),
-            "stateBefore": e.get("state_before"),
-            "stateAfter": e.get("state_after"),
-            "appliedAt": e.get("created_at").isoformat()
-            if e.get("created_at")
-            else None,
-        }
-        for e in events
-    ]
-    transitions = [
-        {
-            "from": e.get("state_before"),
-            "to": e.get("state_after"),
-            "reason": e.get("transition_reason"),
-            "at": e.get("created_at").isoformat() if e.get("created_at") else None,
-        }
-        for e in events
-        if e.get("state_before") != e.get("state_after")
-    ]
-    effects_out = [
-        {
-            "effectId": ef.get("_id"),
-            "type": ef.get("effect_type"),
-            "status": ef.get("status"),
-            "attempts": ef.get("attempts"),
-            "at": ef.get("updated_at").isoformat() if ef.get("updated_at") else None,
-        }
-        for ef in effects
-    ]
-
-    return jsonify(
-        {
-            "id": doc_obj.get("_id"),
-            "events": event_out,
-            "transitions": transitions,
-            "effects": effects_out,
-        }
-    ), 200
-
-
-@bp.get("/contracts/<contract_id>/effects")
-def list_effects(contract_id: str):
-    doc = _get_contract(contract_id)
-    if not doc:
-        abort_json(404, "Contract not found")
-    effects = list(mongo_find(_effects_coll(), {"contract_id": contract_id}))
-    return jsonify(
-        {
-            "id": contract_id,
-            "effects": [
-                {
-                    "effectId": ef.get("_id"),
-                    "type": ef.get("effect_type"),
-                    "status": ef.get("status"),
-                    "attempts": ef.get("attempts"),
-                    "lastError": ef.get("last_error"),
-                    "createdAt": ef.get("created_at").isoformat()
-                    if ef.get("created_at")
-                    else None,
-                }
-                for ef in effects
-            ],
-        }
-    ), 200
