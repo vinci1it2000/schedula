@@ -36,11 +36,11 @@ def _abort_event():
     return {
         "path": "abort",
         "method": "POST",
-        "allowedPrincipals": ["g:authenticated"],
+        "allowPrincipals": ["g:authenticated"],
         "payloadSchema": {"type": "object"},
         "effects": [
             {
-                "type": "charge_credits",
+                "type": "update.db",
                 "argsMapping": {
                     "ownerId": {"$ctx": "ownerId"},
                     "amount": {"$ctx": "penaltyCredits"},
@@ -54,8 +54,11 @@ def _abort_event():
                     "ownerId": {"$ctx": "ownerId"},
                 },
             },
+            {
+                "type": "update.state",
+                "args": {"state": "S_FINAL_OWNER_ABORTED"},
+            },
         ],
-        "defaultTarget": "S_FINAL_OWNER_ABORTED",
     }
 
 
@@ -98,11 +101,11 @@ def _definition() -> Dict[str, Any]:
                             },
                             "required": ["userId", "choice"],
                         },
-                        "allowedPrincipals": ["g:authenticated"],
+                        "allowPrincipals": ["g:authenticated"],
                         "dedupKey": {"$ctx": "payload.userId"},
                         "effects": [
                             {
-                                "type": "context.update",
+                                "type": "update.context",
                                 "update": {
                                     "byValue": {
                                         "value": {"$ctx": "payload.choice"},
@@ -148,25 +151,26 @@ def _definition() -> Dict[str, Any]:
                                     "ownerId": {"$ctx": "ownerId"},
                                 },
                             },
-                        ],
-                        "transitions": [
                             {
+                                "type": "update.state",
                                 "condition": {
                                     "gte": {"var": "$ctx.rejectedCount", "value": 2}
                                 },
-                                "target": "S_FINAL_REJECTED_QUORUM_STEP2",
+                                "args": {"state": "S_FINAL_REJECTED_QUORUM_STEP2"},
                             },
                             {
+                                "type": "update.state",
                                 "condition": {
                                     "gte": {"var": "$ctx.acceptedCount", "value": 3}
                                 },
-                                "target": "S2B_OWNER_VERIFY",
+                                "args": {"state": "S2B_OWNER_VERIFY"},
                             },
                             {
+                                "type": "update.state",
                                 "condition": {
                                     "gte": {"var": "$ctx.respondedCount", "value": 3}
                                 },
-                                "target": "S_FINAL_NOT_ENOUGH_ACCEPTS_STEP2",
+                                "args": {"state": "S_FINAL_NOT_ENOUGH_ACCEPTS_STEP2"},
                             },
                         ],
                     },
@@ -181,11 +185,11 @@ def _definition() -> Dict[str, Any]:
                             },
                             "required": ["userId"],
                         },
-                        "allowedPrincipals": ["g:authenticated"],
+                        "allowPrincipals": ["g:authenticated"],
                         "dedupKey": {"$ctx": "payload.userId"},
                         "effects": [
                             {
-                                "type": "context.update",
+                                "type": "update.context",
                                 "update": {
                                     "byValue": {
                                         "value": "reject",
@@ -216,8 +220,11 @@ def _definition() -> Dict[str, Any]:
                                     "ownerId": {"$ctx": "ownerId"},
                                 },
                             },
+                            {
+                                "type": "update.state",
+                                "args": {"state": "S_FINAL_REJECTED_QUORUM_STEP2"},
+                            },
                         ],
-                        "defaultTarget": "S_FINAL_REJECTED_QUORUM_STEP2",
                     },
                     "AbortByOwner": _abort_event(),
                 },
@@ -238,10 +245,10 @@ def _definition() -> Dict[str, Any]:
                             },
                             "required": ["approvedUsers", "verifiedCount"],
                         },
-                        "allowedPrincipals": ["g:authenticated"],
+                        "allowPrincipals": ["g:authenticated"],
                         "effects": [
                             {
-                                "type": "context.update",
+                                "type": "update.context",
                                 "update": {
                                     "set": {
                                         "verifiedUsers": {
@@ -252,15 +259,14 @@ def _definition() -> Dict[str, Any]:
                                         },
                                     }
                                 },
-                            }
-                        ],
-                        "transitions": [
+                            },
                             {
+                                "type": "update.state",
                                 "condition": {
                                     "gte": {"var": "$ctx.verifiedCount", "value": 3}
                                 },
-                                "target": "S3_CREATE_GROUP",
-                            }
+                                "args": {"state": "S3_CREATE_GROUP"},
+                            },
                         ],
                     },
                     "OwnerReject": {
@@ -270,7 +276,7 @@ def _definition() -> Dict[str, Any]:
                             "type": "object",
                             "properties": {"reason": {"type": "string"}},
                         },
-                        "allowedPrincipals": ["g:authenticated"],
+                        "allowPrincipals": ["g:authenticated"],
                         "effects": [
                             {
                                 "type": "notify",
@@ -278,9 +284,12 @@ def _definition() -> Dict[str, Any]:
                                     "kind": "owner_reject",
                                     "ownerId": {"$ctx": "ownerId"},
                                 },
-                            }
+                            },
+                            {
+                                "type": "update.state",
+                                "args": {"state": "S_FINAL_OWNER_REJECTED_STEP2B"},
+                            },
                         ],
-                        "defaultTarget": "S_FINAL_OWNER_REJECTED_STEP2B",
                     },
                     "AbortByOwner": _abort_event(),
                 }
@@ -289,7 +298,7 @@ def _definition() -> Dict[str, Any]:
                 "onEnter": {
                     "effects": [
                         {
-                            "type": "db_create_group",
+                            "type": "update.db",
                             "argsMapping": {
                                 "ownerId": {"$ctx": "ownerId"},
                                 "members": {"$ctx": "verifiedUsers"},
@@ -303,9 +312,14 @@ def _definition() -> Dict[str, Any]:
                     "RejectBySystem": {
                         "path": "__system__/reject",
                         "method": "POST",
-                        "allowedPrincipals": ["g:authenticated"],
+                        "allowPrincipals": ["g:authenticated"],
                         "payloadSchema": {"type": "object"},
-                        "defaultTarget": "S_FINAL_SYSTEM_REJECTED_STEP3",
+                        "effects": [
+                            {
+                                "type": "update.state",
+                                "args": {"state": "S_FINAL_SYSTEM_REJECTED_STEP3"},
+                            }
+                        ],
                     },
                 },
             },
@@ -313,7 +327,7 @@ def _definition() -> Dict[str, Any]:
                 "onEnter": {
                     "effects": [
                         {
-                            "type": "timer.schedule",
+                            "type": "update.state",
                             "argsMapping": {
                                 "contractId": {"$ctx": "contractId"},
                                 "name": "checkin",
@@ -329,17 +343,27 @@ def _definition() -> Dict[str, Any]:
                     "CheckinTimeReached": {
                         "path": "__timer__/checkin",
                         "method": "POST",
-                        "allowedPrincipals": ["g:authenticated"],
+                        "allowPrincipals": ["g:authenticated"],
                         "payloadSchema": {"type": "object"},
-                        "defaultTarget": "S4B_SEND_CHECKIN",
+                        "effects": [
+                            {
+                                "type": "update.state",
+                                "args": {"state": "S4B_SEND_CHECKIN"},
+                            }
+                        ],
                     },
                     "AbortByOwner": _abort_event(),
                     "RejectBySystem": {
                         "path": "__system__/reject",
                         "method": "POST",
-                        "allowedPrincipals": ["g:authenticated"],
+                        "allowPrincipals": ["g:authenticated"],
                         "payloadSchema": {"type": "object"},
-                        "defaultTarget": "S_FINAL_SYSTEM_REJECTED_STEP4",
+                        "effects": [
+                            {
+                                "type": "update.state",
+                                "args": {"state": "S_FINAL_SYSTEM_REJECTED_STEP4"},
+                            }
+                        ],
                     },
                 },
             },
@@ -367,11 +391,11 @@ def _definition() -> Dict[str, Any]:
                             },
                             "required": ["userId", "answer"],
                         },
-                        "allowedPrincipals": ["g:authenticated"],
+                        "allowPrincipals": ["g:authenticated"],
                         "dedupKey": {"$ctx": "payload.userId"},
                         "effects": [
                             {
-                                "type": "context.update",
+                                "type": "update.context",
                                 "update": {
                                     "byValue": {
                                         "value": {"$ctx": "payload.answer"},
@@ -395,20 +419,20 @@ def _definition() -> Dict[str, Any]:
                                         },
                                     }
                                 },
-                            }
-                        ],
-                        "transitions": [
+                            },
                             {
+                                "type": "update.state",
                                 "condition": {
                                     "gte": {"var": "$ctx.confirmedNoCount", "value": 1}
                                 },
-                                "target": "S_FINAL_NEGATIVE_CHECKIN",
+                                "args": {"state": "S_FINAL_NEGATIVE_CHECKIN"},
                             },
                             {
+                                "type": "update.state",
                                 "condition": {
                                     "gte": {"var": "$ctx.confirmedCount", "value": 3}
                                 },
-                                "target": "S_FINAL_POSITIVE_CHECKIN",
+                                "args": {"state": "S_FINAL_POSITIVE_CHECKIN"},
                             },
                         ],
                     },
@@ -423,7 +447,7 @@ def _definition() -> Dict[str, Any]:
                             },
                             "required": ["userId"],
                         },
-                        "allowedPrincipals": ["g:authenticated"],
+                        "allowPrincipals": ["g:authenticated"],
                         "dedupKey": {"$ctx": "payload.userId"},
                         "effects": [
                             {
@@ -432,9 +456,12 @@ def _definition() -> Dict[str, Any]:
                                     "kind": "user_reject",
                                     "userId": {"$ctx": "payload.userId"},
                                 },
-                            }
+                            },
+                            {
+                                "type": "update.state",
+                                "args": {"state": "S_FINAL_USER_REJECTED_STEP4B"},
+                            },
                         ],
-                        "defaultTarget": "S_FINAL_USER_REJECTED_STEP4B",
                     },
                     "AbortByOwner": _abort_event(),
                 },
@@ -537,10 +564,10 @@ class ContractsE2ETest(unittest.TestCase):
             }
 
             self.app.config["CONTRACTS_ACTION_TYPES"] = [
+                "update.context",
+                "update.state",
+                "update.db",
                 "notify",
-                "db_create_group",
-                "timer.schedule",
-                "charge_credits",
                 "http.request",
             ]
             enforcer = get_enforcer()
@@ -549,38 +576,14 @@ class ContractsE2ETest(unittest.TestCase):
             )
             reg = get_registry()
             reg.register("notify", lambda payload: None, schema={})
-            reg.register("db_create_group", lambda payload: None, schema={})
-            reg.register("charge_credits", lambda payload: None, schema={})
+            reg.register("update.db", lambda payload: None, schema={})
             reg.register(
                 "http.request",
                 lambda payload: {"response": {"data": {"status": "ok"}}},
                 schema={},
             )
 
-            def _timer_schedule(payload: Dict[str, Any]) -> None:
-                timers = get_mongo(collection="contract_timers")
-                fire_at_raw = payload.get("fireAt")
-                fire_at = None
-                if isinstance(fire_at_raw, str):
-                    try:
-                        fire_at = dt.datetime.fromisoformat(fire_at_raw)
-                    except ValueError:
-                        fire_at = None
-                timers.insert_one(
-                    {
-                        "_id": str(uuid.uuid4()),
-                        "contract_id": payload.get("contractId"),
-                        "timer_name": payload.get("name"),
-                        "fire_at": fire_at,
-                        "event_name": payload.get("event"),
-                        "path": payload.get("path"),
-                        "payload": payload.get("payload") or {},
-                        "status": "SCHEDULED",
-                        "created_at": now_utc(),
-                    }
-                )
-
-            reg.register("timer.schedule", _timer_schedule, schema={})
+            reg.register("update.state", lambda payload: None, schema={})
 
         self.httpx = httpx.Client(
             transport=httpx.WSGITransport(app=self.app),
@@ -642,17 +645,59 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertIsNotNone(token)
         return {"Authentication-Token": str(token)}
 
+    def _create_template(
+        self,
+        definition: Dict[str, Any],
+        allowed_initial_states: List[str] | None = None,
+    ) -> str:
+        body: Dict[str, Any] = {
+            "name": f"tpl-{uuid.uuid4()}",
+            "description": "test",
+            "definition": definition,
+            "isEnabled": True,
+            "isPublic": True,
+            "metadata": {"kind": "test"},
+        }
+        if allowed_initial_states is not None:
+            body["allowedInitialStates"] = allowed_initial_states
+        resp = self.httpx.post(
+            "/contracts/templates",
+            json=body,
+            headers=self._auth_headers("admin"),
+        )
+        self.assertEqual(resp.status_code, 201)
+        return str(resp.json().get("id"))
+
+    def _create_contract(
+        self,
+        definition: Dict[str, Any],
+        context: Dict[str, Any],
+        initial_state: str | None = None,
+        allowed_initial_states: List[str] | None = None,
+    ) -> str:
+        template_id = self._create_template(definition, allowed_initial_states)
+        body: Dict[str, Any] = {"context": context}
+        if initial_state is not None:
+            body["initialState"] = initial_state
+        resp = self.httpx.post(
+            f"/contracts/{template_id}",
+            json=body,
+            headers=self._auth_headers("owner-1"),
+        )
+        self.assertEqual(resp.status_code, 201)
+        return str(resp.json().get("id"))
+
     def _post_event(
         self,
         contract_id: str,
         path: str,
         *,
         payload: Dict[str, Any],
+        actor_id: str | None = None,
         event_id: str | None = None,
         if_match: str | None = None,
         **_ignored: Any,
     ) -> httpx.Response:
-        actor_id = _ignored.get("actor_id")
         actor = actor_id if isinstance(actor_id, str) and actor_id else "owner-1"
         headers: Dict[str, str] = dict(self._auth_headers(actor))
         if if_match:
@@ -667,55 +712,16 @@ class ContractsE2ETest(unittest.TestCase):
             coll = get_mongo(collection="outbox_effects")
             return list(coll.find({"contract_id": contract_id}))
 
-    def _create_contract(
-        self,
-        *,
-        definition: Dict[str, Any],
-        context: Dict[str, Any],
-        actor: str = "owner-1",
-        name: str = "test",
-    ) -> Dict[str, Any]:
-        t = self.httpx.post(
-            "/contracts/templates",
-            json={
-                "name": f"tmpl-{uuid.uuid4()}",
-                "description": "auto",
-                "definition": definition,
-                "isEnabled": True,
-                "isPublic": True,
-                "metadata": {"name": name},
-            },
-            headers=self._auth_headers("admin"),
-        )
-        self.assertEqual(t.status_code, 201)
-        template_id = t.json()["id"]
-        c = self.httpx.post(
-            "/contracts",
-            json={"templateId": template_id, "context": context},
-            headers=self._auth_headers(actor),
-        )
-        self.assertEqual(c.status_code, 201)
-        return c.json()
-
     def test_success_negative_checkin(self) -> None:
         definition = _definition()
         resp = self.httpx.post("/contracts/validate", json={"definition": definition})
         self.assertEqual(resp.status_code, 200)
         self.assertTrue(resp.json()["valid"])
 
-        create = self.httpx.post(
-            "/contracts",
-            json={
-                "definition": definition,
-                "context": _base_context(),
-                "ownerId": "owner-1",
-                "metadata": {"name": "test"},
-            },
-            headers=self._auth_headers("owner-1"),
-        )
-        self.assertEqual(create.status_code, 201)
-        contract = create.json()
-        contract_id = contract["id"]
+        contract_id = self._create_contract(definition, _base_context())
+        contract = self.httpx.get(
+            f"/contracts/{contract_id}", headers=self._auth_headers("owner-1")
+        ).json()
         self.assertEqual(contract["state"], "S2_WAIT_RESPONSES")
 
         not_allowed = self._post_event(
@@ -793,13 +799,15 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(verify.status_code, 200)
         self.assertEqual(verify.json()["state"], "S4_SCHEDULE_CHECKIN")
 
-        timers = self.httpx.get(f"/contracts/{contract_id}/timers")
-        self.assertEqual(timers.status_code, 200)
-        self.assertEqual(timers.json()["timers"][0]["timerName"], "checkin")
-
-        fired = self.httpx.post(f"/contracts/{contract_id}/timers/checkin/fire")
+        fired = self._post_event(
+            contract_id,
+            "__timer__/checkin",
+            actor_id="owner-1",
+            role="owner",
+            payload={},
+        )
         self.assertEqual(fired.status_code, 200)
-        self.assertEqual(fired.json()["event"]["state"], "S4B_SEND_CHECKIN")
+        self.assertEqual(fired.json()["state"], "S4B_SEND_CHECKIN")
 
         c1 = self._post_event(
             contract_id,
@@ -830,17 +838,7 @@ class ContractsE2ETest(unittest.TestCase):
 
     def test_rejected_quorum_step2(self) -> None:
         definition = _definition()
-        create = self.httpx.post(
-            "/contracts",
-            json={
-                "definition": definition,
-                "context": _base_context(),
-                "ownerId": "owner-1",
-                "metadata": {"name": "test"},
-            },
-            headers=self._auth_headers("owner-1"),
-        )
-        contract_id = create.json()["id"]
+        contract_id = self._create_contract(definition, _base_context())
 
         r1 = self._post_event(
             contract_id,
@@ -881,17 +879,7 @@ class ContractsE2ETest(unittest.TestCase):
 
     def test_owner_reject_step2b(self) -> None:
         definition = _definition()
-        create = self.httpx.post(
-            "/contracts",
-            json={
-                "definition": definition,
-                "context": _base_context(),
-                "ownerId": "owner-1",
-                "metadata": {"name": "test"},
-            },
-            headers=self._auth_headers("owner-1"),
-        )
-        contract_id = create.json()["id"]
+        contract_id = self._create_contract(definition, _base_context())
 
         last_resp = None
         for uid in ("u1", "u2", "u3"):
@@ -940,17 +928,7 @@ class ContractsE2ETest(unittest.TestCase):
         definition = _definition()
 
         def _create() -> str:
-            resp = self.httpx.post(
-                "/contracts",
-                json={
-                    "definition": definition,
-                    "context": _base_context(),
-                    "ownerId": "owner-1",
-                    "metadata": {"name": "test"},
-                },
-                headers=self._auth_headers("owner-1"),
-            )
-            return resp.json()["id"]
+            return self._create_contract(definition, _base_context())
 
         contract_id = _create()
         abort1 = self._post_event(
@@ -968,8 +946,9 @@ class ContractsE2ETest(unittest.TestCase):
         charge = [
             e
             for e in effects
-            if e.get("effect_type") == "charge_credits"
+            if e.get("effect_type") == "update.db"
             and (e.get("payload") or {}).get("ownerId") == "owner-1"
+            and "owner_abort" in str((e.get("payload") or {}).get("reason") or "")
         ]
         self.assertEqual(len(charge), 1)
         self.assertEqual((charge[0].get("payload") or {}).get("amount"), 10)
@@ -1016,8 +995,9 @@ class ContractsE2ETest(unittest.TestCase):
         charge2 = [
             e
             for e in effects2
-            if e.get("effect_type") == "charge_credits"
+            if e.get("effect_type") == "update.db"
             and (e.get("payload") or {}).get("ownerId") == "owner-1"
+            and "owner_abort" in str((e.get("payload") or {}).get("reason") or "")
         ]
         self.assertEqual(len(charge2), 1)
 
@@ -1075,12 +1055,8 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertNotIn(template_id, avail_after_ids)
 
         create_from_disabled = self.httpx.post(
-            f"/contracts/templates/{template_id}/contracts",
-            json={
-                "context": _base_context(),
-                "ownerId": "owner-1",
-                "metadata": {"name": "test"},
-            },
+            f"/contracts/{template_id}",
+            json={"context": _base_context()},
             headers=self._auth_headers("owner-1"),
         )
         self.assertEqual(create_from_disabled.status_code, 409)
@@ -1093,12 +1069,8 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(enable.status_code, 200)
 
         create_from_template = self.httpx.post(
-            f"/contracts/templates/{template_id}/contracts",
-            json={
-                "context": _base_context(),
-                "ownerId": "owner-1",
-                "metadata": {"name": "from-template"},
-            },
+            f"/contracts/{template_id}",
+            json={"context": _base_context()},
             headers=self._auth_headers("owner-1"),
         )
         self.assertEqual(create_from_template.status_code, 201)
@@ -1123,10 +1095,10 @@ class ContractsE2ETest(unittest.TestCase):
                             "path": "fetch",
                             "method": "POST",
                             "payloadSchema": {"type": "object"},
-                            "allowedPrincipals": ["g:authenticated"],
+                            "allowPrincipals": ["g:authenticated"],
                             "effects": [
                                 {
-                                    "type": "context.update",
+                                    "type": "update.context",
                                     "update": {"$set": {"marker": "start"}},
                                 },
                                 {
@@ -1140,8 +1112,11 @@ class ContractsE2ETest(unittest.TestCase):
                                         "select": {"$ref": "/response/data"},
                                     },
                                 },
+                                {
+                                    "type": "update.state",
+                                    "args": {"state": "S_FINAL"},
+                                },
                             ],
-                            "defaultTarget": "S_FINAL",
                         }
                     }
                 },
@@ -1149,18 +1124,7 @@ class ContractsE2ETest(unittest.TestCase):
             },
         }
 
-        create = self.httpx.post(
-            "/contracts",
-            json={
-                "definition": definition,
-                "context": {},
-                "ownerId": "owner-1",
-                "metadata": {"name": "http"},
-            },
-            headers=self._auth_headers("owner-1"),
-        )
-        self.assertEqual(create.status_code, 201)
-        contract_id = create.json()["id"]
+        contract_id = self._create_contract(definition, {})
 
         res = self._post_event(
             contract_id,
@@ -1194,10 +1158,10 @@ class ContractsE2ETest(unittest.TestCase):
                                 "properties": {"userId": {"type": "string"}},
                                 "required": ["userId"],
                             },
-                            "allowedPrincipals": ["g:authenticated"],
+                            "allowPrincipals": ["g:authenticated"],
                             "effects": [
                                 {
-                                    "type": "context.update",
+                                    "type": "update.context",
                                     "update": [
                                         {"$set": {"status": "started", "temp": "x"}},
                                         {"$inc": {"count": 1}},
@@ -1208,9 +1172,12 @@ class ContractsE2ETest(unittest.TestCase):
                                         },
                                         {"$unset": {"temp": 1}},
                                     ],
-                                }
+                                },
+                                {
+                                    "type": "update.state",
+                                    "args": {"state": "S_FINAL"},
+                                },
                             ],
-                            "defaultTarget": "S_FINAL",
                         }
                     }
                 },
@@ -1218,18 +1185,7 @@ class ContractsE2ETest(unittest.TestCase):
             },
         }
 
-        create = self.httpx.post(
-            "/contracts",
-            json={
-                "definition": definition,
-                "context": {"count": 0, "users": []},
-                "ownerId": "owner-1",
-                "metadata": {"name": "pipeline"},
-            },
-            headers=self._auth_headers("owner-1"),
-        )
-        self.assertEqual(create.status_code, 201)
-        contract_id = create.json()["id"]
+        contract_id = self._create_contract(definition, {"count": 0, "users": []})
 
         res = self._post_event(
             contract_id,
@@ -1247,3 +1203,95 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(ctx.get("count"), 1)
         self.assertEqual(ctx.get("users"), ["u1"])
         self.assertNotIn("temp", ctx)
+
+    def test_create_contract_with_allowed_initial_state(self) -> None:
+        definition = _definition()
+
+        contract_id = self._create_contract(
+            definition,
+            _base_context(),
+            initial_state="S2_WAIT_RESPONSES",
+            allowed_initial_states=["S2_WAIT_RESPONSES"],
+        )
+        contract = self.httpx.get(
+            f"/contracts/{contract_id}", headers=self._auth_headers("owner-1")
+        )
+        self.assertEqual(contract.status_code, 200)
+        self.assertEqual(contract.json().get("state"), "S2_WAIT_RESPONSES")
+
+        template_id = self._create_template(definition)
+        forbidden = self.httpx.post(
+            f"/contracts/{template_id}",
+            json={"context": _base_context(), "initialState": "S2_WAIT_RESPONSES"},
+            headers=self._auth_headers("owner-1"),
+        )
+        self.assertEqual(forbidden.status_code, 409)
+
+    def test_transition_condition_supports_dollar_cond(self) -> None:
+        definition = {
+            "initialState": "S1",
+            "states": {
+                "S1": {
+                    "events": {
+                        "Decide": {
+                            "path": "decide",
+                            "effects": [
+                                {
+                                    "type": "update.state",
+                                    "condition": {
+                                        "$cond": {
+                                            "if": {
+                                                "eq": {
+                                                    "var": "$ctx.flag",
+                                                    "value": True,
+                                                }
+                                            },
+                                            "then": {
+                                                "eq": {
+                                                    "var": "$ctx.value",
+                                                    "value": "ok",
+                                                }
+                                            },
+                                            "else": {
+                                                "eq": {
+                                                    "var": "$ctx.value",
+                                                    "value": "ko",
+                                                }
+                                            },
+                                        }
+                                    },
+                                    "args": {"state": "S_OK"},
+                                },
+                                {
+                                    "type": "update.state",
+                                    "args": {"state": "S_KO"},
+                                },
+                            ],
+                        }
+                    }
+                },
+                "S_OK": {"final": True},
+                "S_KO": {"final": True},
+            },
+        }
+
+        contract_true = self._create_contract(definition, {"flag": True, "value": "ok"})
+        r_true = self._post_event(
+            contract_true,
+            "decide",
+            payload={},
+        )
+        self.assertEqual(r_true.status_code, 200)
+        self.assertEqual(r_true.json().get("state"), "S_OK")
+
+        contract_false = self._create_contract(
+            definition,
+            {"flag": False, "value": "ko"},
+        )
+        r_false = self._post_event(
+            contract_false,
+            "decide",
+            payload={},
+        )
+        self.assertEqual(r_false.status_code, 200)
+        self.assertEqual(r_false.json().get("state"), "S_OK")

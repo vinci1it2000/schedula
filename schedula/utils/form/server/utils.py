@@ -32,21 +32,19 @@ class RefResolver:
     viewer_principal: str = None
     sender_principal: str = None
     enforce_acl: bool = None
-    context: dict[str, Any] = None
 
     def __post_init__(self):
         # memoization per resolver instance
         self._seen: dict[str, Any] = {}
-        self.context = self.context or {}
 
-    def __call__(self, ref_or_obj: Any) -> Any:
+    def __call__(self, ref_or_obj: Any, doc: dict = None) -> Any:
         """
         If you pass a string, it's treated as a ref.
         Otherwise it's treated as an object that may contain $ref inside.
         """
         if isinstance(ref_or_obj, str):
-            return self.resolve_refs({"$ref": ref_or_obj})
-        return self.resolve_refs(ref_or_obj)
+            return self.resolve_refs({"$ref": ref_or_obj}, doc or {})
+        return self.resolve_refs(ref_or_obj, doc or {})
 
     def fetch(self, ref: Any) -> Any:
         """Resolve a ref string to its document payload (RAW, no recursive resolution)."""
@@ -66,7 +64,7 @@ class RefResolver:
                 return None
         return None
 
-    def resolve_refs(self, obj: Any) -> Any:
+    def resolve_refs(self, obj: Any, doc: dict) -> Any:
         """
         Resolve dicts that look like {'$ref': '...'} recursively.
 
@@ -78,39 +76,39 @@ class RefResolver:
             # $ref object (string ref)
             if isinstance(x, dict):
                 if len(x) == 1:
-                    if "$ctx" in x:
-                        return pydash.get(self.context, x["$ctx"])
+                    if "$doc" in x:
+                        return pydash.get(doc, x["$doc"])
                     elif "$ref" in x:
                         ref = x["$ref"]
 
-                        # If $ref is not a string, treat it as "inline" content to resolve.
-                        if not isinstance(ref, str):
-                            return _walk(ref)
+                    # If $ref is not a string, treat it as "inline" content to resolve.
+                    if not isinstance(ref, str):
+                        return _walk(ref)
 
-                        # cycle / memo
-                        if ref in self._seen:
-                            return self._seen[ref]
+                    # cycle / memo
+                    if ref in self._seen:
+                        return self._seen[ref]
 
-                        fetched = self.fetch(ref)
+                    fetched = self.fetch(ref)
 
-                        # Placeholder BEFORE diving in, so cycles work
-                        if isinstance(fetched, dict):
-                            placeholder: dict[str, Any] = {}
-                            self._seen[ref] = placeholder
-                            resolved_dict = _walk(fetched)
-                            placeholder.clear()
-                            placeholder.update(resolved_dict if isinstance(resolved_dict, dict) else {})
-                            return placeholder
+                    # Placeholder BEFORE diving in, so cycles work
+                    if isinstance(fetched, dict):
+                        placeholder: dict[str, Any] = {}
+                        self._seen[ref] = placeholder
+                        resolved_dict = _walk(fetched)
+                        placeholder.clear()
+                        placeholder.update(resolved_dict if isinstance(resolved_dict, dict) else {})
+                        return placeholder
 
-                        if isinstance(fetched, list):
-                            placeholder_list: list[Any] = []
-                            self._seen[ref] = placeholder_list
-                            resolved_list = _walk(fetched)
-                            placeholder_list[:] = resolved_list if isinstance(resolved_list, list) else []
-                            return placeholder_list
+                    if isinstance(fetched, list):
+                        placeholder_list: list[Any] = []
+                        self._seen[ref] = placeholder_list
+                        resolved_list = _walk(fetched)
+                        placeholder_list[:] = resolved_list if isinstance(resolved_list, list) else []
+                        return placeholder_list
 
-                        self._seen[ref] = fetched
-                        return fetched
+                    self._seen[ref] = fetched
+                    return fetched
 
                 # Normal dict
                 return {k: _walk(v) for k, v in x.items()}
