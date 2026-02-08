@@ -94,10 +94,12 @@ def _templates_coll():
 
 
 def _ensure_indexes():
-    events = _events_coll()
-    effects = _effects_coll()
-    events.create_index([("contract_id", 1), ("event_id", 1)], unique=True)
-    effects.create_index([("contract_id", 1), ("status", 1)])
+    contracts = _contracts_coll()
+    templates = _templates_coll()
+    contracts.create_index([("template_id", 1), ("created_at", -1)])
+    contracts.create_index([("status", 1), ("updated_at", -1)])
+    templates.create_index([("is_enabled", 1), ("is_public", 1), ("updated_at", -1)])
+    templates.create_index([("name", 1), ("updated_at", -1)])
 
 
 def _serialize_contract(doc: Dict[str, Any]) -> Dict[str, Any]:
@@ -215,7 +217,7 @@ def _create_contract_from_template_doc(
         "created_by": owner_id,
         "created_at": now,
         "updated_at": now,
-        "template_id": template_id
+        "template_id": template_id,
     }
     mongo_insert_one(_contracts_coll(), doc)
 
@@ -244,7 +246,9 @@ def create_template():
     if not name:
         abort_json(400, "name required")
 
-    initial_state_errors = _validate_allowed_initial_states(definition, allowed_initial_states)
+    initial_state_errors = _validate_allowed_initial_states(
+        definition, allowed_initial_states
+    )
     if initial_state_errors:
         return jsonify(
             {"error": "Invalid payload", "details": initial_state_errors}
