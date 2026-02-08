@@ -100,13 +100,14 @@ TEMPLATE_CREATE_SCHEMA = {
                     "enum": [
                         "update.context",
                         "update.state",
+                        "update.states",
                         "update.item",
                         "http.request",
                         "notify",
                     ],
                 },
                 "update": {
-                    "$ref": "#/$defs/update_payload",
+                    "$ref": "#/$defs/update_operation",
                 },
                 "request": {
                     "title": "HTTP Request",
@@ -135,6 +136,7 @@ TEMPLATE_CREATE_SCHEMA = {
                                 "enum": [
                                     "update.context",
                                     "update.state",
+                                    "update.states",
                                     "update.item",
                                 ]
                             }
@@ -288,7 +290,7 @@ TEMPLATE_CREATE_SCHEMA = {
                 },
                 "files": {
                     "title": "Files",
-                    "description": "Allegati file payload compatibile requests.",
+                    "description": "Files payload compatible with requests.",
                     "type": "object",
                     "additionalProperties": {},
                 },
@@ -372,27 +374,29 @@ TEMPLATE_CREATE_SCHEMA = {
             "required": ["url"],
             "additionalProperties": False,
         },
-        "update_payload": {
+        "update_operation": {
             "title": "Update Payload",
-            "description": "Patch object applied by update.* effects. Must contain at least one field.",
+            "description": "MongoDB/PyMongo update operation document (operator form).",
             "type": "object",
             "minProperties": 1,
-            "properties": {
-                "state": {
-                    "type": "string",
-                    "minLength": 1,
-                    "description": "Target state key when used with update.state.",
-                },
-                "context": {
-                    "type": "object",
-                    "description": "Context partial update object.",
-                },
-                "states": {
-                    "type": "object",
-                    "description": "Per-user states partial update object.",
-                },
+            "propertyNames": {
+                "pattern": "^\\$[A-Za-z][A-Za-z0-9_]*$",
+                "description": "Mongo update operator name, e.g. $set, $unset, $inc, $push, $addToSet, $pull.",
             },
-            "additionalProperties": True,
+            "patternProperties": {
+                "^\\$set$": {"type": "object"},
+                "^\\$unset$": {"type": "object"},
+                "^\\$inc$": {"type": "object"},
+                "^\\$push$": {"type": "object"},
+                "^\\$addToSet$": {"type": "object"},
+                "^\\$pull$": {"type": "object"},
+                "^\\$rename$": {"type": "object"},
+                "^\\$min$": {"type": "object"},
+                "^\\$max$": {"type": "object"},
+                "^\\$mul$": {"type": "object"},
+                "^\\$currentDate$": {"type": "object"},
+            },
+            "additionalProperties": {"type": "object"},
         },
         "state": {
             "title": "State",
