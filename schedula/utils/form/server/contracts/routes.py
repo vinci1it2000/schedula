@@ -105,6 +105,7 @@ TEMPLATE_CREATE_SCHEMA = {
                         "create.group",
                         "update.group",
                         "update.contract",
+                        "if.else",
                         "schedule.event",
                         "unschedule.event",
                         "http.request",
@@ -185,6 +186,19 @@ TEMPLATE_CREATE_SCHEMA = {
                     "type": "string",
                     "minLength": 1,
                 },
+                "condition": {
+                    "title": "Branch Condition",
+                    "description": "Condition value for if.else branching.",
+                    "$ref": "#/$defs/json_with_refs",
+                },
+                "then_effects": {
+                    "type": "array",
+                    "items": {"$ref": "#/$defs/effect"},
+                },
+                "else_effects": {
+                    "type": "array",
+                    "items": {"$ref": "#/$defs/effect"},
+                },
             },
             "required": ["type"],
             "additionalProperties": False,
@@ -212,6 +226,10 @@ TEMPLATE_CREATE_SCHEMA = {
                         }
                     },
                     "then": {"required": ["item_id", "update"]},
+                },
+                {
+                    "if": {"properties": {"type": {"const": "if.else"}}},
+                    "then": {"required": ["condition", "then_effects"]},
                 },
                 {
                     "if": {"properties": {"type": {"const": "schedule.event"}}},
@@ -260,13 +278,18 @@ TEMPLATE_CREATE_SCHEMA = {
             "type": "object",
             "properties": {
                 "add_members": {
-                    "type": "array",
-                    "items": {
-                        "anyOf": [
-                            {"type": "string", "pattern": "^[ug]:.+$"},
-                            {"$ref": "#/$defs/json_with_refs"},
-                        ]
-                    },
+                    "anyOf": [
+                        {
+                            "type": "array",
+                            "items": {
+                                "anyOf": [
+                                    {"type": "string", "pattern": "^[ug]:.+$"},
+                                    {"$ref": "#/$defs/json_with_refs"},
+                                ]
+                            },
+                        },
+                        {"$ref": "#/$defs/json_with_refs"},
+                    ],
                 },
                 "remove_members": {
                     "type": "array",
@@ -327,13 +350,18 @@ TEMPLATE_CREATE_SCHEMA = {
                     "description": "Notification event name.",
                 },
                 "targets": {
-                    "type": "object",
                     "description": "Map of principal -> channel list.",
-                    "additionalProperties": {
-                        "type": "array",
-                        "minItems": 1,
-                        "items": {"type": "string", "minLength": 1},
-                    },
+                    "anyOf": [
+                        {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "array",
+                                "minItems": 1,
+                                "items": {"type": "string", "minLength": 1},
+                            },
+                        },
+                        {"$ref": "#/$defs/json_with_refs"},
+                    ],
                 },
                 "created_by": {
                     "type": "string",

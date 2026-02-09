@@ -93,7 +93,10 @@ class RefResolver:
             if isinstance(x, dict):
                 if len(x) == 1:
                     if "$ctx" in x:
-                        return pydash.get(ctx, x["$ctx"])
+                        ctx_path = _walk(x["$ctx"])
+                        if isinstance(ctx_path, str):
+                            return pydash.get(ctx, ctx_path)
+                        return ctx_path
                     elif "$ref" in x:
                         ref = x["$ref"]
 

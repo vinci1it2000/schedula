@@ -109,6 +109,28 @@ def _apply_effect_step(
         }
         notify_kw.update(ef["notify"] or {})
         create_notification(**notify_kw)
+    elif ef_type == "if.else":
+        condition = ef.get("condition")
+        then_effects = ef.get("then_effects") or []
+        else_effects = ef.get("else_effects") or []
+        if not isinstance(then_effects, list):
+            abort_json(400, "if.else requires then_effects array")
+        if not isinstance(else_effects, list):
+            abort_json(400, "if.else else_effects must be array")
+        selected = then_effects if bool(condition) else else_effects
+        any_changed = False
+        for child in selected:
+            if not isinstance(child, dict):
+                abort_json(400, "if.else effects must be objects")
+            changed, doc = _apply_effect_step(
+                doc=doc,
+                ef=child,
+                actor_id=actor_id,
+                payload=payload,
+                local=local,
+            )
+            any_changed = any_changed or changed
+        return any_changed, doc
     elif ef_type == "schedule.event":
         now = now_utc()
         contract_id = str(doc.get("_id") or "")
