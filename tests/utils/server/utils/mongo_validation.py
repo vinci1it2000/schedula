@@ -51,21 +51,31 @@ class ValidatingMongoCollection(Collection):
         return self._c.replace_one(filter, replacement, *args, **kwargs)
 
     def update_one(self, filter, update, *args, **kwargs):
+        kwargs.pop("let", None)
         # Best-effort: validate full doc after applying update if possible
         # mongomock doesn't expose server-side update validation; we approximate.
         doc = self._c.find_one(filter)
         if doc is not None:
             new_doc = dict(doc)
-            if "$set" in update and isinstance(update["$set"], dict):
+            if (
+                isinstance(update, dict)
+                and "$set" in update
+                and isinstance(update["$set"], dict)
+            ):
                 new_doc.update(update["$set"])
             self._validate_doc(new_doc)
         return self._c.update_one(filter, update, *args, **kwargs)
 
     def update_many(self, filter, update, *args, **kwargs):
+        kwargs.pop("let", None)
         # Validate each matched doc best-effort
         for doc in self._c.find(filter):
             new_doc = dict(doc)
-            if "$set" in update and isinstance(update["$set"], dict):
+            if (
+                isinstance(update, dict)
+                and "$set" in update
+                and isinstance(update["$set"], dict)
+            ):
                 new_doc.update(update["$set"])
             self._validate_doc(new_doc)
         return self._c.update_many(filter, update, *args, **kwargs)
