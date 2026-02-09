@@ -105,6 +105,8 @@ TEMPLATE_CREATE_SCHEMA = {
                         "create.group",
                         "update.group",
                         "update.contract",
+                        "schedule.event",
+                        "unschedule.event",
                         "http.request",
                         "notify",
                     ],
@@ -152,6 +154,37 @@ TEMPLATE_CREATE_SCHEMA = {
                     "type": "string",
                     "minLength": 1,
                 },
+                "event_id": {
+                    "title": "Scheduled Event Id",
+                    "description": "Unique scheduled event identifier in contract document.",
+                    "anyOf": [
+                        {"type": "string", "minLength": 1},
+                        {"$ref": "#/$defs/json_with_refs"},
+                    ],
+                },
+                "event_name": {
+                    "title": "Scheduled Event Name",
+                    "description": "State event name to fire on schedule.",
+                    "type": "string",
+                    "minLength": 1,
+                },
+                "cron": {
+                    "title": "Cron Expression",
+                    "description": "Cron expression used to trigger scheduled event.",
+                    "type": "string",
+                    "minLength": 1,
+                },
+                "payload": {
+                    "title": "Scheduled Payload",
+                    "description": "Payload passed to the scheduled event when fired.",
+                    "$ref": "#/$defs/json_with_refs",
+                },
+                "actor_id": {
+                    "title": "Scheduled Actor",
+                    "description": "Actor principal used to fire scheduled event.",
+                    "type": "string",
+                    "minLength": 1,
+                },
             },
             "required": ["type"],
             "additionalProperties": False,
@@ -179,6 +212,14 @@ TEMPLATE_CREATE_SCHEMA = {
                         }
                     },
                     "then": {"required": ["item_id", "update"]},
+                },
+                {
+                    "if": {"properties": {"type": {"const": "schedule.event"}}},
+                    "then": {"required": ["event_name", "cron", "key"]},
+                },
+                {
+                    "if": {"properties": {"type": {"const": "unschedule.event"}}},
+                    "then": {"required": ["event_id"]},
                 },
                 {
                     "if": {"properties": {"type": {"const": "http.request"}}},
@@ -382,16 +423,6 @@ TEMPLATE_CREATE_SCHEMA = {
                         },
                     },
                     "required": ["type", "path"],
-                    "additionalProperties": False,
-                },
-                {
-                    "type": "object",
-                    "properties": {
-                        "type": {"const": "cron"},
-                        "cron": {"type": "string", "minLength": 1},
-                        "timezone": {"type": "string"},
-                    },
-                    "required": ["type", "cron"],
                     "additionalProperties": False,
                 },
                 {
@@ -632,6 +663,10 @@ TEMPLATE_CREATE_SCHEMA = {
                     "type": "object",
                     "additionalProperties": {"$ref": "#/$defs/event"},
                 },
+                "context_schema": {
+                    "type": "object",
+                    "description": "Optional JSON Schema for contract context when this state is the initial state.",
+                },
             },
             "additionalProperties": False,
         },
@@ -734,8 +769,8 @@ def _validate_schema(payload: Dict[str, Any], schema: Dict[str, Any]) -> List[st
 
 
 def _validate_allowed_initial_states(
-    definition: Dict[str, Any],
-    allowed_initial_states: Any,
+        definition: Dict[str, Any],
+        allowed_initial_states: Any,
 ) -> List[str]:
     if allowed_initial_states is None:
         return []
@@ -754,6 +789,27 @@ def _validate_allowed_initial_states(
     return errors
 
 
+def _validate_context_schema_for_initial_state(
+        definition: Dict[str, Any],
+        initial_state: str,
+        context: Dict[str, Any],
+) -> List[str]:
+    states = definition.get("states") or {}
+    if not isinstance(states, dict):
+        return ["definition.states must be object"]
+    state_def = states.get(initial_state)
+    if state_def is None:
+        return []
+    if not isinstance(state_def, dict):
+        return [f"definition.states.{initial_state} must be object"]
+    schema = state_def.get("context_schema")
+    if schema is None:
+        return []
+    if not isinstance(schema, dict):
+        return [f"definition.states.{initial_state}.context_schema must be object"]
+    return _validate_schema(context, schema)
+
+
 @bp.post("/contracts/templates")
 @require_system_admin("contracts:templates", "manage")
 def create_template():
@@ -765,6 +821,9 @@ def create_template():
     name = str(payload.get("name") or "").strip()
     description = payload.get("description")
     definition = payload.get("definition")
+    if not isinstance(definition, dict):
+        abort_json(400, "definition must be object")
+
     metadata = payload.get("metadata") or {}
     is_enabled = payload.get("is_enabled", True)
     allowed_subjects = payload.get("allowed_subjects") or []
@@ -851,6 +910,20 @@ def create_contract(template_id: str):
     )
     if not template:
         abort_json(404, "Template not found")
+
+    definition = template.get("definition")
+    if not isinstance(definition, dict):
+        definition = {}
+    default_initial_state = str(definition.get("initial_state") or "")
+    selected_initial_state = str(initial_state or default_initial_state)
+    context_errors = _validate_context_schema_for_initial_state(
+        definition,
+        selected_initial_state,
+        context,
+    )
+    if context_errors:
+        return jsonify({"error": "Invalid payload", "details": context_errors}), 422
+
     doc = _create_contract_from_template_doc(
         template=template,
         template_id=template_id,

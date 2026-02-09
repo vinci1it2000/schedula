@@ -109,6 +109,58 @@ def _apply_effect_step(
         }
         notify_kw.update(ef["notify"] or {})
         create_notification(**notify_kw)
+    elif ef_type == "schedule.event":
+        now = now_utc()
+        contract_id = str(doc.get("_id") or "")
+        key = str(ef.get("key") or "").strip()
+        event_id = str(uuid.uuid4())
+        event_name = str(ef.get("event_name") or "").strip()
+        cron = str(ef.get("cron") or "").strip()
+        if not key:
+            abort_json(400, "schedule.event requires non-empty key")
+        if not event_name:
+            abort_json(400, "schedule.event requires non-empty event_name")
+        if not cron:
+            abort_json(400, "schedule.event requires non-empty cron")
+        schedule_doc: Dict[str, Any] = {"event_name": event_name, "cron": cron}
+        if "payload" in ef:
+            schedule_doc["payload"] = ef.get("payload")
+        if "actor_id" in ef and ef.get("actor_id") is not None:
+            schedule_doc["actor_id"] = str(ef.get("actor_id"))
+        mongo_update_one(
+            _contracts_coll(),
+            {"_id": contract_id},
+            {
+                "$set": {
+                    f"scheduled_events.{event_id}": schedule_doc,
+                    "updated_by": actor_id,
+                    "updated_at": now,
+                }
+            },
+        )
+        local[key] = event_id
+        doc = _get_contract(contract_id)
+    elif ef_type == "unschedule.event":
+        now = now_utc()
+        contract_id = str(doc.get("_id") or "")
+        event_id = str(ef.get("event_id") or "").strip()
+        if not event_id:
+            abort_json(400, "unschedule.event requires non-empty event_id")
+        mongo_update_one(
+            _contracts_coll(),
+            {"_id": contract_id},
+            {
+                "$set": {
+                    "updated_by": actor_id,
+                    "updated_at": now,
+                },
+                "$unset": {
+                    f"scheduled_events.{event_id}": "",
+                    f"scheduled_runtime.{event_id}": "",
+                },
+            },
+        )
+        doc = _get_contract(contract_id)
     elif ef_type == "create.group":
         from ..security.groups import Group
         from ..security.casbin import bootstrap_group
@@ -379,27 +431,28 @@ def _is_cron_due(expr: str, now_dt) -> bool:
 
 def run_cron_triggers_tick(*, actor_id: str = "system:cron") -> Dict[str, Any]:
     now_dt = now_utc()
+    minute_key = now_dt.strftime("%Y%m%d%H%M")
     fired = 0
     skipped = 0
     errors = 0
     error_messages: List[str] = []
 
     for doc in mongo_find(_contracts_coll(), {"status": "RUNNING"}):
-        state = str(doc.get("state") or "")
-        events = pydash.get(doc, f"definition.states.{state}.events", {}) or {}
-        for ename, edef in events.items():
-            trigger = edef.get("trigger")
-            if not isinstance(trigger, list):
-                continue
-            for idx, t in enumerate(trigger):
-                if not isinstance(t, dict) or str(t.get("type") or "") != "cron":
+        scheduled_events = doc.get("scheduled_events") or {}
+        if isinstance(scheduled_events, dict):
+            for sid, spec in scheduled_events.items():
+                if not isinstance(spec, dict):
+                    skipped += 1
                     continue
-                expr = t.get("cron")
+                expr = spec.get("cron")
+                event_name = spec.get("event_name")
                 if not isinstance(expr, str) or not expr.strip():
                     skipped += 1
                     continue
-                minute_key = now_dt.strftime("%Y%m%d%H%M")
-                fired_path = f"trigger_runtime.{state}.{ename}.{idx}.last_fired_minute"
+                if not isinstance(event_name, str) or not event_name.strip():
+                    skipped += 1
+                    continue
+                fired_path = f"scheduled_runtime.{sid}.last_fired_minute"
                 if pydash.get(doc, fired_path) == minute_key:
                     skipped += 1
                     continue
@@ -407,23 +460,28 @@ def run_cron_triggers_tick(*, actor_id: str = "system:cron") -> Dict[str, Any]:
                     skipped += 1
                     continue
                 try:
+                    state = str(doc.get("state") or "")
+                    events = (
+                            pydash.get(doc, f"definition.states.{state}.events", {}) or {}
+                    )
+                    edef = events.get(event_name)
+                    if not isinstance(edef, dict):
+                        skipped += 1
+                        continue
                     _process_selected_event(
                         doc=doc,
                         edef=edef,
-                        selected_trigger=t,
-                        actor_id=actor_id,
-                        body_payload={},
+                        selected_trigger={},
+                        actor_id=str(spec.get("actor_id") or actor_id),
+                        body_payload=spec.get("payload")
+                        if isinstance(spec.get("payload"), dict)
+                        else {},
                         resolve_response=False,
                     )
                     mongo_update_one(
                         _contracts_coll(),
                         {"_id": doc.get("_id")},
-                        {
-                            "$set": {
-                                fired_path: minute_key,
-                                "updated_at": now_dt,
-                            }
-                        },
+                        {"$set": {fired_path: minute_key}},
                     )
                     fired += 1
                 except Exception as exc:
@@ -469,6 +527,7 @@ def _create_contract_from_template_doc(
         "context": context,
         "definition": definition,
         "metadata": template.get("metadata") or {},
+        "scheduled_events": {},
         "created_by": owner_id,
         "created_at": now,
         "updated_at": now,
