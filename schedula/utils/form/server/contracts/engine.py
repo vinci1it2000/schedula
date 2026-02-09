@@ -15,8 +15,11 @@ import pydash
 import requests
 from jsonschema import Draft202012Validator
 
+from ..extensions import db
 from ..security.casbin import (
     get_enforcer,
+    acl_user,
+    g,
 )
 from ..utils import (
     RefResolver,
@@ -27,6 +30,7 @@ from ..utils import (
     mongo_insert_one,
     mongo_update_one,
     now_utc,
+    mongo_delete_one,
 )
 
 
@@ -62,7 +66,7 @@ def _apply_effect_step(
         ef: Dict[str, Any],
         actor_id: str,
         payload: Dict[str, Any] = None,
-        local=None
+        local: Dict[str, Any] = None,
 ) -> tuple[bool, Dict[str, Any]]:
     ef_type = str(ef.get("type") or "")
     if local is None:
@@ -74,8 +78,8 @@ def _apply_effect_step(
         "payload": payload,
         "local": local,
     }
-    resolver = RefResolver(enforce_acl=False)
     initial_state = doc.get("state")
+    ef = RefResolver(enforce_acl=False)(ef, ctx)
 
     if ef_type == "update.contract":
         now = now_utc()
@@ -85,15 +89,15 @@ def _apply_effect_step(
             {"_id": contract_id},
             [
                 {"$set": {"updated_by": actor_id}},
-                resolver(ef["update"], ctx),
-                {"$set": {"updated_at": now}}
+                ef["update"],
+                {"$set": {"updated_at": now}},
             ],
             let=ctx,
         )
         doc = _get_contract(contract_id)
     elif ef_type == "http.request":
         request_kw = {"method": "GET"}
-        request_kw.update(resolver(ef.get("request"), ctx) or {})
+        request_kw.update(ef["request"] or {})
         local[ef["key"]] = requests.request(**request_kw).json()
     elif ef_type == "notify":
         from ..notifications.service import create_notification
@@ -101,10 +105,104 @@ def _apply_effect_step(
             "created_by": actor_id,
             "sender_principal": actor_id,
         }
-        notify_kw.update(resolver(ef["notify"], ctx) or {})
+        notify_kw.update(ef["notify"] or {})
         create_notification(**notify_kw)
+    elif ef_type == "create.group":
+        from ..security.groups import Group
+        from ..security.casbin import bootstrap_group
+        name = ef.get("name")
+        gtype = ef.get("group_type", "workspace")
+        sub = ef.get("sub")
+        if not isinstance(name, str) or not name.strip():
+            abort_json(400, "create.group requires non-empty name")
+        grp = Group(name=name.strip(), type=str(gtype or "workspace"))
+        db.session.add(grp)
+        db.session.flush()
+        bootstrap_group(grp.id, str(sub or actor_id))
+        db.session.commit()
+        local[ef["key"]] = g(grp.id)
+    elif ef_type == "update.group":
+        from ..security.groups import Group
+        group_id = str(ef.get("group_id") or "")
+        if group_id.startswith("g:"):
+            group_id = group_id[2:]
+        grp = db.session.get(Group, group_id)
+        if not grp:
+            abort_json(404, "Group not found")
+
+        if "name" in ef:
+            grp.name = ef["name"]
+        if "group_type" in ef:
+            grp.type = ef["group_type"]
+
+        edit_members = ef.get("edit_members")
+        if edit_members is not None:
+            if not isinstance(edit_members, dict):
+                abort_json(400, "edit_members must be object")
+
+            def _parse_subject(principal: Any) -> Tuple[str, str]:
+                if not isinstance(principal, str) or ":" not in principal:
+                    abort_json(400, f"invalid principal '{principal}'")
+                t, sid = principal.split(":", 1)
+                if t == "u":
+                    return "user", sid
+                if t == "g":
+                    return "group", sid
+                abort_json(400, f"invalid principal '{principal}'")
+
+            def _iter_ops(key: str) -> List[Tuple[str, str]]:
+                values = edit_members.get(key) or []
+                if not isinstance(values, list):
+                    abort_json(400, f"edit_members.{key} must be list")
+                return [_parse_subject(v) for v in values]
+
+            for t, sid in _iter_ops("add_members"):
+                grp.add_member(sid, subject_type=t)
+            for t, sid in _iter_ops("promote_admins"):
+                grp.promote_admin(sid, subject_type=t)
+            for t, sid in _iter_ops("demote_admins"):
+                grp.demote_admin(sid, subject_type=t)
+            for t, sid in _iter_ops("remove_members"):
+                grp.remove_member(sid, subject_type=t)
+            for t, sid in _iter_ops("ban_members"):
+                grp.ban_member(sid, subject_type=t)
+            for t, sid in _iter_ops("unban_members"):
+                grp.unban_member(sid, subject_type=t)
+        db.session.commit()
+    elif ef_type == "create.item":
+        coll = get_mongo(collection=config_get("ITEMS_COLLECTION", "items"))
+        now = now_utc()
+        item = {
+            "data": {},
+            "files": {},
+            "acl_dom": acl_user(actor_id),
+            "created_by": actor_id,
+            "updated_by": actor_id,
+            "created_at": now,
+            "updated_at": now,
+        }
+        item.update(ef["item"] or {})
+        res = mongo_insert_one(coll, item)
+        local[ef["key"]] = res.inserted_id
     elif ef_type == "update.item":
-        pass  # TODO: implement update.item effects
+        coll = get_mongo(collection=config_get("ITEMS_COLLECTION", "items"))
+        now = now_utc()
+        item_id = ef["item_id"]
+        res = mongo_update_one(
+            coll,
+            {"_id": item_id},
+            [
+                {"$set": {"updated_by": actor_id}},
+                ef["update"],
+                {"$set": {"updated_at": now}},
+            ],
+            let=ctx,
+        )
+        if res.matched_count != 1:
+            abort_json(404, "Item not found")
+    elif ef_type == "delete.item":
+        coll = get_mongo(collection=config_get("ITEMS_COLLECTION", "items"))
+        mongo_delete_one(coll,{"_id": ef["item_id"]})
     else:
         abort_json(400, f"Unknown effect type: {ef_type}")
 
@@ -131,7 +229,9 @@ def _apply_on_enter(
     for ef in pydash.get(
             doc, f"definition.states.{doc.get('state')}.onEnter.effects", []
     ):
-        changed, doc = _apply_effect_step(doc=doc, ef=ef, actor_id=actor_id, local=local)
+        changed, doc = _apply_effect_step(
+            doc=doc, ef=ef, actor_id=actor_id, local=local
+        )
         if changed:
             return doc
     return doc

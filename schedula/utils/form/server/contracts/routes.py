@@ -98,10 +98,12 @@ TEMPLATE_CREATE_SCHEMA = {
                     "description": "Supported effect type.",
                     "type": "string",
                     "enum": [
-                        "update.context",
-                        "update.state",
-                        "update.states",
+                        "create.item",
+                        "delete.item",
                         "update.item",
+                        "create.group",
+                        "update.group",
+                        "update.contract",
                         "http.request",
                         "notify",
                     ],
@@ -114,29 +116,31 @@ TEMPLATE_CREATE_SCHEMA = {
                     "description": "Kwargs compatible with requests.request for http.request effects.",
                     "$ref": "#/$defs/request_kwargs",
                 },
+                "item_id": {"type": "string"},
+                "group_id": {"type": "string"},
+                "category": {"type": "string"},
+                "sub": {"type": "string", "pattern": "^[gu]:[\\w\\d]+$"},
+                "item": {"type": "object"},
+                "name": {"type": "string"},
+                "group_type": {"type": "string"},
+                "edit_members": {"$ref": "#/$defs/edit_members"},
+                "notify": {"$ref": "#/$defs/notify_kwargs"},
                 "key": {
                     "title": "Response Key",
                     "description": "Logical key used to track the HTTP response.",
                     "type": "string",
                     "minLength": 1,
                 },
-                "response": {
-                    "title": "Response Template",
-                    "description": "Optional JSON response template. Supports $ref and $doc placeholders resolved at runtime.",
-                    "$ref": "#/$defs/json_with_refs",
-                },
             },
             "required": ["type"],
-            "additionalProperties": True,
+            "additionalProperties": False,
             "allOf": [
                 {
                     "if": {
                         "properties": {
                             "type": {
                                 "enum": [
-                                    "update.context",
-                                    "update.state",
-                                    "update.states",
+                                    "update.contract",
                                     "update.item",
                                 ]
                             }
@@ -145,10 +149,124 @@ TEMPLATE_CREATE_SCHEMA = {
                     "then": {"required": ["update"]},
                 },
                 {
+                    "if": {
+                        "properties": {
+                            "type": {
+                                "enum": [
+                                    "update.item",
+                                ]
+                            }
+                        }
+                    },
+                    "then": {"required": ["item_id", "update"]},
+                },
+                {
                     "if": {"properties": {"type": {"const": "http.request"}}},
                     "then": {"required": ["request", "key"]},
                 },
+                {
+                    "if": {"properties": {"type": {"const": "create.item"}}},
+                    "then": {"required": ["item", "key"]},
+                },
+                {
+                    "if": {"properties": {"type": {"const": "delete.item"}}},
+                    "then": {"required": ["item_id"]},
+                },
+                {
+                    "if": {"properties": {"type": {"const": "create.group"}}},
+                    "then": {"required": ["name", "key"]},
+                },
+                {
+                    "if": {"properties": {"type": {"const": "update.group"}}},
+                    "then": {"required": ["group_id"]},
+                },
+                {
+                    "if": {"properties": {"type": {"const": "notify"}}},
+                    "then": {"required": ["notify"]},
+                },
             ],
+        },
+        "edit_members": {
+            "title": "Edit Members",
+            "description": "Batch membership updates for update.group effects.",
+            "type": "object",
+            "properties": {
+                "add_members": {
+                    "type": "array",
+                    "items": {"type": "string", "pattern": "^[ug]:.+$"},
+                },
+                "remove_members": {
+                    "type": "array",
+                    "items": {"type": "string", "pattern": "^[ug]:.+$"},
+                },
+                "promote_admins": {
+                    "type": "array",
+                    "items": {"type": "string", "pattern": "^[ug]:.+$"},
+                },
+                "demote_admins": {
+                    "type": "array",
+                    "items": {"type": "string", "pattern": "^[ug]:.+$"},
+                },
+                "ban_members": {
+                    "type": "array",
+                    "items": {"type": "string", "pattern": "^[ug]:.+$"},
+                },
+                "unban_members": {
+                    "type": "array",
+                    "items": {"type": "string", "pattern": "^[ug]:.+$"},
+                },
+            },
+            "additionalProperties": False,
+        },
+        "notify_kwargs": {
+            "title": "Notification Kwargs",
+            "description": "Kwargs accepted by notifications.service.create_notification.",
+            "type": "object",
+            "properties": {
+                "event": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Notification event name.",
+                },
+                "targets": {
+                    "type": "object",
+                    "description": "Map of principal -> channel list.",
+                    "additionalProperties": {
+                        "type": "array",
+                        "minItems": 1,
+                        "items": {"type": "string", "minLength": 1},
+                    },
+                },
+                "created_by": {
+                    "type": "string",
+                    "description": "Creator principal.",
+                },
+                "payload": {
+                    "type": "object",
+                    "description": "Notification payload object.",
+                    "additionalProperties": True,
+                },
+                "severity": {
+                    "type": "string",
+                    "enum": ["info", "warning", "error", "success"],
+                    "description": "Notification severity.",
+                },
+                "persist": {
+                    "oneOf": [
+                        {"type": "boolean"},
+                        {"type": "string"},
+                        {"type": "number"},
+                        {"type": "null"},
+                    ],
+                    "description": "Persistence flag (normalized at runtime).",
+                },
+                "sender_principal": {
+                    "type": "string",
+                    "description": "Sender principal.",
+                },
+            },
+            "required": ["event", "targets"],
+            "additionalProperties": False,
         },
         "event": {
             "type": "object",
@@ -185,7 +303,7 @@ TEMPLATE_CREATE_SCHEMA = {
                 },
                 "response": {
                     "title": "Event Response Template",
-                    "description": "JSON response template. Supports $ref and $doc placeholders resolved at runtime.",
+                    "description": "JSON response template. Supports $ref and $ctx placeholders resolved at runtime.",
                     "$ref": "#/$defs/json_with_refs",
                 },
             },
@@ -194,10 +312,7 @@ TEMPLATE_CREATE_SCHEMA = {
         },
         "json_with_refs": {
             "title": "JSON with Runtime References",
-            "description": "Any JSON value where objects can include $ref and $doc placeholders resolved by RefResolver.",
-            "$ref": "#/$defs/json_value",
-        },
-        "json_value": {
+            "description": "Any JSON value where objects can include $ref and $ctx placeholders resolved by RefResolver.",
             "oneOf": [
                 {"type": "string"},
                 {"type": "number"},
@@ -206,7 +321,7 @@ TEMPLATE_CREATE_SCHEMA = {
                 {"type": "null"},
                 {
                     "type": "array",
-                    "items": {"$ref": "#/$defs/json_value"},
+                    "items": {"$ref": "#/$defs/json_with_refs"},
                 },
                 {
                     "type": "object",
@@ -215,14 +330,14 @@ TEMPLATE_CREATE_SCHEMA = {
                             "type": "string",
                             "pattern": "^/items(/[^/]+){2,3}$",
                         },
-                        "$doc": {
+                        "$ctx": {
                             "type": "string",
                             "pattern": "^[^/]+$",
                         },
                     },
-                    "additionalProperties": {"$ref": "#/$defs/json_value"},
+                    "additionalProperties": {"$ref": "#/$defs/json_with_refs"},
                 },
-            ]
+            ],
         },
         "request_kwargs": {
             "title": "Requests Kwargs",
@@ -520,8 +635,8 @@ def _validate_schema(payload: Dict[str, Any], schema: Dict[str, Any]) -> List[st
 
 
 def _validate_allowed_initial_states(
-        definition: Dict[str, Any],
-        allowed_initial_states: Any,
+    definition: Dict[str, Any],
+    allowed_initial_states: Any,
 ) -> List[str]:
     if allowed_initial_states is None:
         return []

@@ -79,8 +79,8 @@ class RefResolver:
             # $ref object (string ref)
             if isinstance(x, dict):
                 if len(x) == 1:
-                    if "$doc" in x:
-                        return pydash.get(doc, x["$doc"])
+                    if "$ctx" in x:
+                        return pydash.get(doc, x["$ctx"])
                     elif "$ref" in x:
                         ref = x["$ref"]
 
