@@ -141,7 +141,6 @@ TEMPLATE_CREATE_SCHEMA = {
                             "type": {
                                 "enum": [
                                     "update.contract",
-                                    "update.item",
                                 ]
                             }
                         }
@@ -178,7 +177,14 @@ TEMPLATE_CREATE_SCHEMA = {
                 },
                 {
                     "if": {"properties": {"type": {"const": "update.group"}}},
-                    "then": {"required": ["group_id"]},
+                    "then": {
+                        "required": ["group_id"],
+                        "anyOf": [
+                            {"required": ["edit_members"]},
+                            {"required": ["group_type"]},
+                            {"required": ["name"]}
+                        ]
+                    },
                 },
                 {
                     "if": {"properties": {"type": {"const": "notify"}}},
@@ -635,8 +641,8 @@ def _validate_schema(payload: Dict[str, Any], schema: Dict[str, Any]) -> List[st
 
 
 def _validate_allowed_initial_states(
-    definition: Dict[str, Any],
-    allowed_initial_states: Any,
+        definition: Dict[str, Any],
+        allowed_initial_states: Any,
 ) -> List[str]:
     if allowed_initial_states is None:
         return []
