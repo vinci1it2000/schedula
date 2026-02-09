@@ -75,10 +75,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                         },
                         "seats": {
                             "type": "object",
-                            "additionalProperties": {
-                                "type": "integer",
-                                "minimum": 1,
-                            },
+                            "additionalProperties": {"type": "integer", "minimum": 1},
                         },
                     },
                     "additionalProperties": True,
@@ -109,7 +106,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                 "$ctx": "local.first_request_timeout_id"
                                             },
                                         }
-                                    ],
+                                    ]
                                 }
                             },
                         },
@@ -356,7 +353,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "type": "update.contract",
                                 "update": {
                                     "$set": {
-                                        "states.$$ctx.payload.principal": "PENDING",
+                                        "states.$$ctx.payload.principal": "PENDING"
                                     }
                                 },
                             },
@@ -576,7 +573,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "type": "update.contract",
                                 "update": {
                                     "$set": {
-                                        "context._has_capacity_for_join": {
+                                        "local.has_capacity_for_join": {
                                             "$lte": [
                                                 {
                                                     "$add": [
@@ -598,7 +595,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                             {
                                 "type": "if.else",
                                 "condition": {
-                                    "$ctx": "doc.context._has_capacity_for_join"
+                                    "$ctx": "local.has_capacity_for_join"
                                 },
                                 "then_effects": [
                                     {
@@ -641,12 +638,6 @@ def _gherkin_definition() -> Dict[str, Any]:
                                     }
                                 ],
                             },
-                            {
-                                "type": "update.contract",
-                                "update": {
-                                    "$unset": {"context._has_capacity_for_join": ""}
-                                },
-                            },
                         ],
                     },
                     "DriverAcceptJoinRequest": {
@@ -678,7 +669,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "type": "update.contract",
                                 "update": {
                                     "$set": {
-                                        "context._target_is_requesting": {
+                                        "local.target_is_requesting": {
                                             "$eq": [
                                                 {
                                                     "$ifNull": [
@@ -696,9 +687,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                             },
                             {
                                 "type": "if.else",
-                                "condition": {
-                                    "$ctx": "doc.context._target_is_requesting"
-                                },
+                                "condition": {"$ctx": "local.target_is_requesting"},
                                 "then_effects": [
                                     {
                                         "type": "update.contract",
@@ -719,7 +708,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                         "type": "update.contract",
                                         "update": {
                                             "$set": {
-                                                "context._accepted_increment": {
+                                                "local.accepted_increment": {
                                                     "$ifNull": [
                                                         {
                                                             "$ctx": "doc.context.seats.$$ctx.payload.principal"
@@ -742,10 +731,10 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                                 0,
                                                             ]
                                                         },
-                                                        "$context._accepted_increment",
+                                                        "$local.accepted_increment",
                                                     ]
                                                 },
-                                                "context._capacity_reached": {
+                                                "local.capacity_reached": {
                                                     "$gte": [
                                                         "$context.accepted_seats_total",
                                                         "$context.capacity",
@@ -757,29 +746,19 @@ def _gherkin_definition() -> Dict[str, Any]:
                                     {
                                         "type": "if.else",
                                         "condition": {
-                                            "$ctx": "doc.context._capacity_reached"
+                                            "$ctx": "local.capacity_reached"
                                         },
                                         "then_effects": [
                                             {
                                                 "type": "update.contract",
-                                                "update": {
-                                                    "$set": {"state": "READY"},
-                                                    "$unset": {
-                                                        "context._accepted_increment": "",
-                                                        "context._capacity_reached": "",
-                                                    },
-                                                },
+                                                "update": {"$set": {"state": "READY"}},
                                             }
                                         ],
                                         "else_effects": [
                                             {
                                                 "type": "update.contract",
                                                 "update": {
-                                                    "$set": {"state": "RECRUITING"},
-                                                    "$unset": {
-                                                        "context._accepted_increment": "",
-                                                        "context._capacity_reached": "",
-                                                    },
+                                                    "$set": {"state": "RECRUITING"}
                                                 },
                                             }
                                         ],
@@ -799,12 +778,6 @@ def _gherkin_definition() -> Dict[str, Any]:
                                         },
                                     },
                                 ],
-                            },
-                            {
-                                "type": "update.contract",
-                                "update": {
-                                    "$unset": {"context._target_is_requesting": ""}
-                                },
                             },
                         ],
                     },
@@ -837,7 +810,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "type": "update.contract",
                                 "update": {
                                     "$set": {
-                                        "context._target_is_requesting": {
+                                        "local.target_is_requesting": {
                                             "$eq": [
                                                 {
                                                     "$ifNull": [
@@ -850,21 +823,19 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                 "REQUESTING",
                                             ]
                                         }
-                                    },
+                                    }
                                 },
                             },
                             {
                                 "type": "if.else",
-                                "condition": {
-                                    "$ctx": "doc.context._target_is_requesting"
-                                },
+                                "condition": {"$ctx": "local.target_is_requesting"},
                                 "then_effects": [
                                     {
                                         "type": "update.contract",
                                         "update": {
                                             "$set": {
                                                 "states.$$ctx.payload.principal": "REJECTED"
-                                            },
+                                            }
                                         },
                                     },
                                     {
@@ -882,12 +853,6 @@ def _gherkin_definition() -> Dict[str, Any]:
                                         },
                                     },
                                 ],
-                            },
-                            {
-                                "type": "update.contract",
-                                "update": {
-                                    "$unset": {"context._target_is_requesting": ""}
-                                },
                             },
                         ],
                     },
@@ -955,7 +920,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "type": "update.contract",
                                 "update": {
                                     "$set": {
-                                        "states.$$ctx.payload.principal": "PENDING",
+                                        "states.$$ctx.payload.principal": "PENDING"
                                     }
                                 },
                             },
@@ -1040,7 +1005,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "type": "update.contract",
                                 "update": {
                                     "$set": {
-                                        "context._accepted_increment": {
+                                        "local.accepted_increment": {
                                             "$ifNull": [
                                                 {
                                                     "$ctx": "doc.context.seats.$$ctx.user"
@@ -1063,10 +1028,10 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                         0,
                                                     ]
                                                 },
-                                                "$context._accepted_increment",
+                                                "$local.accepted_increment",
                                             ]
                                         },
-                                        "context._capacity_reached": {
+                                        "local.capacity_reached": {
                                             "$gte": [
                                                 "$context.accepted_seats_total",
                                                 "$context.capacity",
@@ -1077,29 +1042,17 @@ def _gherkin_definition() -> Dict[str, Any]:
                             },
                             {
                                 "type": "if.else",
-                                "condition": {"$ctx": "doc.context._capacity_reached"},
+                                "condition": {"$ctx": "local.capacity_reached"},
                                 "then_effects": [
                                     {
                                         "type": "update.contract",
-                                        "update": {
-                                            "$set": {"state": "READY"},
-                                            "$unset": {
-                                                "context._accepted_increment": "",
-                                                "context._capacity_reached": "",
-                                            },
-                                        },
+                                        "update": {"$set": {"state": "READY"}},
                                     }
                                 ],
                                 "else_effects": [
                                     {
                                         "type": "update.contract",
-                                        "update": {
-                                            "$set": {"state": "RECRUITING"},
-                                            "$unset": {
-                                                "context._accepted_increment": "",
-                                                "context._capacity_reached": "",
-                                            },
-                                        },
+                                        "update": {"$set": {"state": "RECRUITING"}},
                                     }
                                 ],
                             },
@@ -1222,7 +1175,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "type": "update.contract",
                                 "update": {
                                     "$set": {
-                                        "context._target_is_pending_invite": {
+                                        "local.target_is_pending_invite": {
                                             "$eq": [
                                                 {
                                                     "$ifNull": [
@@ -1241,7 +1194,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                             {
                                 "type": "if.else",
                                 "condition": {
-                                    "$ctx": "doc.context._target_is_pending_invite"
+                                    "$ctx": "local.target_is_pending_invite"
                                 },
                                 "then_effects": [
                                     {
@@ -1277,12 +1230,6 @@ def _gherkin_definition() -> Dict[str, Any]:
                                     },
                                 ],
                             },
-                            {
-                                "type": "update.contract",
-                                "update": {
-                                    "$unset": {"context._target_is_pending_invite": ""}
-                                },
-                            },
                         ],
                     },
                     "CancelUser": {
@@ -1305,7 +1252,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "type": "update.contract",
                                 "update": {
                                     "$set": {
-                                        "context._cancel_seats": {
+                                        "local.cancel_seats": {
                                             "$ifNull": [
                                                 {
                                                     "$ctx": "doc.context.seats.$$ctx.user"
@@ -1330,7 +1277,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                                 0,
                                                             ]
                                                         },
-                                                        "$context._cancel_seats",
+                                                        "$local.cancel_seats",
                                                     ]
                                                 },
                                                 {
@@ -1341,7 +1288,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                                 0,
                                                             ]
                                                         },
-                                                        "$context._cancel_seats",
+                                                        "$local.cancel_seats",
                                                     ]
                                                 },
                                                 0,
@@ -1349,10 +1296,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                         },
                                         "states.$$ctx.user": "CANCELLED",
                                     },
-                                    "$unset": {
-                                        "context._cancel_seats": "",
-                                        "context.seats.$$ctx.user": "",
-                                    },
+                                    "$unset": {"context.seats.$$ctx.user": ""},
                                 },
                             },
                             {
@@ -1396,7 +1340,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "type": "update.contract",
                                 "update": {
                                     "$set": {
-                                        "context._target_is_accepted": {
+                                        "local.target_is_accepted": {
                                             "$eq": [
                                                 {
                                                     "$ifNull": [
@@ -1414,9 +1358,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                             },
                             {
                                 "type": "if.else",
-                                "condition": {
-                                    "$ctx": "doc.context._target_is_accepted"
-                                },
+                                "condition": {"$ctx": "local.target_is_accepted"},
                                 "then_effects": [
                                     {
                                         "type": "update.group",
@@ -1431,7 +1373,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                         "type": "update.contract",
                                         "update": {
                                             "$set": {
-                                                "context._remove_seats": {
+                                                "local.remove_seats": {
                                                     "$ifNull": [
                                                         {
                                                             "$ctx": "doc.context.seats.$$ctx.payload.principal"
@@ -1456,7 +1398,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                                         0,
                                                                     ]
                                                                 },
-                                                                "$context._remove_seats",
+                                                                "$local.remove_seats",
                                                             ]
                                                         },
                                                         {
@@ -1467,7 +1409,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                                         0,
                                                                     ]
                                                                 },
-                                                                "$context._remove_seats",
+                                                                "$local.remove_seats",
                                                             ]
                                                         },
                                                         0,
@@ -1476,8 +1418,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                 "states.$$ctx.payload.principal": "CANCELLED",
                                             },
                                             "$unset": {
-                                                "context._remove_seats": "",
-                                                "context.seats.$$ctx.payload.principal": "",
+                                                "context.seats.$$ctx.payload.principal": ""
                                             },
                                         },
                                     },
@@ -1497,12 +1438,6 @@ def _gherkin_definition() -> Dict[str, Any]:
                                     },
                                 ],
                             },
-                            {
-                                "type": "update.contract",
-                                "update": {
-                                    "$unset": {"context._target_is_accepted": ""}
-                                },
-                            },
                         ],
                     },
                     "DriverCancelTrip": {
@@ -1520,7 +1455,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "type": "update.contract",
                                 "update": {
                                     "$set": {
-                                        "context._cancel_trip_targets": {
+                                        "local.cancel_trip_targets": {
                                             "$arrayToObject": {
                                                 "$map": {
                                                     "input": {
@@ -1551,28 +1486,19 @@ def _gherkin_definition() -> Dict[str, Any]:
                             {
                                 "type": "update.contract",
                                 "update": {
-                                    "$set": {
-                                        "status": "CANCELED",
-                                        "state": "CANCELED",
-                                    }
+                                    "$set": {"status": "CANCELED", "state": "CANCELED"}
                                 },
                             },
                             {
                                 "type": "notify",
                                 "notify": {
                                     "event": "contracts.trip_cancelled_by_driver",
-                                    "targets": "$$ctx.doc.context._cancel_trip_targets",
+                                    "targets": "$$ctx.local.cancel_trip_targets",
                                     "payload": {
                                         "contract_code": {
                                             "$ctx": "doc.context.contract_code"
                                         }
                                     },
-                                },
-                            },
-                            {
-                                "type": "update.contract",
-                                "update": {
-                                    "$unset": {"context._cancel_trip_targets": ""}
                                 },
                             },
                         ],
@@ -1617,7 +1543,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "type": "update.contract",
                                 "update": {
                                     "$set": {
-                                        "context._cancel_seats": {
+                                        "local.cancel_seats": {
                                             "$ifNull": [
                                                 {
                                                     "$ctx": "doc.context.seats.$$ctx.user"
@@ -1642,7 +1568,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                                 0,
                                                             ]
                                                         },
-                                                        "$context._cancel_seats",
+                                                        "$local.cancel_seats",
                                                     ]
                                                 },
                                                 {
@@ -1653,7 +1579,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                                 0,
                                                             ]
                                                         },
-                                                        "$context._cancel_seats",
+                                                        "$local.cancel_seats",
                                                     ]
                                                 },
                                                 0,
@@ -1662,10 +1588,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                         "states.$$ctx.user": "CANCELLED",
                                         "state": "RECRUITING",
                                     },
-                                    "$unset": {
-                                        "context._cancel_seats": "",
-                                        "context.seats.$$ctx.user": "",
-                                    },
+                                    "$unset": {"context.seats.$$ctx.user": ""},
                                 },
                             },
                             {
@@ -1786,7 +1709,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "type": "update.contract",
                                 "update": {
                                     "$set": {
-                                        "context._target_is_accepted": {
+                                        "local.target_is_accepted": {
                                             "$eq": [
                                                 {
                                                     "$ifNull": [
@@ -1804,9 +1727,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                             },
                             {
                                 "type": "if.else",
-                                "condition": {
-                                    "$ctx": "doc.context._target_is_accepted"
-                                },
+                                "condition": {"$ctx": "local.target_is_accepted"},
                                 "then_effects": [
                                     {
                                         "type": "update.group",
@@ -1821,7 +1742,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                         "type": "update.contract",
                                         "update": {
                                             "$set": {
-                                                "context._remove_seats": {
+                                                "local.remove_seats": {
                                                     "$ifNull": [
                                                         {
                                                             "$ctx": "doc.context.seats.$$ctx.payload.principal"
@@ -1846,7 +1767,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                                         0,
                                                                     ]
                                                                 },
-                                                                "$context._remove_seats",
+                                                                "$local.remove_seats",
                                                             ]
                                                         },
                                                         {
@@ -1857,7 +1778,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                                         0,
                                                                     ]
                                                                 },
-                                                                "$context._remove_seats",
+                                                                "$local.remove_seats",
                                                             ]
                                                         },
                                                         0,
@@ -1866,8 +1787,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                 "states.$$ctx.payload.principal": "CANCELLED",
                                             },
                                             "$unset": {
-                                                "context._remove_seats": "",
-                                                "context.seats.$$ctx.payload.principal": "",
+                                                "context.seats.$$ctx.payload.principal": ""
                                             },
                                         },
                                     },
@@ -1887,12 +1807,6 @@ def _gherkin_definition() -> Dict[str, Any]:
                                     },
                                 ],
                             },
-                            {
-                                "type": "update.contract",
-                                "update": {
-                                    "$unset": {"context._target_is_accepted": ""}
-                                },
-                            },
                         ],
                     },
                     "DriverCancelTrip": {
@@ -1910,7 +1824,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "type": "update.contract",
                                 "update": {
                                     "$set": {
-                                        "context._cancel_trip_targets": {
+                                        "local.cancel_trip_targets": {
                                             "$arrayToObject": {
                                                 "$map": {
                                                     "input": {
@@ -1941,28 +1855,19 @@ def _gherkin_definition() -> Dict[str, Any]:
                             {
                                 "type": "update.contract",
                                 "update": {
-                                    "$set": {
-                                        "status": "CANCELED",
-                                        "state": "CANCELED",
-                                    }
+                                    "$set": {"status": "CANCELED", "state": "CANCELED"}
                                 },
                             },
                             {
                                 "type": "notify",
                                 "notify": {
                                     "event": "contracts.trip_cancelled_by_driver",
-                                    "targets": "$$ctx.doc.context._cancel_trip_targets",
+                                    "targets": "$$ctx.local.cancel_trip_targets",
                                     "payload": {
                                         "contract_code": {
                                             "$ctx": "doc.context.contract_code"
                                         }
                                     },
-                                },
-                            },
-                            {
-                                "type": "update.contract",
-                                "update": {
-                                    "$unset": {"context._cancel_trip_targets": ""}
                                 },
                             },
                         ],
@@ -2046,7 +1951,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "type": "update.contract",
                                 "update": {
                                     "$set": {
-                                        "context._can_pick_user": {
+                                        "local.can_pick_user": {
                                             "$and": [
                                                 {
                                                     "$eq": [
@@ -2081,7 +1986,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                             },
                             {
                                 "type": "if.else",
-                                "condition": {"$ctx": "doc.context._can_pick_user"},
+                                "condition": {"$ctx": "local.can_pick_user"},
                                 "then_effects": [
                                     {
                                         "type": "update.contract",
@@ -2112,13 +2017,9 @@ def _gherkin_definition() -> Dict[str, Any]:
                             },
                             {
                                 "type": "update.contract",
-                                "update": {"$unset": {"context._can_pick_user": ""}},
-                            },
-                            {
-                                "type": "update.contract",
                                 "update": {
                                     "$set": {
-                                        "context._all_riders_picked_up": {
+                                        "local.all_riders_picked_up": {
                                             "$eq": [
                                                 {
                                                     "$size": {
@@ -2138,9 +2039,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                             },
                             {
                                 "type": "if.else",
-                                "condition": {
-                                    "$ctx": "doc.context._all_riders_picked_up"
-                                },
+                                "condition": {"$ctx": "local.all_riders_picked_up"},
                                 "then_effects": [
                                     {
                                         "type": "unschedule.event",
@@ -2165,12 +2064,6 @@ def _gherkin_definition() -> Dict[str, Any]:
                                     }
                                 ],
                             },
-                            {
-                                "type": "update.contract",
-                                "update": {
-                                    "$unset": {"context._all_riders_picked_up": ""}
-                                },
-                            },
                         ],
                     },
                     "CancelUser": {
@@ -2193,7 +2086,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "type": "update.contract",
                                 "update": {
                                     "$set": {
-                                        "context._cancel_seats": {
+                                        "local.cancel_seats": {
                                             "$ifNull": [
                                                 {
                                                     "$ctx": "doc.context.seats.$$ctx.user"
@@ -2218,7 +2111,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                                 0,
                                                             ]
                                                         },
-                                                        "$context._cancel_seats",
+                                                        "$local.cancel_seats",
                                                     ]
                                                 },
                                                 {
@@ -2229,7 +2122,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                                 0,
                                                             ]
                                                         },
-                                                        "$context._cancel_seats",
+                                                        "$local.cancel_seats",
                                                     ]
                                                 },
                                                 0,
@@ -2238,7 +2131,6 @@ def _gherkin_definition() -> Dict[str, Any]:
                                         "states.$$ctx.user": "CANCELLED",
                                     },
                                     "$unset": {
-                                        "context._cancel_seats": "",
                                         "context.seats.$$ctx.user": "",
                                         "context.pending_pickup_targets.$$ctx.user": "",
                                         "context.riders_in_pickup_zone.$$ctx.user": "",
@@ -2307,7 +2199,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "type": "update.contract",
                                 "update": {
                                     "$set": {
-                                        "context._has_pending_pickups": {
+                                        "local.has_pending_pickups": {
                                             "$gt": [
                                                 {
                                                     "$size": {
@@ -2327,9 +2219,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                             },
                             {
                                 "type": "if.else",
-                                "condition": {
-                                    "$ctx": "doc.context._has_pending_pickups"
-                                },
+                                "condition": {"$ctx": "local.has_pending_pickups"},
                                 "then_effects": [
                                     {
                                         "type": "notify",
@@ -2344,12 +2234,6 @@ def _gherkin_definition() -> Dict[str, Any]:
                                         },
                                     }
                                 ],
-                            },
-                            {
-                                "type": "update.contract",
-                                "update": {
-                                    "$unset": {"context._has_pending_pickups": ""}
-                                },
                             },
                         ],
                     },
@@ -2368,7 +2252,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "type": "update.contract",
                                 "update": {
                                     "$set": {
-                                        "context._cancel_trip_targets": {
+                                        "local.cancel_trip_targets": {
                                             "$arrayToObject": {
                                                 "$map": {
                                                     "input": {
@@ -2399,28 +2283,19 @@ def _gherkin_definition() -> Dict[str, Any]:
                             {
                                 "type": "update.contract",
                                 "update": {
-                                    "$set": {
-                                        "status": "CANCELED",
-                                        "state": "CANCELED",
-                                    }
+                                    "$set": {"status": "CANCELED", "state": "CANCELED"}
                                 },
                             },
                             {
                                 "type": "notify",
                                 "notify": {
                                     "event": "contracts.trip_cancelled_by_driver",
-                                    "targets": "$$ctx.doc.context._cancel_trip_targets",
+                                    "targets": "$$ctx.local.cancel_trip_targets",
                                     "payload": {
                                         "contract_code": {
                                             "$ctx": "doc.context.contract_code"
                                         }
                                     },
-                                },
-                            },
-                            {
-                                "type": "update.contract",
-                                "update": {
-                                    "$unset": {"context._cancel_trip_targets": ""}
                                 },
                             },
                         ],
@@ -2579,12 +2454,12 @@ class ContractsE2ETest(unittest.TestCase):
         )
 
     def _post_event(
-        self,
-        contract_id: str,
-        path: str,
-        *,
-        actor: str,
-        payload: Dict[str, Any] | None = None,
+            self,
+            contract_id: str,
+            path: str,
+            *,
+            actor: str,
+            payload: Dict[str, Any] | None = None,
     ) -> httpx.Response:
         if payload is None and path in {"accept-user", "request-join"}:
             payload = {"seats": 1}
@@ -3459,10 +3334,7 @@ class ContractsE2ETest(unittest.TestCase):
                 {
                     "$set": {
                         "context.capacity": 4,
-                        "context.seats": {
-                            f"u:{p1_uid}": 1,
-                            f"u:{p2_uid}": 3,
-                        },
+                        "context.seats": {f"u:{p1_uid}": 1, f"u:{p2_uid}": 3},
                     }
                 },
             )

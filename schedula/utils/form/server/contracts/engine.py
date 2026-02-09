@@ -97,7 +97,7 @@ def _apply_effect_step(
             _contracts_coll(),
             {"_id": contract_id},
             [
-                {"$set": {"updated_by": actor_id}},
+                {"$set": {"local": local, "updated_by": actor_id}},
                 update_stage,
                 {"$set": {"updated_at": now}},
             ],
@@ -107,12 +107,10 @@ def _apply_effect_step(
             mongo_update_one(
                 _contracts_coll(),
                 {"_id": contract_id},
-                {
-                    "$unset": unset_stage,
-                    "$set": {"updated_by": actor_id, "updated_at": now},
-                },
+                {"$unset": unset_stage},
             )
         doc = _get_contract(contract_id)
+        local.update(doc.get("local") or {})
     elif ef_type == "http.request":
         request_kw = {"method": "GET"}
         request_kw.update(ef["request"] or {})
@@ -309,7 +307,9 @@ def _apply_effect_step(
 def _close_contract(doc):
     if pydash.get(doc, f"definition.states.{doc.get('state')}.final", False):
         mongo_update_one(
-            _contracts_coll(), {"_id": doc.get("_id")}, {"$set": {"status": "DONE"}}
+            _contracts_coll(),
+            {"_id": doc.get("_id")},
+            {"$set": {"status": "DONE"}, "$unset": {"local": ""}},
         )
         return pydash.merge(doc, {"status": "DONE"})
     return doc
