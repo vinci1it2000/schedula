@@ -46,16 +46,17 @@ Operational notes:
 import json
 from typing import Dict, Set, Tuple
 
-import schedula as sh
 from bson import ObjectId
 from flask import request, jsonify, Blueprint
 from flask_security import current_user as cu
 
+import schedula as sh
 from . import normalize_category
 from .files import store_uploaded_file, delete_files_meta, normalize_file_name
 from ..notifications import notify_item_event_safe
 from ..security.casbin import (
     g,
+    u,
     get_auth_sub,
     get_current_sub,
     acl_group,
@@ -626,8 +627,8 @@ def item_create(category):
         "data": data,
         "files": files_meta,
         "acl_dom": str(acl_dom),
-        "created_by": str(cu.id),
-        "updated_by": str(cu.id),
+        "created_by": sub,
+        "updated_by": sub,
         "created_at": now,
         "updated_at": now,
     }
@@ -835,7 +836,7 @@ def item_update(category, item_id):
         "data": merged_data,
         "files": merged_files,
         "updated_at": now_utc(),
-        "updated_by": str(cu.id),
+        "updated_by": sub,
     }
     coll = db_mongo[config_get("ITEMS_COLLECTION", "items")]
     try:

@@ -64,7 +64,7 @@ from jsonschema.exceptions import SchemaError
 from mongo_schema import MongoValidator
 
 from . import normalize_category
-from ..security.casbin import require_system_admin
+from ..security.casbin import require_system_admin, u
 from ..utils import (
     now_utc,
     abort_json,
@@ -348,8 +348,8 @@ def create_draft(category: str):
         "note": note,
         "created_at": now,
         "updated_at": now,
-        "created_by": str(cu.id),
-        "updated_by": str(cu.id),
+        "created_by": u(cu.id),
+        "updated_by": u(cu.id),
     }
 
     try:
@@ -375,7 +375,7 @@ def update_draft(category: str, version: str):
     _parse_semver(version)
 
     payload = request.get_json(force=True, silent=True) or {}
-    set_doc: Dict[str, Any] = {"updated_at": now_utc(), "updated_by": str(cu.id)}
+    set_doc: Dict[str, Any] = {"updated_at": now_utc(), "updated_by": u(cu.id)}
 
     if "schema" in payload:
         set_doc["schema"] = _parse_schema(payload["schema"])
@@ -433,9 +433,9 @@ def publish_draft(category: str, version: str):
                     "status": "published",
                     "is_enabled": True,
                     "published_at": now,
-                    "published_by": str(cu.id),
+                    "published_by": u(cu.id),
                     "updated_at": now,
-                    "updated_by": str(cu.id),
+                    "updated_by": u(cu.id),
                 }
             },
         )
@@ -475,7 +475,7 @@ def _toggle_published(category: str, version: str, enabled: bool):
                 "$set": {
                     "is_enabled": bool(enabled),
                     "updated_at": now,
-                    "updated_by": str(cu.id),
+                    "updated_by": u(cu.id),
                 }
             },
         )
