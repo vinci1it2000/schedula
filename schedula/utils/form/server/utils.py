@@ -38,14 +38,14 @@ class RefResolver:
         # memoization per resolver instance
         self._seen: dict[str, Any] = {}
 
-    def __call__(self, ref_or_obj: Any, doc: dict = None) -> Any:
+    def __call__(self, ref_or_obj: Any, ctx: dict = None) -> Any:
         """
         If you pass a string, it's treated as a ref.
         Otherwise it's treated as an object that may contain $ref inside.
         """
         if isinstance(ref_or_obj, str):
-            return self.resolve_refs({"$ref": ref_or_obj}, doc or {})
-        return self.resolve_refs(ref_or_obj, doc or {})
+            return self.resolve_refs({"$ref": ref_or_obj}, ctx or {})
+        return self.resolve_refs(ref_or_obj, ctx or {})
 
     def fetch(self, ref: Any) -> Any:
         """Resolve a ref string to its document payload (RAW, no recursive resolution)."""
@@ -68,7 +68,7 @@ class RefResolver:
                 return None
         return None
 
-    def resolve_refs(self, obj: Any, doc: dict) -> Any:
+    def resolve_refs(self, obj: Any, ctx: dict) -> Any:
         """
         Resolve dicts that look like {'$ref': '...'} recursively.
 
@@ -81,7 +81,7 @@ class RefResolver:
             if isinstance(x, dict):
                 if len(x) == 1:
                     if "$ctx" in x:
-                        return pydash.get(doc, x["$ctx"])
+                        return pydash.get(ctx, x["$ctx"])
                     elif "$ref" in x:
                         ref = x["$ref"]
 
@@ -119,12 +119,14 @@ class RefResolver:
                         return fetched
 
                 # Normal dict
-                return {k: _walk(v) for k, v in x.items()}
+                return {_walk(k): _walk(v) for k, v in x.items()}
 
             # Lists
             if isinstance(x, list):
                 return [_walk(v) for v in x]
 
+            if isinstance(x, str) and x.startswith("$$ctx."):
+                return pydash.get(ctx, x.split(".", 1))
             return x
 
         return _walk(obj)
