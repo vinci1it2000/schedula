@@ -32,6 +32,12 @@ def u(uid) -> str:
     return f"u:{uid}"
 
 
+def u2id(uid) -> int:
+    if isinstance(uid, str) and uid.startswith("u:"):
+        return int(uid[2:])
+    return uid
+
+
 def g(gid) -> str:
     return f"g:{gid}"
 

@@ -105,6 +105,10 @@ TEMPLATE_CREATE_SCHEMA = {
                         "create.group",
                         "update.group",
                         "update.contract",
+                        "use.credits",
+                        "charge.credits",
+                        "transfer_to.credits",
+                        "balance.credits",
                         "if.else",
                         "schedule.event",
                         "unschedule.event",
@@ -186,6 +190,30 @@ TEMPLATE_CREATE_SCHEMA = {
                     "type": "string",
                     "minLength": 1,
                 },
+                "wallet_id": {
+                    "anyOf": [{"type": "integer"}, {"$ref": "#/$defs/json_with_refs"}],
+                },
+                "user_id": {
+                    "anyOf": [{"type": "integer"}, {"$ref": "#/$defs/json_with_refs"}],
+                },
+                "to_wallet_id": {
+                    "anyOf": [{"type": "integer"}, {"$ref": "#/$defs/json_with_refs"}],
+                },
+                "to_user_id": {
+                    "anyOf": [{"type": "integer"}, {"$ref": "#/$defs/json_with_refs"}],
+                },
+                "product": {
+                    "anyOf": [
+                        {"type": "string", "minLength": 1},
+                        {"$ref": "#/$defs/json_with_refs"},
+                    ],
+                },
+                "credits": {
+                    "anyOf": [
+                        {"type": "integer", "minimum": 0},
+                        {"$ref": "#/$defs/json_with_refs"},
+                    ],
+                },
                 "condition": {
                     "title": "Branch Condition",
                     "description": "Condition value for if.else branching.",
@@ -226,6 +254,28 @@ TEMPLATE_CREATE_SCHEMA = {
                         }
                     },
                     "then": {"required": ["item_id", "update"]},
+                },
+                {
+                    "if": {"properties": {"type": {"const": "use.credits"}}},
+                    "then": {"required": ["credits", "product"]},
+                },
+                {
+                    "if": {"properties": {"type": {"const": "charge.credits"}}},
+                    "then": {"required": ["credits", "product"]},
+                },
+                {
+                    "if": {"properties": {"type": {"const": "transfer_to.credits"}}},
+                    "then": {
+                        "required": ["credits", "product"],
+                        "anyOf": [
+                            {"required": ["to_wallet_id"]},
+                            {"required": ["to_user_id"]},
+                        ],
+                    },
+                },
+                {
+                    "if": {"properties": {"type": {"const": "balance.credits"}}},
+                    "then": {"required": ["key", "product"]},
                 },
                 {
                     "if": {"properties": {"type": {"const": "if.else"}}},

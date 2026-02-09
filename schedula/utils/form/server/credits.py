@@ -174,8 +174,6 @@ class Wallet(db.Model):
             assert self.balance(product, session=session) >= credits, (
                 "Insufficient balance."
             )
-            if created_by is None:
-                created_by = cu.id
             t = Txn(
                 wallet_id=self.id,
                 type_id=CHARGE,

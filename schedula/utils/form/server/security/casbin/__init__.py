@@ -12,6 +12,7 @@ from .enforcer import get_enforcer
 from .helpers import (
     u,
     g,
+    u2id,
     get_auth_sub,
     get_current_sub,
     g_admin,

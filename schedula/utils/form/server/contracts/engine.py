@@ -20,6 +20,7 @@ from ..security.casbin import (
     get_enforcer,
     acl_user,
     g,
+    u2id,
 )
 from ..utils import (
     RefResolver,
@@ -111,6 +112,37 @@ def _apply_effect_step(
             )
         doc = _get_contract(contract_id)
         local.update(doc.get("local") or {})
+    elif ef_type in {
+        "use.credits",
+        "charge.credits",
+        "transfer_to.credits",
+        "balance.credits",
+    }:
+        from ..credits import Wallet, get_wallet
+
+        if "wallet_id" in ef:
+            wallet = db.session.get(Wallet, int(ef["wallet_id"]))
+        else:
+            wallet = get_wallet(u2id(ef["user_id"]))
+
+        product = ef["product"]
+
+        if ef_type == "balance.credits":
+            local[ef["key"]] = wallet.balance(product=product, session=db.session)
+        elif ef_type == "use.credits":
+            wallet.use(product=product, credits=ef["credits"])
+        elif ef_type == "charge.credits":
+            wallet.charge(product=product, credits=ef["credits"])
+        else:  # transfer_to.credits
+            if "to_wallet_id" in ef:
+                to_wallet = db.session.get(Wallet, int(ef["to_wallet_id"]))
+            else:
+                to_wallet = get_wallet(u2id(ef["to_user_id"]))
+            wallet.transfer_to(
+                product=product,
+                credits=ef["credits"],
+                to_wallet=to_wallet.id,
+            )
     elif ef_type == "http.request":
         request_kw = {"method": "GET"}
         request_kw.update(ef["request"] or {})
