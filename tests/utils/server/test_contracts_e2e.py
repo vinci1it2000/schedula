@@ -560,14 +560,19 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "update": {
                                     "$set": {
                                         "context._has_capacity_for_join": {
-                                            "$lt": [
+                                            "$lte": [
                                                 {
-                                                    "$ifNull": [
-                                                        "$context.accepted_seats_total",
-                                                        0,
+                                                    "$add": [
+                                                        {
+                                                            "$ifNull": [
+                                                                "$context.accepted_seats_total",
+                                                                0,
+                                                            ]
+                                                        },
+                                                        "$$ctx.payload.seats",
                                                     ]
                                                 },
-                                                "$context.capacity",
+                                                {"$ifNull": ["$context.capacity", 0]},
                                             ]
                                         }
                                     }
@@ -656,58 +661,17 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "type": "update.contract",
                                 "update": {
                                     "$set": {
-                                        "states.$$ctx.payload.principal": "ACCEPTED",
-                                    }
-                                },
-                            },
-                            {
-                                "type": "update.group",
-                                "group_id": {"$ctx": "doc.context.group_id"},
-                                "edit_members": {
-                                    "add_members": ["$$ctx.payload.principal"]
-                                },
-                            },
-                            {
-                                "type": "update.contract",
-                                "update": {
-                                    "$set": {
-                                        "context._accepted_increment": {
-                                            "$ifNull": [
-                                                {
-                                                    "$ctx": "doc.context.seats.$$ctx.payload.principal"
-                                                },
-                                                1,
-                                            ]
-                                        }
-                                    }
-                                },
-                            },
-                            {
-                                "type": "update.contract",
-                                "update": {
-                                    "$set": {
-                                        "context.accepted_seats_total": {
-                                            "$add": [
+                                        "context._target_is_requesting": {
+                                            "$eq": [
                                                 {
                                                     "$ifNull": [
-                                                        "$context.accepted_seats_total",
-                                                        0,
+                                                        {
+                                                            "$ctx": "doc.states.$$ctx.payload.principal"
+                                                        },
+                                                        "",
                                                     ]
                                                 },
-                                                "$context._accepted_increment",
-                                            ]
-                                        }
-                                    }
-                                },
-                            },
-                            {
-                                "type": "update.contract",
-                                "update": {
-                                    "$set": {
-                                        "context._capacity_reached": {
-                                            "$gte": [
-                                                "$context.accepted_seats_total",
-                                                "$context.capacity",
+                                                "REQUESTING",
                                             ]
                                         }
                                     }
@@ -715,42 +679,114 @@ def _gherkin_definition() -> Dict[str, Any]:
                             },
                             {
                                 "type": "if.else",
-                                "condition": {"$ctx": "doc.context._capacity_reached"},
+                                "condition": {
+                                    "$ctx": "doc.context._target_is_requesting"
+                                },
                                 "then_effects": [
                                     {
                                         "type": "update.contract",
                                         "update": {
-                                            "$set": {"state": "READY"},
-                                            "$unset": {
-                                                "context._accepted_increment": "",
-                                                "context._capacity_reached": "",
-                                            },
+                                            "$set": {
+                                                "states.$$ctx.payload.principal": "ACCEPTED"
+                                            }
                                         },
-                                    }
-                                ],
-                                "else_effects": [
+                                    },
+                                    {
+                                        "type": "update.group",
+                                        "group_id": {"$ctx": "doc.context.group_id"},
+                                        "edit_members": {
+                                            "add_members": ["$$ctx.payload.principal"]
+                                        },
+                                    },
                                     {
                                         "type": "update.contract",
                                         "update": {
-                                            "$set": {"state": "RECRUITING"},
-                                            "$unset": {
-                                                "context._accepted_increment": "",
-                                                "context._capacity_reached": "",
+                                            "$set": {
+                                                "context._accepted_increment": {
+                                                    "$ifNull": [
+                                                        {
+                                                            "$ctx": "doc.context.seats.$$ctx.payload.principal"
+                                                        },
+                                                        1,
+                                                    ]
+                                                }
+                                            }
+                                        },
+                                    },
+                                    {
+                                        "type": "update.contract",
+                                        "update": {
+                                            "$set": {
+                                                "context.accepted_seats_total": {
+                                                    "$add": [
+                                                        {
+                                                            "$ifNull": [
+                                                                "$context.accepted_seats_total",
+                                                                0,
+                                                            ]
+                                                        },
+                                                        "$context._accepted_increment",
+                                                    ]
+                                                },
+                                                "context._capacity_reached": {
+                                                    "$gte": [
+                                                        "$context.accepted_seats_total",
+                                                        "$context.capacity",
+                                                    ]
+                                                },
+                                            }
+                                        },
+                                    },
+                                    {
+                                        "type": "if.else",
+                                        "condition": {
+                                            "$ctx": "doc.context._capacity_reached"
+                                        },
+                                        "then_effects": [
+                                            {
+                                                "type": "update.contract",
+                                                "update": {
+                                                    "$set": {"state": "READY"},
+                                                    "$unset": {
+                                                        "context._accepted_increment": "",
+                                                        "context._capacity_reached": "",
+                                                    },
+                                                },
+                                            }
+                                        ],
+                                        "else_effects": [
+                                            {
+                                                "type": "update.contract",
+                                                "update": {
+                                                    "$set": {"state": "RECRUITING"},
+                                                    "$unset": {
+                                                        "context._accepted_increment": "",
+                                                        "context._capacity_reached": "",
+                                                    },
+                                                },
+                                            }
+                                        ],
+                                    },
+                                    {
+                                        "type": "notify",
+                                        "notify": {
+                                            "event": "contracts.join_request_accepted",
+                                            "targets": {
+                                                "$$ctx.payload.principal": ["in_app"]
+                                            },
+                                            "payload": {
+                                                "contract_code": {
+                                                    "$ctx": "doc.context.contract_code"
+                                                }
                                             },
                                         },
-                                    }
+                                    },
                                 ],
                             },
                             {
-                                "type": "notify",
-                                "notify": {
-                                    "event": "contracts.join_request_accepted",
-                                    "targets": {"$$ctx.payload.principal": ["in_app"]},
-                                    "payload": {
-                                        "contract_code": {
-                                            "$ctx": "doc.context.contract_code"
-                                        }
-                                    },
+                                "type": "update.contract",
+                                "update": {
+                                    "$unset": {"context._target_is_requesting": ""}
                                 },
                             },
                         ],
@@ -784,19 +820,93 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "type": "update.contract",
                                 "update": {
                                     "$set": {
-                                        "states.$$ctx.payload.principal": "REJECTED"
+                                        "context._target_is_requesting": {
+                                            "$eq": [
+                                                {
+                                                    "$ifNull": [
+                                                        {
+                                                            "$ctx": "doc.states.$$ctx.payload.principal"
+                                                        },
+                                                        "",
+                                                    ]
+                                                },
+                                                "REQUESTING",
+                                            ]
+                                        }
                                     },
+                                },
+                            },
+                            {
+                                "type": "if.else",
+                                "condition": {
+                                    "$ctx": "doc.context._target_is_requesting"
+                                },
+                                "then_effects": [
+                                    {
+                                        "type": "update.contract",
+                                        "update": {
+                                            "$set": {
+                                                "states.$$ctx.payload.principal": "REJECTED"
+                                            },
+                                        },
+                                    },
+                                    {
+                                        "type": "notify",
+                                        "notify": {
+                                            "event": "contracts.join_request_rejected",
+                                            "targets": {
+                                                "$$ctx.payload.principal": ["in_app"]
+                                            },
+                                            "payload": {
+                                                "contract_code": {
+                                                    "$ctx": "doc.context.contract_code"
+                                                }
+                                            },
+                                        },
+                                    },
+                                ],
+                            },
+                            {
+                                "type": "update.contract",
+                                "update": {
+                                    "$unset": {"context._target_is_requesting": ""}
+                                },
+                            },
+                        ],
+                    },
+                    "CancelJoinRequest": {
+                        "trigger": [
+                            {
+                                "type": "api",
+                                "path": "cancel-join-request",
+                                "method": "POST",
+                                "allow_user_states": ["REQUESTING"],
+                                "response": {
+                                    "ok": True,
+                                    "event": "cancel_join_request",
+                                },
+                            }
+                        ],
+                        "effects": [
+                            {
+                                "type": "update.contract",
+                                "update": {
+                                    "$unset": {
+                                        "states.$$ctx.user": "",
+                                        "context.seats.$$ctx.user": "",
+                                    }
                                 },
                             },
                             {
                                 "type": "notify",
                                 "notify": {
-                                    "event": "contracts.join_request_rejected",
-                                    "targets": {"$$ctx.payload.principal": ["in_app"]},
+                                    "event": "contracts.join_request_cancelled",
+                                    "targets": {"$$ctx.doc.context.driver": ["in_app"]},
                                     "payload": {
+                                        "principal": "$$ctx.user",
                                         "contract_code": {
                                             "$ctx": "doc.context.contract_code"
-                                        }
+                                        },
                                     },
                                 },
                             },
@@ -938,20 +1048,13 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                 },
                                                 "$context._accepted_increment",
                                             ]
-                                        }
-                                    }
-                                },
-                            },
-                            {
-                                "type": "update.contract",
-                                "update": {
-                                    "$set": {
+                                        },
                                         "context._capacity_reached": {
                                             "$gte": [
                                                 "$context.accepted_seats_total",
                                                 "$context.capacity",
                                             ]
-                                        }
+                                        },
                                     }
                                 },
                             },
@@ -1073,6 +1176,298 @@ def _gherkin_definition() -> Dict[str, Any]:
                             },
                         ],
                     },
+                    "CancelUser": {
+                        "trigger": [
+                            {
+                                "type": "api",
+                                "path": "cancel-user",
+                                "method": "POST",
+                                "allow_user_states": ["ACCEPTED"],
+                                "response": {"ok": True, "event": "cancel_user"},
+                            }
+                        ],
+                        "effects": [
+                            {
+                                "type": "update.group",
+                                "group_id": {"$ctx": "doc.context.group_id"},
+                                "edit_members": {"remove_members": ["$$ctx.user"]},
+                            },
+                            {
+                                "type": "update.contract",
+                                "update": {
+                                    "$set": {
+                                        "context._cancel_seats": {
+                                            "$ifNull": [
+                                                {
+                                                    "$ctx": "doc.context.seats.$$ctx.user"
+                                                },
+                                                1,
+                                            ]
+                                        }
+                                    }
+                                },
+                            },
+                            {
+                                "type": "update.contract",
+                                "update": {
+                                    "$set": {
+                                        "context.accepted_seats_total": {
+                                            "$cond": [
+                                                {
+                                                    "$gte": [
+                                                        {
+                                                            "$ifNull": [
+                                                                "$context.accepted_seats_total",
+                                                                0,
+                                                            ]
+                                                        },
+                                                        "$context._cancel_seats",
+                                                    ]
+                                                },
+                                                {
+                                                    "$subtract": [
+                                                        {
+                                                            "$ifNull": [
+                                                                "$context.accepted_seats_total",
+                                                                0,
+                                                            ]
+                                                        },
+                                                        "$context._cancel_seats",
+                                                    ]
+                                                },
+                                                0,
+                                            ]
+                                        },
+                                        "states.$$ctx.user": "CANCELLED",
+                                    },
+                                    "$unset": {
+                                        "context._cancel_seats": "",
+                                        "context.seats.$$ctx.user": "",
+                                    },
+                                },
+                            },
+                            {
+                                "type": "notify",
+                                "notify": {
+                                    "event": "contracts.user_cancelled",
+                                    "targets": {"$$ctx.doc.context.driver": ["in_app"]},
+                                    "payload": {
+                                        "principal": "$$ctx.user",
+                                        "contract_code": {
+                                            "$ctx": "doc.context.contract_code"
+                                        },
+                                    },
+                                },
+                            },
+                        ],
+                    },
+                    "DriverRemoveUser": {
+                        "trigger": [
+                            {
+                                "type": "api",
+                                "path": "driver-remove-user",
+                                "method": "POST",
+                                "allow_principals": ["$$ctx.doc.context.driver"],
+                                "payload_schema": {
+                                    "type": "object",
+                                    "required": ["principal"],
+                                    "properties": {
+                                        "principal": {
+                                            "type": "string",
+                                            "pattern": "^u:.+$",
+                                        }
+                                    },
+                                    "additionalProperties": False,
+                                },
+                                "response": {"ok": True, "event": "driver_remove_user"},
+                            }
+                        ],
+                        "effects": [
+                            {
+                                "type": "update.contract",
+                                "update": {
+                                    "$set": {
+                                        "context._target_is_accepted": {
+                                            "$eq": [
+                                                {
+                                                    "$ifNull": [
+                                                        {
+                                                            "$ctx": "doc.states.$$ctx.payload.principal"
+                                                        },
+                                                        "",
+                                                    ]
+                                                },
+                                                "ACCEPTED",
+                                            ]
+                                        }
+                                    }
+                                },
+                            },
+                            {
+                                "type": "if.else",
+                                "condition": {
+                                    "$ctx": "doc.context._target_is_accepted"
+                                },
+                                "then_effects": [
+                                    {
+                                        "type": "update.group",
+                                        "group_id": {"$ctx": "doc.context.group_id"},
+                                        "edit_members": {
+                                            "remove_members": [
+                                                "$$ctx.payload.principal"
+                                            ]
+                                        },
+                                    },
+                                    {
+                                        "type": "update.contract",
+                                        "update": {
+                                            "$set": {
+                                                "context._remove_seats": {
+                                                    "$ifNull": [
+                                                        {
+                                                            "$ctx": "doc.context.seats.$$ctx.payload.principal"
+                                                        },
+                                                        1,
+                                                    ]
+                                                }
+                                            }
+                                        },
+                                    },
+                                    {
+                                        "type": "update.contract",
+                                        "update": {
+                                            "$set": {
+                                                "context.accepted_seats_total": {
+                                                    "$cond": [
+                                                        {
+                                                            "$gte": [
+                                                                {
+                                                                    "$ifNull": [
+                                                                        "$context.accepted_seats_total",
+                                                                        0,
+                                                                    ]
+                                                                },
+                                                                "$context._remove_seats",
+                                                            ]
+                                                        },
+                                                        {
+                                                            "$subtract": [
+                                                                {
+                                                                    "$ifNull": [
+                                                                        "$context.accepted_seats_total",
+                                                                        0,
+                                                                    ]
+                                                                },
+                                                                "$context._remove_seats",
+                                                            ]
+                                                        },
+                                                        0,
+                                                    ]
+                                                },
+                                                "states.$$ctx.payload.principal": "CANCELLED",
+                                            },
+                                            "$unset": {
+                                                "context._remove_seats": "",
+                                                "context.seats.$$ctx.payload.principal": "",
+                                            },
+                                        },
+                                    },
+                                    {
+                                        "type": "notify",
+                                        "notify": {
+                                            "event": "contracts.user_removed_by_driver",
+                                            "targets": {
+                                                "$$ctx.payload.principal": ["in_app"]
+                                            },
+                                            "payload": {
+                                                "contract_code": {
+                                                    "$ctx": "doc.context.contract_code"
+                                                }
+                                            },
+                                        },
+                                    },
+                                ],
+                            },
+                            {
+                                "type": "update.contract",
+                                "update": {
+                                    "$unset": {"context._target_is_accepted": ""}
+                                },
+                            },
+                        ],
+                    },
+                    "DriverCancelTrip": {
+                        "trigger": [
+                            {
+                                "type": "api",
+                                "path": "driver-cancel-trip",
+                                "method": "POST",
+                                "allow_principals": ["$$ctx.doc.context.driver"],
+                                "response": {"ok": True, "event": "driver_cancel_trip"},
+                            }
+                        ],
+                        "effects": [
+                            {
+                                "type": "update.contract",
+                                "update": {
+                                    "$set": {
+                                        "context._cancel_trip_targets": {
+                                            "$arrayToObject": {
+                                                "$map": {
+                                                    "input": {
+                                                        "$filter": {
+                                                            "input": {
+                                                                "$objectToArray": "$states"
+                                                            },
+                                                            "as": "kv",
+                                                            "cond": {
+                                                                "$eq": [
+                                                                    "$$kv.v",
+                                                                    "ACCEPTED",
+                                                                ]
+                                                            },
+                                                        }
+                                                    },
+                                                    "as": "kv",
+                                                    "in": {
+                                                        "k": "$$kv.k",
+                                                        "v": ["in_app"],
+                                                    },
+                                                }
+                                            }
+                                        }
+                                    }
+                                },
+                            },
+                            {
+                                "type": "update.contract",
+                                "update": {
+                                    "$set": {
+                                        "status": "CANCELED",
+                                        "state": "CANCELED",
+                                    }
+                                },
+                            },
+                            {
+                                "type": "notify",
+                                "notify": {
+                                    "event": "contracts.trip_cancelled_by_driver",
+                                    "targets": "$$ctx.doc.context._cancel_trip_targets",
+                                    "payload": {
+                                        "contract_code": {
+                                            "$ctx": "doc.context.contract_code"
+                                        }
+                                    },
+                                },
+                            },
+                            {
+                                "type": "update.contract",
+                                "update": {
+                                    "$unset": {"context._cancel_trip_targets": ""}
+                                },
+                            },
+                        ],
+                    },
                     "DriverSetReady": {
                         "trigger": [
                             {
@@ -1113,9 +1508,68 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "type": "update.contract",
                                 "update": {
                                     "$set": {
+                                        "context._cancel_seats": {
+                                            "$ifNull": [
+                                                {
+                                                    "$ctx": "doc.context.seats.$$ctx.user"
+                                                },
+                                                1,
+                                            ]
+                                        }
+                                    }
+                                },
+                            },
+                            {
+                                "type": "update.contract",
+                                "update": {
+                                    "$set": {
+                                        "context.accepted_seats_total": {
+                                            "$cond": [
+                                                {
+                                                    "$gte": [
+                                                        {
+                                                            "$ifNull": [
+                                                                "$context.accepted_seats_total",
+                                                                0,
+                                                            ]
+                                                        },
+                                                        "$context._cancel_seats",
+                                                    ]
+                                                },
+                                                {
+                                                    "$subtract": [
+                                                        {
+                                                            "$ifNull": [
+                                                                "$context.accepted_seats_total",
+                                                                0,
+                                                            ]
+                                                        },
+                                                        "$context._cancel_seats",
+                                                    ]
+                                                },
+                                                0,
+                                            ]
+                                        },
                                         "states.$$ctx.user": "CANCELLED",
                                         "state": "RECRUITING",
-                                    }
+                                    },
+                                    "$unset": {
+                                        "context._cancel_seats": "",
+                                        "context.seats.$$ctx.user": "",
+                                    },
+                                },
+                            },
+                            {
+                                "type": "notify",
+                                "notify": {
+                                    "event": "contracts.user_cancelled",
+                                    "targets": {"$$ctx.doc.context.driver": ["in_app"]},
+                                    "payload": {
+                                        "principal": "$$ctx.user",
+                                        "contract_code": {
+                                            "$ctx": "doc.context.contract_code"
+                                        },
+                                    },
                                 },
                             },
                         ],
@@ -1134,6 +1588,213 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "type": "update.contract",
                                 "update": {"$set": {"state": "RECRUITING"}},
                             }
+                        ],
+                    },
+                    "DriverRemoveUser": {
+                        "trigger": [
+                            {
+                                "type": "api",
+                                "path": "driver-remove-user",
+                                "method": "POST",
+                                "allow_principals": ["$$ctx.doc.context.driver"],
+                                "payload_schema": {
+                                    "type": "object",
+                                    "required": ["principal"],
+                                    "properties": {
+                                        "principal": {
+                                            "type": "string",
+                                            "pattern": "^u:.+$",
+                                        }
+                                    },
+                                    "additionalProperties": False,
+                                },
+                                "response": {"ok": True, "event": "driver_remove_user"},
+                            }
+                        ],
+                        "effects": [
+                            {
+                                "type": "update.contract",
+                                "update": {
+                                    "$set": {
+                                        "context._target_is_accepted": {
+                                            "$eq": [
+                                                {
+                                                    "$ifNull": [
+                                                        {
+                                                            "$ctx": "doc.states.$$ctx.payload.principal"
+                                                        },
+                                                        "",
+                                                    ]
+                                                },
+                                                "ACCEPTED",
+                                            ]
+                                        }
+                                    }
+                                },
+                            },
+                            {
+                                "type": "if.else",
+                                "condition": {
+                                    "$ctx": "doc.context._target_is_accepted"
+                                },
+                                "then_effects": [
+                                    {
+                                        "type": "update.group",
+                                        "group_id": {"$ctx": "doc.context.group_id"},
+                                        "edit_members": {
+                                            "remove_members": [
+                                                "$$ctx.payload.principal"
+                                            ]
+                                        },
+                                    },
+                                    {
+                                        "type": "update.contract",
+                                        "update": {
+                                            "$set": {
+                                                "context._remove_seats": {
+                                                    "$ifNull": [
+                                                        {
+                                                            "$ctx": "doc.context.seats.$$ctx.payload.principal"
+                                                        },
+                                                        1,
+                                                    ]
+                                                }
+                                            }
+                                        },
+                                    },
+                                    {
+                                        "type": "update.contract",
+                                        "update": {
+                                            "$set": {
+                                                "context.accepted_seats_total": {
+                                                    "$cond": [
+                                                        {
+                                                            "$gte": [
+                                                                {
+                                                                    "$ifNull": [
+                                                                        "$context.accepted_seats_total",
+                                                                        0,
+                                                                    ]
+                                                                },
+                                                                "$context._remove_seats",
+                                                            ]
+                                                        },
+                                                        {
+                                                            "$subtract": [
+                                                                {
+                                                                    "$ifNull": [
+                                                                        "$context.accepted_seats_total",
+                                                                        0,
+                                                                    ]
+                                                                },
+                                                                "$context._remove_seats",
+                                                            ]
+                                                        },
+                                                        0,
+                                                    ]
+                                                },
+                                                "states.$$ctx.payload.principal": "CANCELLED",
+                                            },
+                                            "$unset": {
+                                                "context._remove_seats": "",
+                                                "context.seats.$$ctx.payload.principal": "",
+                                            },
+                                        },
+                                    },
+                                    {
+                                        "type": "notify",
+                                        "notify": {
+                                            "event": "contracts.user_removed_by_driver",
+                                            "targets": {
+                                                "$$ctx.payload.principal": ["in_app"]
+                                            },
+                                            "payload": {
+                                                "contract_code": {
+                                                    "$ctx": "doc.context.contract_code"
+                                                }
+                                            },
+                                        },
+                                    },
+                                ],
+                            },
+                            {
+                                "type": "update.contract",
+                                "update": {
+                                    "$unset": {"context._target_is_accepted": ""}
+                                },
+                            },
+                        ],
+                    },
+                    "DriverCancelTrip": {
+                        "trigger": [
+                            {
+                                "type": "api",
+                                "path": "driver-cancel-trip",
+                                "method": "POST",
+                                "allow_principals": ["$$ctx.doc.context.driver"],
+                                "response": {"ok": True, "event": "driver_cancel_trip"},
+                            }
+                        ],
+                        "effects": [
+                            {
+                                "type": "update.contract",
+                                "update": {
+                                    "$set": {
+                                        "context._cancel_trip_targets": {
+                                            "$arrayToObject": {
+                                                "$map": {
+                                                    "input": {
+                                                        "$filter": {
+                                                            "input": {
+                                                                "$objectToArray": "$states"
+                                                            },
+                                                            "as": "kv",
+                                                            "cond": {
+                                                                "$eq": [
+                                                                    "$$kv.v",
+                                                                    "ACCEPTED",
+                                                                ]
+                                                            },
+                                                        }
+                                                    },
+                                                    "as": "kv",
+                                                    "in": {
+                                                        "k": "$$kv.k",
+                                                        "v": ["in_app"],
+                                                    },
+                                                }
+                                            }
+                                        }
+                                    }
+                                },
+                            },
+                            {
+                                "type": "update.contract",
+                                "update": {
+                                    "$set": {
+                                        "status": "CANCELED",
+                                        "state": "CANCELED",
+                                    }
+                                },
+                            },
+                            {
+                                "type": "notify",
+                                "notify": {
+                                    "event": "contracts.trip_cancelled_by_driver",
+                                    "targets": "$$ctx.doc.context._cancel_trip_targets",
+                                    "payload": {
+                                        "contract_code": {
+                                            "$ctx": "doc.context.contract_code"
+                                        }
+                                    },
+                                },
+                            },
+                            {
+                                "type": "update.contract",
+                                "update": {
+                                    "$unset": {"context._cancel_trip_targets": ""}
+                                },
+                            },
                         ],
                     },
                 }
@@ -2204,6 +2865,102 @@ class ContractsE2ETest(unittest.TestCase):
             {f"u:{driver_uid}", f"u:{p1_uid}", f"u:{p2_uid}"},
         )
 
+    def test_recruiting_cancel_user_is_allowed_and_updates_group(self) -> None:
+        driver_uid = self.user_ids["d1"]
+        p1_uid = self.user_ids["p1"]
+        p2_uid = self.user_ids["p2"]
+        cid = self._create_gherkin_contract(initial_state="FIRST_REQUEST")
+        gid = self._to_recruiting(cid)
+
+        self.assertEqual(
+            self._post_event(
+                cid,
+                "invite-user",
+                actor="d1",
+                payload={"principal": f"u:{p2_uid}"},
+            ).status_code,
+            200,
+        )
+        self.assertEqual(
+            self._post_event(cid, "accept-user", actor="p2").status_code,
+            200,
+        )
+        self.assertEqual(
+            self._post_event(cid, "cancel-user", actor="p2").status_code, 200
+        )
+
+        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
+        self.assertEqual(c["state"], "RECRUITING")
+        self.assertEqual(self._user_state(c, p2_uid), "CANCELLED")
+        seats = (c.get("context") or {}).get("seats") or {}
+        self.assertNotIn(f"u:{p2_uid}", seats)
+        self.assertSetEqual(
+            self._group_member_ids(gid),
+            {f"u:{driver_uid}", f"u:{p1_uid}"},
+        )
+
+    def test_driver_can_remove_passenger_in_recruiting(self) -> None:
+        driver_uid = self.user_ids["d1"]
+        p1_uid = self.user_ids["p1"]
+        p2_uid = self.user_ids["p2"]
+        cid = self._create_gherkin_contract(initial_state="FIRST_REQUEST")
+        gid = self._to_recruiting(cid)
+
+        self.assertEqual(
+            self._post_event(
+                cid,
+                "invite-user",
+                actor="d1",
+                payload={"principal": f"u:{p2_uid}"},
+            ).status_code,
+            200,
+        )
+        self.assertEqual(
+            self._post_event(cid, "accept-user", actor="p2").status_code,
+            200,
+        )
+        self.assertEqual(
+            self._post_event(
+                cid,
+                "driver-remove-user",
+                actor="d1",
+                payload={"principal": f"u:{p2_uid}"},
+            ).status_code,
+            200,
+        )
+
+        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
+        self.assertEqual(c["state"], "RECRUITING")
+        self.assertEqual(self._user_state(c, p2_uid), "CANCELLED")
+        self.assertSetEqual(
+            self._group_member_ids(gid),
+            {f"u:{driver_uid}", f"u:{p1_uid}"},
+        )
+
+    def test_driver_can_cancel_trip_in_recruiting_and_ready(self) -> None:
+        cid_r = self._create_gherkin_contract(initial_state="FIRST_REQUEST")
+        _ = self._to_recruiting(cid_r)
+        self.assertEqual(
+            self._post_event(cid_r, "driver-cancel-trip", actor="d1").status_code,
+            200,
+        )
+        denied_r = self._post_event(
+            cid_r,
+            "invite-user",
+            actor="d1",
+            payload={"principal": f"u:{self.user_ids['p2']}"},
+        )
+        self.assertEqual(denied_r.status_code, 410)
+
+        cid_ready = self._create_gherkin_contract(initial_state="FIRST_REQUEST")
+        _ = self._to_ready(cid_ready)
+        self.assertEqual(
+            self._post_event(cid_ready, "driver-cancel-trip", actor="d1").status_code,
+            200,
+        )
+        denied_ready = self._post_event(cid_ready, "set-recruiting", actor="d1")
+        self.assertEqual(denied_ready.status_code, 410)
+
     def test_wf7_cancel_early_stops_contract_and_blocks_events(self) -> None:
         cid = self._create_gherkin_contract()
         _ = self._to_recruiting(cid)
@@ -2337,8 +3094,7 @@ class ContractsE2ETest(unittest.TestCase):
             200,
         )
         c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
-        pending = (c.get("context") or {}).get("pending_join_requests") or {}
-        self.assertNotIn(f"u:{self.user_ids['p4']}", pending)
+        self.assertEqual(self._user_state(c, self.user_ids["p4"]), "")
 
     def test_request_join_denies_driver_and_confirmed_users(self) -> None:
         cid = self._create_gherkin_contract()
@@ -2349,6 +3105,62 @@ class ContractsE2ETest(unittest.TestCase):
 
         denied_confirmed = self._post_event(cid, "request-join", actor="p1")
         self.assertEqual(denied_confirmed.status_code, 409)
+
+    def test_request_join_can_be_cancelled_before_driver_decision(self) -> None:
+        cid = self._create_gherkin_contract()
+        _ = self._to_recruiting(cid)
+
+        self.assertEqual(
+            self._post_event(
+                cid,
+                "request-join",
+                actor="p4",
+                payload={"seats": 2},
+            ).status_code,
+            200,
+        )
+        self.assertEqual(
+            self._post_event(cid, "cancel-join-request", actor="p4").status_code,
+            200,
+        )
+
+        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
+        self.assertEqual(self._user_state(c, self.user_ids["p4"]), "")
+        seats = (c.get("context") or {}).get("seats") or {}
+        self.assertNotIn(f"u:{self.user_ids['p4']}", seats)
+
+    def test_driver_join_decision_requires_requesting_state(self) -> None:
+        cid = self._create_gherkin_contract()
+        _ = self._to_recruiting(cid)
+        p4 = f"u:{self.user_ids['p4']}"
+
+        self.assertEqual(
+            self._post_event(
+                cid,
+                "accept-join-request",
+                actor="d1",
+                payload={"principal": p4},
+            ).status_code,
+            200,
+        )
+        c0 = self.httpx.get(
+            f"/contracts/{cid}", headers=self._headers("owner-1")
+        ).json()
+        self.assertEqual(self._user_state(c0, self.user_ids["p4"]), "")
+
+        self.assertEqual(
+            self._post_event(
+                cid,
+                "reject-join-request",
+                actor="d1",
+                payload={"principal": p4},
+            ).status_code,
+            200,
+        )
+        c1 = self.httpx.get(
+            f"/contracts/{cid}", headers=self._headers("owner-1")
+        ).json()
+        self.assertEqual(self._user_state(c1, self.user_ids["p4"]), "")
 
     def test_accept_p3_without_invite_is_rejected(self) -> None:
         cid = self._create_gherkin_contract()
