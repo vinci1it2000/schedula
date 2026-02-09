@@ -85,16 +85,33 @@ def _apply_effect_step(
     if ef_type == "update.contract":
         now = now_utc()
         contract_id = str(doc.get("_id") or "")
+        update_stage = ef["update"]
+        unset_stage: Dict[str, Any] = {}
+        if isinstance(update_stage, dict):
+            raw_unset = update_stage.get("$unset")
+            if isinstance(raw_unset, dict):
+                unset_stage = dict(raw_unset)
+                update_stage = dict(update_stage)
+                update_stage.pop("$unset", None)
         mongo_update_one(
             _contracts_coll(),
             {"_id": contract_id},
             [
                 {"$set": {"updated_by": actor_id}},
-                ef["update"],
+                update_stage,
                 {"$set": {"updated_at": now}},
             ],
             let=ctx,
         )
+        if unset_stage:
+            mongo_update_one(
+                _contracts_coll(),
+                {"_id": contract_id},
+                {
+                    "$unset": unset_stage,
+                    "$set": {"updated_by": actor_id, "updated_at": now},
+                },
+            )
         doc = _get_contract(contract_id)
     elif ef_type == "http.request":
         request_kw = {"method": "GET"}
