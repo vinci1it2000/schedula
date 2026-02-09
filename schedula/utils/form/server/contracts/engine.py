@@ -62,48 +62,46 @@ def _apply_effect_step(
         ef: Dict[str, Any],
         actor_id: str,
         payload: Dict[str, Any] = None,
+        local=None
 ) -> tuple[bool, Dict[str, Any]]:
     ef_type = str(ef.get("type") or "")
-    contract_id = str(doc.get("_id") or "")
-    responses = {}
+    if local is None:
+        local = {}
     payload = payload or {}
+    ctx = {
+        "doc": doc,
+        "user": actor_id,
+        "payload": payload,
+        "local": local,
+    }
     resolver = RefResolver(enforce_acl=False)
     initial_state = doc.get("state")
-    if ef_type in ("update.context", "update.state", "update.states"):
-        what = ef_type.split(".")[1]
+
+    if ef_type == "update.contract":
+        now = now_utc()
+        contract_id = str(doc.get("_id") or "")
         mongo_update_one(
             _contracts_coll(),
             {"_id": contract_id},
             [
-                {
-                    "$set": {
-                        f"{what}": {
-                            "$mergeObjects": [f"${what}", resolver(ef["update"], doc)]
-                        },
-                        "updated_at": "$$NOW",
-                    }
-                }
+                {"$set": {"updated_by": actor_id}},
+                resolver(ef["update"], ctx),
+                {"$set": {"updated_at": now}}
             ],
-            let={
-                "doc": doc,
-                "user": actor_id,
-                "payload": payload,
-                "responses": responses,
-            },
+            let=ctx,
         )
         doc = _get_contract(contract_id)
     elif ef_type == "http.request":
         request_kw = {"method": "GET"}
-        request_kw.update(resolver(ef.get("request"), doc) or {})
-        responses[ef["key"]] = requests.request(**request_kw).json()
+        request_kw.update(resolver(ef.get("request"), ctx) or {})
+        local[ef["key"]] = requests.request(**request_kw).json()
     elif ef_type == "notify":
         from ..notifications.service import create_notification
-
         notify_kw = {
-            "event": "",
             "created_by": actor_id,
             "sender_principal": actor_id,
         }
+        notify_kw.update(resolver(ef["notify"], ctx) or {})
         create_notification(**notify_kw)
     elif ef_type == "update.item":
         pass  # TODO: implement update.item effects
@@ -129,10 +127,11 @@ def _apply_on_enter(
         doc: dict[str, Any],
         actor_id: str,
 ) -> dict[str, Any]:
+    local = {}
     for ef in pydash.get(
             doc, f"definition.states.{doc.get('state')}.onEnter.effects", []
     ):
-        changed, doc = _apply_effect_step(doc=doc, ef=ef, actor_id=actor_id)
+        changed, doc = _apply_effect_step(doc=doc, ef=ef, actor_id=actor_id, local=local)
         if changed:
             return doc
     return doc
@@ -183,10 +182,10 @@ def _process_event(
     schema_errors = validate_payload(edef.get("payload_schema"), body_payload)
     if schema_errors:
         return {"error": "Invalid payload", "details": schema_errors}, 422
-
+    local = {}
     for ef in edef.get("effects") or []:
         changed, doc = _apply_effect_step(
-            doc=doc, ef=ef, payload=body_payload, actor_id=actor_id
+            doc=doc, ef=ef, payload=body_payload, actor_id=actor_id, local=local
         )
         if changed:
             break
