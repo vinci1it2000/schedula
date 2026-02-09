@@ -109,7 +109,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                 "$ctx": "local.first_request_timeout_id"
                                             },
                                         }
-                                    ]
+                                    ],
                                 }
                             },
                         },
@@ -143,6 +143,23 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "type": "unschedule.event",
                                 "event_id": {
                                     "$ctx": "doc.context.first_request_timeout_ids.0.event_id"
+                                },
+                            },
+                            {
+                                "type": "schedule.event",
+                                "key": "driver_pickup_check_id",
+                                "event_name": "DriverPickupCheckTimed",
+                                "cron": "* * * * *",
+                                "actor_id": "system:cron",
+                            },
+                            {
+                                "type": "update.contract",
+                                "update": {
+                                    "$set": {
+                                        "context.driver_pickup_check_id": {
+                                            "$ctx": "local.driver_pickup_check_id"
+                                        }
+                                    }
                                 },
                             },
                             {
@@ -1176,6 +1193,98 @@ def _gherkin_definition() -> Dict[str, Any]:
                             },
                         ],
                     },
+                    "DriverCancelInvite": {
+                        "trigger": [
+                            {
+                                "type": "api",
+                                "path": "driver-cancel-invite",
+                                "method": "POST",
+                                "allow_principals": ["$$ctx.doc.context.driver"],
+                                "payload_schema": {
+                                    "type": "object",
+                                    "required": ["principal"],
+                                    "properties": {
+                                        "principal": {
+                                            "type": "string",
+                                            "pattern": "^u:.+$",
+                                        }
+                                    },
+                                    "additionalProperties": False,
+                                },
+                                "response": {
+                                    "ok": True,
+                                    "event": "driver_cancel_invite",
+                                },
+                            }
+                        ],
+                        "effects": [
+                            {
+                                "type": "update.contract",
+                                "update": {
+                                    "$set": {
+                                        "context._target_is_pending_invite": {
+                                            "$eq": [
+                                                {
+                                                    "$ifNull": [
+                                                        {
+                                                            "$ctx": "doc.states.$$ctx.payload.principal"
+                                                        },
+                                                        "",
+                                                    ]
+                                                },
+                                                "PENDING",
+                                            ]
+                                        }
+                                    }
+                                },
+                            },
+                            {
+                                "type": "if.else",
+                                "condition": {
+                                    "$ctx": "doc.context._target_is_pending_invite"
+                                },
+                                "then_effects": [
+                                    {
+                                        "type": "unschedule.event",
+                                        "event_id": {
+                                            "$ctx": "doc.context.pending_invites.$$ctx.payload.principal"
+                                        },
+                                    },
+                                    {
+                                        "type": "update.contract",
+                                        "update": {
+                                            "$set": {
+                                                "states.$$ctx.payload.principal": "CANCELLED"
+                                            },
+                                            "$unset": {
+                                                "context.pending_invites.$$ctx.payload.principal": ""
+                                            },
+                                        },
+                                    },
+                                    {
+                                        "type": "notify",
+                                        "notify": {
+                                            "event": "contracts.invite_cancelled_by_driver",
+                                            "targets": {
+                                                "$$ctx.payload.principal": ["in_app"]
+                                            },
+                                            "payload": {
+                                                "contract_code": {
+                                                    "$ctx": "doc.context.contract_code"
+                                                }
+                                            },
+                                        },
+                                    },
+                                ],
+                            },
+                            {
+                                "type": "update.contract",
+                                "update": {
+                                    "$unset": {"context._target_is_pending_invite": ""}
+                                },
+                            },
+                        ],
+                    },
                     "CancelUser": {
                         "trigger": [
                             {
@@ -1590,6 +1699,67 @@ def _gherkin_definition() -> Dict[str, Any]:
                             }
                         ],
                     },
+                    "DriverStartTrip": {
+                        "trigger": [
+                            {
+                                "type": "api",
+                                "path": "start-trip",
+                                "method": "POST",
+                                "allow_principals": ["$$ctx.doc.context.driver"],
+                                "response": {"ok": True, "event": "start_trip"},
+                            }
+                        ],
+                        "effects": [
+                            {
+                                "type": "schedule.event",
+                                "key": "riders_pickup_check_id",
+                                "event_name": "RidersPickupCheckTimed",
+                                "cron": "* * * * *",
+                                "actor_id": "system:cron",
+                            },
+                            {
+                                "type": "update.contract",
+                                "update": {
+                                    "$set": {
+                                        "context.riders_pickup_check_id": {
+                                            "$ctx": "local.riders_pickup_check_id"
+                                        },
+                                        "context.driver_in_pickup_zone": False,
+                                        "context.riders_picked_up": {},
+                                        "context.pending_pickup_targets": {
+                                            "$arrayToObject": {
+                                                "$map": {
+                                                    "input": {
+                                                        "$filter": {
+                                                            "input": {
+                                                                "$objectToArray": "$states"
+                                                            },
+                                                            "as": "kv",
+                                                            "cond": {
+                                                                "$eq": [
+                                                                    "$$kv.v",
+                                                                    "ACCEPTED",
+                                                                ]
+                                                            },
+                                                        }
+                                                    },
+                                                    "as": "kv",
+                                                    "in": {
+                                                        "k": "$$kv.k",
+                                                        "v": ["in_app"],
+                                                    },
+                                                }
+                                            }
+                                        },
+                                    }
+                                },
+                            },
+                            {
+                                "type": "update.contract",
+                                "update": {"$set": {"state": "IN_PROGRESS"}},
+                            },
+                        ],
+                    },
                     "DriverRemoveUser": {
                         "trigger": [
                             {
@@ -1799,8 +1969,467 @@ def _gherkin_definition() -> Dict[str, Any]:
                     },
                 }
             },
+            "IN_PROGRESS": {
+                "events": {
+                    "DriverAtPickup": {
+                        "trigger": [
+                            {
+                                "type": "api",
+                                "path": "driver-at-pickup",
+                                "method": "POST",
+                                "allow_principals": ["$$ctx.doc.context.driver"],
+                                "response": {"ok": True, "event": "driver_at_pickup"},
+                            }
+                        ],
+                        "effects": [
+                            {
+                                "type": "update.contract",
+                                "update": {
+                                    "$set": {"context.driver_in_pickup_zone": True}
+                                },
+                            },
+                            {
+                                "type": "unschedule.event",
+                                "event_id": {
+                                    "$ctx": "doc.context.driver_pickup_check_id"
+                                },
+                            },
+                        ],
+                    },
+                    "RiderAtPickup": {
+                        "trigger": [
+                            {
+                                "type": "api",
+                                "path": "rider-at-pickup",
+                                "method": "POST",
+                                "allow_user_states": ["ACCEPTED"],
+                                "response": {"ok": True, "event": "rider_at_pickup"},
+                            }
+                        ],
+                        "effects": [
+                            {
+                                "type": "update.contract",
+                                "update": {
+                                    "$set": {
+                                        "context.riders_in_pickup_zone.$$ctx.user": True
+                                    }
+                                },
+                            }
+                        ],
+                    },
+                    "DriverMarkPickedUp": {
+                        "trigger": [
+                            {
+                                "type": "api",
+                                "path": "driver-mark-picked-up",
+                                "method": "POST",
+                                "allow_principals": ["$$ctx.doc.context.driver"],
+                                "payload_schema": {
+                                    "type": "object",
+                                    "required": ["principal"],
+                                    "properties": {
+                                        "principal": {
+                                            "type": "string",
+                                            "pattern": "^u:.+$",
+                                        }
+                                    },
+                                    "additionalProperties": False,
+                                },
+                                "response": {
+                                    "ok": True,
+                                    "event": "driver_mark_picked_up",
+                                },
+                            }
+                        ],
+                        "effects": [
+                            {
+                                "type": "update.contract",
+                                "update": {
+                                    "$set": {
+                                        "context._can_pick_user": {
+                                            "$and": [
+                                                {
+                                                    "$eq": [
+                                                        {
+                                                            "$ifNull": [
+                                                                {
+                                                                    "$ctx": "doc.states.$$ctx.payload.principal"
+                                                                },
+                                                                "",
+                                                            ]
+                                                        },
+                                                        "ACCEPTED",
+                                                    ]
+                                                },
+                                                {
+                                                    "$eq": [
+                                                        {
+                                                            "$ifNull": [
+                                                                {
+                                                                    "$ctx": "doc.context.riders_in_pickup_zone.$$ctx.payload.principal"
+                                                                },
+                                                                False,
+                                                            ]
+                                                        },
+                                                        True,
+                                                    ]
+                                                },
+                                            ]
+                                        }
+                                    }
+                                },
+                            },
+                            {
+                                "type": "if.else",
+                                "condition": {"$ctx": "doc.context._can_pick_user"},
+                                "then_effects": [
+                                    {
+                                        "type": "update.contract",
+                                        "update": {
+                                            "$set": {
+                                                "context.riders_picked_up.$$ctx.payload.principal": True
+                                            },
+                                            "$unset": {
+                                                "context.pending_pickup_targets.$$ctx.payload.principal": ""
+                                            },
+                                        },
+                                    },
+                                    {
+                                        "type": "notify",
+                                        "notify": {
+                                            "event": "contracts.user_picked_up",
+                                            "targets": {
+                                                "$$ctx.payload.principal": ["in_app"]
+                                            },
+                                            "payload": {
+                                                "contract_code": {
+                                                    "$ctx": "doc.context.contract_code"
+                                                }
+                                            },
+                                        },
+                                    },
+                                ],
+                            },
+                            {
+                                "type": "update.contract",
+                                "update": {"$unset": {"context._can_pick_user": ""}},
+                            },
+                            {
+                                "type": "update.contract",
+                                "update": {
+                                    "$set": {
+                                        "context._all_riders_picked_up": {
+                                            "$eq": [
+                                                {
+                                                    "$size": {
+                                                        "$objectToArray": {
+                                                            "$ifNull": [
+                                                                "$context.pending_pickup_targets",
+                                                                {},
+                                                            ]
+                                                        }
+                                                    }
+                                                },
+                                                0,
+                                            ]
+                                        }
+                                    }
+                                },
+                            },
+                            {
+                                "type": "if.else",
+                                "condition": {
+                                    "$ctx": "doc.context._all_riders_picked_up"
+                                },
+                                "then_effects": [
+                                    {
+                                        "type": "unschedule.event",
+                                        "event_id": {
+                                            "$ctx": "doc.context.riders_pickup_check_id"
+                                        },
+                                    },
+                                    {
+                                        "type": "update.contract",
+                                        "update": {
+                                            "$set": {
+                                                "state": "COMPLETED",
+                                                "status": "COMPLETED",
+                                            }
+                                        },
+                                    },
+                                ],
+                                "else_effects": [
+                                    {
+                                        "type": "update.contract",
+                                        "update": {"$set": {"state": "IN_PROGRESS"}},
+                                    }
+                                ],
+                            },
+                            {
+                                "type": "update.contract",
+                                "update": {
+                                    "$unset": {"context._all_riders_picked_up": ""}
+                                },
+                            },
+                        ],
+                    },
+                    "CancelUser": {
+                        "trigger": [
+                            {
+                                "type": "api",
+                                "path": "cancel-user",
+                                "method": "POST",
+                                "allow_user_states": ["ACCEPTED"],
+                                "response": {"ok": True, "event": "cancel_user"},
+                            }
+                        ],
+                        "effects": [
+                            {
+                                "type": "update.group",
+                                "group_id": {"$ctx": "doc.context.group_id"},
+                                "edit_members": {"remove_members": ["$$ctx.user"]},
+                            },
+                            {
+                                "type": "update.contract",
+                                "update": {
+                                    "$set": {
+                                        "context._cancel_seats": {
+                                            "$ifNull": [
+                                                {
+                                                    "$ctx": "doc.context.seats.$$ctx.user"
+                                                },
+                                                1,
+                                            ]
+                                        }
+                                    }
+                                },
+                            },
+                            {
+                                "type": "update.contract",
+                                "update": {
+                                    "$set": {
+                                        "context.accepted_seats_total": {
+                                            "$cond": [
+                                                {
+                                                    "$gte": [
+                                                        {
+                                                            "$ifNull": [
+                                                                "$context.accepted_seats_total",
+                                                                0,
+                                                            ]
+                                                        },
+                                                        "$context._cancel_seats",
+                                                    ]
+                                                },
+                                                {
+                                                    "$subtract": [
+                                                        {
+                                                            "$ifNull": [
+                                                                "$context.accepted_seats_total",
+                                                                0,
+                                                            ]
+                                                        },
+                                                        "$context._cancel_seats",
+                                                    ]
+                                                },
+                                                0,
+                                            ]
+                                        },
+                                        "states.$$ctx.user": "CANCELLED",
+                                    },
+                                    "$unset": {
+                                        "context._cancel_seats": "",
+                                        "context.seats.$$ctx.user": "",
+                                        "context.pending_pickup_targets.$$ctx.user": "",
+                                        "context.riders_in_pickup_zone.$$ctx.user": "",
+                                        "context.riders_picked_up.$$ctx.user": "",
+                                    },
+                                },
+                            },
+                            {
+                                "type": "notify",
+                                "notify": {
+                                    "event": "contracts.user_cancelled",
+                                    "targets": {"$$ctx.doc.context.driver": ["in_app"]},
+                                    "payload": {
+                                        "principal": "$$ctx.user",
+                                        "contract_code": {
+                                            "$ctx": "doc.context.contract_code"
+                                        },
+                                    },
+                                },
+                            },
+                        ],
+                    },
+                    "DriverPickupCheckTimed": {
+                        "trigger": [
+                            {"type": "api", "path": "driver-pickup-check-timeout"}
+                        ],
+                        "effects": [
+                            {
+                                "type": "if.else",
+                                "condition": {
+                                    "$eq": [
+                                        {
+                                            "$ifNull": [
+                                                "$context.driver_in_pickup_zone",
+                                                False,
+                                            ]
+                                        },
+                                        False,
+                                    ]
+                                },
+                                "then_effects": [
+                                    {
+                                        "type": "notify",
+                                        "notify": {
+                                            "event": "contracts.driver_pickup_check",
+                                            "targets": {
+                                                "$$ctx.doc.context.driver": ["in_app"]
+                                            },
+                                            "payload": {
+                                                "contract_code": {
+                                                    "$ctx": "doc.context.contract_code"
+                                                }
+                                            },
+                                        },
+                                    }
+                                ],
+                            }
+                        ],
+                    },
+                    "RidersPickupCheckTimed": {
+                        "trigger": [
+                            {"type": "api", "path": "riders-pickup-check-timeout"}
+                        ],
+                        "effects": [
+                            {
+                                "type": "update.contract",
+                                "update": {
+                                    "$set": {
+                                        "context._has_pending_pickups": {
+                                            "$gt": [
+                                                {
+                                                    "$size": {
+                                                        "$objectToArray": {
+                                                            "$ifNull": [
+                                                                "$context.pending_pickup_targets",
+                                                                {},
+                                                            ]
+                                                        }
+                                                    }
+                                                },
+                                                0,
+                                            ]
+                                        }
+                                    }
+                                },
+                            },
+                            {
+                                "type": "if.else",
+                                "condition": {
+                                    "$ctx": "doc.context._has_pending_pickups"
+                                },
+                                "then_effects": [
+                                    {
+                                        "type": "notify",
+                                        "notify": {
+                                            "event": "contracts.rider_pickup_check",
+                                            "targets": "$$ctx.doc.context.pending_pickup_targets",
+                                            "payload": {
+                                                "contract_code": {
+                                                    "$ctx": "doc.context.contract_code"
+                                                }
+                                            },
+                                        },
+                                    }
+                                ],
+                            },
+                            {
+                                "type": "update.contract",
+                                "update": {
+                                    "$unset": {"context._has_pending_pickups": ""}
+                                },
+                            },
+                        ],
+                    },
+                    "DriverCancelTrip": {
+                        "trigger": [
+                            {
+                                "type": "api",
+                                "path": "driver-cancel-trip",
+                                "method": "POST",
+                                "allow_principals": ["$$ctx.doc.context.driver"],
+                                "response": {"ok": True, "event": "driver_cancel_trip"},
+                            }
+                        ],
+                        "effects": [
+                            {
+                                "type": "update.contract",
+                                "update": {
+                                    "$set": {
+                                        "context._cancel_trip_targets": {
+                                            "$arrayToObject": {
+                                                "$map": {
+                                                    "input": {
+                                                        "$filter": {
+                                                            "input": {
+                                                                "$objectToArray": "$states"
+                                                            },
+                                                            "as": "kv",
+                                                            "cond": {
+                                                                "$eq": [
+                                                                    "$$kv.v",
+                                                                    "ACCEPTED",
+                                                                ]
+                                                            },
+                                                        }
+                                                    },
+                                                    "as": "kv",
+                                                    "in": {
+                                                        "k": "$$kv.k",
+                                                        "v": ["in_app"],
+                                                    },
+                                                }
+                                            }
+                                        }
+                                    }
+                                },
+                            },
+                            {
+                                "type": "update.contract",
+                                "update": {
+                                    "$set": {
+                                        "status": "CANCELED",
+                                        "state": "CANCELED",
+                                    }
+                                },
+                            },
+                            {
+                                "type": "notify",
+                                "notify": {
+                                    "event": "contracts.trip_cancelled_by_driver",
+                                    "targets": "$$ctx.doc.context._cancel_trip_targets",
+                                    "payload": {
+                                        "contract_code": {
+                                            "$ctx": "doc.context.contract_code"
+                                        }
+                                    },
+                                },
+                            },
+                            {
+                                "type": "update.contract",
+                                "update": {
+                                    "$unset": {"context._cancel_trip_targets": ""}
+                                },
+                            },
+                        ],
+                    },
+                }
+            },
             "REJECTED": {"final": True},
             "EXPIRED": {"final": True},
+            "COMPLETED": {"final": True},
         },
     }
 
@@ -2899,6 +3528,35 @@ class ContractsE2ETest(unittest.TestCase):
             {f"u:{driver_uid}", f"u:{p1_uid}"},
         )
 
+    def test_driver_can_cancel_pending_invite_in_recruiting(self) -> None:
+        cid = self._create_gherkin_contract(initial_state="FIRST_REQUEST")
+        _ = self._to_recruiting(cid)
+        p2_uid = self.user_ids["p2"]
+
+        self.assertEqual(
+            self._post_event(
+                cid,
+                "invite-user",
+                actor="d1",
+                payload={"principal": f"u:{p2_uid}"},
+            ).status_code,
+            200,
+        )
+        self.assertEqual(
+            self._post_event(
+                cid,
+                "driver-cancel-invite",
+                actor="d1",
+                payload={"principal": f"u:{p2_uid}"},
+            ).status_code,
+            200,
+        )
+
+        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
+        self.assertEqual(self._user_state(c, p2_uid), "CANCELLED")
+        pending_invites = (c.get("context") or {}).get("pending_invites") or {}
+        self.assertNotIn(f"u:{p2_uid}", pending_invites)
+
     def test_driver_can_remove_passenger_in_recruiting(self) -> None:
         driver_uid = self.user_ids["d1"]
         p1_uid = self.user_ids["p1"]
@@ -2960,6 +3618,109 @@ class ContractsE2ETest(unittest.TestCase):
         )
         denied_ready = self._post_event(cid_ready, "set-recruiting", actor="d1")
         self.assertEqual(denied_ready.status_code, 410)
+
+    def test_in_progress_pickup_flow_with_timed_checks(self) -> None:
+        cid = self._create_gherkin_contract(initial_state="FIRST_REQUEST")
+        _ = self._to_ready(cid)
+
+        self.assertEqual(
+            self._post_event(cid, "start-trip", actor="d1").status_code,
+            200,
+        )
+        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
+        self.assertEqual(c["state"], "IN_PROGRESS")
+
+        driver_principal = f"u:{self.user_ids['d1']}"
+        before_driver = self._count_notifications_for(
+            driver_principal, "contracts.driver_pickup_check"
+        )
+        tick = self.httpx.post("/contracts/cron/tick", headers=self._headers("admin"))
+        self.assertEqual(tick.status_code, 200)
+        after_driver = self._count_notifications_for(
+            driver_principal, "contracts.driver_pickup_check"
+        )
+        self.assertEqual(after_driver, before_driver + 1)
+
+        self.assertEqual(
+            self._post_event(cid, "driver-at-pickup", actor="d1").status_code,
+            200,
+        )
+        self.assertEqual(
+            self._post_event(cid, "rider-at-pickup", actor="p2").status_code,
+            200,
+        )
+        self.assertEqual(
+            self._post_event(
+                cid,
+                "driver-mark-picked-up",
+                actor="d1",
+                payload={"principal": f"u:{self.user_ids['p2']}"},
+            ).status_code,
+            200,
+        )
+        c2 = self.httpx.get(
+            f"/contracts/{cid}", headers=self._headers("owner-1")
+        ).json()
+        picked = (c2.get("context") or {}).get("riders_picked_up") or {}
+        self.assertTrue(bool(picked.get(f"u:{self.user_ids['p2']}")))
+
+    def test_in_progress_rider_can_cancel(self) -> None:
+        driver_uid = self.user_ids["d1"]
+        p1_uid = self.user_ids["p1"]
+        p2_uid = self.user_ids["p2"]
+        p3_uid = self.user_ids["p3"]
+        cid = self._create_gherkin_contract(initial_state="FIRST_REQUEST")
+        gid = self._to_ready(cid)
+
+        self.assertEqual(
+            self._post_event(cid, "start-trip", actor="d1").status_code,
+            200,
+        )
+        self.assertEqual(
+            self._post_event(cid, "cancel-user", actor="p2").status_code, 200
+        )
+
+        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
+        self.assertEqual(c["state"], "IN_PROGRESS")
+        self.assertEqual(self._user_state(c, p2_uid), "CANCELLED")
+        seats = (c.get("context") or {}).get("seats") or {}
+        self.assertNotIn(f"u:{p2_uid}", seats)
+        self.assertSetEqual(
+            self._group_member_ids(gid),
+            {f"u:{driver_uid}", f"u:{p1_uid}", f"u:{p3_uid}"},
+        )
+
+    def test_in_progress_completes_when_all_riders_picked(self) -> None:
+        cid = self._create_gherkin_contract(initial_state="FIRST_REQUEST")
+        _ = self._to_ready(cid)
+
+        self.assertEqual(
+            self._post_event(cid, "start-trip", actor="d1").status_code, 200
+        )
+        self.assertEqual(
+            self._post_event(cid, "driver-at-pickup", actor="d1").status_code,
+            200,
+        )
+
+        for rider in ["p1", "p2", "p3"]:
+            principal = f"u:{self.user_ids[rider]}"
+            self.assertEqual(
+                self._post_event(cid, "rider-at-pickup", actor=rider).status_code,
+                200,
+            )
+            self.assertEqual(
+                self._post_event(
+                    cid,
+                    "driver-mark-picked-up",
+                    actor="d1",
+                    payload={"principal": principal},
+                ).status_code,
+                200,
+            )
+
+        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
+        self.assertEqual(c["state"], "COMPLETED")
+        self.assertEqual(c["status"], "DONE")
 
     def test_wf7_cancel_early_stops_contract_and_blocks_events(self) -> None:
         cid = self._create_gherkin_contract()
