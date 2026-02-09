@@ -1,11 +1,13 @@
 # coding: utf-8
 from __future__ import annotations
 
+import contextlib
 import datetime as dt
 import os
 import unittest
 import uuid
 from typing import Any, Dict
+from unittest.mock import patch
 
 import httpx
 import mongomock
@@ -15,13 +17,13 @@ from flask_security.utils import hash_password
 from schedula.utils.form.server import basic_app
 from schedula.utils.form.server.extensions import db as _db
 from schedula.utils.form.server.security import User
-from schedula.utils.form.server.security.casbin.models import Group
 from schedula.utils.form.server.security.casbin import get_enforcer
 from schedula.utils.form.server.security.casbin.bootstrap import (
     bootstrap_user,
     set_system_admin,
 )
 from schedula.utils.form.server.security.casbin.helpers import ADMIN_DOMAIN, ANON_USER
+from schedula.utils.form.server.security.casbin.models import Group
 from schedula.utils.form.server.security.casbin.models import ensure_public_group
 from tests.utils.server.conftest import DummySitemap
 from tests.utils.server.utils.mongo_validation import ValidatingMongoDatabase
@@ -64,10 +66,42 @@ def _gherkin_definition() -> Dict[str, Any]:
             "FIRST_REQUEST": {
                 "context_schema": {
                     "type": "object",
-                    "required": ["capacity", "driver", "riders", "seats"],
+                    "required": [
+                        "capacity",
+                        "driver",
+                        "driver_trip",
+                        "riders",
+                        "seats",
+                        "trips",
+                    ],
                     "properties": {
                         "capacity": {"type": "integer", "minimum": 1},
                         "driver": {"type": "string", "pattern": "^u:.+$"},
+                        "driver_trip": {
+                            "type": "object",
+                            "required": ["origin", "destination"],
+                            "properties": {
+                                "origin": {
+                                    "type": "object",
+                                    "required": ["lat", "lng"],
+                                    "properties": {
+                                        "lat": {"type": "number"},
+                                        "lng": {"type": "number"},
+                                    },
+                                    "additionalProperties": False,
+                                },
+                                "destination": {
+                                    "type": "object",
+                                    "required": ["lat", "lng"],
+                                    "properties": {
+                                        "lat": {"type": "number"},
+                                        "lng": {"type": "number"},
+                                    },
+                                    "additionalProperties": False,
+                                },
+                            },
+                            "additionalProperties": False,
+                        },
                         "riders": {
                             "type": "array",
                             "minItems": 1,
@@ -76,6 +110,34 @@ def _gherkin_definition() -> Dict[str, Any]:
                         "seats": {
                             "type": "object",
                             "additionalProperties": {"type": "integer", "minimum": 1},
+                        },
+                        "trips": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "object",
+                                "required": ["origin", "destination"],
+                                "properties": {
+                                    "origin": {
+                                        "type": "object",
+                                        "required": ["lat", "lng"],
+                                        "properties": {
+                                            "lat": {"type": "number"},
+                                            "lng": {"type": "number"},
+                                        },
+                                        "additionalProperties": False,
+                                    },
+                                    "destination": {
+                                        "type": "object",
+                                        "required": ["lat", "lng"],
+                                        "properties": {
+                                            "lat": {"type": "number"},
+                                            "lng": {"type": "number"},
+                                        },
+                                        "additionalProperties": False,
+                                    },
+                                },
+                                "additionalProperties": False,
+                            },
                         },
                     },
                     "additionalProperties": True,
@@ -238,10 +300,42 @@ def _gherkin_definition() -> Dict[str, Any]:
             "FIRST_INVITATIONS": {
                 "context_schema": {
                     "type": "object",
-                    "required": ["capacity", "driver", "riders", "seats"],
+                    "required": [
+                        "capacity",
+                        "driver",
+                        "driver_trip",
+                        "riders",
+                        "seats",
+                        "trips",
+                    ],
                     "properties": {
                         "capacity": {"type": "integer", "minimum": 1},
                         "driver": {"type": "string", "pattern": "^u:.+$"},
+                        "driver_trip": {
+                            "type": "object",
+                            "required": ["origin", "destination"],
+                            "properties": {
+                                "origin": {
+                                    "type": "object",
+                                    "required": ["lat", "lng"],
+                                    "properties": {
+                                        "lat": {"type": "number"},
+                                        "lng": {"type": "number"},
+                                    },
+                                    "additionalProperties": False,
+                                },
+                                "destination": {
+                                    "type": "object",
+                                    "required": ["lat", "lng"],
+                                    "properties": {
+                                        "lat": {"type": "number"},
+                                        "lng": {"type": "number"},
+                                    },
+                                    "additionalProperties": False,
+                                },
+                            },
+                            "additionalProperties": False,
+                        },
                         "riders": {
                             "type": "array",
                             "minItems": 1,
@@ -249,9 +343,34 @@ def _gherkin_definition() -> Dict[str, Any]:
                         },
                         "seats": {
                             "type": "object",
+                            "additionalProperties": {"type": "integer", "minimum": 1},
+                        },
+                        "trips": {
+                            "type": "object",
                             "additionalProperties": {
-                                "type": "integer",
-                                "minimum": 1,
+                                "type": "object",
+                                "required": ["origin", "destination"],
+                                "properties": {
+                                    "origin": {
+                                        "type": "object",
+                                        "required": ["lat", "lng"],
+                                        "properties": {
+                                            "lat": {"type": "number"},
+                                            "lng": {"type": "number"},
+                                        },
+                                        "additionalProperties": False,
+                                    },
+                                    "destination": {
+                                        "type": "object",
+                                        "required": ["lat", "lng"],
+                                        "properties": {
+                                            "lat": {"type": "number"},
+                                            "lng": {"type": "number"},
+                                        },
+                                        "additionalProperties": False,
+                                    },
+                                },
+                                "additionalProperties": False,
                             },
                         },
                     },
@@ -402,9 +521,27 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "allow_user_states": ["PENDING"],
                                 "payload_schema": {
                                     "type": "object",
-                                    "required": ["seats"],
+                                    "required": ["seats", "origin", "destination"],
                                     "properties": {
-                                        "seats": {"type": "integer", "minimum": 1}
+                                        "seats": {"type": "integer", "minimum": 1},
+                                        "origin": {
+                                            "type": "object",
+                                            "required": ["lat", "lng"],
+                                            "properties": {
+                                                "lat": {"type": "number"},
+                                                "lng": {"type": "number"},
+                                            },
+                                            "additionalProperties": False,
+                                        },
+                                        "destination": {
+                                            "type": "object",
+                                            "required": ["lat", "lng"],
+                                            "properties": {
+                                                "lat": {"type": "number"},
+                                                "lng": {"type": "number"},
+                                            },
+                                            "additionalProperties": False,
+                                        },
                                     },
                                     "additionalProperties": False,
                                 },
@@ -424,6 +561,10 @@ def _gherkin_definition() -> Dict[str, Any]:
                                     "$set": {
                                         "states.$$ctx.user": "ACCEPTED",
                                         "context.seats.$$ctx.user": "$$ctx.payload.seats",
+                                        "context.trips.$$ctx.user": {
+                                            "origin": "$$ctx.payload.origin",
+                                            "destination": "$$ctx.payload.destination",
+                                        },
                                         "context.accepted_seats_total": {
                                             "$ifNull": [
                                                 {
@@ -550,9 +691,27 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "method": "POST",
                                 "payload_schema": {
                                     "type": "object",
-                                    "required": ["seats"],
+                                    "required": ["seats", "origin", "destination"],
                                     "properties": {
-                                        "seats": {"type": "integer", "minimum": 1}
+                                        "seats": {"type": "integer", "minimum": 1},
+                                        "origin": {
+                                            "type": "object",
+                                            "required": ["lat", "lng"],
+                                            "properties": {
+                                                "lat": {"type": "number"},
+                                                "lng": {"type": "number"},
+                                            },
+                                            "additionalProperties": False,
+                                        },
+                                        "destination": {
+                                            "type": "object",
+                                            "required": ["lat", "lng"],
+                                            "properties": {
+                                                "lat": {"type": "number"},
+                                                "lng": {"type": "number"},
+                                            },
+                                            "additionalProperties": False,
+                                        },
                                     },
                                     "additionalProperties": False,
                                 },
@@ -594,9 +753,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                             },
                             {
                                 "type": "if.else",
-                                "condition": {
-                                    "$ctx": "local.has_capacity_for_join"
-                                },
+                                "condition": {"$ctx": "local.has_capacity_for_join"},
                                 "then_effects": [
                                     {
                                         "type": "update.contract",
@@ -604,6 +761,10 @@ def _gherkin_definition() -> Dict[str, Any]:
                                             "$set": {
                                                 "states.$$ctx.user": "REQUESTING",
                                                 "context.seats.$$ctx.user": "$$ctx.payload.seats",
+                                                "context.trips.$$ctx.user": {
+                                                    "origin": "$$ctx.payload.origin",
+                                                    "destination": "$$ctx.payload.destination",
+                                                },
                                             }
                                         },
                                     },
@@ -687,7 +848,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                             },
                             {
                                 "type": "if.else",
-                                "condition": {"$ctx": "local.target_is_requesting"},
+                                "condition": {"$ctx": "doc.local.target_is_requesting"},
                                 "then_effects": [
                                     {
                                         "type": "update.contract",
@@ -746,7 +907,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                     {
                                         "type": "if.else",
                                         "condition": {
-                                            "$ctx": "local.capacity_reached"
+                                            "$ctx": "doc.local.capacity_reached"
                                         },
                                         "then_effects": [
                                             {
@@ -828,7 +989,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                             },
                             {
                                 "type": "if.else",
-                                "condition": {"$ctx": "local.target_is_requesting"},
+                                "condition": {"$ctx": "doc.local.target_is_requesting"},
                                 "then_effects": [
                                     {
                                         "type": "update.contract",
@@ -965,9 +1126,27 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "allow_user_states": ["PENDING"],
                                 "payload_schema": {
                                     "type": "object",
-                                    "required": ["seats"],
+                                    "required": ["seats", "origin", "destination"],
                                     "properties": {
-                                        "seats": {"type": "integer", "minimum": 1}
+                                        "seats": {"type": "integer", "minimum": 1},
+                                        "origin": {
+                                            "type": "object",
+                                            "required": ["lat", "lng"],
+                                            "properties": {
+                                                "lat": {"type": "number"},
+                                                "lng": {"type": "number"},
+                                            },
+                                            "additionalProperties": False,
+                                        },
+                                        "destination": {
+                                            "type": "object",
+                                            "required": ["lat", "lng"],
+                                            "properties": {
+                                                "lat": {"type": "number"},
+                                                "lng": {"type": "number"},
+                                            },
+                                            "additionalProperties": False,
+                                        },
                                     },
                                     "additionalProperties": False,
                                 },
@@ -993,6 +1172,10 @@ def _gherkin_definition() -> Dict[str, Any]:
                                     "$set": {
                                         "states.$$ctx.user": "ACCEPTED",
                                         "context.seats.$$ctx.user": "$$ctx.payload.seats",
+                                        "context.trips.$$ctx.user": {
+                                            "origin": "$$ctx.payload.origin",
+                                            "destination": "$$ctx.payload.destination",
+                                        },
                                     }
                                 },
                             },
@@ -1042,7 +1225,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                             },
                             {
                                 "type": "if.else",
-                                "condition": {"$ctx": "local.capacity_reached"},
+                                "condition": {"$ctx": "doc.local.capacity_reached"},
                                 "then_effects": [
                                     {
                                         "type": "update.contract",
@@ -1194,7 +1377,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                             {
                                 "type": "if.else",
                                 "condition": {
-                                    "$ctx": "local.target_is_pending_invite"
+                                    "$ctx": "doc.local.target_is_pending_invite"
                                 },
                                 "then_effects": [
                                     {
@@ -1358,7 +1541,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                             },
                             {
                                 "type": "if.else",
-                                "condition": {"$ctx": "local.target_is_accepted"},
+                                "condition": {"$ctx": "doc.local.target_is_accepted"},
                                 "then_effects": [
                                     {
                                         "type": "update.group",
@@ -1493,7 +1676,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "type": "notify",
                                 "notify": {
                                     "event": "contracts.trip_cancelled_by_driver",
-                                    "targets": "$$ctx.local.cancel_trip_targets",
+                                    "targets": "$$ctx.doc.local.cancel_trip_targets",
                                     "payload": {
                                         "contract_code": {
                                             "$ctx": "doc.context.contract_code"
@@ -1727,7 +1910,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                             },
                             {
                                 "type": "if.else",
-                                "condition": {"$ctx": "local.target_is_accepted"},
+                                "condition": {"$ctx": "doc.local.target_is_accepted"},
                                 "then_effects": [
                                     {
                                         "type": "update.group",
@@ -1862,7 +2045,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "type": "notify",
                                 "notify": {
                                     "event": "contracts.trip_cancelled_by_driver",
-                                    "targets": "$$ctx.local.cancel_trip_targets",
+                                    "targets": "$$ctx.doc.local.cancel_trip_targets",
                                     "payload": {
                                         "contract_code": {
                                             "$ctx": "doc.context.contract_code"
@@ -1986,7 +2169,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                             },
                             {
                                 "type": "if.else",
-                                "condition": {"$ctx": "local.can_pick_user"},
+                                "condition": {"$ctx": "doc.local.can_pick_user"},
                                 "then_effects": [
                                     {
                                         "type": "update.contract",
@@ -2039,7 +2222,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                             },
                             {
                                 "type": "if.else",
-                                "condition": {"$ctx": "local.all_riders_picked_up"},
+                                "condition": {"$ctx": "doc.local.all_riders_picked_up"},
                                 "then_effects": [
                                     {
                                         "type": "unschedule.event",
@@ -2219,7 +2402,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                             },
                             {
                                 "type": "if.else",
-                                "condition": {"$ctx": "local.has_pending_pickups"},
+                                "condition": {"$ctx": "doc.local.has_pending_pickups"},
                                 "then_effects": [
                                     {
                                         "type": "notify",
@@ -2290,7 +2473,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "type": "notify",
                                 "notify": {
                                     "event": "contracts.trip_cancelled_by_driver",
-                                    "targets": "$$ctx.local.cancel_trip_targets",
+                                    "targets": "$$ctx.doc.local.cancel_trip_targets",
                                     "payload": {
                                         "contract_code": {
                                             "$ctx": "doc.context.contract_code"
@@ -2334,18 +2517,31 @@ class ContractsE2ETest(unittest.TestCase):
             FILES_STORAGE_ENABLED=False,
             S3_ITEMS_FILE_STORAGE=False,
             CONTACT_ENABLED=False,
-            SCHEDULA_CREDITS_ENABLED=False,
+            SCHEDULA_CREDITS_ENABLED=True,
             SCHEDULA_EXPORT_FORM_ENABLED=False,
             SCHEDULA_GDPR_ENABLED=False,
             SCHEDULA_LOCALE_ENABLED=False,
             SCHEDULA_SECRETS_ENABLED=False,
             OPENAPI_ENABLED=False,
             CASBIN_ADMIN_ENABLED=False,
+            STRIPE_SECRET_KEY="sk_test_dummy",
+            STRIPE_PUBLISHABLE_KEY="pk_test_dummy",
+            STRIPE_WEBHOOK_SECRET_KEY="whsec_dummy",
             MONGO_URI="mongodb://mock",
             MONGO_DB=vdb,
         )
         sitemap = DummySitemap()
+        setattr(sitemap, "stripe_event_handler", staticmethod(lambda _event: None))
         basic_app(sitemap, self.app, config)
+
+        self._patchers = [
+            patch(
+                "schedula.utils.form.server.credits.Lock",
+                new=lambda *_args, **_kwargs: contextlib.nullcontext(),
+            )
+        ]
+        for patcher in self._patchers:
+            patcher.start()
 
         with self.app.app_context():
             _db.create_all()
@@ -2400,6 +2596,8 @@ class ContractsE2ETest(unittest.TestCase):
         with self.app.app_context():
             _db.session.remove()
             _db.drop_all()
+        for patcher in getattr(self, "_patchers", []):
+            patcher.stop()
         self.mm_client.close()
 
     def _create_user(self, email: str) -> User:
@@ -2443,7 +2641,7 @@ class ContractsE2ETest(unittest.TestCase):
         return str(resp.json()["id"])
 
     def _create_contract(
-        self, template_id: str, context: Dict[str, Any], **extra: Any
+            self, template_id: str, context: Dict[str, Any], **extra: Any
     ) -> httpx.Response:
         body = {"context": context}
         body.update(extra)
@@ -2462,7 +2660,11 @@ class ContractsE2ETest(unittest.TestCase):
             payload: Dict[str, Any] | None = None,
     ) -> httpx.Response:
         if payload is None and path in {"accept-user", "request-join"}:
-            payload = {"seats": 1}
+            payload = {
+                "seats": 1,
+                "origin": {"lat": 45.0, "lng": 9.0},
+                "destination": {"lat": 45.1, "lng": 9.1},
+            }
         return self.httpx.post(
             f"/contracts/{contract_id}/{path}",
             json={"payload": payload or {}},
@@ -2506,12 +2708,24 @@ class ContractsE2ETest(unittest.TestCase):
         if initial_state == "FIRST_INVITATIONS":
             riders = [f"u:{p2_uid}", f"u:{p3_uid}"]
         seats = {principal: 1 for principal in riders}
+        trips = {
+            principal: {
+                "origin": {"lat": 45.0, "lng": 9.0},
+                "destination": {"lat": 45.1, "lng": 9.1},
+            }
+            for principal in riders
+        }
         return {
             "contract_code": "C-001",
             "capacity": 3,
             "driver": f"u:{driver_uid}",
+            "driver_trip": {
+                "origin": {"lat": 45.2, "lng": 9.2},
+                "destination": {"lat": 45.3, "lng": 9.3},
+            },
             "riders": riders,
             "seats": seats,
+            "trips": trips,
         }
 
     def _create_gherkin_contract(self, initial_state: str = "FIRST_REQUEST") -> str:
@@ -3121,7 +3335,11 @@ class ContractsE2ETest(unittest.TestCase):
                 cid,
                 "accept-user",
                 actor="p2",
-                payload={"seats": 3},
+                payload={
+                    "seats": 3,
+                    "origin": {"lat": 45.0, "lng": 9.0},
+                    "destination": {"lat": 45.1, "lng": 9.1},
+                },
             ).status_code,
             200,
         )
@@ -3354,7 +3572,11 @@ class ContractsE2ETest(unittest.TestCase):
                 cid,
                 "accept-user",
                 actor="p2",
-                payload={"seats": 3},
+                payload={
+                    "seats": 3,
+                    "origin": {"lat": 45.0, "lng": 9.0},
+                    "destination": {"lat": 45.1, "lng": 9.1},
+                },
             ).status_code,
             200,
         )
@@ -3748,7 +3970,11 @@ class ContractsE2ETest(unittest.TestCase):
                 cid,
                 "request-join",
                 actor="p4",
-                payload={"seats": 2},
+                payload={
+                    "seats": 2,
+                    "origin": {"lat": 45.0, "lng": 9.0},
+                    "destination": {"lat": 45.1, "lng": 9.1},
+                },
             ).status_code,
             200,
         )
