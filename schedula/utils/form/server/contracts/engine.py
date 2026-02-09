@@ -276,7 +276,7 @@ def _process_event(
         selected_trigger=selected_trigger,
         actor_id=actor_id,
         body_payload=body_payload,
-    )[:2]
+    )
 
 
 def _process_selected_event(
@@ -287,7 +287,7 @@ def _process_selected_event(
         actor_id: str,
         body_payload: Dict[str, Any],
         resolve_response: bool = True,
-) -> Tuple[Dict[str, Any], int, Dict[str, Any]]:
+) -> Tuple[Dict[str, Any], int]:
     def _src_get(key: str) -> Any:
         if key in selected_trigger:
             return selected_trigger.get(key)
@@ -295,13 +295,14 @@ def _process_selected_event(
 
     actor_state_before = pydash.get(doc, f"states.{actor_id}")
     resolver = RefResolver(enforce_acl=False)
+    ctx = {"doc": doc, "user": actor_id, "payload": body_payload}
     if (
             _src_get("allow_user_states") is not None
             and actor_state_before
-            not in set(resolver(_src_get("allow_user_states"), doc) or [])
+            not in set(resolver(_src_get("allow_user_states"), ctx) or [])
     ) or (
             _src_get("deny_user_states") is not None
-            and actor_state_before in set(resolver(_src_get("deny_user_states"), doc) or [])
+            and actor_state_before in set(resolver(_src_get("deny_user_states"), ctx) or [])
     ):
         abort_json(409, "Event not available for actor state")
 
@@ -313,11 +314,11 @@ def _process_selected_event(
         roles = set(enforcer.get_roles_for_user(actor_id))
         roles.add(actor_id)
         if _src_get("allow_principals") is not None and not roles.intersection(
-                set(resolver(_src_get("allow_principals"), doc) or [])
+                set(resolver(_src_get("allow_principals"), ctx) or [])
         ):
             abort_json(403, "Subject not allowed")
         if _src_get("deny_principals") is not None and roles.intersection(
-                set(resolver(_src_get("deny_principals"), doc) or [])
+                set(resolver(_src_get("deny_principals"), ctx) or [])
         ):
             abort_json(403, "Subject denied")
 
@@ -334,8 +335,9 @@ def _process_selected_event(
             break
     doc = _close_contract(doc)
     if resolve_response:
-        return resolver(_src_get("response") or {"ok": True}, doc), 200, doc
-    return {"ok": True}, 200, doc
+        ctx = {"local": local, "doc": doc, "user": actor_id, "payload": body_payload}
+        return resolver(_src_get("response") or {"ok": True}, ctx), 200
+    return {"ok": True}, 200
 
 
 def _match_cron_field(field: str, value: int) -> bool:
