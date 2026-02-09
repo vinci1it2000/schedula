@@ -29,6 +29,7 @@ def config_get(key, default=None, app=None):
 @dataclass
 class RefResolver:
     """Resolve {$ref: ...} enforcing ACL for both sender and viewer."""
+
     viewer_principal: str = None
     sender_principal: str = None
     enforce_acl: bool = None
@@ -84,34 +85,38 @@ class RefResolver:
                     elif "$ref" in x:
                         ref = x["$ref"]
 
-                    # If $ref is not a string, treat it as "inline" content to resolve.
-                    if not isinstance(ref, str):
-                        return _walk(ref)
+                        # If $ref is not a string, treat it as "inline" content to resolve.
+                        if not isinstance(ref, str):
+                            return _walk(ref)
 
-                    # cycle / memo
-                    if ref in self._seen:
-                        return self._seen[ref]
+                        # cycle / memo
+                        if ref in self._seen:
+                            return self._seen[ref]
 
-                    fetched = self.fetch(ref)
+                        fetched = self.fetch(ref)
 
-                    # Placeholder BEFORE diving in, so cycles work
-                    if isinstance(fetched, dict):
-                        placeholder: dict[str, Any] = {}
-                        self._seen[ref] = placeholder
-                        resolved_dict = _walk(fetched)
-                        placeholder.clear()
-                        placeholder.update(resolved_dict if isinstance(resolved_dict, dict) else {})
-                        return placeholder
+                        # Placeholder BEFORE diving in, so cycles work
+                        if isinstance(fetched, dict):
+                            placeholder: dict[str, Any] = {}
+                            self._seen[ref] = placeholder
+                            resolved_dict = _walk(fetched)
+                            placeholder.clear()
+                            placeholder.update(
+                                resolved_dict if isinstance(resolved_dict, dict) else {}
+                            )
+                            return placeholder
 
-                    if isinstance(fetched, list):
-                        placeholder_list: list[Any] = []
-                        self._seen[ref] = placeholder_list
-                        resolved_list = _walk(fetched)
-                        placeholder_list[:] = resolved_list if isinstance(resolved_list, list) else []
-                        return placeholder_list
+                        if isinstance(fetched, list):
+                            placeholder_list: list[Any] = []
+                            self._seen[ref] = placeholder_list
+                            resolved_list = _walk(fetched)
+                            placeholder_list[:] = (
+                                resolved_list if isinstance(resolved_list, list) else []
+                            )
+                            return placeholder_list
 
-                    self._seen[ref] = fetched
-                    return fetched
+                        self._seen[ref] = fetched
+                        return fetched
 
                 # Normal dict
                 return {k: _walk(v) for k, v in x.items()}
@@ -137,6 +142,7 @@ def get_mongo(app=None, collection=None):
     if not app.config.get("MONGO_DB"):
         app.config["MONGO_URI"] = app.config.get("MONGO_URI", os.environ.get("MONGO_URI"))
         from flask_pymongo import PyMongo
+
         mongo = PyMongo(app)
         app.config["MONGO_DB"] = mongo.db
         app.config["MONGO_CX"] = mongo.cx
@@ -246,6 +252,7 @@ def parse_sort_arg(
 # ---------------------------------------------------------------------------
 # MONGO HELPERS (max_time_ms + mongomock-safe)
 # ---------------------------------------------------------------------------
+
 
 def get_mongo_maxtime_ms() -> int:
     return int(current_app.config.get("MONGO_MAX_TIME_MS", 2000))
