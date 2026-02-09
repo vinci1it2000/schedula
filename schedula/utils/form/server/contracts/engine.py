@@ -27,6 +27,7 @@ from ..utils import (
     config_get,
     get_mongo,
     mongo_find_one,
+    mongo_find,
     mongo_insert_one,
     mongo_update_one,
     now_utc,
@@ -49,7 +50,7 @@ def _get_contract(contract_id: str) -> Optional[Dict[str, Any]]:
 
 
 def validate_payload(
-    payload_schema: Optional[Dict[str, Any]], payload: Any
+        payload_schema: Optional[Dict[str, Any]], payload: Any
 ) -> List[str]:
     if payload_schema is None:
         return []
@@ -61,12 +62,12 @@ def validate_payload(
 
 
 def _apply_effect_step(
-    *,
-    doc: Dict[str, Any],
-    ef: Dict[str, Any],
-    actor_id: str,
-    payload: Dict[str, Any] = None,
-    local: Dict[str, Any] = None,
+        *,
+        doc: Dict[str, Any],
+        ef: Dict[str, Any],
+        actor_id: str,
+        payload: Dict[str, Any] = None,
+        local: Dict[str, Any] = None,
 ) -> tuple[bool, Dict[str, Any]]:
     ef_type = str(ef.get("type") or "")
     if local is None:
@@ -224,13 +225,13 @@ def _close_contract(doc):
 
 
 def _apply_on_enter(
-    *,
-    doc: dict[str, Any],
-    actor_id: str,
+        *,
+        doc: dict[str, Any],
+        actor_id: str,
 ) -> dict[str, Any]:
     local = {}
     for ef in pydash.get(
-        doc, f"definition.states.{doc.get('state')}.onEnter.effects", []
+            doc, f"definition.states.{doc.get('state')}.on_enter.effects", []
     ):
         changed, doc = _apply_effect_step(
             doc=doc, ef=ef, actor_id=actor_id, local=local
@@ -241,11 +242,11 @@ def _apply_on_enter(
 
 
 def _process_event(
-    *,
-    doc: Dict[str, Any],
-    dyn_path: str,
-    actor_id: str,
-    body_payload: Dict[str, Any],
+        *,
+        doc: Dict[str, Any],
+        dyn_path: str,
+        actor_id: str,
+        body_payload: Dict[str, Any],
 ) -> Tuple[Dict[str, Any], int]:
     if doc.get("status") in ("DONE", "CANCELED"):
         abort_json(410, "Contract not accepting events")
@@ -257,11 +258,7 @@ def _process_event(
     selected_trigger: Optional[Dict[str, Any]] = None
     for _, candidate in sorted(events.items()):
         trigger = candidate.get("trigger")
-        if not isinstance(trigger, list):
-            continue
         for t in trigger:
-            if not isinstance(t, dict):
-                continue
             if str(t.get("type") or "") != "api":
                 continue
             path = t.get("path")
@@ -273,8 +270,24 @@ def _process_event(
             break
     if selected_edef is None or selected_trigger is None:
         abort_json(409, "Event not available in this state")
-    edef = selected_edef
+    return _process_selected_event(
+        doc=doc,
+        edef=selected_edef,
+        selected_trigger=selected_trigger,
+        actor_id=actor_id,
+        body_payload=body_payload,
+    )[:2]
 
+
+def _process_selected_event(
+        *,
+        doc: Dict[str, Any],
+        edef: Dict[str, Any],
+        selected_trigger: Dict[str, Any],
+        actor_id: str,
+        body_payload: Dict[str, Any],
+        resolve_response: bool = True,
+) -> Tuple[Dict[str, Any], int, Dict[str, Any]]:
     def _src_get(key: str) -> Any:
         if key in selected_trigger:
             return selected_trigger.get(key)
@@ -283,34 +296,35 @@ def _process_event(
     actor_state_before = pydash.get(doc, f"states.{actor_id}")
     resolver = RefResolver(enforce_acl=False)
     if (
-        _src_get("allow_user_states") is not None
-        and actor_state_before
-        not in set(resolver(_src_get("allow_user_states"), doc) or [])
+            _src_get("allow_user_states") is not None
+            and actor_state_before
+            not in set(resolver(_src_get("allow_user_states"), doc) or [])
     ) or (
-        _src_get("deny_user_states") is not None
-        and actor_state_before in set(resolver(_src_get("deny_user_states"), doc) or [])
+            _src_get("deny_user_states") is not None
+            and actor_state_before in set(resolver(_src_get("deny_user_states"), doc) or [])
     ):
         abort_json(409, "Event not available for actor state")
 
     if (
-        _src_get("allow_principals") is not None
-        or _src_get("deny_principals") is not None
+            _src_get("allow_principals") is not None
+            or _src_get("deny_principals") is not None
     ):
         enforcer = get_enforcer()
         roles = set(enforcer.get_roles_for_user(actor_id))
         roles.add(actor_id)
         if _src_get("allow_principals") is not None and not roles.intersection(
-            set(resolver(_src_get("allow_principals"), doc) or [])
+                set(resolver(_src_get("allow_principals"), doc) or [])
         ):
             abort_json(403, "Subject not allowed")
         if _src_get("deny_principals") is not None and roles.intersection(
-            set(resolver(_src_get("deny_principals"), doc) or [])
+                set(resolver(_src_get("deny_principals"), doc) or [])
         ):
             abort_json(403, "Subject denied")
 
     schema_errors = validate_payload(_src_get("payload_schema"), body_payload)
     if schema_errors:
-        return {"error": "Invalid payload", "details": schema_errors}, 422
+        return {"error": "Invalid payload", "details": schema_errors}, 422, doc
+
     local = {}
     for ef in edef.get("effects") or []:
         changed, doc = _apply_effect_step(
@@ -319,16 +333,119 @@ def _process_event(
         if changed:
             break
     doc = _close_contract(doc)
-    return resolver(_src_get("response") or {"ok": True}, doc), 200
+    if resolve_response:
+        return resolver(_src_get("response") or {"ok": True}, doc), 200, doc
+    return {"ok": True}, 200, doc
+
+
+def _match_cron_field(field: str, value: int) -> bool:
+    if field == "*":
+        return True
+    for part in field.split(","):
+        part = part.strip()
+        if not part:
+            continue
+        if part.startswith("*/"):
+            step = int(part[2:])
+            if step > 0 and value % step == 0:
+                return True
+            continue
+        if "-" in part:
+            a, b = part.split("-", 1)
+            if int(a) <= value <= int(b):
+                return True
+            continue
+        if int(part) == value:
+            return True
+    return False
+
+
+def _is_cron_due(expr: str, now_dt) -> bool:
+    parts = expr.split()
+    if len(parts) != 5:
+        return False
+    minute, hour, day, month, weekday = parts
+    cron_weekday = (now_dt.weekday() + 1) % 7
+    return (
+            _match_cron_field(minute, now_dt.minute)
+            and _match_cron_field(hour, now_dt.hour)
+            and _match_cron_field(day, now_dt.day)
+            and _match_cron_field(month, now_dt.month)
+            and _match_cron_field(weekday, cron_weekday)
+    )
+
+
+def run_cron_triggers_tick(*, actor_id: str = "system:cron") -> Dict[str, Any]:
+    now_dt = now_utc()
+    fired = 0
+    skipped = 0
+    errors = 0
+    error_messages: List[str] = []
+
+    for doc in mongo_find(_contracts_coll(), {"status": "RUNNING"}):
+        state = str(doc.get("state") or "")
+        events = pydash.get(doc, f"definition.states.{state}.events", {}) or {}
+        for ename, edef in events.items():
+            trigger = edef.get("trigger")
+            if not isinstance(trigger, list):
+                continue
+            for idx, t in enumerate(trigger):
+                if not isinstance(t, dict) or str(t.get("type") or "") != "cron":
+                    continue
+                expr = t.get("cron")
+                if not isinstance(expr, str) or not expr.strip():
+                    skipped += 1
+                    continue
+                minute_key = now_dt.strftime("%Y%m%d%H%M")
+                fired_path = f"trigger_runtime.{state}.{ename}.{idx}.last_fired_minute"
+                if pydash.get(doc, fired_path) == minute_key:
+                    skipped += 1
+                    continue
+                if not _is_cron_due(expr, now_dt):
+                    skipped += 1
+                    continue
+                try:
+                    _process_selected_event(
+                        doc=doc,
+                        edef=edef,
+                        selected_trigger=t,
+                        actor_id=actor_id,
+                        body_payload={},
+                        resolve_response=False,
+                    )
+                    mongo_update_one(
+                        _contracts_coll(),
+                        {"_id": doc.get("_id")},
+                        {
+                            "$set": {
+                                fired_path: minute_key,
+                                "updated_at": now_dt,
+                            }
+                        },
+                    )
+                    fired += 1
+                except Exception as exc:
+                    errors += 1
+                    if len(error_messages) < 5:
+                        error_messages.append(str(exc))
+
+    return {
+        "ok": True,
+        "fired": fired,
+        "skipped": skipped,
+        "errors": errors,
+        "error_messages": error_messages,
+        "at": now_dt.isoformat(),
+    }
 
 
 def _create_contract_from_template_doc(
-    *,
-    template: Dict[str, Any],
-    template_id: str,
-    context: Dict[str, Any],
-    owner_id: str,
-    initial_state: Optional[str] = None,
+        *,
+        template: Dict[str, Any],
+        template_id: str,
+        context: Dict[str, Any],
+        owner_id: str,
+        initial_state: Optional[str] = None,
 ) -> Dict[str, Any]:
     definition = template["definition"]
 
@@ -342,10 +459,6 @@ def _create_contract_from_template_doc(
         abort_json(409, f"Initial state '{state}' not allowed by template")
     now = now_utc()
 
-    metadata = template.get("metadata") or {}
-    if not isinstance(metadata, dict):
-        metadata = {}
-
     doc = {
         "_id": contract_id,
         "status": "RUNNING",
@@ -353,7 +466,7 @@ def _create_contract_from_template_doc(
         "states": {},
         "context": context,
         "definition": definition,
-        "metadata": metadata,
+        "metadata": template.get("metadata") or {},
         "created_by": owner_id,
         "created_at": now,
         "updated_at": now,

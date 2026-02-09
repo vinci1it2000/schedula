@@ -19,6 +19,7 @@ from jsonschema import Draft202012Validator
 from .engine import (
     _process_event,
     _create_contract_from_template_doc,
+    run_cron_triggers_tick,
     _templates_coll,
     _get_contract,
     _contracts_coll,
@@ -116,10 +117,30 @@ TEMPLATE_CREATE_SCHEMA = {
                     "description": "Kwargs compatible with requests.request for http.request effects.",
                     "$ref": "#/$defs/request_kwargs",
                 },
-                "item_id": {"type": "string"},
-                "group_id": {"type": "string"},
-                "category": {"type": "string"},
-                "sub": {"type": "string", "pattern": "^[gu]:[\\w\\d]+$"},
+                "item_id": {
+                    "anyOf": [
+                        {"type": "string"},
+                        {"$ref": "#/$defs/json_with_refs"},
+                    ]
+                },
+                "group_id": {
+                    "anyOf": [
+                        {"type": "string"},
+                        {"$ref": "#/$defs/json_with_refs"},
+                    ]
+                },
+                "category": {
+                    "anyOf": [
+                        {"type": "string"},
+                        {"$ref": "#/$defs/json_with_refs"},
+                    ]
+                },
+                "sub": {
+                    "anyOf": [
+                        {"type": "string", "pattern": "^[gu]:[\\w\\d]+$"},
+                        {"$ref": "#/$defs/json_with_refs"},
+                    ]
+                },
                 "item": {"type": "object"},
                 "name": {"type": "string"},
                 "group_type": {"type": "string"},
@@ -199,27 +220,57 @@ TEMPLATE_CREATE_SCHEMA = {
             "properties": {
                 "add_members": {
                     "type": "array",
-                    "items": {"type": "string", "pattern": "^[ug]:.+$"},
+                    "items": {
+                        "anyOf": [
+                            {"type": "string", "pattern": "^[ug]:.+$"},
+                            {"$ref": "#/$defs/json_with_refs"},
+                        ]
+                    },
                 },
                 "remove_members": {
                     "type": "array",
-                    "items": {"type": "string", "pattern": "^[ug]:.+$"},
+                    "items": {
+                        "anyOf": [
+                            {"type": "string", "pattern": "^[ug]:.+$"},
+                            {"$ref": "#/$defs/json_with_refs"},
+                        ]
+                    },
                 },
                 "promote_admins": {
                     "type": "array",
-                    "items": {"type": "string", "pattern": "^[ug]:.+$"},
+                    "items": {
+                        "anyOf": [
+                            {"type": "string", "pattern": "^[ug]:.+$"},
+                            {"$ref": "#/$defs/json_with_refs"},
+                        ]
+                    },
                 },
                 "demote_admins": {
                     "type": "array",
-                    "items": {"type": "string", "pattern": "^[ug]:.+$"},
+                    "items": {
+                        "anyOf": [
+                            {"type": "string", "pattern": "^[ug]:.+$"},
+                            {"$ref": "#/$defs/json_with_refs"},
+                        ]
+                    },
                 },
                 "ban_members": {
                     "type": "array",
-                    "items": {"type": "string", "pattern": "^[ug]:.+$"},
+                    "items": {
+                        "anyOf": [
+                            {"type": "string", "pattern": "^[ug]:.+$"},
+                            {"$ref": "#/$defs/json_with_refs"},
+                        ]
+                    },
                 },
                 "unban_members": {
                     "type": "array",
-                    "items": {"type": "string", "pattern": "^[ug]:.+$"},
+                    "items": {
+                        "anyOf": [
+                            {"type": "string", "pattern": "^[ug]:.+$"},
+                            {"$ref": "#/$defs/json_with_refs"},
+                        ]
+                    },
                 },
             },
             "additionalProperties": False,
@@ -855,3 +906,10 @@ def contract_api_event(contract_id: str, dyn_path: str):
         body_payload=body_payload,
     )
     return jsonify(result), status
+
+
+@bp.post("/contracts/cron/tick")
+@require_system_admin("contracts:templates", "manage")
+def contracts_cron_tick():
+    result = run_cron_triggers_tick()
+    return jsonify(result), 200
