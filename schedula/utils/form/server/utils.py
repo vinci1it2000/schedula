@@ -1,6 +1,7 @@
 import datetime as dt
 import json
 import os
+import re
 from dataclasses import dataclass
 from typing import Tuple, Any
 
@@ -54,10 +55,21 @@ class RefResolver:
             if len(args) in (2, 3):
                 category, item_id = args[:2]
                 from .items.crud import _item_get, serialize_item
-                for sub in (self.sender_principal, self.viewer_principal) if self.enforce_acl else [None]:
+
+                for sub in (
+                        (self.sender_principal, self.viewer_principal)
+                        if self.enforce_acl
+                        else [None]
+                ):
                     try:
                         res = serialize_item(
-                            _item_get(category, item_id, "read", sub, enforce_acl=self.enforce_acl),
+                            _item_get(
+                                category,
+                                item_id,
+                                "read",
+                                sub,
+                                enforce_acl=self.enforce_acl,
+                            ),
                             include_data=True,
                         )
                         if len(args) == 3:
@@ -125,8 +137,21 @@ class RefResolver:
             if isinstance(x, list):
                 return [_walk(v) for v in x]
 
-            if isinstance(x, str) and x.startswith("$$ctx."):
-                return pydash.get(ctx, x.split(".", 1))
+            if isinstance(x, str) and "$$ctx." in x:
+                pattern = re.compile(r"\$\$ctx\.([A-Za-z0-9_\.]+)")
+                matches = list(pattern.finditer(x))
+                if not matches:
+                    return x
+                if len(matches) == 1 and matches[0].span() == (0, len(x)):
+                    return pydash.get(ctx, matches[0].group(1))
+
+                out = x
+                for m in matches:
+                    token = m.group(0)
+                    path = m.group(1)
+                    value = pydash.get(ctx, path)
+                    out = out.replace(token, "" if value is None else str(value))
+                return out
             return x
 
         return _walk(obj)
@@ -142,7 +167,9 @@ def get_mongo(app=None, collection=None):
     if app is None:
         from flask import current_app as app
     if not app.config.get("MONGO_DB"):
-        app.config["MONGO_URI"] = app.config.get("MONGO_URI", os.environ.get("MONGO_URI"))
+        app.config["MONGO_URI"] = app.config.get(
+            "MONGO_URI", os.environ.get("MONGO_URI")
+        )
         from flask_pymongo import PyMongo
 
         mongo = PyMongo(app)
