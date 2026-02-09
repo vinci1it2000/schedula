@@ -182,8 +182,8 @@ TEMPLATE_CREATE_SCHEMA = {
                         "anyOf": [
                             {"required": ["edit_members"]},
                             {"required": ["group_type"]},
-                            {"required": ["name"]}
-                        ]
+                            {"required": ["name"]},
+                        ],
                     },
                 },
                 {
@@ -277,44 +277,86 @@ TEMPLATE_CREATE_SCHEMA = {
         "event": {
             "type": "object",
             "properties": {
-                "path": {"type": "string", "minLength": 1},
-                "method": {
-                    "type": "string",
-                    "enum": ["POST", "GET", "PUT", "PATCH", "DELETE"],
-                },
-                "payload_schema": {"type": "object"},
-                "allow_principals": {
-                    "oneOf": [
-                        {"type": "array", "items": {"type": "string"}},
-                        {"type": "object"},
-                    ]
-                },
-                "deny_principals": {
-                    "oneOf": [
-                        {"type": "array", "items": {"type": "string"}},
-                        {"type": "object"},
-                    ]
-                },
-                "allow_user_states": {
+                "trigger": {
                     "type": "array",
-                    "items": {"type": "string", "minLength": 1},
-                },
-                "deny_user_states": {
-                    "type": "array",
-                    "items": {"type": "string", "minLength": 1},
+                    "minItems": 1,
+                    "items": {"$ref": "#/$defs/event_trigger"},
                 },
                 "effects": {
                     "type": "array",
                     "items": {"$ref": "#/$defs/effect"},
                 },
-                "response": {
-                    "title": "Event Response Template",
-                    "description": "JSON response template. Supports $ref and $ctx placeholders resolved at runtime.",
-                    "$ref": "#/$defs/json_with_refs",
-                },
             },
-            "required": ["path"],
+            "required": ["trigger"],
             "additionalProperties": False,
+        },
+        "event_trigger": {
+            "title": "Event Trigger",
+            "description": "Event trigger source configuration.",
+            "oneOf": [
+                {
+                    "type": "object",
+                    "properties": {
+                        "type": {"const": "api"},
+                        "path": {"type": "string", "minLength": 1},
+                        "method": {
+                            "type": "string",
+                            "enum": ["POST", "GET", "PUT", "PATCH", "DELETE"],
+                        },
+                        "payload_schema": {"type": "object"},
+                        "allow_principals": {
+                            "oneOf": [
+                                {"type": "array", "items": {"type": "string"}},
+                                {"type": "object"},
+                            ]
+                        },
+                        "deny_principals": {
+                            "oneOf": [
+                                {"type": "array", "items": {"type": "string"}},
+                                {"type": "object"},
+                            ]
+                        },
+                        "allow_user_states": {
+                            "type": "array",
+                            "items": {"type": "string", "minLength": 1},
+                        },
+                        "deny_user_states": {
+                            "type": "array",
+                            "items": {"type": "string", "minLength": 1},
+                        },
+                        "response": {
+                            "title": "API Trigger Response Template",
+                            "description": "JSON response template for this API trigger.",
+                            "$ref": "#/$defs/json_with_refs",
+                        },
+                    },
+                    "required": ["type", "path"],
+                    "additionalProperties": False,
+                },
+                {
+                    "type": "object",
+                    "properties": {
+                        "type": {"const": "cron"},
+                        "cron": {"type": "string", "minLength": 1},
+                        "timezone": {"type": "string"},
+                    },
+                    "required": ["type", "cron"],
+                    "additionalProperties": False,
+                },
+                {
+                    "type": "object",
+                    "properties": {
+                        "type": {"const": "db"},
+                        "collection": {"type": "string", "minLength": 1},
+                        "operation": {
+                            "type": "string",
+                            "enum": ["insert", "update", "replace", "delete"],
+                        },
+                    },
+                    "required": ["type", "collection", "operation"],
+                    "additionalProperties": False,
+                },
+            ],
         },
         "json_with_refs": {
             "title": "JSON with Runtime References",
@@ -641,8 +683,8 @@ def _validate_schema(payload: Dict[str, Any], schema: Dict[str, Any]) -> List[st
 
 
 def _validate_allowed_initial_states(
-        definition: Dict[str, Any],
-        allowed_initial_states: Any,
+    definition: Dict[str, Any],
+    allowed_initial_states: Any,
 ) -> List[str]:
     if allowed_initial_states is None:
         return []

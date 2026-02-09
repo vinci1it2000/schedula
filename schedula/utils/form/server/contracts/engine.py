@@ -49,7 +49,7 @@ def _get_contract(contract_id: str) -> Optional[Dict[str, Any]]:
 
 
 def validate_payload(
-        payload_schema: Optional[Dict[str, Any]], payload: Any
+    payload_schema: Optional[Dict[str, Any]], payload: Any
 ) -> List[str]:
     if payload_schema is None:
         return []
@@ -61,12 +61,12 @@ def validate_payload(
 
 
 def _apply_effect_step(
-        *,
-        doc: Dict[str, Any],
-        ef: Dict[str, Any],
-        actor_id: str,
-        payload: Dict[str, Any] = None,
-        local: Dict[str, Any] = None,
+    *,
+    doc: Dict[str, Any],
+    ef: Dict[str, Any],
+    actor_id: str,
+    payload: Dict[str, Any] = None,
+    local: Dict[str, Any] = None,
 ) -> tuple[bool, Dict[str, Any]]:
     ef_type = str(ef.get("type") or "")
     if local is None:
@@ -101,6 +101,7 @@ def _apply_effect_step(
         local[ef["key"]] = requests.request(**request_kw).json()
     elif ef_type == "notify":
         from ..notifications.service import create_notification
+
         notify_kw = {
             "created_by": actor_id,
             "sender_principal": actor_id,
@@ -110,6 +111,7 @@ def _apply_effect_step(
     elif ef_type == "create.group":
         from ..security.groups import Group
         from ..security.casbin import bootstrap_group
+
         name = ef.get("name")
         gtype = ef.get("group_type", "workspace")
         sub = ef.get("sub")
@@ -123,6 +125,7 @@ def _apply_effect_step(
         local[ef["key"]] = g(grp.id)
     elif ef_type == "update.group":
         from ..security.groups import Group
+
         group_id = str(ef.get("group_id") or "")
         if group_id.startswith("g:"):
             group_id = group_id[2:]
@@ -202,7 +205,7 @@ def _apply_effect_step(
             abort_json(404, "Item not found")
     elif ef_type == "delete.item":
         coll = get_mongo(collection=config_get("ITEMS_COLLECTION", "items"))
-        mongo_delete_one(coll,{"_id": ef["item_id"]})
+        mongo_delete_one(coll, {"_id": ef["item_id"]})
     else:
         abort_json(400, f"Unknown effect type: {ef_type}")
 
@@ -221,13 +224,13 @@ def _close_contract(doc):
 
 
 def _apply_on_enter(
-        *,
-        doc: dict[str, Any],
-        actor_id: str,
+    *,
+    doc: dict[str, Any],
+    actor_id: str,
 ) -> dict[str, Any]:
     local = {}
     for ef in pydash.get(
-            doc, f"definition.states.{doc.get('state')}.onEnter.effects", []
+        doc, f"definition.states.{doc.get('state')}.onEnter.effects", []
     ):
         changed, doc = _apply_effect_step(
             doc=doc, ef=ef, actor_id=actor_id, local=local
@@ -238,48 +241,74 @@ def _apply_on_enter(
 
 
 def _process_event(
-        *,
-        doc: Dict[str, Any],
-        dyn_path: str,
-        actor_id: str,
-        body_payload: Dict[str, Any],
+    *,
+    doc: Dict[str, Any],
+    dyn_path: str,
+    actor_id: str,
+    body_payload: Dict[str, Any],
 ) -> Tuple[Dict[str, Any], int]:
     if doc.get("status") in ("DONE", "CANCELED"):
         abort_json(410, "Contract not accepting events")
 
     state = str(doc.get("state") or "")
     events = pydash.get(doc, f"definition.states.{state}.events", {})
-    for ename, edef in events.items():
-        if edef.get("path") == dyn_path:
+
+    selected_edef: Optional[Dict[str, Any]] = None
+    selected_trigger: Optional[Dict[str, Any]] = None
+    for _, candidate in sorted(events.items()):
+        trigger = candidate.get("trigger")
+        if not isinstance(trigger, list):
+            continue
+        for t in trigger:
+            if not isinstance(t, dict):
+                continue
+            if str(t.get("type") or "") != "api":
+                continue
+            path = t.get("path")
+            if isinstance(path, str) and path == dyn_path:
+                selected_edef = candidate
+                selected_trigger = t
+                break
+        if selected_edef is not None:
             break
-    else:
+    if selected_edef is None or selected_trigger is None:
         abort_json(409, "Event not available in this state")
+    edef = selected_edef
+
+    def _src_get(key: str) -> Any:
+        if key in selected_trigger:
+            return selected_trigger.get(key)
+        return edef.get(key)
+
     actor_state_before = pydash.get(doc, f"states.{actor_id}")
     resolver = RefResolver(enforce_acl=False)
     if (
-            "allow_user_states" in edef
-            and actor_state_before
-            not in set(resolver(edef.get("allow_user_states"), doc) or [])
+        _src_get("allow_user_states") is not None
+        and actor_state_before
+        not in set(resolver(_src_get("allow_user_states"), doc) or [])
     ) or (
-            "deny_user_states" in edef
-            and actor_state_before in set(resolver(edef.get("deny_user_states"), doc) or [])
+        _src_get("deny_user_states") is not None
+        and actor_state_before in set(resolver(_src_get("deny_user_states"), doc) or [])
     ):
         abort_json(409, "Event not available for actor state")
 
-    if "allow_principals" in edef or "deny_principals" in edef:
+    if (
+        _src_get("allow_principals") is not None
+        or _src_get("deny_principals") is not None
+    ):
         enforcer = get_enforcer()
         roles = set(enforcer.get_roles_for_user(actor_id))
         roles.add(actor_id)
-        if "allow_principals" in edef and not roles.intersection(
-                set(resolver(edef.get("allow_principals"), doc) or [])
+        if _src_get("allow_principals") is not None and not roles.intersection(
+            set(resolver(_src_get("allow_principals"), doc) or [])
         ):
             abort_json(403, "Subject not allowed")
-        if "deny_principals" in edef and roles.intersection(
-                set(resolver(edef.get("deny_principals"), doc) or [])
+        if _src_get("deny_principals") is not None and roles.intersection(
+            set(resolver(_src_get("deny_principals"), doc) or [])
         ):
             abort_json(403, "Subject denied")
 
-    schema_errors = validate_payload(edef.get("payload_schema"), body_payload)
+    schema_errors = validate_payload(_src_get("payload_schema"), body_payload)
     if schema_errors:
         return {"error": "Invalid payload", "details": schema_errors}, 422
     local = {}
@@ -290,16 +319,16 @@ def _process_event(
         if changed:
             break
     doc = _close_contract(doc)
-    return resolver(edef.get("response") or {"ok": True}, doc), 200
+    return resolver(_src_get("response") or {"ok": True}, doc), 200
 
 
 def _create_contract_from_template_doc(
-        *,
-        template: Dict[str, Any],
-        template_id: str,
-        context: Dict[str, Any],
-        owner_id: str,
-        initial_state: Optional[str] = None,
+    *,
+    template: Dict[str, Any],
+    template_id: str,
+    context: Dict[str, Any],
+    owner_id: str,
+    initial_state: Optional[str] = None,
 ) -> Dict[str, Any]:
     definition = template["definition"]
 
