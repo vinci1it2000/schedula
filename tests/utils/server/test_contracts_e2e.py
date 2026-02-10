@@ -71,8 +71,6 @@ def _gherkin_definition() -> Dict[str, Any]:
                         "driver",
                         "driver_trip",
                         "riders",
-                        "seats",
-                        "trips",
                     ],
                     "properties": {
                         "capacity": {"type": "integer", "minimum": 1},
@@ -103,35 +101,35 @@ def _gherkin_definition() -> Dict[str, Any]:
                             "additionalProperties": False,
                         },
                         "riders": {
-                            "type": "array",
-                            "minItems": 1,
-                            "items": {"type": "string", "pattern": "^u:.+$"},
-                        },
-                        "seats": {
                             "type": "object",
-                            "additionalProperties": {"type": "integer", "minimum": 1},
-                        },
-                        "trips": {
-                            "type": "object",
+                            "minProperties": 1,
                             "additionalProperties": {
                                 "type": "object",
-                                "required": ["origin", "destination"],
+                                "required": ["seats", "trip"],
                                 "properties": {
-                                    "origin": {
+                                    "seats": {"type": "integer", "minimum": 1},
+                                    "trip": {
                                         "type": "object",
-                                        "required": ["lat", "lng"],
+                                        "required": ["origin", "destination"],
                                         "properties": {
-                                            "lat": {"type": "number"},
-                                            "lng": {"type": "number"},
-                                        },
-                                        "additionalProperties": False,
-                                    },
-                                    "destination": {
-                                        "type": "object",
-                                        "required": ["lat", "lng"],
-                                        "properties": {
-                                            "lat": {"type": "number"},
-                                            "lng": {"type": "number"},
+                                            "origin": {
+                                                "type": "object",
+                                                "required": ["lat", "lng"],
+                                                "properties": {
+                                                    "lat": {"type": "number"},
+                                                    "lng": {"type": "number"},
+                                                },
+                                                "additionalProperties": False,
+                                            },
+                                            "destination": {
+                                                "type": "object",
+                                                "required": ["lat", "lng"],
+                                                "properties": {
+                                                    "lat": {"type": "number"},
+                                                    "lng": {"type": "number"},
+                                                },
+                                                "additionalProperties": False,
+                                            },
                                         },
                                         "additionalProperties": False,
                                     },
@@ -147,7 +145,30 @@ def _gherkin_definition() -> Dict[str, Any]:
                         {
                             "type": "update.contract",
                             "update": {
-                                "$set": {"states.$$ctx.doc.context.riders.0": "PENDING"}
+                                "$set": {
+                                    "context.first_rider_principal": {
+                                        "$arrayElemAt": [
+                                            {
+                                                "$map": {
+                                                    "input": {
+                                                        "$objectToArray": "$context.riders"
+                                                    },
+                                                    "as": "r",
+                                                    "in": "$$r.k",
+                                                }
+                                            },
+                                            0,
+                                        ]
+                                    }
+                                }
+                            },
+                        },
+                        {
+                            "type": "update.contract",
+                            "update": {
+                                "$set": {
+                                    "states.$$ctx.doc.context.first_rider_principal": "PENDING"
+                                }
                             },
                         },
                         {
@@ -163,7 +184,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "$set": {
                                     "context.first_request_timeout_ids": [
                                         {
-                                            "principal": "$$ctx.doc.context.riders.0",
+                                            "principal": "$$ctx.doc.context.first_rider_principal",
                                             "event_id": {
                                                 "$ctx": "local.first_request_timeout_id"
                                             },
@@ -225,11 +246,33 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "type": "update.contract",
                                 "update": {
                                     "$set": {
-                                        "states.$$ctx.doc.context.riders.0": "ACCEPTED",
+                                        "states.$$ctx.doc.context.first_rider_principal": "ACCEPTED",
                                         "context.accepted_seats_total": {
                                             "$ifNull": [
                                                 {
-                                                    "$ctx": "doc.context.seats.$$ctx.doc.context.riders.0"
+                                                    "$arrayElemAt": [
+                                                        {
+                                                            "$map": {
+                                                                "input": {
+                                                                    "$filter": {
+                                                                        "input": {
+                                                                            "$objectToArray": "$context.riders"
+                                                                        },
+                                                                        "as": "kv",
+                                                                        "cond": {
+                                                                            "$eq": [
+                                                                                "$$kv.k",
+                                                                                "$context.first_rider_principal",
+                                                                            ]
+                                                                        },
+                                                                    }
+                                                                },
+                                                                "as": "kv",
+                                                                "in": "$$kv.v.seats",
+                                                            }
+                                                        },
+                                                        0,
+                                                    ]
                                                 },
                                                 1,
                                             ]
@@ -261,7 +304,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "update": {
                                     "$set": {
                                         "state": "REJECTED",
-                                        "states.$$ctx.doc.context.riders.0": "REJECTED",
+                                        "states.$$ctx.doc.context.first_rider_principal": "REJECTED",
                                     }
                                 },
                             },
@@ -275,7 +318,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "update": {
                                     "$set": {
                                         "state": "EXPIRED",
-                                        "states.$$ctx.doc.context.riders.0": "EXPIRED",
+                                        "states.$$ctx.doc.context.first_rider_principal": "EXPIRED",
                                     }
                                 },
                             },
@@ -284,7 +327,9 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "notify": {
                                     "event": "contracts.first_request_timed_out",
                                     "targets": {
-                                        "$$ctx.doc.context.riders.0": ["in_app"]
+                                        "$$ctx.doc.context.first_rider_principal": [
+                                            "in_app"
+                                        ]
                                     },
                                     "payload": {
                                         "contract_code": {
@@ -305,8 +350,6 @@ def _gherkin_definition() -> Dict[str, Any]:
                         "driver",
                         "driver_trip",
                         "riders",
-                        "seats",
-                        "trips",
                     ],
                     "properties": {
                         "capacity": {"type": "integer", "minimum": 1},
@@ -337,35 +380,35 @@ def _gherkin_definition() -> Dict[str, Any]:
                             "additionalProperties": False,
                         },
                         "riders": {
-                            "type": "array",
-                            "minItems": 1,
-                            "items": {"type": "string", "pattern": "^u:.+$"},
-                        },
-                        "seats": {
                             "type": "object",
-                            "additionalProperties": {"type": "integer", "minimum": 1},
-                        },
-                        "trips": {
-                            "type": "object",
+                            "minProperties": 1,
                             "additionalProperties": {
                                 "type": "object",
-                                "required": ["origin", "destination"],
+                                "required": ["seats", "trip"],
                                 "properties": {
-                                    "origin": {
+                                    "seats": {"type": "integer", "minimum": 1},
+                                    "trip": {
                                         "type": "object",
-                                        "required": ["lat", "lng"],
+                                        "required": ["origin", "destination"],
                                         "properties": {
-                                            "lat": {"type": "number"},
-                                            "lng": {"type": "number"},
-                                        },
-                                        "additionalProperties": False,
-                                    },
-                                    "destination": {
-                                        "type": "object",
-                                        "required": ["lat", "lng"],
-                                        "properties": {
-                                            "lat": {"type": "number"},
-                                            "lng": {"type": "number"},
+                                            "origin": {
+                                                "type": "object",
+                                                "required": ["lat", "lng"],
+                                                "properties": {
+                                                    "lat": {"type": "number"},
+                                                    "lng": {"type": "number"},
+                                                },
+                                                "additionalProperties": False,
+                                            },
+                                            "destination": {
+                                                "type": "object",
+                                                "required": ["lat", "lng"],
+                                                "properties": {
+                                                    "lat": {"type": "number"},
+                                                    "lng": {"type": "number"},
+                                                },
+                                                "additionalProperties": False,
+                                            },
                                         },
                                         "additionalProperties": False,
                                     },
@@ -385,18 +428,22 @@ def _gherkin_definition() -> Dict[str, Any]:
                                     "states": {
                                         "$arrayToObject": {
                                             "$map": {
-                                                "input": "$context.riders",
+                                                "input": {
+                                                    "$objectToArray": "$context.riders"
+                                                },
                                                 "as": "p",
-                                                "in": {"k": "$$p", "v": "PENDING"},
+                                                "in": {"k": "$$p.k", "v": "PENDING"},
                                             }
                                         }
                                     },
                                     "context.initial_invite_targets": {
                                         "$arrayToObject": {
                                             "$map": {
-                                                "input": "$context.riders",
+                                                "input": {
+                                                    "$objectToArray": "$context.riders"
+                                                },
                                                 "as": "p",
-                                                "in": {"k": "$$p", "v": ["in_app"]},
+                                                "in": {"k": "$$p.k", "v": ["in_app"]},
                                             }
                                         }
                                     },
@@ -560,18 +607,13 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "update": {
                                     "$set": {
                                         "states.$$ctx.user": "ACCEPTED",
-                                        "context.seats.$$ctx.user": "$$ctx.payload.seats",
-                                        "context.trips.$$ctx.user": {
+                                        "context.riders.$$ctx.user.seats": "$$ctx.payload.seats",
+                                        "context.riders.$$ctx.user.trip": {
                                             "origin": "$$ctx.payload.origin",
                                             "destination": "$$ctx.payload.destination",
                                         },
                                         "context.accepted_seats_total": {
-                                            "$ifNull": [
-                                                {
-                                                    "$ctx": "doc.context.seats.$$ctx.user"
-                                                },
-                                                1,
-                                            ]
+                                            "$ifNull": ["$$ctx.payload.seats", 1]
                                         },
                                         "state": "RECRUITING_INIT",
                                     }
@@ -760,8 +802,8 @@ def _gherkin_definition() -> Dict[str, Any]:
                                         "update": {
                                             "$set": {
                                                 "states.$$ctx.user": "REQUESTING",
-                                                "context.seats.$$ctx.user": "$$ctx.payload.seats",
-                                                "context.trips.$$ctx.user": {
+                                                "context.riders.$$ctx.user.seats": "$$ctx.payload.seats",
+                                                "context.riders.$$ctx.user.trip": {
                                                     "origin": "$$ctx.payload.origin",
                                                     "destination": "$$ctx.payload.destination",
                                                 },
@@ -872,7 +914,29 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                 "local.accepted_increment": {
                                                     "$ifNull": [
                                                         {
-                                                            "$ctx": "doc.context.seats.$$ctx.payload.principal"
+                                                            "$arrayElemAt": [
+                                                                {
+                                                                    "$map": {
+                                                                        "input": {
+                                                                            "$filter": {
+                                                                                "input": {
+                                                                                    "$objectToArray": "$context.riders"
+                                                                                },
+                                                                                "as": "kv",
+                                                                                "cond": {
+                                                                                    "$eq": [
+                                                                                        "$$kv.k",
+                                                                                        "$$ctx.payload.principal",
+                                                                                    ]
+                                                                                },
+                                                                            }
+                                                                        },
+                                                                        "as": "kv",
+                                                                        "in": "$$kv.v.seats",
+                                                                    }
+                                                                },
+                                                                0,
+                                                            ]
                                                         },
                                                         1,
                                                     ]
@@ -1036,7 +1100,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "update": {
                                     "$unset": {
                                         "states.$$ctx.user": "",
-                                        "context.seats.$$ctx.user": "",
+                                        "context.riders.$$ctx.user.seats": "",
                                     }
                                 },
                             },
@@ -1171,8 +1235,8 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "update": {
                                     "$set": {
                                         "states.$$ctx.user": "ACCEPTED",
-                                        "context.seats.$$ctx.user": "$$ctx.payload.seats",
-                                        "context.trips.$$ctx.user": {
+                                        "context.riders.$$ctx.user.seats": "$$ctx.payload.seats",
+                                        "context.riders.$$ctx.user.trip": {
                                             "origin": "$$ctx.payload.origin",
                                             "destination": "$$ctx.payload.destination",
                                         },
@@ -1190,9 +1254,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                     "$set": {
                                         "local.accepted_increment": {
                                             "$ifNull": [
-                                                {
-                                                    "$ctx": "doc.context.seats.$$ctx.user"
-                                                },
+                                                "$$ctx.payload.seats",
                                                 1,
                                             ]
                                         }
@@ -1438,7 +1500,29 @@ def _gherkin_definition() -> Dict[str, Any]:
                                         "local.cancel_seats": {
                                             "$ifNull": [
                                                 {
-                                                    "$ctx": "doc.context.seats.$$ctx.user"
+                                                    "$arrayElemAt": [
+                                                        {
+                                                            "$map": {
+                                                                "input": {
+                                                                    "$filter": {
+                                                                        "input": {
+                                                                            "$objectToArray": "$context.riders"
+                                                                        },
+                                                                        "as": "kv",
+                                                                        "cond": {
+                                                                            "$eq": [
+                                                                                "$$kv.k",
+                                                                                "$$ctx.user",
+                                                                            ]
+                                                                        },
+                                                                    }
+                                                                },
+                                                                "as": "kv",
+                                                                "in": "$$kv.v.seats",
+                                                            }
+                                                        },
+                                                        0,
+                                                    ]
                                                 },
                                                 1,
                                             ]
@@ -1479,7 +1563,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                         },
                                         "states.$$ctx.user": "CANCELLED",
                                     },
-                                    "$unset": {"context.seats.$$ctx.user": ""},
+                                    "$unset": {"context.riders.$$ctx.user.seats": ""},
                                 },
                             },
                             {
@@ -1559,7 +1643,29 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                 "local.remove_seats": {
                                                     "$ifNull": [
                                                         {
-                                                            "$ctx": "doc.context.seats.$$ctx.payload.principal"
+                                                            "$arrayElemAt": [
+                                                                {
+                                                                    "$map": {
+                                                                        "input": {
+                                                                            "$filter": {
+                                                                                "input": {
+                                                                                    "$objectToArray": "$context.riders"
+                                                                                },
+                                                                                "as": "kv",
+                                                                                "cond": {
+                                                                                    "$eq": [
+                                                                                        "$$kv.k",
+                                                                                        "$$ctx.payload.principal",
+                                                                                    ]
+                                                                                },
+                                                                            }
+                                                                        },
+                                                                        "as": "kv",
+                                                                        "in": "$$kv.v.seats",
+                                                                    }
+                                                                },
+                                                                0,
+                                                            ]
                                                         },
                                                         1,
                                                     ]
@@ -1601,7 +1707,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                 "states.$$ctx.payload.principal": "CANCELLED",
                                             },
                                             "$unset": {
-                                                "context.seats.$$ctx.payload.principal": ""
+                                                "context.riders.$$ctx.payload.principal.seats": ""
                                             },
                                         },
                                     },
@@ -1729,7 +1835,29 @@ def _gherkin_definition() -> Dict[str, Any]:
                                         "local.cancel_seats": {
                                             "$ifNull": [
                                                 {
-                                                    "$ctx": "doc.context.seats.$$ctx.user"
+                                                    "$arrayElemAt": [
+                                                        {
+                                                            "$map": {
+                                                                "input": {
+                                                                    "$filter": {
+                                                                        "input": {
+                                                                            "$objectToArray": "$context.riders"
+                                                                        },
+                                                                        "as": "kv",
+                                                                        "cond": {
+                                                                            "$eq": [
+                                                                                "$$kv.k",
+                                                                                "$$ctx.user",
+                                                                            ]
+                                                                        },
+                                                                    }
+                                                                },
+                                                                "as": "kv",
+                                                                "in": "$$kv.v.seats",
+                                                            }
+                                                        },
+                                                        0,
+                                                    ]
                                                 },
                                                 1,
                                             ]
@@ -1771,7 +1899,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                         "states.$$ctx.user": "CANCELLED",
                                         "state": "RECRUITING",
                                     },
-                                    "$unset": {"context.seats.$$ctx.user": ""},
+                                    "$unset": {"context.riders.$$ctx.user.seats": ""},
                                 },
                             },
                             {
@@ -1928,7 +2056,29 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                 "local.remove_seats": {
                                                     "$ifNull": [
                                                         {
-                                                            "$ctx": "doc.context.seats.$$ctx.payload.principal"
+                                                            "$arrayElemAt": [
+                                                                {
+                                                                    "$map": {
+                                                                        "input": {
+                                                                            "$filter": {
+                                                                                "input": {
+                                                                                    "$objectToArray": "$context.riders"
+                                                                                },
+                                                                                "as": "kv",
+                                                                                "cond": {
+                                                                                    "$eq": [
+                                                                                        "$$kv.k",
+                                                                                        "$$ctx.payload.principal",
+                                                                                    ]
+                                                                                },
+                                                                            }
+                                                                        },
+                                                                        "as": "kv",
+                                                                        "in": "$$kv.v.seats",
+                                                                    }
+                                                                },
+                                                                0,
+                                                            ]
                                                         },
                                                         1,
                                                     ]
@@ -1970,7 +2120,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                 "states.$$ctx.payload.principal": "CANCELLED",
                                             },
                                             "$unset": {
-                                                "context.seats.$$ctx.payload.principal": ""
+                                                "context.riders.$$ctx.payload.principal.seats": ""
                                             },
                                         },
                                     },
@@ -2272,7 +2422,29 @@ def _gherkin_definition() -> Dict[str, Any]:
                                         "local.cancel_seats": {
                                             "$ifNull": [
                                                 {
-                                                    "$ctx": "doc.context.seats.$$ctx.user"
+                                                    "$arrayElemAt": [
+                                                        {
+                                                            "$map": {
+                                                                "input": {
+                                                                    "$filter": {
+                                                                        "input": {
+                                                                            "$objectToArray": "$context.riders"
+                                                                        },
+                                                                        "as": "kv",
+                                                                        "cond": {
+                                                                            "$eq": [
+                                                                                "$$kv.k",
+                                                                                "$$ctx.user",
+                                                                            ]
+                                                                        },
+                                                                    }
+                                                                },
+                                                                "as": "kv",
+                                                                "in": "$$kv.v.seats",
+                                                            }
+                                                        },
+                                                        0,
+                                                    ]
                                                 },
                                                 1,
                                             ]
@@ -2314,7 +2486,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                         "states.$$ctx.user": "CANCELLED",
                                     },
                                     "$unset": {
-                                        "context.seats.$$ctx.user": "",
+                                        "context.riders.$$ctx.user.seats": "",
                                         "context.pending_pickup_targets.$$ctx.user": "",
                                         "context.riders_in_pickup_zone.$$ctx.user": "",
                                         "context.riders_picked_up.$$ctx.user": "",
@@ -2704,16 +2876,18 @@ class ContractsE2ETest(unittest.TestCase):
         p1_uid = self.user_ids["p1"]
         p2_uid = self.user_ids["p2"]
         p3_uid = self.user_ids["p3"]
-        riders = [f"u:{p1_uid}"]
+        rider_ids = [f"u:{p1_uid}"]
         if initial_state == "FIRST_INVITATIONS":
-            riders = [f"u:{p2_uid}", f"u:{p3_uid}"]
-        seats = {principal: 1 for principal in riders}
-        trips = {
+            rider_ids = [f"u:{p2_uid}", f"u:{p3_uid}"]
+        riders = {
             principal: {
-                "origin": {"lat": 45.0, "lng": 9.0},
-                "destination": {"lat": 45.1, "lng": 9.1},
+                "seats": 1,
+                "trip": {
+                    "origin": {"lat": 45.0, "lng": 9.0},
+                    "destination": {"lat": 45.1, "lng": 9.1},
+                },
             }
-            for principal in riders
+            for principal in rider_ids
         }
         return {
             "contract_code": "C-001",
@@ -2724,8 +2898,6 @@ class ContractsE2ETest(unittest.TestCase):
                 "destination": {"lat": 45.3, "lng": 9.3},
             },
             "riders": riders,
-            "seats": seats,
-            "trips": trips,
         }
 
     def _create_gherkin_contract(self, initial_state: str = "FIRST_REQUEST") -> str:
@@ -3552,7 +3724,10 @@ class ContractsE2ETest(unittest.TestCase):
                 {
                     "$set": {
                         "context.capacity": 4,
-                        "context.seats": {f"u:{p1_uid}": 1, f"u:{p2_uid}": 3},
+                        "context.riders": {
+                            f"u:{p1_uid}": {"seats": 1},
+                            f"u:{p2_uid}": {"seats": 3},
+                        },
                     }
                 },
             )
