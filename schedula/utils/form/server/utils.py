@@ -145,15 +145,36 @@ class RefResolver:
                 matches = list(pattern.finditer(x))
                 if not matches:
                     return x
+
+                def _resolve_ctx_path(path: str) -> tuple[Any, str]:
+                    value = pydash.get(ctx, path)
+                    if value is not None:
+                        return value, ""
+
+                    suffix_parts: list[str] = []
+                    probe = path
+                    while "." in probe:
+                        probe, tail = probe.rsplit(".", 1)
+                        suffix_parts.insert(0, tail)
+                        value = pydash.get(ctx, probe)
+                        if value is not None:
+                            suffix = "." + ".".join(suffix_parts)
+                            return value, suffix
+                    return None, ""
+
                 if len(matches) == 1 and matches[0].span() == (0, len(x)):
-                    return pydash.get(ctx, matches[0].group(1))
+                    value, suffix = _resolve_ctx_path(matches[0].group(1))
+                    if suffix and value is not None:
+                        return f"{value}{suffix}"
+                    return value
 
                 out = x
                 for m in matches:
                     token = m.group(0)
                     path = m.group(1)
-                    value = pydash.get(ctx, path)
-                    out = out.replace(token, "" if value is None else str(value))
+                    value, suffix = _resolve_ctx_path(path)
+                    replacement = "" if value is None else f"{value}{suffix}"
+                    out = out.replace(token, replacement)
                 return out
             return x
 
@@ -169,7 +190,7 @@ def get_mongo(app=None, collection=None):
     """
     if app is None:
         from flask import current_app as app
-    if not app.config.get("MONGO_DB"):
+    if app.config.get("MONGO_DB") is None:
         app.config["MONGO_URI"] = app.config.get(
             "MONGO_URI", os.environ.get("MONGO_URI")
         )
