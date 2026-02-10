@@ -56,6 +56,48 @@ def _definition() -> Dict[str, Any]:
     }
 
 
+def _ctx(path: str) -> Dict[str, str]:
+    return {"$ctx": path}
+
+
+def _rider_seats(principal_ref: str) -> Dict[str, Any]:
+    return {"$ifNull": [_ctx(f"doc.context.riders.{principal_ref}.seats"), 1]}
+
+
+def _payload_seats_or_one() -> Dict[str, Any]:
+    return {"$ifNull": ["$$ctx.payload.seats", 1]}
+
+
+def _accepted_total_plus_increment() -> Dict[str, Any]:
+    return {
+        "$add": [
+            {"$ifNull": ["$context.accepted_seats_total", 0]},
+            "$local.accepted_increment",
+        ]
+    }
+
+
+def _capacity_reached_from_increment() -> Dict[str, Any]:
+    return {
+        "$gte": [
+            _accepted_total_plus_increment(),
+            {"$ifNull": ["$context.capacity", 0]},
+        ]
+    }
+
+
+def _accepted_total_after_subtract(local_key: str) -> Dict[str, Any]:
+    delta = f"$local.{local_key}"
+    current = {"$ifNull": ["$context.accepted_seats_total", 0]}
+    return {
+        "$cond": [
+            {"$gte": [current, delta]},
+            {"$subtract": [current, delta]},
+            0,
+        ]
+    }
+
+
 def _gherkin_definition() -> Dict[str, Any]:
     return {
         "id": "contract-lifecycle-group-sync",
@@ -247,34 +289,9 @@ def _gherkin_definition() -> Dict[str, Any]:
                                     "$set": {
                                         "states.$$ctx.doc.context.first_rider_principal": "ACCEPTED",
                                         "context.accepted_seats_total": {
-                                            "$ifNull": [
-                                                {
-                                                    "$arrayElemAt": [
-                                                        {
-                                                            "$map": {
-                                                                "input": {
-                                                                    "$filter": {
-                                                                        "input": {
-                                                                            "$objectToArray": "$context.riders"
-                                                                        },
-                                                                        "as": "kv",
-                                                                        "cond": {
-                                                                            "$eq": [
-                                                                                "$$kv.k",
-                                                                                "$context.first_rider_principal",
-                                                                            ]
-                                                                        },
-                                                                    }
-                                                                },
-                                                                "as": "kv",
-                                                                "in": "$$kv.v.seats",
-                                                            }
-                                                        },
-                                                        0,
-                                                    ]
-                                                },
-                                                1,
-                                            ]
+                                            **_rider_seats(
+                                                "$$ctx.doc.context.first_rider_principal"
+                                            )
                                         },
                                         "state": "RECRUITING_INIT",
                                     }
@@ -485,9 +502,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                         },
                         {
                             "type": "update.contract",
-                            "update": {
-                                "$unset": "context.initial_invite_targets"
-                            },
+                            "update": {"$unset": "context.initial_invite_targets"},
                         },
                     ]
                 },
@@ -612,7 +627,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                             "destination": "$$ctx.payload.destination",
                                         },
                                         "context.accepted_seats_total": {
-                                            "$ifNull": ["$$ctx.payload.seats", 1]
+                                            **_payload_seats_or_one()
                                         },
                                         "state": "RECRUITING_INIT",
                                     }
@@ -911,34 +926,9 @@ def _gherkin_definition() -> Dict[str, Any]:
                                         "update": {
                                             "$set": {
                                                 "local.accepted_increment": {
-                                                    "$ifNull": [
-                                                        {
-                                                            "$arrayElemAt": [
-                                                                {
-                                                                    "$map": {
-                                                                        "input": {
-                                                                            "$filter": {
-                                                                                "input": {
-                                                                                    "$objectToArray": "$context.riders"
-                                                                                },
-                                                                                "as": "kv",
-                                                                                "cond": {
-                                                                                    "$eq": [
-                                                                                        "$$kv.k",
-                                                                                        "$$ctx.payload.principal",
-                                                                                    ]
-                                                                                },
-                                                                            }
-                                                                        },
-                                                                        "as": "kv",
-                                                                        "in": "$$kv.v.seats",
-                                                                    }
-                                                                },
-                                                                0,
-                                                            ]
-                                                        },
-                                                        1,
-                                                    ]
+                                                    **_rider_seats(
+                                                        "$$ctx.payload.principal"
+                                                    )
                                                 }
                                             }
                                         },
@@ -948,36 +938,10 @@ def _gherkin_definition() -> Dict[str, Any]:
                                         "update": {
                                             "$set": {
                                                 "context.accepted_seats_total": {
-                                                    "$add": [
-                                                        {
-                                                            "$ifNull": [
-                                                                "$context.accepted_seats_total",
-                                                                0,
-                                                            ]
-                                                        },
-                                                        "$local.accepted_increment",
-                                                    ]
+                                                    **_accepted_total_plus_increment()
                                                 },
                                                 "local.capacity_reached": {
-                                                    "$gte": [
-                                                        {
-                                                            "$add": [
-                                                                {
-                                                                    "$ifNull": [
-                                                                        "$context.accepted_seats_total",
-                                                                        0,
-                                                                    ]
-                                                                },
-                                                                "$local.accepted_increment",
-                                                            ]
-                                                        },
-                                                        {
-                                                            "$ifNull": [
-                                                                "$context.capacity",
-                                                                0,
-                                                            ]
-                                                        },
-                                                    ]
+                                                    **_capacity_reached_from_increment()
                                                 },
                                             }
                                         },
@@ -1267,10 +1231,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "update": {
                                     "$set": {
                                         "local.accepted_increment": {
-                                            "$ifNull": [
-                                                "$$ctx.payload.seats",
-                                                1,
-                                            ]
+                                            **_payload_seats_or_one()
                                         }
                                     }
                                 },
@@ -1280,36 +1241,10 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "update": {
                                     "$set": {
                                         "context.accepted_seats_total": {
-                                            "$add": [
-                                                {
-                                                    "$ifNull": [
-                                                        "$context.accepted_seats_total",
-                                                        0,
-                                                    ]
-                                                },
-                                                "$local.accepted_increment",
-                                            ]
+                                            **_accepted_total_plus_increment()
                                         },
                                         "local.capacity_reached": {
-                                            "$gte": [
-                                                {
-                                                    "$add": [
-                                                        {
-                                                            "$ifNull": [
-                                                                "$context.accepted_seats_total",
-                                                                0,
-                                                            ]
-                                                        },
-                                                        "$local.accepted_increment",
-                                                    ]
-                                                },
-                                                {
-                                                    "$ifNull": [
-                                                        "$context.capacity",
-                                                        0,
-                                                    ]
-                                                },
-                                            ]
+                                            **_capacity_reached_from_increment()
                                         },
                                     }
                                 },
@@ -1478,10 +1413,14 @@ def _gherkin_definition() -> Dict[str, Any]:
                                     {
                                         "type": "update.contract",
                                         "update": [
-                                            {"$set": {
-                                                "states.$$ctx.payload.principal": "CANCELLED"
-                                            }},
-                                            {"$unset": "context.pending_invites.$$ctx.payload.principal"}
+                                            {
+                                                "$set": {
+                                                    "states.$$ctx.payload.principal": "CANCELLED"
+                                                }
+                                            },
+                                            {
+                                                "$unset": "context.pending_invites.$$ctx.payload.principal"
+                                            },
                                         ],
                                     },
                                     {
@@ -1523,34 +1462,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "update": {
                                     "$set": {
                                         "local.cancel_seats": {
-                                            "$ifNull": [
-                                                {
-                                                    "$arrayElemAt": [
-                                                        {
-                                                            "$map": {
-                                                                "input": {
-                                                                    "$filter": {
-                                                                        "input": {
-                                                                            "$objectToArray": "$context.riders"
-                                                                        },
-                                                                        "as": "kv",
-                                                                        "cond": {
-                                                                            "$eq": [
-                                                                                "$$kv.k",
-                                                                                "$$ctx.user",
-                                                                            ]
-                                                                        },
-                                                                    }
-                                                                },
-                                                                "as": "kv",
-                                                                "in": "$$kv.v.seats",
-                                                            }
-                                                        },
-                                                        0,
-                                                    ]
-                                                },
-                                                1,
-                                            ]
+                                            **_rider_seats("$$ctx.user")
                                         }
                                     }
                                 },
@@ -1558,36 +1470,16 @@ def _gherkin_definition() -> Dict[str, Any]:
                             {
                                 "type": "update.contract",
                                 "update": [
-                                    {"$set": {
-                                        "context.accepted_seats_total": {
-                                            "$cond": [
-                                                {
-                                                    "$gte": [
-                                                        {
-                                                            "$ifNull": [
-                                                                "$context.accepted_seats_total",
-                                                                0,
-                                                            ]
-                                                        },
-                                                        "$local.cancel_seats",
-                                                    ]
-                                                },
-                                                {
-                                                    "$subtract": [
-                                                        {
-                                                            "$ifNull": [
-                                                                "$context.accepted_seats_total",
-                                                                0,
-                                                            ]
-                                                        },
-                                                        "$local.cancel_seats",
-                                                    ]
-                                                },
-                                                0,
-                                            ]
-                                        },
-                                        "states.$$ctx.user": "CANCELLED",
-                                    }},
+                                    {
+                                        "$set": {
+                                            "context.accepted_seats_total": {
+                                                **_accepted_total_after_subtract(
+                                                    "cancel_seats"
+                                                )
+                                            },
+                                            "states.$$ctx.user": "CANCELLED",
+                                        }
+                                    },
                                     {"$unset": "context.riders.$$ctx.user.seats"},
                                 ],
                             },
@@ -1666,34 +1558,9 @@ def _gherkin_definition() -> Dict[str, Any]:
                                         "update": {
                                             "$set": {
                                                 "local.remove_seats": {
-                                                    "$ifNull": [
-                                                        {
-                                                            "$arrayElemAt": [
-                                                                {
-                                                                    "$map": {
-                                                                        "input": {
-                                                                            "$filter": {
-                                                                                "input": {
-                                                                                    "$objectToArray": "$context.riders"
-                                                                                },
-                                                                                "as": "kv",
-                                                                                "cond": {
-                                                                                    "$eq": [
-                                                                                        "$$kv.k",
-                                                                                        "$$ctx.payload.principal",
-                                                                                    ]
-                                                                                },
-                                                                            }
-                                                                        },
-                                                                        "as": "kv",
-                                                                        "in": "$$kv.v.seats",
-                                                                    }
-                                                                },
-                                                                0,
-                                                            ]
-                                                        },
-                                                        1,
-                                                    ]
+                                                    **_rider_seats(
+                                                        "$$ctx.payload.principal"
+                                                    )
                                                 }
                                             }
                                         },
@@ -1701,37 +1568,19 @@ def _gherkin_definition() -> Dict[str, Any]:
                                     {
                                         "type": "update.contract",
                                         "update": [
-                                            {"$set": {
-                                                "context.accepted_seats_total": {
-                                                    "$cond": [
-                                                        {
-                                                            "$gte": [
-                                                                {
-                                                                    "$ifNull": [
-                                                                        "$context.accepted_seats_total",
-                                                                        0,
-                                                                    ]
-                                                                },
-                                                                "$local.remove_seats",
-                                                            ]
-                                                        },
-                                                        {
-                                                            "$subtract": [
-                                                                {
-                                                                    "$ifNull": [
-                                                                        "$context.accepted_seats_total",
-                                                                        0,
-                                                                    ]
-                                                                },
-                                                                "$local.remove_seats",
-                                                            ]
-                                                        },
-                                                        0,
-                                                    ]
-                                                },
-                                                "states.$$ctx.payload.principal": "CANCELLED",
-                                            }},
-                                            {"$unset": "context.riders.$$ctx.payload.principal.seats"}
+                                            {
+                                                "$set": {
+                                                    "context.accepted_seats_total": {
+                                                        **_accepted_total_after_subtract(
+                                                            "remove_seats"
+                                                        )
+                                                    },
+                                                    "states.$$ctx.payload.principal": "CANCELLED",
+                                                }
+                                            },
+                                            {
+                                                "$unset": "context.riders.$$ctx.payload.principal.seats"
+                                            },
                                         ],
                                     },
                                     {
@@ -1856,34 +1705,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "update": {
                                     "$set": {
                                         "local.cancel_seats": {
-                                            "$ifNull": [
-                                                {
-                                                    "$arrayElemAt": [
-                                                        {
-                                                            "$map": {
-                                                                "input": {
-                                                                    "$filter": {
-                                                                        "input": {
-                                                                            "$objectToArray": "$context.riders"
-                                                                        },
-                                                                        "as": "kv",
-                                                                        "cond": {
-                                                                            "$eq": [
-                                                                                "$$kv.k",
-                                                                                "$$ctx.user",
-                                                                            ]
-                                                                        },
-                                                                    }
-                                                                },
-                                                                "as": "kv",
-                                                                "in": "$$kv.v.seats",
-                                                            }
-                                                        },
-                                                        0,
-                                                    ]
-                                                },
-                                                1,
-                                            ]
+                                            **_rider_seats("$$ctx.user")
                                         }
                                     }
                                 },
@@ -1891,37 +1713,17 @@ def _gherkin_definition() -> Dict[str, Any]:
                             {
                                 "type": "update.contract",
                                 "update": [
-                                    {"$set": {
-                                        "context.accepted_seats_total": {
-                                            "$cond": [
-                                                {
-                                                    "$gte": [
-                                                        {
-                                                            "$ifNull": [
-                                                                "$context.accepted_seats_total",
-                                                                0,
-                                                            ]
-                                                        },
-                                                        "$local.cancel_seats",
-                                                    ]
-                                                },
-                                                {
-                                                    "$subtract": [
-                                                        {
-                                                            "$ifNull": [
-                                                                "$context.accepted_seats_total",
-                                                                0,
-                                                            ]
-                                                        },
-                                                        "$local.cancel_seats",
-                                                    ]
-                                                },
-                                                0,
-                                            ]
-                                        },
-                                        "states.$$ctx.user": "CANCELLED",
-                                        "state": "RECRUITING",
-                                    }},
+                                    {
+                                        "$set": {
+                                            "context.accepted_seats_total": {
+                                                **_accepted_total_after_subtract(
+                                                    "cancel_seats"
+                                                )
+                                            },
+                                            "states.$$ctx.user": "CANCELLED",
+                                            "state": "RECRUITING",
+                                        }
+                                    },
                                     {"$unset": "context.riders.$$ctx.user.seats"},
                                 ],
                             },
@@ -2077,34 +1879,9 @@ def _gherkin_definition() -> Dict[str, Any]:
                                         "update": {
                                             "$set": {
                                                 "local.remove_seats": {
-                                                    "$ifNull": [
-                                                        {
-                                                            "$arrayElemAt": [
-                                                                {
-                                                                    "$map": {
-                                                                        "input": {
-                                                                            "$filter": {
-                                                                                "input": {
-                                                                                    "$objectToArray": "$context.riders"
-                                                                                },
-                                                                                "as": "kv",
-                                                                                "cond": {
-                                                                                    "$eq": [
-                                                                                        "$$kv.k",
-                                                                                        "$$ctx.payload.principal",
-                                                                                    ]
-                                                                                },
-                                                                            }
-                                                                        },
-                                                                        "as": "kv",
-                                                                        "in": "$$kv.v.seats",
-                                                                    }
-                                                                },
-                                                                0,
-                                                            ]
-                                                        },
-                                                        1,
-                                                    ]
+                                                    **_rider_seats(
+                                                        "$$ctx.payload.principal"
+                                                    )
                                                 }
                                             }
                                         },
@@ -2112,37 +1889,19 @@ def _gherkin_definition() -> Dict[str, Any]:
                                     {
                                         "type": "update.contract",
                                         "update": [
-                                            {"$set": {
-                                                "context.accepted_seats_total": {
-                                                    "$cond": [
-                                                        {
-                                                            "$gte": [
-                                                                {
-                                                                    "$ifNull": [
-                                                                        "$context.accepted_seats_total",
-                                                                        0,
-                                                                    ]
-                                                                },
-                                                                "$local.remove_seats",
-                                                            ]
-                                                        },
-                                                        {
-                                                            "$subtract": [
-                                                                {
-                                                                    "$ifNull": [
-                                                                        "$context.accepted_seats_total",
-                                                                        0,
-                                                                    ]
-                                                                },
-                                                                "$local.remove_seats",
-                                                            ]
-                                                        },
-                                                        0,
-                                                    ]
-                                                },
-                                                "states.$$ctx.payload.principal": "CANCELLED",
-                                            }},
-                                            {"$unset": "context.riders.$$ctx.payload.principal.seats"}
+                                            {
+                                                "$set": {
+                                                    "context.accepted_seats_total": {
+                                                        **_accepted_total_after_subtract(
+                                                            "remove_seats"
+                                                        )
+                                                    },
+                                                    "states.$$ctx.payload.principal": "CANCELLED",
+                                                }
+                                            },
+                                            {
+                                                "$unset": "context.riders.$$ctx.payload.principal.seats"
+                                            },
                                         ],
                                     },
                                     {
@@ -2345,10 +2104,14 @@ def _gherkin_definition() -> Dict[str, Any]:
                                     {
                                         "type": "update.contract",
                                         "update": [
-                                            {"$set": {
-                                                "context.riders_picked_up.$$ctx.payload.principal": True
-                                            }},
-                                            {"$unset": "context.pending_pickup_targets.$$ctx.payload.principal"},
+                                            {
+                                                "$set": {
+                                                    "context.riders_picked_up.$$ctx.payload.principal": True
+                                                }
+                                            },
+                                            {
+                                                "$unset": "context.pending_pickup_targets.$$ctx.payload.principal"
+                                            },
                                         ],
                                     },
                                     {
@@ -2439,34 +2202,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "update": {
                                     "$set": {
                                         "local.cancel_seats": {
-                                            "$ifNull": [
-                                                {
-                                                    "$arrayElemAt": [
-                                                        {
-                                                            "$map": {
-                                                                "input": {
-                                                                    "$filter": {
-                                                                        "input": {
-                                                                            "$objectToArray": "$context.riders"
-                                                                        },
-                                                                        "as": "kv",
-                                                                        "cond": {
-                                                                            "$eq": [
-                                                                                "$$kv.k",
-                                                                                "$$ctx.user",
-                                                                            ]
-                                                                        },
-                                                                    }
-                                                                },
-                                                                "as": "kv",
-                                                                "in": "$$kv.v.seats",
-                                                            }
-                                                        },
-                                                        0,
-                                                    ]
-                                                },
-                                                1,
-                                            ]
+                                            **_rider_seats("$$ctx.user")
                                         }
                                     }
                                 },
@@ -2474,42 +2210,24 @@ def _gherkin_definition() -> Dict[str, Any]:
                             {
                                 "type": "update.contract",
                                 "update": [
-                                    {"$set": {
-                                        "context.accepted_seats_total": {
-                                            "$cond": [
-                                                {
-                                                    "$gte": [
-                                                        {
-                                                            "$ifNull": [
-                                                                "$context.accepted_seats_total",
-                                                                0,
-                                                            ]
-                                                        },
-                                                        "$local.cancel_seats",
-                                                    ]
-                                                },
-                                                {
-                                                    "$subtract": [
-                                                        {
-                                                            "$ifNull": [
-                                                                "$context.accepted_seats_total",
-                                                                0,
-                                                            ]
-                                                        },
-                                                        "$local.cancel_seats",
-                                                    ]
-                                                },
-                                                0,
-                                            ]
-                                        },
-                                        "states.$$ctx.user": "CANCELLED",
-                                    }},
-                                    {"$unset": [
-                                        "context.riders.$$ctx.user.seats",
-                                        "context.pending_pickup_targets.$$ctx.user",
-                                        "context.riders_in_pickup_zone.$$ctx.user",
-                                        "context.riders_picked_up.$$ctx.user",
-                                    ]},
+                                    {
+                                        "$set": {
+                                            "context.accepted_seats_total": {
+                                                **_accepted_total_after_subtract(
+                                                    "cancel_seats"
+                                                )
+                                            },
+                                            "states.$$ctx.user": "CANCELLED",
+                                        }
+                                    },
+                                    {
+                                        "$unset": [
+                                            "context.riders.$$ctx.user.seats",
+                                            "context.pending_pickup_targets.$$ctx.user",
+                                            "context.riders_in_pickup_zone.$$ctx.user",
+                                            "context.riders_picked_up.$$ctx.user",
+                                        ]
+                                    },
                                 ],
                             },
                             {
