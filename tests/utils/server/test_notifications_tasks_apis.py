@@ -4,7 +4,7 @@ import os
 import sys
 import unittest
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from typing import Any, cast
 from unittest.mock import patch
 
@@ -334,6 +334,61 @@ class TestNotificationsTasksWithoutCelery(BaseNotificationsTaskApiTest):
         bodies = {n.get("body") for n in FakeApprise.notifications}
         self.assertEqual(titles, {"Email Title", "SMS Title"})
         self.assertEqual(bodies, {"Email Body", "SMS Body"})
+
+    def test_push_tokens_stale_are_touched_before_delivery(self):
+        old_ts = (datetime.now(timezone.utc) - timedelta(days=90)).isoformat()
+        with self.app.app_context():
+            self.app.config["NOTIF_PUSH_TOKEN_STALE_DAYS"] = 30
+            coll = get_mongo(
+                collection=config_get(
+                    "NOTIF_PUSH_TOKENS_COLLECTION", "notification_push_tokens"
+                )
+            )
+            coll.insert_one(
+                {
+                    "user_id": f"u:{self.user_id}",
+                    "token": "tok-old",
+                    "updated_at": old_ts,
+                    "created_at": old_ts,
+                    "platform": "android",
+                }
+            )
+
+        payload = {
+            "event": "admin.event",
+            "targets": {f"u:{self.user_id}": ["push"]},
+            "payload": {"title": "Hello"},
+            "persist": True,
+        }
+
+        with patch(
+            "schedula.utils.form.server.notifications.tasks.apprise.Apprise",
+            FakeApprise,
+        ):
+            r = self.client.post(
+                "/admin/notification/notify",
+                json=payload,
+                headers=self._auth_headers(self.admin_token),
+            )
+
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(len(FakeApprise.notifications), 1)
+        urls = FakeApprise.notifications[0].get("urls") or []
+        self.assertIn("tok-old", urls)
+
+        with self.app.app_context():
+            coll = get_mongo(
+                collection=config_get(
+                    "NOTIF_PUSH_TOKENS_COLLECTION", "notification_push_tokens"
+                )
+            )
+            push_tokens = list(coll.find({"user_id": f"u:{self.user_id}"}))
+            self.assertEqual(len(push_tokens), 1)
+            self.assertEqual(push_tokens[0].get("token"), "tok-old")
+            self.assertGreater(
+                datetime.fromisoformat(push_tokens[0].get("updated_at")),
+                datetime.fromisoformat(old_ts),
+            )
 
 
 class TestNotificationsTasksWithCelery(BaseNotificationsTaskApiTest):

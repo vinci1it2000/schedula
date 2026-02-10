@@ -10,6 +10,8 @@ Package layout:
 
 from flask import current_app
 
+from ..utils import config_get, get_mongo, mongo_command
+
 
 class Notifications:
     """Flask extension that wires notification blueprints and Celery."""
@@ -23,6 +25,106 @@ class Notifications:
         from .api import bp  # Flask Blueprint
         from .admin_api import admin_bp  # Admin-only settings API blueprint
         from .admin_api import templates_bp  # Admin-only templates API blueprint
+        from .storage import (
+            _settings_validator,
+            _watchers_validator,
+            _templates_validator,
+            _push_tokens_validator,
+        )
+
+        mongo = get_mongo(app=app)
+
+        settings_coll_id = config_get(
+            "NOTIF_SETTINGS_COLLECTION", "notification_settings", app=app
+        )
+        _ = mongo[settings_coll_id]
+        mongo_command(
+            mongo,
+            "collMod",
+            settings_coll_id,
+            validator=_settings_validator(),
+            validationLevel="moderate",
+            validationAction="error",
+        )
+
+        watchers_coll_id = config_get(
+            "NOTIF_WATCHERS_COLLECTION", "notification_watchers", app=app
+        )
+        _ = mongo[watchers_coll_id]
+        mongo_command(
+            mongo,
+            "collMod",
+            watchers_coll_id,
+            validator=_watchers_validator(),
+            validationLevel="moderate",
+            validationAction="error",
+        )
+
+        templates_coll_id = config_get(
+            "NOTIF_TEMPLATES_COLLECTION", "notification_templates", app=app
+        )
+        _ = mongo[templates_coll_id]
+        mongo_command(
+            mongo,
+            "collMod",
+            templates_coll_id,
+            validator=_templates_validator(),
+            validationLevel="moderate",
+            validationAction="error",
+        )
+
+        push_tokens_coll_id = config_get(
+            "NOTIF_PUSH_TOKENS_COLLECTION", "notification_push_tokens", app=app
+        )
+        _ = mongo[push_tokens_coll_id]
+        mongo_command(
+            mongo,
+            "collMod",
+            push_tokens_coll_id,
+            validator=_push_tokens_validator(),
+            validationLevel="moderate",
+            validationAction="error",
+        )
+
+        push_tokens_coll = get_mongo(
+            app=app,
+            collection=push_tokens_coll_id,
+        )
+        push_tokens_coll.create_index("user_id")
+        push_tokens_coll.create_index("updated_at")
+        push_tokens_coll.create_index("token", unique=True)
+
+        settings_coll = get_mongo(
+            app=app,
+            collection=settings_coll_id,
+        )
+        settings_coll.create_index("scope.category")
+        settings_coll.create_index("scope.dom")
+        settings_coll.create_index([("scope.category", 1), ("scope.dom", 1)])
+        settings_coll.create_index("enabled")
+
+        watchers_coll = get_mongo(
+            app=app,
+            collection=watchers_coll_id,
+        )
+        watchers_coll.create_index("user_id")
+        watchers_coll.create_index(
+            [
+                ("user_id", 1),
+                ("event", 1),
+                ("category", 1),
+                ("object_id", 1),
+                ("dom", 1),
+            ]
+        )
+
+        templates_coll = get_mongo(
+            app=app,
+            collection=templates_coll_id,
+        )
+        templates_coll.create_index("event")
+        templates_coll.create_index("updated_at")
+        templates_coll.create_index([("event", 1), ("enabled", 1), ("updated_at", -1)])
 
         app.register_blueprint(bp, url_prefix="/notification")
         app.register_blueprint(admin_bp, url_prefix="/admin/notification")
@@ -40,6 +142,7 @@ def notify_item_event_safe(*, event: str, item_doc: dict) -> None:
         return
     from .service import notify_item_event
     from ..security.casbin import get_current_sub
+
     try:
         notify_item_event(
             event=event,

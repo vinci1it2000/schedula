@@ -12,9 +12,11 @@ from typing import Dict, Any, cast
 from urllib.parse import quote
 
 import apprise
+import pydash
 from celery import Celery, shared_task
 from flask import current_app
 
+from .storage import list_push_tokens
 from .templates import make_env
 from ..security import User
 from ..utils import mongo_find_one, mongo_update_one, get_mongo, now_utc, config_get
@@ -22,8 +24,12 @@ from ..utils import mongo_find_one, mongo_update_one, get_mongo, now_utc, config
 
 def _settings_for_user(user: User) -> Dict[str, Any]:
     """Extract notification settings subdocument from a user."""
-    settings = {"email": quote(str(user.email))}
-    settings.update((user.settings or {}).get("notifications", {}))
+    settings: Dict[str, Any] = {"email": quote(str(user.email))}
+    notifications = pydash.get(user, "settings.notifications", {})
+
+    principal = f"u:{user.id}"
+    settings.update(notifications)
+    settings["push_device_ids"] = [d["token"] for d in list_push_tokens(user_id=principal)]
     return settings
 
 
@@ -58,7 +64,9 @@ def get_apprise_default_channels(app=None) -> Dict[str, str]:
             )
     if "whatsapp" not in out:
         apprise_whatsapp_token = config_get("APPRISE_WHATSAPP_TOKEN", app=app)
-        apprise_whatsapp_from_phone_id = config_get("APPRISE_WHATSAPP_FROM_PHONE_ID", app=app)
+        apprise_whatsapp_from_phone_id = config_get(
+            "APPRISE_WHATSAPP_FROM_PHONE_ID", app=app
+        )
         apprise_whatsapp_template = config_get("APPRISE_WHATSAPP_TEMPLATE", app=app)
         if apprise_whatsapp_token and apprise_whatsapp_from_phone_id:
             template_prefix = (
@@ -91,10 +99,10 @@ def get_apprise_channels(app=None) -> Dict[str, str]:
     return cfg["APPRISE_CHANNELS"]
 
 
-def _build_urls(user: User, channels: list[str] | set[str]) -> Dict[str, str]:
+def _build_urls(user: User, channels: list[str] | set[str]) -> Dict[str, str | None]:
     """Build Apprise URLs for a user and channel list."""
     notif_settings = _settings_for_user(user)
-    urls: Dict[str, str] = {}
+    urls: Dict[str, str | None] = {}
     apprise_channels = get_apprise_channels()
     env = make_env(None, None, True)
     for ch in set(channels):
@@ -147,12 +155,14 @@ def deliver_apprise_sync(notification: str | Dict[str, Any]):
         rendered_target = rendered.get(principal, {})
         for ch, url in _build_urls(user, channels).items():
             if not url:
-                results.append({
-                    "target": principal,
-                    "channel": ch,
-                    "state": "skipped_no_urls",
-                    "ts": now_utc(),
-                })
+                results.append(
+                    {
+                        "target": principal,
+                        "channel": ch,
+                        "state": "skipped_no_urls",
+                        "ts": now_utc(),
+                    }
+                )
                 continue
             rendered_ch = rendered_target.get(ch, {})
             title = rendered_ch.get("title", "")

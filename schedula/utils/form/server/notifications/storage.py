@@ -7,12 +7,12 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from datetime import timedelta
+from typing import Any, Dict, List, Optional, cast
 
 from bson import ObjectId
 
 from ..utils import (
-    mongo_command,
     mongo_count_documents,
     mongo_delete_one,
     mongo_find,
@@ -24,9 +24,85 @@ from ..utils import (
     config_get,
 )
 
-_SETTINGS_SCHEMA_APPLIED = False
-_WATCHERS_SCHEMA_APPLIED = False
-_TEMPLATES_SCHEMA_APPLIED = False
+
+def _push_tokens_collection_name() -> str:
+    return config_get("NOTIF_PUSH_TOKENS_COLLECTION", "notification_push_tokens")
+
+
+def upsert_push_token(
+        *,
+        user_id: str,
+        token: str,
+        platform: Optional[str] = None,
+        device_id: Optional[str] = None,
+        app_version: Optional[str] = None,
+) -> None:
+    """Upsert a push token in Mongo for a user principal."""
+    token_clean = (token or "").strip()
+    if not token_clean:
+        return
+    now = now_utc().isoformat()
+    coll = get_mongo(collection=_push_tokens_collection_name())
+    set_doc: Dict[str, Any] = {
+        "user_id": user_id,
+        "token": token_clean,
+        "updated_at": now,
+    }
+    if isinstance(platform, str) and platform.strip():
+        set_doc["platform"] = platform.strip()
+    if isinstance(device_id, str) and device_id.strip():
+        set_doc["device_id"] = device_id.strip()
+    if isinstance(app_version, str) and app_version.strip():
+        set_doc["app_version"] = app_version.strip()
+
+    mongo_update_one(
+        coll,
+        {"token": token_clean},
+        {
+            "$set": set_doc,
+            "$setOnInsert": {"created_at": now},
+        },
+        upsert=True,
+    )
+
+
+def delete_push_token(*, user_id: str, token: str) -> bool:
+    """Delete a push token belonging to a user principal."""
+    token_clean = (token or "").strip()
+    if not token_clean:
+        return False
+    coll = get_mongo(collection=_push_tokens_collection_name())
+    res = mongo_delete_one(coll, {"user_id": user_id, "token": token_clean})
+    return bool(getattr(res, "deleted_count", 0))
+
+
+def list_push_tokens(*, user_id: str, touch_stale: bool = True) -> List[Dict[str, Any]]:
+    """List push tokens for a user principal, optionally touching stale timestamps."""
+    coll = get_mongo(collection=_push_tokens_collection_name())
+    docs = list(mongo_find(coll, {"user_id": user_id}).sort("updated_at", -1))
+
+    stale_days = int(config_get("NOTIF_PUSH_TOKEN_STALE_DAYS", 30) or 30)
+    stale_before = (now_utc() - timedelta(days=max(stale_days, 0))).isoformat()
+    out: List[Dict[str, Any]] = []
+    for d in docs:
+        ts = d["updated_at"]
+
+        if touch_stale and ts < stale_before:
+            ts = now_utc().isoformat()
+            mongo_update_one(
+                coll,
+                {"_id": d["_id"]},
+                {"$set": {"updated_at": ts}},
+            )
+
+        row: Dict[str, Any] = {
+            key: d[key] for key in ("platform", "device_id", "app_version") if key in d
+        }
+        row["token"] = cast(str, d["token"])
+        row["updated_at"] = ts
+        out.append(row)
+
+    return out
 
 
 def _settings_validator() -> Dict[str, Any]:
@@ -92,6 +168,38 @@ def _watchers_validator() -> Dict[str, Any]:
     }
 
 
+def _push_tokens_validator() -> Dict[str, Any]:
+    """Return JSON schema validator for push tokens collection."""
+    return {
+        "$jsonSchema": {
+            "bsonType": "object",
+            "required": ["user_id", "token", "created_at", "updated_at"],
+            "properties": {
+                "_id": {},
+                "user_id": {
+                    "bsonType": "string",
+                    "pattern": "^u:[0-9]+$",
+                    "minLength": 3,
+                    "maxLength": 32,
+                },
+                "token": {"bsonType": "string", "minLength": 1, "maxLength": 4096},
+                "platform": {"bsonType": "string", "minLength": 1, "maxLength": 32},
+                "device_id": {"bsonType": "string", "minLength": 1, "maxLength": 256},
+                "app_version": {"bsonType": "string", "minLength": 1, "maxLength": 64},
+                "created_at": {
+                    "bsonType": "string",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?\\+00:00$",
+                },
+                "updated_at": {
+                    "bsonType": "string",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?\\+00:00$",
+                },
+            },
+            "additionalProperties": False,
+        }
+    }
+
+
 def _templates_validator() -> Dict[str, Any]:
     """Return JSON schema validator for templates."""
     return {
@@ -123,65 +231,6 @@ def _templates_validator() -> Dict[str, Any]:
     }
 
 
-def _ensure_settings_schema() -> None:
-    """Ensure the settings collection has schema validation enabled."""
-    global _SETTINGS_SCHEMA_APPLIED
-    if _SETTINGS_SCHEMA_APPLIED:
-        return
-    mongo = get_mongo()
-    coll_id = config_get("NOTIF_SETTINGS_COLLECTION", "notification_settings")
-    _ = mongo[coll_id]
-    mongo_command(
-        mongo,
-        "collMod",
-        coll_id,
-        validator=_settings_validator(),
-        validationLevel="moderate",
-        validationAction="error",
-    )
-    _SETTINGS_SCHEMA_APPLIED = True
-
-
-def _ensure_watchers_schema() -> None:
-    """Ensure the watchers collection has schema validation enabled."""
-    global _WATCHERS_SCHEMA_APPLIED
-    if _WATCHERS_SCHEMA_APPLIED:
-        return
-    mongo = get_mongo()
-    coll_id = config_get("NOTIF_WATCHERS_COLLECTION", "notification_watchers")
-    _ = mongo[coll_id]
-    mongo_command(
-        mongo,
-        "collMod",
-        coll_id,
-        validator=_watchers_validator(),
-        validationLevel="moderate",
-        validationAction="error",
-    )
-    _WATCHERS_SCHEMA_APPLIED = True
-
-
-def _ensure_templates_schema() -> None:
-    """Ensure the templates collection has schema validation enabled."""
-    global _TEMPLATES_SCHEMA_APPLIED
-    if _TEMPLATES_SCHEMA_APPLIED:
-        return
-
-    mongo = get_mongo()
-    coll_id = config_get("NOTIF_TEMPLATES_COLLECTION", "notification_templates")
-    _ = mongo[coll_id]
-
-    mongo_command(
-        mongo,
-        "collMod",
-        coll_id,
-        validator=_templates_validator(),
-        validationLevel="moderate",
-        validationAction="error",
-    )
-    _TEMPLATES_SCHEMA_APPLIED = True
-
-
 def list_rules(
         *,
         category: Optional[str] = None,
@@ -193,7 +242,6 @@ def list_rules(
         offset: int = 0,
 ) -> List[Dict[str, Any]]:
     """List settings rules with optional scope filtering."""
-    _ensure_settings_schema()
     coll = get_mongo(
         collection=config_get("NOTIF_SETTINGS_COLLECTION", "notification_settings")
     )
@@ -240,7 +288,6 @@ def list_rules(
 
 def create_rule(payload: Dict[str, Any]) -> str:
     """Create a settings rule and return its id."""
-    _ensure_settings_schema()
     coll = get_mongo(
         collection=config_get("NOTIF_SETTINGS_COLLECTION", "notification_settings")
     )
@@ -258,7 +305,6 @@ def count_rules(
         include_disabled: bool = False,
 ) -> int:
     """Count settings rules with optional scope filtering."""
-    _ensure_settings_schema()
     coll = get_mongo(
         collection=config_get("NOTIF_SETTINGS_COLLECTION", "notification_settings")
     )
@@ -292,7 +338,6 @@ def count_rules(
 
 def update_rule(rule_id: str, patch: Dict[str, Any]) -> bool:
     """Patch a settings rule by id."""
-    _ensure_settings_schema()
     if not ObjectId.is_valid(rule_id):
         return False
     coll = get_mongo(
@@ -308,7 +353,6 @@ def update_rule(rule_id: str, patch: Dict[str, Any]) -> bool:
 
 def delete_rule(rule_id: str) -> bool:
     """Delete a settings rule by id."""
-    _ensure_settings_schema()
     if not ObjectId.is_valid(rule_id):
         return False
     coll = get_mongo(
@@ -329,7 +373,6 @@ def create_watcher(
         enabled: bool = True,
 ) -> str:
     """Create a watcher record and return its id."""
-    _ensure_watchers_schema()
     coll = get_mongo(
         collection=config_get("NOTIF_WATCHERS_COLLECTION", "notification_watchers")
     )
@@ -357,7 +400,6 @@ def list_watchers(
         dom: Optional[str] = None,
 ) -> List[Dict[str, Any]]:
     """List watchers for a user with optional filters."""
-    _ensure_watchers_schema()
     coll = get_mongo(
         collection=config_get("NOTIF_WATCHERS_COLLECTION", "notification_watchers")
     )
@@ -382,7 +424,6 @@ def update_watcher(
         patch: Dict[str, Any],
 ) -> bool:
     """Patch a watcher record owned by a user."""
-    _ensure_watchers_schema()
     coll = get_mongo(
         collection=config_get("NOTIF_WATCHERS_COLLECTION", "notification_watchers")
     )
@@ -406,7 +447,6 @@ def update_watcher(
 
 def delete_watcher(*, watcher_id: str, user_id: str) -> bool:
     """Delete a watcher record owned by a user."""
-    _ensure_watchers_schema()
     coll = get_mongo(
         collection=config_get("NOTIF_WATCHERS_COLLECTION", "notification_watchers")
     )
@@ -423,7 +463,6 @@ def list_templates(
         sort_dir: int = -1,
 ) -> List[Dict[str, Any]]:
     """List templates with optional event filter and pagination."""
-    _ensure_templates_schema()
     coll = get_mongo(
         collection=config_get("NOTIF_TEMPLATES_COLLECTION", "notification_templates")
     )
@@ -445,7 +484,6 @@ def list_templates(
 
 def count_templates(event: Optional[str] = None) -> int:
     """Count templates with optional event filter."""
-    _ensure_templates_schema()
     coll = get_mongo(
         collection=config_get("NOTIF_TEMPLATES_COLLECTION", "notification_templates")
     )
@@ -458,7 +496,6 @@ def count_templates(event: Optional[str] = None) -> int:
 
 def get_template(template_id: str) -> Optional[Dict[str, Any]]:
     """Fetch a template by id."""
-    _ensure_templates_schema()
     coll = get_mongo(
         collection=config_get("NOTIF_TEMPLATES_COLLECTION", "notification_templates")
     )
@@ -471,7 +508,6 @@ def get_template(template_id: str) -> Optional[Dict[str, Any]]:
 
 def get_template_for_event(event: str) -> Optional[Dict[str, Any]]:
     """Fetch the newest enabled template for an event."""
-    _ensure_templates_schema()
     coll = get_mongo(
         collection=config_get("NOTIF_TEMPLATES_COLLECTION", "notification_templates")
     )
@@ -488,27 +524,30 @@ def get_template_for_event(event: str) -> Optional[Dict[str, Any]]:
 
 def upsert_template(template_id: str, doc: Dict[str, Any]) -> None:
     """Create or replace a template document."""
-    _ensure_templates_schema()
     coll = get_mongo(
         collection=config_get("NOTIF_TEMPLATES_COLLECTION", "notification_templates")
     )
     now = now_utc()
     d = dict(doc or {})
-    d["_id"] = template_id
     d.setdefault("enabled", True)
-    d.setdefault("created_at", now)
     d["updated_at"] = now
+    d = {k: v for k, v in d.items() if v is not None}
     mongo_update_one(
         coll,
         {"_id": template_id},
-        {"$set": d},
+        {
+            "$set": d,
+            "$setOnInsert": {
+                "_id": template_id,
+                "created_at": now,
+            },
+        },
         upsert=True,
     )
 
 
 def delete_template(template_id: str) -> bool:
     """Delete a template by id."""
-    _ensure_templates_schema()
     coll = get_mongo(
         collection=config_get("NOTIF_TEMPLATES_COLLECTION", "notification_templates")
     )

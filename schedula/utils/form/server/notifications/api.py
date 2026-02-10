@@ -10,10 +10,24 @@ from __future__ import annotations
 from flask import Blueprint, jsonify, request
 
 from .service import mark_read, unread_count
-from .storage import create_watcher, list_watchers, update_watcher, delete_watcher
+from .storage import (
+    create_watcher,
+    list_watchers,
+    update_watcher,
+    delete_watcher,
+    upsert_push_token,
+    list_push_tokens,
+    delete_push_token,
+)
 from ..security.casbin import get_auth_sub
 from ..utils import (
-    abort_json, parse_pagination_args, mongo_count_documents, mongo_find, set_bp_error_handlers, get_mongo, config_get
+    abort_json,
+    parse_pagination_args,
+    mongo_count_documents,
+    mongo_find,
+    set_bp_error_handlers,
+    get_mongo,
+    config_get,
 )
 
 bp = Blueprint("item_notifications", __name__)
@@ -119,3 +133,52 @@ def delete_watcher_api(watcher_id: str):
     if not ok:
         abort_json(404, "Watcher not found")
     return jsonify({"ok": True}), 200
+
+
+@bp.put("/tokens")
+def upsert_push_token_api():
+    """Create or refresh a push token for current user."""
+    user_id = get_auth_sub()
+    payload = request.get_json(silent=True) or {}
+    if not isinstance(payload, dict):
+        abort_json(400, "Invalid payload")
+
+    token = payload.get("token")
+    if not isinstance(token, str) or not token.strip():
+        abort_json(400, "token is required")
+    token = token.strip()
+
+    upsert_push_token(
+        user_id=user_id,
+        token=token,
+        platform=payload.get("platform"),
+        device_id=payload.get("device_id"),
+        app_version=payload.get("app_version"),
+    )
+
+    push_tokens = list_push_tokens(user_id=user_id)
+
+    return jsonify({"ok": True, "tokens": push_tokens}), 200
+
+
+@bp.get("/tokens")
+def list_push_tokens_api():
+    """List push tokens for current user."""
+    user_id = get_auth_sub()
+    push_tokens = list_push_tokens(user_id=user_id)
+
+    return jsonify({"tokens": push_tokens}), 200
+
+
+@bp.delete("/tokens/<path:token>")
+def delete_push_token_api(token: str):
+    """Delete a push token for current user."""
+    user_id = get_auth_sub()
+    token = (token or "").strip()
+    if not token:
+        abort_json(400, "token is required")
+
+    deleted = delete_push_token(user_id=user_id, token=token)
+    filtered = list_push_tokens(user_id=user_id)
+
+    return jsonify({"ok": True, "deleted": deleted, "tokens": filtered}), 200
