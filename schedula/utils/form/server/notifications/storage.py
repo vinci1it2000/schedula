@@ -33,31 +33,28 @@ def upsert_push_token(
         *,
         user_id: str,
         token: str,
-        platform: Optional[str] = None,
-        device_id: Optional[str] = None,
+        prev_token: Optional[str] = None,
         app_version: Optional[str] = None,
 ) -> None:
-    """Upsert a push token in Mongo for a user principal."""
-    token_clean = (token or "").strip()
-    if not token_clean:
-        return
+    """Register current push token and optionally replace a previous one."""
+
     now = now_utc().isoformat()
     coll = get_mongo(collection=_push_tokens_collection_name())
+
+    if prev_token and prev_token != token:
+        mongo_delete_one(coll, {"user_id": user_id, "token": prev_token})
+
     set_doc: Dict[str, Any] = {
         "user_id": user_id,
-        "token": token_clean,
+        "token": token,
         "updated_at": now,
     }
-    if isinstance(platform, str) and platform.strip():
-        set_doc["platform"] = platform.strip()
-    if isinstance(device_id, str) and device_id.strip():
-        set_doc["device_id"] = device_id.strip()
     if isinstance(app_version, str) and app_version.strip():
         set_doc["app_version"] = app_version.strip()
 
     mongo_update_one(
         coll,
-        {"token": token_clean},
+        {"token": token},
         {
             "$set": set_doc,
             "$setOnInsert": {"created_at": now},

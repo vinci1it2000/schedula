@@ -16,8 +16,6 @@ from .storage import (
     update_watcher,
     delete_watcher,
     upsert_push_token,
-    list_push_tokens,
-    delete_push_token,
 )
 from ..security.casbin import get_auth_sub
 from ..utils import (
@@ -137,7 +135,7 @@ def delete_watcher_api(watcher_id: str):
 
 @bp.put("/tokens")
 def upsert_push_token_api():
-    """Create or refresh a push token for current user."""
+    """Register a new token or replace previous token for current user."""
     user_id = get_auth_sub()
     payload = request.get_json(silent=True) or {}
     if not isinstance(payload, dict):
@@ -148,37 +146,14 @@ def upsert_push_token_api():
         abort_json(400, "token is required")
     token = token.strip()
 
+    prev_token = payload.get("prev_token")
+    if prev_token is not None and not isinstance(prev_token, str):
+        abort_json(400, "prev_token must be a string")
+
     upsert_push_token(
         user_id=user_id,
         token=token,
-        platform=payload.get("platform"),
-        device_id=payload.get("device_id"),
+        prev_token=prev_token,
         app_version=payload.get("app_version"),
     )
-
-    push_tokens = list_push_tokens(user_id=user_id)
-
-    return jsonify({"ok": True, "tokens": push_tokens}), 200
-
-
-@bp.get("/tokens")
-def list_push_tokens_api():
-    """List push tokens for current user."""
-    user_id = get_auth_sub()
-    push_tokens = list_push_tokens(user_id=user_id)
-
-    return jsonify({"tokens": push_tokens}), 200
-
-
-@bp.delete("/tokens/<path:token>")
-def delete_push_token_api(token: str):
-    """Delete a push token for current user."""
-    user_id = get_auth_sub()
-    token = (token or "").strip()
-    if not token:
-        abort_json(400, "token is required")
-
-    deleted = delete_push_token(user_id=user_id, token=token)
-    filtered = list_push_tokens(user_id=user_id)
-
-    return jsonify({"ok": True, "deleted": deleted, "tokens": filtered}), 200
+    return jsonify({"ok": True}), 200
