@@ -8,7 +8,7 @@
 from __future__ import annotations
 
 import os
-from typing import Dict, Any, cast
+from typing import Dict, Any, cast, Generator
 from urllib.parse import quote
 
 import apprise
@@ -16,7 +16,7 @@ import pydash
 from celery import Celery, shared_task
 from flask import current_app
 
-from .storage import list_push_tokens
+from .storage import list_push_tokens, delete_push_token
 from .templates import make_env
 from ..security import User
 from ..utils import mongo_find_one, mongo_update_one, get_mongo, now_utc, config_get
@@ -99,23 +99,31 @@ def get_apprise_channels(app=None) -> Dict[str, str]:
     return cfg["APPRISE_CHANNELS"]
 
 
-def _build_urls(user: User, channels: list[str] | set[str]) -> Dict[str, str | None]:
+def _yield_urls(user: User, channels: list[str] | set[str]) -> Generator[tuple[str, str | None, dict[str, Any]]]:
     """Build Apprise URLs for a user and channel list."""
     notif_settings = _settings_for_user(user)
-    urls: Dict[str, str | None] = {}
     apprise_channels = get_apprise_channels()
     env = make_env(None, None, True)
     for ch in set(channels):
         try:
-            urls[ch] = env.from_string(apprise_channels.get(ch, "")).render(
-                **notif_settings
-            )
+            string = apprise_channels.get(ch, "")
+            if "push_device_id" in string:
+                if "push_device_ids" not in string and "push_device_id" not in notif_settings:
+                    for token in notif_settings["push_device_ids"]:
+                        yield ch, env.from_string(string).render(push_device_id=token, **notif_settings), {
+                            "push_device_ids": [token]
+                        }
+                else:
+                    yield ch, env.from_string(string).render(**notif_settings), {
+                        "push_device_ids": notif_settings["push_device_ids"]
+                    }
+            else:
+                yield ch, env.from_string(string).render(**notif_settings), {}
         except Exception as exe:
             current_app.logger.warning(
                 f"Error rendering Apprise URL for {ch} and user {user.id}: {exe}"
             )
-            urls[ch] = None
-    return urls
+            yield ch, None, {}
 
 
 def deliver_apprise_sync(notification: str | Dict[str, Any]):
@@ -153,7 +161,7 @@ def deliver_apprise_sync(notification: str | Dict[str, Any]):
             continue
 
         rendered_target = rendered.get(principal, {})
-        for ch, url in _build_urls(user, channels).items():
+        for ch, url, ctx in _yield_urls(user, channels):
             if not url:
                 results.append(
                     {
@@ -169,11 +177,21 @@ def deliver_apprise_sync(notification: str | Dict[str, Any]):
             body = rendered_ch.get("body", "")
             apobj = apprise.Apprise()
             apobj.add(url)
-            ok = apobj.notify(body=body, title=title)
-            ok_all = ok_all and ok
-            results.append(
-                {"target": principal, "channel": ch, "ok": ok, "ts": now_utc()}
-            )
+            res = {
+                "target": principal,
+                "channel": ch,
+                "url": url,
+                "ts": now_utc(),
+            }
+            try:
+                res["ok"] = apobj.notify(body=body, title=title)
+            except Exception as exc:
+                res["ok"] = False
+                res["error"] = str(exc)
+                for token in ctx.get("push_device_ids", []):
+                    delete_push_token(token=token)
+            ok_all = ok_all and res["ok"]
+            results.append(res)
 
     if n.get("persist"):
         coll = get_mongo(collection=config_get("NOTIF_COLLECTION", "notifications"))

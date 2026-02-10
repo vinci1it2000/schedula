@@ -63,13 +63,10 @@ def upsert_push_token(
     )
 
 
-def delete_push_token(*, user_id: str, token: str) -> bool:
-    """Delete a push token belonging to a user principal."""
-    token_clean = (token or "").strip()
-    if not token_clean:
-        return False
+def delete_push_token(*, token: str) -> bool:
+    """Delete a push token."""
     coll = get_mongo(collection=_push_tokens_collection_name())
-    res = mongo_delete_one(coll, {"user_id": user_id, "token": token_clean})
+    res = mongo_delete_one(coll, {"token": token})
     return bool(getattr(res, "deleted_count", 0))
 
 
