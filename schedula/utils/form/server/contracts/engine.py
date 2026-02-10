@@ -86,12 +86,13 @@ def _apply_effect_step(
     if ef_type == "update.contract":
         now = now_utc()
         contract_id = doc["_id"]
+        update = [ef["update"]] if isinstance(ef["update"], dict) else ef["update"]
         mongo_update_one(
             _contracts_coll(),
             {"_id": contract_id},
             [
                 {"$set": {"local": local, "updated_by": actor_id}},
-                ef["update"],
+                *update,
                 {"$set": {"updated_at": now}}
             ],
             let={
@@ -303,12 +304,13 @@ def _apply_effect_step(
         coll = get_mongo(collection=config_get("ITEMS_COLLECTION", "items"))
         now = now_utc()
         item_id = ef["item_id"]
+        update = [ef["update"]] if isinstance(ef["update"], dict) else ef["update"]
         res = mongo_update_one(
             coll,
             {"_id": item_id},
             [
                 {"$set": {"updated_by": actor_id}},
-                ef["update"],
+                *update,
                 {"$set": {"updated_at": now}},
             ],
             let={

@@ -8,9 +8,9 @@ import unittest
 import uuid
 from typing import Any, Dict
 from unittest.mock import patch
+from urllib.parse import urlsplit, urlunsplit
 
 import httpx
-import mongomock
 from flask import Flask
 from flask_security.utils import hash_password
 
@@ -26,7 +26,6 @@ from schedula.utils.form.server.security.casbin.helpers import ADMIN_DOMAIN, ANO
 from schedula.utils.form.server.security.casbin.models import Group
 from schedula.utils.form.server.security.casbin.models import ensure_public_group
 from tests.utils.server.conftest import DummySitemap
-from tests.utils.server.utils.mongo_validation import ValidatingMongoDatabase
 
 
 def _definition() -> Dict[str, Any]:
@@ -487,7 +486,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                         {
                             "type": "update.contract",
                             "update": {
-                                "$unset": {"context.initial_invite_targets": ""}
+                                "$unset": "context.initial_invite_targets"
                             },
                         },
                     ]
@@ -714,7 +713,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                         },
                         {
                             "type": "update.contract",
-                            "update": {"$unset": {"context.accepted_riders": ""}},
+                            "update": {"$unset": "context.accepted_riders"},
                         },
                         {
                             "type": "update.contract",
@@ -961,8 +960,23 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                 },
                                                 "local.capacity_reached": {
                                                     "$gte": [
-                                                        "$context.accepted_seats_total",
-                                                        "$context.capacity",
+                                                        {
+                                                            "$add": [
+                                                                {
+                                                                    "$ifNull": [
+                                                                        "$context.accepted_seats_total",
+                                                                        0,
+                                                                    ]
+                                                                },
+                                                                "$local.accepted_increment",
+                                                            ]
+                                                        },
+                                                        {
+                                                            "$ifNull": [
+                                                                "$context.capacity",
+                                                                0,
+                                                            ]
+                                                        },
                                                     ]
                                                 },
                                             }
@@ -1098,10 +1112,10 @@ def _gherkin_definition() -> Dict[str, Any]:
                             {
                                 "type": "update.contract",
                                 "update": {
-                                    "$unset": {
-                                        "states.$$ctx.user": "",
-                                        "context.riders.$$ctx.user.seats": "",
-                                    }
+                                    "$unset": [
+                                        "states.$$ctx.user",
+                                        "context.riders.$$ctx.user.seats",
+                                    ]
                                 },
                             },
                             {
@@ -1227,7 +1241,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                             {
                                 "type": "update.contract",
                                 "update": {
-                                    "$unset": {"context.pending_invites.$$ctx.user": ""}
+                                    "$unset": "context.pending_invites.$$ctx.user"
                                 },
                             },
                             {
@@ -1278,8 +1292,23 @@ def _gherkin_definition() -> Dict[str, Any]:
                                         },
                                         "local.capacity_reached": {
                                             "$gte": [
-                                                "$context.accepted_seats_total",
-                                                "$context.capacity",
+                                                {
+                                                    "$add": [
+                                                        {
+                                                            "$ifNull": [
+                                                                "$context.accepted_seats_total",
+                                                                0,
+                                                            ]
+                                                        },
+                                                        "$local.accepted_increment",
+                                                    ]
+                                                },
+                                                {
+                                                    "$ifNull": [
+                                                        "$context.capacity",
+                                                        0,
+                                                    ]
+                                                },
                                             ]
                                         },
                                     }
@@ -1336,7 +1365,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                             {
                                 "type": "update.contract",
                                 "update": {
-                                    "$unset": {"context.pending_invites.$$ctx.user": ""}
+                                    "$unset": "context.pending_invites.$$ctx.user"
                                 },
                             },
                             {
@@ -1372,9 +1401,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                             {
                                 "type": "update.contract",
                                 "update": {
-                                    "$unset": {
-                                        "context.pending_invites.$$ctx.payload.principal": ""
-                                    }
+                                    "$unset": "context.pending_invites.$$ctx.payload.principal"
                                 },
                             },
                             {
@@ -1450,14 +1477,12 @@ def _gherkin_definition() -> Dict[str, Any]:
                                     },
                                     {
                                         "type": "update.contract",
-                                        "update": {
-                                            "$set": {
+                                        "update": [
+                                            {"$set": {
                                                 "states.$$ctx.payload.principal": "CANCELLED"
-                                            },
-                                            "$unset": {
-                                                "context.pending_invites.$$ctx.payload.principal": ""
-                                            },
-                                        },
+                                            }},
+                                            {"$unset": "context.pending_invites.$$ctx.payload.principal"}
+                                        ],
                                     },
                                     {
                                         "type": "notify",
@@ -1532,8 +1557,8 @@ def _gherkin_definition() -> Dict[str, Any]:
                             },
                             {
                                 "type": "update.contract",
-                                "update": {
-                                    "$set": {
+                                "update": [
+                                    {"$set": {
                                         "context.accepted_seats_total": {
                                             "$cond": [
                                                 {
@@ -1562,9 +1587,9 @@ def _gherkin_definition() -> Dict[str, Any]:
                                             ]
                                         },
                                         "states.$$ctx.user": "CANCELLED",
-                                    },
-                                    "$unset": {"context.riders.$$ctx.user.seats": ""},
-                                },
+                                    }},
+                                    {"$unset": "context.riders.$$ctx.user.seats"},
+                                ],
                             },
                             {
                                 "type": "notify",
@@ -1675,8 +1700,8 @@ def _gherkin_definition() -> Dict[str, Any]:
                                     },
                                     {
                                         "type": "update.contract",
-                                        "update": {
-                                            "$set": {
+                                        "update": [
+                                            {"$set": {
                                                 "context.accepted_seats_total": {
                                                     "$cond": [
                                                         {
@@ -1705,11 +1730,9 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                     ]
                                                 },
                                                 "states.$$ctx.payload.principal": "CANCELLED",
-                                            },
-                                            "$unset": {
-                                                "context.riders.$$ctx.payload.principal.seats": ""
-                                            },
-                                        },
+                                            }},
+                                            {"$unset": "context.riders.$$ctx.payload.principal.seats"}
+                                        ],
                                     },
                                     {
                                         "type": "notify",
@@ -1867,8 +1890,8 @@ def _gherkin_definition() -> Dict[str, Any]:
                             },
                             {
                                 "type": "update.contract",
-                                "update": {
-                                    "$set": {
+                                "update": [
+                                    {"$set": {
                                         "context.accepted_seats_total": {
                                             "$cond": [
                                                 {
@@ -1898,9 +1921,9 @@ def _gherkin_definition() -> Dict[str, Any]:
                                         },
                                         "states.$$ctx.user": "CANCELLED",
                                         "state": "RECRUITING",
-                                    },
-                                    "$unset": {"context.riders.$$ctx.user.seats": ""},
-                                },
+                                    }},
+                                    {"$unset": "context.riders.$$ctx.user.seats"},
+                                ],
                             },
                             {
                                 "type": "notify",
@@ -2088,8 +2111,8 @@ def _gherkin_definition() -> Dict[str, Any]:
                                     },
                                     {
                                         "type": "update.contract",
-                                        "update": {
-                                            "$set": {
+                                        "update": [
+                                            {"$set": {
                                                 "context.accepted_seats_total": {
                                                     "$cond": [
                                                         {
@@ -2118,11 +2141,9 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                     ]
                                                 },
                                                 "states.$$ctx.payload.principal": "CANCELLED",
-                                            },
-                                            "$unset": {
-                                                "context.riders.$$ctx.payload.principal.seats": ""
-                                            },
-                                        },
+                                            }},
+                                            {"$unset": "context.riders.$$ctx.payload.principal.seats"}
+                                        ],
                                     },
                                     {
                                         "type": "notify",
@@ -2323,14 +2344,12 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "then_effects": [
                                     {
                                         "type": "update.contract",
-                                        "update": {
-                                            "$set": {
+                                        "update": [
+                                            {"$set": {
                                                 "context.riders_picked_up.$$ctx.payload.principal": True
-                                            },
-                                            "$unset": {
-                                                "context.pending_pickup_targets.$$ctx.payload.principal": ""
-                                            },
-                                        },
+                                            }},
+                                            {"$unset": "context.pending_pickup_targets.$$ctx.payload.principal"},
+                                        ],
                                     },
                                     {
                                         "type": "notify",
@@ -2454,8 +2473,8 @@ def _gherkin_definition() -> Dict[str, Any]:
                             },
                             {
                                 "type": "update.contract",
-                                "update": {
-                                    "$set": {
+                                "update": [
+                                    {"$set": {
                                         "context.accepted_seats_total": {
                                             "$cond": [
                                                 {
@@ -2484,14 +2503,14 @@ def _gherkin_definition() -> Dict[str, Any]:
                                             ]
                                         },
                                         "states.$$ctx.user": "CANCELLED",
-                                    },
-                                    "$unset": {
-                                        "context.riders.$$ctx.user.seats": "",
-                                        "context.pending_pickup_targets.$$ctx.user": "",
-                                        "context.riders_in_pickup_zone.$$ctx.user": "",
-                                        "context.riders_picked_up.$$ctx.user": "",
-                                    },
-                                },
+                                    }},
+                                    {"$unset": [
+                                        "context.riders.$$ctx.user.seats",
+                                        "context.pending_pickup_targets.$$ctx.user",
+                                        "context.riders_in_pickup_zone.$$ctx.user",
+                                        "context.riders_picked_up.$$ctx.user",
+                                    ]},
+                                ],
                             },
                             {
                                 "type": "notify",
@@ -2665,12 +2684,66 @@ def _gherkin_definition() -> Dict[str, Any]:
 
 
 class ContractsE2ETest(unittest.TestCase):
+    _mongo_container: Any = None
+    _mongo_base_uri: str = ""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        super().setUpClass()
+        desktop_sock = os.path.join(
+            os.path.expanduser("~"), ".docker", "run", "docker.sock"
+        )
+        if not os.environ.get("DOCKER_HOST") and os.path.exists(desktop_sock):
+            os.environ["DOCKER_HOST"] = f"unix://{desktop_sock}"
+        try:
+            from testcontainers.mongodb import MongoDbContainer
+        except Exception as ex:  # pragma: no cover - environment dependent
+            raise unittest.SkipTest(
+                "contracts e2e requires testcontainers[mongodb]"
+            ) from ex
+
+        try:
+            cls._mongo_container = MongoDbContainer("mongo:7.0")
+            cls._mongo_container.start()
+            cls._mongo_base_uri = str(cls._mongo_container.get_connection_url())
+        except Exception as ex:  # pragma: no cover - environment dependent
+            raise unittest.SkipTest(
+                "contracts e2e requires Docker with a runnable MongoDB container"
+            ) from ex
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        try:
+            if cls._mongo_container is not None:
+                cls._mongo_container.stop()
+        finally:
+            cls._mongo_container = None
+            cls._mongo_base_uri = ""
+            super().tearDownClass()
+
+    def _test_mongo_uri(self) -> str:
+        self.mongo_db_name = f"schedula_contracts_{uuid.uuid4().hex}"
+        parts = urlsplit(self.__class__._mongo_base_uri)
+        query = parts.query
+        if "authSource=" not in query:
+            query = f"{query}&authSource=admin" if query else "authSource=admin"
+        return urlunsplit(
+            (
+                parts.scheme,
+                parts.netloc,
+                f"/{self.mongo_db_name}",
+                query,
+                parts.fragment,
+            )
+        )
+
     def setUp(self) -> None:
         os.environ.pop("MONGO_URI", None)
         self.app = Flask("contracts_test")
-        self.mm_client = mongomock.MongoClient()
-        mm_db = self.mm_client["schedula_test"]
-        vdb = ValidatingMongoDatabase(mm_db)
+        self.mongo_uri = self._test_mongo_uri()
+        from pymongo import MongoClient
+
+        self.mongo_client = MongoClient(self.mongo_uri)
         config = dict(
             TESTING=True,
             SQLALCHEMY_DATABASE_URI="sqlite+pysqlite:///:memory:",
@@ -2699,8 +2772,7 @@ class ContractsE2ETest(unittest.TestCase):
             STRIPE_SECRET_KEY="sk_test_dummy",
             STRIPE_PUBLISHABLE_KEY="pk_test_dummy",
             STRIPE_WEBHOOK_SECRET_KEY="whsec_dummy",
-            MONGO_URI="mongodb://mock",
-            MONGO_DB=vdb,
+            MONGO_URI=self.mongo_uri,
         )
         sitemap = DummySitemap()
         setattr(sitemap, "stripe_event_handler", staticmethod(lambda _event: None))
@@ -2770,7 +2842,18 @@ class ContractsE2ETest(unittest.TestCase):
             _db.drop_all()
         for patcher in getattr(self, "_patchers", []):
             patcher.stop()
-        self.mm_client.close()
+        try:
+            from pymongo import MongoClient
+
+            client = MongoClient(self.mongo_uri)
+            client.drop_database(self.mongo_db_name)
+            client.close()
+        except Exception:
+            pass
+        try:
+            self.mongo_client.close()
+        except Exception:
+            pass
 
     def _create_user(self, email: str) -> User:
         user = User.query.filter_by(email=email).first()

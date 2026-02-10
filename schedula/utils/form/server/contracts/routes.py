@@ -117,7 +117,10 @@ TEMPLATE_CREATE_SCHEMA = {
                     ],
                 },
                 "update": {
-                    "$ref": "#/$defs/update_operation",
+                    "anyOf":[
+                        {"$ref": "#/$defs/update_operation"},
+                        {"type": "array", "items": {"$ref": "#/$defs/update_operation"}},
+                    ]
                 },
                 "request": {
                     "title": "HTTP Request",
@@ -702,6 +705,7 @@ TEMPLATE_CREATE_SCHEMA = {
             "description": "MongoDB/PyMongo update operation document (operator form).",
             "type": "object",
             "minProperties": 1,
+            "maxProperties": 1,
             "propertyNames": {
                 "pattern": "^\\$[A-Za-z][A-Za-z0-9_]*$",
                 "description": "Mongo update operator name, e.g. $set, $unset, $inc, $push, $addToSet, $pull.",
