@@ -708,7 +708,8 @@ TEMPLATE_CREATE_SCHEMA = {
             },
             "patternProperties": {
                 "^\\$set$": {"type": "object"},
-                "^\\$unset$": {"type": "object"},
+                "^\\$unset$": {
+                    "anyOf": [{"type": "string"}, {"type": "array", "items": {"type": "string"}}, {"type": "object"}]},
                 "^\\$inc$": {"type": "object"},
                 "^\\$push$": {"type": "object"},
                 "^\\$addToSet$": {"type": "object"},

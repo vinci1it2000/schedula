@@ -85,31 +85,21 @@ def _apply_effect_step(
 
     if ef_type == "update.contract":
         now = now_utc()
-        contract_id = str(doc.get("_id") or "")
-        update_stage = ef["update"]
-        unset_stage: Dict[str, Any] = {}
-        if isinstance(update_stage, dict):
-            raw_unset = update_stage.get("$unset")
-            if isinstance(raw_unset, dict):
-                unset_stage = dict(raw_unset)
-                update_stage = dict(update_stage)
-                update_stage.pop("$unset", None)
+        contract_id = doc["_id"]
         mongo_update_one(
             _contracts_coll(),
             {"_id": contract_id},
             [
                 {"$set": {"local": local, "updated_by": actor_id}},
-                update_stage,
-                {"$set": {"updated_at": now}},
+                ef["update"],
+                {"$set": {"updated_at": now}}
             ],
-            let=ctx,
+            let={
+                "user": actor_id,
+                "payload": payload,
+                "local": local
+            },
         )
-        if unset_stage:
-            mongo_update_one(
-                _contracts_coll(),
-                {"_id": contract_id},
-                {"$unset": unset_stage},
-            )
         doc = _get_contract(contract_id)
         local.update(doc.get("local") or {})
     elif ef_type in {
@@ -321,7 +311,11 @@ def _apply_effect_step(
                 ef["update"],
                 {"$set": {"updated_at": now}},
             ],
-            let=ctx,
+            let={
+                "user": actor_id,
+                "payload": payload,
+                "local": local,
+            },
         )
         if res.matched_count != 1:
             abort_json(404, "Item not found")
