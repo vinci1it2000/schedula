@@ -46,6 +46,16 @@ class FakeApprise:
         return not any("fail" in url for url in self.urls)
 
 
+class InvalidPushApprise(FakeApprise):
+    def notify(self, body: str = "", title: str = ""):
+        FakeApprise.notifications.append(
+            {"title": title, "body": body, "urls": list(self.urls)}
+        )
+        if any("tok-invalid" in url for url in self.urls):
+            raise RuntimeError("UNREGISTERED: token is not registered")
+        return True
+
+
 class BaseNotificationsTaskApiTest(unittest.TestCase):
     enable_celery = False
 
@@ -374,7 +384,7 @@ class TestNotificationsTasksWithoutCelery(BaseNotificationsTaskApiTest):
         self.assertEqual(r.status_code, 200)
         self.assertEqual(len(FakeApprise.notifications), 1)
         urls = FakeApprise.notifications[0].get("urls") or []
-        self.assertIn("tok-old", urls)
+        self.assertTrue(any("tok-old" in u for u in urls))
 
         with self.app.app_context():
             coll = get_mongo(
@@ -389,6 +399,60 @@ class TestNotificationsTasksWithoutCelery(BaseNotificationsTaskApiTest):
                 datetime.fromisoformat(push_tokens[0].get("updated_at")),
                 datetime.fromisoformat(old_ts),
             )
+
+    def test_push_invalid_tokens_are_removed_on_error(self):
+        now = datetime.now(timezone.utc).isoformat()
+        with self.app.app_context():
+            coll = get_mongo(
+                collection=config_get(
+                    "NOTIF_PUSH_TOKENS_COLLECTION", "notification_push_tokens"
+                )
+            )
+            coll.insert_one(
+                {
+                    "user_id": f"u:{self.user_id}",
+                    "token": "tok-invalid",
+                    "updated_at": now,
+                    "created_at": now,
+                }
+            )
+            coll.insert_one(
+                {
+                    "user_id": f"u:{self.user_id}",
+                    "token": "tok-valid",
+                    "updated_at": now,
+                    "created_at": now,
+                }
+            )
+
+        payload = {
+            "event": "admin.event",
+            "targets": {f"u:{self.user_id}": ["push"]},
+            "payload": {"title": "Hello"},
+            "persist": True,
+        }
+
+        with patch(
+            "schedula.utils.form.server.notifications.tasks.apprise.Apprise",
+            InvalidPushApprise,
+        ):
+            r = self.client.post(
+                "/admin/notification/notify",
+                json=payload,
+                headers=self._auth_headers(self.admin_token),
+            )
+
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(len(FakeApprise.notifications), 1)
+
+        with self.app.app_context():
+            coll = get_mongo(
+                collection=config_get(
+                    "NOTIF_PUSH_TOKENS_COLLECTION", "notification_push_tokens"
+                )
+            )
+            push_tokens = list(coll.find({"user_id": f"u:{self.user_id}"}))
+            self.assertEqual(push_tokens, [])
 
 
 class TestNotificationsTasksWithCelery(BaseNotificationsTaskApiTest):

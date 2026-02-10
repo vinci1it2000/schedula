@@ -178,45 +178,31 @@ class TestNotificationsApis(unittest.TestCase):
         )
         self.assertEqual(r.status_code, 200)
 
-    def test_push_tokens_crud(self):
+    def test_push_tokens_upsert_or_replace(self):
         r = self.client.put(
             "/notification/tokens",
             json={
                 "token": "tok-1",
-                "platform": "android",
-                "device_id": "dev-1",
                 "app_version": "1.0.0",
             },
             headers=self._auth_headers(self.user_token),
         )
         self.assertEqual(r.status_code, 200)
         data = r.get_json(silent=True) or {}
-        tokens = data.get("tokens") or []
-        self.assertEqual(len(tokens), 1)
-        self.assertEqual(tokens[0].get("token"), "tok-1")
-        self.assertEqual(tokens[0].get("platform"), "android")
+        self.assertTrue(data.get("ok"))
 
         r = self.client.put(
             "/notification/tokens",
-            json={"token": "tok-1", "platform": "ios", "app_version": "2.0.0"},
+            json={
+                "token": "tok-2",
+                "prev_token": "tok-1",
+                "app_version": "2.0.0",
+            },
             headers=self._auth_headers(self.user_token),
         )
         self.assertEqual(r.status_code, 200)
         data = r.get_json(silent=True) or {}
-        tokens = data.get("tokens") or []
-        self.assertEqual(len(tokens), 1)
-        self.assertEqual(tokens[0].get("platform"), "ios")
-        self.assertEqual(tokens[0].get("app_version"), "2.0.0")
-
-        r = self.client.get(
-            "/notification/tokens",
-            headers=self._auth_headers(self.user_token),
-        )
-        self.assertEqual(r.status_code, 200)
-        data = r.get_json(silent=True) or {}
-        tokens = data.get("tokens") or []
-        self.assertEqual(len(tokens), 1)
-        self.assertEqual(tokens[0].get("token"), "tok-1")
+        self.assertTrue(data.get("ok"))
 
         with self.app.app_context():
             coll = get_mongo(
@@ -226,23 +212,8 @@ class TestNotificationsApis(unittest.TestCase):
             )
             docs = list(coll.find({"user_id": f"u:{self.user_id}"}))
             self.assertEqual(len(docs), 1)
-            self.assertEqual(docs[0].get("token"), "tok-1")
-
-        r = self.client.delete(
-            "/notification/tokens/tok-1",
-            headers=self._auth_headers(self.user_token),
-        )
-        self.assertEqual(r.status_code, 200)
-        data = r.get_json(silent=True) or {}
-        self.assertTrue(data.get("deleted"))
-
-        r = self.client.get(
-            "/notification/tokens",
-            headers=self._auth_headers(self.user_token),
-        )
-        self.assertEqual(r.status_code, 200)
-        data = r.get_json(silent=True) or {}
-        self.assertEqual(data.get("tokens"), [])
+            self.assertEqual(docs[0].get("token"), "tok-2")
+            self.assertEqual(docs[0].get("app_version"), "2.0.0")
 
     def test_templates_admin_only(self):
         r = self.client.get(
