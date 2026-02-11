@@ -93,13 +93,9 @@ def _apply_effect_step(
             [
                 {"$set": {"local": local, "updated_by": actor_id}},
                 *update,
-                {"$set": {"updated_at": now}}
+                {"$set": {"updated_at": now}},
             ],
-            let={
-                "user": actor_id,
-                "payload": payload,
-                "local": local
-            },
+            let={"user": actor_id, "payload": payload, "local": local},
         )
         doc = _get_contract(contract_id)
         local.update(doc.get("local") or {})
@@ -156,19 +152,9 @@ def _apply_effect_step(
         if not isinstance(else_effects, list):
             abort_json(400, "if.else else_effects must be array")
         selected = then_effects if bool(condition) else else_effects
-        any_changed = False
-        for child in selected:
-            if not isinstance(child, dict):
-                abort_json(400, "if.else effects must be objects")
-            changed, doc = _apply_effect_step(
-                doc=doc,
-                ef=child,
-                actor_id=actor_id,
-                payload=payload,
-                local=local,
-            )
-            any_changed = any_changed or changed
-        return any_changed, doc
+        return _apply_effects(
+            {"effects": selected}, doc, actor_id, payload=payload, local=local, validate_schema=False
+        )
     elif ef_type == "schedule.event":
         now = now_utc()
         contract_id = str(doc.get("_id") or "")
@@ -328,7 +314,13 @@ def _apply_effect_step(
         abort_json(400, f"Unknown effect type: {ef_type}")
 
     if doc.get("state") != initial_state:
-        return True, _apply_on_enter(doc=doc, actor_id=actor_id)
+        return True, _apply_on_enter(
+            doc=doc,
+            actor_id=actor_id,
+            prev_state=initial_state,
+            local=local,
+            payload=payload,
+        )
     return False, doc
 
 
@@ -343,20 +335,55 @@ def _close_contract(doc):
     return doc
 
 
+def validate_context_schema(doc, state):
+    if "context_schema" in state:
+        from .routes import _validate_schema
+
+        schema_errors = _validate_schema(doc["context"], state["context_schema"])
+        if schema_errors:
+            abort_json(422, "Invalid context schema")
+
+
+def _apply_effects(
+        state, doc, actor_id, payload=None, local=None, validate_schema=True
+):
+    for ef in state.get("effects", []):
+        changed, doc = _apply_effect_step(
+            doc=doc, ef=ef, payload=payload, actor_id=actor_id, local=local
+        )
+        if changed:
+            doc = _close_contract(doc)
+            return changed, doc
+    if validate_schema:
+        validate_context_schema(doc, state)
+    return False, doc
+
+
 def _apply_on_enter(
         *,
         doc: dict[str, Any],
         actor_id: str,
+        prev_state=None,
+        payload=None,
+        local=None,
 ) -> dict[str, Any]:
-    local = {}
-    for ef in pydash.get(
-            doc, f"definition.states.{doc.get('state')}.on_enter.effects", []
-    ):
-        changed, doc = _apply_effect_step(
-            doc=doc, ef=ef, actor_id=actor_id, local=local
+    if payload is None:
+        payload = {}
+    if local is None:
+        local = {}
+
+    if prev_state:
+        on_exit = pydash.get(doc, f"definition.states.{doc.get('state')}.on_exit", {})
+        changed, doc = _apply_effects(
+            on_exit, doc, actor_id=actor_id, payload=payload, local=local
         )
         if changed:
             return doc
+        validate_context_schema(doc, on_exit)
+
+    on_enter = pydash.get(doc, f"definition.states.{doc.get('state')}.on_enter", {})
+    validate_context_schema(doc, on_enter)
+    _, doc = _apply_effects(on_enter, doc, actor_id, local=local)
     return doc
 
 
@@ -443,15 +470,12 @@ def _process_selected_event(
 
     schema_errors = validate_payload(_src_get("payload_schema"), body_payload)
     if schema_errors:
-        return {"error": "Invalid payload", "details": schema_errors}, 422, doc
+        return {"error": "Invalid payload", "details": schema_errors}, 422
 
     local = {}
-    for ef in edef.get("effects") or []:
-        changed, doc = _apply_effect_step(
-            doc=doc, ef=ef, payload=body_payload, actor_id=actor_id, local=local
-        )
-        if changed:
-            break
+    changed, doc = _apply_effects(
+        edef, doc, actor_id, payload=body_payload, local=local
+    )
     doc = _close_contract(doc)
     if resolve_response:
         ctx = {"local": local, "doc": doc, "user": actor_id, "payload": body_payload}

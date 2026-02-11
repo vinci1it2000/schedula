@@ -117,7 +117,7 @@ TEMPLATE_CREATE_SCHEMA = {
                     ],
                 },
                 "update": {
-                    "anyOf":[
+                    "anyOf": [
                         {"$ref": "#/$defs/update_operation"},
                         {"type": "array", "items": {"$ref": "#/$defs/update_operation"}},
                     ]
@@ -735,6 +735,24 @@ TEMPLATE_CREATE_SCHEMA = {
                 "on_enter": {
                     "type": "object",
                     "properties": {
+                        "context_schema": {
+                            "type": "object",
+                            "description": "Optional JSON Schema for contract context when enter on this state.",
+                        },
+                        "effects": {
+                            "type": "array",
+                            "items": {"$ref": "#/$defs/effect"},
+                        }
+                    },
+                    "additionalProperties": False,
+                },
+                "on_exit": {
+                    "type": "object",
+                    "properties": {
+                        "context_schema": {
+                            "type": "object",
+                            "description": "Optional JSON Schema for contract context when exit from this state.",
+                        },
                         "effects": {
                             "type": "array",
                             "items": {"$ref": "#/$defs/effect"},
@@ -748,7 +766,7 @@ TEMPLATE_CREATE_SCHEMA = {
                 },
                 "context_schema": {
                     "type": "object",
-                    "description": "Optional JSON Schema for contract context when this state is the initial state.",
+                    "description": "Optional JSON Schema for contract context when this state is modified.",
                 },
             },
             "additionalProperties": False,
@@ -872,27 +890,6 @@ def _validate_allowed_initial_states(
     return errors
 
 
-def _validate_context_schema_for_initial_state(
-        definition: Dict[str, Any],
-        initial_state: str,
-        context: Dict[str, Any],
-) -> List[str]:
-    states = definition.get("states") or {}
-    if not isinstance(states, dict):
-        return ["definition.states must be object"]
-    state_def = states.get(initial_state)
-    if state_def is None:
-        return []
-    if not isinstance(state_def, dict):
-        return [f"definition.states.{initial_state} must be object"]
-    schema = state_def.get("context_schema")
-    if schema is None:
-        return []
-    if not isinstance(schema, dict):
-        return [f"definition.states.{initial_state}.context_schema must be object"]
-    return _validate_schema(context, schema)
-
-
 @bp.post("/contracts/templates")
 @require_system_admin("contracts:templates", "manage")
 def create_template():
@@ -993,19 +990,6 @@ def create_contract(template_id: str):
     )
     if not template:
         abort_json(404, "Template not found")
-
-    definition = template.get("definition")
-    if not isinstance(definition, dict):
-        definition = {}
-    default_initial_state = str(definition.get("initial_state") or "")
-    selected_initial_state = str(initial_state or default_initial_state)
-    context_errors = _validate_context_schema_for_initial_state(
-        definition,
-        selected_initial_state,
-        context,
-    )
-    if context_errors:
-        return jsonify({"error": "Invalid payload", "details": context_errors}), 422
 
     doc = _create_contract_from_template_doc(
         template=template,

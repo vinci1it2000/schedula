@@ -13,7 +13,6 @@ from urllib.parse import urlsplit, urlunsplit
 import httpx
 from flask import Flask
 from flask_security.utils import hash_password
-
 from schedula.utils.form.server import basic_app
 from schedula.utils.form.server.extensions import db as _db
 from schedula.utils.form.server.security import User
@@ -102,484 +101,251 @@ def _gherkin_definition() -> Dict[str, Any]:
     return {
         "id": "contract-lifecycle-group-sync",
         "version": "1.0",
-        "initial_state": "FIRST_REQUEST",
+        "initial_state": "START",
         "states": {
-            "FIRST_REQUEST": {
-                "context_schema": {
-                    "type": "object",
-                    "required": [
-                        "capacity",
-                        "driver",
-                        "driver_trip",
-                        "riders",
-                    ],
-                    "properties": {
-                        "capacity": {"type": "integer", "minimum": 1},
-                        "driver": {"type": "string", "pattern": "^u:.+$"},
-                        "driver_trip": {
-                            "type": "object",
-                            "required": ["origin", "destination"],
-                            "properties": {
-                                "origin": {
-                                    "type": "object",
-                                    "required": ["lat", "lng"],
-                                    "properties": {
-                                        "lat": {"type": "number"},
-                                        "lng": {"type": "number"},
-                                    },
-                                    "additionalProperties": False,
-                                },
-                                "destination": {
-                                    "type": "object",
-                                    "required": ["lat", "lng"],
-                                    "properties": {
-                                        "lat": {"type": "number"},
-                                        "lng": {"type": "number"},
-                                    },
-                                    "additionalProperties": False,
-                                },
-                            },
-                            "additionalProperties": False,
-                        },
-                        "riders": {
-                            "type": "object",
-                            "minProperties": 1,
-                            "additionalProperties": {
+            "START": {
+                "on_enter": {
+                    "context_schema": {
+                        "type": "object",
+                        "required": [
+                            "capacity",
+                            "driver",
+                            "driver_trip",
+                            "riders",
+                        ],
+                        "properties": {
+                            "capacity": {"type": "integer", "minimum": 1},
+                            "driver": {"type": "string", "pattern": "^u:.+$"},
+                            "driver_trip": {
                                 "type": "object",
-                                "required": ["seats", "trip"],
+                                "required": ["origin", "destination"],
                                 "properties": {
-                                    "seats": {"type": "integer", "minimum": 1},
-                                    "trip": {
+                                    "origin": {
                                         "type": "object",
-                                        "required": ["origin", "destination"],
+                                        "required": ["lat", "lng"],
                                         "properties": {
-                                            "origin": {
-                                                "type": "object",
-                                                "required": ["lat", "lng"],
-                                                "properties": {
-                                                    "lat": {"type": "number"},
-                                                    "lng": {"type": "number"},
-                                                },
-                                                "additionalProperties": False,
-                                            },
-                                            "destination": {
-                                                "type": "object",
-                                                "required": ["lat", "lng"],
-                                                "properties": {
-                                                    "lat": {"type": "number"},
-                                                    "lng": {"type": "number"},
-                                                },
-                                                "additionalProperties": False,
-                                            },
+                                            "lat": {"type": "number"},
+                                            "lng": {"type": "number"},
+                                        },
+                                        "additionalProperties": False,
+                                    },
+                                    "destination": {
+                                        "type": "object",
+                                        "required": ["lat", "lng"],
+                                        "properties": {
+                                            "lat": {"type": "number"},
+                                            "lng": {"type": "number"},
                                         },
                                         "additionalProperties": False,
                                     },
                                 },
                                 "additionalProperties": False,
                             },
-                        },
-                    },
-                    "additionalProperties": True,
-                },
-                "on_enter": {
-                    "effects": [
-                        {
-                            "type": "update.contract",
-                            "update": {
-                                "$set": {
-                                    "context.first_rider_principal": {
-                                        "$arrayElemAt": [
-                                            {
-                                                "$map": {
-                                                    "input": {
-                                                        "$objectToArray": "$context.riders"
+                            "riders": {
+                                "type": "object",
+                                "minProperties": 1,
+                                "additionalProperties": {
+                                    "type": "object",
+                                    "required": ["seats", "trip"],
+                                    "properties": {
+                                        "seats": {"type": "integer", "minimum": 1},
+                                        "trip": {
+                                            "type": "object",
+                                            "required": ["origin", "destination"],
+                                            "properties": {
+                                                "origin": {
+                                                    "type": "object",
+                                                    "required": ["lat", "lng"],
+                                                    "properties": {
+                                                        "lat": {"type": "number"},
+                                                        "lng": {"type": "number"},
                                                     },
-                                                    "as": "r",
-                                                    "in": "$$r.k",
-                                                }
+                                                    "additionalProperties": False,
+                                                },
+                                                "destination": {
+                                                    "type": "object",
+                                                    "required": ["lat", "lng"],
+                                                    "properties": {
+                                                        "lat": {"type": "number"},
+                                                        "lng": {"type": "number"},
+                                                    },
+                                                    "additionalProperties": False,
+                                                },
                                             },
-                                            0,
-                                        ]
-                                    }
-                                }
-                            },
-                        },
-                        {
-                            "type": "update.contract",
-                            "update": {
-                                "$set": {
-                                    "states.$$ctx.doc.context.first_rider_principal": "PENDING"
-                                }
-                            },
-                        },
-                        {
-                            "type": "schedule.event",
-                            "key": "first_request_timeout_id",
-                            "event_name": "FirstRequestTimedOut",
-                            "cron": "* * * * *",
-                            "actor_id": "system:cron",
-                        },
-                        {
-                            "type": "update.contract",
-                            "update": {
-                                "$set": {
-                                    "context.first_request_timeout_ids": [
-                                        {
-                                            "principal": "$$ctx.doc.context.first_rider_principal",
-                                            "event_id": {
-                                                "$ctx": "local.first_request_timeout_id"
-                                            },
-                                        }
-                                    ]
-                                }
-                            },
-                        },
-                        {
-                            "type": "notify",
-                            "notify": {
-                                "event": "contracts.request_ride",
-                                "targets": {"$$ctx.doc.context.driver": ["in_app"]},
-                                "payload": {
-                                    "contract_code": {
-                                        "$ctx": "doc.context.contract_code"
-                                    }
-                                },
-                            },
-                        },
-                    ]
-                },
-                "events": {
-                    "RespondFirstRequestAccept": {
-                        "trigger": [
-                            {
-                                "type": "api",
-                                "path": "respond-first-accept",
-                                "method": "POST",
-                                "allow_principals": ["$$ctx.doc.context.driver"],
-                                "response": {"ok": True, "event": "first_accept"},
-                            }
-                        ],
-                        "effects": [
-                            {
-                                "type": "unschedule.event",
-                                "event_id": {
-                                    "$ctx": "doc.context.first_request_timeout_ids.0.event_id"
-                                },
-                            },
-                            {
-                                "type": "schedule.event",
-                                "key": "driver_pickup_check_id",
-                                "event_name": "DriverPickupCheckTimed",
-                                "cron": "* * * * *",
-                                "actor_id": "system:cron",
-                            },
-                            {
-                                "type": "update.contract",
-                                "update": {
-                                    "$set": {
-                                        "context.driver_pickup_check_id": {
-                                            "$ctx": "local.driver_pickup_check_id"
-                                        }
-                                    }
-                                },
-                            },
-                            {
-                                "type": "update.contract",
-                                "update": {
-                                    "$set": {
-                                        "states.$$ctx.doc.context.first_rider_principal": "ACCEPTED",
-                                        "context.accepted_seats_total": {
-                                            **_rider_seats(
-                                                "$$ctx.doc.context.first_rider_principal"
-                                            )
+                                            "additionalProperties": False,
                                         },
-                                        "state": "RECRUITING_INIT",
-                                    }
-                                },
-                            },
-                        ],
-                    },
-                    "RejectFirstRequest": {
-                        "trigger": [
-                            {
-                                "type": "api",
-                                "path": "respond-first-reject",
-                                "method": "POST",
-                                "response": {"ok": True, "event": "first_reject"},
-                            }
-                        ],
-                        "effects": [
-                            {
-                                "type": "unschedule.event",
-                                "event_id": {
-                                    "$ctx": "doc.context.first_request_timeout_ids.0.event_id"
-                                },
-                            },
-                            {
-                                "type": "update.contract",
-                                "update": {
-                                    "$set": {
-                                        "state": "REJECTED",
-                                        "states.$$ctx.doc.context.first_rider_principal": "REJECTED",
-                                    }
-                                },
-                            },
-                        ],
-                    },
-                    "FirstRequestTimedOut": {
-                        "trigger": [{"type": "api", "path": "first-request-timeout"}],
-                        "effects": [
-                            {
-                                "type": "update.contract",
-                                "update": {
-                                    "$set": {
-                                        "state": "EXPIRED",
-                                        "states.$$ctx.doc.context.first_rider_principal": "EXPIRED",
-                                    }
-                                },
-                            },
-                            {
-                                "type": "notify",
-                                "notify": {
-                                    "event": "contracts.first_request_timed_out",
-                                    "targets": {
-                                        "$$ctx.doc.context.first_rider_principal": [
-                                            "in_app"
-                                        ]
-                                    },
-                                    "payload": {
-                                        "contract_code": {
-                                            "$ctx": "doc.context.contract_code"
-                                        }
-                                    },
-                                },
-                            },
-                        ],
-                    },
-                },
-            },
-            "FIRST_INVITATIONS": {
-                "context_schema": {
-                    "type": "object",
-                    "required": [
-                        "capacity",
-                        "driver",
-                        "driver_trip",
-                        "riders",
-                    ],
-                    "properties": {
-                        "capacity": {"type": "integer", "minimum": 1},
-                        "driver": {"type": "string", "pattern": "^u:.+$"},
-                        "driver_trip": {
-                            "type": "object",
-                            "required": ["origin", "destination"],
-                            "properties": {
-                                "origin": {
-                                    "type": "object",
-                                    "required": ["lat", "lng"],
-                                    "properties": {
-                                        "lat": {"type": "number"},
-                                        "lng": {"type": "number"},
-                                    },
-                                    "additionalProperties": False,
-                                },
-                                "destination": {
-                                    "type": "object",
-                                    "required": ["lat", "lng"],
-                                    "properties": {
-                                        "lat": {"type": "number"},
-                                        "lng": {"type": "number"},
                                     },
                                     "additionalProperties": False,
                                 },
                             },
-                            "additionalProperties": False,
                         },
-                        "riders": {
-                            "type": "object",
-                            "minProperties": 1,
-                            "additionalProperties": {
-                                "type": "object",
-                                "required": ["seats", "trip"],
-                                "properties": {
-                                    "seats": {"type": "integer", "minimum": 1},
-                                    "trip": {
-                                        "type": "object",
-                                        "required": ["origin", "destination"],
-                                        "properties": {
-                                            "origin": {
-                                                "type": "object",
-                                                "required": ["lat", "lng"],
-                                                "properties": {
-                                                    "lat": {"type": "number"},
-                                                    "lng": {"type": "number"},
-                                                },
-                                                "additionalProperties": False,
-                                            },
-                                            "destination": {
-                                                "type": "object",
-                                                "required": ["lat", "lng"],
-                                                "properties": {
-                                                    "lat": {"type": "number"},
-                                                    "lng": {"type": "number"},
-                                                },
-                                                "additionalProperties": False,
-                                            },
-                                        },
-                                        "additionalProperties": False,
-                                    },
-                                },
-                                "additionalProperties": False,
-                            },
-                        },
+                        "additionalProperties": True,
                     },
-                    "additionalProperties": True,
-                },
-                "on_enter": {
                     "effects": [
                         {
                             "type": "update.contract",
                             "update": {
                                 "$set": {
-                                    "states": {
-                                        "$arrayToObject": {
-                                            "$map": {
-                                                "input": {
-                                                    "$objectToArray": "$context.riders"
-                                                },
-                                                "as": "p",
-                                                "in": {"k": "$$p.k", "v": "PENDING"},
-                                            }
-                                        }
-                                    },
-                                    "context.initial_invite_targets": {
-                                        "$arrayToObject": {
-                                            "$map": {
-                                                "input": {
-                                                    "$objectToArray": "$context.riders"
-                                                },
-                                                "as": "p",
-                                                "in": {"k": "$$p.k", "v": ["in_app"]},
-                                            }
-                                        }
-                                    },
-                                }
-                            },
-                        },
-                        {
-                            "type": "schedule.event",
-                            "key": "first_request_timeout_id",
-                            "event_name": "FirstRequestTimedOut",
-                            "cron": "* * * * *",
-                            "actor_id": "system:cron",
-                        },
-                        {
-                            "type": "update.contract",
-                            "update": {
-                                "$set": {
-                                    "context.first_request_timeout_ids": [
-                                        {
-                                            "principal": "first_invitation",
-                                            "event_id": {
-                                                "$ctx": "local.first_request_timeout_id"
-                                            },
-                                        }
-                                    ]
-                                }
-                            },
-                        },
-                        {
-                            "type": "notify",
-                            "notify": {
-                                "event": "contracts.user_invited",
-                                "targets": "$$ctx.doc.context.initial_invite_targets",
-                                "payload": {
-                                    "contract_code": {
-                                        "$ctx": "doc.context.contract_code"
+                                    "local.start_initiated_by_driver": {
+                                        "$eq": ["$created_by", "$context.driver"]
                                     }
-                                },
+                                }
                             },
                         },
                         {
-                            "type": "update.contract",
-                            "update": {"$unset": "context.initial_invite_targets"},
+                            "type": "if.else",
+                            "condition": {
+                                "$ctx": "doc.local.start_initiated_by_driver"
+                            },
+                            "then_effects": [
+                                {
+                                    "type": "schedule.event",
+                                    "key": "driver_pickup_check_id",
+                                    "event_name": "DriverPickupCheckTimed",
+                                    "cron": "* * * * *",
+                                    "actor_id": "system:cron",
+                                },
+                                {
+                                    "type": "update.contract",
+                                    "update": {
+                                        "$set": {
+                                            "context.driver_pickup_check_id": {
+                                                "$ctx": "local.driver_pickup_check_id"
+                                            }
+                                        }
+                                    },
+                                },
+                                {
+                                    "type": "update.contract",
+                                    "update": {
+                                        "$set": {
+                                            "states": {
+                                                "$arrayToObject": {
+                                                    "$map": {
+                                                        "input": {
+                                                            "$objectToArray": "$context.riders"
+                                                        },
+                                                        "as": "p",
+                                                        "in": {
+                                                            "k": "$$p.k",
+                                                            "v": "PENDING",
+                                                        },
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    },
+                                },
+                                {
+                                    "type": "update.contract",
+                                    "update": {
+                                        "$set": {
+                                            "states.$$ctx.doc.context.driver": "DRIVER",
+                                            "context.accepted_seats_total": 0,
+                                        }
+                                    },
+                                },
+                                {
+                                    "type": "update.contract",
+                                    "update": {
+                                        "$set": {
+                                            "context.initial_invite_targets": {
+                                                "$arrayToObject": {
+                                                    "$map": {
+                                                        "input": {
+                                                            "$objectToArray": "$context.riders"
+                                                        },
+                                                        "as": "p",
+                                                        "in": {
+                                                            "k": "$$p.k",
+                                                            "v": ["in_app"],
+                                                        },
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    },
+                                },
+                                {
+                                    "type": "notify",
+                                    "notify": {
+                                        "event": "contracts.user_invited",
+                                        "targets": {
+                                            "$ctx": "doc.context.initial_invite_targets"
+                                        },
+                                        "payload": {
+                                            "contract_code": {
+                                                "$ctx": "doc.context.contract_code"
+                                            }
+                                        },
+                                    },
+                                },
+                                {
+                                    "type": "update.contract",
+                                    "update": {
+                                        "$unset": "context.initial_invite_targets"
+                                    },
+                                },
+                                {
+                                    "type": "update.contract",
+                                    "update": {"$set": {"state": "CONFIRMING"}},
+                                },
+                            ],
+                            "else_effects": [
+                                {
+                                    "type": "update.contract",
+                                    "update": {
+                                        "$set": {
+                                            "states": {
+                                                "$arrayToObject": {
+                                                    "$map": {
+                                                        "input": {
+                                                            "$objectToArray": "$context.riders"
+                                                        },
+                                                        "as": "p",
+                                                        "in": {
+                                                            "k": "$$p.k",
+                                                            "v": "REQUESTING",
+                                                        },
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    },
+                                },
+                                {
+                                    "type": "update.contract",
+                                    "update": {
+                                        "$set": {
+                                            "states.$$ctx.doc.context.driver": "PENDING_DRIVER"
+                                        }
+                                    },
+                                },
+                                {
+                                    "type": "notify",
+                                    "notify": {
+                                        "event": "contracts.request_ride",
+                                        "targets": {
+                                            "$$ctx.doc.context.driver": ["in_app"]
+                                        },
+                                        "payload": {
+                                            "contract_code": {
+                                                "$ctx": "doc.context.contract_code"
+                                            }
+                                        },
+                                    },
+                                },
+                            ],
                         },
-                    ]
+                    ],
                 },
                 "events": {
-                    "InviteUser": {
+                    "RequestJoin": {
                         "trigger": [
                             {
                                 "type": "api",
-                                "path": "invite-user",
+                                "path": "request-join",
                                 "method": "POST",
-                                "allow_principals": ["$$ctx.doc.context.driver"],
-                                "payload_schema": {
-                                    "type": "object",
-                                    "required": ["principal"],
-                                    "properties": {
-                                        "principal": {
-                                            "type": "string",
-                                            "pattern": "^u:.+$",
-                                        }
-                                    },
-                                    "additionalProperties": False,
-                                },
-                                "response": {"ok": True, "event": "invite_user"},
-                            }
-                        ],
-                        "effects": [
-                            {
-                                "type": "update.contract",
-                                "update": {
-                                    "$set": {
-                                        "states.$$ctx.payload.principal": "PENDING"
-                                    }
-                                },
-                            },
-                            {
-                                "type": "schedule.event",
-                                "key": "invite_timeout_id",
-                                "event_name": "InviteUserTimedOut",
-                                "cron": "* * * * *",
-                                "actor_id": "system:cron",
-                                "payload": {"principal": "$$ctx.payload.principal"},
-                            },
-                            {
-                                "type": "update.contract",
-                                "update": {
-                                    "$set": {
-                                        "context.pending_invites.$$ctx.payload.principal": {
-                                            "$ctx": "local.invite_timeout_id"
-                                        }
-                                    }
-                                },
-                            },
-                            {
-                                "type": "notify",
-                                "notify": {
-                                    "event": "contracts.user_invited",
-                                    "targets": {"$$ctx.payload.principal": ["in_app"]},
-                                    "payload": {
-                                        "contract_code": {
-                                            "$ctx": "doc.context.contract_code"
-                                        }
-                                    },
-                                },
-                            },
-                            {
-                                "type": "update.contract",
-                                "update": {"$set": {"state": "FIRST_INVITATIONS"}},
-                            },
-                        ],
-                    },
-                    "AcceptUser": {
-                        "trigger": [
-                            {
-                                "type": "api",
-                                "path": "accept-user",
-                                "method": "POST",
-                                "allow_user_states": ["PENDING"],
                                 "payload_schema": {
                                     "type": "object",
                                     "required": ["seats", "origin", "destination"],
@@ -606,43 +372,127 @@ def _gherkin_definition() -> Dict[str, Any]:
                                     },
                                     "additionalProperties": False,
                                 },
-                                "response": {"ok": True, "event": "accept_user"},
+                                "deny_principals": ["$$ctx.doc.context.driver"],
+                                "deny_user_states": [
+                                    "REQUESTING",
+                                    "PENDING",
+                                    "ACCEPTED",
+                                    "REJECTED",
+                                    "CANCELLED",
+                                    "EXPIRED",
+                                ],
+                                "response": {"ok": True, "event": "request_join"},
                             }
                         ],
                         "effects": [
                             {
-                                "type": "unschedule.event",
-                                "event_id": {
-                                    "$ctx": "doc.context.first_request_timeout_ids.0.event_id"
-                                },
-                            },
-                            {
                                 "type": "update.contract",
                                 "update": {
                                     "$set": {
-                                        "states.$$ctx.user": "ACCEPTED",
-                                        "context.riders.$$ctx.user.seats": "$$ctx.payload.seats",
-                                        "context.riders.$$ctx.user.trip": {
-                                            "origin": "$$ctx.payload.origin",
-                                            "destination": "$$ctx.payload.destination",
-                                        },
-                                        "context.accepted_seats_total": {
-                                            **_payload_seats_or_one()
-                                        },
-                                        "state": "RECRUITING_INIT",
+                                        "local.has_capacity_for_join": {
+                                            "$lte": [
+                                                {
+                                                    "$add": [
+                                                        {
+                                                            "$ifNull": [
+                                                                "$context.accepted_seats_total",
+                                                                0,
+                                                            ]
+                                                        },
+                                                        "$$ctx.payload.seats",
+                                                    ]
+                                                },
+                                                {"$ifNull": ["$context.capacity", 0]},
+                                            ]
+                                        }
                                     }
                                 },
                             },
+                            {
+                                "type": "if.else",
+                                "condition": {"$ctx": "local.has_capacity_for_join"},
+                                "then_effects": [
+                                    {
+                                        "type": "update.contract",
+                                        "update": {
+                                            "$set": {
+                                                "states.$$ctx.user": "REQUESTING",
+                                                "context.riders.$$ctx.user.seats": "$$ctx.payload.seats",
+                                                "context.riders.$$ctx.user.trip": {
+                                                    "origin": "$$ctx.payload.origin",
+                                                    "destination": "$$ctx.payload.destination",
+                                                },
+                                            }
+                                        },
+                                    },
+                                    {
+                                        "type": "notify",
+                                        "notify": {
+                                            "event": "contracts.join_requested",
+                                            "targets": {
+                                                "$$ctx.doc.context.driver": ["in_app"]
+                                            },
+                                            "payload": {
+                                                "principal": "$$ctx.user",
+                                                "contract_code": {
+                                                    "$ctx": "doc.context.contract_code"
+                                                },
+                                            },
+                                        },
+                                    },
+                                ],
+                                "else_effects": [
+                                    {
+                                        "type": "notify",
+                                        "notify": {
+                                            "event": "contracts.join_request_rejected_capacity",
+                                            "targets": {"$$ctx.user": ["in_app"]},
+                                            "payload": {
+                                                "contract_code": {
+                                                    "$ctx": "doc.context.contract_code"
+                                                }
+                                            },
+                                        },
+                                    }
+                                ],
+                            },
                         ],
                     },
-                    "FirstRequestTimedOut": {
-                        "trigger": [{"type": "api", "path": "first-request-timeout"}],
+                    "DriverAcceptStart": {
+                        "trigger": [
+                            {
+                                "type": "api",
+                                "path": "driver-accept-start",
+                                "method": "POST",
+                                "allow_principals": ["$$ctx.doc.context.driver"],
+                                "response": {
+                                    "ok": True,
+                                    "event": "driver_accept_start",
+                                },
+                            }
+                        ],
                         "effects": [
+                            {
+                                "type": "schedule.event",
+                                "key": "driver_pickup_check_id",
+                                "event_name": "DriverPickupCheckTimed",
+                                "cron": "* * * * *",
+                                "actor_id": "system:cron",
+                            },
                             {
                                 "type": "update.contract",
                                 "update": {
                                     "$set": {
-                                        "state": "EXPIRED",
+                                        "context.driver_pickup_check_id": {
+                                            "$ctx": "local.driver_pickup_check_id"
+                                        }
+                                    }
+                                },
+                            },
+                            {
+                                "type": "update.contract",
+                                "update": {
+                                    "$set": {
                                         "states": {
                                             "$arrayToObject": {
                                                 "$map": {
@@ -657,10 +507,103 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                                 {
                                                                     "$eq": [
                                                                         "$$kv.v",
-                                                                        "PENDING",
+                                                                        "REQUESTING",
                                                                     ]
                                                                 },
-                                                                "EXPIRED",
+                                                                "PENDING",
+                                                                "$$kv.v",
+                                                            ]
+                                                        },
+                                                    },
+                                                }
+                                            }
+                                        },
+                                        "context.accepted_seats_total": 0,
+                                        "state": "CONFIRMING",
+                                    }
+                                },
+                            },
+                            {
+                                "type": "update.contract",
+                                "update": {
+                                    "$set": {
+                                        "states.$$ctx.doc.context.driver": "DRIVER"
+                                    }
+                                },
+                            },
+                            {
+                                "type": "update.contract",
+                                "update": {
+                                    "$set": {
+                                        "local.initial_invite_targets": {
+                                            "$arrayToObject": {
+                                                "$map": {
+                                                    "input": {
+                                                        "$objectToArray": "$context.riders"
+                                                    },
+                                                    "as": "p",
+                                                    "in": {
+                                                        "k": "$$p.k",
+                                                        "v": ["in_app"],
+                                                    },
+                                                }
+                                            }
+                                        }
+                                    }
+                                },
+                            },
+                            {
+                                "type": "notify",
+                                "notify": {
+                                    "event": "contracts.user_invited",
+                                    "targets": {
+                                        "$ctx": "doc.local.initial_invite_targets"
+                                    },
+                                    "payload": {
+                                        "contract_code": {
+                                            "$ctx": "doc.context.contract_code"
+                                        }
+                                    },
+                                },
+                            },
+                        ],
+                    },
+                    "DriverRejectStart": {
+                        "trigger": [
+                            {
+                                "type": "api",
+                                "path": "driver-reject-start",
+                                "method": "POST",
+                                "response": {
+                                    "ok": True,
+                                    "event": "driver_reject_start",
+                                },
+                            }
+                        ],
+                        "effects": [
+                            {
+                                "type": "update.contract",
+                                "update": {
+                                    "$set": {
+                                        "state": "REJECTED",
+                                        "states": {
+                                            "$arrayToObject": {
+                                                "$map": {
+                                                    "input": {
+                                                        "$objectToArray": "$states"
+                                                    },
+                                                    "as": "kv",
+                                                    "in": {
+                                                        "k": "$$kv.k",
+                                                        "v": {
+                                                            "$cond": [
+                                                                {
+                                                                    "$eq": [
+                                                                        "$$kv.v",
+                                                                        "REQUESTING",
+                                                                    ]
+                                                                },
+                                                                "REJECTED",
                                                                 "$$kv.v",
                                                             ]
                                                         },
@@ -670,12 +613,80 @@ def _gherkin_definition() -> Dict[str, Any]:
                                         },
                                     }
                                 },
+                            },
+                        ],
+                    },
+                    "CancelJoinRequest": {
+                        "trigger": [
+                            {
+                                "type": "api",
+                                "path": "cancel-join-request",
+                                "method": "POST",
+                                "allow_user_states": ["REQUESTING"],
+                                "response": {
+                                    "ok": True,
+                                    "event": "cancel_join_request",
+                                },
                             }
+                        ],
+                        "effects": [
+                            {
+                                "type": "update.contract",
+                                "update": {
+                                    "$unset": [
+                                        "states.$$ctx.user",
+                                        "context.riders.$$ctx.user",
+                                    ]
+                                },
+                            },
+                            {
+                                "type": "update.contract",
+                                "update": {
+                                    "$set": {
+                                        "local.has_interested_users": {
+                                            "$gt": [
+                                                {
+                                                    "$size": {
+                                                        "$objectToArray": {
+                                                            "$ifNull": [
+                                                                "$context.riders",
+                                                                {},
+                                                            ]
+                                                        }
+                                                    }
+                                                },
+                                                0,
+                                            ]
+                                        }
+                                    }
+                                },
+                            },
+                            {
+                                "type": "if.else",
+                                "condition": {"$ctx": "doc.local.has_interested_users"},
+                                "then_effects": [],
+                                "else_effects": [
+                                    {
+                                        "type": "notify",
+                                        "notify": {
+                                            "event": "contracts.request_ride",
+                                            "targets": {
+                                                "$$ctx.doc.context.driver": ["in_app"]
+                                            },
+                                            "payload": {
+                                                "contract_code": {
+                                                    "$ctx": "doc.context.contract_code"
+                                                }
+                                            },
+                                        },
+                                    }
+                                ],
+                            },
                         ],
                     },
                 },
             },
-            "RECRUITING_INIT": {
+            "CONFIRMING": {
                 "on_enter": {
                     "effects": [
                         {
@@ -1197,10 +1208,29 @@ def _gherkin_definition() -> Dict[str, Any]:
                         ],
                         "effects": [
                             {
-                                "type": "unschedule.event",
-                                "event_id": {
-                                    "$ctx": "doc.context.pending_invites.$$ctx.user"
+                                "type": "update.contract",
+                                "update": {
+                                    "$set": {
+                                        "local.pending_invite_event_id": {
+                                            "$ctx": "doc.context.pending_invites.$$ctx.user"
+                                        }
+                                    }
                                 },
+                            },
+                            {
+                                "type": "if.else",
+                                "condition": {
+                                    "$ctx": "doc.local.pending_invite_event_id"
+                                },
+                                "then_effects": [
+                                    {
+                                        "type": "unschedule.event",
+                                        "event_id": {
+                                            "$ctx": "doc.local.pending_invite_event_id"
+                                        },
+                                    }
+                                ],
+                                "else_effects": [],
                             },
                             {
                                 "type": "update.contract",
@@ -1292,10 +1322,29 @@ def _gherkin_definition() -> Dict[str, Any]:
                         ],
                         "effects": [
                             {
-                                "type": "unschedule.event",
-                                "event_id": {
-                                    "$ctx": "doc.context.pending_invites.$$ctx.user"
+                                "type": "update.contract",
+                                "update": {
+                                    "$set": {
+                                        "local.pending_invite_event_id": {
+                                            "$ctx": "doc.context.pending_invites.$$ctx.user"
+                                        }
+                                    }
                                 },
+                            },
+                            {
+                                "type": "if.else",
+                                "condition": {
+                                    "$ctx": "doc.local.pending_invite_event_id"
+                                },
+                                "then_effects": [
+                                    {
+                                        "type": "unschedule.event",
+                                        "event_id": {
+                                            "$ctx": "doc.local.pending_invite_event_id"
+                                        },
+                                    }
+                                ],
+                                "else_effects": [],
                             },
                             {
                                 "type": "update.contract",
@@ -2614,7 +2663,7 @@ class ContractsE2ETest(unittest.TestCase):
         return str(resp.json()["id"])
 
     def _create_contract(
-            self, template_id: str, context: Dict[str, Any], **extra: Any
+        self, template_id: str, context: Dict[str, Any], **extra: Any
     ) -> httpx.Response:
         body = {"context": context}
         body.update(extra)
@@ -2625,12 +2674,12 @@ class ContractsE2ETest(unittest.TestCase):
         )
 
     def _post_event(
-            self,
-            contract_id: str,
-            path: str,
-            *,
-            actor: str,
-            payload: Dict[str, Any] | None = None,
+        self,
+        contract_id: str,
+        path: str,
+        *,
+        actor: str,
+        payload: Dict[str, Any] | None = None,
     ) -> httpx.Response:
         if payload is None and path in {"accept-user", "request-join"}:
             payload = {
@@ -2672,14 +2721,10 @@ class ContractsE2ETest(unittest.TestCase):
                 )
             )
 
-    def _gherkin_context(self, initial_state: str = "FIRST_REQUEST") -> Dict[str, Any]:
+    def _gherkin_context(self, initial_state: str = "START") -> Dict[str, Any]:
         driver_uid = self.user_ids["d1"]
         p1_uid = self.user_ids["p1"]
-        p2_uid = self.user_ids["p2"]
-        p3_uid = self.user_ids["p3"]
         rider_ids = [f"u:{p1_uid}"]
-        if initial_state == "FIRST_INVITATIONS":
-            rider_ids = [f"u:{p2_uid}", f"u:{p3_uid}"]
         riders = {
             principal: {
                 "seats": 1,
@@ -2701,11 +2746,11 @@ class ContractsE2ETest(unittest.TestCase):
             "riders": riders,
         }
 
-    def _create_gherkin_contract(self, initial_state: str = "FIRST_REQUEST") -> str:
+    def _create_gherkin_contract(self, initial_state: str = "START") -> str:
         definition = _gherkin_definition()
         template_id = self._create_template(
             definition,
-            allowed_initial_states=["FIRST_REQUEST", "FIRST_INVITATIONS"],
+            allowed_initial_states=["START"],
         )
         created = self._create_contract(
             template_id,
@@ -2717,7 +2762,11 @@ class ContractsE2ETest(unittest.TestCase):
 
     def _to_recruiting(self, cid: str) -> str:
         self.assertEqual(
-            self._post_event(cid, "respond-first-accept", actor="d1").status_code, 200
+            self._post_event(cid, "driver-accept-start", actor="d1").status_code,
+            200,
+        )
+        self.assertEqual(
+            self._post_event(cid, "accept-user", actor="p1").status_code, 200
         )
         c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
         self.assertEqual(c["state"], "RECRUITING")
@@ -2795,24 +2844,28 @@ class ContractsE2ETest(unittest.TestCase):
             "initial_state": "S1",
             "states": {
                 "S1": {
-                    "context_schema": {
-                        "type": "object",
-                        "required": ["requester"],
-                        "properties": {
-                            "requester": {"type": "string", "pattern": "^u:.+$"}
-                        },
-                        "additionalProperties": True,
+                    "on_enter": {
+                        "context_schema": {
+                            "type": "object",
+                            "required": ["requester"],
+                            "properties": {
+                                "requester": {"type": "string", "pattern": "^u:.+$"}
+                            },
+                            "additionalProperties": True,
+                        }
                     },
                     "events": {},
                 },
                 "S2": {
-                    "context_schema": {
-                        "type": "object",
-                        "required": ["driver"],
-                        "properties": {
-                            "driver": {"type": "string", "pattern": "^u:.+$"}
-                        },
-                        "additionalProperties": True,
+                    "on_enter": {
+                        "context_schema": {
+                            "type": "object",
+                            "required": ["driver"],
+                            "properties": {
+                                "driver": {"type": "string", "pattern": "^u:.+$"}
+                            },
+                            "additionalProperties": True,
+                        }
                     },
                     "events": {},
                 },
@@ -3141,18 +3194,18 @@ class ContractsE2ETest(unittest.TestCase):
         p2_uid = self.user_ids["p2"]
         p3_uid = self.user_ids["p3"]
 
-        context = self._gherkin_context(initial_state="FIRST_REQUEST")
+        context = self._gherkin_context(initial_state="START")
 
         definition = _gherkin_definition()
 
         template_id = self._create_template(
             definition,
-            allowed_initial_states=["FIRST_REQUEST", "FIRST_INVITATIONS"],
+            allowed_initial_states=["START"],
         )
         created = self._create_contract(
             template_id,
             context,
-            initial_state="FIRST_REQUEST",
+            initial_state="START",
         )
         self.assertEqual(created.status_code, 201)
         cid = created.json()["id"]
@@ -3160,11 +3213,14 @@ class ContractsE2ETest(unittest.TestCase):
         c1 = self.httpx.get(
             f"/contracts/{cid}", headers=self._headers("owner-1")
         ).json()
-        self.assertEqual(c1["state"], "FIRST_REQUEST")
+        self.assertEqual(c1["state"], "START")
         self.assertIsNone((c1["context"] or {}).get("group_id"))
 
-        r2 = self._post_event(cid, "respond-first-accept", actor="d1")
+        r2 = self._post_event(cid, "driver-accept-start", actor="d1")
         self.assertEqual(r2.status_code, 200)
+        self.assertEqual(
+            self._post_event(cid, "accept-user", actor="p1").status_code, 200
+        )
         c2 = self.httpx.get(
             f"/contracts/{cid}", headers=self._headers("owner-1")
         ).json()
@@ -3282,98 +3338,150 @@ class ContractsE2ETest(unittest.TestCase):
     def test_wf1_request_ride_notifies_driver(self) -> None:
         driver_uid = self.user_ids["d1"]
         driver_principal = f"u:{driver_uid}"
+        p1_uid = self.user_ids["p1"]
         event = "contracts.request_ride"
 
         before = self._count_notifications_for(driver_principal, event)
-        _ = self._create_gherkin_contract(initial_state="FIRST_REQUEST")
+        cid = self._create_gherkin_contract(initial_state="START")
         after = self._count_notifications_for(driver_principal, event)
 
         self.assertEqual(after, before + 1)
+        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
+        self.assertEqual(c["state"], "START")
+        self.assertEqual(self._user_state(c, driver_uid), "PENDING_DRIVER")
+        self.assertEqual(self._user_state(c, p1_uid), "REQUESTING")
 
-    def test_first_invitations_driver_starts_and_invites_user(self) -> None:
-        cid = self._create_gherkin_contract(initial_state="FIRST_INVITATIONS")
-        p2_principal = f"u:{self.user_ids['p2']}"
+    def test_start_driver_initiated_sets_driver_and_pending_users(self) -> None:
+        owner_uid = self.user_ids["owner-1"]
+        p2_uid = self.user_ids["p2"]
+        p2_principal = f"u:{p2_uid}"
+        invited_event = "contracts.user_invited"
+        before = self._count_notifications_for(p2_principal, invited_event)
 
-        self.assertEqual(
-            self._post_event(
-                cid,
-                "invite-user",
-                actor="d1",
-                payload={"principal": p2_principal},
-            ).status_code,
-            200,
-        )
-        self.assertEqual(
-            self._post_event(
-                cid,
-                "accept-user",
-                actor="p2",
-                payload={
-                    "seats": 3,
+        context = self._gherkin_context(initial_state="START")
+        context["driver"] = f"u:{owner_uid}"
+        context["riders"] = {
+            p2_principal: {
+                "seats": 1,
+                "trip": {
                     "origin": {"lat": 45.0, "lng": 9.0},
                     "destination": {"lat": 45.1, "lng": 9.1},
                 },
-            ).status_code,
+            }
+        }
+
+        definition = _gherkin_definition()
+        template_id = self._create_template(
+            definition, allowed_initial_states=["START"]
+        )
+        created = self._create_contract(template_id, context, initial_state="START")
+        self.assertEqual(created.status_code, 201)
+        cid = str(created.json()["id"])
+
+        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
+        self.assertEqual(c["state"], "RECRUITING")
+        self.assertEqual(self._user_state(c, owner_uid), "DRIVER")
+        self.assertEqual(self._user_state(c, p2_uid), "PENDING")
+
+        after = self._count_notifications_for(p2_principal, invited_event)
+        self.assertEqual(after, before + 1)
+
+    def test_start_driver_accept_then_rider_must_confirm(self) -> None:
+        cid = self._create_gherkin_contract(initial_state="START")
+        p1_uid = self.user_ids["p1"]
+
+        self.assertEqual(
+            self._post_event(cid, "driver-accept-start", actor="d1").status_code,
+            200,
+        )
+        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
+        self.assertEqual(c["state"], "RECRUITING")
+        self.assertEqual(self._user_state(c, p1_uid), "PENDING")
+
+        self.assertEqual(
+            self._post_event(cid, "accept-user", actor="p1").status_code, 200
+        )
+        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
+        self.assertEqual(c["state"], "RECRUITING")
+        self.assertEqual(self._user_state(c, p1_uid), "ACCEPTED")
+
+    def test_start_cancel_last_requester_re_notifies_driver(self) -> None:
+        driver_principal = f"u:{self.user_ids['d1']}"
+        event = "contracts.request_ride"
+        before = self._count_notifications_for(driver_principal, event)
+
+        cid = self._create_gherkin_contract(initial_state="START")
+        after_create = self._count_notifications_for(driver_principal, event)
+        self.assertEqual(after_create, before + 1)
+
+        self.assertEqual(
+            self._post_event(cid, "cancel-join-request", actor="p1").status_code,
             200,
         )
 
         c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
-        self.assertEqual(c["state"], "RECRUITING")
-        self.assertEqual(self._user_state(c, self.user_ids["p2"]), "ACCEPTED")
+        self.assertEqual(c["state"], "START")
+        self.assertFalse((c.get("context") or {}).get("riders"))
 
-    def test_first_invitations_on_enter_notifies_initial_targets(self) -> None:
-        p2 = f"u:{self.user_ids['p2']}"
-        p3 = f"u:{self.user_ids['p3']}"
-        event = "contracts.user_invited"
-        before_p2 = self._count_notifications_for(p2, event)
-        before_p3 = self._count_notifications_for(p3, event)
+        after_cancel = self._count_notifications_for(driver_principal, event)
+        self.assertEqual(after_cancel, before + 2)
 
-        _ = self._create_gherkin_contract(initial_state="FIRST_INVITATIONS")
+    def test_start_request_join_sets_requesting_and_notifies_driver(self) -> None:
+        driver_principal = f"u:{self.user_ids['d1']}"
+        event = "contracts.join_requested"
+        before = self._count_notifications_for(driver_principal, event)
 
-        after_p2 = self._count_notifications_for(p2, event)
-        after_p3 = self._count_notifications_for(p3, event)
-        self.assertEqual(after_p2, before_p2 + 1)
-        self.assertEqual(after_p3, before_p3 + 1)
+        cid = self._create_gherkin_contract(initial_state="START")
+        self.assertEqual(
+            self._post_event(cid, "request-join", actor="p4").status_code, 200
+        )
+
+        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
+        self.assertEqual(c["state"], "START")
+        self.assertEqual(self._user_state(c, self.user_ids["p4"]), "REQUESTING")
+
+        after = self._count_notifications_for(driver_principal, event)
+        self.assertEqual(after, before + 1)
 
     def test_wf2_first_request_rejected_no_group(self) -> None:
         p1 = self.user_ids["p1"]
         definition = _gherkin_definition()
         template_id = self._create_template(
             definition,
-            allowed_initial_states=["FIRST_REQUEST", "FIRST_INVITATIONS"],
+            allowed_initial_states=["START"],
         )
         created = self._create_contract(
             template_id,
-            self._gherkin_context(initial_state="FIRST_REQUEST"),
-            initial_state="FIRST_REQUEST",
+            self._gherkin_context(initial_state="START"),
+            initial_state="START",
         )
         cid = created.json()["id"]
         self.assertEqual(
-            self._post_event(cid, "respond-first-reject", actor="d1").status_code,
+            self._post_event(cid, "driver-reject-start", actor="d1").status_code,
             200,
         )
         c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
         self.assertEqual(c["state"], "REJECTED")
         self.assertIsNone((c.get("context") or {}).get("group_id"))
 
-    def test_wf3_first_request_timeout_via_cron(self) -> None:
+    def test_wf3_start_has_no_timeout_via_cron(self) -> None:
         p1 = self.user_ids["p1"]
         definition = _gherkin_definition()
         template_id = self._create_template(
             definition,
-            allowed_initial_states=["FIRST_REQUEST", "FIRST_INVITATIONS"],
+            allowed_initial_states=["START"],
         )
         created = self._create_contract(
             template_id,
-            self._gherkin_context(initial_state="FIRST_REQUEST"),
-            initial_state="FIRST_REQUEST",
+            self._gherkin_context(initial_state="START"),
+            initial_state="START",
         )
         cid = created.json()["id"]
         tick = self.httpx.post("/contracts/cron/tick", headers=self._headers("admin"))
         self.assertEqual(tick.status_code, 200)
         c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
-        self.assertEqual(c["state"], "EXPIRED")
-        self.assertEqual(self._user_state(c, p1), "EXPIRED")
+        self.assertEqual(c["state"], "START")
+        self.assertEqual(self._user_state(c, p1), "REQUESTING")
         self.assertIsNone((c.get("context") or {}).get("group_id"))
 
     def test_wf4_invite_timeout_expires_p2_and_keeps_group(self) -> None:
@@ -3383,16 +3491,20 @@ class ContractsE2ETest(unittest.TestCase):
         definition = _gherkin_definition()
         template_id = self._create_template(
             definition,
-            allowed_initial_states=["FIRST_REQUEST", "FIRST_INVITATIONS"],
+            allowed_initial_states=["START"],
         )
         created = self._create_contract(
             template_id,
-            self._gherkin_context(initial_state="FIRST_REQUEST"),
-            initial_state="FIRST_REQUEST",
+            self._gherkin_context(initial_state="START"),
+            initial_state="START",
         )
         cid = created.json()["id"]
         self.assertEqual(
-            self._post_event(cid, "respond-first-accept", actor="d1").status_code, 200
+            self._post_event(cid, "driver-accept-start", actor="d1").status_code,
+            200,
+        )
+        self.assertEqual(
+            self._post_event(cid, "accept-user", actor="p1").status_code, 200
         )
         c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
         gid = str((c.get("context") or {}).get("group_id") or "")
@@ -3425,16 +3537,20 @@ class ContractsE2ETest(unittest.TestCase):
         definition = _gherkin_definition()
         template_id = self._create_template(
             definition,
-            allowed_initial_states=["FIRST_REQUEST", "FIRST_INVITATIONS"],
+            allowed_initial_states=["START"],
         )
         created = self._create_contract(
             template_id,
-            self._gherkin_context(initial_state="FIRST_REQUEST"),
-            initial_state="FIRST_REQUEST",
+            self._gherkin_context(initial_state="START"),
+            initial_state="START",
         )
         cid = created.json()["id"]
         self.assertEqual(
-            self._post_event(cid, "respond-first-accept", actor="d1").status_code, 200
+            self._post_event(cid, "driver-accept-start", actor="d1").status_code,
+            200,
+        )
+        self.assertEqual(
+            self._post_event(cid, "accept-user", actor="p1").status_code, 200
         )
         c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
         gid = str((c.get("context") or {}).get("group_id") or "")
@@ -3469,16 +3585,20 @@ class ContractsE2ETest(unittest.TestCase):
         definition = _gherkin_definition()
         template_id = self._create_template(
             definition,
-            allowed_initial_states=["FIRST_REQUEST", "FIRST_INVITATIONS"],
+            allowed_initial_states=["START"],
         )
         created = self._create_contract(
             template_id,
-            self._gherkin_context(initial_state="FIRST_REQUEST"),
-            initial_state="FIRST_REQUEST",
+            self._gherkin_context(initial_state="START"),
+            initial_state="START",
         )
         cid = created.json()["id"]
         self.assertEqual(
-            self._post_event(cid, "respond-first-accept", actor="d1").status_code, 200
+            self._post_event(cid, "driver-accept-start", actor="d1").status_code,
+            200,
+        )
+        self.assertEqual(
+            self._post_event(cid, "accept-user", actor="p1").status_code, 200
         )
         self.assertEqual(
             self._post_event(
@@ -3517,7 +3637,7 @@ class ContractsE2ETest(unittest.TestCase):
         driver_uid = self.user_ids["d1"]
         p1_uid = self.user_ids["p1"]
         p2_uid = self.user_ids["p2"]
-        cid = self._create_gherkin_contract(initial_state="FIRST_REQUEST")
+        cid = self._create_gherkin_contract(initial_state="START")
 
         with self.app.app_context():
             self.app.config["MONGO_DB"]["contracts"].update_one(
@@ -3568,7 +3688,7 @@ class ContractsE2ETest(unittest.TestCase):
         driver_uid = self.user_ids["d1"]
         p1_uid = self.user_ids["p1"]
         p2_uid = self.user_ids["p2"]
-        cid = self._create_gherkin_contract(initial_state="FIRST_REQUEST")
+        cid = self._create_gherkin_contract(initial_state="START")
         gid = self._to_recruiting(cid)
 
         self.assertEqual(
@@ -3599,7 +3719,7 @@ class ContractsE2ETest(unittest.TestCase):
         )
 
     def test_driver_can_cancel_pending_invite_in_recruiting(self) -> None:
-        cid = self._create_gherkin_contract(initial_state="FIRST_REQUEST")
+        cid = self._create_gherkin_contract(initial_state="START")
         _ = self._to_recruiting(cid)
         p2_uid = self.user_ids["p2"]
 
@@ -3631,7 +3751,7 @@ class ContractsE2ETest(unittest.TestCase):
         driver_uid = self.user_ids["d1"]
         p1_uid = self.user_ids["p1"]
         p2_uid = self.user_ids["p2"]
-        cid = self._create_gherkin_contract(initial_state="FIRST_REQUEST")
+        cid = self._create_gherkin_contract(initial_state="START")
         gid = self._to_recruiting(cid)
 
         self.assertEqual(
@@ -3666,7 +3786,7 @@ class ContractsE2ETest(unittest.TestCase):
         )
 
     def test_driver_can_cancel_trip_in_recruiting_and_ready(self) -> None:
-        cid_r = self._create_gherkin_contract(initial_state="FIRST_REQUEST")
+        cid_r = self._create_gherkin_contract(initial_state="START")
         _ = self._to_recruiting(cid_r)
         self.assertEqual(
             self._post_event(cid_r, "driver-cancel-trip", actor="d1").status_code,
@@ -3680,7 +3800,7 @@ class ContractsE2ETest(unittest.TestCase):
         )
         self.assertEqual(denied_r.status_code, 410)
 
-        cid_ready = self._create_gherkin_contract(initial_state="FIRST_REQUEST")
+        cid_ready = self._create_gherkin_contract(initial_state="START")
         _ = self._to_ready(cid_ready)
         self.assertEqual(
             self._post_event(cid_ready, "driver-cancel-trip", actor="d1").status_code,
@@ -3690,7 +3810,7 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(denied_ready.status_code, 410)
 
     def test_in_progress_pickup_flow_with_timed_checks(self) -> None:
-        cid = self._create_gherkin_contract(initial_state="FIRST_REQUEST")
+        cid = self._create_gherkin_contract(initial_state="START")
         _ = self._to_ready(cid)
 
         self.assertEqual(
@@ -3739,7 +3859,7 @@ class ContractsE2ETest(unittest.TestCase):
         p1_uid = self.user_ids["p1"]
         p2_uid = self.user_ids["p2"]
         p3_uid = self.user_ids["p3"]
-        cid = self._create_gherkin_contract(initial_state="FIRST_REQUEST")
+        cid = self._create_gherkin_contract(initial_state="START")
         gid = self._to_ready(cid)
 
         self.assertEqual(
@@ -3761,7 +3881,7 @@ class ContractsE2ETest(unittest.TestCase):
         )
 
     def test_in_progress_completes_when_all_riders_picked(self) -> None:
-        cid = self._create_gherkin_contract(initial_state="FIRST_REQUEST")
+        cid = self._create_gherkin_contract(initial_state="START")
         _ = self._to_ready(cid)
 
         self.assertEqual(
