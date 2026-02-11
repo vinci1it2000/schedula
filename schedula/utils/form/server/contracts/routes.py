@@ -19,7 +19,6 @@ from jsonschema import Draft202012Validator
 from .engine import (
     _process_event,
     _create_contract_from_template_doc,
-    run_cron_triggers_tick,
     _templates_coll,
     _get_contract,
     _contracts_coll,
@@ -110,8 +109,8 @@ TEMPLATE_CREATE_SCHEMA = {
                         "transfer_to.credits",
                         "balance.credits",
                         "if.else",
-                        "schedule.event",
-                        "unschedule.event",
+                        "schedule.event_at",
+                        "unschedule.event_at",
                         "http.request",
                         "notify",
                     ],
@@ -176,11 +175,11 @@ TEMPLATE_CREATE_SCHEMA = {
                     "type": "string",
                     "minLength": 1,
                 },
-                "cron": {
-                    "title": "Cron Expression",
-                    "description": "Cron expression used to trigger scheduled event.",
+                "at": {
+                    "title": "Execution Datetime",
+                    "description": "Datetime used to trigger the scheduled event.",
                     "type": "string",
-                    "minLength": 1,
+                    "format": "date-time"
                 },
                 "payload": {
                     "title": "Scheduled Payload",
@@ -285,11 +284,11 @@ TEMPLATE_CREATE_SCHEMA = {
                     "then": {"required": ["condition", "then_effects"]},
                 },
                 {
-                    "if": {"properties": {"type": {"const": "schedule.event"}}},
-                    "then": {"required": ["event_name", "cron", "key"]},
+                    "if": {"properties": {"type": {"const": "schedule.event_at"}}},
+                    "then": {"required": ["event_name", "at", "key"]},
                 },
                 {
-                    "if": {"properties": {"type": {"const": "unschedule.event"}}},
+                    "if": {"properties": {"type": {"const": "unschedule.event_at"}}},
                     "then": {"required": ["event_id"]},
                 },
                 {
@@ -1045,10 +1044,3 @@ def contract_api_event(contract_id: str, dyn_path: str):
         body_payload=body_payload,
     )
     return jsonify(result), status
-
-
-@bp.post("/contracts/cron/tick")
-@require_system_admin("contracts:templates", "manage")
-def contracts_cron_tick():
-    result = run_cron_triggers_tick()
-    return jsonify(result), 200

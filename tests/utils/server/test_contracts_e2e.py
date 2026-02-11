@@ -199,10 +199,10 @@ def _gherkin_definition() -> Dict[str, Any]:
                             },
                             "then_effects": [
                                 {
-                                    "type": "schedule.event",
+                                    "type": "schedule.event_at",
                                     "key": "driver_pickup_check_id",
                                     "event_name": "DriverPickupCheckTimed",
-                                    "cron": "* * * * *",
+                                    "at": "1970-01-01T00:00:00+00:00",
                                     "actor_id": "system:cron",
                                 },
                                 {
@@ -473,10 +473,10 @@ def _gherkin_definition() -> Dict[str, Any]:
                         ],
                         "effects": [
                             {
-                                "type": "schedule.event",
+                                "type": "schedule.event_at",
                                 "key": "driver_pickup_check_id",
                                 "event_name": "DriverPickupCheckTimed",
-                                "cron": "* * * * *",
+                                "at": "1970-01-01T00:00:00+00:00",
                                 "actor_id": "system:cron",
                             },
                             {
@@ -1139,10 +1139,10 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 },
                             },
                             {
-                                "type": "schedule.event",
+                                "type": "schedule.event_at",
                                 "key": "invite_timeout_id",
                                 "event_name": "InviteUserTimedOut",
-                                "cron": "* * * * *",
+                                "at": "1970-01-01T00:00:00+00:00",
                                 "actor_id": "system:cron",
                                 "payload": {"principal": "$$ctx.payload.principal"},
                             },
@@ -1224,7 +1224,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 },
                                 "then_effects": [
                                     {
-                                        "type": "unschedule.event",
+                                        "type": "unschedule.event_at",
                                         "event_id": {
                                             "$ctx": "doc.local.pending_invite_event_id"
                                         },
@@ -1338,7 +1338,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 },
                                 "then_effects": [
                                     {
-                                        "type": "unschedule.event",
+                                        "type": "unschedule.event_at",
                                         "event_id": {
                                             "$ctx": "doc.local.pending_invite_event_id"
                                         },
@@ -1454,7 +1454,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 },
                                 "then_effects": [
                                     {
-                                        "type": "unschedule.event",
+                                        "type": "unschedule.event_at",
                                         "event_id": {
                                             "$ctx": "doc.context.pending_invites.$$ctx.payload.principal"
                                         },
@@ -1819,10 +1819,10 @@ def _gherkin_definition() -> Dict[str, Any]:
                         ],
                         "effects": [
                             {
-                                "type": "schedule.event",
+                                "type": "schedule.event_at",
                                 "key": "riders_pickup_check_id",
                                 "event_name": "RidersPickupCheckTimed",
-                                "cron": "* * * * *",
+                                "at": "1970-01-01T00:00:00+00:00",
                                 "actor_id": "system:cron",
                             },
                             {
@@ -2056,7 +2056,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 },
                             },
                             {
-                                "type": "unschedule.event",
+                                "type": "unschedule.event_at",
                                 "event_id": {
                                     "$ctx": "doc.context.driver_pickup_check_id"
                                 },
@@ -2206,7 +2206,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "condition": {"$ctx": "doc.local.all_riders_picked_up"},
                                 "then_effects": [
                                     {
-                                        "type": "unschedule.event",
+                                        "type": "unschedule.event_at",
                                         "event_id": {
                                             "$ctx": "doc.context.riders_pickup_check_id"
                                         },
@@ -2549,7 +2549,15 @@ class ContractsE2ETest(unittest.TestCase):
             patch(
                 "schedula.utils.form.server.credits.Lock",
                 new=lambda *_args, **_kwargs: contextlib.nullcontext(),
-            )
+            ),
+            patch(
+                "schedula.utils.form.server.contracts.engine.create_sadlock",
+                new=lambda *_args, **_kwargs: contextlib.nullcontext(),
+            ),
+            patch(
+                "schedula.utils.form.server.contracts.schedule.create_sadlock",
+                new=lambda *_args, **_kwargs: contextlib.nullcontext(),
+            ),
         ]
         for patcher in self._patchers:
             patcher.start()
@@ -2692,6 +2700,33 @@ class ContractsE2ETest(unittest.TestCase):
             json={"payload": payload or {}},
             headers=self._headers(actor),
         )
+
+    def _run_worker_once(self, *, now: dt.datetime | None = None) -> bool:
+        from schedula.utils.form.server.contracts.schedule import (
+            _func,
+            _queue_coll,
+            ack_done,
+            claim_job,
+            nack_retry,
+        )
+
+        now = now or dt.datetime.now(dt.timezone.utc)
+        with patch(
+            "schedula.utils.form.server.contracts.schedule._claim_job_now",
+            return_value=now,
+        ):
+            with self.app.app_context():
+                coll = _queue_coll()
+                job = claim_job(coll)
+                if not job:
+                    return False
+                try:
+                    resp = _func(**(job.get("payload") or {}))
+                    ack_done(coll, job["_id"], resp)
+                except Exception as ex:
+                    nack_retry(coll, job["_id"], ex, delay_s=0)
+                    raise
+        return True
 
     def _group_member_ids(self, gid: str) -> set[str]:
         raw_gid = gid[2:] if gid.startswith("g:") else gid
@@ -2941,10 +2976,10 @@ class ContractsE2ETest(unittest.TestCase):
                             "trigger": [{"type": "api", "path": "schedule-close"}],
                             "effects": [
                                 {
-                                    "type": "schedule.event",
+                                    "type": "schedule.event_at",
                                     "key": "close_event_id",
                                     "event_name": "CloseNow",
-                                    "cron": "* * * * *",
+                                    "at": "1970-01-01T00:00:00+00:00",
                                 },
                                 {
                                     "type": "update.contract",
@@ -2980,12 +3015,7 @@ class ContractsE2ETest(unittest.TestCase):
         scheduled = self._post_event(cid, "schedule-close", actor="u1")
         self.assertEqual(scheduled.status_code, 200)
 
-        tick = self.httpx.post(
-            "/contracts/cron/tick",
-            headers=self._headers("admin"),
-        )
-        self.assertEqual(tick.status_code, 200)
-        self.assertGreaterEqual(int(tick.json().get("fired", 0)), 1)
+        self.assertTrue(self._run_worker_once())
 
         got = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1"))
         self.assertEqual(got.status_code, 200)
@@ -3003,10 +3033,10 @@ class ContractsE2ETest(unittest.TestCase):
                             "trigger": [{"type": "api", "path": "schedule-close"}],
                             "effects": [
                                 {
-                                    "type": "schedule.event",
+                                    "type": "schedule.event_at",
                                     "key": "scheduled_close_id",
                                     "event_name": "CloseNow",
-                                    "cron": "* * * * *",
+                                    "at": "1970-01-01T00:00:00+00:00",
                                     "actor_id": "system:cron",
                                 },
                                 {
@@ -3046,12 +3076,14 @@ class ContractsE2ETest(unittest.TestCase):
             raw = self.app.config["MONGO_DB"]["contracts"].find_one({"_id": cid}) or {}
         scheduled_id = str((raw.get("context") or {}).get("scheduled_close_id") or "")
         self.assertTrue(scheduled_id)
-        close_1 = (raw.get("scheduled_events") or {}).get(scheduled_id) or {}
-        self.assertEqual(close_1.get("event_name"), "CloseNow")
-        self.assertEqual(close_1.get("cron"), "* * * * *")
+        with self.app.app_context():
+            qdoc = self.app.config["MONGO_DB"]["contract_queue"].find_one(
+                {"_id": scheduled_id}
+            )
+        self.assertIsNotNone(qdoc)
+        self.assertEqual((qdoc or {}).get("payload", {}).get("event_name"), "CloseNow")
 
-        tick = self.httpx.post("/contracts/cron/tick", headers=self._headers("admin"))
-        self.assertEqual(tick.status_code, 200)
+        self.assertTrue(self._run_worker_once())
         got = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1"))
         self.assertEqual(got.status_code, 200)
         self.assertEqual(got.json().get("state"), "S_FINAL")
@@ -3068,10 +3100,10 @@ class ContractsE2ETest(unittest.TestCase):
                             "trigger": [{"type": "api", "path": "schedule-close"}],
                             "effects": [
                                 {
-                                    "type": "schedule.event",
+                                    "type": "schedule.event_at",
                                     "key": "scheduled_close_id",
                                     "event_name": "CloseNow",
-                                    "cron": "* * * * *",
+                                    "at": "1970-01-01T00:00:00+00:00",
                                 },
                                 {
                                     "type": "update.contract",
@@ -3089,7 +3121,7 @@ class ContractsE2ETest(unittest.TestCase):
                             "trigger": [{"type": "api", "path": "unschedule-close"}],
                             "effects": [
                                 {
-                                    "type": "unschedule.event",
+                                    "type": "unschedule.event_at",
                                     "event_id": {
                                         "$ctx": "doc.context.scheduled_close_id"
                                     },
@@ -3127,10 +3159,13 @@ class ContractsE2ETest(unittest.TestCase):
             raw = self.app.config["MONGO_DB"]["contracts"].find_one({"_id": cid}) or {}
         scheduled_id = str((raw.get("context") or {}).get("scheduled_close_id") or "")
         self.assertTrue(scheduled_id)
-        self.assertNotIn(scheduled_id, (raw.get("scheduled_events") or {}))
+        with self.app.app_context():
+            qdoc = self.app.config["MONGO_DB"]["contract_queue"].find_one(
+                {"_id": scheduled_id}
+            )
+        self.assertIsNone(qdoc)
 
-        tick = self.httpx.post("/contracts/cron/tick", headers=self._headers("admin"))
-        self.assertEqual(tick.status_code, 200)
+        self.assertFalse(self._run_worker_once())
         got = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1"))
         self.assertEqual(got.status_code, 200)
         self.assertEqual(got.json().get("state"), "S1")
@@ -3477,8 +3512,7 @@ class ContractsE2ETest(unittest.TestCase):
             initial_state="START",
         )
         cid = created.json()["id"]
-        tick = self.httpx.post("/contracts/cron/tick", headers=self._headers("admin"))
-        self.assertEqual(tick.status_code, 200)
+        self.assertFalse(self._run_worker_once())
         c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
         self.assertEqual(c["state"], "START")
         self.assertEqual(self._user_state(c, p1), "REQUESTING")
@@ -3519,8 +3553,8 @@ class ContractsE2ETest(unittest.TestCase):
             ).status_code,
             200,
         )
-        tick = self.httpx.post("/contracts/cron/tick", headers=self._headers("admin"))
-        self.assertEqual(tick.status_code, 200)
+        self.assertTrue(self._run_worker_once())
+        self.assertTrue(self._run_worker_once())
 
         c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
         self.assertEqual(c["state"], "RECRUITING")
@@ -3824,8 +3858,7 @@ class ContractsE2ETest(unittest.TestCase):
         before_driver = self._count_notifications_for(
             driver_principal, "contracts.driver_pickup_check"
         )
-        tick = self.httpx.post("/contracts/cron/tick", headers=self._headers("admin"))
-        self.assertEqual(tick.status_code, 200)
+        self.assertTrue(self._run_worker_once())
         after_driver = self._count_notifications_for(
             driver_principal, "contracts.driver_pickup_check"
         )
