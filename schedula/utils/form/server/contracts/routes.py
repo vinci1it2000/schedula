@@ -460,7 +460,6 @@ TEMPLATE_CREATE_SCHEMA = {
                     "items": {"$ref": "#/$defs/effect"},
                 },
             },
-            "required": ["trigger"],
             "additionalProperties": False,
         },
         "event_trigger": {
@@ -784,6 +783,10 @@ TEMPLATE_CREATE_SCHEMA = {
                     "minProperties": 1,
                     "additionalProperties": {"$ref": "#/$defs/state"},
                 },
+                "events": {
+                    "type": "object",
+                    "additionalProperties": {"$ref": "#/$defs/event"},
+                },
             },
             "required": ["initial_state", "states"],
             "additionalProperties": False,
@@ -1035,12 +1038,8 @@ def contract_api_event(contract_id: str, dyn_path: str):
     if not isinstance(body_payload, dict):
         abort_json(400, "payload must be object")
 
-    doc = _get_contract(contract_id)
-    if not doc:
-        abort_json(404, "Contract not found")
-
     result, status = _process_event(
-        doc=doc,
+        contract_id=contract_id,
         dyn_path=dyn_path,
         actor_id=actor_id,
         body_payload=body_payload,

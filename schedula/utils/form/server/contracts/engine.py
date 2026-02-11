@@ -14,6 +14,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import pydash
 import requests
 from jsonschema import Draft202012Validator
+from sqlalchemy_dlock import create_sadlock
 
 from ..extensions import db
 from ..security.casbin import (
@@ -389,40 +390,46 @@ def _apply_on_enter(
 
 def _process_event(
         *,
-        doc: Dict[str, Any],
+        contract_id: str,
         dyn_path: str,
         actor_id: str,
         body_payload: Dict[str, Any],
 ) -> Tuple[Dict[str, Any], int]:
-    if doc.get("status") in ("DONE", "CANCELED"):
-        abort_json(410, "Contract not accepting events")
+    with create_sadlock(db.session, contract_id):
+        doc = _get_contract(contract_id)
+        if not doc:
+            abort_json(404, "Contract not found")
 
-    state = str(doc.get("state") or "")
-    events = pydash.get(doc, f"definition.states.{state}.events", {})
+        if doc.get("status") in ("DONE", "CANCELED"):
+            abort_json(410, "Contract not accepting events")
 
-    selected_edef: Optional[Dict[str, Any]] = None
-    selected_trigger: Optional[Dict[str, Any]] = None
-    for _, candidate in sorted(events.items()):
-        trigger = candidate.get("trigger")
-        for t in trigger:
-            if str(t.get("type") or "") != "api":
-                continue
-            path = t.get("path")
-            if isinstance(path, str) and path == dyn_path:
-                selected_edef = candidate
-                selected_trigger = t
-                break
-        if selected_edef is not None:
-            break
-    if selected_edef is None or selected_trigger is None:
-        abort_json(409, "Event not available in this state")
-    return _process_selected_event(
-        doc=doc,
-        edef=selected_edef,
-        selected_trigger=selected_trigger,
-        actor_id=actor_id,
-        body_payload=body_payload,
-    )
+        state = str(doc.get("state") or "")
+        events = dict(pydash.get(doc, f"definition.events", {}))
+        events.update(pydash.get(doc, f"definition.states.{state}.events", {}))
+
+        selected_edef: Optional[Dict[str, Any]] = None
+        selected_trigger: Optional[Dict[str, Any]] = None
+        for _, candidate in sorted(events.items()):
+            if "trigger" in candidate:
+                for t in candidate["trigger"]:
+                    if str(t.get("type") or "") != "api":
+                        continue
+                    path = t.get("path")
+                    if isinstance(path, str) and path == dyn_path:
+                        selected_edef = candidate
+                        selected_trigger = t
+                        break
+                if selected_edef is not None:
+                    break
+        if selected_edef is None or selected_trigger is None:
+            abort_json(409, "Event not available in this state")
+        return _process_selected_event(
+            doc=doc,
+            edef=selected_edef,
+            selected_trigger=selected_trigger,
+            actor_id=actor_id,
+            body_payload=body_payload,
+        )
 
 
 def _process_selected_event(
