@@ -414,7 +414,7 @@ def _apply_on_enter(
     if prev_state:
         on_exit = pydash.get(doc, f"definition.states.{doc.get('state')}.on_exit", {})
         changed, doc = _apply_effects(
-            on_exit, doc, actor_id=actor_id, payload=payload, local=local
+            on_exit, doc, actor_id=actor_id, payload=payload, local=local, validate_schema=False
         )
         if changed:
             return doc
@@ -422,7 +422,7 @@ def _apply_on_enter(
 
     on_enter = pydash.get(doc, f"definition.states.{doc.get('state')}.on_enter", {})
     validate_context_schema(doc, on_enter)
-    _, doc = _apply_effects(on_enter, doc, actor_id, local=local)
+    _, doc = _apply_effects(on_enter, doc, actor_id, local=local, validate_schema=False)
     return doc
 
 

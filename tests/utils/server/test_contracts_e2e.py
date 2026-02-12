@@ -183,20 +183,14 @@ def _gherkin_definition() -> Dict[str, Any]:
                             "description": "Persists transition data to keep the process deterministic.",
                             "type": "update.contract",
                             "update": {
-                                "$set": {
-                                    "local.start_initiated_by_driver": {
-                                        "$eq": ["$created_by", "$context.driver"]
-                                    }
-                                }
+                                "$set": {"local.start_initiated_by_driver": {"$eq": ["$created_by", "$context.driver"]}}
                             },
                         },
                         {
                             "title": "Evaluate Branch",
                             "description": "Selects the branch that matches current trip conditions.",
                             "type": "if.else",
-                            "condition": {
-                                "$ctx": "doc.local.start_initiated_by_driver"
-                            },
+                            "condition": {"$ctx": "doc.local.start_initiated_by_driver"},
                             "then_effects": [
                                 {
                                     "title": "Set Pending Riders",
@@ -207,9 +201,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                             "states": {
                                                 "$arrayToObject": {
                                                     "$map": {
-                                                        "input": {
-                                                            "$objectToArray": "$context.riders"
-                                                        },
+                                                        "input": {"$objectToArray": "$context.riders"},
                                                         "as": "p",
                                                         "in": {
                                                             "k": "$$p.k",
@@ -241,9 +233,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                             "local.initial_invite_targets": {
                                                 "$arrayToObject": {
                                                     "$map": {
-                                                        "input": {
-                                                            "$objectToArray": "$context.riders"
-                                                        },
+                                                        "input": {"$objectToArray": "$context.riders"},
                                                         "as": "p",
                                                         "in": {
                                                             "k": "$$p.k",
@@ -261,9 +251,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                     "type": "notify",
                                     "notify": {
                                         "event": "contracts.user_invited",
-                                        "targets": {
-                                            "$ctx": "doc.local.initial_invite_targets"
-                                        },
+                                        "targets": {"$ctx": "doc.local.initial_invite_targets"},
                                         "payload": {"contract_id": {"$ctx": "doc._id"}},
                                     },
                                 },
@@ -285,9 +273,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                 "states": {
                                                     "$arrayToObject": {
                                                         "$map": {
-                                                            "input": {
-                                                                "$objectToArray": "$context.riders"
-                                                            },
+                                                            "input": {"$objectToArray": "$context.riders"},
                                                             "as": "p",
                                                             "in": {
                                                                 "k": "$$p.k",
@@ -298,11 +284,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                 }
                                             }
                                         },
-                                        {
-                                            "$set": {
-                                                "states.$$ctx.doc.context.driver": "PENDING_DRIVER"
-                                            }
-                                        },
+                                        {"$set": {"states.$$ctx.doc.context.driver": "PENDING_DRIVER"}},
                                     ],
                                 },
                                 {
@@ -333,10 +315,9 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "method": "POST",
                                 "payload_schema": {
                                     "type": "object",
-                                    "required": ["route_id", "seats"],
+                                    "required": ["route_id"],
                                     "properties": {
                                         "route_id": {"type": "string", "minLength": 1},
-                                        "seats": {"type": "integer", "minimum": 1},
                                     },
                                     "additionalProperties": False,
                                 },
@@ -361,9 +342,8 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "type": "update.contract",
                                 "update": {
                                     "$set": {
-                                        "local.route_cost": {
-                                            "$ref": "/items/route/$$ctx.payload.route_id/data.cost"
-                                        },
+                                        "local.route_cost": {"$ref": "/items/route/$$ctx.payload.route_id/data.cost"},
+                                        "local.route_seats": {"$ref": "/items/route/$$ctx.payload.route_id/data.seats"},
                                         "local.route_origin": {
                                             "$ref": "/items/route/$$ctx.payload.route_id/data.origin"
                                         },
@@ -380,7 +360,12 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                                 0,
                                                             ]
                                                         },
-                                                        "$$ctx.payload.seats",
+                                                        {
+                                                            "$ifNull": [
+                                                                "$local.route_seats",
+                                                                1,
+                                                            ]
+                                                        },
                                                     ]
                                                 },
                                                 {"$ifNull": ["$context.capacity", 0]},
@@ -459,14 +444,15 @@ def _gherkin_definition() -> Dict[str, Any]:
                                         "update": {
                                             "$set": {
                                                 "states.$$ctx.user": "REQUESTING",
-                                                "context.riders.$$ctx.user.seats": "$$ctx.payload.seats",
+                                                "context.riders.$$ctx.user.seats": {
+                                                    "$ifNull": [
+                                                        "$local.route_seats",
+                                                        1,
+                                                    ]
+                                                },
                                                 "context.riders.$$ctx.user.trip": {
-                                                    "origin": {
-                                                        "$ctx": "local.route_origin"
-                                                    },
-                                                    "destination": {
-                                                        "$ctx": "local.route_destination"
-                                                    },
+                                                    "origin": {"$ctx": "local.route_origin"},
+                                                    "destination": {"$ctx": "local.route_destination"},
                                                 },
                                             }
                                         },
@@ -548,9 +534,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "type": "notify",
                                 "notify": {
                                     "event": "contracts.user_invited",
-                                    "targets": {
-                                        "$ctx": "doc.context.initial_invite_targets"
-                                    },
+                                    "targets": {"$ctx": "doc.context.initial_invite_targets"},
                                     "payload": {"contract_id": {"$ctx": "doc._id"}},
                                 },
                             },
@@ -565,19 +549,13 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "description": "Promotes only payload.riders to pending confirmations and marks driver commitment before CONFIRMING.",
                                 "type": "update.contract",
                                 "update": [
-                                    {
-                                        "$set": {
-                                            "states.$$ctx.doc.context.driver": "DRIVER"
-                                        }
-                                    },
+                                    {"$set": {"states.$$ctx.doc.context.driver": "DRIVER"}},
                                     {
                                         "$set": {
                                             "states": {
                                                 "$arrayToObject": {
                                                     "$map": {
-                                                        "input": {
-                                                            "$objectToArray": "$states"
-                                                        },
+                                                        "input": {"$objectToArray": "$states"},
                                                         "as": "kv",
                                                         "in": {
                                                             "k": "$$kv.k",
@@ -628,9 +606,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                         "states": {
                                             "$arrayToObject": {
                                                 "$map": {
-                                                    "input": {
-                                                        "$objectToArray": "$states"
-                                                    },
+                                                    "input": {"$objectToArray": "$states"},
                                                     "as": "kv",
                                                     "in": {
                                                         "k": "$$kv.k",
@@ -723,9 +699,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                     "push",
                                                 ]
                                             },
-                                            "payload": {
-                                                "contract_id": {"$ctx": "doc._id"}
-                                            },
+                                            "payload": {"contract_id": {"$ctx": "doc._id"}},
                                         },
                                     }
                                 ],
@@ -749,11 +723,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                             "title": "Link Coordination Group",
                             "description": "Stores group linkage for roster synchronization.",
                             "type": "update.contract",
-                            "update": {
-                                "$set": {
-                                    "context.group_id": {"$ctx": "local.group_ref"}
-                                }
-                            },
+                            "update": {"$set": {"context.group_id": {"$ctx": "local.group_ref"}}},
                         },
                         {
                             "title": "Store Context",
@@ -765,13 +735,9 @@ def _gherkin_definition() -> Dict[str, Any]:
                                         "$map": {
                                             "input": {
                                                 "$filter": {
-                                                    "input": {
-                                                        "$objectToArray": "$states"
-                                                    },
+                                                    "input": {"$objectToArray": "$states"},
                                                     "as": "kv",
-                                                    "cond": {
-                                                        "$eq": ["$$kv.v", "ACCEPTED"]
-                                                    },
+                                                    "cond": {"$eq": ["$$kv.v", "ACCEPTED"]},
                                                 }
                                             },
                                             "as": "kv",
@@ -786,9 +752,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                             "description": "Synchronizes group membership with current trip roster.",
                             "type": "update.group",
                             "group_id": {"$ctx": "doc.context.group_id"},
-                            "edit_members": {
-                                "add_members": "$$ctx.doc.context.accepted_riders"
-                            },
+                            "edit_members": {"add_members": "$$ctx.doc.context.accepted_riders"},
                         },
                         {
                             "title": "Clear Context",
@@ -932,12 +896,8 @@ def _gherkin_definition() -> Dict[str, Any]:
                                         "type": "notify",
                                         "notify": {
                                             "event": "contracts.join_request_rejected_capacity",
-                                            "targets": {
-                                                "$$ctx.user": ["in_app", "push"]
-                                            },
-                                            "payload": {
-                                                "contract_id": {"$ctx": "doc._id"}
-                                            },
+                                            "targets": {"$$ctx.user": ["in_app", "push"]},
+                                            "payload": {"contract_id": {"$ctx": "doc._id"}},
                                         },
                                     }
                                 ],
@@ -979,9 +939,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                             "$eq": [
                                                 {
                                                     "$ifNull": [
-                                                        {
-                                                            "$ctx": "doc.states.$$ctx.payload.principal"
-                                                        },
+                                                        {"$ctx": "doc.states.$$ctx.payload.principal"},
                                                         "",
                                                     ]
                                                 },
@@ -1001,20 +959,14 @@ def _gherkin_definition() -> Dict[str, Any]:
                                         "title": "Align Rider Statuses",
                                         "description": "Aligns rider and driver statuses for approve a queued request.",
                                         "type": "update.contract",
-                                        "update": {
-                                            "$set": {
-                                                "states.$$ctx.payload.principal": "ACCEPTED"
-                                            }
-                                        },
+                                        "update": {"$set": {"states.$$ctx.payload.principal": "ACCEPTED"}},
                                     },
                                     {
                                         "title": "Sync Group",
                                         "description": "Synchronizes group membership with current trip roster.",
                                         "type": "update.group",
                                         "group_id": {"$ctx": "doc.context.group_id"},
-                                        "edit_members": {
-                                            "add_members": ["$$ctx.payload.principal"]
-                                        },
+                                        "edit_members": {"add_members": ["$$ctx.payload.principal"]},
                                     },
                                     {
                                         "title": "Persist Progress",
@@ -1024,9 +976,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                             "$set": {
                                                 "local.accepted_increment": {
                                                     "$ifNull": [
-                                                        {
-                                                            "$ctx": "doc.context.riders.$$ctx.payload.principal.seats"
-                                                        },
+                                                        {"$ctx": "doc.context.riders.$$ctx.payload.principal.seats"},
                                                         1,
                                                     ]
                                                 }
@@ -1078,9 +1028,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                         "title": "Evaluate Branch",
                                         "description": "Selects the branch that matches current trip conditions.",
                                         "type": "if.else",
-                                        "condition": {
-                                            "$ctx": "doc.local.capacity_reached"
-                                        },
+                                        "condition": {"$ctx": "doc.local.capacity_reached"},
                                         "then_effects": [
                                             {
                                                 "title": "Move State",
@@ -1096,9 +1044,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                 "description": "Moves the contract state to support approve a queued request. "
                                                 "(else)",
                                                 "type": "update.contract",
-                                                "update": {
-                                                    "$set": {"state": "RECRUITING"}
-                                                },
+                                                "update": {"$set": {"state": "RECRUITING"}},
                                             }
                                         ],
                                     },
@@ -1115,9 +1061,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                     "push",
                                                 ]
                                             },
-                                            "payload": {
-                                                "contract_id": {"$ctx": "doc._id"}
-                                            },
+                                            "payload": {"contract_id": {"$ctx": "doc._id"}},
                                         },
                                     },
                                 ],
@@ -1159,9 +1103,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                             "$eq": [
                                                 {
                                                     "$ifNull": [
-                                                        {
-                                                            "$ctx": "doc.states.$$ctx.payload.principal"
-                                                        },
+                                                        {"$ctx": "doc.states.$$ctx.payload.principal"},
                                                         "",
                                                     ]
                                                 },
@@ -1181,11 +1123,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                         "title": "Align Rider Statuses",
                                         "description": "Aligns rider and driver statuses for decline a queued request.",
                                         "type": "update.contract",
-                                        "update": {
-                                            "$set": {
-                                                "states.$$ctx.payload.principal": "REJECTED"
-                                            }
-                                        },
+                                        "update": {"$set": {"states.$$ctx.payload.principal": "REJECTED"}},
                                     },
                                     {
                                         "title": "Notify Stakeholders",
@@ -1200,9 +1138,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                     "push",
                                                 ]
                                             },
-                                            "payload": {
-                                                "contract_id": {"$ctx": "doc._id"}
-                                            },
+                                            "payload": {"contract_id": {"$ctx": "doc._id"}},
                                         },
                                     },
                                 ],
@@ -1240,9 +1176,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "type": "notify",
                                 "notify": {
                                     "event": "contracts.join_request_cancelled",
-                                    "targets": {
-                                        "$$ctx.doc.context.driver": ["in_app", "push"]
-                                    },
+                                    "targets": {"$$ctx.doc.context.driver": ["in_app", "push"]},
                                     "payload": {
                                         "principal": "$$ctx.user",
                                         "contract_id": {"$ctx": "doc._id"},
@@ -1277,11 +1211,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "title": "Align Rider Statuses",
                                 "description": "Aligns rider and driver statuses for invite a rider to confirm.",
                                 "type": "update.contract",
-                                "update": {
-                                    "$set": {
-                                        "states.$$ctx.payload.principal": "PENDING"
-                                    }
-                                },
+                                "update": {"$set": {"states.$$ctx.payload.principal": "PENDING"}},
                             },
                             {
                                 "title": "Schedule Timed Step",
@@ -1311,9 +1241,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "type": "notify",
                                 "notify": {
                                     "event": "contracts.user_invited",
-                                    "targets": {
-                                        "$$ctx.payload.principal": ["in_app", "push"]
-                                    },
+                                    "targets": {"$$ctx.payload.principal": ["in_app", "push"]},
                                     "payload": {"contract_id": {"$ctx": "doc._id"}},
                                 },
                             },
@@ -1376,17 +1304,13 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "title": "Evaluate Branch",
                                 "description": "Selects the branch that matches current trip conditions.",
                                 "type": "if.else",
-                                "condition": {
-                                    "$ctx": "doc.local.pending_invite_event_id"
-                                },
+                                "condition": {"$ctx": "doc.local.pending_invite_event_id"},
                                 "then_effects": [
                                     {
                                         "title": "Cancel Schedule",
                                         "description": "Cancels timers that are no longer relevant on this path.",
                                         "type": "unschedule.event_at",
-                                        "event_id": {
-                                            "$ctx": "doc.local.pending_invite_event_id"
-                                        },
+                                        "event_id": {"$ctx": "doc.local.pending_invite_event_id"},
                                     }
                                 ],
                                 "else_effects": [],
@@ -1395,9 +1319,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "title": "Clear Context",
                                 "description": "Clears obsolete lifecycle fields after this decision.",
                                 "type": "update.contract",
-                                "update": {
-                                    "$unset": "context.pending_invites.$$ctx.user"
-                                },
+                                "update": {"$unset": "context.pending_invites.$$ctx.user"},
                             },
                             {
                                 "title": "Align Rider Statuses",
@@ -1426,11 +1348,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "description": "Persists transition data to keep the process deterministic.",
                                 "type": "update.contract",
                                 "update": {
-                                    "$set": {
-                                        "local.accepted_increment": {
-                                            "$ifNull": ["$$ctx.payload.seats", 1]
-                                        }
-                                    }
+                                    "$set": {"local.accepted_increment": {"$ifNull": ["$$ctx.payload.seats", 1]}}
                                 },
                             },
                             {
@@ -1497,9 +1415,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "type": "notify",
                                 "notify": {
                                     "event": "contracts.user_accepted",
-                                    "targets": {
-                                        "$$ctx.doc.context.driver": ["in_app", "push"]
-                                    },
+                                    "targets": {"$$ctx.doc.context.driver": ["in_app", "push"]},
                                     "payload": {
                                         "principal": "$$ctx.user",
                                         "contract_id": {"$ctx": "doc._id"},
@@ -1535,17 +1451,13 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "title": "Evaluate Branch",
                                 "description": "Selects the branch that matches current trip conditions.",
                                 "type": "if.else",
-                                "condition": {
-                                    "$ctx": "doc.local.pending_invite_event_id"
-                                },
+                                "condition": {"$ctx": "doc.local.pending_invite_event_id"},
                                 "then_effects": [
                                     {
                                         "title": "Cancel Schedule",
                                         "description": "Cancels timers that are no longer relevant on this path.",
                                         "type": "unschedule.event_at",
-                                        "event_id": {
-                                            "$ctx": "doc.local.pending_invite_event_id"
-                                        },
+                                        "event_id": {"$ctx": "doc.local.pending_invite_event_id"},
                                     }
                                 ],
                                 "else_effects": [],
@@ -1554,9 +1466,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "title": "Clear Context",
                                 "description": "Clears obsolete lifecycle fields after this decision.",
                                 "type": "update.contract",
-                                "update": {
-                                    "$unset": "context.pending_invites.$$ctx.user"
-                                },
+                                "update": {"$unset": "context.pending_invites.$$ctx.user"},
                             },
                             {
                                 "title": "Align Rider Statuses",
@@ -1570,9 +1480,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "type": "notify",
                                 "notify": {
                                     "event": "contracts.user_rejected",
-                                    "targets": {
-                                        "$$ctx.doc.context.driver": ["in_app", "push"]
-                                    },
+                                    "targets": {"$$ctx.doc.context.driver": ["in_app", "push"]},
                                     "payload": {
                                         "principal": "$$ctx.user",
                                         "contract_id": {"$ctx": "doc._id"},
@@ -1588,19 +1496,13 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "title": "Align Rider Statuses",
                                 "description": "Aligns rider and driver statuses for expire an unanswered invite.",
                                 "type": "update.contract",
-                                "update": {
-                                    "$set": {
-                                        "states.$$ctx.payload.principal": "EXPIRED"
-                                    }
-                                },
+                                "update": {"$set": {"states.$$ctx.payload.principal": "EXPIRED"}},
                             },
                             {
                                 "title": "Clear Context",
                                 "description": "Clears obsolete lifecycle fields after this decision.",
                                 "type": "update.contract",
-                                "update": {
-                                    "$unset": "context.pending_invites.$$ctx.payload.principal"
-                                },
+                                "update": {"$unset": "context.pending_invites.$$ctx.payload.principal"},
                             },
                             {
                                 "title": "Notify Stakeholders",
@@ -1608,9 +1510,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "type": "notify",
                                 "notify": {
                                     "event": "contracts.invite_timed_out",
-                                    "targets": {
-                                        "$$ctx.doc.context.driver": ["in_app", "push"]
-                                    },
+                                    "targets": {"$$ctx.doc.context.driver": ["in_app", "push"]},
                                     "payload": {"contract_id": {"$ctx": "doc._id"}},
                                 },
                             },
@@ -1651,9 +1551,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                             "$eq": [
                                                 {
                                                     "$ifNull": [
-                                                        {
-                                                            "$ctx": "doc.states.$$ctx.payload.principal"
-                                                        },
+                                                        {"$ctx": "doc.states.$$ctx.payload.principal"},
                                                         "",
                                                     ]
                                                 },
@@ -1667,31 +1565,21 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "title": "Evaluate Branch",
                                 "description": "Selects the branch that matches current trip conditions.",
                                 "type": "if.else",
-                                "condition": {
-                                    "$ctx": "doc.local.target_is_pending_invite"
-                                },
+                                "condition": {"$ctx": "doc.local.target_is_pending_invite"},
                                 "then_effects": [
                                     {
                                         "title": "Cancel Schedule",
                                         "description": "Cancels timers that are no longer relevant on this path.",
                                         "type": "unschedule.event_at",
-                                        "event_id": {
-                                            "$ctx": "doc.context.pending_invites.$$ctx.payload.principal"
-                                        },
+                                        "event_id": {"$ctx": "doc.context.pending_invites.$$ctx.payload.principal"},
                                     },
                                     {
                                         "title": "Persist Progress",
                                         "description": "Persists transition data to keep the process deterministic.",
                                         "type": "update.contract",
                                         "update": [
-                                            {
-                                                "$set": {
-                                                    "states.$$ctx.payload.principal": "CANCELLED"
-                                                }
-                                            },
-                                            {
-                                                "$unset": "context.pending_invites.$$ctx.payload.principal"
-                                            },
+                                            {"$set": {"states.$$ctx.payload.principal": "CANCELLED"}},
+                                            {"$unset": "context.pending_invites.$$ctx.payload.principal"},
                                         ],
                                     },
                                     {
@@ -1707,9 +1595,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                     "push",
                                                 ]
                                             },
-                                            "payload": {
-                                                "contract_id": {"$ctx": "doc._id"}
-                                            },
+                                            "payload": {"contract_id": {"$ctx": "doc._id"}},
                                         },
                                     },
                                 ],
@@ -1742,9 +1628,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                     "$set": {
                                         "local.cancel_seats": {
                                             "$ifNull": [
-                                                {
-                                                    "$ctx": "doc.context.riders.$$ctx.user.seats"
-                                                },
+                                                {"$ctx": "doc.context.riders.$$ctx.user.seats"},
                                                 1,
                                             ]
                                         }
@@ -1797,9 +1681,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "type": "notify",
                                 "notify": {
                                     "event": "contracts.user_cancelled",
-                                    "targets": {
-                                        "$$ctx.doc.context.driver": ["in_app", "push"]
-                                    },
+                                    "targets": {"$$ctx.doc.context.driver": ["in_app", "push"]},
                                     "payload": {
                                         "principal": "$$ctx.user",
                                         "contract_id": {"$ctx": "doc._id"},
@@ -1840,9 +1722,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                             "$eq": [
                                                 {
                                                     "$ifNull": [
-                                                        {
-                                                            "$ctx": "doc.states.$$ctx.payload.principal"
-                                                        },
+                                                        {"$ctx": "doc.states.$$ctx.payload.principal"},
                                                         "",
                                                     ]
                                                 },
@@ -1863,11 +1743,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                         "description": "Synchronizes group membership with current trip roster.",
                                         "type": "update.group",
                                         "group_id": {"$ctx": "doc.context.group_id"},
-                                        "edit_members": {
-                                            "remove_members": [
-                                                "$$ctx.payload.principal"
-                                            ]
-                                        },
+                                        "edit_members": {"remove_members": ["$$ctx.payload.principal"]},
                                     },
                                     {
                                         "title": "Persist Progress",
@@ -1877,9 +1753,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                             "$set": {
                                                 "local.remove_seats": {
                                                     "$ifNull": [
-                                                        {
-                                                            "$ctx": "doc.context.riders.$$ctx.payload.principal.seats"
-                                                        },
+                                                        {"$ctx": "doc.context.riders.$$ctx.payload.principal.seats"},
                                                         1,
                                                     ]
                                                 }
@@ -1923,9 +1797,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                     "states.$$ctx.payload.principal": "CANCELLED",
                                                 }
                                             },
-                                            {
-                                                "$unset": "context.riders.$$ctx.payload.principal.seats"
-                                            },
+                                            {"$unset": "context.riders.$$ctx.payload.principal.seats"},
                                         ],
                                     },
                                     {
@@ -1940,9 +1812,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                     "push",
                                                 ]
                                             },
-                                            "payload": {
-                                                "contract_id": {"$ctx": "doc._id"}
-                                            },
+                                            "payload": {"contract_id": {"$ctx": "doc._id"}},
                                         },
                                     },
                                 ],
@@ -1971,9 +1841,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                 "$map": {
                                                     "input": {
                                                         "$filter": {
-                                                            "input": {
-                                                                "$objectToArray": "$states"
-                                                            },
+                                                            "input": {"$objectToArray": "$states"},
                                                             "as": "kv",
                                                             "cond": {
                                                                 "$eq": [
@@ -1998,9 +1866,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "title": "Move State",
                                 "description": "Moves the contract state to support cancel the active trip.",
                                 "type": "update.contract",
-                                "update": {
-                                    "$set": {"status": "CANCELED", "state": "CANCELED"}
-                                },
+                                "update": {"$set": {"status": "CANCELED", "state": "CANCELED"}},
                             },
                             {
                                 "title": "Notify Stakeholders",
@@ -2062,9 +1928,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                     "$set": {
                                         "local.cancel_seats": {
                                             "$ifNull": [
-                                                {
-                                                    "$ctx": "doc.context.riders.$$ctx.user.seats"
-                                                },
+                                                {"$ctx": "doc.context.riders.$$ctx.user.seats"},
                                                 1,
                                             ]
                                         }
@@ -2118,9 +1982,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "type": "notify",
                                 "notify": {
                                     "event": "contracts.user_cancelled",
-                                    "targets": {
-                                        "$$ctx.doc.context.driver": ["in_app", "push"]
-                                    },
+                                    "targets": {"$$ctx.doc.context.driver": ["in_app", "push"]},
                                     "payload": {
                                         "principal": "$$ctx.user",
                                         "contract_id": {"$ctx": "doc._id"},
@@ -2173,9 +2035,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "type": "update.contract",
                                 "update": {
                                     "$set": {
-                                        "context.riders_pickup_check_id": {
-                                            "$ctx": "local.riders_pickup_check_id"
-                                        },
+                                        "context.riders_pickup_check_id": {"$ctx": "local.riders_pickup_check_id"},
                                         "context.driver_in_pickup_zone": False,
                                         "context.riders_picked_up": {},
                                         "context.pending_pickup_targets": {
@@ -2183,9 +2043,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                 "$map": {
                                                     "input": {
                                                         "$filter": {
-                                                            "input": {
-                                                                "$objectToArray": "$states"
-                                                            },
+                                                            "input": {"$objectToArray": "$states"},
                                                             "as": "kv",
                                                             "cond": {
                                                                 "$eq": [
@@ -2246,9 +2104,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                             "$eq": [
                                                 {
                                                     "$ifNull": [
-                                                        {
-                                                            "$ctx": "doc.states.$$ctx.payload.principal"
-                                                        },
+                                                        {"$ctx": "doc.states.$$ctx.payload.principal"},
                                                         "",
                                                     ]
                                                 },
@@ -2269,11 +2125,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                         "description": "Synchronizes group membership with current trip roster.",
                                         "type": "update.group",
                                         "group_id": {"$ctx": "doc.context.group_id"},
-                                        "edit_members": {
-                                            "remove_members": [
-                                                "$$ctx.payload.principal"
-                                            ]
-                                        },
+                                        "edit_members": {"remove_members": ["$$ctx.payload.principal"]},
                                     },
                                     {
                                         "title": "Persist Progress",
@@ -2283,9 +2135,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                             "$set": {
                                                 "local.remove_seats": {
                                                     "$ifNull": [
-                                                        {
-                                                            "$ctx": "doc.context.riders.$$ctx.payload.principal.seats"
-                                                        },
+                                                        {"$ctx": "doc.context.riders.$$ctx.payload.principal.seats"},
                                                         1,
                                                     ]
                                                 }
@@ -2329,9 +2179,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                     "states.$$ctx.payload.principal": "CANCELLED",
                                                 }
                                             },
-                                            {
-                                                "$unset": "context.riders.$$ctx.payload.principal.seats"
-                                            },
+                                            {"$unset": "context.riders.$$ctx.payload.principal.seats"},
                                         ],
                                     },
                                     {
@@ -2346,9 +2194,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                     "push",
                                                 ]
                                             },
-                                            "payload": {
-                                                "contract_id": {"$ctx": "doc._id"}
-                                            },
+                                            "payload": {"contract_id": {"$ctx": "doc._id"}},
                                         },
                                     },
                                 ],
@@ -2377,9 +2223,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                 "$map": {
                                                     "input": {
                                                         "$filter": {
-                                                            "input": {
-                                                                "$objectToArray": "$states"
-                                                            },
+                                                            "input": {"$objectToArray": "$states"},
                                                             "as": "kv",
                                                             "cond": {
                                                                 "$eq": [
@@ -2404,9 +2248,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "title": "Move State",
                                 "description": "Moves the contract state to support cancel the active trip.",
                                 "type": "update.contract",
-                                "update": {
-                                    "$set": {"status": "CANCELED", "state": "CANCELED"}
-                                },
+                                "update": {"$set": {"status": "CANCELED", "state": "CANCELED"}},
                             },
                             {
                                 "title": "Notify Stakeholders",
@@ -2439,17 +2281,13 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "title": "Store Context",
                                 "description": "Stores lifecycle context needed to record driver pickup arrival.",
                                 "type": "update.contract",
-                                "update": {
-                                    "$set": {"context.driver_in_pickup_zone": True}
-                                },
+                                "update": {"$set": {"context.driver_in_pickup_zone": True}},
                             },
                             {
                                 "title": "Cancel Schedule",
                                 "description": "Cancels timers that are no longer relevant on this path.",
                                 "type": "unschedule.event_at",
-                                "event_id": {
-                                    "$ctx": "doc.context.driver_pickup_check_id"
-                                },
+                                "event_id": {"$ctx": "doc.context.driver_pickup_check_id"},
                             },
                         ],
                     },
@@ -2468,11 +2306,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "title": "Store Context",
                                 "description": "Stores lifecycle context needed to record rider pickup arrival.",
                                 "type": "update.contract",
-                                "update": {
-                                    "$set": {
-                                        "context.riders_in_pickup_zone.$$ctx.user": True
-                                    }
-                                },
+                                "update": {"$set": {"context.riders_in_pickup_zone.$$ctx.user": True}},
                             }
                         ],
                     },
@@ -2513,9 +2347,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                     "$eq": [
                                                         {
                                                             "$ifNull": [
-                                                                {
-                                                                    "$ctx": "doc.states.$$ctx.payload.principal"
-                                                                },
+                                                                {"$ctx": "doc.states.$$ctx.payload.principal"},
                                                                 "",
                                                             ]
                                                         },
@@ -2551,14 +2383,8 @@ def _gherkin_definition() -> Dict[str, Any]:
                                         "description": "Persists transition data to keep the process deterministic.",
                                         "type": "update.contract",
                                         "update": [
-                                            {
-                                                "$set": {
-                                                    "context.riders_picked_up.$$ctx.payload.principal": True
-                                                }
-                                            },
-                                            {
-                                                "$unset": "context.pending_pickup_targets.$$ctx.payload.principal"
-                                            },
+                                            {"$set": {"context.riders_picked_up.$$ctx.payload.principal": True}},
+                                            {"$unset": "context.pending_pickup_targets.$$ctx.payload.principal"},
                                         ],
                                     },
                                     {
@@ -2573,9 +2399,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                     "push",
                                                 ]
                                             },
-                                            "payload": {
-                                                "contract_id": {"$ctx": "doc._id"}
-                                            },
+                                            "payload": {"contract_id": {"$ctx": "doc._id"}},
                                         },
                                     },
                                 ],
@@ -2614,9 +2438,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                         "title": "Cancel Schedule",
                                         "description": "Cancels timers that are no longer relevant on this path.",
                                         "type": "unschedule.event_at",
-                                        "event_id": {
-                                            "$ctx": "doc.context.riders_pickup_check_id"
-                                        },
+                                        "event_id": {"$ctx": "doc.context.riders_pickup_check_id"},
                                     },
                                     {
                                         "title": "Move State",
@@ -2667,9 +2489,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                     "$set": {
                                         "local.cancel_seats": {
                                             "$ifNull": [
-                                                {
-                                                    "$ctx": "doc.context.riders.$$ctx.user.seats"
-                                                },
+                                                {"$ctx": "doc.context.riders.$$ctx.user.seats"},
                                                 1,
                                             ]
                                         }
@@ -2729,9 +2549,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "type": "notify",
                                 "notify": {
                                     "event": "contracts.user_cancelled",
-                                    "targets": {
-                                        "$$ctx.doc.context.driver": ["in_app", "push"]
-                                    },
+                                    "targets": {"$$ctx.doc.context.driver": ["in_app", "push"]},
                                     "payload": {
                                         "principal": "$$ctx.user",
                                         "contract_id": {"$ctx": "doc._id"},
@@ -2741,9 +2559,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                         ],
                     },
                     "DriverPickupCheckTimed": {
-                        "trigger": [
-                            {"type": "api", "path": "driver-pickup-check-timeout"}
-                        ],
+                        "trigger": [{"type": "api", "path": "driver-pickup-check-timeout"}],
                         "effects": [
                             {
                                 "title": "Evaluate Branch",
@@ -2773,9 +2589,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                     "push",
                                                 ]
                                             },
-                                            "payload": {
-                                                "contract_id": {"$ctx": "doc._id"}
-                                            },
+                                            "payload": {"contract_id": {"$ctx": "doc._id"}},
                                         },
                                     }
                                 ],
@@ -2783,9 +2597,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                         ],
                     },
                     "RidersPickupCheckTimed": {
-                        "trigger": [
-                            {"type": "api", "path": "riders-pickup-check-timeout"}
-                        ],
+                        "trigger": [{"type": "api", "path": "riders-pickup-check-timeout"}],
                         "effects": [
                             {
                                 "title": "Persist Progress",
@@ -2824,9 +2636,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                         "notify": {
                                             "event": "contracts.rider_pickup_check",
                                             "targets": "$$ctx.doc.context.pending_pickup_targets",
-                                            "payload": {
-                                                "contract_id": {"$ctx": "doc._id"}
-                                            },
+                                            "payload": {"contract_id": {"$ctx": "doc._id"}},
                                         },
                                     }
                                 ],
@@ -2855,9 +2665,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                 "$map": {
                                                     "input": {
                                                         "$filter": {
-                                                            "input": {
-                                                                "$objectToArray": "$states"
-                                                            },
+                                                            "input": {"$objectToArray": "$states"},
                                                             "as": "kv",
                                                             "cond": {
                                                                 "$eq": [
@@ -2882,9 +2690,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "title": "Move State",
                                 "description": "Moves the contract state to support cancel the active trip.",
                                 "type": "update.contract",
-                                "update": {
-                                    "$set": {"status": "CANCELED", "state": "CANCELED"}
-                                },
+                                "update": {"$set": {"status": "CANCELED", "state": "CANCELED"}},
                             },
                             {
                                 "title": "Notify Stakeholders",
@@ -2914,26 +2720,20 @@ class ContractsE2ETest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()
-        desktop_sock = os.path.join(
-            os.path.expanduser("~"), ".docker", "run", "docker.sock"
-        )
+        desktop_sock = os.path.join(os.path.expanduser("~"), ".docker", "run", "docker.sock")
         if not os.environ.get("DOCKER_HOST") and os.path.exists(desktop_sock):
             os.environ["DOCKER_HOST"] = f"unix://{desktop_sock}"
         try:
             from testcontainers.mongodb import MongoDbContainer
         except Exception as ex:  # pragma: no cover - environment dependent
-            raise unittest.SkipTest(
-                "contracts e2e requires testcontainers[mongodb]"
-            ) from ex
+            raise unittest.SkipTest("contracts e2e requires testcontainers[mongodb]") from ex
 
         try:
             cls._mongo_container = MongoDbContainer("mongo:7.0")
             cls._mongo_container.start()
             cls._mongo_base_uri = str(cls._mongo_container.get_connection_url())
         except Exception as ex:  # pragma: no cover - environment dependent
-            raise unittest.SkipTest(
-                "contracts e2e requires Docker with a runnable MongoDB container"
-            ) from ex
+            raise unittest.SkipTest("contracts e2e requires Docker with a runnable MongoDB container") from ex
 
     @classmethod
     def tearDownClass(cls) -> None:
@@ -3034,9 +2834,7 @@ class ContractsE2ETest(unittest.TestCase):
                 bootstrap_user(u.id)
             set_system_admin(admin.id, enabled=True)
             enforcer = get_enforcer()
-            enforcer.add_policy(
-                [ANON_USER, ADMIN_DOMAIN, "contracts:templates", "manage", "allow"]
-            )
+            enforcer.add_policy([ANON_USER, ADMIN_DOMAIN, "contracts:templates", "manage", "allow"])
             self.user_ids = {
                 "owner-1": owner.id,
                 "u1": user.id,
@@ -3136,9 +2934,7 @@ class ContractsE2ETest(unittest.TestCase):
         return user
 
     def _login_token(self, email: str) -> str:
-        resp = self.client.post(
-            "/user/login", json={"email": email, "password": "UserPass123!"}
-        )
+        resp = self.client.post("/user/login", json={"email": email, "password": "UserPass123!"})
         self.assertEqual(resp.status_code, 200)
         data = resp.get_json(silent=True) or {}
         token = data.get("response", {}).get("user", {}).get("token")
@@ -3155,15 +2951,11 @@ class ContractsE2ETest(unittest.TestCase):
             "is_enabled": True,
         }
         body.update(extra)
-        resp = self.httpx.post(
-            "/contracts/templates", json=body, headers=self._headers("admin")
-        )
+        resp = self.httpx.post("/contracts/templates", json=body, headers=self._headers("admin"))
         self.assertEqual(resp.status_code, 201, msg=resp.text)
         return str(resp.json()["id"])
 
-    def _create_contract(
-        self, template_id: str, context: Dict[str, Any], **extra: Any
-    ) -> httpx.Response:
+    def _create_contract(self, template_id: str, context: Dict[str, Any], **extra: Any) -> httpx.Response:
         body = {"context": context}
         body.update(extra)
         return self.httpx.post(
@@ -3194,7 +2986,6 @@ class ContractsE2ETest(unittest.TestCase):
             actor_principal = f"u:{self.user_ids[actor]}"
             payload = {
                 "route_id": self.route_by_principal[actor_principal],
-                "seats": 1,
             }
         if payload is None and path == "driver-accept-start":
             payload = {"riders": [f"u:{self.user_ids['p1']}"]}
@@ -3271,20 +3062,14 @@ class ContractsE2ETest(unittest.TestCase):
     def _count_notifications_for(self, principal: str, event: str) -> int:
         with self.app.app_context():
             coll = self.app.config["MONGO_DB"]["notifications"]
-            return int(
-                coll.count_documents(
-                    {"event": event, f"targets.{principal}": {"$exists": True}}
-                )
-            )
+            return int(coll.count_documents({"event": event, f"targets.{principal}": {"$exists": True}}))
 
     def _gherkin_context(self, initial_state: str = "START") -> Dict[str, Any]:
         driver_uid = self.user_ids["d1"]
         p1_uid = self.user_ids["p1"]
         rider_ids = [f"u:{p1_uid}"]
         driver_principal = f"u:{driver_uid}"
-        rider_route_ids = [
-            self.route_by_principal[principal] for principal in rider_ids
-        ]
+        rider_route_ids = [self.route_by_principal[principal] for principal in rider_ids]
         return {
             "contract_id": "C-001",
             "driver_trip_id": self.route_by_principal[driver_principal],
@@ -3310,9 +3095,7 @@ class ContractsE2ETest(unittest.TestCase):
             self._post_event(cid, "driver-accept-start", actor="d1").status_code,
             200,
         )
-        self.assertEqual(
-            self._post_event(cid, "accept-user", actor="p1").status_code, 200
-        )
+        self.assertEqual(self._post_event(cid, "accept-user", actor="p1").status_code, 200)
         c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
         self.assertEqual(c["state"], "RECRUITING")
         gid = str((c.get("context") or {}).get("group_id") or "")
@@ -3330,9 +3113,7 @@ class ContractsE2ETest(unittest.TestCase):
             ).status_code,
             200,
         )
-        self.assertEqual(
-            self._post_event(cid, "accept-user", actor="p2").status_code, 200
-        )
+        self.assertEqual(self._post_event(cid, "accept-user", actor="p2").status_code, 200)
         self.assertEqual(
             self._post_event(
                 cid,
@@ -3342,9 +3123,7 @@ class ContractsE2ETest(unittest.TestCase):
             ).status_code,
             200,
         )
-        self.assertEqual(
-            self._post_event(cid, "accept-user", actor="p3").status_code, 200
-        )
+        self.assertEqual(self._post_event(cid, "accept-user", actor="p3").status_code, 200)
         c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
         self.assertEqual(c["state"], "READY")
         return gid
@@ -3362,9 +3141,7 @@ class ContractsE2ETest(unittest.TestCase):
     def test_start_driver_accept_start_uses_payload_riders_only(self) -> None:
         cid = self._create_gherkin_contract(initial_state="START")
 
-        self.assertEqual(
-            self._post_event(cid, "request-join", actor="p4").status_code, 200
-        )
+        self.assertEqual(self._post_event(cid, "request-join", actor="p4").status_code, 200)
 
         self.assertEqual(
             self._post_event(
@@ -3386,9 +3163,7 @@ class ContractsE2ETest(unittest.TestCase):
         self,
     ) -> None:
         driver_principal = f"u:{self.user_ids['d1']}"
-        before = self._count_notifications_for(
-            driver_principal, "contracts.join_requested"
-        )
+        before = self._count_notifications_for(driver_principal, "contracts.join_requested")
 
         cid = self._create_gherkin_contract(initial_state="START")
         r = self._post_event(cid, "request-join", actor="p4")
@@ -3399,9 +3174,7 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(c["state"], "START")
         self.assertEqual(self._user_state(c, self.user_ids["p4"]), "REQUESTING")
 
-        after = self._count_notifications_for(
-            driver_principal, "contracts.join_requested"
-        )
+        after = self._count_notifications_for(driver_principal, "contracts.join_requested")
         self.assertEqual(after, before + 1)
 
     def test_start_request_join_denies_when_user_has_insufficient_credits(self) -> None:
@@ -3410,9 +3183,7 @@ class ContractsE2ETest(unittest.TestCase):
         route_id = self.route_by_principal[p4_principal]
 
         with self.app.app_context():
-            self.app.config["MONGO_DB"]["items"].update_one(
-                {"_id": ObjectId(route_id)}, {"$set": {"data.cost": 1000}}
-            )
+            self.app.config["MONGO_DB"]["items"].update_one({"_id": ObjectId(route_id)}, {"$set": {"data.cost": 1000}})
 
         r = self._post_event(cid, "request-join", actor="p4")
         self.assertEqual(r.status_code, 200)
@@ -3422,25 +3193,17 @@ class ContractsE2ETest(unittest.TestCase):
 
     def test_start_cancel_join_request_last_user_re_notifies_driver(self) -> None:
         driver_principal = f"u:{self.user_ids['d1']}"
-        before = self._count_notifications_for(
-            driver_principal, "contracts.request_ride"
-        )
+        before = self._count_notifications_for(driver_principal, "contracts.request_ride")
 
         cid = self._create_gherkin_contract(initial_state="START")
-        after_create = self._count_notifications_for(
-            driver_principal, "contracts.request_ride"
-        )
+        after_create = self._count_notifications_for(driver_principal, "contracts.request_ride")
         self.assertEqual(after_create, before + 1)
 
-        self.assertEqual(
-            self._post_event(cid, "cancel-join-request", actor="p1").status_code, 200
-        )
+        self.assertEqual(self._post_event(cid, "cancel-join-request", actor="p1").status_code, 200)
 
         c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
         self.assertEqual(c["state"], "START")
         self.assertEqual((c.get("context") or {}).get("riders"), {})
 
-        after_cancel = self._count_notifications_for(
-            driver_principal, "contracts.request_ride"
-        )
+        after_cancel = self._count_notifications_for(driver_principal, "contracts.request_ride")
         self.assertEqual(after_cancel, before + 2)
