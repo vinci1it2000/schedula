@@ -481,19 +481,17 @@ def _gherkin_definition() -> Dict[str, Any]:
                         "effects": [
                             {
                                 "title": "Prepare Invite Targets",
-                                "description": "Builds recipient targets for current riders so the driver approval triggers explicit rider confirmations.",
+                                "description": "Builds recipient targets from payload.riders so the driver can choose exactly who must confirm now.",
                                 "type": "update.contract",
                                 "update": {
                                     "$set": {
-                                        "context.initial_invite_targets": {
+                                        "local.initial_invite_targets": {
                                             "$arrayToObject": {
                                                 "$map": {
-                                                    "input": {
-                                                        "$objectToArray": "$context.riders"
-                                                    },
+                                                    "input": "$payload.riders",
                                                     "as": "p",
                                                     "in": {
-                                                        "k": "$$p.k",
+                                                        "k": "$$p",
                                                         "v": ["in_app", "push"],
                                                     },
                                                 }
@@ -509,20 +507,14 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "notify": {
                                     "event": "contracts.user_invited",
                                     "targets": {
-                                        "$ctx": "doc.context.initial_invite_targets"
+                                        "$ctx": "doc.local.initial_invite_targets"
                                     },
                                     "payload": {"contract_id": {"$ctx": "doc._id"}},
                                 },
                             },
                             {
-                                "title": "Clear Invite Targets",
-                                "description": "Removes temporary invite recipients after dispatch to keep context minimal and deterministic.",
-                                "type": "update.contract",
-                                "update": {"$unset": "context.initial_invite_targets"},
-                            },
-                            {
                                 "title": "Promote Pending Riders",
-                                "description": "Converts requesting riders to pending confirmations and marks driver commitment before CONFIRMING.",
+                                "description": "Promotes only payload.riders to pending confirmations and marks driver commitment before CONFIRMING.",
                                 "type": "update.contract",
                                 "update": [
                                     {
@@ -544,9 +536,9 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                             "v": {
                                                                 "$cond": [
                                                                     {
-                                                                        "$eq": [
-                                                                            "$$kv.v",
-                                                                            "REQUESTING",
+                                                                        "$in": [
+                                                                            "$$kv.k",
+                                                                            "$payload.riders",
                                                                         ]
                                                                     },
                                                                     "PENDING",
