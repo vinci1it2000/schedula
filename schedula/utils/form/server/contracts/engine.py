@@ -14,6 +14,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import pydash
 import requests
+from bson import ObjectId
 from jsonschema import Draft202012Validator
 from sqlalchemy_dlock import create_sadlock
 
@@ -30,10 +31,12 @@ from ..utils import (
     config_get,
     get_mongo,
     mongo_find_one,
+    mongo_find,
     mongo_insert_one,
     mongo_update_one,
+    mongo_update_many,
     now_utc,
-    mongo_delete_one,
+    mongo_delete_many,
 )
 
 
@@ -274,8 +277,11 @@ def _apply_effect_step(
         db.session.commit()
     elif ef_type == "create.item":
         coll = get_mongo(collection=config_get("ITEMS_COLLECTION", "items"))
+        if isinstance(ef["item"], dict):
+            items = [ef["item"]]
+
         now = now_utc()
-        item = {
+        base_item = {
             "data": {},
             "files": {},
             "acl_dom": acl_user(actor_id),
@@ -284,17 +290,24 @@ def _apply_effect_step(
             "created_at": now,
             "updated_at": now,
         }
-        item.update(ef["item"] or {})
-        res = mongo_insert_one(coll, item)
-        local[ef["key"]] = res.inserted_id
+        res = []
+        for v in items:
+            item = dict(base_item)
+            item.update(v)
+            res.append(mongo_insert_one(coll, item).inserted_id)
+        if isinstance(ef["item"], dict):
+            res = res[0]
+        local[ef["key"]] = res
     elif ef_type == "update.item":
         coll = get_mongo(collection=config_get("ITEMS_COLLECTION", "items"))
         now = now_utc()
-        item_id = ef["item_id"]
+        item_ids = ef["item_id"]
+        if isinstance(item_ids, str):
+            item_ids = [item_ids]
         update = [ef["update"]] if isinstance(ef["update"], dict) else ef["update"]
-        res = mongo_update_one(
+        res = mongo_update_many(
             coll,
-            {"_id": item_id},
+            {"_id": {"$in": item_ids}},
             [
                 {"$set": {"updated_by": actor_id}},
                 *update,
@@ -306,11 +319,36 @@ def _apply_effect_step(
                 "local": local,
             },
         )
-        if res.matched_count != 1:
+        if res.matched_count == 0:
             abort_json(404, "Item not found")
     elif ef_type == "delete.item":
         coll = get_mongo(collection=config_get("ITEMS_COLLECTION", "items"))
-        mongo_delete_one(coll, {"_id": ef["item_id"]})
+        item_ids = ef["item_id"]
+        if isinstance(ef["item_id"], str):
+            item_ids = [ef["item_id"]]
+        mongo_delete_many(coll, {"_id": {"$in": item_ids}})
+    elif ef_type == "get.item":
+        coll = get_mongo(collection=config_get("ITEMS_COLLECTION", "items"))
+        item_ids = ef["item_id"]
+        if isinstance(ef["item_id"], str):
+            item_ids = [ef["item_id"]]
+        if not isinstance(item_ids, list):
+            abort_json(400, "get.item requires item_id string or list")
+
+        normalized_ids = []
+        for item_id in item_ids:
+            if isinstance(item_id, ObjectId):
+                normalized_ids.append(item_id)
+            elif isinstance(item_id, str):
+                try:
+                    normalized_ids.append(ObjectId(item_id))
+                except Exception:
+                    normalized_ids.append(item_id)
+            else:
+                normalized_ids.append(item_id)
+
+        docs = list(mongo_find(coll, {"_id": {"$in": normalized_ids}}))
+        local[ef["key"]] = docs
     else:
         abort_json(400, f"Unknown effect type: {ef_type}")
 

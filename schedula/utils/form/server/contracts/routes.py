@@ -101,6 +101,7 @@ TEMPLATE_CREATE_SCHEMA = {
                         "create.item",
                         "delete.item",
                         "update.item",
+                        "get.item",
                         "create.group",
                         "update.group",
                         "update.contract",
@@ -137,6 +138,13 @@ TEMPLATE_CREATE_SCHEMA = {
                     "anyOf": [
                         {"type": "string"},
                         {"$ref": "#/$defs/json_with_refs"},
+                        {
+                            "type": "array",
+                            "items": {"anyOf": [
+                                {"type": "string"},
+                                {"$ref": "#/$defs/json_with_refs"},
+                            ]}
+                        }
                     ]
                 },
                 "group_id": {
@@ -157,7 +165,7 @@ TEMPLATE_CREATE_SCHEMA = {
                         {"$ref": "#/$defs/json_with_refs"},
                     ]
                 },
-                "item": {"type": "object"},
+                "item": {"anyOf": [{"type": "object"}, {"type": "array", "items": {"type": "object"}}]},
                 "name": {"type": "string"},
                 "group_type": {"type": "string"},
                 "edit_members": {"$ref": "#/$defs/edit_members"},
@@ -324,6 +332,10 @@ TEMPLATE_CREATE_SCHEMA = {
                 {
                     "if": {"properties": {"type": {"const": "create.item"}}},
                     "then": {"required": ["item", "key"]},
+                },
+                {
+                    "if": {"properties": {"type": {"const": "get.item"}}},
+                    "then": {"required": ["item_id", "key"]},
                 },
                 {
                     "if": {"properties": {"type": {"const": "delete.item"}}},

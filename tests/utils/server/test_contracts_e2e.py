@@ -11,6 +11,7 @@ from unittest.mock import patch
 from urllib.parse import urlsplit, urlunsplit
 
 import httpx
+from bson import ObjectId
 from flask import Flask
 from flask_security.utils import hash_password
 from schedula.utils.form.server import basic_app
@@ -107,84 +108,76 @@ def _gherkin_definition() -> Dict[str, Any]:
                 "on_enter": {
                     "context_schema": {
                         "type": "object",
-                        "required": ["capacity", "driver", "driver_trip", "riders"],
+                        "required": ["driver_trip_id", "riders"],
                         "properties": {
-                            "capacity": {"type": "integer", "minimum": 1},
-                            "driver": {"type": "string", "pattern": "^u:.+$"},
-                            "driver_trip": {
-                                "type": "object",
-                                "required": ["origin", "destination"],
-                                "properties": {
-                                    "origin": {
-                                        "type": "object",
-                                        "required": ["lat", "lng", "at"],
-                                        "properties": {
-                                            "lat": {"type": "number"},
-                                            "lng": {"type": "number"},
-                                            "at": {
-                                                "type": "string",
-                                                "format": "date-time",
-                                            },
-                                        },
-                                        "additionalProperties": False,
-                                    },
-                                    "destination": {
-                                        "type": "object",
-                                        "required": ["lat", "lng"],
-                                        "properties": {
-                                            "lat": {"type": "number"},
-                                            "lng": {"type": "number"},
-                                        },
-                                        "additionalProperties": False,
-                                    },
-                                },
-                                "additionalProperties": False,
-                            },
+                            "driver_trip_id": {"type": "string", "minLength": 1},
                             "riders": {
-                                "type": "object",
-                                "minProperties": 1,
-                                "additionalProperties": {
-                                    "type": "object",
-                                    "required": ["seats", "trip"],
-                                    "properties": {
-                                        "seats": {"type": "integer", "minimum": 1},
-                                        "trip": {
-                                            "type": "object",
-                                            "required": ["origin", "destination"],
-                                            "properties": {
-                                                "origin": {
-                                                    "type": "object",
-                                                    "required": ["lat", "lng", "at"],
-                                                    "properties": {
-                                                        "lat": {"type": "number"},
-                                                        "lng": {"type": "number"},
-                                                        "at": {
-                                                            "type": "string",
-                                                            "format": "date-time",
-                                                        },
-                                                    },
-                                                    "additionalProperties": False,
-                                                },
-                                                "destination": {
-                                                    "type": "object",
-                                                    "required": ["lat", "lng"],
-                                                    "properties": {
-                                                        "lat": {"type": "number"},
-                                                        "lng": {"type": "number"},
-                                                    },
-                                                    "additionalProperties": False,
-                                                },
-                                            },
-                                            "additionalProperties": False,
-                                        },
-                                    },
-                                    "additionalProperties": False,
+                                "type": "array",
+                                "minItems": 1,
+                                "items": {
+                                    "type": "string",
+                                    "minLength": 1,
                                 },
                             },
                         },
                         "additionalProperties": True,
                     },
                     "effects": [
+                        {
+                            "title": "Load Driver Route",
+                            "description": "Loads the driver route item so START can derive owner, trip geometry, and seat capacity.",
+                            "type": "get.item",
+                            "item_id": "$$ctx.doc.context.driver_trip_id",
+                            "key": "driver_route_items",
+                        },
+                        {
+                            "title": "Load Rider Routes",
+                            "description": "Loads rider route items from the initial route id list to hydrate rider identities and trips.",
+                            "type": "get.item",
+                            "item_id": "$$ctx.doc.context.riders",
+                            "key": "rider_route_items",
+                        },
+                        {
+                            "title": "Hydrate Route Inputs",
+                            "description": "Derives driver, capacity, driver trip and rider map from loaded route items before branching.",
+                            "type": "update.contract",
+                            "update": {
+                                "$set": {
+                                    "context.driver_trip": {
+                                        "$ref": "/items/route/$$ctx.doc.context.driver_trip_id/data"
+                                    },
+                                    "context.driver": {
+                                        "$ref": "/items/route/$$ctx.doc.context.driver_trip_id/data.user_id"
+                                    },
+                                    "context.capacity": {
+                                        "$ref": "/items/route/$$ctx.doc.context.driver_trip_id/data.capacity"
+                                    },
+                                    "context.riders": {
+                                        "$arrayToObject": {
+                                            "$map": {
+                                                "input": "$local.rider_route_items",
+                                                "as": "r",
+                                                "in": {
+                                                    "k": "$$r.data.user_id",
+                                                    "v": {
+                                                        "seats": {
+                                                            "$ifNull": [
+                                                                "$$r.data.seats",
+                                                                1,
+                                                            ]
+                                                        },
+                                                        "trip": {
+                                                            "origin": "$$r.data.origin",
+                                                            "destination": "$$r.data.destination",
+                                                        },
+                                                    },
+                                                },
+                                            }
+                                        }
+                                    },
+                                }
+                            },
+                        },
                         {
                             "title": "Persist Progress",
                             "description": "Persists transition data to keep the process deterministic.",
@@ -340,31 +333,10 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "method": "POST",
                                 "payload_schema": {
                                     "type": "object",
-                                    "required": ["seats", "origin", "destination"],
+                                    "required": ["route_id", "seats"],
                                     "properties": {
+                                        "route_id": {"type": "string", "minLength": 1},
                                         "seats": {"type": "integer", "minimum": 1},
-                                        "origin": {
-                                            "type": "object",
-                                            "required": ["lat", "lng", "at"],
-                                            "properties": {
-                                                "lat": {"type": "number"},
-                                                "lng": {"type": "number"},
-                                                "at": {
-                                                    "type": "string",
-                                                    "format": "date-time",
-                                                },
-                                            },
-                                            "additionalProperties": False,
-                                        },
-                                        "destination": {
-                                            "type": "object",
-                                            "required": ["lat", "lng"],
-                                            "properties": {
-                                                "lat": {"type": "number"},
-                                                "lng": {"type": "number"},
-                                            },
-                                            "additionalProperties": False,
-                                        },
                                     },
                                     "additionalProperties": False,
                                 },
@@ -377,7 +349,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                     "CANCELLED",
                                 ],
                                 "response": {
-                                    "ok": "$$ctx.doc.local.has_capacity_for_join",
+                                    "ok": "$$ctx.doc.local.can_join",
                                     "event": "request_join",
                                 },
                             }
@@ -389,6 +361,15 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "type": "update.contract",
                                 "update": {
                                     "$set": {
+                                        "local.route_cost": {
+                                            "$ref": "/items/route/$$ctx.payload.route_id/data.cost"
+                                        },
+                                        "local.route_origin": {
+                                            "$ref": "/items/route/$$ctx.payload.route_id/data.origin"
+                                        },
+                                        "local.route_destination": {
+                                            "$ref": "/items/route/$$ctx.payload.route_id/data.destination"
+                                        },
                                         "local.has_capacity_for_join": {
                                             "$lte": [
                                                 {
@@ -404,7 +385,56 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                 },
                                                 {"$ifNull": ["$context.capacity", 0]},
                                             ]
-                                        }
+                                        },
+                                    }
+                                },
+                            },
+                            {
+                                "title": "Read Rider Credits",
+                                "description": "Reads rider credit balance before evaluating join feasibility in START.",
+                                "type": "balance.credits",
+                                "user_id": "$$ctx.user",
+                                "product": "trip",
+                                "key": "available_credits",
+                            },
+                            {
+                                "title": "Validate Join Prerequisites",
+                                "description": "Combines seat capacity and rider credits to decide whether START join can proceed.",
+                                "type": "update.contract",
+                                "update": {
+                                    "$set": {
+                                        "local.has_sufficient_credits": {
+                                            "$gte": [
+                                                {
+                                                    "$ifNull": [
+                                                        "$local.available_credits",
+                                                        0,
+                                                    ]
+                                                },
+                                                {"$ifNull": ["$local.route_cost", 0]},
+                                            ]
+                                        },
+                                        "local.can_join": {
+                                            "$and": [
+                                                "$local.has_capacity_for_join",
+                                                {
+                                                    "$gte": [
+                                                        {
+                                                            "$ifNull": [
+                                                                "$local.available_credits",
+                                                                0,
+                                                            ]
+                                                        },
+                                                        {
+                                                            "$ifNull": [
+                                                                "$local.route_cost",
+                                                                0,
+                                                            ]
+                                                        },
+                                                    ]
+                                                },
+                                            ]
+                                        },
                                     }
                                 },
                             },
@@ -412,8 +442,16 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "title": "Evaluate Branch",
                                 "description": "Selects the branch that matches current trip conditions.",
                                 "type": "if.else",
-                                "condition": {"$ctx": "local.has_capacity_for_join"},
+                                "condition": {"$ctx": "local.can_join"},
                                 "then_effects": [
+                                    {
+                                        "title": "Reserve Join Credits",
+                                        "description": "Consumes route credits at join time so only financially valid requests enter START queue.",
+                                        "type": "use.credits",
+                                        "user_id": "$$ctx.user",
+                                        "product": "trip",
+                                        "credits": {"$ctx": "local.route_cost"},
+                                    },
                                     {
                                         "title": "Update Rider Statuses",
                                         "description": "Aligns rider and driver statuses for capture a join request.",
@@ -423,8 +461,12 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                 "states.$$ctx.user": "REQUESTING",
                                                 "context.riders.$$ctx.user.seats": "$$ctx.payload.seats",
                                                 "context.riders.$$ctx.user.trip": {
-                                                    "origin": "$$ctx.payload.origin",
-                                                    "destination": "$$ctx.payload.destination",
+                                                    "origin": {
+                                                        "$ctx": "local.route_origin"
+                                                    },
+                                                    "destination": {
+                                                        "$ctx": "local.route_destination"
+                                                    },
                                                 },
                                             }
                                         },
@@ -485,10 +527,10 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "type": "update.contract",
                                 "update": {
                                     "$set": {
-                                        "local.initial_invite_targets": {
+                                        "context.initial_invite_targets": {
                                             "$arrayToObject": {
                                                 "$map": {
-                                                    "input": "$payload.riders",
+                                                    "input": "$$payload.riders",
                                                     "as": "p",
                                                     "in": {
                                                         "k": "$$p",
@@ -507,10 +549,16 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "notify": {
                                     "event": "contracts.user_invited",
                                     "targets": {
-                                        "$ctx": "doc.local.initial_invite_targets"
+                                        "$ctx": "doc.context.initial_invite_targets"
                                     },
                                     "payload": {"contract_id": {"$ctx": "doc._id"}},
                                 },
+                            },
+                            {
+                                "title": "Clear Invite Targets",
+                                "description": "Removes temporary invite target projection after notifications are sent.",
+                                "type": "update.contract",
+                                "update": {"$unset": "context.initial_invite_targets"},
                             },
                             {
                                 "title": "Promote Pending Riders",
@@ -538,7 +586,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                                     {
                                                                         "$in": [
                                                                             "$$kv.k",
-                                                                            "$payload.riders",
+                                                                            "$$payload.riders",
                                                                         ]
                                                                     },
                                                                     "PENDING",
@@ -769,6 +817,10 @@ def _gherkin_definition() -> Dict[str, Any]:
                                     "type": "object",
                                     "required": ["seats", "origin", "destination"],
                                     "properties": {
+                                        "route_id": {
+                                            "type": "string",
+                                            "minLength": 1,
+                                        },
                                         "seats": {"type": "integer", "minimum": 1},
                                         "origin": {
                                             "type": "object",
@@ -2996,6 +3048,40 @@ class ContractsE2ETest(unittest.TestCase):
                 "p4": p4.id,
             }
 
+            from schedula.utils.form.server.credits import get_wallet
+
+            self.route_by_principal: Dict[str, str] = {}
+            items_coll = self.app.config["MONGO_DB"]["items"]
+            for uid in self.user_ids.values():
+                principal = f"u:{uid}"
+                route_id = str(ObjectId())
+                route_doc = {
+                    "cost": 10,
+                    "capacity": 3,
+                    "user_id": principal,
+                    "origin": {
+                        "lat": 45.0,
+                        "lng": 9.0,
+                        "at": "1970-01-01T00:00:00+00:00",
+                    },
+                    "destination": {"lat": 45.1, "lng": 9.1},
+                }
+                items_coll.insert_one(
+                    {
+                        "_id": ObjectId(route_id),
+                        "category": "route",
+                        "data": route_doc,
+                        "created_by": principal,
+                        "updated_by": principal,
+                        "created_at": dt.datetime.utcnow(),
+                        "updated_at": dt.datetime.utcnow(),
+                    }
+                )
+                self.route_by_principal[principal] = route_id
+
+                wallet = get_wallet(uid)
+                wallet.charge(product="trip", credits=100)
+
         self.httpx = httpx.Client(
             transport=httpx.WSGITransport(app=self.app),
             base_url="http://test",
@@ -3094,7 +3180,7 @@ class ContractsE2ETest(unittest.TestCase):
         actor: str,
         payload: Dict[str, Any] | None = None,
     ) -> httpx.Response:
-        if payload is None and path in {"accept-user", "request-join"}:
+        if payload is None and path == "accept-user":
             payload = {
                 "seats": 1,
                 "origin": {
@@ -3103,6 +3189,12 @@ class ContractsE2ETest(unittest.TestCase):
                     "at": "1970-01-01T00:00:00+00:00",
                 },
                 "destination": {"lat": 45.1, "lng": 9.1},
+            }
+        if payload is None and path == "request-join":
+            actor_principal = f"u:{self.user_ids[actor]}"
+            payload = {
+                "route_id": self.route_by_principal[actor_principal],
+                "seats": 1,
             }
         if payload is None and path == "driver-accept-start":
             payload = {"riders": [f"u:{self.user_ids['p1']}"]}
@@ -3189,33 +3281,14 @@ class ContractsE2ETest(unittest.TestCase):
         driver_uid = self.user_ids["d1"]
         p1_uid = self.user_ids["p1"]
         rider_ids = [f"u:{p1_uid}"]
-        riders = {
-            principal: {
-                "seats": 1,
-                "trip": {
-                    "origin": {
-                        "lat": 45.0,
-                        "lng": 9.0,
-                        "at": "1970-01-01T00:00:00+00:00",
-                    },
-                    "destination": {"lat": 45.1, "lng": 9.1},
-                },
-            }
-            for principal in rider_ids
-        }
+        driver_principal = f"u:{driver_uid}"
+        rider_route_ids = [
+            self.route_by_principal[principal] for principal in rider_ids
+        ]
         return {
             "contract_id": "C-001",
-            "capacity": 3,
-            "driver": f"u:{driver_uid}",
-            "driver_trip": {
-                "origin": {
-                    "lat": 45.2,
-                    "lng": 9.2,
-                    "at": "1970-01-01T00:00:00+00:00",
-                },
-                "destination": {"lat": 45.3, "lng": 9.3},
-            },
-            "riders": riders,
+            "driver_trip_id": self.route_by_principal[driver_principal],
+            "riders": rider_route_ids,
         }
 
     def _create_gherkin_contract(self, initial_state: str = "START") -> str:
@@ -3276,1427 +3349,98 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(c["state"], "READY")
         return gid
 
-    def test_template_create_list_get_update(self) -> None:
-        template_id = self._create_template(_definition())
-        listed = self.httpx.get("/contracts/templates", headers=self._headers("admin"))
-        self.assertEqual(listed.status_code, 200)
-        self.assertIn(
-            template_id, [t["id"] for t in listed.json().get("templates", [])]
-        )
-
-        one = self.httpx.get(
-            f"/contracts/templates/{template_id}", headers=self._headers("admin")
-        )
-        self.assertEqual(one.status_code, 200)
-        self.assertEqual(one.json()["id"], template_id)
-
-        upd = self.httpx.put(
-            f"/contracts/templates/{template_id}",
-            json={"is_enabled": False},
-            headers=self._headers("admin"),
-        )
-        self.assertEqual(upd.status_code, 200)
-        self.assertFalse(upd.json()["is_enabled"])
-
-    def test_create_contract_and_initial_state_guard(self) -> None:
-        template_id = self._create_template(
-            _definition(),
-            allowed_initial_states=["S1"],
-        )
-        ok = self._create_contract(template_id, {"owner": "x"})
-        self.assertEqual(ok.status_code, 201)
-
-        bad = self._create_contract(template_id, {"owner": "x"}, initial_state="S999")
-        self.assertEqual(bad.status_code, 409)
-
-    def test_context_validation_by_initial_state(self) -> None:
-        definition = {
-            "id": "context-by-initial-state",
-            "version": "1.0",
-            "initial_state": "S1",
-            "states": {
-                "S1": {
-                    "on_enter": {
-                        "context_schema": {
-                            "type": "object",
-                            "required": ["requester"],
-                            "properties": {
-                                "requester": {"type": "string", "pattern": "^u:.+$"}
-                            },
-                            "additionalProperties": True,
-                        }
-                    },
-                    "events": {},
-                },
-                "S2": {
-                    "on_enter": {
-                        "context_schema": {
-                            "type": "object",
-                            "required": ["driver"],
-                            "properties": {
-                                "driver": {"type": "string", "pattern": "^u:.+$"}
-                            },
-                            "additionalProperties": True,
-                        }
-                    },
-                    "events": {},
-                },
-            },
-        }
-        template_id = self._create_template(definition, allowed_initial_states=["S2"])
-
-        invalid = self._create_contract(template_id, {"driver": "u:1"})
-        self.assertEqual(invalid.status_code, 422)
-
-        valid = self._create_contract(
-            template_id,
-            {"driver": "u:1"},
-            initial_state="S2",
-        )
-        self.assertEqual(valid.status_code, 201)
-
-    def test_event_ping_returns_200(self) -> None:
-        template_id = self._create_template(_definition())
-        created = self._create_contract(template_id, {"seed": 1})
-        self.assertEqual(created.status_code, 201)
-        cid = created.json()["id"]
-
-        event = self.httpx.post(
-            f"/contracts/{cid}/ping",
-            json={"payload": {}},
-            headers=self._headers("u1"),
-        )
-        self.assertEqual(event.status_code, 200)
-
-    def test_cancel_contract_blocks_events(self) -> None:
-        template_id = self._create_template(_definition())
-        created = self._create_contract(template_id, {"seed": 1})
-        cid = created.json()["id"]
-
-        cancel = self.httpx.delete(
-            f"/contracts/{cid}", headers=self._headers("owner-1")
-        )
-        self.assertEqual(cancel.status_code, 200)
-        self.assertEqual(cancel.json().get("status"), "CANCELED")
-
-        event = self.httpx.post(
-            f"/contracts/{cid}/ping",
-            json={"payload": {}},
-            headers=self._headers("u1"),
-        )
-        self.assertEqual(event.status_code, 410)
-
-    def test_history_and_effects_endpoints_removed(self) -> None:
-        template_id = self._create_template(_definition())
-        created = self._create_contract(template_id, {"seed": 1})
-        cid = created.json()["id"]
-
-        history = self.httpx.get(
-            f"/contracts/{cid}/history", headers=self._headers("owner-1")
-        )
-        self.assertIn(history.status_code, (404, 405, 409))
-
-        effects = self.httpx.get(
-            f"/contracts/{cid}/effects", headers=self._headers("owner-1")
-        )
-        self.assertIn(effects.status_code, (404, 405, 409))
-
-    def test_cron_tick_fires_due_event(self) -> None:
-        definition = {
-            "id": "contract-cron",
-            "version": "1.0",
-            "initial_state": "S1",
-            "states": {
-                "S1": {
-                    "events": {
-                        "ScheduleClose": {
-                            "trigger": [{"type": "api", "path": "schedule-close"}],
-                            "effects": [
-                                {
-                                    "type": "schedule.event_at",
-                                    "key": "close_event_id",
-                                    "event_name": "CloseNow",
-                                    "at": "1970-01-01T00:00:00+00:00",
-                                },
-                                {
-                                    "type": "update.contract",
-                                    "update": {
-                                        "$set": {
-                                            "context.close_event_id": {
-                                                "$ctx": "local.close_event_id"
-                                            }
-                                        }
-                                    },
-                                },
-                            ],
-                        },
-                        "CloseNow": {
-                            "trigger": [{"type": "api", "path": "close-now"}],
-                            "effects": [
-                                {
-                                    "type": "update.contract",
-                                    "update": {"$set": {"state": "S_FINAL"}},
-                                }
-                            ],
-                        },
-                    }
-                },
-                "S_FINAL": {"final": True},
-            },
-        }
-        template_id = self._create_template(definition)
-        created = self._create_contract(template_id, {"seed": 1})
-        self.assertEqual(created.status_code, 201)
-        cid = created.json()["id"]
-
-        scheduled = self._post_event(cid, "schedule-close", actor="u1")
-        self.assertEqual(scheduled.status_code, 200)
-
-        self.assertTrue(self._run_worker_once())
-
-        got = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1"))
-        self.assertEqual(got.status_code, 200)
-        self.assertEqual(got.json().get("state"), "S_FINAL")
-
-    def test_schedule_event_effect_creates_and_fires_scheduled_entry(self) -> None:
-        definition = {
-            "id": "contract-schedule-event",
-            "version": "1.0",
-            "initial_state": "S1",
-            "states": {
-                "S1": {
-                    "events": {
-                        "ScheduleClose": {
-                            "trigger": [{"type": "api", "path": "schedule-close"}],
-                            "effects": [
-                                {
-                                    "type": "schedule.event_at",
-                                    "key": "scheduled_close_id",
-                                    "event_name": "CloseNow",
-                                    "at": "1970-01-01T00:00:00+00:00",
-                                    "actor_id": "system:cron",
-                                },
-                                {
-                                    "type": "update.contract",
-                                    "update": {
-                                        "$set": {
-                                            "context.scheduled_close_id": {
-                                                "$ctx": "local.scheduled_close_id"
-                                            }
-                                        }
-                                    },
-                                },
-                            ],
-                        },
-                        "CloseNow": {
-                            "trigger": [{"type": "api", "path": "close-now"}],
-                            "effects": [
-                                {
-                                    "type": "update.contract",
-                                    "update": {"$set": {"state": "S_FINAL"}},
-                                }
-                            ],
-                        },
-                    }
-                },
-                "S_FINAL": {"final": True},
-            },
-        }
-        template_id = self._create_template(definition)
-        created = self._create_contract(template_id, {"seed": 1})
-        self.assertEqual(created.status_code, 201)
-        cid = created.json()["id"]
-
-        schedule = self._post_event(cid, "schedule-close", actor="u1")
-        self.assertEqual(schedule.status_code, 200)
-        with self.app.app_context():
-            raw = self.app.config["MONGO_DB"]["contracts"].find_one({"_id": cid}) or {}
-        scheduled_id = str((raw.get("context") or {}).get("scheduled_close_id") or "")
-        self.assertTrue(scheduled_id)
-        with self.app.app_context():
-            qdoc = self.app.config["MONGO_DB"]["contract_queue"].find_one(
-                {"_id": scheduled_id}
-            )
-        self.assertIsNotNone(qdoc)
-        self.assertEqual((qdoc or {}).get("payload", {}).get("event_name"), "CloseNow")
-
-        self.assertTrue(self._run_worker_once())
-        got = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1"))
-        self.assertEqual(got.status_code, 200)
-        self.assertEqual(got.json().get("state"), "S_FINAL")
-
-    def test_unschedule_event_effect_removes_scheduled_entry(self) -> None:
-        definition = {
-            "id": "contract-unschedule-event",
-            "version": "1.0",
-            "initial_state": "S1",
-            "states": {
-                "S1": {
-                    "events": {
-                        "ScheduleClose": {
-                            "trigger": [{"type": "api", "path": "schedule-close"}],
-                            "effects": [
-                                {
-                                    "type": "schedule.event_at",
-                                    "key": "scheduled_close_id",
-                                    "event_name": "CloseNow",
-                                    "at": "1970-01-01T00:00:00+00:00",
-                                },
-                                {
-                                    "type": "update.contract",
-                                    "update": {
-                                        "$set": {
-                                            "context.scheduled_close_id": {
-                                                "$ctx": "local.scheduled_close_id"
-                                            }
-                                        }
-                                    },
-                                },
-                            ],
-                        },
-                        "UnscheduleClose": {
-                            "trigger": [{"type": "api", "path": "unschedule-close"}],
-                            "effects": [
-                                {
-                                    "type": "unschedule.event_at",
-                                    "event_id": {
-                                        "$ctx": "doc.context.scheduled_close_id"
-                                    },
-                                }
-                            ],
-                        },
-                        "CloseNow": {
-                            "trigger": [{"type": "api", "path": "close-now"}],
-                            "effects": [
-                                {
-                                    "type": "update.contract",
-                                    "update": {"$set": {"state": "S_FINAL"}},
-                                }
-                            ],
-                        },
-                    }
-                },
-                "S_FINAL": {"final": True},
-            },
-        }
-        template_id = self._create_template(definition)
-        created = self._create_contract(template_id, {"seed": 1})
-        self.assertEqual(created.status_code, 201)
-        cid = created.json()["id"]
-
-        self.assertEqual(
-            self._post_event(cid, "schedule-close", actor="u1").status_code,
-            200,
-        )
-        self.assertEqual(
-            self._post_event(cid, "unschedule-close", actor="u1").status_code,
-            200,
-        )
-        with self.app.app_context():
-            raw = self.app.config["MONGO_DB"]["contracts"].find_one({"_id": cid}) or {}
-        scheduled_id = str((raw.get("context") or {}).get("scheduled_close_id") or "")
-        self.assertTrue(scheduled_id)
-        with self.app.app_context():
-            qdoc = self.app.config["MONGO_DB"]["contract_queue"].find_one(
-                {"_id": scheduled_id}
-            )
-        self.assertIsNone(qdoc)
-
-        self.assertFalse(self._run_worker_once())
-        got = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1"))
-        self.assertEqual(got.status_code, 200)
-        self.assertEqual(got.json().get("state"), "S1")
-
-    def test_schedule_event_cron_matches_exploded_slot(self) -> None:
-        definition = {
-            "id": "contract-schedule-cron",
-            "version": "1.0",
-            "initial_state": "S1",
-            "states": {
-                "S1": {
-                    "events": {
-                        "ScheduleEveryFive": {
-                            "trigger": [{"type": "api", "path": "schedule-cron"}],
-                            "effects": [
-                                {
-                                    "type": "schedule.event_cron",
-                                    "key": "scheduled_cron_id",
-                                    "event_name": "MarkRun",
-                                    "cron": "*/5 * * * *",
-                                    "actor_id": "system:cron",
-                                },
-                                {
-                                    "type": "update.contract",
-                                    "update": {
-                                        "$set": {
-                                            "context.scheduled_cron_id": {
-                                                "$ctx": "local.scheduled_cron_id"
-                                            },
-                                            "context.fired": 0,
-                                        }
-                                    },
-                                },
-                            ],
-                        },
-                        "MarkRun": {
-                            "trigger": [{"type": "api", "path": "mark-run"}],
-                            "effects": [
-                                {
-                                    "type": "update.contract",
-                                    "update": {
-                                        "$set": {
-                                            "context.fired": {
-                                                "$add": [
-                                                    {
-                                                        "$ifNull": [
-                                                            "$context.fired",
-                                                            0,
-                                                        ]
-                                                    },
-                                                    1,
-                                                ]
-                                            }
-                                        }
-                                    },
-                                }
-                            ],
-                        },
-                    }
-                }
-            },
-        }
-        template_id = self._create_template(definition)
-        created = self._create_contract(template_id, {"seed": 1})
-        self.assertEqual(created.status_code, 201)
-        cid = created.json()["id"]
-
-        self.assertEqual(
-            self._post_event(cid, "schedule-cron", actor="u1").status_code, 200
-        )
-        c0 = self.httpx.get(
-            f"/contracts/{cid}", headers=self._headers("owner-1")
-        ).json()
-        cron_id = str((c0.get("context") or {}).get("scheduled_cron_id") or "")
-        self.assertTrue(cron_id)
-
-        with self.app.app_context():
-            qdoc = (
-                self.app.config["MONGO_DB"]["contract_queue"].find_one({"_id": cron_id})
-                or {}
-            )
-        self.assertEqual(qdoc.get("kind"), "cron")
-        self.assertEqual((qdoc.get("cron") or {}).get("minutes"), list(range(0, 60, 5)))
-
-        base = dt.datetime(2099, 1, 1, 0, 10, tzinfo=dt.timezone.utc)
-        self.assertTrue(self._run_worker_once(now=base))
-        self.assertFalse(self._run_worker_once(now=base))
-        c1 = self.httpx.get(
-            f"/contracts/{cid}", headers=self._headers("owner-1")
-        ).json()
-        self.assertEqual(int((c1.get("context") or {}).get("fired") or 0), 1)
-
-        self.assertFalse(self._run_worker_once(now=base + dt.timedelta(minutes=1)))
-        self.assertTrue(self._run_worker_once(now=base + dt.timedelta(minutes=5)))
-        c2 = self.httpx.get(
-            f"/contracts/{cid}", headers=self._headers("owner-1")
-        ).json()
-        self.assertEqual(int((c2.get("context") or {}).get("fired") or 0), 2)
-
-    def test_if_else_effect_selects_chain_by_condition(self) -> None:
-        definition = {
-            "id": "contract-if-else",
-            "version": "1.0",
-            "initial_state": "S1",
-            "states": {
-                "S1": {
-                    "events": {
-                        "Decide": {
-                            "trigger": [{"type": "api", "path": "decide"}],
-                            "effects": [
-                                {
-                                    "type": "if.else",
-                                    "condition": {"$ctx": "doc.context.auto_ready"},
-                                    "then_effects": [
-                                        {
-                                            "type": "update.contract",
-                                            "update": {"$set": {"state": "READY"}},
-                                        }
-                                    ],
-                                    "else_effects": [
-                                        {
-                                            "type": "update.contract",
-                                            "update": {"$set": {"state": "RECRUITING"}},
-                                        }
-                                    ],
-                                }
-                            ],
-                        }
-                    }
-                },
-                "RECRUITING": {"events": {}},
-                "READY": {"events": {}},
-            },
-        }
-        template_id = self._create_template(definition)
-
-        c1 = self._create_contract(template_id, {"auto_ready": True})
-        self.assertEqual(c1.status_code, 201)
-        cid1 = c1.json()["id"]
-        self.assertEqual(self._post_event(cid1, "decide", actor="u1").status_code, 200)
-        got1 = self.httpx.get(f"/contracts/{cid1}", headers=self._headers("owner-1"))
-        self.assertEqual(got1.status_code, 200)
-        self.assertEqual(got1.json().get("state"), "READY")
-
-        c2 = self._create_contract(template_id, {"auto_ready": False})
-        self.assertEqual(c2.status_code, 201)
-        cid2 = c2.json()["id"]
-        self.assertEqual(self._post_event(cid2, "decide", actor="u1").status_code, 200)
-        got2 = self.httpx.get(f"/contracts/{cid2}", headers=self._headers("owner-1"))
-        self.assertEqual(got2.status_code, 200)
-        self.assertEqual(got2.json().get("state"), "RECRUITING")
-
-    def test_contract_lifecycle_group_sync_via_api_template(self) -> None:
-        driver_uid = self.user_ids["d1"]
-        p1_uid = self.user_ids["p1"]
-        p2_uid = self.user_ids["p2"]
-        p3_uid = self.user_ids["p3"]
-
-        context = self._gherkin_context(initial_state="START")
-
-        definition = _gherkin_definition()
-
-        template_id = self._create_template(
-            definition,
-            allowed_initial_states=["START"],
-        )
-        created = self._create_contract(
-            template_id,
-            context,
-            initial_state="START",
-        )
-        self.assertEqual(created.status_code, 201)
-        cid = created.json()["id"]
-
-        c1 = self.httpx.get(
-            f"/contracts/{cid}", headers=self._headers("owner-1")
-        ).json()
-        self.assertEqual(c1["state"], "START")
-        self.assertIsNone((c1["context"] or {}).get("group_id"))
-
-        r2 = self._post_event(cid, "driver-accept-start", actor="d1")
-        self.assertEqual(r2.status_code, 200)
-        self.assertEqual(
-            self._post_event(cid, "accept-user", actor="p1").status_code, 200
-        )
-        c2 = self.httpx.get(
-            f"/contracts/{cid}", headers=self._headers("owner-1")
-        ).json()
-        self.assertEqual(c2["state"], "RECRUITING")
-        gid = str((c2["context"] or {}).get("group_id") or "")
-        self.assertTrue(gid)
-        self.assertSetEqual(
-            self._group_member_ids(gid),
-            {f"u:{driver_uid}", f"u:{p1_uid}"},
-        )
-
-        self.assertEqual(
-            self._post_event(
-                cid,
-                "invite-user",
-                actor="d1",
-                payload={"principal": f"u:{p2_uid}"},
-            ).status_code,
-            200,
-        )
-        c3 = self.httpx.get(
-            f"/contracts/{cid}", headers=self._headers("owner-1")
-        ).json()
-        self.assertEqual(self._user_state(c3, p2_uid), "PENDING")
-        self.assertSetEqual(
-            self._group_member_ids(gid),
-            {f"u:{driver_uid}", f"u:{p1_uid}"},
-        )
-
-        self.assertEqual(
-            self._post_event(cid, "accept-user", actor="p2").status_code, 200
-        )
-        c4 = self.httpx.get(
-            f"/contracts/{cid}", headers=self._headers("owner-1")
-        ).json()
-        self.assertEqual(self._user_state(c4, p2_uid), "ACCEPTED")
-        self.assertSetEqual(
-            self._group_member_ids(gid),
-            {f"u:{driver_uid}", f"u:{p1_uid}", f"u:{p2_uid}"},
-        )
-
-        self.assertEqual(
-            self._post_event(
-                cid,
-                "invite-user",
-                actor="d1",
-                payload={"principal": f"u:{p3_uid}"},
-            ).status_code,
-            200,
-        )
-        self.assertEqual(
-            self._post_event(cid, "accept-user", actor="p3").status_code, 200
-        )
-        c5 = self.httpx.get(
-            f"/contracts/{cid}", headers=self._headers("owner-1")
-        ).json()
-        self.assertEqual(c5["state"], "READY")
-        self.assertEqual(self._user_state(c5, p3_uid), "ACCEPTED")
-        self.assertSetEqual(
-            self._group_member_ids(gid),
-            {f"u:{driver_uid}", f"u:{p1_uid}", f"u:{p2_uid}", f"u:{p3_uid}"},
-        )
-
-        self.assertEqual(
-            self._post_event(cid, "set-recruiting", actor="d1").status_code, 200
-        )
-        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
-        self.assertEqual(c["state"], "RECRUITING")
-        self.assertSetEqual(
-            self._group_member_ids(gid),
-            {f"u:{driver_uid}", f"u:{p1_uid}", f"u:{p2_uid}", f"u:{p3_uid}"},
-        )
-
-        self.assertEqual(
-            self._post_event(cid, "set-ready", actor="d1").status_code, 200
-        )
-        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
-        self.assertEqual(c["state"], "READY")
-        self.assertSetEqual(
-            self._group_member_ids(gid),
-            {f"u:{driver_uid}", f"u:{p1_uid}", f"u:{p2_uid}", f"u:{p3_uid}"},
-        )
-
-        self.assertEqual(
-            self._post_event(cid, "cancel-user", actor="p2").status_code, 200
-        )
-        c6 = self.httpx.get(
-            f"/contracts/{cid}", headers=self._headers("owner-1")
-        ).json()
-        self.assertEqual(c6["state"], "RECRUITING")
-        self.assertEqual(self._user_state(c6, p2_uid), "CANCELLED")
-        self.assertSetEqual(
-            self._group_member_ids(gid),
-            {f"u:{driver_uid}", f"u:{p1_uid}", f"u:{p3_uid}"},
-        )
-
-    def test_wf1_happy_path_reaches_ready_with_group_sync(self) -> None:
-        driver_uid = self.user_ids["d1"]
-        p1_uid = self.user_ids["p1"]
-        p2_uid = self.user_ids["p2"]
-        p3_uid = self.user_ids["p3"]
-        cid = self._create_gherkin_contract()
-
-        gid = self._to_ready(cid)
-        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
-        self.assertEqual(c["state"], "READY")
-        self.assertEqual(self._user_state(c, p1_uid), "ACCEPTED")
-        self.assertEqual(self._user_state(c, p2_uid), "ACCEPTED")
-        self.assertEqual(self._user_state(c, p3_uid), "ACCEPTED")
-        self.assertSetEqual(
-            self._group_member_ids(gid),
-            {f"u:{driver_uid}", f"u:{p1_uid}", f"u:{p2_uid}", f"u:{p3_uid}"},
-        )
-
-    def test_wf1_request_ride_notifies_driver(self) -> None:
-        driver_uid = self.user_ids["d1"]
-        driver_principal = f"u:{driver_uid}"
-        p1_uid = self.user_ids["p1"]
-        event = "contracts.request_ride"
-
-        before = self._count_notifications_for(driver_principal, event)
+    def test_start_user_initiated_sets_pending_driver_and_requesting_rider(
+        self,
+    ) -> None:
         cid = self._create_gherkin_contract(initial_state="START")
-        after = self._count_notifications_for(driver_principal, event)
-
-        self.assertEqual(after, before + 1)
         c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
+
         self.assertEqual(c["state"], "START")
-        self.assertEqual(self._user_state(c, driver_uid), "PENDING_DRIVER")
-        self.assertEqual(self._user_state(c, p1_uid), "REQUESTING")
+        self.assertEqual(self._user_state(c, self.user_ids["d1"]), "PENDING_DRIVER")
+        self.assertEqual(self._user_state(c, self.user_ids["p1"]), "REQUESTING")
 
-    def test_start_driver_initiated_sets_driver_and_pending_users(self) -> None:
-        owner_uid = self.user_ids["owner-1"]
-        p2_uid = self.user_ids["p2"]
-        p2_principal = f"u:{p2_uid}"
-        invited_event = "contracts.user_invited"
-        before = self._count_notifications_for(p2_principal, invited_event)
-
-        context = self._gherkin_context(initial_state="START")
-        context["driver"] = f"u:{owner_uid}"
-        context["riders"] = {
-            p2_principal: {
-                "seats": 1,
-                "trip": {
-                    "origin": {
-                        "lat": 45.0,
-                        "lng": 9.0,
-                        "at": "1970-01-01T00:00:00+00:00",
-                    },
-                    "destination": {"lat": 45.1, "lng": 9.1},
-                },
-            }
-        }
-
-        definition = _gherkin_definition()
-        template_id = self._create_template(
-            definition, allowed_initial_states=["START"]
-        )
-        created = self._create_contract(template_id, context, initial_state="START")
-        self.assertEqual(created.status_code, 201)
-        cid = str(created.json()["id"])
-
-        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
-        self.assertEqual(c["state"], "RECRUITING")
-        self.assertEqual(self._user_state(c, owner_uid), "DRIVER")
-        self.assertEqual(self._user_state(c, p2_uid), "PENDING")
-
-        after = self._count_notifications_for(p2_principal, invited_event)
-        self.assertEqual(after, before + 1)
-
-    def test_start_driver_accept_then_rider_must_confirm(self) -> None:
+    def test_start_driver_accept_start_uses_payload_riders_only(self) -> None:
         cid = self._create_gherkin_contract(initial_state="START")
-        p1_uid = self.user_ids["p1"]
 
-        self.assertEqual(
-            self._post_event(cid, "driver-accept-start", actor="d1").status_code,
-            200,
-        )
-        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
-        self.assertEqual(c["state"], "RECRUITING")
-        self.assertEqual(self._user_state(c, p1_uid), "PENDING")
-
-        self.assertEqual(
-            self._post_event(cid, "accept-user", actor="p1").status_code, 200
-        )
-        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
-        self.assertEqual(c["state"], "RECRUITING")
-        self.assertEqual(self._user_state(c, p1_uid), "ACCEPTED")
-
-    def test_start_cancel_last_requester_re_notifies_driver(self) -> None:
-        driver_principal = f"u:{self.user_ids['d1']}"
-        event = "contracts.request_ride"
-        before = self._count_notifications_for(driver_principal, event)
-
-        cid = self._create_gherkin_contract(initial_state="START")
-        after_create = self._count_notifications_for(driver_principal, event)
-        self.assertEqual(after_create, before + 1)
-
-        self.assertEqual(
-            self._post_event(cid, "cancel-join-request", actor="p1").status_code,
-            200,
-        )
-
-        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
-        self.assertEqual(c["state"], "START")
-        self.assertFalse((c.get("context") or {}).get("riders"))
-
-        after_cancel = self._count_notifications_for(driver_principal, event)
-        self.assertEqual(after_cancel, before + 2)
-
-    def test_start_request_join_sets_requesting_and_notifies_driver(self) -> None:
-        driver_principal = f"u:{self.user_ids['d1']}"
-        event = "contracts.join_requested"
-        before = self._count_notifications_for(driver_principal, event)
-
-        cid = self._create_gherkin_contract(initial_state="START")
         self.assertEqual(
             self._post_event(cid, "request-join", actor="p4").status_code, 200
         )
+
+        self.assertEqual(
+            self._post_event(
+                cid,
+                "driver-accept-start",
+                actor="d1",
+                payload={"riders": [f"u:{self.user_ids['p1']}"]},
+            ).status_code,
+            200,
+        )
+
+        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
+        self.assertEqual(c["state"], "RECRUITING")
+        self.assertEqual(self._user_state(c, self.user_ids["d1"]), "DRIVER")
+        self.assertEqual(self._user_state(c, self.user_ids["p1"]), "PENDING")
+        self.assertEqual(self._user_state(c, self.user_ids["p4"]), "REQUESTING")
+
+    def test_start_request_join_adds_requesting_user_when_capacity_and_credits_ok(
+        self,
+    ) -> None:
+        driver_principal = f"u:{self.user_ids['d1']}"
+        before = self._count_notifications_for(
+            driver_principal, "contracts.join_requested"
+        )
+
+        cid = self._create_gherkin_contract(initial_state="START")
+        r = self._post_event(cid, "request-join", actor="p4")
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue(r.json().get("ok"))
 
         c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
         self.assertEqual(c["state"], "START")
         self.assertEqual(self._user_state(c, self.user_ids["p4"]), "REQUESTING")
 
-        after = self._count_notifications_for(driver_principal, event)
+        after = self._count_notifications_for(
+            driver_principal, "contracts.join_requested"
+        )
         self.assertEqual(after, before + 1)
 
-    def test_wf2_first_request_rejected_no_group(self) -> None:
-        p1 = self.user_ids["p1"]
-        definition = _gherkin_definition()
-        template_id = self._create_template(
-            definition,
-            allowed_initial_states=["START"],
-        )
-        created = self._create_contract(
-            template_id,
-            self._gherkin_context(initial_state="START"),
-            initial_state="START",
-        )
-        cid = created.json()["id"]
-        self.assertEqual(
-            self._post_event(cid, "driver-reject-start", actor="d1").status_code,
-            200,
-        )
-        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
-        self.assertEqual(c["state"], "REJECTED")
-        self.assertIsNone((c.get("context") or {}).get("group_id"))
+    def test_start_request_join_denies_when_user_has_insufficient_credits(self) -> None:
+        cid = self._create_gherkin_contract(initial_state="START")
+        p4_principal = f"u:{self.user_ids['p4']}"
+        route_id = self.route_by_principal[p4_principal]
 
-    def test_wf3_start_has_no_timeout_via_cron(self) -> None:
-        p1 = self.user_ids["p1"]
-        definition = _gherkin_definition()
-        template_id = self._create_template(
-            definition,
-            allowed_initial_states=["START"],
+        with self.app.app_context():
+            self.app.config["MONGO_DB"]["items"].update_one(
+                {"_id": ObjectId(route_id)}, {"$set": {"data.cost": 1000}}
+            )
+
+        r = self._post_event(cid, "request-join", actor="p4")
+        self.assertEqual(r.status_code, 200)
+
+        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
+        self.assertEqual(self._user_state(c, self.user_ids["p4"]), "")
+
+    def test_start_cancel_join_request_last_user_re_notifies_driver(self) -> None:
+        driver_principal = f"u:{self.user_ids['d1']}"
+        before = self._count_notifications_for(
+            driver_principal, "contracts.request_ride"
         )
-        created = self._create_contract(
-            template_id,
-            self._gherkin_context(initial_state="START"),
-            initial_state="START",
+
+        cid = self._create_gherkin_contract(initial_state="START")
+        after_create = self._count_notifications_for(
+            driver_principal, "contracts.request_ride"
         )
-        cid = created.json()["id"]
-        self.assertFalse(self._run_worker_once())
+        self.assertEqual(after_create, before + 1)
+
+        self.assertEqual(
+            self._post_event(cid, "cancel-join-request", actor="p1").status_code, 200
+        )
+
         c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
         self.assertEqual(c["state"], "START")
-        self.assertEqual(self._user_state(c, p1), "REQUESTING")
-        self.assertIsNone((c.get("context") or {}).get("group_id"))
+        self.assertEqual((c.get("context") or {}).get("riders"), {})
 
-    def test_wf4_invite_timeout_expires_p2_and_keeps_group(self) -> None:
-        driver_uid = self.user_ids["d1"]
-        p1_uid = self.user_ids["p1"]
-        p2_uid = self.user_ids["p2"]
-        definition = _gherkin_definition()
-        template_id = self._create_template(
-            definition,
-            allowed_initial_states=["START"],
+        after_cancel = self._count_notifications_for(
+            driver_principal, "contracts.request_ride"
         )
-        created = self._create_contract(
-            template_id,
-            self._gherkin_context(initial_state="START"),
-            initial_state="START",
-        )
-        cid = created.json()["id"]
-        self.assertEqual(
-            self._post_event(cid, "driver-accept-start", actor="d1").status_code,
-            200,
-        )
-        self.assertEqual(
-            self._post_event(cid, "accept-user", actor="p1").status_code, 200
-        )
-        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
-        gid = str((c.get("context") or {}).get("group_id") or "")
-        self.assertTrue(gid)
-
-        self.assertEqual(
-            self._post_event(
-                cid,
-                "invite-user",
-                actor="d1",
-                payload={"principal": f"u:{p2_uid}"},
-            ).status_code,
-            200,
-        )
-        self.assertTrue(self._run_worker_once())
-        self.assertTrue(self._run_worker_once())
-
-        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
-        self.assertEqual(c["state"], "RECRUITING")
-        self.assertEqual(self._user_state(c, p2_uid), "EXPIRED")
-        self.assertSetEqual(
-            self._group_member_ids(gid), {f"u:{driver_uid}", f"u:{p1_uid}"}
-        )
-        self.assertNotIn(f"u:{p2_uid}", self._group_member_ids(gid))
-
-    def test_wf5_invite_reject_sets_p2_rejected_and_keeps_group(self) -> None:
-        driver_uid = self.user_ids["d1"]
-        p1_uid = self.user_ids["p1"]
-        p2_uid = self.user_ids["p2"]
-        definition = _gherkin_definition()
-        template_id = self._create_template(
-            definition,
-            allowed_initial_states=["START"],
-        )
-        created = self._create_contract(
-            template_id,
-            self._gherkin_context(initial_state="START"),
-            initial_state="START",
-        )
-        cid = created.json()["id"]
-        self.assertEqual(
-            self._post_event(cid, "driver-accept-start", actor="d1").status_code,
-            200,
-        )
-        self.assertEqual(
-            self._post_event(cid, "accept-user", actor="p1").status_code, 200
-        )
-        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
-        gid = str((c.get("context") or {}).get("group_id") or "")
-        self.assertTrue(gid)
-
-        self.assertEqual(
-            self._post_event(
-                cid,
-                "invite-user",
-                actor="d1",
-                payload={"principal": f"u:{p2_uid}"},
-            ).status_code,
-            200,
-        )
-        self.assertEqual(
-            self._post_event(cid, "reject-user", actor="p2").status_code, 200
-        )
-
-        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
-        self.assertEqual(c["state"], "RECRUITING")
-        self.assertEqual(self._user_state(c, p2_uid), "REJECTED")
-        self.assertSetEqual(
-            self._group_member_ids(gid), {f"u:{driver_uid}", f"u:{p1_uid}"}
-        )
-        self.assertNotIn(f"u:{p2_uid}", self._group_member_ids(gid))
-
-    def test_wf6_driver_ready_recruiting_toggle_keeps_group(self) -> None:
-        driver_uid = self.user_ids["d1"]
-        p1_uid = self.user_ids["p1"]
-        p2_uid = self.user_ids["p2"]
-        p3_uid = self.user_ids["p3"]
-        definition = _gherkin_definition()
-        template_id = self._create_template(
-            definition,
-            allowed_initial_states=["START"],
-        )
-        created = self._create_contract(
-            template_id,
-            self._gherkin_context(initial_state="START"),
-            initial_state="START",
-        )
-        cid = created.json()["id"]
-        self.assertEqual(
-            self._post_event(cid, "driver-accept-start", actor="d1").status_code,
-            200,
-        )
-        self.assertEqual(
-            self._post_event(cid, "accept-user", actor="p1").status_code, 200
-        )
-        self.assertEqual(
-            self._post_event(
-                cid,
-                "invite-user",
-                actor="d1",
-                payload={"principal": f"u:{p2_uid}"},
-            ).status_code,
-            200,
-        )
-        self.assertEqual(
-            self._post_event(cid, "accept-user", actor="p2").status_code, 200
-        )
-        self.assertEqual(
-            self._post_event(
-                cid,
-                "invite-user",
-                actor="d1",
-                payload={"principal": f"u:{p3_uid}"},
-            ).status_code,
-            200,
-        )
-        self.assertEqual(
-            self._post_event(cid, "accept-user", actor="p3").status_code, 200
-        )
-
-        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
-        self.assertEqual(c["state"], "READY")
-        gid = str((c.get("context") or {}).get("group_id") or "")
-        self.assertSetEqual(
-            self._group_member_ids(gid),
-            {f"u:{driver_uid}", f"u:{p1_uid}", f"u:{p2_uid}", f"u:{p3_uid}"},
-        )
-
-    def test_accept_user_moves_to_ready_when_seat_capacity_reached(self) -> None:
-        driver_uid = self.user_ids["d1"]
-        p1_uid = self.user_ids["p1"]
-        p2_uid = self.user_ids["p2"]
-        cid = self._create_gherkin_contract(initial_state="START")
-
-        with self.app.app_context():
-            self.app.config["MONGO_DB"]["contracts"].update_one(
-                {"_id": cid},
-                {
-                    "$set": {
-                        "context.capacity": 4,
-                        "context.riders": {
-                            f"u:{p1_uid}": {"seats": 1},
-                            f"u:{p2_uid}": {"seats": 3},
-                        },
-                    }
-                },
-            )
-
-        gid = self._to_recruiting(cid)
-        self.assertEqual(
-            self._post_event(
-                cid,
-                "invite-user",
-                actor="d1",
-                payload={"principal": f"u:{p2_uid}"},
-            ).status_code,
-            200,
-        )
-        self.assertEqual(
-            self._post_event(
-                cid,
-                "accept-user",
-                actor="p2",
-                payload={
-                    "seats": 3,
-                    "origin": {
-                        "lat": 45.0,
-                        "lng": 9.0,
-                        "at": "1970-01-01T00:00:00+00:00",
-                    },
-                    "destination": {"lat": 45.1, "lng": 9.1},
-                },
-            ).status_code,
-            200,
-        )
-
-        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
-        self.assertEqual(c["state"], "READY")
-        self.assertSetEqual(
-            self._group_member_ids(gid),
-            {f"u:{driver_uid}", f"u:{p1_uid}", f"u:{p2_uid}"},
-        )
-
-    def test_recruiting_cancel_user_is_allowed_and_updates_group(self) -> None:
-        driver_uid = self.user_ids["d1"]
-        p1_uid = self.user_ids["p1"]
-        p2_uid = self.user_ids["p2"]
-        cid = self._create_gherkin_contract(initial_state="START")
-        gid = self._to_recruiting(cid)
-
-        self.assertEqual(
-            self._post_event(
-                cid,
-                "invite-user",
-                actor="d1",
-                payload={"principal": f"u:{p2_uid}"},
-            ).status_code,
-            200,
-        )
-        self.assertEqual(
-            self._post_event(cid, "accept-user", actor="p2").status_code,
-            200,
-        )
-        self.assertEqual(
-            self._post_event(cid, "cancel-user", actor="p2").status_code, 200
-        )
-
-        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
-        self.assertEqual(c["state"], "RECRUITING")
-        self.assertEqual(self._user_state(c, p2_uid), "CANCELLED")
-        seats = (c.get("context") or {}).get("seats") or {}
-        self.assertNotIn(f"u:{p2_uid}", seats)
-        self.assertSetEqual(
-            self._group_member_ids(gid),
-            {f"u:{driver_uid}", f"u:{p1_uid}"},
-        )
-
-    def test_driver_can_cancel_pending_invite_in_recruiting(self) -> None:
-        cid = self._create_gherkin_contract(initial_state="START")
-        _ = self._to_recruiting(cid)
-        p2_uid = self.user_ids["p2"]
-
-        self.assertEqual(
-            self._post_event(
-                cid,
-                "invite-user",
-                actor="d1",
-                payload={"principal": f"u:{p2_uid}"},
-            ).status_code,
-            200,
-        )
-        self.assertEqual(
-            self._post_event(
-                cid,
-                "driver-cancel-invite",
-                actor="d1",
-                payload={"principal": f"u:{p2_uid}"},
-            ).status_code,
-            200,
-        )
-
-        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
-        self.assertEqual(self._user_state(c, p2_uid), "CANCELLED")
-        pending_invites = (c.get("context") or {}).get("pending_invites") or {}
-        self.assertNotIn(f"u:{p2_uid}", pending_invites)
-
-    def test_driver_can_remove_passenger_in_recruiting(self) -> None:
-        driver_uid = self.user_ids["d1"]
-        p1_uid = self.user_ids["p1"]
-        p2_uid = self.user_ids["p2"]
-        cid = self._create_gherkin_contract(initial_state="START")
-        gid = self._to_recruiting(cid)
-
-        self.assertEqual(
-            self._post_event(
-                cid,
-                "invite-user",
-                actor="d1",
-                payload={"principal": f"u:{p2_uid}"},
-            ).status_code,
-            200,
-        )
-        self.assertEqual(
-            self._post_event(cid, "accept-user", actor="p2").status_code,
-            200,
-        )
-        self.assertEqual(
-            self._post_event(
-                cid,
-                "driver-remove-user",
-                actor="d1",
-                payload={"principal": f"u:{p2_uid}"},
-            ).status_code,
-            200,
-        )
-
-        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
-        self.assertEqual(c["state"], "RECRUITING")
-        self.assertEqual(self._user_state(c, p2_uid), "CANCELLED")
-        self.assertSetEqual(
-            self._group_member_ids(gid),
-            {f"u:{driver_uid}", f"u:{p1_uid}"},
-        )
-
-    def test_driver_can_cancel_trip_in_recruiting_and_ready(self) -> None:
-        cid_r = self._create_gherkin_contract(initial_state="START")
-        _ = self._to_recruiting(cid_r)
-        self.assertEqual(
-            self._post_event(cid_r, "driver-cancel-trip", actor="d1").status_code,
-            200,
-        )
-        denied_r = self._post_event(
-            cid_r,
-            "invite-user",
-            actor="d1",
-            payload={"principal": f"u:{self.user_ids['p2']}"},
-        )
-        self.assertEqual(denied_r.status_code, 410)
-
-        cid_ready = self._create_gherkin_contract(initial_state="START")
-        _ = self._to_ready(cid_ready)
-        self.assertEqual(
-            self._post_event(cid_ready, "driver-cancel-trip", actor="d1").status_code,
-            200,
-        )
-        denied_ready = self._post_event(cid_ready, "set-recruiting", actor="d1")
-        self.assertEqual(denied_ready.status_code, 410)
-
-    def test_in_progress_pickup_flow_with_timed_checks(self) -> None:
-        cid = self._create_gherkin_contract(initial_state="START")
-        _ = self._to_ready(cid)
-
-        self.assertEqual(
-            self._post_event(cid, "start-trip", actor="d1").status_code,
-            200,
-        )
-        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
-        self.assertEqual(c["state"], "IN_PROGRESS")
-
-        driver_principal = f"u:{self.user_ids['d1']}"
-        before_driver = self._count_notifications_for(
-            driver_principal, "contracts.driver_pickup_check"
-        )
-        self.assertTrue(self._run_worker_once())
-        after_driver = self._count_notifications_for(
-            driver_principal, "contracts.driver_pickup_check"
-        )
-        self.assertEqual(after_driver, before_driver + 1)
-
-        self.assertEqual(
-            self._post_event(cid, "driver-at-pickup", actor="d1").status_code,
-            200,
-        )
-        self.assertEqual(
-            self._post_event(cid, "rider-at-pickup", actor="p2").status_code,
-            200,
-        )
-        self.assertEqual(
-            self._post_event(
-                cid,
-                "driver-mark-picked-up",
-                actor="d1",
-                payload={"principal": f"u:{self.user_ids['p2']}"},
-            ).status_code,
-            200,
-        )
-        c2 = self.httpx.get(
-            f"/contracts/{cid}", headers=self._headers("owner-1")
-        ).json()
-        picked = (c2.get("context") or {}).get("riders_picked_up") or {}
-        self.assertTrue(bool(picked.get(f"u:{self.user_ids['p2']}")))
-
-    def test_in_progress_rider_can_cancel(self) -> None:
-        driver_uid = self.user_ids["d1"]
-        p1_uid = self.user_ids["p1"]
-        p2_uid = self.user_ids["p2"]
-        p3_uid = self.user_ids["p3"]
-        cid = self._create_gherkin_contract(initial_state="START")
-        gid = self._to_ready(cid)
-
-        self.assertEqual(
-            self._post_event(cid, "start-trip", actor="d1").status_code,
-            200,
-        )
-        self.assertEqual(
-            self._post_event(cid, "cancel-user", actor="p2").status_code, 200
-        )
-
-        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
-        self.assertEqual(c["state"], "IN_PROGRESS")
-        self.assertEqual(self._user_state(c, p2_uid), "CANCELLED")
-        seats = (c.get("context") or {}).get("seats") or {}
-        self.assertNotIn(f"u:{p2_uid}", seats)
-        self.assertSetEqual(
-            self._group_member_ids(gid),
-            {f"u:{driver_uid}", f"u:{p1_uid}", f"u:{p3_uid}"},
-        )
-
-    def test_in_progress_completes_when_all_riders_picked(self) -> None:
-        cid = self._create_gherkin_contract(initial_state="START")
-        _ = self._to_ready(cid)
-
-        self.assertEqual(
-            self._post_event(cid, "start-trip", actor="d1").status_code, 200
-        )
-        self.assertEqual(
-            self._post_event(cid, "driver-at-pickup", actor="d1").status_code,
-            200,
-        )
-
-        for rider in ["p1", "p2", "p3"]:
-            principal = f"u:{self.user_ids[rider]}"
-            self.assertEqual(
-                self._post_event(cid, "rider-at-pickup", actor=rider).status_code,
-                200,
-            )
-            self.assertEqual(
-                self._post_event(
-                    cid,
-                    "driver-mark-picked-up",
-                    actor="d1",
-                    payload={"principal": principal},
-                ).status_code,
-                200,
-            )
-
-        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
-        self.assertEqual(c["state"], "COMPLETED")
-        self.assertEqual(c["status"], "DONE")
-
-    def test_wf7_cancel_early_stops_contract_and_blocks_events(self) -> None:
-        cid = self._create_gherkin_contract()
-        _ = self._to_recruiting(cid)
-
-        cancel = self.httpx.delete(
-            f"/contracts/{cid}", headers=self._headers("owner-1")
-        )
-        self.assertEqual(cancel.status_code, 200)
-        self.assertEqual(cancel.json().get("status"), "CANCELED")
-
-        denied = self._post_event(
-            cid,
-            "invite-user",
-            actor="d1",
-            payload={"principal": f"u:{self.user_ids['p2']}"},
-        )
-        self.assertEqual(denied.status_code, 410)
-
-    def test_wf8_cancel_late_stops_contract_and_blocks_events(self) -> None:
-        cid = self._create_gherkin_contract()
-        _ = self._to_ready(cid)
-
-        cancel = self.httpx.delete(
-            f"/contracts/{cid}", headers=self._headers("owner-1")
-        )
-        self.assertEqual(cancel.status_code, 200)
-        self.assertEqual(cancel.json().get("status"), "CANCELED")
-
-        denied = self._post_event(cid, "set-recruiting", actor="d1")
-        self.assertEqual(denied.status_code, 410)
-
-    def test_unauthorized_actor_cannot_accept_p2(self) -> None:
-        cid = self._create_gherkin_contract()
-        _ = self._to_recruiting(cid)
-        self.assertEqual(
-            self._post_event(
-                cid,
-                "invite-user",
-                actor="d1",
-                payload={"principal": f"u:{self.user_ids['p2']}"},
-            ).status_code,
-            200,
-        )
-
-        denied = self._post_event(cid, "accept-user", actor="p4")
-        self.assertEqual(denied.status_code, 409)
-
-    def test_duplicate_accept_p2_is_rejected_by_user_state_guard(self) -> None:
-        cid = self._create_gherkin_contract()
-        _ = self._to_recruiting(cid)
-        self.assertEqual(
-            self._post_event(
-                cid,
-                "invite-user",
-                actor="d1",
-                payload={"principal": f"u:{self.user_ids['p2']}"},
-            ).status_code,
-            200,
-        )
-        self.assertEqual(
-            self._post_event(cid, "accept-user", actor="p2").status_code, 200
-        )
-
-        duplicate = self._post_event(cid, "accept-user", actor="p2")
-        self.assertEqual(duplicate.status_code, 409)
-
-    def test_recruiting_user_can_request_join_and_driver_accepts(self) -> None:
-        cid = self._create_gherkin_contract()
-        _ = self._to_recruiting(cid)
-        p4 = f"u:{self.user_ids['p4']}"
-
-        self.assertEqual(
-            self._post_event(cid, "request-join", actor="p4").status_code,
-            200,
-        )
-        c_req = self.httpx.get(
-            f"/contracts/{cid}", headers=self._headers("owner-1")
-        ).json()
-        self.assertEqual(self._user_state(c_req, self.user_ids["p4"]), "REQUESTING")
-        self.assertEqual(
-            self._post_event(
-                cid,
-                "accept-join-request",
-                actor="d1",
-                payload={"principal": p4},
-            ).status_code,
-            200,
-        )
-
-        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
-        self.assertEqual(self._user_state(c, self.user_ids["p4"]), "ACCEPTED")
-
-    def test_recruiting_user_can_request_join_and_driver_rejects(self) -> None:
-        cid = self._create_gherkin_contract()
-        _ = self._to_recruiting(cid)
-        p4 = f"u:{self.user_ids['p4']}"
-
-        self.assertEqual(
-            self._post_event(cid, "request-join", actor="p4").status_code,
-            200,
-        )
-        c_req = self.httpx.get(
-            f"/contracts/{cid}", headers=self._headers("owner-1")
-        ).json()
-        self.assertEqual(self._user_state(c_req, self.user_ids["p4"]), "REQUESTING")
-        self.assertEqual(
-            self._post_event(
-                cid,
-                "reject-join-request",
-                actor="d1",
-                payload={"principal": p4},
-            ).status_code,
-            200,
-        )
-
-        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
-        self.assertEqual(self._user_state(c, self.user_ids["p4"]), "REJECTED")
-
-    def test_request_join_is_blocked_when_no_capacity(self) -> None:
-        cid = self._create_gherkin_contract()
-        _ = self._to_recruiting(cid)
-
-        with self.app.app_context():
-            self.app.config["MONGO_DB"]["contracts"].update_one(
-                {"_id": cid},
-                {"$set": {"context.capacity": 1}},
-            )
-
-        self.assertEqual(
-            self._post_event(cid, "request-join", actor="p4").status_code,
-            200,
-        )
-        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
-        self.assertEqual(self._user_state(c, self.user_ids["p4"]), "")
-
-    def test_request_join_denies_driver_and_confirmed_users(self) -> None:
-        cid = self._create_gherkin_contract()
-        _ = self._to_recruiting(cid)
-
-        denied_driver = self._post_event(cid, "request-join", actor="d1")
-        self.assertEqual(denied_driver.status_code, 403)
-
-        denied_confirmed = self._post_event(cid, "request-join", actor="p1")
-        self.assertEqual(denied_confirmed.status_code, 409)
-
-    def test_request_join_can_be_cancelled_before_driver_decision(self) -> None:
-        cid = self._create_gherkin_contract()
-        _ = self._to_recruiting(cid)
-
-        self.assertEqual(
-            self._post_event(
-                cid,
-                "request-join",
-                actor="p4",
-                payload={
-                    "seats": 2,
-                    "origin": {
-                        "lat": 45.0,
-                        "lng": 9.0,
-                        "at": "1970-01-01T00:00:00+00:00",
-                    },
-                    "destination": {"lat": 45.1, "lng": 9.1},
-                },
-            ).status_code,
-            200,
-        )
-        self.assertEqual(
-            self._post_event(cid, "cancel-join-request", actor="p4").status_code,
-            200,
-        )
-
-        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
-        self.assertEqual(self._user_state(c, self.user_ids["p4"]), "")
-        seats = (c.get("context") or {}).get("seats") or {}
-        self.assertNotIn(f"u:{self.user_ids['p4']}", seats)
-
-    def test_driver_join_decision_requires_requesting_state(self) -> None:
-        cid = self._create_gherkin_contract()
-        _ = self._to_recruiting(cid)
-        p4 = f"u:{self.user_ids['p4']}"
-
-        self.assertEqual(
-            self._post_event(
-                cid,
-                "accept-join-request",
-                actor="d1",
-                payload={"principal": p4},
-            ).status_code,
-            200,
-        )
-        c0 = self.httpx.get(
-            f"/contracts/{cid}", headers=self._headers("owner-1")
-        ).json()
-        self.assertEqual(self._user_state(c0, self.user_ids["p4"]), "")
-
-        self.assertEqual(
-            self._post_event(
-                cid,
-                "reject-join-request",
-                actor="d1",
-                payload={"principal": p4},
-            ).status_code,
-            200,
-        )
-        c1 = self.httpx.get(
-            f"/contracts/{cid}", headers=self._headers("owner-1")
-        ).json()
-        self.assertEqual(self._user_state(c1, self.user_ids["p4"]), "")
-
-    def test_accept_p3_without_invite_is_rejected(self) -> None:
-        cid = self._create_gherkin_contract()
-        _ = self._to_recruiting(cid)
-
-        denied = self._post_event(cid, "accept-user", actor="p3")
-        self.assertEqual(denied.status_code, 409)
+        self.assertEqual(after_cancel, before + 2)

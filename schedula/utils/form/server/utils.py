@@ -56,11 +56,7 @@ class RefResolver:
                 category, item_id = args[:2]
                 from .items.crud import _item_get, serialize_item
 
-                for sub in (
-                        (self.sender_principal, self.viewer_principal)
-                        if self.enforce_acl
-                        else [None]
-                ):
+                for sub in (self.sender_principal, self.viewer_principal) if self.enforce_acl else [None]:
                     try:
                         res = serialize_item(
                             _item_get(
@@ -73,7 +69,7 @@ class RefResolver:
                             include_data=True,
                         )
                         if len(args) == 3:
-                            res = pydash.set_(res, args[2], None)
+                            res = pydash.get(res, args[2])
                         return res
                     except Exception:
                         continue
@@ -100,9 +96,12 @@ class RefResolver:
                     elif "$ref" in x:
                         ref = x["$ref"]
 
-                        # If $ref is not a string, treat it as "inline" content to resolve.
-                        if not isinstance(ref, str):
-                            return _walk(ref)
+                        if isinstance(ref, str):
+                            ref = _walk(ref)
+                        else:
+                            ref = _walk(ref)
+                            if not isinstance(ref, str):
+                                return ref
 
                         # cycle / memo
                         if ref in self._seen:
@@ -116,18 +115,14 @@ class RefResolver:
                             self._seen[ref] = placeholder
                             resolved_dict = _walk(fetched)
                             placeholder.clear()
-                            placeholder.update(
-                                resolved_dict if isinstance(resolved_dict, dict) else {}
-                            )
+                            placeholder.update(resolved_dict if isinstance(resolved_dict, dict) else {})
                             return placeholder
 
                         if isinstance(fetched, list):
                             placeholder_list: list[Any] = []
                             self._seen[ref] = placeholder_list
                             resolved_list = _walk(fetched)
-                            placeholder_list[:] = (
-                                resolved_list if isinstance(resolved_list, list) else []
-                            )
+                            placeholder_list[:] = resolved_list if isinstance(resolved_list, list) else []
                             return placeholder_list
 
                         self._seen[ref] = fetched
@@ -191,9 +186,7 @@ def get_mongo(app=None, collection=None):
     if app is None:
         from flask import current_app as app
     if app.config.get("MONGO_DB") is None:
-        app.config["MONGO_URI"] = app.config.get(
-            "MONGO_URI", os.environ.get("MONGO_URI")
-        )
+        app.config["MONGO_URI"] = app.config.get("MONGO_URI", os.environ.get("MONGO_URI"))
         from flask_pymongo import PyMongo
 
         mongo = PyMongo(app)
@@ -234,9 +227,7 @@ def set_bp_error_handlers(bp):
 # ---------------------------------------------------------------------------
 
 
-def _parse_int_arg(
-        name: str, default: int, min_v: int | None = None, max_v: int | None = None
-) -> int:
+def _parse_int_arg(name: str, default: int, min_v: int | None = None, max_v: int | None = None) -> int:
     """
     Parse an integer query arg with bounds and default.
     """
@@ -277,9 +268,7 @@ def parse_pagination_args(default_limit=50, max_limit=200):
     return limit, offset
 
 
-def parse_sort_arg(
-        allowed_fields=("_id", "created_at", "updated_at"), default_field="-updated_at"
-) -> Tuple[str, int]:
+def parse_sort_arg(allowed_fields=("_id", "created_at", "updated_at"), default_field="-updated_at") -> Tuple[str, int]:
     """
     sort=sub | -sub | role | -role
     default: sub asc
@@ -327,8 +316,15 @@ def mongo_update_one(coll, *args, **kwargs):
     return coll.update_one(*args, **kwargs)
 
 
+def mongo_update_many(coll, *args, **kwargs):
+    return coll.update_many(*args, **kwargs)
+
+
 def mongo_delete_one(coll, *args, **kwargs):
     return coll.delete_one(*args, **kwargs)
+
+def mongo_delete_many(coll, *args, **kwargs):
+    return coll.delete_many(*args, **kwargs)
 
 
 def mongo_count_documents(coll, *args, **kwargs):
