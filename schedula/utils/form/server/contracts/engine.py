@@ -52,7 +52,7 @@ def _get_contract(contract_id: str) -> Optional[Dict[str, Any]]:
 
 
 def validate_payload(
-        payload_schema: Optional[Dict[str, Any]], payload: Any
+    payload_schema: Optional[Dict[str, Any]], payload: Any
 ) -> List[str]:
     if payload_schema is None:
         return []
@@ -64,13 +64,14 @@ def validate_payload(
 
 
 def _apply_effect_step(
-        *,
-        doc: Dict[str, Any],
-        ef: Dict[str, Any],
-        actor_id: str,
-        payload: Dict[str, Any] = None,
-        local: Dict[str, Any] = None,
+    *,
+    doc: Dict[str, Any],
+    ef: Dict[str, Any],
+    actor_id: str,
+    payload: Dict[str, Any] = None,
+    local: Dict[str, Any] = None,
 ) -> tuple[bool, Dict[str, Any]]:
+    raw_ef = ef
     ef_type = str(ef.get("type") or "")
     if local is None:
         local = {}
@@ -146,8 +147,8 @@ def _apply_effect_step(
         create_notification(**notify_kw)
     elif ef_type == "if.else":
         condition = ef.get("condition")
-        then_effects = ef.get("then_effects") or []
-        else_effects = ef.get("else_effects") or []
+        then_effects = raw_ef.get("then_effects") or []
+        else_effects = raw_ef.get("else_effects") or []
         if not isinstance(then_effects, list):
             abort_json(400, "if.else requires then_effects array")
         if not isinstance(else_effects, list):
@@ -178,10 +179,32 @@ def _apply_effect_step(
         from .schedule import schedule_event_at
 
         local[key] = schedule_event_at(at, job)
+    elif ef_type == "schedule.event_cron":
+        contract_id = str(doc.get("_id") or "")
+        key = str(ef.get("key") or "").strip()
+        cron = str(ef.get("cron") or "").strip()
+        if not cron:
+            abort_json(400, "schedule.event_cron requires non-empty cron")
+        job: Dict[str, Any] = {
+            "contract_id": contract_id,
+            "event_name": ef.get("event_name"),
+            "payload": ef.get("payload") or {},
+            "actor_id": ef.get("actor_id", actor_id),
+        }
+        from .schedule import schedule_event_cron
+
+        local[key] = schedule_event_cron(cron, job)
     elif ef_type == "unschedule.event_at":
         event_id = str(ef.get("event_id") or "").strip()
         if not event_id:
             abort_json(400, "unschedule.event requires non-empty event_id")
+        from .schedule import unschedule_event
+
+        unschedule_event(event_id)
+    elif ef_type == "unschedule.event_cron":
+        event_id = str(ef.get("event_id") or "").strip()
+        if not event_id:
+            abort_json(400, "unschedule.event_cron requires non-empty event_id")
         from .schedule import unschedule_event
 
         unschedule_event(event_id)
@@ -323,7 +346,7 @@ def validate_context_schema(doc, state):
 
 
 def _apply_effects(
-        state, doc, actor_id, payload=None, local=None, validate_schema=True
+    state, doc, actor_id, payload=None, local=None, validate_schema=True
 ):
     for ef in state.get("effects", []):
         changed, doc = _apply_effect_step(
@@ -338,12 +361,12 @@ def _apply_effects(
 
 
 def _apply_on_enter(
-        *,
-        doc: dict[str, Any],
-        actor_id: str,
-        prev_state=None,
-        payload=None,
-        local=None,
+    *,
+    doc: dict[str, Any],
+    actor_id: str,
+    prev_state=None,
+    payload=None,
+    local=None,
 ) -> dict[str, Any]:
     if payload is None:
         payload = {}
@@ -366,11 +389,11 @@ def _apply_on_enter(
 
 
 def _process_event(
-        *,
-        contract_id: str,
-        dyn_path: str,
-        actor_id: str,
-        body_payload: Dict[str, Any],
+    *,
+    contract_id: str,
+    dyn_path: str,
+    actor_id: str,
+    body_payload: Dict[str, Any],
 ) -> Tuple[Dict[str, Any], int]:
     with create_sadlock(db.session, contract_id):
         doc = _get_contract(contract_id)
@@ -417,13 +440,13 @@ def _run_event(edef, doc, actor_id, payload):
 
 
 def _process_selected_event(
-        *,
-        doc: Dict[str, Any],
-        edef: Dict[str, Any],
-        selected_trigger: Dict[str, Any],
-        actor_id: str,
-        body_payload: Dict[str, Any],
-        resolve_response: bool = True,
+    *,
+    doc: Dict[str, Any],
+    edef: Dict[str, Any],
+    selected_trigger: Dict[str, Any],
+    actor_id: str,
+    body_payload: Dict[str, Any],
+    resolve_response: bool = True,
 ) -> Tuple[Dict[str, Any], int]:
     def _src_get(key: str) -> Any:
         if key in selected_trigger:
@@ -434,28 +457,28 @@ def _process_selected_event(
     resolver = RefResolver(enforce_acl=False)
     ctx = {"doc": doc, "user": actor_id, "payload": body_payload}
     if (
-            _src_get("allow_user_states") is not None
-            and actor_state_before
-            not in set(resolver(_src_get("allow_user_states"), ctx) or [])
+        _src_get("allow_user_states") is not None
+        and actor_state_before
+        not in set(resolver(_src_get("allow_user_states"), ctx) or [])
     ) or (
-            _src_get("deny_user_states") is not None
-            and actor_state_before in set(resolver(_src_get("deny_user_states"), ctx) or [])
+        _src_get("deny_user_states") is not None
+        and actor_state_before in set(resolver(_src_get("deny_user_states"), ctx) or [])
     ):
         abort_json(409, "Event not available for actor state")
 
     if (
-            _src_get("allow_principals") is not None
-            or _src_get("deny_principals") is not None
+        _src_get("allow_principals") is not None
+        or _src_get("deny_principals") is not None
     ):
         enforcer = get_enforcer()
         roles = set(enforcer.get_roles_for_user(actor_id))
         roles.add(actor_id)
         if _src_get("allow_principals") is not None and not roles.intersection(
-                set(resolver(_src_get("allow_principals"), ctx) or [])
+            set(resolver(_src_get("allow_principals"), ctx) or [])
         ):
             abort_json(403, "Subject not allowed")
         if _src_get("deny_principals") is not None and roles.intersection(
-                set(resolver(_src_get("deny_principals"), ctx) or [])
+            set(resolver(_src_get("deny_principals"), ctx) or [])
         ):
             abort_json(403, "Subject denied")
 
@@ -472,12 +495,12 @@ def _process_selected_event(
 
 
 def _create_contract_from_template_doc(
-        *,
-        template: Dict[str, Any],
-        template_id: str,
-        context: Dict[str, Any],
-        owner_id: str,
-        initial_state: Optional[str] = None,
+    *,
+    template: Dict[str, Any],
+    template_id: str,
+    context: Dict[str, Any],
+    owner_id: str,
+    initial_state: Optional[str] = None,
 ) -> Dict[str, Any]:
     definition = template["definition"]
 

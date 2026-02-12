@@ -6,6 +6,8 @@
 
 """Contracts API service (workflow JSON a stati)."""
 
+import click
+
 
 class Contracts:
     def __init__(self, app=None, *args, **kwargs):
@@ -25,5 +27,13 @@ class Contracts:
 
         with app.app_context():
             _ensure_indexes()
+
+        @app.cli.command("contracts-worker")
+        @click.option("--poll-interval", default=5.0, type=float)
+        def contracts_worker(poll_interval: float):
+            from .schedule import worker_loop
+
+            worker_loop(poll_interval_s=float(poll_interval))
+
         app.register_blueprint(bp)
         app.extensions["contracts"] = self

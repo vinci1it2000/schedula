@@ -110,15 +110,22 @@ TEMPLATE_CREATE_SCHEMA = {
                         "balance.credits",
                         "if.else",
                         "schedule.event_at",
+                        "schedule.event_cron",
                         "unschedule.event_at",
+                        "unschedule.event_cron",
                         "http.request",
                         "notify",
                     ],
                 },
+                "title": {"type": "string"},
+                "description": {"type": "string"},
                 "update": {
                     "anyOf": [
                         {"$ref": "#/$defs/update_operation"},
-                        {"type": "array", "items": {"$ref": "#/$defs/update_operation"}},
+                        {
+                            "type": "array",
+                            "items": {"$ref": "#/$defs/update_operation"},
+                        },
                     ]
                 },
                 "request": {
@@ -178,8 +185,16 @@ TEMPLATE_CREATE_SCHEMA = {
                 "at": {
                     "title": "Execution Datetime",
                     "description": "Datetime used to trigger the scheduled event.",
+                    "anyOf": [
+                        {"type": "string", "format": "date-time"},
+                        {"$ref": "#/$defs/json_with_refs"},
+                    ],
+                },
+                "cron": {
+                    "title": "Cron Expression",
+                    "description": "Cron expression for recurring scheduled events.",
                     "type": "string",
-                    "format": "date-time"
+                    "minLength": 1,
                 },
                 "payload": {
                     "title": "Scheduled Payload",
@@ -288,7 +303,15 @@ TEMPLATE_CREATE_SCHEMA = {
                     "then": {"required": ["event_name", "at", "key"]},
                 },
                 {
+                    "if": {"properties": {"type": {"const": "schedule.event_cron"}}},
+                    "then": {"required": ["event_name", "cron", "key"]},
+                },
+                {
                     "if": {"properties": {"type": {"const": "unschedule.event_at"}}},
+                    "then": {"required": ["event_id"]},
+                },
+                {
+                    "if": {"properties": {"type": {"const": "unschedule.event_cron"}}},
                     "then": {"required": ["event_id"]},
                 },
                 {
@@ -711,7 +734,12 @@ TEMPLATE_CREATE_SCHEMA = {
             "patternProperties": {
                 "^\\$set$": {"type": "object"},
                 "^\\$unset$": {
-                    "anyOf": [{"type": "string"}, {"type": "array", "items": {"type": "string"}}, {"type": "object"}]},
+                    "anyOf": [
+                        {"type": "string"},
+                        {"type": "array", "items": {"type": "string"}},
+                        {"type": "object"},
+                    ]
+                },
                 "^\\$inc$": {"type": "object"},
                 "^\\$push$": {"type": "object"},
                 "^\\$addToSet$": {"type": "object"},
@@ -740,7 +768,7 @@ TEMPLATE_CREATE_SCHEMA = {
                         "effects": {
                             "type": "array",
                             "items": {"$ref": "#/$defs/effect"},
-                        }
+                        },
                     },
                     "additionalProperties": False,
                 },
@@ -754,7 +782,7 @@ TEMPLATE_CREATE_SCHEMA = {
                         "effects": {
                             "type": "array",
                             "items": {"$ref": "#/$defs/effect"},
-                        }
+                        },
                     },
                     "additionalProperties": False,
                 },

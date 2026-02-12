@@ -13,6 +13,7 @@ from urllib.parse import urlsplit, urlunsplit
 import httpx
 from flask import Flask
 from flask_security.utils import hash_password
+
 from schedula.utils.form.server import basic_app
 from schedula.utils.form.server.extensions import db as _db
 from schedula.utils.form.server.security import User
@@ -122,10 +123,14 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "properties": {
                                     "origin": {
                                         "type": "object",
-                                        "required": ["lat", "lng"],
+                                        "required": ["lat", "lng", "at"],
                                         "properties": {
                                             "lat": {"type": "number"},
                                             "lng": {"type": "number"},
+                                            "at": {
+                                                "type": "string",
+                                                "format": "date-time",
+                                            },
                                         },
                                         "additionalProperties": False,
                                     },
@@ -155,10 +160,14 @@ def _gherkin_definition() -> Dict[str, Any]:
                                             "properties": {
                                                 "origin": {
                                                     "type": "object",
-                                                    "required": ["lat", "lng"],
+                                                    "required": ["lat", "lng", "at"],
                                                     "properties": {
                                                         "lat": {"type": "number"},
                                                         "lng": {"type": "number"},
+                                                        "at": {
+                                                            "type": "string",
+                                                            "format": "date-time",
+                                                        },
                                                     },
                                                     "additionalProperties": False,
                                                 },
@@ -202,7 +211,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                     "type": "schedule.event_at",
                                     "key": "driver_pickup_check_id",
                                     "event_name": "DriverPickupCheckTimed",
-                                    "at": "1970-01-01T00:00:00+00:00",
+                                    "at": {"$ctx": "doc.context.driver_trip.origin.at"},
                                     "actor_id": "system:cron",
                                 },
                                 {
@@ -249,7 +258,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                     "type": "update.contract",
                                     "update": {
                                         "$set": {
-                                            "context.initial_invite_targets": {
+                                            "local.initial_invite_targets": {
                                                 "$arrayToObject": {
                                                     "$map": {
                                                         "input": {
@@ -258,7 +267,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                         "as": "p",
                                                         "in": {
                                                             "k": "$$p.k",
-                                                            "v": ["in_app"],
+                                                            "v": ["in_app", "push"],
                                                         },
                                                     }
                                                 }
@@ -271,19 +280,13 @@ def _gherkin_definition() -> Dict[str, Any]:
                                     "notify": {
                                         "event": "contracts.user_invited",
                                         "targets": {
-                                            "$ctx": "doc.context.initial_invite_targets"
+                                            "$ctx": "doc.local.initial_invite_targets"
                                         },
                                         "payload": {
-                                            "contract_code": {
-                                                "$ctx": "doc.context.contract_code"
+                                            "contract_id": {
+                                                "$ctx": "doc._id"
                                             }
                                         },
-                                    },
-                                },
-                                {
-                                    "type": "update.contract",
-                                    "update": {
-                                        "$unset": "context.initial_invite_targets"
                                     },
                                 },
                                 {
@@ -326,11 +329,11 @@ def _gherkin_definition() -> Dict[str, Any]:
                                     "notify": {
                                         "event": "contracts.request_ride",
                                         "targets": {
-                                            "$$ctx.doc.context.driver": ["in_app"]
+                                            "$$ctx.doc.context.driver": ["in_app", "push"]
                                         },
                                         "payload": {
-                                            "contract_code": {
-                                                "$ctx": "doc.context.contract_code"
+                                            "contract_id": {
+                                                "$ctx": "doc._id"
                                             }
                                         },
                                     },
@@ -353,10 +356,14 @@ def _gherkin_definition() -> Dict[str, Any]:
                                         "seats": {"type": "integer", "minimum": 1},
                                         "origin": {
                                             "type": "object",
-                                            "required": ["lat", "lng"],
+                                            "required": ["lat", "lng", "at"],
                                             "properties": {
                                                 "lat": {"type": "number"},
                                                 "lng": {"type": "number"},
+                                                "at": {
+                                                    "type": "string",
+                                                    "format": "date-time",
+                                                },
                                             },
                                             "additionalProperties": False,
                                         },
@@ -430,12 +437,12 @@ def _gherkin_definition() -> Dict[str, Any]:
                                         "notify": {
                                             "event": "contracts.join_requested",
                                             "targets": {
-                                                "$$ctx.doc.context.driver": ["in_app"]
+                                                "$$ctx.doc.context.driver": ["in_app", "push"]
                                             },
                                             "payload": {
                                                 "principal": "$$ctx.user",
-                                                "contract_code": {
-                                                    "$ctx": "doc.context.contract_code"
+                                                "contract_id": {
+                                                    "$ctx": "doc._id"
                                                 },
                                             },
                                         },
@@ -446,10 +453,10 @@ def _gherkin_definition() -> Dict[str, Any]:
                                         "type": "notify",
                                         "notify": {
                                             "event": "contracts.join_request_rejected_capacity",
-                                            "targets": {"$$ctx.user": ["in_app"]},
+                                            "targets": {"$$ctx.user": ["in_app", "push"]},
                                             "payload": {
-                                                "contract_code": {
-                                                    "$ctx": "doc.context.contract_code"
+                                                "contract_id": {
+                                                    "$ctx": "doc._id"
                                                 }
                                             },
                                         },
@@ -476,7 +483,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "type": "schedule.event_at",
                                 "key": "driver_pickup_check_id",
                                 "event_name": "DriverPickupCheckTimed",
-                                "at": "1970-01-01T00:00:00+00:00",
+                                "at": {"$ctx": "doc.context.driver_trip.origin.at"},
                                 "actor_id": "system:cron",
                             },
                             {
@@ -544,7 +551,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                     "as": "p",
                                                     "in": {
                                                         "k": "$$p.k",
-                                                        "v": ["in_app"],
+                                                        "v": ["in_app", "push"],
                                                     },
                                                 }
                                             }
@@ -560,8 +567,8 @@ def _gherkin_definition() -> Dict[str, Any]:
                                         "$ctx": "doc.local.initial_invite_targets"
                                     },
                                     "payload": {
-                                        "contract_code": {
-                                            "$ctx": "doc.context.contract_code"
+                                        "contract_id": {
+                                            "$ctx": "doc._id"
                                         }
                                     },
                                 },
@@ -671,11 +678,11 @@ def _gherkin_definition() -> Dict[str, Any]:
                                         "notify": {
                                             "event": "contracts.request_ride",
                                             "targets": {
-                                                "$$ctx.doc.context.driver": ["in_app"]
+                                                "$$ctx.doc.context.driver": ["in_app", "push"]
                                             },
                                             "payload": {
-                                                "contract_code": {
-                                                    "$ctx": "doc.context.contract_code"
+                                                "contract_id": {
+                                                    "$ctx": "doc._id"
                                                 }
                                             },
                                         },
@@ -763,10 +770,14 @@ def _gherkin_definition() -> Dict[str, Any]:
                                         "seats": {"type": "integer", "minimum": 1},
                                         "origin": {
                                             "type": "object",
-                                            "required": ["lat", "lng"],
+                                            "required": ["lat", "lng", "at"],
                                             "properties": {
                                                 "lat": {"type": "number"},
                                                 "lng": {"type": "number"},
+                                                "at": {
+                                                    "type": "string",
+                                                    "format": "date-time",
+                                                },
                                             },
                                             "additionalProperties": False,
                                         },
@@ -840,12 +851,12 @@ def _gherkin_definition() -> Dict[str, Any]:
                                         "notify": {
                                             "event": "contracts.join_requested",
                                             "targets": {
-                                                "$$ctx.doc.context.driver": ["in_app"]
+                                                "$$ctx.doc.context.driver": ["in_app", "push"]
                                             },
                                             "payload": {
                                                 "principal": "$$ctx.user",
-                                                "contract_code": {
-                                                    "$ctx": "doc.context.contract_code"
+                                                "contract_id": {
+                                                    "$ctx": "doc._id"
                                                 },
                                             },
                                         },
@@ -856,10 +867,10 @@ def _gherkin_definition() -> Dict[str, Any]:
                                         "type": "notify",
                                         "notify": {
                                             "event": "contracts.join_request_rejected_capacity",
-                                            "targets": {"$$ctx.user": ["in_app"]},
+                                            "targets": {"$$ctx.user": ["in_app", "push"]},
                                             "payload": {
-                                                "contract_code": {
-                                                    "$ctx": "doc.context.contract_code"
+                                                "contract_id": {
+                                                    "$ctx": "doc._id"
                                                 }
                                             },
                                         },
@@ -982,11 +993,11 @@ def _gherkin_definition() -> Dict[str, Any]:
                                         "notify": {
                                             "event": "contracts.join_request_accepted",
                                             "targets": {
-                                                "$$ctx.payload.principal": ["in_app"]
+                                                "$$ctx.payload.principal": ["in_app", "push"]
                                             },
                                             "payload": {
-                                                "contract_code": {
-                                                    "$ctx": "doc.context.contract_code"
+                                                "contract_id": {
+                                                    "$ctx": "doc._id"
                                                 }
                                             },
                                         },
@@ -1057,11 +1068,11 @@ def _gherkin_definition() -> Dict[str, Any]:
                                         "notify": {
                                             "event": "contracts.join_request_rejected",
                                             "targets": {
-                                                "$$ctx.payload.principal": ["in_app"]
+                                                "$$ctx.payload.principal": ["in_app", "push"]
                                             },
                                             "payload": {
-                                                "contract_code": {
-                                                    "$ctx": "doc.context.contract_code"
+                                                "contract_id": {
+                                                    "$ctx": "doc._id"
                                                 }
                                             },
                                         },
@@ -1097,11 +1108,11 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "type": "notify",
                                 "notify": {
                                     "event": "contracts.join_request_cancelled",
-                                    "targets": {"$$ctx.doc.context.driver": ["in_app"]},
+                                    "targets": {"$$ctx.doc.context.driver": ["in_app", "push"]},
                                     "payload": {
                                         "principal": "$$ctx.user",
-                                        "contract_code": {
-                                            "$ctx": "doc.context.contract_code"
+                                        "contract_id": {
+                                            "$ctx": "doc._id"
                                         },
                                     },
                                 },
@@ -1142,7 +1153,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "type": "schedule.event_at",
                                 "key": "invite_timeout_id",
                                 "event_name": "InviteUserTimedOut",
-                                "at": "1970-01-01T00:00:00+00:00",
+                                "at": {"$ctx": "doc.context.driver_trip.origin.at"},
                                 "actor_id": "system:cron",
                                 "payload": {"principal": "$$ctx.payload.principal"},
                             },
@@ -1160,10 +1171,10 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "type": "notify",
                                 "notify": {
                                     "event": "contracts.user_invited",
-                                    "targets": {"$$ctx.payload.principal": ["in_app"]},
+                                    "targets": {"$$ctx.payload.principal": ["in_app", "push"]},
                                     "payload": {
-                                        "contract_code": {
-                                            "$ctx": "doc.context.contract_code"
+                                        "contract_id": {
+                                            "$ctx": "doc._id"
                                         }
                                     },
                                 },
@@ -1184,10 +1195,14 @@ def _gherkin_definition() -> Dict[str, Any]:
                                         "seats": {"type": "integer", "minimum": 1},
                                         "origin": {
                                             "type": "object",
-                                            "required": ["lat", "lng"],
+                                            "required": ["lat", "lng", "at"],
                                             "properties": {
                                                 "lat": {"type": "number"},
                                                 "lng": {"type": "number"},
+                                                "at": {
+                                                    "type": "string",
+                                                    "format": "date-time",
+                                                },
                                             },
                                             "additionalProperties": False,
                                         },
@@ -1299,11 +1314,11 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "type": "notify",
                                 "notify": {
                                     "event": "contracts.user_accepted",
-                                    "targets": {"$$ctx.doc.context.driver": ["in_app"]},
+                                    "targets": {"$$ctx.doc.context.driver": ["in_app", "push"]},
                                     "payload": {
                                         "principal": "$$ctx.user",
-                                        "contract_code": {
-                                            "$ctx": "doc.context.contract_code"
+                                        "contract_id": {
+                                            "$ctx": "doc._id"
                                         },
                                     },
                                 },
@@ -1360,11 +1375,11 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "type": "notify",
                                 "notify": {
                                     "event": "contracts.user_rejected",
-                                    "targets": {"$$ctx.doc.context.driver": ["in_app"]},
+                                    "targets": {"$$ctx.doc.context.driver": ["in_app", "push"]},
                                     "payload": {
                                         "principal": "$$ctx.user",
-                                        "contract_code": {
-                                            "$ctx": "doc.context.contract_code"
+                                        "contract_id": {
+                                            "$ctx": "doc._id"
                                         },
                                     },
                                 },
@@ -1392,10 +1407,10 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "type": "notify",
                                 "notify": {
                                     "event": "contracts.invite_timed_out",
-                                    "targets": {"$$ctx.doc.context.driver": ["in_app"]},
+                                    "targets": {"$$ctx.doc.context.driver": ["in_app", "push"]},
                                     "payload": {
-                                        "contract_code": {
-                                            "$ctx": "doc.context.contract_code"
+                                        "contract_id": {
+                                            "$ctx": "doc._id"
                                         }
                                     },
                                 },
@@ -1477,11 +1492,11 @@ def _gherkin_definition() -> Dict[str, Any]:
                                         "notify": {
                                             "event": "contracts.invite_cancelled_by_driver",
                                             "targets": {
-                                                "$$ctx.payload.principal": ["in_app"]
+                                                "$$ctx.payload.principal": ["in_app", "push"]
                                             },
                                             "payload": {
-                                                "contract_code": {
-                                                    "$ctx": "doc.context.contract_code"
+                                                "contract_id": {
+                                                    "$ctx": "doc._id"
                                                 }
                                             },
                                         },
@@ -1536,11 +1551,11 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "type": "notify",
                                 "notify": {
                                     "event": "contracts.user_cancelled",
-                                    "targets": {"$$ctx.doc.context.driver": ["in_app"]},
+                                    "targets": {"$$ctx.doc.context.driver": ["in_app", "push"]},
                                     "payload": {
                                         "principal": "$$ctx.user",
-                                        "contract_code": {
-                                            "$ctx": "doc.context.contract_code"
+                                        "contract_id": {
+                                            "$ctx": "doc._id"
                                         },
                                     },
                                 },
@@ -1637,11 +1652,11 @@ def _gherkin_definition() -> Dict[str, Any]:
                                         "notify": {
                                             "event": "contracts.user_removed_by_driver",
                                             "targets": {
-                                                "$$ctx.payload.principal": ["in_app"]
+                                                "$$ctx.payload.principal": ["in_app", "push"]
                                             },
                                             "payload": {
-                                                "contract_code": {
-                                                    "$ctx": "doc.context.contract_code"
+                                                "contract_id": {
+                                                    "$ctx": "doc._id"
                                                 }
                                             },
                                         },
@@ -1685,7 +1700,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                     "as": "kv",
                                                     "in": {
                                                         "k": "$$kv.k",
-                                                        "v": ["in_app"],
+                                                        "v": ["in_app", "push"],
                                                     },
                                                 }
                                             }
@@ -1705,8 +1720,8 @@ def _gherkin_definition() -> Dict[str, Any]:
                                     "event": "contracts.trip_cancelled_by_driver",
                                     "targets": "$$ctx.doc.local.cancel_trip_targets",
                                     "payload": {
-                                        "contract_code": {
-                                            "$ctx": "doc.context.contract_code"
+                                        "contract_id": {
+                                            "$ctx": "doc._id"
                                         }
                                     },
                                 },
@@ -1780,11 +1795,11 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "type": "notify",
                                 "notify": {
                                     "event": "contracts.user_cancelled",
-                                    "targets": {"$$ctx.doc.context.driver": ["in_app"]},
+                                    "targets": {"$$ctx.doc.context.driver": ["in_app", "push"]},
                                     "payload": {
                                         "principal": "$$ctx.user",
-                                        "contract_code": {
-                                            "$ctx": "doc.context.contract_code"
+                                        "contract_id": {
+                                            "$ctx": "doc._id"
                                         },
                                     },
                                 },
@@ -1822,7 +1837,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "type": "schedule.event_at",
                                 "key": "riders_pickup_check_id",
                                 "event_name": "RidersPickupCheckTimed",
-                                "at": "1970-01-01T00:00:00+00:00",
+                                "at": {"$ctx": "doc.context.driver_trip.origin.at"},
                                 "actor_id": "system:cron",
                             },
                             {
@@ -1854,7 +1869,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                     "as": "kv",
                                                     "in": {
                                                         "k": "$$kv.k",
-                                                        "v": ["in_app"],
+                                                        "v": ["in_app", "push"],
                                                     },
                                                 }
                                             }
@@ -1958,11 +1973,11 @@ def _gherkin_definition() -> Dict[str, Any]:
                                         "notify": {
                                             "event": "contracts.user_removed_by_driver",
                                             "targets": {
-                                                "$$ctx.payload.principal": ["in_app"]
+                                                "$$ctx.payload.principal": ["in_app", "push"]
                                             },
                                             "payload": {
-                                                "contract_code": {
-                                                    "$ctx": "doc.context.contract_code"
+                                                "contract_id": {
+                                                    "$ctx": "doc._id"
                                                 }
                                             },
                                         },
@@ -2006,7 +2021,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                     "as": "kv",
                                                     "in": {
                                                         "k": "$$kv.k",
-                                                        "v": ["in_app"],
+                                                        "v": ["in_app", "push"],
                                                     },
                                                 }
                                             }
@@ -2026,8 +2041,8 @@ def _gherkin_definition() -> Dict[str, Any]:
                                     "event": "contracts.trip_cancelled_by_driver",
                                     "targets": "$$ctx.doc.local.cancel_trip_targets",
                                     "payload": {
-                                        "contract_code": {
-                                            "$ctx": "doc.context.contract_code"
+                                        "contract_id": {
+                                            "$ctx": "doc._id"
                                         }
                                     },
                                 },
@@ -2168,11 +2183,11 @@ def _gherkin_definition() -> Dict[str, Any]:
                                         "notify": {
                                             "event": "contracts.user_picked_up",
                                             "targets": {
-                                                "$$ctx.payload.principal": ["in_app"]
+                                                "$$ctx.payload.principal": ["in_app", "push"]
                                             },
                                             "payload": {
-                                                "contract_code": {
-                                                    "$ctx": "doc.context.contract_code"
+                                                "contract_id": {
+                                                    "$ctx": "doc._id"
                                                 }
                                             },
                                         },
@@ -2283,11 +2298,11 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "type": "notify",
                                 "notify": {
                                     "event": "contracts.user_cancelled",
-                                    "targets": {"$$ctx.doc.context.driver": ["in_app"]},
+                                    "targets": {"$$ctx.doc.context.driver": ["in_app", "push"]},
                                     "payload": {
                                         "principal": "$$ctx.user",
-                                        "contract_code": {
-                                            "$ctx": "doc.context.contract_code"
+                                        "contract_id": {
+                                            "$ctx": "doc._id"
                                         },
                                     },
                                 },
@@ -2318,11 +2333,11 @@ def _gherkin_definition() -> Dict[str, Any]:
                                         "notify": {
                                             "event": "contracts.driver_pickup_check",
                                             "targets": {
-                                                "$$ctx.doc.context.driver": ["in_app"]
+                                                "$$ctx.doc.context.driver": ["in_app", "push"]
                                             },
                                             "payload": {
-                                                "contract_code": {
-                                                    "$ctx": "doc.context.contract_code"
+                                                "contract_id": {
+                                                    "$ctx": "doc._id"
                                                 }
                                             },
                                         },
@@ -2368,8 +2383,8 @@ def _gherkin_definition() -> Dict[str, Any]:
                                             "event": "contracts.rider_pickup_check",
                                             "targets": "$$ctx.doc.context.pending_pickup_targets",
                                             "payload": {
-                                                "contract_code": {
-                                                    "$ctx": "doc.context.contract_code"
+                                                "contract_id": {
+                                                    "$ctx": "doc._id"
                                                 }
                                             },
                                         },
@@ -2413,7 +2428,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                     "as": "kv",
                                                     "in": {
                                                         "k": "$$kv.k",
-                                                        "v": ["in_app"],
+                                                        "v": ["in_app", "push"],
                                                     },
                                                 }
                                             }
@@ -2433,8 +2448,8 @@ def _gherkin_definition() -> Dict[str, Any]:
                                     "event": "contracts.trip_cancelled_by_driver",
                                     "targets": "$$ctx.doc.local.cancel_trip_targets",
                                     "payload": {
-                                        "contract_code": {
-                                            "$ctx": "doc.context.contract_code"
+                                        "contract_id": {
+                                            "$ctx": "doc._id"
                                         }
                                     },
                                 },
@@ -2671,7 +2686,7 @@ class ContractsE2ETest(unittest.TestCase):
         return str(resp.json()["id"])
 
     def _create_contract(
-        self, template_id: str, context: Dict[str, Any], **extra: Any
+            self, template_id: str, context: Dict[str, Any], **extra: Any
     ) -> httpx.Response:
         body = {"context": context}
         body.update(extra)
@@ -2682,17 +2697,21 @@ class ContractsE2ETest(unittest.TestCase):
         )
 
     def _post_event(
-        self,
-        contract_id: str,
-        path: str,
-        *,
-        actor: str,
-        payload: Dict[str, Any] | None = None,
+            self,
+            contract_id: str,
+            path: str,
+            *,
+            actor: str,
+            payload: Dict[str, Any] | None = None,
     ) -> httpx.Response:
         if payload is None and path in {"accept-user", "request-join"}:
             payload = {
                 "seats": 1,
-                "origin": {"lat": 45.0, "lng": 9.0},
+                "origin": {
+                    "lat": 45.0,
+                    "lng": 9.0,
+                    "at": "1970-01-01T00:00:00+00:00",
+                },
                 "destination": {"lat": 45.1, "lng": 9.1},
             }
         return self.httpx.post(
@@ -2708,12 +2727,13 @@ class ContractsE2ETest(unittest.TestCase):
             ack_done,
             claim_job,
             nack_retry,
+            now_utc,
         )
 
         now = now or dt.datetime.now(dt.timezone.utc)
         with patch(
-            "schedula.utils.form.server.contracts.schedule._claim_job_now",
-            return_value=now,
+                "schedula.utils.form.server.contracts.schedule._claim_job_now",
+                return_value=now,
         ):
             with self.app.app_context():
                 coll = _queue_coll()
@@ -2722,7 +2742,24 @@ class ContractsE2ETest(unittest.TestCase):
                     return False
                 try:
                     resp = _func(**(job.get("payload") or {}))
-                    ack_done(coll, job["_id"], resp)
+                    if job.get("kind") == "cron":
+                        coll.update_one(
+                            {"_id": job["_id"]},
+                            {
+                                "$set": {
+                                    "status": "PENDING",
+                                    "run_at": now_utc() + dt.timedelta(seconds=10),
+                                    "updated_at": now_utc(),
+                                },
+                                "$unset": {
+                                    "locked_until": "",
+                                    "locked_by": "",
+                                    "started_at": "",
+                                },
+                            },
+                        )
+                    else:
+                        ack_done(coll, job["_id"], resp)
                 except Exception as ex:
                     nack_retry(coll, job["_id"], ex, delay_s=0)
                     raise
@@ -2764,18 +2801,26 @@ class ContractsE2ETest(unittest.TestCase):
             principal: {
                 "seats": 1,
                 "trip": {
-                    "origin": {"lat": 45.0, "lng": 9.0},
+                    "origin": {
+                        "lat": 45.0,
+                        "lng": 9.0,
+                        "at": "1970-01-01T00:00:00+00:00",
+                    },
                     "destination": {"lat": 45.1, "lng": 9.1},
                 },
             }
             for principal in rider_ids
         }
         return {
-            "contract_code": "C-001",
+            "contract_id": "C-001",
             "capacity": 3,
             "driver": f"u:{driver_uid}",
             "driver_trip": {
-                "origin": {"lat": 45.2, "lng": 9.2},
+                "origin": {
+                    "lat": 45.2,
+                    "lng": 9.2,
+                    "at": "1970-01-01T00:00:00+00:00",
+                },
                 "destination": {"lat": 45.3, "lng": 9.3},
             },
             "riders": riders,
@@ -3170,6 +3215,101 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(got.status_code, 200)
         self.assertEqual(got.json().get("state"), "S1")
 
+    def test_schedule_event_cron_matches_exploded_slot(self) -> None:
+        definition = {
+            "id": "contract-schedule-cron",
+            "version": "1.0",
+            "initial_state": "S1",
+            "states": {
+                "S1": {
+                    "events": {
+                        "ScheduleEveryFive": {
+                            "trigger": [{"type": "api", "path": "schedule-cron"}],
+                            "effects": [
+                                {
+                                    "type": "schedule.event_cron",
+                                    "key": "scheduled_cron_id",
+                                    "event_name": "MarkRun",
+                                    "cron": "*/5 * * * *",
+                                    "actor_id": "system:cron",
+                                },
+                                {
+                                    "type": "update.contract",
+                                    "update": {
+                                        "$set": {
+                                            "context.scheduled_cron_id": {
+                                                "$ctx": "local.scheduled_cron_id"
+                                            },
+                                            "context.fired": 0,
+                                        }
+                                    },
+                                },
+                            ],
+                        },
+                        "MarkRun": {
+                            "trigger": [{"type": "api", "path": "mark-run"}],
+                            "effects": [
+                                {
+                                    "type": "update.contract",
+                                    "update": {
+                                        "$set": {
+                                            "context.fired": {
+                                                "$add": [
+                                                    {
+                                                        "$ifNull": [
+                                                            "$context.fired",
+                                                            0,
+                                                        ]
+                                                    },
+                                                    1,
+                                                ]
+                                            }
+                                        }
+                                    },
+                                }
+                            ],
+                        },
+                    }
+                }
+            },
+        }
+        template_id = self._create_template(definition)
+        created = self._create_contract(template_id, {"seed": 1})
+        self.assertEqual(created.status_code, 201)
+        cid = created.json()["id"]
+
+        self.assertEqual(
+            self._post_event(cid, "schedule-cron", actor="u1").status_code, 200
+        )
+        c0 = self.httpx.get(
+            f"/contracts/{cid}", headers=self._headers("owner-1")
+        ).json()
+        cron_id = str((c0.get("context") or {}).get("scheduled_cron_id") or "")
+        self.assertTrue(cron_id)
+
+        with self.app.app_context():
+            qdoc = (
+                    self.app.config["MONGO_DB"]["contract_queue"].find_one({"_id": cron_id})
+                    or {}
+            )
+        self.assertEqual(qdoc.get("kind"), "cron")
+        self.assertEqual((qdoc.get("cron") or {}).get("minutes"), list(range(0, 60, 5)))
+
+        base = dt.datetime(2099, 1, 1, 0, 10, tzinfo=dt.timezone.utc)
+        self.assertTrue(self._run_worker_once(now=base))
+        self.assertFalse(self._run_worker_once(now=base))
+        c1 = self.httpx.get(
+            f"/contracts/{cid}", headers=self._headers("owner-1")
+        ).json()
+        self.assertEqual(int((c1.get("context") or {}).get("fired") or 0), 1)
+
+        self.assertFalse(self._run_worker_once(now=base + dt.timedelta(minutes=1)))
+        self.assertTrue(self._run_worker_once(now=base + dt.timedelta(minutes=5)))
+        c2 = self.httpx.get(
+            f"/contracts/{cid}", headers=self._headers("owner-1")
+        ).json()
+        self.assertEqual(int((c2.get("context") or {}).get("fired") or 0), 2)
+
     def test_if_else_effect_selects_chain_by_condition(self) -> None:
         definition = {
             "id": "contract-if-else",
@@ -3399,7 +3539,11 @@ class ContractsE2ETest(unittest.TestCase):
             p2_principal: {
                 "seats": 1,
                 "trip": {
-                    "origin": {"lat": 45.0, "lng": 9.0},
+                    "origin": {
+                        "lat": 45.0,
+                        "lng": 9.0,
+                        "at": "1970-01-01T00:00:00+00:00",
+                    },
                     "destination": {"lat": 45.1, "lng": 9.1},
                 },
             }
@@ -3704,7 +3848,11 @@ class ContractsE2ETest(unittest.TestCase):
                 actor="p2",
                 payload={
                     "seats": 3,
-                    "origin": {"lat": 45.0, "lng": 9.0},
+                    "origin": {
+                        "lat": 45.0,
+                        "lng": 9.0,
+                        "at": "1970-01-01T00:00:00+00:00",
+                    },
                     "destination": {"lat": 45.1, "lng": 9.1},
                 },
             ).status_code,
@@ -4101,7 +4249,11 @@ class ContractsE2ETest(unittest.TestCase):
                 actor="p4",
                 payload={
                     "seats": 2,
-                    "origin": {"lat": 45.0, "lng": 9.0},
+                    "origin": {
+                        "lat": 45.0,
+                        "lng": 9.0,
+                        "at": "1970-01-01T00:00:00+00:00",
+                    },
                     "destination": {"lat": 45.1, "lng": 9.1},
                 },
             ).status_code,
