@@ -340,39 +340,47 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "title": "Establish whether the driver has sufficient capacity",
                                 "description": "Checks if seats requests is within driver capacity.",
                                 "type": "update.contract",
-                                "update": {
-                                    "$set": {
-                                        "local.route_cost": {"$ref": "/items/route/$$ctx.payload.route_id/data.cost"},
-                                        "local.route_seats": {"$ref": "/items/route/$$ctx.payload.route_id/data.seats"},
-                                        "local.route_origin": {
-                                            "$ref": "/items/route/$$ctx.payload.route_id/data.origin"
-                                        },
-                                        "local.route_destination": {
-                                            "$ref": "/items/route/$$ctx.payload.route_id/data.destination"
-                                        },
-                                        "local.has_capacity_for_join": {
-                                            "$lte": [
-                                                {
-                                                    "$add": [
-                                                        {
-                                                            "$ifNull": [
-                                                                "$context.accepted_seats_total",
-                                                                0,
-                                                            ]
-                                                        },
-                                                        {
-                                                            "$ifNull": [
-                                                                "$local.route_seats",
-                                                                1,
-                                                            ]
-                                                        },
-                                                    ]
-                                                },
-                                                {"$ifNull": ["$context.capacity", 0]},
-                                            ]
-                                        },
+                                "update": [
+                                    {
+                                        "$set": {
+                                            "local.route_cost": {
+                                                "$ref": "/items/route/$$ctx.payload.route_id/data.cost"},
+                                            "local.route_seats": {
+                                                "$ref": "/items/route/$$ctx.payload.route_id/data.seats"},
+                                            "local.route_origin": {
+                                                "$ref": "/items/route/$$ctx.payload.route_id/data.origin"
+                                            },
+                                            "local.route_destination": {
+                                                "$ref": "/items/route/$$ctx.payload.route_id/data.destination"
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "$set": {
+                                            "local.has_capacity_for_join": {
+                                                "$lte": [
+                                                    {
+                                                        "$add": [
+                                                            {
+                                                                "$ifNull": [
+                                                                    "$context.accepted_seats_total",
+                                                                    0,
+                                                                ]
+                                                            },
+                                                            {
+                                                                "$ifNull": [
+                                                                    "$local.route_seats",
+                                                                    1,
+                                                                ]
+                                                            },
+                                                        ]
+                                                    },
+                                                    {"$ifNull": ["$context.capacity", 0]},
+                                                ]
+                                            },
+                                        }
                                     }
-                                },
+                                ],
                             },
                             {
                                 "title": "Read Rider Credits",
@@ -386,42 +394,33 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "title": "Validate Join Prerequisites",
                                 "description": "Combines seat capacity and rider credits to decide whether START join can proceed.",
                                 "type": "update.contract",
-                                "update": {
-                                    "$set": {
-                                        "local.has_sufficient_credits": {
-                                            "$gte": [
-                                                {
-                                                    "$ifNull": [
-                                                        "$local.available_credits",
-                                                        0,
-                                                    ]
-                                                },
-                                                {"$ifNull": ["$local.route_cost", 0]},
-                                            ]
-                                        },
-                                        "local.can_join": {
-                                            "$and": [
-                                                "$local.has_capacity_for_join",
-                                                {
-                                                    "$gte": [
-                                                        {
-                                                            "$ifNull": [
-                                                                "$local.available_credits",
-                                                                0,
-                                                            ]
-                                                        },
-                                                        {
-                                                            "$ifNull": [
-                                                                "$local.route_cost",
-                                                                0,
-                                                            ]
-                                                        },
-                                                    ]
-                                                },
-                                            ]
-                                        },
+                                "update":[
+                                    {
+                                        "$set": {
+                                            "local.has_sufficient_credits": {
+                                                "$gte": [
+                                                    {
+                                                        "$ifNull": [
+                                                            "$local.available_credits",
+                                                            0,
+                                                        ]
+                                                    },
+                                                    {"$ifNull": ["$local.route_cost", 0]},
+                                                ]
+                                            },
+                                        }
+                                    },
+                                    {
+                                        "$set": {
+                                            "local.can_join": {
+                                                "$and": [
+                                                    "$local.has_capacity_for_join",
+                                                    "$local.has_sufficient_credits"
+                                                ]
+                                            },
+                                        }
                                     }
-                                },
+                                ],
                             },
                             {
                                 "title": "Evaluate Branch",
@@ -513,7 +512,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "type": "update.contract",
                                 "update": {
                                     "$set": {
-                                        "context.initial_invite_targets": {
+                                        "local.initial_invite_targets": {
                                             "$arrayToObject": {
                                                 "$map": {
                                                     "input": "$$payload.riders",
@@ -534,15 +533,9 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "type": "notify",
                                 "notify": {
                                     "event": "contracts.user_invited",
-                                    "targets": {"$ctx": "doc.context.initial_invite_targets"},
+                                    "targets": {"$ctx": "doc.local.initial_invite_targets"},
                                     "payload": {"contract_id": {"$ctx": "doc._id"}},
                                 },
-                            },
-                            {
-                                "title": "Clear Invite Targets",
-                                "description": "Removes temporary invite target projection after notifications are sent.",
-                                "type": "update.contract",
-                                "update": {"$unset": "context.initial_invite_targets"},
                             },
                             {
                                 "title": "Promote Pending Riders",
@@ -1033,7 +1026,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                             {
                                                 "title": "Move State",
                                                 "description": "Moves the contract state to support approve a queued request. "
-                                                "(then)",
+                                                               "(then)",
                                                 "type": "update.contract",
                                                 "update": {"$set": {"state": "READY"}},
                                             }
@@ -1042,7 +1035,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                             {
                                                 "title": "Move State",
                                                 "description": "Moves the contract state to support approve a queued request. "
-                                                "(else)",
+                                                               "(else)",
                                                 "type": "update.contract",
                                                 "update": {"$set": {"state": "RECRUITING"}},
                                             }
@@ -1051,7 +1044,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                     {
                                         "title": "Notify Stakeholders",
                                         "description": "Sends contracts.join_request_accepted so stakeholders can act at the right time. "
-                                        "(then)",
+                                                       "(then)",
                                         "type": "notify",
                                         "notify": {
                                             "event": "contracts.join_request_accepted",
@@ -1128,7 +1121,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                     {
                                         "title": "Notify Stakeholders",
                                         "description": "Sends contracts.join_request_rejected so stakeholders can act at the right time. "
-                                        "(then)",
+                                                       "(then)",
                                         "type": "notify",
                                         "notify": {
                                             "event": "contracts.join_request_rejected",
@@ -1585,7 +1578,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                     {
                                         "title": "Notify Stakeholders",
                                         "description": "Sends contracts.invite_cancelled_by_driver so stakeholders can act at the right time. "
-                                        "(then)",
+                                                       "(then)",
                                         "type": "notify",
                                         "notify": {
                                             "event": "contracts.invite_cancelled_by_driver",
@@ -2965,12 +2958,12 @@ class ContractsE2ETest(unittest.TestCase):
         )
 
     def _post_event(
-        self,
-        contract_id: str,
-        path: str,
-        *,
-        actor: str,
-        payload: Dict[str, Any] | None = None,
+            self,
+            contract_id: str,
+            path: str,
+            *,
+            actor: str,
+            payload: Dict[str, Any] | None = None,
     ) -> httpx.Response:
         if payload is None and path == "accept-user":
             payload = {
@@ -3007,8 +3000,8 @@ class ContractsE2ETest(unittest.TestCase):
 
         now = now or dt.datetime.now(dt.timezone.utc)
         with patch(
-            "schedula.utils.form.server.contracts.schedule._claim_job_now",
-            return_value=now,
+                "schedula.utils.form.server.contracts.schedule._claim_job_now",
+                return_value=now,
         ):
             with self.app.app_context():
                 coll = _queue_coll()
@@ -3129,7 +3122,7 @@ class ContractsE2ETest(unittest.TestCase):
         return gid
 
     def test_start_user_initiated_sets_pending_driver_and_requesting_rider(
-        self,
+            self,
     ) -> None:
         cid = self._create_gherkin_contract(initial_state="START")
         c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
@@ -3160,7 +3153,7 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(self._user_state(c, self.user_ids["p4"]), "REQUESTING")
 
     def test_start_request_join_adds_requesting_user_when_capacity_and_credits_ok(
-        self,
+            self,
     ) -> None:
         driver_principal = f"u:{self.user_ids['d1']}"
         before = self._count_notifications_for(driver_principal, "contracts.join_requested")
