@@ -296,7 +296,10 @@ TEMPLATE_CREATE_SCHEMA = {
                 },
                 {
                     "if": {"properties": {"type": {"const": "if.else"}}},
-                    "then": {"required": ["condition", "then_effects"]},
+                    "then": {
+                        "required": ["condition"],
+                        "anyOf": [{"required": ["then_effects"]}, {"required": ["else_effects"]}]
+                    },
                 },
                 {
                     "if": {"properties": {"type": {"const": "schedule.event_at"}}},
