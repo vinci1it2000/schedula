@@ -124,7 +124,17 @@ def _apply_effect_step(
         elif ef_type == "use.credits":
             wallet.use(product=product, credits=ef["credits"])
         elif ef_type == "charge.credits":
-            wallet.charge(product=product, credits=ef["credits"])
+            user_ref = ef.get("user_id")
+            if isinstance(user_ref, dict):
+                for principal, credits in user_ref.items():
+                    if not principal:
+                        continue
+                    amount = float(credits or 0)
+                    if amount <= 0:
+                        continue
+                    get_wallet(u2id(principal)).charge(product=product, credits=amount)
+            else:
+                wallet.charge(product=product, credits=ef["credits"])
         else:  # transfer_to.credits
             if "to_wallet_id" in ef:
                 to_wallet = db.session.get(Wallet, int(ef["to_wallet_id"]))
@@ -414,7 +424,12 @@ def _apply_on_enter(
     if prev_state:
         on_exit = pydash.get(doc, f"definition.states.{doc.get('state')}.on_exit", {})
         changed, doc = _apply_effects(
-            on_exit, doc, actor_id=actor_id, payload=payload, local=local, validate_schema=False
+            on_exit,
+            doc,
+            actor_id=actor_id,
+            payload=payload,
+            local=local,
+            validate_schema=False,
         )
         if changed:
             return doc
