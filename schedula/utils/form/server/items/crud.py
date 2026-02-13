@@ -46,17 +46,16 @@ Operational notes:
 import json
 from typing import Dict, Set, Tuple
 
+import schedula as sh
 from bson import ObjectId
 from flask import request, jsonify, Blueprint
 from flask_security import current_user as cu
 
-import schedula as sh
 from . import normalize_category
 from .files import store_uploaded_file, delete_files_meta, normalize_file_name
 from ..notifications import notify_item_event_safe
 from ..security.casbin import (
     g,
-    u,
     get_auth_sub,
     get_current_sub,
     acl_group,
@@ -660,10 +659,7 @@ def _item_get(category, item_id, act, sub, enforce_acl=True):
         Raw MongoDB document (not serialized).
     """
 
-    try:
-        full_filter = {"category": category, "_id": ObjectId(item_id)}
-    except Exception:
-        abort_json(400, "Invalid item_id")
+    full_filter = {"category": category, "_id": item_id}
 
     coll = get_mongo(collection=config_get("ITEMS_COLLECTION", "items"))
     try:

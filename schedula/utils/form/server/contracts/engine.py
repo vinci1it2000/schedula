@@ -130,7 +130,7 @@ def _apply_effect_step(
             )
         if contract_id in updates:
             doc = _get_contract(contract_id)
-        local.update(doc.get("local") or {})
+            local.update(doc.get("local") or {})
     elif ef_type == "delete.contract":
         contract_id = doc["_id"]
         mongo_delete_one(_contracts_coll(), {"_id": contract_id})
@@ -332,6 +332,8 @@ def _apply_effect_step(
         if isinstance(ef["item_id"], str):
             item_ids = [ef["item_id"]]
         docs = list(mongo_find(coll, {"_id": {"$in": item_ids}}))
+        if isinstance(ef["item_id"], str):
+            docs = docs[0] if docs else None
         local[ef["key"]] = docs
     else:
         abort_json(400, f"Unknown effect type: {ef_type}")
