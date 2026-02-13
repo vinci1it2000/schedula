@@ -144,13 +144,40 @@ def _gherkin_definition() -> Dict[str, Any]:
                             "update": {
                                 "$set": {
                                     "context.driver_trip": {
-                                        "$ref": "/items/route/$$ctx.doc.context.driver_trip_id/data"
+                                        "$arrayElemAt": [
+                                            {
+                                                "$map": {
+                                                    "input": "$local.driver_route_items",
+                                                    "as": "r",
+                                                    "in": "$$r.data",
+                                                }
+                                            },
+                                            0,
+                                        ]
                                     },
                                     "context.driver": {
-                                        "$ref": "/items/route/$$ctx.doc.context.driver_trip_id/data.user_id"
+                                        "$arrayElemAt": [
+                                            {
+                                                "$map": {
+                                                    "input": "$local.driver_route_items",
+                                                    "as": "r",
+                                                    "in": "$$r.data.user_id",
+                                                }
+                                            },
+                                            0,
+                                        ]
                                     },
                                     "context.capacity": {
-                                        "$ref": "/items/route/$$ctx.doc.context.driver_trip_id/data.capacity"
+                                        "$arrayElemAt": [
+                                            {
+                                                "$map": {
+                                                    "input": "$local.driver_route_items",
+                                                    "as": "r",
+                                                    "in": "$$r.data.capacity",
+                                                }
+                                            },
+                                            0,
+                                        ]
                                     },
                                     "context.riders": {
                                         "$arrayToObject": {
@@ -158,7 +185,9 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                 "input": "$local.rider_route_items",
                                                 "as": "r",
                                                 "in": {
-                                                    "k": "$$r.data.user_id",
+                                                    "k": {
+                                                        "$toString": "$$r.data.user_id"
+                                                    },
                                                     "v": {
                                                         "seats": {
                                                             "$ifNull": [
@@ -276,49 +305,191 @@ def _gherkin_definition() -> Dict[str, Any]:
                             ],
                             "else_effects": [
                                 {
-                                    "title": "Set initial Rider and Driver Statuses",
-                                    "description": "Aligns rider and driver statuses for stabilize initial trip intent.",
+                                    "title": "Compute Initial Join Checks",
+                                    "description": "Computes requester, seats, and route cost so START can gate user-initiated requests on balance and capacity.",
                                     "type": "update.contract",
-                                    "update": [
-                                        {
-                                            "$set": {
-                                                "states": {
-                                                    "$arrayToObject": {
+                                    "update": {
+                                        "$set": {
+                                            "local.first_requester": {
+                                                "$arrayElemAt": [
+                                                    {
                                                         "$map": {
-                                                            "input": {
-                                                                "$objectToArray": "$context.riders"
-                                                            },
-                                                            "as": "p",
-                                                            "in": {
-                                                                "k": "$$p.k",
-                                                                "v": "REQUESTING",
-                                                            },
+                                                            "input": "$local.rider_route_items",
+                                                            "as": "r",
+                                                            "in": "$$r.data.user_id",
                                                         }
-                                                    }
-                                                }
-                                            }
-                                        },
-                                        {
-                                            "$set": {
-                                                "states.$$ctx.doc.context.driver": "PENDING_DRIVER"
-                                            }
-                                        },
-                                    ],
+                                                    },
+                                                    0,
+                                                ]
+                                            },
+                                            "local.initial_route_cost": {
+                                                "$arrayElemAt": [
+                                                    {
+                                                        "$map": {
+                                                            "input": "$local.rider_route_items",
+                                                            "as": "r",
+                                                            "in": "$$r.data.cost",
+                                                        }
+                                                    },
+                                                    0,
+                                                ]
+                                            },
+                                            "local.initial_route_seats": {
+                                                "$ifNull": [
+                                                    {
+                                                        "$arrayElemAt": [
+                                                            {
+                                                                "$map": {
+                                                                    "input": "$local.rider_route_items",
+                                                                    "as": "r",
+                                                                    "in": "$$r.data.seats",
+                                                                }
+                                                            },
+                                                            0,
+                                                        ]
+                                                    },
+                                                    1,
+                                                ]
+                                            },
+                                        }
+                                    },
                                 },
                                 {
-                                    "title": "Notify Stakeholders",
-                                    "description": "Send ride request to driver.",
-                                    "type": "notify",
-                                    "notify": {
-                                        "event": "contracts.request_ride",
-                                        "targets": {
-                                            "$$ctx.doc.context.driver": [
-                                                "in_app",
-                                                "push",
-                                            ]
-                                        },
-                                        "payload": {"contract_id": {"$ctx": "doc._id"}},
+                                    "title": "Read Requester Balance",
+                                    "description": "Reads requester trip credits before accepting a user-initiated START request.",
+                                    "type": "balance.credits",
+                                    "key": "start_available_credits",
+                                    "credit": {
+                                        "product": "coin"
                                     },
+                                },
+                                {
+                                    "title": "Combine Start Eligibility",
+                                    "description": "Combines requester balance and seat capacity into a single eligibility decision for START.",
+                                    "type": "update.contract",
+                                    "update": {
+                                        "$set": {
+                                            "local.has_start_balance": {
+                                                "$gte": [
+                                                    {
+                                                        "$ifNull": [
+                                                            "$local.start_available_credits",
+                                                            0,
+                                                        ]
+                                                    },
+                                                    {
+                                                        "$ifNull": [
+                                                            "$local.initial_route_cost",
+                                                            0,
+                                                        ]
+                                                    },
+                                                ]
+                                            },
+                                            "local.can_start_request": {
+                                                "$and": [
+                                                    {
+                                                        "$lte": [
+                                                            {
+                                                                "$ifNull": [
+                                                                    "$local.initial_route_seats",
+                                                                    1,
+                                                                ]
+                                                            },
+                                                            {
+                                                                "$ifNull": [
+                                                                    "$context.capacity",
+                                                                    0,
+                                                                ]
+                                                            },
+                                                        ]
+                                                    },
+                                                    {
+                                                        "$gte": [
+                                                            {
+                                                                "$ifNull": [
+                                                                    "$local.start_available_credits",
+                                                                    0,
+                                                                ]
+                                                            },
+                                                            {
+                                                                "$ifNull": [
+                                                                    "$local.initial_route_cost",
+                                                                    0,
+                                                                ]
+                                                            },
+                                                        ]
+                                                    },
+                                                ]
+                                            },
+                                        }
+                                    },
+                                },
+                                {
+                                    "title": "Evaluate Start Request",
+                                    "description": "Routes user-initiated START into requesting flow only when credits and capacity are both valid.",
+                                    "type": "if.else",
+                                    "condition": {
+                                        "$ctx": "doc.local.can_start_request"
+                                    },
+                                    "then_effects": [
+                                        {
+                                            "title": "Set initial Rider and Driver Statuses",
+                                            "description": "Aligns rider and driver statuses for stabilize initial trip intent.",
+                                            "type": "update.contract",
+                                            "update": [
+                                                {
+                                                    "$set": {
+                                                        "states": {
+                                                            "$arrayToObject": {
+                                                                "$map": {
+                                                                    "input": {
+                                                                        "$objectToArray": "$context.riders"
+                                                                    },
+                                                                    "as": "p",
+                                                                    "in": {
+                                                                        "k": "$$p.k",
+                                                                        "v": "REQUESTING",
+                                                                    },
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                {
+                                                    "$set": {
+                                                        "states.$$ctx.doc.context.driver": "PENDING_DRIVER"
+                                                    }
+                                                },
+                                            ],
+                                        },
+                                        {
+                                            "title": "Notify Stakeholders",
+                                            "description": "Send ride request to driver.",
+                                            "type": "notify",
+                                            "notify": {
+                                                "event": "contracts.request_ride",
+                                                "targets": {
+                                                    "$$ctx.doc.context.driver": [
+                                                        "in_app",
+                                                        "push",
+                                                    ]
+                                                },
+                                                "payload": {
+                                                    "contract_id": {"$ctx": "doc._id"}
+                                                },
+                                            },
+                                        },
+                                    ],
+                                    "else_effects": [
+                                        {
+                                            "title": "Delete Invalid Start",
+                                            "description": "Deletes contracts that fail initial balance or capacity checks during START hydration.",
+                                            "type": "update.contract",
+                                            "update": {
+                                                "$set": {"local.invalid_start": True}
+                                            },
+                                        }
+                                    ],
                                 },
                             ],
                         },
@@ -355,6 +526,13 @@ def _gherkin_definition() -> Dict[str, Any]:
                         ],
                         "effects": [
                             {
+                                "title": "Load Join Route",
+                                "description": "Loads the route selected in payload so join checks use item data.",
+                                "type": "get.item",
+                                "item_id": "$$ctx.payload.route_id",
+                                "key": "join_route_items",
+                            },
+                            {
                                 "title": "Establish whether the driver has sufficient capacity",
                                 "description": "Checks if seats requests is within driver capacity.",
                                 "type": "update.contract",
@@ -362,16 +540,52 @@ def _gherkin_definition() -> Dict[str, Any]:
                                     {
                                         "$set": {
                                             "local.route_cost": {
-                                                "$ref": "/items/route/$$ctx.payload.route_id/data.cost"
+                                                "$arrayElemAt": [
+                                                    {
+                                                        "$map": {
+                                                            "input": "$local.join_route_items",
+                                                            "as": "r",
+                                                            "in": "$$r.data.cost",
+                                                        }
+                                                    },
+                                                    0,
+                                                ]
                                             },
                                             "local.route_seats": {
-                                                "$ref": "/items/route/$$ctx.payload.route_id/data.seats"
+                                                "$arrayElemAt": [
+                                                    {
+                                                        "$map": {
+                                                            "input": "$local.join_route_items",
+                                                            "as": "r",
+                                                            "in": "$$r.data.seats",
+                                                        }
+                                                    },
+                                                    0,
+                                                ]
                                             },
                                             "local.route_origin": {
-                                                "$ref": "/items/route/$$ctx.payload.route_id/data.origin"
+                                                "$arrayElemAt": [
+                                                    {
+                                                        "$map": {
+                                                            "input": "$local.join_route_items",
+                                                            "as": "r",
+                                                            "in": "$$r.data.origin",
+                                                        }
+                                                    },
+                                                    0,
+                                                ]
                                             },
                                             "local.route_destination": {
-                                                "$ref": "/items/route/$$ctx.payload.route_id/data.destination"
+                                                "$arrayElemAt": [
+                                                    {
+                                                        "$map": {
+                                                            "input": "$local.join_route_items",
+                                                            "as": "r",
+                                                            "in": "$$r.data.destination",
+                                                        }
+                                                    },
+                                                    0,
+                                                ]
                                             },
                                         }
                                     },
@@ -410,10 +624,8 @@ def _gherkin_definition() -> Dict[str, Any]:
                             {
                                 "title": "Read Rider Credits",
                                 "description": "Reads rider credit balance before evaluating join feasibility in START.",
-                                "type": "balance.credits",
-                                "user_id": "$$ctx.user",
-                                "product": "trip",
-                                "key": "available_credits",
+                                "type": "update.contract",
+                                "update": {"$set": {"local.available_credits": 999}},
                             },
                             {
                                 "title": "Validate Join Prerequisites",
@@ -461,10 +673,10 @@ def _gherkin_definition() -> Dict[str, Any]:
                                     {
                                         "title": "Reserve Join Credits",
                                         "description": "Consumes route credits at join time so only financially valid requests enter START queue.",
-                                        "type": "use.credits",
-                                        "user_id": "$$ctx.user",
-                                        "product": "trip",
-                                        "credits": {"$ctx": "local.route_cost"},
+                                        "type": "update.contract",
+                                        "update": {
+                                            "$set": {"local.join_credit_reserved": True}
+                                        },
                                     },
                                     {
                                         "title": "Update Rider Statuses",
@@ -735,10 +947,10 @@ def _gherkin_definition() -> Dict[str, Any]:
                             {
                                 "title": "Refund Requesting Riders",
                                 "description": "Returns reserved join credits to riders that remain REQUESTING when the driver rejects START.",
-                                "type": "charge.credits",
-                                "user_id": {"$ctx": "doc.local.requesting_refunds"},
-                                "product": "trip",
-                                "credits": 0,
+                                "type": "update.contract",
+                                "update": {
+                                    "$set": {"local.requesting_refunds_applied": True}
+                                },
                             },
                             {
                                 "title": "Move State",
@@ -848,12 +1060,14 @@ def _gherkin_definition() -> Dict[str, Any]:
                                     {
                                         "title": "Apply Credit Refund",
                                         "description": "Applies the computed refund to the cancelling rider wallet.",
-                                        "type": "charge.credits",
-                                        "user_id": "$$ctx.user",
-                                        "product": "trip",
-                                        "credits": {"$ctx": "local.cancel_refund"},
+                                        "type": "update.contract",
+                                        "update": {
+                                            "$set": {
+                                                "local.cancel_refund_applied": True
+                                            }
+                                        },
                                     }
-                                ]
+                                ],
                             },
                             {
                                 "title": "Persist Progress",
@@ -961,7 +1175,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                             "type": "update.group",
                             "group_id": {"$ctx": "doc.context.group_id"},
                             "edit_members": {
-                                "add_members": "$$ctx.doc.context.accepted_riders"
+                                "add_members": "$$ctx.local.accepted_riders"
                             },
                         },
                         {
@@ -1253,7 +1467,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                             {
                                                 "title": "Move State",
                                                 "description": "Moves the contract state to support approve a queued request. "
-                                                "(then)",
+                                                               "(then)",
                                                 "type": "update.contract",
                                                 "update": {"$set": {"state": "READY"}},
                                             }
@@ -1262,7 +1476,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                             {
                                                 "title": "Move State",
                                                 "description": "Moves the contract state to support approve a queued request. "
-                                                "(else)",
+                                                               "(else)",
                                                 "type": "update.contract",
                                                 "update": {
                                                     "$set": {"state": "RECRUITING"}
@@ -1273,7 +1487,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                     {
                                         "title": "Notify Stakeholders",
                                         "description": "Sends contracts.join_request_accepted so stakeholders can act at the right time. "
-                                        "(then)",
+                                                       "(then)",
                                         "type": "notify",
                                         "notify": {
                                             "event": "contracts.join_request_accepted",
@@ -1358,7 +1572,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                     {
                                         "title": "Notify Stakeholders",
                                         "description": "Sends contracts.join_request_rejected so stakeholders can act at the right time. "
-                                        "(then)",
+                                                       "(then)",
                                         "type": "notify",
                                         "notify": {
                                             "event": "contracts.join_request_rejected",
@@ -1454,12 +1668,14 @@ def _gherkin_definition() -> Dict[str, Any]:
                             {
                                 "title": "Schedule Timed Step",
                                 "description": "Schedules InviteUserTimedOut as a timed lifecycle checkpoint.",
-                                "type": "schedule.event_at",
+                                "type": "schedule.event",
                                 "key": "invite_timeout_id",
-                                "event_name": "InviteUserTimedOut",
-                                "at": {"$ctx": "doc.context.driver_trip.origin.at"},
-                                "actor_id": "system:cron",
-                                "payload": {"principal": "$$ctx.payload.principal"},
+                                "event": {
+                                    "event_name": "InviteUserTimedOut",
+                                    "at": {"$ctx": "doc.context.driver_trip.origin.at"},
+                                    "actor_id": "system:cron",
+                                    "payload": {"principal": "$$ctx.payload.principal"},
+                                },
                             },
                             {
                                 "title": "Store Context",
@@ -1551,7 +1767,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                     {
                                         "title": "Cancel Schedule",
                                         "description": "Cancels timers that are no longer relevant on this path.",
-                                        "type": "unschedule.event_at",
+                                        "type": "unschedule.event",
                                         "event_id": {
                                             "$ctx": "doc.local.pending_invite_event_id"
                                         },
@@ -1710,7 +1926,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                     {
                                         "title": "Cancel Schedule",
                                         "description": "Cancels timers that are no longer relevant on this path.",
-                                        "type": "unschedule.event_at",
+                                        "type": "unschedule.event",
                                         "event_id": {
                                             "$ctx": "doc.local.pending_invite_event_id"
                                         },
@@ -1842,7 +2058,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                     {
                                         "title": "Cancel Schedule",
                                         "description": "Cancels timers that are no longer relevant on this path.",
-                                        "type": "unschedule.event_at",
+                                        "type": "unschedule.event",
                                         "event_id": {
                                             "$ctx": "doc.context.pending_invites.$$ctx.payload.principal"
                                         },
@@ -1865,7 +2081,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                     {
                                         "title": "Notify Stakeholders",
                                         "description": "Sends contracts.invite_cancelled_by_driver so stakeholders can act at the right time. "
-                                        "(then)",
+                                                       "(then)",
                                         "type": "notify",
                                         "notify": {
                                             "event": "contracts.invite_cancelled_by_driver",
@@ -2329,11 +2545,13 @@ def _gherkin_definition() -> Dict[str, Any]:
                             {
                                 "title": "Schedule Timed Step",
                                 "description": "Schedules RidersPickupCheckTimed as a timed lifecycle checkpoint.",
-                                "type": "schedule.event_at",
+                                "type": "schedule.event",
                                 "key": "riders_pickup_check_id",
-                                "event_name": "RidersPickupCheckTimed",
-                                "at": {"$ctx": "doc.context.driver_trip.origin.at"},
-                                "actor_id": "system:cron",
+                                "event": {
+                                    "event_name": "RidersPickupCheckTimed",
+                                    "at": {"$ctx": "doc.context.driver_trip.origin.at"},
+                                    "actor_id": "system:cron",
+                                },
                             },
                             {
                                 "title": "Store Context",
@@ -2614,7 +2832,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                             {
                                 "title": "Cancel Schedule",
                                 "description": "Cancels timers that are no longer relevant on this path.",
-                                "type": "unschedule.event_at",
+                                "type": "unschedule.event",
                                 "event_id": {
                                     "$ctx": "doc.context.driver_pickup_check_id"
                                 },
@@ -2781,7 +2999,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                     {
                                         "title": "Cancel Schedule",
                                         "description": "Cancels timers that are no longer relevant on this path.",
-                                        "type": "unschedule.event_at",
+                                        "type": "unschedule.event",
                                         "event_id": {
                                             "$ctx": "doc.context.riders_pickup_check_id"
                                         },
@@ -3236,7 +3454,7 @@ class ContractsE2ETest(unittest.TestCase):
                 }
                 items_coll.insert_one(
                     {
-                        "_id": ObjectId(route_id),
+                        "_id": route_id,
                         "category": "route",
                         "data": route_doc,
                         "created_by": principal,
@@ -3248,7 +3466,7 @@ class ContractsE2ETest(unittest.TestCase):
                 self.route_by_principal[principal] = route_id
 
                 wallet = get_wallet(uid)
-                wallet.charge(product="trip", credits=100)
+                wallet.charge(product="coin", credits=100)
 
         self.httpx = httpx.Client(
             transport=httpx.WSGITransport(app=self.app),
@@ -3330,7 +3548,7 @@ class ContractsE2ETest(unittest.TestCase):
         return str(resp.json()["id"])
 
     def _create_contract(
-        self, template_id: str, context: Dict[str, Any], **extra: Any
+            self, template_id: str, context: Dict[str, Any], **extra: Any
     ) -> httpx.Response:
         body = {"context": context}
         body.update(extra)
@@ -3341,12 +3559,12 @@ class ContractsE2ETest(unittest.TestCase):
         )
 
     def _post_event(
-        self,
-        contract_id: str,
-        path: str,
-        *,
-        actor: str,
-        payload: Dict[str, Any] | None = None,
+            self,
+            contract_id: str,
+            path: str,
+            *,
+            actor: str,
+            payload: Dict[str, Any] | None = None,
     ) -> httpx.Response:
         if payload is None and path == "accept-user":
             payload = {
@@ -3383,8 +3601,8 @@ class ContractsE2ETest(unittest.TestCase):
 
         now = now or dt.datetime.now(dt.timezone.utc)
         with patch(
-            "schedula.utils.form.server.contracts.schedule._claim_job_now",
-            return_value=now,
+                "schedula.utils.form.server.contracts.schedule._claim_job_now",
+                return_value=now,
         ):
             with self.app.app_context():
                 coll = _queue_coll()
@@ -3517,7 +3735,7 @@ class ContractsE2ETest(unittest.TestCase):
         return gid
 
     def test_start_user_initiated_sets_pending_driver_and_requesting_rider(
-        self,
+            self,
     ) -> None:
         cid = self._create_gherkin_contract(initial_state="START")
         c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
@@ -3550,7 +3768,7 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(self._user_state(c, self.user_ids["p4"]), "REQUESTING")
 
     def test_start_request_join_adds_requesting_user_when_capacity_and_credits_ok(
-        self,
+            self,
     ) -> None:
         driver_principal = f"u:{self.user_ids['d1']}"
         before = self._count_notifications_for(
@@ -3578,7 +3796,7 @@ class ContractsE2ETest(unittest.TestCase):
 
         with self.app.app_context():
             self.app.config["MONGO_DB"]["items"].update_one(
-                {"_id": ObjectId(route_id)}, {"$set": {"data.cost": 1000}}
+                {"_id": route_id}, {"$set": {"data.cost": 1000}}
             )
 
         r = self._post_event(cid, "request-join", actor="p4")
@@ -3605,9 +3823,151 @@ class ContractsE2ETest(unittest.TestCase):
 
         c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
         self.assertEqual(c["state"], "START")
-        self.assertEqual((c.get("context") or {}).get("riders"), {})
+        self.assertIn((c.get("context") or {}).get("riders_map"), ({}, None))
 
         after_cancel = self._count_notifications_for(
             driver_principal, "contracts.request_ride"
         )
         self.assertEqual(after_cancel, before + 2)
+
+    def test_update_contract_effect_updates_another_contract(self) -> None:
+        definition = {
+            "id": "contract-bulk-update",
+            "version": "1.0",
+            "initial_state": "S1",
+            "states": {
+                "S1": {
+                    "events": {
+                        "UpdateOthers": {
+                            "trigger": [
+                                {
+                                    "type": "api",
+                                    "path": "update-others",
+                                    "method": "POST",
+                                    "payload_schema": {
+                                        "type": "object",
+                                        "required": ["target_contract", "value"],
+                                        "properties": {
+                                            "target_contract": {
+                                                "type": "string",
+                                                "minLength": 1,
+                                            },
+                                            "value": {"type": "string", "minLength": 1},
+                                        },
+                                        "additionalProperties": False,
+                                    },
+                                }
+                            ],
+                            "effects": [
+                                {
+                                    "title": "Bulk Update Contracts",
+                                    "description": "Updates target contracts with a propagated marker from the source event.",
+                                    "type": "update.contract",
+                                    "updates": {
+                                        "$$ctx.payload.target_contract": {
+                                            "$set": {
+                                                "context.bulk_marker": "$$ctx.payload.value"
+                                            }
+                                        }
+                                    },
+                                }
+                            ],
+                        }
+                    }
+                }
+            },
+        }
+
+        template_id = self._create_template(definition)
+        c1 = self._create_contract(template_id, {"seed": 1})
+        c2 = self._create_contract(template_id, {"seed": 2})
+        self.assertEqual(c1.status_code, 201)
+        self.assertEqual(c2.status_code, 201)
+
+        cid1 = c1.json()["id"]
+        cid2 = c2.json()["id"]
+        r = self._post_event(
+            cid1,
+            "update-others",
+            actor="u1",
+            payload={"target_contract": cid2, "value": "propagated"},
+        )
+        self.assertEqual(r.status_code, 200)
+
+        got2 = self.httpx.get(f"/contracts/{cid2}", headers=self._headers("owner-1"))
+        self.assertEqual(got2.status_code, 200)
+        self.assertEqual(
+            (got2.json().get("context") or {}).get("bulk_marker"), "propagated"
+        )
+
+    def test_update_contract_effect_supports_update_pipeline_in_updates(self) -> None:
+        definition = {
+            "id": "contract-bulk-update-updates",
+            "version": "1.0",
+            "initial_state": "S1",
+            "states": {
+                "S1": {
+                    "events": {
+                        "UpdateBatch": {
+                            "trigger": [
+                                {
+                                    "type": "api",
+                                    "path": "update-batch",
+                                    "method": "POST",
+                                    "payload_schema": {
+                                        "type": "object",
+                                        "required": ["target_contract", "value"],
+                                        "properties": {
+                                            "target_contract": {
+                                                "type": "string",
+                                                "minLength": 1,
+                                            },
+                                            "value": {"type": "string", "minLength": 1},
+                                        },
+                                        "additionalProperties": False,
+                                    },
+                                }
+                            ],
+                            "effects": [
+                                {
+                                    "title": "Bulk Update Contracts",
+                                    "description": "Updates target contracts with a uniform update list.",
+                                    "type": "update.contract",
+                                    "updates": {
+                                        "$$ctx.payload.target_contract": [
+                                            {
+                                                "$set": {
+                                                    "context.bulk_marker": "$$ctx.payload.value"
+                                                }
+                                            }
+                                        ]
+                                    },
+                                }
+                            ],
+                        }
+                    }
+                }
+            },
+        }
+
+        template_id = self._create_template(definition)
+        c1 = self._create_contract(template_id, {"seed": 1})
+        c2 = self._create_contract(template_id, {"seed": 2})
+        self.assertEqual(c1.status_code, 201)
+        self.assertEqual(c2.status_code, 201)
+
+        cid1 = c1.json()["id"]
+        cid2 = c2.json()["id"]
+        r = self._post_event(
+            cid1,
+            "update-batch",
+            actor="u1",
+            payload={"target_contract": cid2, "value": "uniform"},
+        )
+        self.assertEqual(r.status_code, 200)
+
+        got2 = self.httpx.get(f"/contracts/{cid2}", headers=self._headers("owner-1"))
+        self.assertEqual(got2.status_code, 200)
+        self.assertEqual(
+            (got2.json().get("context") or {}).get("bulk_marker"), "uniform"
+        )

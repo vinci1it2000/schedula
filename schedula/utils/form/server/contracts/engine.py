@@ -73,7 +73,7 @@ def _get_wallet(wallet_id, user_id):
     return get_wallet(u2id(user_id))
 
 
-def _yield_wallets(ef):
+def _yield_wallets(ef, actor_id):
     if "credits" in ef:
         items = ef["credits"]
     else:
@@ -82,7 +82,7 @@ def _yield_wallets(ef):
         if "wallet_id" in v:
             wallet = _get_wallet(v["wallet_id"], None)
         else:
-            wallet = _get_wallet(None, ef["user_id"])
+            wallet = _get_wallet(None, ef.get("user_id", actor_id))
 
         yield k, v, wallet
 
@@ -136,16 +136,16 @@ def _apply_effect_step(
         mongo_delete_one(_contracts_coll(), {"_id": contract_id})
         return True, doc
     elif ef_type == "balance.credits":
-        for k, v, wallet in _yield_wallets(ef):
+        for k, v, wallet in _yield_wallets(ef, actor_id):
             local[k] = wallet.balance(product=v["product"], session=db.session)
     elif ef_type == "use.credits":
-        for _, v, wallet in _yield_wallets(ef):
+        for _, v, wallet in _yield_wallets(ef, actor_id):
             wallet.use(product=v["product"], credits=v["amount"], session=db.session)
     elif ef_type == "charge.credits":
-        for _, v, wallet in _yield_wallets(ef):
+        for _, v, wallet in _yield_wallets(ef, actor_id):
             wallet.charge(product=v["product"], credits=v["amount"], session=db.session)
     elif ef_type == "transfers.credits":
-        for _, v, wallet in _yield_wallets(ef):
+        for _, v, wallet in _yield_wallets(ef, actor_id):
             if "to_wallet_id" in v:
                 to_wallet = _get_wallet(v["to_wallet_id"], None)
             else:

@@ -232,8 +232,8 @@ TEMPLATE_CREATE_SCHEMA = {
                 },
                 "event": {"$ref": "#/$defs/schedule_event"},
                 "events": {"type": "object", "additionalProperties": {"$ref": "#/$defs/schedule_event"}},
-                "credit": {"$ref": "#/$defs/credits"},
-                "credits": {"type": "object", "additionalProperties": {"$ref": "#/$defs/credits"}},
+                "credit": {"$ref": "#/$defs/credit"},
+                "credits": {"type": "object", "additionalProperties": {"$ref": "#/$defs/credit"}},
                 "condition": {
                     "title": "Branch Condition",
                     "description": "Condition value for if.else branching.",
@@ -468,7 +468,7 @@ TEMPLATE_CREATE_SCHEMA = {
                 },
             ],
         },
-        "credits": {
+        "credit": {
             "properties": {
                 "wallet_id": {
                     "anyOf": [{"type": "integer"}, {"$ref": "#/$defs/json_with_refs"}],
@@ -499,7 +499,8 @@ TEMPLATE_CREATE_SCHEMA = {
             "allOf": [
                 {"anyOf": [
                     {"required": ["wallet_id"], "not": {"required": ["user_id"]}},
-                    {"required": ["user_id"], "not": {"required": ["wallet_id"]}}
+                    {"required": ["user_id"], "not": {"required": ["wallet_id"]}},
+                    {"required": [], "not": {"required": ["wallet_id", "user_id"]}}
                 ]},
                 {"anyOf": [
                     {"not": {"required": ["amount", "to_wallet_id", "to_user_id"]}},
