@@ -47,7 +47,6 @@ def _definition() -> Dict[str, Any]:
                                 "response": {"ok": True},
                             }
                         ],
-                        "effects": [],
                     }
                 }
             },
@@ -322,6 +321,18 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                     0,
                                                 ]
                                             },
+                                            "local.initial_route_id": {
+                                                "$arrayElemAt": [
+                                                    {
+                                                        "$map": {
+                                                            "input": "$local.rider_route_items",
+                                                            "as": "r",
+                                                            "in": "$$r.id",
+                                                        }
+                                                    },
+                                                    0,
+                                                ]
+                                            },
                                             "local.initial_route_cost": {
                                                 "$arrayElemAt": [
                                                     {
@@ -330,6 +341,23 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                             "as": "r",
                                                             "in": "$$r.data.cost",
                                                         }
+                                                    },
+                                                    0,
+                                                ]
+                                            },
+                                            "local.initial_route_reserved_credits": {
+                                                "$ifNull": [
+                                                    {
+                                                        "$arrayElemAt": [
+                                                            {
+                                                                "$map": {
+                                                                    "input": "$local.rider_route_items",
+                                                                    "as": "r",
+                                                                    "in": "$$r.data.reserved_credits",
+                                                                }
+                                                            },
+                                                            0,
+                                                        ]
                                                     },
                                                     0,
                                                 ]
@@ -359,70 +387,85 @@ def _gherkin_definition() -> Dict[str, Any]:
                                     "description": "Reads requester trip credits before accepting a user-initiated START request.",
                                     "type": "balance.credits",
                                     "key": "start_available_credits",
-                                    "credit": {
-                                        "product": "coin"
-                                    },
+                                    "credit": {"product": "coin"},
                                 },
                                 {
                                     "title": "Combine Start Eligibility",
                                     "description": "Combines requester balance and seat capacity into a single eligibility decision for START.",
                                     "type": "update.contract",
-                                    "update": {
-                                        "$set": {
-                                            "local.has_start_balance": {
-                                                "$gte": [
-                                                    {
-                                                        "$ifNull": [
-                                                            "$local.start_available_credits",
-                                                            0,
-                                                        ]
-                                                    },
-                                                    {
-                                                        "$ifNull": [
-                                                            "$local.initial_route_cost",
-                                                            0,
-                                                        ]
-                                                    },
-                                                ]
-                                            },
-                                            "local.can_start_request": {
-                                                "$and": [
-                                                    {
-                                                        "$lte": [
-                                                            {
-                                                                "$ifNull": [
-                                                                    "$local.initial_route_seats",
-                                                                    1,
-                                                                ]
-                                                            },
-                                                            {
-                                                                "$ifNull": [
-                                                                    "$context.capacity",
-                                                                    0,
-                                                                ]
-                                                            },
-                                                        ]
-                                                    },
-                                                    {
-                                                        "$gte": [
-                                                            {
-                                                                "$ifNull": [
-                                                                    "$local.start_available_credits",
-                                                                    0,
-                                                                ]
-                                                            },
-                                                            {
-                                                                "$ifNull": [
-                                                                    "$local.initial_route_cost",
-                                                                    0,
-                                                                ]
-                                                            },
-                                                        ]
-                                                    },
-                                                ]
-                                            },
+                                    "update": [
+                                        {
+                                            "$set": {
+                                                "local.start_missing_credits": {
+                                                    "$max": [
+                                                        {
+                                                            "$subtract": [
+                                                                {
+                                                                    "$ifNull": [
+                                                                        "$local.initial_route_cost",
+                                                                        0,
+                                                                    ]
+                                                                },
+                                                                {
+                                                                    "$ifNull": [
+                                                                        "$local.initial_route_reserved_credits",
+                                                                        0,
+                                                                    ]
+                                                                },
+                                                            ]
+                                                        },
+                                                        0,
+                                                    ]
+                                                },
+                                            }
+                                        },
+                                        {
+                                            "$set": {
+                                                "local.has_start_balance": {
+                                                    "$gte": [
+                                                        {
+                                                            "$ifNull": [
+                                                                "$local.start_available_credits",
+                                                                0,
+                                                            ]
+                                                        },
+                                                        {
+                                                            "$ifNull": [
+                                                                "$local.start_missing_credits",
+                                                                0,
+                                                            ]
+                                                        },
+                                                    ]
+                                                },
+                                                "local.has_seats_availability":  {
+                                                            "$lte": [
+                                                                {
+                                                                    "$ifNull": [
+                                                                        "$local.initial_route_seats",
+                                                                        1,
+                                                                    ]
+                                                                },
+                                                                {
+                                                                    "$ifNull": [
+                                                                        "$context.capacity",
+                                                                        0,
+                                                                    ]
+                                                                },
+                                                            ]
+                                                        },
+                                            }
+                                        },
+                                        {
+                                            "$set": {
+                                                "local.can_start_request": {
+                                                    "$and": [
+                                                        "$local.has_start_balance",
+                                                        "$local.has_seats_availability"
+                                                    ]
+                                                },
+                                            }
                                         }
-                                    },
+                                    ],
                                 },
                                 {
                                     "title": "Evaluate Start Request",
@@ -432,6 +475,47 @@ def _gherkin_definition() -> Dict[str, Any]:
                                         "$ctx": "doc.local.can_start_request"
                                     },
                                     "then_effects": [
+                                        {
+                                            "title": "Reserve Start Credits",
+                                            "description": "Charges the requester credits when START proceeds through the valid branch.",
+                                            "type": "use.credits",
+                                            "credit": {
+                                                "product": "coin",
+                                                "amount": {
+                                                    "$ctx": "local.start_missing_credits"
+                                                },
+                                            },
+                                        },
+                                        {
+                                            "title": "Persist Route Credit Hold",
+                                            "description": "Stores the retained START credits on the requester route item for reconciliation.",
+                                            "type": "update.item",
+                                            "item_id": {
+                                                "$ctx": "doc.local.initial_route_id"
+                                            },
+                                            "update": {
+                                                "$set": {
+                                                    "data.reserved_credits": {
+                                                        "$add": [
+                                                            {
+                                                                "$ifNull": [
+                                                                    "$data.reserved_credits",
+                                                                    0,
+                                                                ]
+                                                            },
+                                                            {
+                                                                "$ifNull": [
+                                                                    {
+                                                                        "$ctx": "local.start_missing_credits"
+                                                                    },
+                                                                    0,
+                                                                ]
+                                                            },
+                                                        ]
+                                                    }
+                                                }
+                                            },
+                                        },
                                         {
                                             "title": "Set initial Rider and Driver Statuses",
                                             "description": "Aligns rider and driver statuses for stabilize initial trip intent.",
@@ -1466,8 +1550,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                         "then_effects": [
                                             {
                                                 "title": "Move State",
-                                                "description": "Moves the contract state to support approve a queued request. "
-                                                               "(then)",
+                                                "description": "Moves the contract state to support approve a queued request.",
                                                 "type": "update.contract",
                                                 "update": {"$set": {"state": "READY"}},
                                             }
@@ -1475,8 +1558,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                         "else_effects": [
                                             {
                                                 "title": "Move State",
-                                                "description": "Moves the contract state to support approve a queued request. "
-                                                               "(else)",
+                                                "description": "Moves the contract state to support approve a queued request.",
                                                 "type": "update.contract",
                                                 "update": {
                                                     "$set": {"state": "RECRUITING"}
@@ -1486,8 +1568,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                     },
                                     {
                                         "title": "Notify Stakeholders",
-                                        "description": "Sends contracts.join_request_accepted so stakeholders can act at the right time. "
-                                                       "(then)",
+                                        "description": "Sends contracts.join_request_accepted so stakeholders can act at the right time.",
                                         "type": "notify",
                                         "notify": {
                                             "event": "contracts.join_request_accepted",
@@ -1571,8 +1652,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                     },
                                     {
                                         "title": "Notify Stakeholders",
-                                        "description": "Sends contracts.join_request_rejected so stakeholders can act at the right time. "
-                                                       "(then)",
+                                        "description": "Sends contracts.join_request_rejected so stakeholders can act at the right time.",
                                         "type": "notify",
                                         "notify": {
                                             "event": "contracts.join_request_rejected",
@@ -1773,7 +1853,6 @@ def _gherkin_definition() -> Dict[str, Any]:
                                         },
                                     }
                                 ],
-                                "else_effects": [],
                             },
                             {
                                 "title": "Clear Context",
@@ -1932,7 +2011,6 @@ def _gherkin_definition() -> Dict[str, Any]:
                                         },
                                     }
                                 ],
-                                "else_effects": [],
                             },
                             {
                                 "title": "Clear Context",
@@ -2080,8 +2158,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                     },
                                     {
                                         "title": "Notify Stakeholders",
-                                        "description": "Sends contracts.invite_cancelled_by_driver so stakeholders can act at the right time. "
-                                                       "(then)",
+                                        "description": "Sends contracts.invite_cancelled_by_driver so stakeholders can act at the right time.",
                                         "type": "notify",
                                         "notify": {
                                             "event": "contracts.invite_cancelled_by_driver",
@@ -3548,7 +3625,7 @@ class ContractsE2ETest(unittest.TestCase):
         return str(resp.json()["id"])
 
     def _create_contract(
-            self, template_id: str, context: Dict[str, Any], **extra: Any
+        self, template_id: str, context: Dict[str, Any], **extra: Any
     ) -> httpx.Response:
         body = {"context": context}
         body.update(extra)
@@ -3559,12 +3636,12 @@ class ContractsE2ETest(unittest.TestCase):
         )
 
     def _post_event(
-            self,
-            contract_id: str,
-            path: str,
-            *,
-            actor: str,
-            payload: Dict[str, Any] | None = None,
+        self,
+        contract_id: str,
+        path: str,
+        *,
+        actor: str,
+        payload: Dict[str, Any] | None = None,
     ) -> httpx.Response:
         if payload is None and path == "accept-user":
             payload = {
@@ -3601,8 +3678,8 @@ class ContractsE2ETest(unittest.TestCase):
 
         now = now or dt.datetime.now(dt.timezone.utc)
         with patch(
-                "schedula.utils.form.server.contracts.schedule._claim_job_now",
-                return_value=now,
+            "schedula.utils.form.server.contracts.schedule._claim_job_now",
+            return_value=now,
         ):
             with self.app.app_context():
                 coll = _queue_coll()
@@ -3735,7 +3812,7 @@ class ContractsE2ETest(unittest.TestCase):
         return gid
 
     def test_start_user_initiated_sets_pending_driver_and_requesting_rider(
-            self,
+        self,
     ) -> None:
         cid = self._create_gherkin_contract(initial_state="START")
         c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
@@ -3768,7 +3845,7 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(self._user_state(c, self.user_ids["p4"]), "REQUESTING")
 
     def test_start_request_join_adds_requesting_user_when_capacity_and_credits_ok(
-            self,
+        self,
     ) -> None:
         driver_principal = f"u:{self.user_ids['d1']}"
         before = self._count_notifications_for(

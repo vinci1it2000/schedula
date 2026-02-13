@@ -170,48 +170,50 @@ class Wallet(db.Model):
 
     def use(self, product, credits, session=db.session, created_by=None):
         assert credits >= 0, "Credits to be consumed have to be positive."
-        with self.lock():
-            assert self.balance(product, session=session) >= credits, (
-                "Insufficient balance."
-            )
-            t = Txn(
-                wallet_id=self.id,
-                type_id=CHARGE,
-                credits=-credits,
-                product=product,
-                created_by=created_by,
-            )
-            session.add(t)
-            session.commit()
-        return t.id
+        if credits > 0:
+            with self.lock():
+                assert self.balance(product, session=session) >= credits, (
+                    "Insufficient balance."
+                )
+                t = Txn(
+                    wallet_id=self.id,
+                    type_id=CHARGE,
+                    credits=-credits,
+                    product=product,
+                    created_by=created_by,
+                )
+                session.add(t)
+                session.commit()
+            return t.id
 
     def charge(self, product, credits, session=db.session):
         assert credits >= 0, "Credits to be added have to be positive."
-        with self.lock():
-            t = Txn(wallet_id=self.id, type_id=CHARGE, credits=credits, product=product)
-            session.add(t)
-            session.commit()
-        return t.id
+        if credits > 0:
+            with self.lock():
+                t = Txn(wallet_id=self.id, type_id=CHARGE, credits=credits, product=product)
+                session.add(t)
+                session.commit()
+            return t.id
 
     def transfer_to(self, product, credits, to_wallet, session=db.session):
         assert credits >= 0, "Credits to be transfer have to be positive."
-
-        tran_from = Txn(
-            wallet_id=self.id, type_id=TRANSFER, credits=-credits, product=product
-        )
-        tran_to = Txn(
-            wallet_id=to_wallet, type_id=TRANSFER, credits=credits, product=product
-        )
-        to_wallet = session.get(Wallet, to_wallet)
-        assert to_wallet, "Destination wallet not found."
-        assert to_wallet, "Destination wallet not found."
-        with self.lock(), to_wallet.lock():
-            assert self.balance(product, session=session) >= credits, (
-                "Insufficient balance."
+        if credits > 0:
+            tran_from = Txn(
+                wallet_id=self.id, type_id=TRANSFER, credits=-credits, product=product
             )
-            session.add_all([tran_from, tran_to])
-            session.commit()
-        return tran_from.id, tran_to.id
+            tran_to = Txn(
+                wallet_id=to_wallet, type_id=TRANSFER, credits=credits, product=product
+            )
+            to_wallet = session.get(Wallet, to_wallet)
+            assert to_wallet, "Destination wallet not found."
+            assert to_wallet, "Destination wallet not found."
+            with self.lock(), to_wallet.lock():
+                assert self.balance(product, session=session) >= credits, (
+                    "Insufficient balance."
+                )
+                session.add_all([tran_from, tran_to])
+                session.commit()
+            return tran_from.id, tran_to.id
 
 
 @bp.route("/balance", methods=["GET"])
