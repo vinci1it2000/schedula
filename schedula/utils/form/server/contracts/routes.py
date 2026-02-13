@@ -105,15 +105,14 @@ TEMPLATE_CREATE_SCHEMA = {
                         "create.group",
                         "update.group",
                         "update.contract",
+                        "delete.contract",
                         "use.credits",
                         "charge.credits",
-                        "transfer_to.credits",
+                        "transfers.credits",
                         "balance.credits",
                         "if.else",
-                        "schedule.event_at",
-                        "schedule.event_cron",
-                        "unschedule.event_at",
-                        "unschedule.event_cron",
+                        "schedule.event",
+                        "unschedule.event",
                         "http.request",
                         "notify",
                     ],
@@ -129,10 +128,26 @@ TEMPLATE_CREATE_SCHEMA = {
                         },
                     ]
                 },
+                "updates": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "anyOf": [
+                            {"$ref": "#/$defs/update_operation"},
+                            {
+                                "type": "array",
+                                "items": {"$ref": "#/$defs/update_operation"},
+                            },
+                        ]
+                    },
+                },
                 "request": {
                     "title": "HTTP Request",
                     "description": "Kwargs compatible with requests.request for http.request effects.",
                     "$ref": "#/$defs/request_kwargs",
+                },
+                "requests": {
+                    "type": "object",
+                    "additionalProperties": {"$ref": "#/$defs/request_kwargs"}
                 },
                 "item_id": {
                     "anyOf": [
@@ -140,11 +155,13 @@ TEMPLATE_CREATE_SCHEMA = {
                         {"$ref": "#/$defs/json_with_refs"},
                         {
                             "type": "array",
-                            "items": {"anyOf": [
-                                {"type": "string"},
-                                {"$ref": "#/$defs/json_with_refs"},
-                            ]}
-                        }
+                            "items": {
+                                "anyOf": [
+                                    {"type": "string"},
+                                    {"$ref": "#/$defs/json_with_refs"},
+                                ]
+                            },
+                        },
                     ]
                 },
                 "group_id": {
@@ -165,7 +182,8 @@ TEMPLATE_CREATE_SCHEMA = {
                         {"$ref": "#/$defs/json_with_refs"},
                     ]
                 },
-                "item": {"anyOf": [{"type": "object"}, {"type": "array", "items": {"type": "object"}}]},
+                "item": {"type": "object"},
+                "items": {"type": "object", "additionalProperties": {"type": "object"}},
                 "name": {"type": "string"},
                 "group_type": {"type": "string"},
                 "edit_members": {"$ref": "#/$defs/edit_members"},
@@ -182,63 +200,40 @@ TEMPLATE_CREATE_SCHEMA = {
                     "anyOf": [
                         {"type": "string", "minLength": 1},
                         {"$ref": "#/$defs/json_with_refs"},
+                        {
+                            "type": "array",
+                            "minItems": 1,
+                            "items": {
+                                "anyOf": [
+                                    {"type": "string", "minLength": 1},
+                                    {"$ref": "#/$defs/json_with_refs"},
+                                ]
+                            },
+                        },
                     ],
                 },
-                "event_name": {
-                    "title": "Scheduled Event Name",
-                    "description": "State event name to fire on schedule.",
-                    "type": "string",
-                    "minLength": 1,
-                },
-                "at": {
-                    "title": "Execution Datetime",
-                    "description": "Datetime used to trigger the scheduled event.",
-                    "anyOf": [
-                        {"type": "string", "format": "date-time"},
-                        {"$ref": "#/$defs/json_with_refs"},
-                    ],
-                },
-                "cron": {
-                    "title": "Cron Expression",
-                    "description": "Cron expression for recurring scheduled events.",
-                    "type": "string",
-                    "minLength": 1,
-                },
-                "payload": {
-                    "title": "Scheduled Payload",
-                    "description": "Payload passed to the scheduled event when fired.",
-                    "$ref": "#/$defs/json_with_refs",
-                },
-                "actor_id": {
-                    "title": "Scheduled Actor",
-                    "description": "Actor principal used to fire scheduled event.",
-                    "type": "string",
-                    "minLength": 1,
-                },
-                "wallet_id": {
-                    "anyOf": [{"type": "integer"}, {"$ref": "#/$defs/json_with_refs"}],
-                },
-                "user_id": {
-                    "anyOf": [{"type": "integer"}, {"$ref": "#/$defs/json_with_refs"}],
-                },
-                "to_wallet_id": {
-                    "anyOf": [{"type": "integer"}, {"$ref": "#/$defs/json_with_refs"}],
-                },
-                "to_user_id": {
-                    "anyOf": [{"type": "integer"}, {"$ref": "#/$defs/json_with_refs"}],
-                },
-                "product": {
+                "contract_ids": {
+                    "title": "Contract Ids",
+                    "description": "Target contract ids for bulk contract updates.",
                     "anyOf": [
                         {"type": "string", "minLength": 1},
+                        {
+                            "type": "array",
+                            "minItems": 1,
+                            "items": {
+                                "anyOf": [
+                                    {"type": "string", "minLength": 1},
+                                    {"$ref": "#/$defs/json_with_refs"},
+                                ]
+                            },
+                        },
                         {"$ref": "#/$defs/json_with_refs"},
                     ],
                 },
-                "credits": {
-                    "anyOf": [
-                        {"type": "integer", "minimum": 0},
-                        {"$ref": "#/$defs/json_with_refs"},
-                    ],
-                },
+                "event": {"$ref": "#/$defs/schedule_event"},
+                "events": {"type": "object", "additionalProperties": {"$ref": "#/$defs/schedule_event"}},
+                "credit": {"$ref": "#/$defs/credits"},
+                "credits": {"type": "object", "additionalProperties": {"$ref": "#/$defs/credits"}},
                 "condition": {
                     "title": "Branch Condition",
                     "description": "Condition value for if.else branching.",
@@ -266,7 +261,12 @@ TEMPLATE_CREATE_SCHEMA = {
                             }
                         }
                     },
-                    "then": {"required": ["update"]},
+                    "then": {
+                        "anyOf": [
+                            {"required": ["update"], "not": {"required": ["updates"]}},
+                            {"required": ["updates"], "not": {"required": ["update"]}},
+                        ]
+                    },
                 },
                 {
                     "if": {
@@ -278,68 +278,174 @@ TEMPLATE_CREATE_SCHEMA = {
                             }
                         }
                     },
-                    "then": {"required": ["item_id", "update"]},
+                    "then": {
+                        "properties": {
+                            "item_id": {
+                                "anyOf": [
+                                    {"type": "string"},
+                                    {"$ref": "#/$defs/json_with_refs"}
+                                ]
+                            },
+                        },
+                        "anyOf": [
+                            {"required": ["item_id", "update"], "not": {"required": ["item", "updates"]}},
+                            {"required": ["updates"], "not": {"required": ["item_id", "update"]}}
+                        ]
+                    },
                 },
                 {
                     "if": {"properties": {"type": {"const": "use.credits"}}},
-                    "then": {"required": ["credits", "product"]},
+                    "then": {
+                        "properties": {
+                            "credit": {
+                                "required": ["amount"], "not": {"required": ["to_wallet_id", "to_user_id"]},
+                            },
+                            "credits": {"type": "object", "additionalProperties": {
+                                "required": ["amount"], "not": {"required": ["to_wallet_id", "to_user_id"]}
+                            }}
+                        },
+                        "anyOf": [
+                            {"required": ["credits"], "not": {"required": ["credit", "key"]}},
+                            {"required": ["credit"], "not": {"required": ["credits", "key"]}}
+                        ]},
                 },
                 {
                     "if": {"properties": {"type": {"const": "charge.credits"}}},
-                    "then": {"required": ["credits", "product"]},
+                    "then": {
+                        "properties": {
+                            "credit": {
+                                "required": ["amount"], "not": {"required": ["to_wallet_id", "to_user_id"]}
+                            },
+                            "credits": {"type": "object", "additionalProperties": {
+                                "required": ["amount"], "not": {"required": ["to_wallet_id", "to_user_id"]}
+                            }}
+                        },
+                        "anyOf": [
+                            {"required": ["credits"], "not": {"required": ["credit", "key"]}},
+                            {"required": ["credit"], "not": {"required": ["credits", "key"]}}
+                        ]
+                    },
                 },
                 {
-                    "if": {"properties": {"type": {"const": "transfer_to.credits"}}},
+                    "if": {"properties": {"type": {"const": "transfers.credits"}}},
                     "then": {
-                        "required": ["credits", "product"],
+                        "properties": {
+                            "credit": {"anyOf": [
+                                {"required": ["amount", "to_wallet_id"], "not": {"required": ["to_user_id"]}},
+                                {"required": ["amount", "to_user_id"], "not": {"required": ["to_wallet_id"]}},
+                            ]},
+                            "credits": {"type": "object", "additionalProperties": {"anyOf": [
+                                {"required": ["amount", "to_wallet_id"], "not": {"required": ["to_user_id"]}},
+                                {"required": ["amount", "to_user_id"], "not": {"required": ["to_wallet_id"]}},
+                            ]}}
+                        },
                         "anyOf": [
-                            {"required": ["to_wallet_id"]},
-                            {"required": ["to_user_id"]},
-                        ],
+                            {"required": ["credits"], "not": {"required": ["credit", "key"]}},
+                            {"required": ["credit"], "not": {"required": ["credits", "key"]}}
+                        ]
                     },
                 },
                 {
                     "if": {"properties": {"type": {"const": "balance.credits"}}},
-                    "then": {"required": ["key", "product"]},
+                    "then": {
+                        "properties": {
+                            "credit": {
+                                "not": {"required": ["amount", "to_wallet_id", "to_user_id"]}
+                            },
+                            "credits": {"type": "object", "additionalProperties": {
+                                "not": {"required": ["amount", "to_wallet_id", "to_user_id"]}
+                            }}
+                        },
+                        "anyOf": [
+                            {"required": ["credits"], "not": {"required": ["credit", "key"]}},
+                            {"required": ["credit", "key"], "not": {"required": ["credits"]}}
+                        ]
+                    },
                 },
                 {
                     "if": {"properties": {"type": {"const": "if.else"}}},
                     "then": {
                         "required": ["condition"],
-                        "anyOf": [{"required": ["then_effects"]}, {"required": ["else_effects"]}]
+                        "anyOf": [
+                            {"required": ["then_effects"]},
+                            {"required": ["else_effects"]},
+                        ],
                     },
                 },
                 {
-                    "if": {"properties": {"type": {"const": "schedule.event_at"}}},
-                    "then": {"required": ["event_name", "at", "key"]},
+                    "if": {"properties": {"type": {"const": "schedule.event"}}},
+                    "then": {"anyOf": [
+                        {"required": ["event", "key"], "not": {"required": ["events"]}},
+                        {"required": ["events"], "not": {"required": ["event", "key"]}}
+                    ]},
                 },
                 {
-                    "if": {"properties": {"type": {"const": "schedule.event_cron"}}},
-                    "then": {"required": ["event_name", "cron", "key"]},
-                },
-                {
-                    "if": {"properties": {"type": {"const": "unschedule.event_at"}}},
-                    "then": {"required": ["event_id"]},
-                },
-                {
-                    "if": {"properties": {"type": {"const": "unschedule.event_cron"}}},
+                    "if": {"properties": {"type": {"const": "unschedule.event"}}},
                     "then": {"required": ["event_id"]},
                 },
                 {
                     "if": {"properties": {"type": {"const": "http.request"}}},
-                    "then": {"required": ["request", "key"]},
+                    "then": {
+                        "anyOf": [
+                            {"required": ["request", "key"], "not": {"required": ["requests"]}},
+                            {"required": ["requests"], "not": {"required": ["request", "key"]}}
+                        ]
+                    }
                 },
                 {
                     "if": {"properties": {"type": {"const": "create.item"}}},
-                    "then": {"required": ["item", "key"]},
+                    "then": {
+                        "anyOr": [
+                            {"required": ["item", "key"], "not": {"required": ["items"]}},
+                            {"required": ["items"], "not": {"required": ["item", "key"]}},
+                        ]
+                    },
                 },
                 {
                     "if": {"properties": {"type": {"const": "get.item"}}},
-                    "then": {"required": ["item_id", "key"]},
+                    "then": {
+                        "properties": {
+                            "item_id": {
+                                "anyOf": [
+                                    {"type": "string"},
+                                    {"$ref": "#/$defs/json_with_refs"},
+                                    {
+                                        "type": "array",
+                                        "items": {
+                                            "anyOf": [
+                                                {"type": "string"},
+                                                {"$ref": "#/$defs/json_with_refs"},
+                                            ]
+                                        },
+                                    },
+                                ]
+                            }
+                        },
+                        "required": ["item_id", "key"]
+                    },
                 },
                 {
                     "if": {"properties": {"type": {"const": "delete.item"}}},
-                    "then": {"required": ["item_id"]},
+                    "then": {
+                        "properties": {
+                            "item_id": {
+                                "anyOf": [
+                                    {"type": "string"},
+                                    {"$ref": "#/$defs/json_with_refs"},
+                                    {
+                                        "type": "array",
+                                        "items": {
+                                            "anyOf": [
+                                                {"type": "string"},
+                                                {"$ref": "#/$defs/json_with_refs"},
+                                            ]
+                                        },
+                                    },
+                                ]
+                            }
+                        },
+                        "required": ["item_id"]
+                    },
                 },
                 {
                     "if": {"properties": {"type": {"const": "create.group"}}},
@@ -360,6 +466,47 @@ TEMPLATE_CREATE_SCHEMA = {
                     "if": {"properties": {"type": {"const": "notify"}}},
                     "then": {"required": ["notify"]},
                 },
+            ],
+        },
+        "credits": {
+            "properties": {
+                "wallet_id": {
+                    "anyOf": [{"type": "integer"}, {"$ref": "#/$defs/json_with_refs"}],
+                },
+                "user_id": {
+                    "anyOf": [{"type": "integer"}, {"$ref": "#/$defs/json_with_refs"}],
+                },
+                "to_wallet_id": {
+                    "anyOf": [{"type": "integer"}, {"$ref": "#/$defs/json_with_refs"}],
+                },
+                "to_user_id": {
+                    "anyOf": [{"type": "integer"}, {"$ref": "#/$defs/json_with_refs"}],
+                },
+                "product": {
+                    "anyOf": [
+                        {"type": "string", "minLength": 1},
+                        {"$ref": "#/$defs/json_with_refs"},
+                    ],
+                },
+                "amount": {
+                    "anyOf": [
+                        {"type": "integer", "minimum": 0},
+                        {"$ref": "#/$defs/json_with_refs"},
+                    ],
+                }
+            },
+            "required": ["product"],
+            "allOf": [
+                {"anyOf": [
+                    {"required": ["wallet_id"], "not": {"required": ["user_id"]}},
+                    {"required": ["user_id"], "not": {"required": ["wallet_id"]}}
+                ]},
+                {"anyOf": [
+                    {"not": {"required": ["amount", "to_wallet_id", "to_user_id"]}},
+                    {"required": ["amount"], "not": {"required": ["to_wallet_id", "to_user_id"]}},
+                    {"required": ["amount", "to_wallet_id"], "not": {"required": ["to_user_id"]}},
+                    {"required": ["amount", "to_user_id"], "not": {"required": ["to_wallet_id"]}},
+                ]}
             ],
         },
         "edit_members": {
@@ -483,6 +630,48 @@ TEMPLATE_CREATE_SCHEMA = {
             },
             "required": ["event", "targets"],
             "additionalProperties": False,
+        },
+        "schedule_event": {
+            "type": "object",
+            "properties": {
+                "event_name": {
+                    "title": "Scheduled Event Name",
+                    "description": "State event name to fire on schedule.",
+                    "type": "string",
+                    "minLength": 1,
+                },
+                "at": {
+                    "title": "Execution Datetime",
+                    "description": "Datetime used to trigger the scheduled event.",
+                    "anyOf": [
+                        {"type": "string", "format": "date-time"},
+                        {"$ref": "#/$defs/json_with_refs"},
+                    ],
+                },
+                "cron": {
+                    "title": "Cron Expression",
+                    "description": "Cron expression for recurring scheduled events.",
+                    "type": "string",
+                    "minLength": 1,
+                },
+                "contract_id": {"type": "string"},
+                "payload": {
+                    "title": "Scheduled Payload",
+                    "description": "Payload passed to the scheduled event when fired.",
+                    "$ref": "#/$defs/json_with_refs",
+                },
+                "actor_id": {
+                    "title": "Scheduled Actor",
+                    "description": "Actor principal used to fire scheduled event.",
+                    "type": "string",
+                    "minLength": 1,
+                },
+            },
+            "required": ["event_name"],
+            "anyOf": [
+                {"required": ["at"], "not": {"required": ["cron"]}},
+                {"required": ["cron"], "not": {"required": ["at"]}}
+            ],
         },
         "event": {
             "type": "object",
@@ -961,9 +1150,10 @@ def create_template():
         definition, allowed_initial_states
     )
     if initial_state_errors:
-        return jsonify(
-            {"error": "Invalid payload", "details": initial_state_errors}
-        ), 422
+        return (
+            jsonify({"error": "Invalid payload", "details": initial_state_errors}),
+            422,
+        )
 
     now = now_utc()
     doc = {

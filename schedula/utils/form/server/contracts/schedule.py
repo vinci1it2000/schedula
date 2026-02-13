@@ -10,7 +10,7 @@ from pymongo import ReturnDocument
 from sqlalchemy_dlock import create_sadlock
 
 from ..extensions import db
-from ..utils import now_utc, get_mongo, config_get, mongo_delete_one
+from ..utils import now_utc, get_mongo, config_get, mongo_delete_many
 
 UTC = timezone.utc
 OWNER = f"{socket.gethostname()}:{os.getpid()}"
@@ -273,8 +273,8 @@ def schedule_event_cron(cron_expr: str, payload: dict):
     return _schedule_event_cron(_queue_coll(), cron_expr, payload)
 
 
-def unschedule_event(job_id: str):
-    mongo_delete_one(_queue_coll(), {"_id": job_id})
+def unschedule_events(job_ids: list[str]):
+    mongo_delete_many(_queue_coll(), {"_id": {"$in": job_ids}})
 
 
 def _func(contract_id, event_name, payload, actor_id):

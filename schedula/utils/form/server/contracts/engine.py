@@ -14,7 +14,6 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import pydash
 import requests
-from bson import ObjectId
 from jsonschema import Draft202012Validator
 from sqlalchemy_dlock import create_sadlock
 
@@ -36,6 +35,7 @@ from ..utils import (
     mongo_update_one,
     mongo_update_many,
     now_utc,
+    mongo_delete_one,
     mongo_delete_many,
 )
 
@@ -55,7 +55,7 @@ def _get_contract(contract_id: str) -> Optional[Dict[str, Any]]:
 
 
 def validate_payload(
-    payload_schema: Optional[Dict[str, Any]], payload: Any
+        payload_schema: Optional[Dict[str, Any]], payload: Any
 ) -> List[str]:
     if payload_schema is None:
         return []
@@ -66,13 +66,34 @@ def validate_payload(
         return [str(e)]
 
 
+def _get_wallet(wallet_id, user_id):
+    from ..credits import Wallet, get_wallet
+    if wallet_id:
+        return db.session.get(Wallet, int(wallet_id))
+    return get_wallet(u2id(user_id))
+
+
+def _yield_wallets(ef):
+    if "credits" in ef:
+        items = ef["credits"]
+    else:
+        items = {ef.get("key"): ef["credit"]}
+    for k, v in items.items():
+        if "wallet_id" in v:
+            wallet = _get_wallet(v["wallet_id"], None)
+        else:
+            wallet = _get_wallet(None, ef["user_id"])
+
+        yield k, v, wallet
+
+
 def _apply_effect_step(
-    *,
-    doc: Dict[str, Any],
-    ef: Dict[str, Any],
-    actor_id: str,
-    payload: Dict[str, Any] = None,
-    local: Dict[str, Any] = None,
+        *,
+        doc: Dict[str, Any],
+        ef: Dict[str, Any],
+        actor_id: str,
+        payload: Dict[str, Any] = None,
+        local: Dict[str, Any] = None,
 ) -> tuple[bool, Dict[str, Any]]:
     raw_ef = ef
     ef_type = str(ef.get("type") or "")
@@ -91,64 +112,54 @@ def _apply_effect_step(
     if ef_type == "update.contract":
         now = now_utc()
         contract_id = doc["_id"]
-        update = [ef["update"]] if isinstance(ef["update"], dict) else ef["update"]
-        mongo_update_one(
-            _contracts_coll(),
-            {"_id": contract_id},
-            [
-                {"$set": {"local": local, "updated_by": actor_id}},
-                *update,
-                {"$set": {"updated_at": now}},
-            ],
-            let={"user": actor_id, "payload": payload, "local": local},
-        )
-        doc = _get_contract(contract_id)
-        local.update(doc.get("local") or {})
-    elif ef_type in {
-        "use.credits",
-        "charge.credits",
-        "transfer_to.credits",
-        "balance.credits",
-    }:
-        from ..credits import Wallet, get_wallet
-
-        if "wallet_id" in ef:
-            wallet = db.session.get(Wallet, int(ef["wallet_id"]))
+        if "update" in ef:
+            updates = {contract_id: ef["update"]}
         else:
-            wallet = get_wallet(u2id(ef["user_id"]))
-
-        product = ef["product"]
-
-        if ef_type == "balance.credits":
-            local[ef["key"]] = wallet.balance(product=product, session=db.session)
-        elif ef_type == "use.credits":
-            wallet.use(product=product, credits=ef["credits"])
-        elif ef_type == "charge.credits":
-            user_ref = ef.get("user_id")
-            if isinstance(user_ref, dict):
-                for principal, credits in user_ref.items():
-                    if not principal:
-                        continue
-                    amount = float(credits or 0)
-                    if amount <= 0:
-                        continue
-                    get_wallet(u2id(principal)).charge(product=product, credits=amount)
-            else:
-                wallet.charge(product=product, credits=ef["credits"])
-        else:  # transfer_to.credits
-            if "to_wallet_id" in ef:
-                to_wallet = db.session.get(Wallet, int(ef["to_wallet_id"]))
-            else:
-                to_wallet = get_wallet(u2id(ef["to_user_id"]))
-            wallet.transfer_to(
-                product=product,
-                credits=ef["credits"],
-                to_wallet=to_wallet.id,
+            updates = ef["updates"] or {}
+        for k, update in updates.items():
+            update = [update] if isinstance(update, dict) else update
+            mongo_update_one(
+                _contracts_coll(),
+                {"_id": k},
+                [
+                    {"$set": {"local": local, "updated_by": actor_id}},
+                    *update,
+                    {"$set": {"updated_at": now}},
+                ],
+                let={"user": actor_id, "payload": payload, "local": local},
             )
+        if contract_id in updates:
+            doc = _get_contract(contract_id)
+        local.update(doc.get("local") or {})
+    elif ef_type == "delete.contract":
+        contract_id = doc["_id"]
+        mongo_delete_one(_contracts_coll(), {"_id": contract_id})
+        return True, doc
+    elif ef_type == "balance.credits":
+        for k, v, wallet in _yield_wallets(ef):
+            local[k] = wallet.balance(product=v["product"], session=db.session)
+    elif ef_type == "use.credits":
+        for _, v, wallet in _yield_wallets(ef):
+            wallet.use(product=v["product"], credits=v["amount"], session=db.session)
+    elif ef_type == "charge.credits":
+        for _, v, wallet in _yield_wallets(ef):
+            wallet.charge(product=v["product"], credits=v["amount"], session=db.session)
+    elif ef_type == "transfers.credits":
+        for _, v, wallet in _yield_wallets(ef):
+            if "to_wallet_id" in v:
+                to_wallet = _get_wallet(v["to_wallet_id"], None)
+            else:
+                to_wallet = _get_wallet(None, ef["to_user_id"])
+            wallet.transfer_to(product=v["product"], credits=v["amount"], to_wallet=to_wallet.id, session=db.session)
     elif ef_type == "http.request":
-        request_kw = {"method": "GET"}
-        request_kw.update(ef["request"] or {})
-        local[ef["key"]] = requests.request(**request_kw).json()
+        if "requests" in ef:
+            rqs = ef["requests"]
+        else:
+            rqs = {ef["key"]: ef["request"]}
+        for k, rq in rqs.items():
+            request_kw = {"method": "GET"}
+            request_kw.update(rq or {})
+            local[k] = requests.request(**request_kw).json()
     elif ef_type == "notify":
         from ..notifications.service import create_notification
 
@@ -162,10 +173,6 @@ def _apply_effect_step(
         condition = ef.get("condition")
         then_effects = raw_ef.get("then_effects") or []
         else_effects = raw_ef.get("else_effects") or []
-        if not isinstance(then_effects, list):
-            abort_json(400, "if.else requires then_effects array")
-        if not isinstance(else_effects, list):
-            abort_json(400, "if.else else_effects must be array")
         selected = then_effects if bool(condition) else else_effects
         return _apply_effects(
             {"effects": selected},
@@ -175,52 +182,36 @@ def _apply_effect_step(
             local=local,
             validate_schema=False,
         )
-    elif ef_type == "schedule.event_at":
+    elif ef_type == "schedule.event":
+        from .schedule import schedule_event_at, schedule_event_cron
         contract_id = str(doc.get("_id") or "")
-        key = str(ef.get("key") or "").strip()
-        at = ef.get("at")
-        if isinstance(at, str):
-            at = dt.datetime.fromisoformat(at)
-        if not isinstance(at, dt.datetime):
-            abort_json(400, "schedule.event_at requires datetime 'at'")
-        job: Dict[str, Any] = {
-            "contract_id": contract_id,
-            "event_name": ef.get("event_name"),
-            "payload": ef.get("payload") or {},
-            "actor_id": ef.get("actor_id", actor_id),
-        }
-        from .schedule import schedule_event_at
-
-        local[key] = schedule_event_at(at, job)
-    elif ef_type == "schedule.event_cron":
-        contract_id = str(doc.get("_id") or "")
-        key = str(ef.get("key") or "").strip()
-        cron = str(ef.get("cron") or "").strip()
-        if not cron:
-            abort_json(400, "schedule.event_cron requires non-empty cron")
-        job: Dict[str, Any] = {
-            "contract_id": contract_id,
-            "event_name": ef.get("event_name"),
-            "payload": ef.get("payload") or {},
-            "actor_id": ef.get("actor_id", actor_id),
-        }
-        from .schedule import schedule_event_cron
-
-        local[key] = schedule_event_cron(cron, job)
-    elif ef_type == "unschedule.event_at":
-        event_id = str(ef.get("event_id") or "").strip()
-        if not event_id:
-            abort_json(400, "unschedule.event requires non-empty event_id")
-        from .schedule import unschedule_event
-
-        unschedule_event(event_id)
-    elif ef_type == "unschedule.event_cron":
-        event_id = str(ef.get("event_id") or "").strip()
-        if not event_id:
-            abort_json(400, "unschedule.event_cron requires non-empty event_id")
-        from .schedule import unschedule_event
-
-        unschedule_event(event_id)
+        if "events" in ef:
+            events = ef["events"]
+        else:
+            events = {ef["key"]: ef["event"]}
+        for key, ef in events.items():
+            if "at" in ef:
+                func = schedule_event_at
+                what = ef["at"]
+                if isinstance(what, str):
+                    what = dt.datetime.fromisoformat(what)
+                if not isinstance(what, dt.datetime):
+                    abort_json(400, "schedule.event_at requires datetime 'at'")
+            else:
+                func = schedule_event_cron
+                what = ef["cron"]
+            job: Dict[str, Any] = {
+                "contract_id": ef.get("contract_id", contract_id),
+                "event_name": ef["event_name"],
+                "payload": ef.get("payload") or {},
+                "actor_id": ef.get("actor_id", actor_id),
+            }
+            local[key] = func(what, job)
+    elif ef_type == "unschedule.event":
+        if isinstance(ef.get("event_id"), str):
+            events = [ef["event_id"]]
+        from .schedule import unschedule_events
+        unschedule_events(events)
     elif ef_type == "create.group":
         from ..security.groups import Group
         from ..security.casbin import bootstrap_group
@@ -287,9 +278,10 @@ def _apply_effect_step(
         db.session.commit()
     elif ef_type == "create.item":
         coll = get_mongo(collection=config_get("ITEMS_COLLECTION", "items"))
-        if isinstance(ef["item"], dict):
-            items = [ef["item"]]
-
+        if "items" in ef:
+            items = ef["items"]
+        else:
+            items = {ef["key"]: ef["item"]}
         now = now_utc()
         base_item = {
             "data": {},
@@ -300,37 +292,34 @@ def _apply_effect_step(
             "created_at": now,
             "updated_at": now,
         }
-        res = []
-        for v in items:
+        for k, v in items.items():
             item = dict(base_item)
             item.update(v)
-            res.append(mongo_insert_one(coll, item).inserted_id)
-        if isinstance(ef["item"], dict):
-            res = res[0]
-        local[ef["key"]] = res
+            local[k] = mongo_insert_one(coll, item).inserted_id
     elif ef_type == "update.item":
         coll = get_mongo(collection=config_get("ITEMS_COLLECTION", "items"))
         now = now_utc()
-        item_ids = ef["item_id"]
-        if isinstance(item_ids, str):
-            item_ids = [item_ids]
-        update = [ef["update"]] if isinstance(ef["update"], dict) else ef["update"]
-        res = mongo_update_many(
-            coll,
-            {"_id": {"$in": item_ids}},
-            [
-                {"$set": {"updated_by": actor_id}},
-                *update,
-                {"$set": {"updated_at": now}},
-            ],
-            let={
-                "user": actor_id,
-                "payload": payload,
-                "local": local,
-            },
-        )
-        if res.matched_count == 0:
-            abort_json(404, "Item not found")
+        if "updates" in ef:
+            updates = ef["updates"]
+        else:
+            updates = {ef["item_id"]: ef["update"]}
+
+        for k, update in updates.items():
+            update = [update] if isinstance(update, dict) else update
+            mongo_update_many(
+                coll,
+                {"_id": k},
+                [
+                    {"$set": {"updated_by": actor_id}},
+                    *update,
+                    {"$set": {"updated_at": now}},
+                ],
+                let={
+                    "user": actor_id,
+                    "payload": payload,
+                    "local": local,
+                },
+            )
     elif ef_type == "delete.item":
         coll = get_mongo(collection=config_get("ITEMS_COLLECTION", "items"))
         item_ids = ef["item_id"]
@@ -342,22 +331,7 @@ def _apply_effect_step(
         item_ids = ef["item_id"]
         if isinstance(ef["item_id"], str):
             item_ids = [ef["item_id"]]
-        if not isinstance(item_ids, list):
-            abort_json(400, "get.item requires item_id string or list")
-
-        normalized_ids = []
-        for item_id in item_ids:
-            if isinstance(item_id, ObjectId):
-                normalized_ids.append(item_id)
-            elif isinstance(item_id, str):
-                try:
-                    normalized_ids.append(ObjectId(item_id))
-                except Exception:
-                    normalized_ids.append(item_id)
-            else:
-                normalized_ids.append(item_id)
-
-        docs = list(mongo_find(coll, {"_id": {"$in": normalized_ids}}))
+        docs = list(mongo_find(coll, {"_id": {"$in": item_ids}}))
         local[ef["key"]] = docs
     else:
         abort_json(400, f"Unknown effect type: {ef_type}")
@@ -394,7 +368,7 @@ def validate_context_schema(doc, state):
 
 
 def _apply_effects(
-    state, doc, actor_id, payload=None, local=None, validate_schema=True
+        state, doc, actor_id, payload=None, local=None, validate_schema=True
 ):
     for ef in state.get("effects", []):
         changed, doc = _apply_effect_step(
@@ -409,12 +383,12 @@ def _apply_effects(
 
 
 def _apply_on_enter(
-    *,
-    doc: dict[str, Any],
-    actor_id: str,
-    prev_state=None,
-    payload=None,
-    local=None,
+        *,
+        doc: dict[str, Any],
+        actor_id: str,
+        prev_state=None,
+        payload=None,
+        local=None,
 ) -> dict[str, Any]:
     if payload is None:
         payload = {}
@@ -438,15 +412,17 @@ def _apply_on_enter(
     on_enter = pydash.get(doc, f"definition.states.{doc.get('state')}.on_enter", {})
     validate_context_schema(doc, on_enter)
     _, doc = _apply_effects(on_enter, doc, actor_id, local=local, validate_schema=False)
+    if not _get_contract(str(doc.get("_id") or "")):
+        abort_json(422, "Contract rejected by on_enter controls")
     return doc
 
 
 def _process_event(
-    *,
-    contract_id: str,
-    dyn_path: str,
-    actor_id: str,
-    body_payload: Dict[str, Any],
+        *,
+        contract_id: str,
+        dyn_path: str,
+        actor_id: str,
+        body_payload: Dict[str, Any],
 ) -> Tuple[Dict[str, Any], int]:
     with create_sadlock(db.session, contract_id):
         doc = _get_contract(contract_id)
@@ -493,13 +469,13 @@ def _run_event(edef, doc, actor_id, payload):
 
 
 def _process_selected_event(
-    *,
-    doc: Dict[str, Any],
-    edef: Dict[str, Any],
-    selected_trigger: Dict[str, Any],
-    actor_id: str,
-    body_payload: Dict[str, Any],
-    resolve_response: bool = True,
+        *,
+        doc: Dict[str, Any],
+        edef: Dict[str, Any],
+        selected_trigger: Dict[str, Any],
+        actor_id: str,
+        body_payload: Dict[str, Any],
+        resolve_response: bool = True,
 ) -> Tuple[Dict[str, Any], int]:
     def _src_get(key: str) -> Any:
         if key in selected_trigger:
@@ -510,28 +486,28 @@ def _process_selected_event(
     resolver = RefResolver(enforce_acl=False)
     ctx = {"doc": doc, "user": actor_id, "payload": body_payload}
     if (
-        _src_get("allow_user_states") is not None
-        and actor_state_before
-        not in set(resolver(_src_get("allow_user_states"), ctx) or [])
+            _src_get("allow_user_states") is not None
+            and actor_state_before
+            not in set(resolver(_src_get("allow_user_states"), ctx) or [])
     ) or (
-        _src_get("deny_user_states") is not None
-        and actor_state_before in set(resolver(_src_get("deny_user_states"), ctx) or [])
+            _src_get("deny_user_states") is not None
+            and actor_state_before in set(resolver(_src_get("deny_user_states"), ctx) or [])
     ):
         abort_json(409, "Event not available for actor state")
 
     if (
-        _src_get("allow_principals") is not None
-        or _src_get("deny_principals") is not None
+            _src_get("allow_principals") is not None
+            or _src_get("deny_principals") is not None
     ):
         enforcer = get_enforcer()
         roles = set(enforcer.get_roles_for_user(actor_id))
         roles.add(actor_id)
         if _src_get("allow_principals") is not None and not roles.intersection(
-            set(resolver(_src_get("allow_principals"), ctx) or [])
+                set(resolver(_src_get("allow_principals"), ctx) or [])
         ):
             abort_json(403, "Subject not allowed")
         if _src_get("deny_principals") is not None and roles.intersection(
-            set(resolver(_src_get("deny_principals"), ctx) or [])
+                set(resolver(_src_get("deny_principals"), ctx) or [])
         ):
             abort_json(403, "Subject denied")
 
@@ -548,12 +524,12 @@ def _process_selected_event(
 
 
 def _create_contract_from_template_doc(
-    *,
-    template: Dict[str, Any],
-    template_id: str,
-    context: Dict[str, Any],
-    owner_id: str,
-    initial_state: Optional[str] = None,
+        *,
+        template: Dict[str, Any],
+        template_id: str,
+        context: Dict[str, Any],
+        owner_id: str,
+        initial_state: Optional[str] = None,
 ) -> Dict[str, Any]:
     definition = template["definition"]
 
