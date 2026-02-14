@@ -462,7 +462,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                     "CANCELLED",
                                 ],
                                 "response": {
-                                    "ok": "$$ctx.doc.local.can_join_trip",
+                                    "ok": "$$ctx.local.can_join_trip",
                                     "event": "request_join",
                                 },
                             }
@@ -844,6 +844,320 @@ def _gherkin_definition() -> Dict[str, Any]:
                                             },
                                         },
                                     }
+                                ],
+                            },
+                        ],
+                    },
+                    "InviteUser": {
+                        "trigger": [
+                            {
+                                "type": "api",
+                                "path": "invite-user",
+                                "method": "POST",
+                                "allow_principals": ["$$ctx.doc.context.driver"],
+                                "payload_schema": {
+                                    "type": "object",
+                                    "required": ["route_id"],
+                                    "properties": {
+                                        "route_id": {"type": "string", "minLength": 1}
+                                    },
+                                    "additionalProperties": False,
+                                },
+                                "response": {
+                                    "ok": {"$ctx": "doc.local.can_invite_user"},
+                                    "event": "invite_user",
+                                },
+                            }
+                        ],
+                        "effects": [
+                            {
+                                "title": "Load Invite Route",
+                                "description": "Loads invite route item so InviteUser can derive principal and trip constraints.",
+                                "type": "get.item",
+                                "item_id": "$$ctx.payload.route_id",
+                                "key": "invite_route_item",
+                            },
+                            {
+                                "title": "Derive Invite Route Data",
+                                "description": "Derives invite principal, seats, trip and route economics from the provided route.",
+                                "type": "update.contract",
+                                "update": {
+                                    "$set": {
+                                        "local.invite_route": {
+                                            "id": "$$ctx.payload.route_id",
+                                            "principal": "$local.invite_route_item.data.user_id",
+                                            "cost": {
+                                                "$ifNull": [
+                                                    "$local.invite_route_item.data.cost",
+                                                    0,
+                                                ]
+                                            },
+                                            "seats": {
+                                                "$ifNull": [
+                                                    "$local.invite_route_item.data.seats",
+                                                    1,
+                                                ]
+                                            },
+                                            "trip": {
+                                                "origin": "$local.invite_route_item.data.origin",
+                                                "destination": "$local.invite_route_item.data.destination",
+                                            },
+                                            "reserved_credits": {
+                                                "$ifNull": [
+                                                    "$local.invite_route_item.data.reserved_credits",
+                                                    0,
+                                                ]
+                                            },
+                                        }
+                                    }
+                                },
+                            },
+                            {
+                                "title": "Read Invitee Credits",
+                                "description": "Reads invitee available credits to validate invite feasibility.",
+                                "type": "balance.credits",
+                                "key": "invite_balance_credits",
+                                "credit": {
+                                    "product": "coin",
+                                    "user_id": {"$ctx": "local.invite_route.principal"},
+                                },
+                            },
+                            {
+                                "title": "Compute Invite Eligibility",
+                                "description": "Checks capacity, missing credits and target availability before inviting a user.",
+                                "type": "update.contract",
+                                "update": [
+                                    {
+                                        "$set": {
+                                            "local.invite_missing_credits": {
+                                                "$max": [
+                                                    {
+                                                        "$subtract": [
+                                                            {
+                                                                "$ifNull": [
+                                                                    "$local.invite_route.cost",
+                                                                    0,
+                                                                ]
+                                                            },
+                                                            {
+                                                                "$ifNull": [
+                                                                    "$local.invite_route.reserved_credits",
+                                                                    0,
+                                                                ]
+                                                            },
+                                                        ]
+                                                    },
+                                                    0,
+                                                ]
+                                            },
+                                        }
+                                    },
+                                    {
+                                        "$set": {
+                                            "local.invite_has_balance": {
+                                                "$gte": [
+                                                    {
+                                                        "$ifNull": [
+                                                            "$local.invite_balance_credits",
+                                                            0,
+                                                        ]
+                                                    },
+                                                    "$local.invite_missing_credits",
+                                                ]
+                                            },
+                                            "local.invite_has_capacity": {
+                                                "$lte": [
+                                                    {
+                                                        "$add": [
+                                                            {
+                                                                "$ifNull": [
+                                                                    "$context.accepted_seats_total",
+                                                                    0,
+                                                                ]
+                                                            },
+                                                            {
+                                                                "$ifNull": [
+                                                                    "$local.invite_route.seats",
+                                                                    1,
+                                                                ]
+                                                            },
+                                                        ]
+                                                    },
+                                                    {
+                                                        "$ifNull": [
+                                                            "$context.driver_route.capacity",
+                                                            0,
+                                                        ]
+                                                    },
+                                                ]
+                                            },
+                                            "local.invite_current_state": {
+                                                "$ifNull": [
+                                                    {
+                                                        "$getField": {
+                                                            "field": "$local.invite_route.principal",
+                                                            "input": "$states",
+                                                        }
+                                                    },
+                                                    "",
+                                                ]
+                                            },
+                                        }
+                                    },
+                                    {
+                                        "$set": {
+                                            "local.can_invite_user": {
+                                                "$and": [
+                                                    {
+                                                        "$ne": [
+                                                            "$local.invite_route.principal",
+                                                            "$context.driver",
+                                                        ]
+                                                    },
+                                                    {
+                                                        "$eq": [
+                                                            "$local.invite_current_state",
+                                                            "",
+                                                        ]
+                                                    },
+                                                    "$local.invite_has_capacity",
+                                                    "$local.invite_has_balance",
+                                                ]
+                                            },
+                                        }
+                                    },
+                                ],
+                            },
+                            {
+                                "title": "Evaluate Invite Eligibility",
+                                "description": "Executes invite only when controls pass for route and user constraints.",
+                                "type": "if.else",
+                                "condition": {"$ctx": "doc.local.can_invite_user"},
+                                "then_effects": [
+                                    {
+                                        "title": "Reserve Invite Credits",
+                                        "description": "Reserves only missing credits needed by the invite route.",
+                                        "type": "use.credits",
+                                        "credit": {
+                                            "product": "coin",
+                                            "user_id": {
+                                                "$ctx": "local.invite_route.principal"
+                                            },
+                                            "amount": {
+                                                "$ctx": "local.invite_missing_credits"
+                                            },
+                                        },
+                                    },
+                                    {
+                                        "title": "Persist Invite Route Hold",
+                                        "description": "Persists reserved credits and contract linkage on invite route item.",
+                                        "type": "update.item",
+                                        "item_id": "$$ctx.payload.route_id",
+                                        "update": {
+                                            "$set": {
+                                                "data.reserved_credits": {
+                                                    "$add": [
+                                                        {
+                                                            "$ifNull": [
+                                                                "$data.reserved_credits",
+                                                                0,
+                                                            ]
+                                                        },
+                                                        {
+                                                            "$ifNull": [
+                                                                {
+                                                                    "$ctx": "local.invite_missing_credits"
+                                                                },
+                                                                0,
+                                                            ]
+                                                        },
+                                                    ]
+                                                },
+                                                "data.contract_ids": {
+                                                    "$setUnion": [
+                                                        {
+                                                            "$ifNull": [
+                                                                "$data.contract_ids",
+                                                                [],
+                                                            ]
+                                                        },
+                                                        [{"$ctx": "doc._id"}],
+                                                    ]
+                                                },
+                                            }
+                                        },
+                                    },
+                                    {
+                                        "title": "Set Pending Invite State",
+                                        "description": "Marks invitee as pending and stores route data in contract context.",
+                                        "type": "update.contract",
+                                        "update": {
+                                            "$set": {
+                                                "states.$$ctx.local.invite_route.principal": "PENDING",
+                                                "context.riders.$$ctx.local.invite_route.principal.id": {
+                                                    "$ctx": "local.invite_route.id"
+                                                },
+                                                "context.riders.$$ctx.local.invite_route.principal.cost": {
+                                                    "$ctx": "local.invite_route.cost"
+                                                },
+                                                "context.riders.$$ctx.local.invite_route.principal.seats": {
+                                                    "$ctx": "local.invite_route.seats"
+                                                },
+                                                "context.riders.$$ctx.local.invite_route.principal.trip": {
+                                                    "$ctx": "local.invite_route.trip"
+                                                },
+                                            }
+                                        },
+                                    },
+                                    {
+                                        "title": "Notify Stakeholders",
+                                        "description": "Sends contracts.user_invited to the invited rider.",
+                                        "type": "notify",
+                                        "notify": {
+                                            "event": "contracts.user_invited",
+                                            "targets": {
+                                                "$$ctx.local.invite_route.principal": [
+                                                    "in_app",
+                                                    "push",
+                                                ]
+                                            },
+                                            "payload": {
+                                                "contract_id": {"$ctx": "doc._id"}
+                                            },
+                                        },
+                                    },
+                                    {
+                                        "title": "Promote Driver And Move To Confirming",
+                                        "description": "If driver is still PENDING_DRIVER, confirms driver and moves START flow to CONFIRMING.",
+                                        "type": "if.else",
+                                        "condition": {
+                                            "$eq": [
+                                                {
+                                                    "$ctx": "doc.states.$$ctx.doc.context.driver"
+                                                },
+                                                "PENDING_DRIVER",
+                                            ]
+                                        },
+                                        "then_effects": [
+                                            {
+                                                "title": "Set Driver Confirmed",
+                                                "description": "Marks driver as DRIVER and opens CONFIRMING lifecycle after first invite.",
+                                                "type": "update.contract",
+                                                "update": {
+                                                    "$set": {
+                                                        "states.$$ctx.doc.context.driver": "DRIVER",
+                                                        "context.accepted_seats_total": {
+                                                            "$ifNull": [
+                                                                "$context.accepted_seats_total",
+                                                                0,
+                                                            ]
+                                                        },
+                                                        "state": "CONFIRMING",
+                                                    }
+                                                },
+                                            }
+                                        ],
+                                    },
                                 ],
                             },
                         ],
