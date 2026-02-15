@@ -92,7 +92,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 },
                             },
                         },
-                        "additionalProperties": True,
+                        "additionalProperties": False,
                     },
                     "effects": [
                         {
@@ -113,56 +113,99 @@ def _gherkin_definition() -> Dict[str, Any]:
                             "title": "Hydrate Route Inputs",
                             "description": "Derives driver, capacity, driver trip and rider map from loaded route items before branching.",
                             "type": "update.contract",
-                            "update": {
-                                "$set": {
-                                    "context.driver_route": {
-                                        "accepted_seats": 0,
-                                        "trip": {
-                                            "origin": "$local.driver_route.data.origin",
-                                            "destination": "$local.driver_route.data.destination",
+                            "update": [
+                                {
+                                    "$set": {
+                                        "context.driver_route": {
+                                            "accepted_seats": 0,
+                                            "trip": {
+                                                "origin": "$local.driver_route.data.origin",
+                                                "destination": "$local.driver_route.data.destination",
+                                            },
+                                            "capacity": {
+                                                "$ifNull": [
+                                                    "$local.driver_route.data.capacity",
+                                                    0,
+                                                ]
+                                            },
                                         },
-                                        "capacity": {
-                                            "$ifNull": [
-                                                "$local.driver_route.data.capacity",
-                                                0,
-                                            ]
-                                        },
-                                    },
-                                    "context.driver": "$local.driver_route.data.user_id",
-                                    "context.riders": {
-                                        "$arrayToObject": {
-                                            "$map": {
-                                                "input": "$local.rider_routes",
-                                                "as": "r",
-                                                "in": {
-                                                    "k": {
-                                                        "$toString": "$$r.data.user_id"
+                                        "context.driver": "$local.driver_route.data.user_id",
+                                    }
+                                },
+                                {
+                                    "$set": {
+                                        "context.riders": {
+                                            "$arrayToObject": {
+                                                "$map": {
+                                                    "input": {
+                                                        "$filter": {
+                                                            "input": "$local.rider_routes",
+                                                            "as": "r",
+                                                            "cond": {
+                                                                "$and": [
+                                                                    {
+                                                                        "$ne": [
+                                                                            "$$r",
+                                                                            [],
+                                                                        ]
+                                                                    },
+                                                                    {
+                                                                        "$lte": [
+                                                                            {
+                                                                                "$ifNull": [
+                                                                                    "$$r.data.seats",
+                                                                                    1,
+                                                                                ]
+                                                                            },
+                                                                            {
+                                                                                "$ifNull": [
+                                                                                    "$local.driver_route.data.capacity",
+                                                                                    0,
+                                                                                ]
+                                                                            },
+                                                                        ]
+                                                                    },
+                                                                    {
+                                                                        "$ne": [
+                                                                            "$$r.data.user_id",
+                                                                            "$local.driver_route.data.user_id",
+                                                                        ]
+                                                                    },
+                                                                ]
+                                                            },
+                                                        }
                                                     },
-                                                    "v": {
-                                                        "id": "$$r._id",
-                                                        "cost": {
-                                                            "$ifNull": [
-                                                                "$$r.data.cost",
-                                                                0,
-                                                            ]
+                                                    "as": "r",
+                                                    "in": {
+                                                        "k": {
+                                                            "$toString": "$$r.data.user_id"
                                                         },
-                                                        "seats": {
-                                                            "$ifNull": [
-                                                                "$$r.data.seats",
-                                                                1,
-                                                            ]
-                                                        },
-                                                        "trip": {
-                                                            "origin": "$$r.data.origin",
-                                                            "destination": "$$r.data.destination",
+                                                        "v": {
+                                                            "id": "$$r._id",
+                                                            "cost": {
+                                                                "$ifNull": [
+                                                                    "$$r.data.cost",
+                                                                    0,
+                                                                ]
+                                                            },
+                                                            "seats": {
+                                                                "$ifNull": [
+                                                                    "$$r.data.seats",
+                                                                    1,
+                                                                ]
+                                                            },
+                                                            "trip": {
+                                                                "origin": "$$r.data.origin",
+                                                                "destination": "$$r.data.destination",
+                                                            },
                                                         },
                                                     },
-                                                },
+                                                }
                                             }
                                         }
-                                    },
-                                }
-                            },
+                                    }
+                                },
+                            ],
                         },
                         {
                             "title": "Persist Progress",
@@ -184,7 +227,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                             "then_effects": [
                                 {
                                     "title": "Set Pending Riders",
-                                    "description": "Marks initial riders as pending confirmation before moving to the confirming phase.",
+                                    "description": "Marks initial riders as pending before opening recruiting.",
                                     "type": "update.contract",
                                     "update": {
                                         "$set": {
@@ -207,7 +250,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 },
                                 {
                                     "title": "Set Driver Committed",
-                                    "description": "Marks the driver as committed and resets accepted occupancy for confirmation-driven onboarding.",
+                                    "description": "Marks driver as DRIVER for recruiting lifecycle.",
                                     "type": "update.contract",
                                     "update": {
                                         "$set": {
@@ -217,7 +260,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 },
                                 {
                                     "title": "Prepare Invite Targets",
-                                    "description": "Builds recipient targets for initial rider notifications based on current rider principals.",
+                                    "description": "Builds recipient targets for initial rider notifications.",
                                     "type": "update.contract",
                                     "update": {
                                         "$set": {
@@ -230,7 +273,10 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                         "as": "p",
                                                         "in": {
                                                             "k": "$$p.k",
-                                                            "v": ["in_app", "push"],
+                                                            "v": [
+                                                                "in_app",
+                                                                "push",
+                                                            ],
                                                         },
                                                     }
                                                 }
@@ -240,7 +286,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 },
                                 {
                                     "title": "Notify Stakeholders",
-                                    "description": "Sends initial invitation notifications to riders so each invited user can explicitly confirm participation.",
+                                    "description": "Sends initial invitation notifications to riders.",
                                     "type": "notify",
                                     "notify": {
                                         "event": "contracts.user_invited",
@@ -249,6 +295,12 @@ def _gherkin_definition() -> Dict[str, Any]:
                                         },
                                         "payload": {"contract_id": {"$ctx": "doc._id"}},
                                     },
+                                },
+                                {
+                                    "title": "Move To Onboarding",
+                                    "description": "Moves contract from START to ONBOARDING once feasibility checks pass.",
+                                    "type": "update.contract",
+                                    "update": {"$set": {"state": "ONBOARDING"}},
                                 },
                             ],
                             "else_effects": [
@@ -263,167 +315,177 @@ def _gherkin_definition() -> Dict[str, Any]:
                                     },
                                 },
                                 {
-                                    "title": "Read Requester Balance",
-                                    "description": "Reads requester trip credits before accepting a user-initiated START request.",
-                                    "type": "balance.credits",
-                                    "key": "balance_credits",
-                                    "credit": {"product": "coin"},
-                                },
-                                {
-                                    "title": "Combine Eligibility",
-                                    "description": "Combines requester balance and seat capacity into a single eligibility decision for START.",
-                                    "type": "update.contract",
-                                    "update": [
-                                        {
-                                            "$set": {
-                                                "local.missing_credits": {
-                                                    "$max": [
-                                                        {
-                                                            "$subtract": [
-                                                                "$local.route.cost",
-                                                                {
-                                                                    "$ifNull": [
-                                                                        {
-                                                                            "$ref": "/items/route/$$ctx.local.route.id/data.reserved_credits"
-                                                                        },
-                                                                        0,
-                                                                    ]
-                                                                },
-                                                            ]
-                                                        },
-                                                        0,
-                                                    ]
-                                                },
-                                            }
-                                        },
-                                        {
-                                            "$set": {
-                                                "local.has_balance": {
-                                                    "$gte": [
-                                                        {
-                                                            "$ifNull": [
-                                                                "$local.balance_credits",
-                                                                0,
-                                                            ]
-                                                        },
-                                                        "$local.missing_credits",
-                                                    ]
-                                                },
-                                                "local.has_seats_availability": {
-                                                    "$lte": [
-                                                        {
-                                                            "$add": [
-                                                                "$context.driver_route.accepted_seats",
-                                                                "$local.route.seats",
-                                                            ]
-                                                        },
-                                                        "$context.driver_route.capacity",
-                                                    ]
-                                                },
-                                            }
-                                        },
-                                        {
-                                            "$set": {
-                                                "local.can_join_trip": {
-                                                    "$and": [
-                                                        "$local.has_balance",
-                                                        "$local.has_seats_availability",
-                                                    ]
-                                                },
-                                            }
-                                        },
-                                    ],
-                                },
-                                {
-                                    "title": "Evaluate Start Request",
-                                    "description": "Routes user-initiated START into requesting flow only when credits and capacity are both valid.",
+                                    "title": "Evaluate Branch",
+                                    "description": "Selects the branch that matches current trip conditions.",
                                     "type": "if.else",
-                                    "condition": {"$ctx": "local.can_join_trip"},
+                                    "condition": {"$ctx": "local.route"},
                                     "then_effects": [
                                         {
-                                            "title": "Reserve Start Credits",
-                                            "description": "Charges the requester credits when START proceeds through the valid branch.",
-                                            "type": "use.credits",
-                                            "credit": {
-                                                "product": "coin",
-                                                "amount": {
-                                                    "$ctx": "local.missing_credits"
-                                                },
-                                            },
+                                            "title": "Read Requester Balance",
+                                            "description": "Reads requester trip credits before accepting a user-initiated START request.",
+                                            "type": "balance.credits",
+                                            "key": "balance_credits",
+                                            "credit": {"product": "coin"},
                                         },
                                         {
-                                            "title": "Persist Route Credit Hold and Link Contract To Initial Route",
-                                            "description": "Stores the retained START credits on the requester route item for reconciliation.",
-                                            "type": "update.item",
-                                            "item_id": {"$ctx": "local.route.id"},
-                                            "update": {
-                                                "$set": {
-                                                    "data.reserved_credits": {
-                                                        "$add": [
-                                                            {
-                                                                "$ifNull": [
-                                                                    "$data.reserved_credits",
-                                                                    0,
-                                                                ]
-                                                            },
-                                                            {
-                                                                "$ctx": "local.missing_credits"
-                                                            },
-                                                        ]
-                                                    },
-                                                    "data.contract_ids": {
-                                                        "$setUnion": [
-                                                            {
-                                                                "$ifNull": [
-                                                                    "$data.contract_ids",
-                                                                    [],
-                                                                ]
-                                                            },
-                                                            [{"$ctx": "doc._id"}],
-                                                        ]
-                                                    },
-                                                }
-                                            },
-                                        },
-                                        {
-                                            "title": "Set initial Rider and Driver Statuses",
-                                            "description": "Aligns rider and driver statuses for stabilize initial trip intent.",
+                                            "title": "Combine Eligibility",
+                                            "description": "Combines requester balance and seat capacity into a single eligibility decision for START.",
                                             "type": "update.contract",
                                             "update": [
                                                 {
                                                     "$set": {
-                                                        "states.$$ctx.user": "REQUESTING",
+                                                        "local.missing_credits": {
+                                                            "$max": [
+                                                                {
+                                                                    "$subtract": [
+                                                                        "$local.route.cost",
+                                                                        {
+                                                                            "$ifNull": [
+                                                                                {
+                                                                                    "$ref": "/items/route/$$ctx.local.route.id/data.reserved_credits"
+                                                                                },
+                                                                                0,
+                                                                            ]
+                                                                        },
+                                                                    ]
+                                                                },
+                                                                0,
+                                                            ]
+                                                        },
                                                     }
                                                 },
                                                 {
                                                     "$set": {
-                                                        "states.$$ctx.doc.context.driver": "PENDING_DRIVER"
+                                                        "local.has_balance": {
+                                                            "$gte": [
+                                                                {
+                                                                    "$ifNull": [
+                                                                        "$local.balance_credits",
+                                                                        0,
+                                                                    ]
+                                                                },
+                                                                "$local.missing_credits",
+                                                            ]
+                                                        },
                                                     }
                                                 },
                                             ],
                                         },
                                         {
-                                            "title": "Notify Stakeholders",
-                                            "description": "Send ride request to driver.",
-                                            "type": "notify",
-                                            "notify": {
-                                                "event": "contracts.request_ride",
-                                                "targets": {
-                                                    "$$ctx.doc.context.driver": [
-                                                        "in_app",
-                                                        "push",
-                                                    ]
+                                            "title": "Evaluate Start Request",
+                                            "description": "Routes user-initiated START into requesting flow only when credits and capacity are both valid.",
+                                            "type": "if.else",
+                                            "condition": {"$ctx": "local.has_balance"},
+                                            "then_effects": [
+                                                {
+                                                    "title": "Reserve Start Credits",
+                                                    "description": "Charges the requester credits when START proceeds through the valid branch.",
+                                                    "type": "use.credits",
+                                                    "credit": {
+                                                        "product": "coin",
+                                                        "amount": {
+                                                            "$ctx": "local.missing_credits"
+                                                        },
+                                                    },
                                                 },
-                                                "payload": {
-                                                    "contract_id": {"$ctx": "doc._id"}
+                                                {
+                                                    "title": "Persist Route Credit Hold and Link Contract To Initial Route",
+                                                    "description": "Stores the retained START credits on the requester route item for reconciliation.",
+                                                    "type": "update.item",
+                                                    "item_id": {
+                                                        "$ctx": "local.route.id"
+                                                    },
+                                                    "update": {
+                                                        "$set": {
+                                                            "data.reserved_credits": {
+                                                                "$add": [
+                                                                    {
+                                                                        "$ifNull": [
+                                                                            "$data.reserved_credits",
+                                                                            0,
+                                                                        ]
+                                                                    },
+                                                                    {
+                                                                        "$ctx": "local.missing_credits"
+                                                                    },
+                                                                ]
+                                                            },
+                                                            "data.contract_ids": {
+                                                                "$setUnion": [
+                                                                    {
+                                                                        "$ifNull": [
+                                                                            "$data.contract_ids",
+                                                                            [],
+                                                                        ]
+                                                                    },
+                                                                    [
+                                                                        {
+                                                                            "$ctx": "doc._id"
+                                                                        }
+                                                                    ],
+                                                                ]
+                                                            },
+                                                        }
+                                                    },
                                                 },
-                                            },
+                                                {
+                                                    "title": "Set initial Rider and Driver Statuses",
+                                                    "description": "Aligns rider and driver statuses for stabilize initial trip intent.",
+                                                    "type": "update.contract",
+                                                    "update": [
+                                                        {
+                                                            "$set": {
+                                                                "states.$$ctx.user": "REQUESTING",
+                                                            }
+                                                        },
+                                                        {
+                                                            "$set": {
+                                                                "states.$$ctx.doc.context.driver": "PENDING_DRIVER"
+                                                            }
+                                                        },
+                                                    ],
+                                                },
+                                                {
+                                                    "title": "Notify Stakeholders",
+                                                    "description": "Send ride request to driver.",
+                                                    "type": "notify",
+                                                    "notify": {
+                                                        "event": "contracts.request_ride",
+                                                        "targets": {
+                                                            "$$ctx.doc.context.driver": [
+                                                                "in_app",
+                                                                "push",
+                                                            ]
+                                                        },
+                                                        "payload": {
+                                                            "contract_id": {
+                                                                "$ctx": "doc._id"
+                                                            }
+                                                        },
+                                                    },
+                                                },
+                                                {
+                                                    "title": "Move To Onboarding",
+                                                    "description": "Moves contract from START to ONBOARDING once request bootstrap is feasible.",
+                                                    "type": "update.contract",
+                                                    "update": {
+                                                        "$set": {"state": "ONBOARDING"}
+                                                    },
+                                                },
+                                            ],
+                                            "else_effects": [
+                                                {
+                                                    "title": "Delete Invalid Contract",
+                                                    "description": "Delete contract that fail balance checks during START hydration.",
+                                                    "type": "delete.contract",
+                                                }
+                                            ],
                                         },
                                     ],
                                     "else_effects": [
                                         {
                                             "title": "Delete Invalid Contract",
-                                            "description": "Delete contract that fail initial balance or capacity checks during START hydration.",
+                                            "description": "Delete contract that fail availability checks during START hydration.",
                                             "type": "delete.contract",
                                         }
                                     ],
@@ -432,6 +494,8 @@ def _gherkin_definition() -> Dict[str, Any]:
                         },
                     ],
                 },
+            },
+            "ONBOARDING": {
                 "events": {
                     "JoinRequest": {
                         "trigger": [
@@ -839,6 +903,379 @@ def _gherkin_definition() -> Dict[str, Any]:
                                         },
                                     }
                                 ],
+                            },
+                        ],
+                    },
+                    "DriverAcceptJoinRequest": {
+                        "trigger": [
+                            {
+                                "type": "api",
+                                "path": "driver-accept-start",
+                                "method": "POST",
+                                "payload_schema": {
+                                    "type": "object",
+                                    "required": ["rider"],
+                                    "properties": {
+                                        "rider": {
+                                            "type": "string",
+                                            "pattern": "^u:.+$",
+                                        },
+                                    },
+                                    "additionalProperties": False,
+                                },
+                                "allow_principals": ["$$ctx.doc.context.driver"],
+                                "response": {
+                                    "ok": {"$ctx": "doc.local.can_accept_start"},
+                                    "event": "driver_accept_start",
+                                },
+                            }
+                        ],
+                        "effects": [
+                            {
+                                "title": "Compute Accept Eligibility",
+                                "description": "Validates the selected rider and computes accepted seats for START acceptance.",
+                                "type": "update.contract",
+                                "update": {
+                                    "$set": {
+                                        "local.can_accept_start": {
+                                            "$and": [
+                                                {
+                                                    "$eq": [
+                                                        {
+                                                            "$ctx": "doc.states.$$ctx.payload.rider"
+                                                        },
+                                                        "REQUESTING",
+                                                    ]
+                                                },
+                                                {
+                                                    "$lte": [
+                                                        {
+                                                            "$add": [
+                                                                "$context.driver_route.accepted_seats",
+                                                                {
+                                                                    "$ifNull": [
+                                                                        {
+                                                                            "$ctx": "doc.context.riders$$ctx.payload.rider.seats"
+                                                                        },
+                                                                        1,
+                                                                    ]
+                                                                },
+                                                            ]
+                                                        },
+                                                        "$context.capacity",
+                                                    ]
+                                                },
+                                            ]
+                                        }
+                                    }
+                                },
+                            },
+                            {
+                                "title": "Evaluate Accept Start",
+                                "type": "if.else",
+                                "condition": {"$ctx": "doc.local.can_accept_start"},
+                                "then_effects": [
+                                    {
+                                        "title": "Set Rider Status",
+                                        "description": "Aligns rider status for stabilize initial trip intent.",
+                                        "type": "update.contract",
+                                        "update": {
+                                            "$set": {
+                                                "states.$$ctx.payload.rider": "ACCEPTED",
+                                                "local.rider_targets": {
+                                                    "$arrayToObject": {
+                                                        "$map": {
+                                                            "input": [
+                                                                "$$payload.rider"
+                                                            ],
+                                                            "as": "p",
+                                                            "in": {
+                                                                "k": "$$p",
+                                                                "v": [
+                                                                    "in_app",
+                                                                    "push",
+                                                                ],
+                                                            },
+                                                        }
+                                                    }
+                                                },
+                                            }
+                                        },
+                                    },
+                                    {
+                                        "title": "Load Accepted Rider Route",
+                                        "description": "Loads accepted rider route to identify other linked contracts.",
+                                        "type": "get.item",
+                                        "item_id": {
+                                            "$ctx": "doc.context.riders.$$ctx.payload.rider.id"
+                                        },
+                                        "key": "accepted_rider_route",
+                                    },
+                                    {
+                                        "title": "Persist Route Credit Hold and Link Contract To Initial Route",
+                                        "description": "Stores the retained START credits on the requester route item for reconciliation.",
+                                        "type": "update.item",
+                                        "item_id": {"$ctx": "doc.context.riders.$$ctx.payload.rider.id"},
+                                        "update": {
+                                            "$set": {
+                                                "data.contract_ids": [{"$ctx": "doc._id"}],
+                                            }
+                                        },
+                                    },
+                                    {
+                                        "title": "Prepare Rider Removal Updates",
+                                        "description": "Builds updates to remove accepted rider from all other contracts on the same route.",
+                                        "type": "update.contract",
+                                        "update": {
+                                            "$set": {
+                                                "local.remove_rider_other_contracts": {
+                                                    "$arrayToObject": {
+                                                        "$map": {
+                                                            "input": {
+                                                                "$filter": {
+                                                                    "input": {
+                                                                        "$ifNull": [
+                                                                            "$local.accepted_rider_route.data.contract_ids",
+                                                                            [],
+                                                                        ]
+                                                                    },
+                                                                    "as": "cid",
+                                                                    "cond": {
+                                                                        "$ne": [
+                                                                            "$$cid",
+                                                                            "$_id",
+                                                                        ]
+                                                                    },
+                                                                }
+                                                            },
+                                                            "as": "cid",
+                                                            "in": {
+                                                                "k": "$$cid",
+                                                                "v": [
+                                                                    {
+                                                                        "$unset": [
+                                                                            "context.riders.$$ctx.payload.rider",
+                                                                            "states.$$ctx.payload.rider"
+                                                                        ]
+                                                                    },
+                                                                ],
+                                                            },
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        },
+                                    },
+                                    {
+                                        "title": "Remove Rider From Other Contracts",
+                                        "description": "Applies rider-removal updates to the other contracts linked by this route item.",
+                                        "type": "update.contract",
+                                        "updates": {
+                                            "$ctx": "local.remove_rider_other_contracts"
+                                        },
+                                    },
+                                    {
+                                        "title": "Notify Stakeholders",
+                                        "description": "Notifies selected riders that they are now accepted.",
+                                        "type": "notify",
+                                        "notify": {
+                                            "event": "contracts.accepted_request",
+                                            "targets": {"$ctx": "local.rider_targets"},
+                                            "payload": {
+                                                "contract_id": {"$ctx": "doc._id"}
+                                            },
+                                        },
+                                    },
+                                    {
+                                        "title": "Confirm Driver And Seats",
+                                        "description": "Keeps selected rider accepted, confirms driver, and updates accepted seats.",
+                                        "type": "update.contract",
+                                        "update": [
+                                            {
+                                                "$set": {
+                                                    "states.$$ctx.doc.context.driver": "DRIVER"
+                                                }
+                                            },
+                                            {
+                                                "$set": {
+                                                    "context.accepted_seats_total": {
+                                                        "$add": [
+                                                            {
+                                                                "$ifNull": [
+                                                                    "$context.accepted_seats_total",
+                                                                    0,
+                                                                ]
+                                                            },
+                                                            {
+                                                                "$ifNull": [
+                                                                    {
+                                                                        "$ctx": "doc.context.riders$$ctx.payload.rider.seats"
+                                                                    },
+                                                                    1,
+                                                                ]
+                                                            },
+                                                        ]
+                                                    }
+                                                }
+                                            },
+                                        ],
+                                    },
+                                ],
+                            },
+                        ],
+                    },
+                    "DriverRejectJoinRequest": {
+                        "trigger": [
+                            {
+                                "type": "api",
+                                "path": "driver-reject-start",
+                                "method": "POST",
+                                "allow_principals": ["$$ctx.doc.context.driver"],
+                                "response": {
+                                    "ok": True,
+                                    "event": "driver_reject_start",
+                                },
+                            }
+                        ],
+                        "effects": [
+                            {
+                                "title": "Collect Requesting Targets",
+                                "description": "Builds notification targets for riders still in REQUESTING before closing START.",
+                                "type": "update.contract",
+                                "update": {
+                                    "$set": {
+                                        "local.requesting_targets": {
+                                            "$arrayToObject": {
+                                                "$map": {
+                                                    "input": {
+                                                        "$filter": {
+                                                            "input": {
+                                                                "$objectToArray": "$states"
+                                                            },
+                                                            "as": "kv",
+                                                            "cond": {
+                                                                "$eq": [
+                                                                    "$$kv.v",
+                                                                    "REQUESTING",
+                                                                ]
+                                                            },
+                                                        }
+                                                    },
+                                                    "as": "kv",
+                                                    "in": {
+                                                        "k": "$$kv.k",
+                                                        "v": ["in_app", "push"],
+                                                    },
+                                                }
+                                            }
+                                        }
+                                    }
+                                },
+                            },
+                            {
+                                "title": "Notify Requesting Riders",
+                                "description": "Notifies all REQUESTING riders that the driver rejected the trip request.",
+                                "type": "notify",
+                                "notify": {
+                                    "event": "contracts.driver_rejected_start",
+                                    "targets": {"$ctx": "local.requesting_targets"},
+                                    "payload": {"contract_id": {"$ctx": "doc._id"}},
+                                },
+                            },
+                            {
+                                "title": "Collect Requesting Refunds",
+                                "description": "Collects reserved credits for riders still in REQUESTING before marking START as rejected.",
+                                "type": "update.contract",
+                                "update": {
+                                    "$set": {
+                                        "local.requesting_refunds": {
+                                            "$arrayToObject": {
+                                                "$map": {
+                                                    "input": {
+                                                        "$filter": {
+                                                            "input": {
+                                                                "$objectToArray": "$states"
+                                                            },
+                                                            "as": "kv",
+                                                            "cond": {
+                                                                "$eq": [
+                                                                    "$$kv.v",
+                                                                    "REQUESTING",
+                                                                ]
+                                                            },
+                                                        }
+                                                    },
+                                                    "as": "kv",
+                                                    "in": {
+                                                        "k": "$$kv.k",
+                                                        "v": {
+                                                            "$let": {
+                                                                "vars": {
+                                                                    "r": {
+                                                                        "$getField": {
+                                                                            "field": "$$kv.k",
+                                                                            "input": "$context.riders",
+                                                                        }
+                                                                    }
+                                                                },
+                                                                "in": {
+                                                                    "$ifNull": [
+                                                                        "$$r.reserved_credits",
+                                                                        0,
+                                                                    ]
+                                                                },
+                                                            }
+                                                        },
+                                                    },
+                                                }
+                                            }
+                                        }
+                                    }
+                                },
+                            },
+                            {
+                                "title": "Refund Requesting Riders",
+                                "description": "Returns reserved join credits to riders that remain REQUESTING when the driver rejects START.",
+                                "type": "update.contract",
+                                "update": {
+                                    "$set": {"local.requesting_refunds_applied": True}
+                                },
+                            },
+                            {
+                                "title": "Move State",
+                                "description": "Moves the contract state to support close the declined request.",
+                                "type": "update.contract",
+                                "update": {
+                                    "$set": {
+                                        "state": "REJECTED",
+                                        "states.$$ctx.doc.context.driver": "REJECTED",
+                                        "states": {
+                                            "$arrayToObject": {
+                                                "$map": {
+                                                    "input": {
+                                                        "$objectToArray": "$states"
+                                                    },
+                                                    "as": "kv",
+                                                    "in": {
+                                                        "k": "$$kv.k",
+                                                        "v": {
+                                                            "$cond": [
+                                                                {
+                                                                    "$eq": [
+                                                                        "$$kv.v",
+                                                                        "REQUESTING",
+                                                                    ]
+                                                                },
+                                                                "REJECTED",
+                                                                "$$kv.v",
+                                                            ]
+                                                        },
+                                                    },
+                                                }
+                                            }
+                                        },
+                                    }
+                                },
                             },
                         ],
                     },
@@ -1346,10 +1783,10 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 ],
                             },
                             {
-                                "title": "Move To Confirming",
-                                "description": "Moves START to CONFIRMING as soon as at least one rider accepts.",
+                                "title": "Stay In Onboarding",
+                                "description": "Keeps flow in ONBOARDING after first invite acceptance.",
                                 "type": "update.contract",
-                                "update": {"$set": {"state": "CONFIRMING"}},
+                                "update": {"$set": {"state": "ONBOARDING"}},
                             },
                         ],
                     },
@@ -1392,88 +1829,186 @@ def _gherkin_definition() -> Dict[str, Any]:
                             },
                         ],
                     },
-                    "DriverAcceptJoinRequest": {
+                    "DriverRemoveUser": {
                         "trigger": [
                             {
                                 "type": "api",
-                                "path": "driver-accept-start",
+                                "path": "driver-reject-user",
                                 "method": "POST",
+                                "allow_principals": ["$$ctx.doc.context.driver"],
                                 "payload_schema": {
                                     "type": "object",
-                                    "required": ["rider"],
+                                    "required": ["principal"],
                                     "properties": {
-                                        "rider": {
+                                        "principal": {
                                             "type": "string",
                                             "pattern": "^u:.+$",
-                                        },
+                                        }
                                     },
                                     "additionalProperties": False,
                                 },
-                                "allow_principals": ["$$ctx.doc.context.driver"],
                                 "response": {
-                                    "ok": {"$ctx": "doc.local.can_accept_start"},
-                                    "event": "driver_accept_start",
+                                    "ok": {"$ctx": "doc.local.can_driver_reject_user"},
+                                    "event": "driver_reject_user",
                                 },
                             }
                         ],
                         "effects": [
                             {
-                                "title": "Compute Accept Eligibility",
-                                "description": "Validates the selected rider and computes accepted seats for START acceptance.",
+                                "title": "Compute Reject Eligibility",
+                                "description": "Allows driver rejection only for active recruiting user states.",
                                 "type": "update.contract",
                                 "update": {
                                     "$set": {
-                                        "local.can_accept_start": {
-                                            "$eq": [
-                                                {
-                                                    "$ctx": "doc.states.$$ctx.payload.rider"
-                                                },
-                                                "REQUESTING",
-                                            ]
-                                        },
-                                        "local.initial_invite_targets": {
-                                            "$arrayToObject": {
-                                                "$map": {
-                                                    "input": ["$$payload.rider"],
-                                                    "as": "p",
-                                                    "in": {
-                                                        "k": "$$p",
-                                                        "v": ["in_app", "push"],
-                                                    },
-                                                }
-                                            }
-                                        },
-                                        "local.accepted_start_seats": {
+                                        "local.target_state": {
                                             "$ifNull": [
                                                 {
-                                                    "$arrayElemAt": [
+                                                    "$ctx": "doc.states.$$ctx.payload.principal"
+                                                },
+                                                "",
+                                            ]
+                                        },
+                                        "local.can_driver_reject_user": {
+                                            "$in": [
+                                                {
+                                                    "$ifNull": [
                                                         {
-                                                            "$map": {
-                                                                "input": {
-                                                                    "$filter": {
-                                                                        "input": {
-                                                                            "$objectToArray": "$context.riders"
-                                                                        },
-                                                                        "as": "kv",
-                                                                        "cond": {
-                                                                            "$eq": [
-                                                                                "$$kv.k",
-                                                                                "$$payload.rider",
+                                                            "$ctx": "doc.states.$$ctx.payload.principal"
+                                                        },
+                                                        "",
+                                                    ]
+                                                },
+                                                ["REQUESTING", "PENDING", "ACCEPTED"],
+                                            ]
+                                        },
+                                    }
+                                },
+                            },
+                            {
+                                "title": "Apply Driver Rejection",
+                                "description": "Marks target as rejected and updates occupancy when needed.",
+                                "type": "if.else",
+                                "condition": {
+                                    "$ctx": "doc.local.can_driver_reject_user"
+                                },
+                                "then_effects": [
+                                    {
+                                        "title": "Adjust Accepted Seats",
+                                        "description": "Subtracts seats only when an accepted user is rejected.",
+                                        "type": "if.else",
+                                        "condition": {
+                                            "$eq": ["$local.target_state", "ACCEPTED"]
+                                        },
+                                        "then_effects": [
+                                            {
+                                                "title": "Decrement Occupancy",
+                                                "description": "Recalculates accepted seats total after driver rejection.",
+                                                "type": "update.contract",
+                                                "update": {
+                                                    "$set": {
+                                                        "context.accepted_seats_total": {
+                                                            "$max": [
+                                                                {
+                                                                    "$subtract": [
+                                                                        {
+                                                                            "$ifNull": [
+                                                                                "$context.accepted_seats_total",
+                                                                                0,
                                                                             ]
                                                                         },
-                                                                    }
-                                                                },
-                                                                "as": "kv",
-                                                                "in": {
-                                                                    "$ifNull": [
-                                                                        "$$kv.v.seats",
-                                                                        1,
+                                                                        {
+                                                                            "$ifNull": [
+                                                                                {
+                                                                                    "$ctx": "doc.context.riders.$$ctx.payload.principal.seats"
+                                                                                },
+                                                                                1,
+                                                                            ]
+                                                                        },
                                                                     ]
                                                                 },
-                                                            }
-                                                        },
-                                                        0,
-                                                    ]
+                                                                0,
+                                                            ]
+                                                        }
+                                                    }
+                                                },
+                                            }
+                                        ],
+                                    },
+                                    {
+                                        "title": "Set Rejected User",
+                                        "description": "Sets user state to rejected and clears rider context.",
+                                        "type": "update.contract",
+                                        "update": [
+                                            {
+                                                "$set": {
+                                                    "states.$$ctx.payload.principal": "REJECTED"
+                                                }
+                                            },
+                                            {
+                                                "$unset": [
+                                                    "context.riders.$$ctx.payload.principal"
+                                                ]
+                                            },
+                                        ],
+                                    },
+                                    {
+                                        "title": "Notify Rejected User",
+                                        "description": "Notifies user that the driver rejected their ride participation.",
+                                        "type": "notify",
+                                        "notify": {
+                                            "event": "contracts.user_rejected_by_driver",
+                                            "targets": {
+                                                "$$ctx.payload.principal": [
+                                                    "in_app",
+                                                    "push",
+                                                ]
+                                            },
+                                            "payload": {
+                                                "contract_id": {"$ctx": "doc._id"}
+                                            },
+                                        },
+                                    },
+                                ],
+                            },
+                        ],
+                    },
+                    "UserCancelRide": {
+                        "trigger": [
+                            {
+                                "type": "api",
+                                "path": "cancel-user",
+                                "method": "POST",
+                                "allow_user_states": [
+                                    "REQUESTING",
+                                    "PENDING",
+                                    "ACCEPTED",
+                                ],
+                                "response": {
+                                    "ok": True,
+                                    "event": "cancel_user",
+                                },
+                            }
+                        ],
+                        "effects": [
+                            {
+                                "title": "Capture Cancel Inputs",
+                                "description": "Captures current user state, route id and seats for recruiting cancellation.",
+                                "type": "update.contract",
+                                "update": {
+                                    "$set": {
+                                        "local.cancel_user_state": {
+                                            "$ifNull": [
+                                                {"$ctx": "doc.states.$$ctx.user"},
+                                                "",
+                                            ]
+                                        },
+                                        "local.cancel_route_id": {
+                                            "$ctx": "doc.context.riders.$$ctx.user.id"
+                                        },
+                                        "local.cancel_user_seats": {
+                                            "$ifNull": [
+                                                {
+                                                    "$ctx": "doc.context.riders.$$ctx.user.seats"
                                                 },
                                                 1,
                                             ]
@@ -1482,233 +2017,83 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 },
                             },
                             {
-                                "title": "Evaluate Accept Start",
-                                "description": "Continues to CONFIRMING only when at least one REQUESTING rider is selected.",
+                                "title": "Adjust Occupancy If Accepted",
+                                "description": "Subtracts seats when an accepted rider cancels during recruiting.",
                                 "type": "if.else",
-                                "condition": {"$ctx": "doc.local.can_accept_start"},
+                                "condition": {
+                                    "$eq": ["$local.cancel_user_state", "ACCEPTED"]
+                                },
                                 "then_effects": [
                                     {
-                                        "title": "Notify Stakeholders",
-                                        "description": "Notifies selected riders that they are now invited to confirm participation.",
-                                        "type": "notify",
-                                        "notify": {
-                                            "event": "contracts.user_invited",
-                                            "targets": {
-                                                "$ctx": "local.initial_invite_targets"
-                                            },
-                                            "payload": {
-                                                "contract_id": {"$ctx": "doc._id"}
-                                            },
-                                        },
-                                    },
-                                    {
-                                        "title": "Promote Pending Riders",
-                                        "description": "Promotes the selected rider and confirms driver before CONFIRMING.",
+                                        "title": "Decrement Accepted Seats",
+                                        "description": "Updates accepted seats after accepted rider cancellation.",
                                         "type": "update.contract",
-                                        "update": [
-                                            {
-                                                "$set": {
-                                                    "states.$$ctx.doc.context.driver": "DRIVER"
-                                                }
-                                            },
-                                            {
-                                                "$set": {
-                                                    "states": {
-                                                        "$arrayToObject": {
-                                                            "$map": {
-                                                                "input": {
-                                                                    "$objectToArray": "$states"
-                                                                },
-                                                                "as": "kv",
-                                                                "in": {
-                                                                    "k": "$$kv.k",
-                                                                    "v": {
-                                                                        "$cond": [
-                                                                            {
-                                                                                "$eq": [
-                                                                                    "$$kv.k",
-                                                                                    "$$payload.rider",
-                                                                                ]
-                                                                            },
-                                                                            "PENDING",
-                                                                            "$$kv.v",
-                                                                        ]
-                                                                    },
-                                                                },
-                                                            }
-                                                        }
-                                                    },
-                                                    "context.accepted_seats_total": {
-                                                        "$ifNull": [
-                                                            "$local.accepted_start_seats",
-                                                            0,
-                                                        ]
-                                                    },
-                                                    "state": "CONFIRMING",
-                                                }
-                                            },
-                                        ],
-                                    },
-                                ],
-                            },
-                        ],
-                    },
-                    "DriverRejectJoinRequest": {
-                        "trigger": [
-                            {
-                                "type": "api",
-                                "path": "driver-reject-start",
-                                "method": "POST",
-                                "allow_principals": ["$$ctx.doc.context.driver"],
-                                "response": {
-                                    "ok": True,
-                                    "event": "driver_reject_start",
-                                },
-                            }
-                        ],
-                        "effects": [
-                            {
-                                "title": "Collect Requesting Targets",
-                                "description": "Builds notification targets for riders still in REQUESTING before closing START.",
-                                "type": "update.contract",
-                                "update": {
-                                    "$set": {
-                                        "local.requesting_targets": {
-                                            "$arrayToObject": {
-                                                "$map": {
-                                                    "input": {
-                                                        "$filter": {
-                                                            "input": {
-                                                                "$objectToArray": "$states"
-                                                            },
-                                                            "as": "kv",
-                                                            "cond": {
-                                                                "$eq": [
-                                                                    "$$kv.v",
-                                                                    "REQUESTING",
-                                                                ]
-                                                            },
-                                                        }
-                                                    },
-                                                    "as": "kv",
-                                                    "in": {
-                                                        "k": "$$kv.k",
-                                                        "v": ["in_app", "push"],
-                                                    },
-                                                }
-                                            }
-                                        }
-                                    }
-                                },
-                            },
-                            {
-                                "title": "Notify Requesting Riders",
-                                "description": "Notifies all REQUESTING riders that the driver rejected the trip request.",
-                                "type": "notify",
-                                "notify": {
-                                    "event": "contracts.driver_rejected_start",
-                                    "targets": {"$ctx": "local.requesting_targets"},
-                                    "payload": {"contract_id": {"$ctx": "doc._id"}},
-                                },
-                            },
-                            {
-                                "title": "Collect Requesting Refunds",
-                                "description": "Collects reserved credits for riders still in REQUESTING before marking START as rejected.",
-                                "type": "update.contract",
-                                "update": {
-                                    "$set": {
-                                        "local.requesting_refunds": {
-                                            "$arrayToObject": {
-                                                "$map": {
-                                                    "input": {
-                                                        "$filter": {
-                                                            "input": {
-                                                                "$objectToArray": "$states"
-                                                            },
-                                                            "as": "kv",
-                                                            "cond": {
-                                                                "$eq": [
-                                                                    "$$kv.v",
-                                                                    "REQUESTING",
-                                                                ]
-                                                            },
-                                                        }
-                                                    },
-                                                    "as": "kv",
-                                                    "in": {
-                                                        "k": "$$kv.k",
-                                                        "v": {
-                                                            "$let": {
-                                                                "vars": {
-                                                                    "r": {
-                                                                        "$getField": {
-                                                                            "field": "$$kv.k",
-                                                                            "input": "$context.riders",
-                                                                        }
-                                                                    }
-                                                                },
-                                                                "in": {
+                                        "update": {
+                                            "$set": {
+                                                "context.accepted_seats_total": {
+                                                    "$max": [
+                                                        {
+                                                            "$subtract": [
+                                                                {
                                                                     "$ifNull": [
-                                                                        "$$r.reserved_credits",
+                                                                        "$context.accepted_seats_total",
                                                                         0,
                                                                     ]
                                                                 },
-                                                            }
+                                                                "$local.cancel_user_seats",
+                                                            ]
                                                         },
-                                                    },
+                                                        0,
+                                                    ]
                                                 }
                                             }
+                                        },
+                                    }
+                                ],
+                            },
+                            {
+                                "title": "Unlink Contract From Route",
+                                "description": "Removes this contract id from rider route hold tracking.",
+                                "type": "update.item",
+                                "item_id": {"$ctx": "local.cancel_route_id"},
+                                "update": {
+                                    "$set": {
+                                        "data.contract_ids": {
+                                            "$setDifference": [
+                                                {"$ifNull": ["$data.contract_ids", []]},
+                                                [{"$ctx": "doc._id"}],
+                                            ]
                                         }
                                     }
                                 },
                             },
                             {
-                                "title": "Refund Requesting Riders",
-                                "description": "Returns reserved join credits to riders that remain REQUESTING when the driver rejects START.",
+                                "title": "Mark User Cancelled",
+                                "description": "Marks user as cancelled and removes rider context from recruiting roster.",
                                 "type": "update.contract",
-                                "update": {
-                                    "$set": {"local.requesting_refunds_applied": True}
-                                },
+                                "update": [
+                                    {"$set": {"states.$$ctx.user": "CANCELLED"}},
+                                    {"$unset": ["context.riders.$$ctx.user"]},
+                                ],
                             },
                             {
-                                "title": "Move State",
-                                "description": "Moves the contract state to support close the declined request.",
-                                "type": "update.contract",
-                                "update": {
-                                    "$set": {
-                                        "state": "REJECTED",
-                                        "states.$$ctx.doc.context.driver": "REJECTED",
-                                        "states": {
-                                            "$arrayToObject": {
-                                                "$map": {
-                                                    "input": {
-                                                        "$objectToArray": "$states"
-                                                    },
-                                                    "as": "kv",
-                                                    "in": {
-                                                        "k": "$$kv.k",
-                                                        "v": {
-                                                            "$cond": [
-                                                                {
-                                                                    "$eq": [
-                                                                        "$$kv.v",
-                                                                        "REQUESTING",
-                                                                    ]
-                                                                },
-                                                                "REJECTED",
-                                                                "$$kv.v",
-                                                            ]
-                                                        },
-                                                    },
-                                                }
-                                            }
-                                        },
-                                    }
+                                "title": "Notify Driver",
+                                "description": "Notifies driver when user cancels ride during recruiting.",
+                                "type": "notify",
+                                "notify": {
+                                    "event": "contracts.user_cancelled",
+                                    "targets": {
+                                        "$$ctx.doc.context.driver": ["in_app", "push"]
+                                    },
+                                    "payload": {
+                                        "contract_id": {"$ctx": "doc._id"},
+                                        "principal": "$$ctx.user",
+                                    },
                                 },
                             },
                         ],
                     },
-                    "DriverRejectTrip": {
+                    "DriverCancelTrip": {
                         "trigger": [
                             {
                                 "type": "api",
@@ -1765,7 +2150,25 @@ def _gherkin_definition() -> Dict[str, Any]:
                             }
                         ],
                     },
-                },
+                    "DriverSetReady": {
+                        "trigger": [
+                            {
+                                "type": "api",
+                                "path": "set-ready",
+                                "method": "POST",
+                                "response": {"ok": True, "event": "set_ready"},
+                            }
+                        ],
+                        "effects": [
+                            {
+                                "title": "Move State",
+                                "description": "Moves the contract state to support close recruiting and lock roster.",
+                                "type": "update.contract",
+                                "update": {"$set": {"state": "READY"}},
+                            }
+                        ],
+                    },
+                }
             },
             "CONFIRMING": {
                 "on_enter": {
@@ -1827,1403 +2230,9 @@ def _gherkin_definition() -> Dict[str, Any]:
                             "title": "Move State",
                             "description": "Moves the contract state to support collect rider confirmations.",
                             "type": "update.contract",
-                            "update": {"$set": {"state": "RECRUITING"}},
+                            "update": {"$set": {"state": "ONBOARDING"}},
                         },
                     ]
-                }
-            },
-            "RECRUITING": {
-                "events": {
-                    "JoinRequest": {
-                        "trigger": [
-                            {
-                                "type": "api",
-                                "path": "request-join",
-                                "method": "POST",
-                                "payload_schema": {
-                                    "type": "object",
-                                    "required": ["route_id"],
-                                    "properties": {
-                                        "route_id": {"type": "string", "minLength": 1},
-                                    },
-                                    "additionalProperties": False,
-                                },
-                                "deny_principals": ["$$ctx.doc.context.driver"],
-                                "deny_user_states": [
-                                    "REQUESTING",
-                                    "PENDING",
-                                    "ACCEPTED",
-                                    "REJECTED",
-                                    "CANCELLED",
-                                ],
-                                "response": {
-                                    "ok": "$$ctx.local.can_join_trip",
-                                    "event": "request_join",
-                                },
-                            }
-                        ],
-                        "effects": [
-                            {
-                                "title": "Load Join Route",
-                                "description": "Loads the route selected in payload so join checks use item data.",
-                                "type": "update.contract",
-                                "update": {
-                                    "$set": {
-                                        "local.route": {
-                                            "id": "$$ctx.payload.route_id",
-                                            "cost": {
-                                                "$ifNull": [
-                                                    {
-                                                        "$ref": "/items/route/$$ctx.payload.route_id/data.cost"
-                                                    },
-                                                    0,
-                                                ]
-                                            },
-                                            "seats": {
-                                                "$ifNull": [
-                                                    {
-                                                        "$ref": "/items/route/$$ctx.payload.route_id/data.seats"
-                                                    },
-                                                    1,
-                                                ]
-                                            },
-                                            "trip": {
-                                                "origin": {
-                                                    "$ref": "/items/route/$$ctx.payload.route_id/data.origin"
-                                                },
-                                                "destination": {
-                                                    "$ref": "/items/route/$$ctx.payload.route_id/data.destination"
-                                                },
-                                            },
-                                        },
-                                    }
-                                },
-                            },
-                            {
-                                "title": "Establish whether the driver has sufficient capacity",
-                                "description": "Checks if seats requests is within driver capacity.",
-                                "type": "update.contract",
-                                "update": {
-                                    "$set": {
-                                        "local.has_capacity_for_join": {
-                                            "$lte": [
-                                                {
-                                                    "$add": [
-                                                        "$context.driver_route.accepted_seats",
-                                                        "$local.route.seats",
-                                                    ]
-                                                },
-                                                "$context.capacity",
-                                            ]
-                                        },
-                                    }
-                                },
-                            },
-                            {
-                                "title": "Read Rider Credits",
-                                "description": "Reads rider credit balance before evaluating join feasibility in START.",
-                                "type": "balance.credits",
-                                "credit": {"product": "coin"},
-                                "key": "balance_credits",
-                            },
-                            {
-                                "title": "Validate Join Prerequisites",
-                                "description": "Combines seat capacity and rider credits to decide whether START join can proceed.",
-                                "type": "update.contract",
-                                "update": [
-                                    {
-                                        "$set": {
-                                            "local.missing_credits": {
-                                                "$max": [
-                                                    {
-                                                        "$subtract": [
-                                                            "$local.route.cost",
-                                                            {
-                                                                "$ifNull": [
-                                                                    {
-                                                                        "$ref": "/items/route/$$ctx.local.route.id/data.reserved_credits"
-                                                                    },
-                                                                    0,
-                                                                ]
-                                                            },
-                                                        ]
-                                                    },
-                                                    0,
-                                                ]
-                                            },
-                                        }
-                                    },
-                                    {
-                                        "$set": {
-                                            "local.has_balance": {
-                                                "$gte": [
-                                                    {
-                                                        "$ifNull": [
-                                                            "$local.balance_credits",
-                                                            0,
-                                                        ]
-                                                    },
-                                                    "$local.missing_credits",
-                                                ]
-                                            },
-                                            "local.has_seats_availability": {
-                                                "$lte": [
-                                                    {
-                                                        "$add": [
-                                                            "$context.driver_route.accepted_seats",
-                                                            "$local.route.seats",
-                                                        ]
-                                                    },
-                                                    "$context.driver_route.capacity",
-                                                ]
-                                            },
-                                        }
-                                    },
-                                    {
-                                        "$set": {
-                                            "local.can_join_trip": {
-                                                "$and": [
-                                                    "$local.has_balance",
-                                                    "$local.has_seats_availability",
-                                                ]
-                                            },
-                                        }
-                                    },
-                                ],
-                            },
-                            {
-                                "title": "Evaluate Branch",
-                                "description": "Selects the branch that matches current trip conditions.",
-                                "type": "if.else",
-                                "condition": {"$ctx": "local.can_join_trip"},
-                                "then_effects": [
-                                    {
-                                        "title": "Reserve Credits",
-                                        "description": "Charges the requester credits when START proceeds through the valid branch.",
-                                        "type": "use.credits",
-                                        "credit": {
-                                            "product": "coin",
-                                            "amount": {"$ctx": "local.missing_credits"},
-                                        },
-                                    },
-                                    {
-                                        "title": "Persist Route Credit Hold and Link Contract To Initial Route",
-                                        "description": "Stores the retained START credits on the requester route item for reconciliation.",
-                                        "type": "update.item",
-                                        "item_id": {"$ctx": "local.route.id"},
-                                        "update": {
-                                            "$set": {
-                                                "data.reserved_credits": {
-                                                    "$add": [
-                                                        {
-                                                            "$ifNull": [
-                                                                "$data.reserved_credits",
-                                                                0,
-                                                            ]
-                                                        },
-                                                        {
-                                                            "$ctx": "local.missing_credits"
-                                                        },
-                                                    ]
-                                                },
-                                                "data.contract_ids": {
-                                                    "$setUnion": [
-                                                        {
-                                                            "$ifNull": [
-                                                                "$data.contract_ids",
-                                                                [],
-                                                            ]
-                                                        },
-                                                        [{"$ctx": "doc._id"}],
-                                                    ]
-                                                },
-                                            }
-                                        },
-                                    },
-                                    {
-                                        "title": "Set initial Rider Status",
-                                        "description": "Aligns rider status for stabilize initial trip intent.",
-                                        "type": "update.contract",
-                                        "update": [
-                                            {
-                                                "$set": {
-                                                    "states.$$ctx.user": "REQUESTING"
-                                                }
-                                            },
-                                        ],
-                                    },
-                                    {
-                                        "title": "Store Initial Route Info",
-                                        "description": "Stores retained credits for the first requester in START context.",
-                                        "type": "update.contract",
-                                        "update": {
-                                            "$set": {
-                                                "states.$$ctx.user": "REQUESTING",
-                                                "context.riders.$$ctx.user.id": "$local.route.id",
-                                                "context.riders.$$ctx.user.cost": "$local.route.cost",
-                                                "context.riders.$$ctx.user.seats": "$local.route.seats",
-                                                "context.riders.$$ctx.user.trip": "$local.route.trip",
-                                            }
-                                        },
-                                    },
-                                    {
-                                        "title": "Notify Stakeholders",
-                                        "description": "Sends join request notifications to the driver.",
-                                        "type": "notify",
-                                        "notify": {
-                                            "event": "contracts.join_requested",
-                                            "targets": {
-                                                "$$ctx.doc.context.driver": [
-                                                    "in_app",
-                                                    "push",
-                                                ]
-                                            },
-                                            "payload": {
-                                                "contract_id": {"$ctx": "doc._id"}
-                                            },
-                                        },
-                                    },
-                                ],
-                            },
-                        ],
-                    },
-                    "CancelJoinRequest": {
-                        "trigger": [
-                            {
-                                "type": "api",
-                                "path": "cancel-join-request",
-                                "method": "POST",
-                                "allow_user_states": ["REQUESTING"],
-                                "response": {
-                                    "ok": True,
-                                    "event": "cancel_join_request",
-                                },
-                            }
-                        ],
-                        "effects": [
-                            {
-                                "title": "Capture Rider Route",
-                                "description": "Captures the rider route snapshot before removing REQUESTING state.",
-                                "type": "update.contract",
-                                "update": {
-                                    "$set": {
-                                        "local.route": {
-                                            "$ctx": "doc.context.riders.$$ctx.user"
-                                        }
-                                    }
-                                },
-                            },
-                            {
-                                "title": "Remove Contract From Route",
-                                "description": "Removes this contract id from the rider route item linkage list.",
-                                "type": "update.item",
-                                "item_id": {"$ctx": "local.route.id"},
-                                "update": {
-                                    "$set": {
-                                        "data.contract_ids": {
-                                            "$setDifference": [
-                                                {"$ifNull": ["$data.contract_ids", []]},
-                                                [{"$ctx": "doc._id"}],
-                                            ]
-                                        }
-                                    }
-                                },
-                            },
-                            {
-                                "title": "Clear Context",
-                                "description": "Clears obsolete lifecycle fields after this decision.",
-                                "type": "update.contract",
-                                "update": {
-                                    "$unset": [
-                                        "states.$$ctx.user",
-                                        "context.riders.$$ctx.user",
-                                    ]
-                                },
-                            },
-                            {
-                                "title": "Compute Cancel Refund",
-                                "description": "Refunds reserved credits only when no contract still references the rider route.",
-                                "type": "update.contract",
-                                "update": {
-                                    "$set": {
-                                        "local.has_cancel_refund": {
-                                            "$eq": [
-                                                {
-                                                    "$size": {
-                                                        "$ref": "/items/route/$$ctx.local.route.id/data.contract_ids"
-                                                    }
-                                                },
-                                                0,
-                                            ]
-                                        }
-                                    }
-                                },
-                            },
-                            {
-                                "title": "Refund Cancelling Rider",
-                                "description": "Returns reserved join credits to the rider that cancels while still REQUESTING.",
-                                "type": "if.else",
-                                "condition": {"$ctx": "local.has_cancel_refund"},
-                                "then_effects": [
-                                    {
-                                        "title": "Apply Credit Refund",
-                                        "description": "Applies the computed refund to the cancelling rider wallet.",
-                                        "type": "charge.credits",
-                                        "credit": {
-                                            "product": "coin",
-                                            "amount": {
-                                                "$ref": "/items/route/$$ctx.local.route.id/data.reserved_credits"
-                                            },
-                                        },
-                                    },
-                                    {
-                                        "title": "Clear Route Reserved Credits",
-                                        "description": "Clears route retained credits after refunding the final linked request.",
-                                        "type": "update.item",
-                                        "item_id": {"$ctx": "local.route.id"},
-                                        "update": {
-                                            "$set": {"data.reserved_credits": 0}
-                                        },
-                                    },
-                                ],
-                            },
-                            {
-                                "title": "Persist Progress",
-                                "description": "Persists transition data to keep the process deterministic.",
-                                "type": "update.contract",
-                                "update": {
-                                    "$set": {
-                                        "local.has_interested_users": {
-                                            "$gt": [
-                                                {
-                                                    "$size": {
-                                                        "$objectToArray": {
-                                                            "$ifNull": [
-                                                                "$context.riders",
-                                                                {},
-                                                            ]
-                                                        }
-                                                    }
-                                                },
-                                                0,
-                                            ]
-                                        }
-                                    }
-                                },
-                            },
-                            {
-                                "title": "Evaluate Branch",
-                                "description": "Selects the branch that matches current trip conditions.",
-                                "type": "if.else",
-                                "condition": {"$ctx": "local.has_interested_users"},
-                                "else_effects": [
-                                    {
-                                        "title": "Notify Stakeholders",
-                                        "description": "Sends contracts.request_ride so stakeholders can act at the right time.",
-                                        "type": "notify",
-                                        "notify": {
-                                            "event": "contracts.request_ride",
-                                            "targets": {
-                                                "$$ctx.doc.context.driver": [
-                                                    "in_app",
-                                                    "push",
-                                                ]
-                                            },
-                                            "payload": {
-                                                "contract_id": {"$ctx": "doc._id"}
-                                            },
-                                        },
-                                    }
-                                ],
-                            },
-                        ],
-                    },
-                    "DriverAcceptJoinRequest": {
-                        "trigger": [
-                            {
-                                "type": "api",
-                                "path": "accept-join-request",
-                                "method": "POST",
-                                "allow_principals": ["$$ctx.doc.context.driver"],
-                                "payload_schema": {
-                                    "type": "object",
-                                    "required": ["principal"],
-                                    "properties": {
-                                        "principal": {
-                                            "type": "string",
-                                            "pattern": "^u:.+$",
-                                        }
-                                    },
-                                    "additionalProperties": False,
-                                },
-                                "response": {
-                                    "ok": True,
-                                    "event": "accept_join_request",
-                                },
-                            }
-                        ],
-                        "effects": [
-                            {
-                                "title": "Persist Progress",
-                                "description": "Persists transition data to keep the process deterministic.",
-                                "type": "update.contract",
-                                "update": {
-                                    "$set": {
-                                        "local.target_is_requesting": {
-                                            "$eq": [
-                                                {
-                                                    "$ifNull": [
-                                                        {
-                                                            "$ctx": "doc.states.$$ctx.payload.principal"
-                                                        },
-                                                        "",
-                                                    ]
-                                                },
-                                                "REQUESTING",
-                                            ]
-                                        }
-                                    }
-                                },
-                            },
-                            {
-                                "title": "Evaluate Branch",
-                                "description": "Selects the branch that matches current trip conditions.",
-                                "type": "if.else",
-                                "condition": {"$ctx": "local.target_is_requesting"},
-                                "then_effects": [
-                                    {
-                                        "title": "Align Rider Statuses",
-                                        "description": "Aligns rider and driver statuses for approve a queued request.",
-                                        "type": "update.contract",
-                                        "update": {
-                                            "$set": {
-                                                "states.$$ctx.payload.principal": "ACCEPTED"
-                                            }
-                                        },
-                                    },
-                                    {
-                                        "title": "Sync Group",
-                                        "description": "Synchronizes group membership with current trip roster.",
-                                        "type": "update.group",
-                                        "group_id": {"$ctx": "doc.context.group_id"},
-                                        "edit_members": {
-                                            "add_members": ["$$ctx.payload.principal"]
-                                        },
-                                    },
-                                    {
-                                        "title": "Persist Progress",
-                                        "description": "Persists transition data to keep the process deterministic.",
-                                        "type": "update.contract",
-                                        "update": {
-                                            "$set": {
-                                                "local.accepted_increment": {
-                                                    "$ifNull": [
-                                                        {
-                                                            "$ctx": "doc.context.riders.$$ctx.payload.principal.seats"
-                                                        },
-                                                        1,
-                                                    ]
-                                                }
-                                            }
-                                        },
-                                    },
-                                    {
-                                        "title": "Recalculate Occupancy",
-                                        "description": "Updates accepted occupancy for accurate capacity checks.",
-                                        "type": "update.contract",
-                                        "update": {
-                                            "$set": {
-                                                "context.accepted_seats_total": {
-                                                    "$add": [
-                                                        {
-                                                            "$ifNull": [
-                                                                "$context.accepted_seats_total",
-                                                                0,
-                                                            ]
-                                                        },
-                                                        "$local.accepted_increment",
-                                                    ]
-                                                },
-                                                "local.capacity_reached": {
-                                                    "$gte": [
-                                                        {
-                                                            "$add": [
-                                                                {
-                                                                    "$ifNull": [
-                                                                        "$context.accepted_seats_total",
-                                                                        0,
-                                                                    ]
-                                                                },
-                                                                "$local.accepted_increment",
-                                                            ]
-                                                        },
-                                                        {
-                                                            "$ifNull": [
-                                                                "$context.capacity",
-                                                                0,
-                                                            ]
-                                                        },
-                                                    ]
-                                                },
-                                            }
-                                        },
-                                    },
-                                    {
-                                        "title": "Evaluate Branch",
-                                        "description": "Selects the branch that matches current trip conditions.",
-                                        "type": "if.else",
-                                        "condition": {"$ctx": "local.capacity_reached"},
-                                        "then_effects": [
-                                            {
-                                                "title": "Move State",
-                                                "description": "Moves the contract state to support approve a queued request.",
-                                                "type": "update.contract",
-                                                "update": {"$set": {"state": "READY"}},
-                                            }
-                                        ],
-                                        "else_effects": [
-                                            {
-                                                "title": "Move State",
-                                                "description": "Moves the contract state to support approve a queued request.",
-                                                "type": "update.contract",
-                                                "update": {
-                                                    "$set": {"state": "RECRUITING"}
-                                                },
-                                            }
-                                        ],
-                                    },
-                                    {
-                                        "title": "Notify Stakeholders",
-                                        "description": "Sends contracts.join_request_accepted so stakeholders can act at the right time.",
-                                        "type": "notify",
-                                        "notify": {
-                                            "event": "contracts.join_request_accepted",
-                                            "targets": {
-                                                "$$ctx.payload.principal": [
-                                                    "in_app",
-                                                    "push",
-                                                ]
-                                            },
-                                            "payload": {
-                                                "contract_id": {"$ctx": "doc._id"}
-                                            },
-                                        },
-                                    },
-                                ],
-                            },
-                        ],
-                    },
-                    "DriverRejectJoinRequest": {
-                        "trigger": [
-                            {
-                                "type": "api",
-                                "path": "reject-join-request",
-                                "method": "POST",
-                                "allow_principals": ["$$ctx.doc.context.driver"],
-                                "payload_schema": {
-                                    "type": "object",
-                                    "required": ["principal"],
-                                    "properties": {
-                                        "principal": {
-                                            "type": "string",
-                                            "pattern": "^u:.+$",
-                                        }
-                                    },
-                                    "additionalProperties": False,
-                                },
-                                "response": {
-                                    "ok": True,
-                                    "event": "reject_join_request",
-                                },
-                            }
-                        ],
-                        "effects": [
-                            {
-                                "title": "Persist Progress",
-                                "description": "Persists transition data to keep the process deterministic.",
-                                "type": "update.contract",
-                                "update": {
-                                    "$set": {
-                                        "local.target_is_requesting": {
-                                            "$eq": [
-                                                {
-                                                    "$ifNull": [
-                                                        {
-                                                            "$ctx": "doc.states.$$ctx.payload.principal"
-                                                        },
-                                                        "",
-                                                    ]
-                                                },
-                                                "REQUESTING",
-                                            ]
-                                        }
-                                    }
-                                },
-                            },
-                            {
-                                "title": "Evaluate Branch",
-                                "description": "Selects the branch that matches current trip conditions.",
-                                "type": "if.else",
-                                "condition": {"$ctx": "local.target_is_requesting"},
-                                "then_effects": [
-                                    {
-                                        "title": "Align Rider Statuses",
-                                        "description": "Aligns rider and driver statuses for decline a queued request.",
-                                        "type": "update.contract",
-                                        "update": {
-                                            "$set": {
-                                                "states.$$ctx.payload.principal": "REJECTED"
-                                            }
-                                        },
-                                    },
-                                    {
-                                        "title": "Notify Stakeholders",
-                                        "description": "Sends contracts.join_request_rejected so stakeholders can act at the right time.",
-                                        "type": "notify",
-                                        "notify": {
-                                            "event": "contracts.join_request_rejected",
-                                            "targets": {
-                                                "$$ctx.payload.principal": [
-                                                    "in_app",
-                                                    "push",
-                                                ]
-                                            },
-                                            "payload": {
-                                                "contract_id": {"$ctx": "doc._id"}
-                                            },
-                                        },
-                                    },
-                                ],
-                            },
-                        ],
-                    },
-                    "InviteUser": {
-                        "trigger": [
-                            {
-                                "type": "api",
-                                "path": "invite-user",
-                                "method": "POST",
-                                "allow_principals": ["$$ctx.doc.context.driver"],
-                                "payload_schema": {
-                                    "type": "object",
-                                    "required": ["principal"],
-                                    "properties": {
-                                        "principal": {
-                                            "type": "string",
-                                            "pattern": "^u:.+$",
-                                        }
-                                    },
-                                    "additionalProperties": False,
-                                },
-                                "response": {"ok": True, "event": "invite_user"},
-                            }
-                        ],
-                        "effects": [
-                            {
-                                "title": "Align Rider Statuses",
-                                "description": "Aligns rider and driver statuses for invite a rider to confirm.",
-                                "type": "update.contract",
-                                "update": {
-                                    "$set": {
-                                        "states.$$ctx.payload.principal": "PENDING"
-                                    }
-                                },
-                            },
-                            {
-                                "title": "Store Context",
-                                "description": "Tracks invite ownership and timeout linkage.",
-                                "type": "update.contract",
-                                "update": {
-                                    "$set": {
-                                        "context.pending_invites.$$ctx.payload.principal": {
-                                            "$ctx": "local.invite_timeout_id"
-                                        }
-                                    }
-                                },
-                            },
-                            {
-                                "title": "Notify Stakeholders",
-                                "description": "Sends contracts.user_invited so stakeholders can act at the right time.",
-                                "type": "notify",
-                                "notify": {
-                                    "event": "contracts.user_invited",
-                                    "targets": {
-                                        "$$ctx.payload.principal": ["in_app", "push"]
-                                    },
-                                    "payload": {"contract_id": {"$ctx": "doc._id"}},
-                                },
-                            },
-                        ],
-                    },
-                    "AcceptUser": {
-                        "trigger": [
-                            {
-                                "type": "api",
-                                "path": "accept-user",
-                                "method": "POST",
-                                "allow_user_states": ["PENDING"],
-                                "payload_schema": {
-                                    "type": "object",
-                                    "required": ["seats", "origin", "destination"],
-                                    "properties": {
-                                        "seats": {"type": "integer", "minimum": 1},
-                                        "origin": {
-                                            "type": "object",
-                                            "required": ["lat", "lng", "at"],
-                                            "properties": {
-                                                "lat": {"type": "number"},
-                                                "lng": {"type": "number"},
-                                                "at": {
-                                                    "type": "string",
-                                                    "format": "date-time",
-                                                },
-                                            },
-                                            "additionalProperties": False,
-                                        },
-                                        "destination": {
-                                            "type": "object",
-                                            "required": ["lat", "lng"],
-                                            "properties": {
-                                                "lat": {"type": "number"},
-                                                "lng": {"type": "number"},
-                                            },
-                                            "additionalProperties": False,
-                                        },
-                                    },
-                                    "additionalProperties": False,
-                                },
-                                "response": {"ok": True, "event": "accept_user"},
-                            }
-                        ],
-                        "effects": [
-                            {
-                                "title": "Persist Progress",
-                                "description": "Persists transition data to keep the process deterministic.",
-                                "type": "update.contract",
-                                "update": {
-                                    "$set": {
-                                        "local.pending_invite_event_id": {
-                                            "$ctx": "doc.context.pending_invites.$$ctx.user"
-                                        }
-                                    }
-                                },
-                            },
-                            {
-                                "title": "Evaluate Branch",
-                                "description": "Selects the branch that matches current trip conditions.",
-                                "type": "if.else",
-                                "condition": {"$ctx": "local.pending_invite_event_id"},
-                                "then_effects": [
-                                    {
-                                        "title": "Cancel Schedule",
-                                        "description": "Cancels timers that are no longer relevant on this path.",
-                                        "type": "unschedule.event",
-                                        "event_id": {
-                                            "$ctx": "local.pending_invite_event_id"
-                                        },
-                                    }
-                                ],
-                            },
-                            {
-                                "title": "Clear Context",
-                                "description": "Clears obsolete lifecycle fields after this decision.",
-                                "type": "update.contract",
-                                "update": {
-                                    "$unset": "context.pending_invites.$$ctx.user"
-                                },
-                            },
-                            {
-                                "title": "Align Rider Statuses",
-                                "description": "Aligns rider and driver statuses for confirm a rider seat.",
-                                "type": "update.contract",
-                                "update": {
-                                    "$set": {
-                                        "states.$$ctx.user": "ACCEPTED",
-                                        "context.riders.$$ctx.user.seats": "$$ctx.payload.seats",
-                                        "context.riders.$$ctx.user.trip": {
-                                            "origin": "$$ctx.payload.origin",
-                                            "destination": "$$ctx.payload.destination",
-                                        },
-                                    }
-                                },
-                            },
-                            {
-                                "title": "Sync Group",
-                                "description": "Synchronizes group membership with current trip roster.",
-                                "type": "update.group",
-                                "group_id": {"$ctx": "doc.context.group_id"},
-                                "edit_members": {"add_members": ["$$ctx.user"]},
-                            },
-                            {
-                                "title": "Persist Progress",
-                                "description": "Persists transition data to keep the process deterministic.",
-                                "type": "update.contract",
-                                "update": {
-                                    "$set": {
-                                        "local.accepted_increment": {
-                                            "$ifNull": ["$$ctx.payload.seats", 1]
-                                        }
-                                    }
-                                },
-                            },
-                            {
-                                "title": "Recalculate Occupancy",
-                                "description": "Updates accepted occupancy for accurate capacity checks.",
-                                "type": "update.contract",
-                                "update": {
-                                    "$set": {
-                                        "context.accepted_seats_total": {
-                                            "$add": [
-                                                {
-                                                    "$ifNull": [
-                                                        "$context.accepted_seats_total",
-                                                        0,
-                                                    ]
-                                                },
-                                                "$local.accepted_increment",
-                                            ]
-                                        },
-                                        "local.capacity_reached": {
-                                            "$gte": [
-                                                {
-                                                    "$add": [
-                                                        {
-                                                            "$ifNull": [
-                                                                "$context.accepted_seats_total",
-                                                                0,
-                                                            ]
-                                                        },
-                                                        "$local.accepted_increment",
-                                                    ]
-                                                },
-                                                {"$ifNull": ["$context.capacity", 0]},
-                                            ]
-                                        },
-                                    }
-                                },
-                            },
-                            {
-                                "title": "Evaluate Branch",
-                                "description": "Selects the branch that matches current trip conditions.",
-                                "type": "if.else",
-                                "condition": {"$ctx": "local.capacity_reached"},
-                                "then_effects": [
-                                    {
-                                        "title": "Move State",
-                                        "description": "Moves the contract state to support confirm a rider seat.",
-                                        "type": "update.contract",
-                                        "update": {"$set": {"state": "READY"}},
-                                    }
-                                ],
-                                "else_effects": [
-                                    {
-                                        "title": "Move State",
-                                        "description": "Moves the contract state to support confirm a rider seat.",
-                                        "type": "update.contract",
-                                        "update": {"$set": {"state": "RECRUITING"}},
-                                    }
-                                ],
-                            },
-                            {
-                                "title": "Notify Stakeholders",
-                                "description": "Sends contracts.user_accepted so stakeholders can act at the right time.",
-                                "type": "notify",
-                                "notify": {
-                                    "event": "contracts.user_accepted",
-                                    "targets": {
-                                        "$$ctx.doc.context.driver": ["in_app", "push"]
-                                    },
-                                    "payload": {
-                                        "principal": "$$ctx.user",
-                                        "contract_id": {"$ctx": "doc._id"},
-                                    },
-                                },
-                            },
-                        ],
-                    },
-                    "RejectUser": {
-                        "trigger": [
-                            {
-                                "type": "api",
-                                "path": "reject-user",
-                                "method": "POST",
-                                "allow_user_states": ["PENDING"],
-                                "response": {"ok": True, "event": "reject_user"},
-                            }
-                        ],
-                        "effects": [
-                            {
-                                "title": "Persist Progress",
-                                "description": "Persists transition data to keep the process deterministic.",
-                                "type": "update.contract",
-                                "update": {
-                                    "$set": {
-                                        "local.pending_invite_event_id": {
-                                            "$ctx": "doc.context.pending_invites.$$ctx.user"
-                                        }
-                                    }
-                                },
-                            },
-                            {
-                                "title": "Evaluate Branch",
-                                "description": "Selects the branch that matches current trip conditions.",
-                                "type": "if.else",
-                                "condition": {"$ctx": "local.pending_invite_event_id"},
-                                "then_effects": [
-                                    {
-                                        "title": "Cancel Schedule",
-                                        "description": "Cancels timers that are no longer relevant on this path.",
-                                        "type": "unschedule.event",
-                                        "event_id": {
-                                            "$ctx": "local.pending_invite_event_id"
-                                        },
-                                    }
-                                ],
-                            },
-                            {
-                                "title": "Clear Context",
-                                "description": "Clears obsolete lifecycle fields after this decision.",
-                                "type": "update.contract",
-                                "update": {
-                                    "$unset": "context.pending_invites.$$ctx.user"
-                                },
-                            },
-                            {
-                                "title": "Align Rider Statuses",
-                                "description": "Aligns rider and driver statuses for record rider refusal.",
-                                "type": "update.contract",
-                                "update": {"$set": {"states.$$ctx.user": "REJECTED"}},
-                            },
-                            {
-                                "title": "Notify Stakeholders",
-                                "description": "Sends contracts.user_rejected so stakeholders can act at the right time.",
-                                "type": "notify",
-                                "notify": {
-                                    "event": "contracts.user_rejected",
-                                    "targets": {
-                                        "$$ctx.doc.context.driver": ["in_app", "push"]
-                                    },
-                                    "payload": {
-                                        "principal": "$$ctx.user",
-                                        "contract_id": {"$ctx": "doc._id"},
-                                    },
-                                },
-                            },
-                        ],
-                    },
-                    "DriverCancelInvite": {
-                        "trigger": [
-                            {
-                                "type": "api",
-                                "path": "driver-cancel-invite",
-                                "method": "POST",
-                                "allow_principals": ["$$ctx.doc.context.driver"],
-                                "payload_schema": {
-                                    "type": "object",
-                                    "required": ["principal"],
-                                    "properties": {
-                                        "principal": {
-                                            "type": "string",
-                                            "pattern": "^u:.+$",
-                                        }
-                                    },
-                                    "additionalProperties": False,
-                                },
-                                "response": {
-                                    "ok": True,
-                                    "event": "driver_cancel_invite",
-                                },
-                            }
-                        ],
-                        "effects": [
-                            {
-                                "title": "Persist Progress",
-                                "description": "Persists transition data to keep the process deterministic.",
-                                "type": "update.contract",
-                                "update": {
-                                    "$set": {
-                                        "local.target_is_pending_invite": {
-                                            "$eq": [
-                                                {
-                                                    "$ifNull": [
-                                                        {
-                                                            "$ctx": "doc.states.$$ctx.payload.principal"
-                                                        },
-                                                        "",
-                                                    ]
-                                                },
-                                                "PENDING",
-                                            ]
-                                        }
-                                    }
-                                },
-                            },
-                            {
-                                "title": "Evaluate Branch",
-                                "description": "Selects the branch that matches current trip conditions.",
-                                "type": "if.else",
-                                "condition": {"$ctx": "local.target_is_pending_invite"},
-                                "then_effects": [
-                                    {
-                                        "title": "Cancel Schedule",
-                                        "description": "Cancels timers that are no longer relevant on this path.",
-                                        "type": "unschedule.event",
-                                        "event_id": {
-                                            "$ctx": "doc.context.pending_invites.$$ctx.payload.principal"
-                                        },
-                                    },
-                                    {
-                                        "title": "Persist Progress",
-                                        "description": "Persists transition data to keep the process deterministic.",
-                                        "type": "update.contract",
-                                        "update": [
-                                            {
-                                                "$set": {
-                                                    "states.$$ctx.payload.principal": "CANCELLED"
-                                                }
-                                            },
-                                            {
-                                                "$unset": "context.pending_invites.$$ctx.payload.principal"
-                                            },
-                                        ],
-                                    },
-                                    {
-                                        "title": "Notify Stakeholders",
-                                        "description": "Sends contracts.invite_cancelled_by_driver so stakeholders can act at the right time.",
-                                        "type": "notify",
-                                        "notify": {
-                                            "event": "contracts.invite_cancelled_by_driver",
-                                            "targets": {
-                                                "$$ctx.payload.principal": [
-                                                    "in_app",
-                                                    "push",
-                                                ]
-                                            },
-                                            "payload": {
-                                                "contract_id": {"$ctx": "doc._id"}
-                                            },
-                                        },
-                                    },
-                                ],
-                            },
-                        ],
-                    },
-                    "CancelUser": {
-                        "trigger": [
-                            {
-                                "type": "api",
-                                "path": "cancel-user",
-                                "method": "POST",
-                                "allow_user_states": ["ACCEPTED"],
-                                "response": {"ok": True, "event": "cancel_user"},
-                            }
-                        ],
-                        "effects": [
-                            {
-                                "title": "Sync Group",
-                                "description": "Synchronizes group membership with current trip roster.",
-                                "type": "update.group",
-                                "group_id": {"$ctx": "doc.context.group_id"},
-                                "edit_members": {"remove_members": ["$$ctx.user"]},
-                            },
-                            {
-                                "title": "Persist Progress",
-                                "description": "Persists transition data to keep the process deterministic.",
-                                "type": "update.contract",
-                                "update": {
-                                    "$set": {
-                                        "local.cancel_seats": {
-                                            "$ifNull": [
-                                                {
-                                                    "$ctx": "doc.context.riders.$$ctx.user.seats"
-                                                },
-                                                1,
-                                            ]
-                                        }
-                                    }
-                                },
-                            },
-                            {
-                                "title": "Persist Progress",
-                                "description": "Persists transition data to keep the process deterministic.",
-                                "type": "update.contract",
-                                "update": [
-                                    {
-                                        "$set": {
-                                            "context.accepted_seats_total": {
-                                                "$cond": [
-                                                    {
-                                                        "$gte": [
-                                                            {
-                                                                "$ifNull": [
-                                                                    "$context.accepted_seats_total",
-                                                                    0,
-                                                                ]
-                                                            },
-                                                            "$local.cancel_seats",
-                                                        ]
-                                                    },
-                                                    {
-                                                        "$subtract": [
-                                                            {
-                                                                "$ifNull": [
-                                                                    "$context.accepted_seats_total",
-                                                                    0,
-                                                                ]
-                                                            },
-                                                            "$local.cancel_seats",
-                                                        ]
-                                                    },
-                                                    0,
-                                                ]
-                                            },
-                                            "states.$$ctx.user": "CANCELLED",
-                                        }
-                                    },
-                                    {"$unset": "context.riders.$$ctx.user.seats"},
-                                ],
-                            },
-                            {
-                                "title": "Notify Stakeholders",
-                                "description": "Sends contracts.user_cancelled so stakeholders can act at the right time.",
-                                "type": "notify",
-                                "notify": {
-                                    "event": "contracts.user_cancelled",
-                                    "targets": {
-                                        "$$ctx.doc.context.driver": ["in_app", "push"]
-                                    },
-                                    "payload": {
-                                        "principal": "$$ctx.user",
-                                        "contract_id": {"$ctx": "doc._id"},
-                                    },
-                                },
-                            },
-                        ],
-                    },
-                    "DriverRemoveUser": {
-                        "trigger": [
-                            {
-                                "type": "api",
-                                "path": "driver-remove-user",
-                                "method": "POST",
-                                "allow_principals": ["$$ctx.doc.context.driver"],
-                                "payload_schema": {
-                                    "type": "object",
-                                    "required": ["principal"],
-                                    "properties": {
-                                        "principal": {
-                                            "type": "string",
-                                            "pattern": "^u:.+$",
-                                        }
-                                    },
-                                    "additionalProperties": False,
-                                },
-                                "response": {"ok": True, "event": "driver_remove_user"},
-                            }
-                        ],
-                        "effects": [
-                            {
-                                "title": "Persist Progress",
-                                "description": "Persists transition data to keep the process deterministic.",
-                                "type": "update.contract",
-                                "update": {
-                                    "$set": {
-                                        "local.target_is_accepted": {
-                                            "$eq": [
-                                                {
-                                                    "$ifNull": [
-                                                        {
-                                                            "$ctx": "doc.states.$$ctx.payload.principal"
-                                                        },
-                                                        "",
-                                                    ]
-                                                },
-                                                "ACCEPTED",
-                                            ]
-                                        }
-                                    }
-                                },
-                            },
-                            {
-                                "title": "Evaluate Branch",
-                                "description": "Selects the branch that matches current trip conditions.",
-                                "type": "if.else",
-                                "condition": {"$ctx": "local.target_is_accepted"},
-                                "then_effects": [
-                                    {
-                                        "title": "Sync Group",
-                                        "description": "Synchronizes group membership with current trip roster.",
-                                        "type": "update.group",
-                                        "group_id": {"$ctx": "doc.context.group_id"},
-                                        "edit_members": {
-                                            "remove_members": [
-                                                "$$ctx.payload.principal"
-                                            ]
-                                        },
-                                    },
-                                    {
-                                        "title": "Persist Progress",
-                                        "description": "Persists transition data to keep the process deterministic.",
-                                        "type": "update.contract",
-                                        "update": {
-                                            "$set": {
-                                                "local.remove_seats": {
-                                                    "$ifNull": [
-                                                        {
-                                                            "$ctx": "doc.context.riders.$$ctx.payload.principal.seats"
-                                                        },
-                                                        1,
-                                                    ]
-                                                }
-                                            }
-                                        },
-                                    },
-                                    {
-                                        "title": "Persist Progress",
-                                        "description": "Persists transition data to keep the process deterministic.",
-                                        "type": "update.contract",
-                                        "update": [
-                                            {
-                                                "$set": {
-                                                    "context.accepted_seats_total": {
-                                                        "$cond": [
-                                                            {
-                                                                "$gte": [
-                                                                    {
-                                                                        "$ifNull": [
-                                                                            "$context.accepted_seats_total",
-                                                                            0,
-                                                                        ]
-                                                                    },
-                                                                    "$local.remove_seats",
-                                                                ]
-                                                            },
-                                                            {
-                                                                "$subtract": [
-                                                                    {
-                                                                        "$ifNull": [
-                                                                            "$context.accepted_seats_total",
-                                                                            0,
-                                                                        ]
-                                                                    },
-                                                                    "$local.remove_seats",
-                                                                ]
-                                                            },
-                                                            0,
-                                                        ]
-                                                    },
-                                                    "states.$$ctx.payload.principal": "CANCELLED",
-                                                }
-                                            },
-                                            {
-                                                "$unset": "context.riders.$$ctx.payload.principal.seats"
-                                            },
-                                        ],
-                                    },
-                                    {
-                                        "title": "Notify Stakeholders",
-                                        "description": "Sends contracts.user_removed_by_driver so stakeholders can act at the right time.",
-                                        "type": "notify",
-                                        "notify": {
-                                            "event": "contracts.user_removed_by_driver",
-                                            "targets": {
-                                                "$$ctx.payload.principal": [
-                                                    "in_app",
-                                                    "push",
-                                                ]
-                                            },
-                                            "payload": {
-                                                "contract_id": {"$ctx": "doc._id"}
-                                            },
-                                        },
-                                    },
-                                ],
-                            },
-                        ],
-                    },
-                    "DriverCancelTrip": {
-                        "trigger": [
-                            {
-                                "type": "api",
-                                "path": "driver-cancel-trip",
-                                "method": "POST",
-                                "allow_principals": ["$$ctx.doc.context.driver"],
-                                "response": {"ok": True, "event": "driver_cancel_trip"},
-                            }
-                        ],
-                        "effects": [
-                            {
-                                "title": "Persist Progress",
-                                "description": "Persists transition data to keep the process deterministic.",
-                                "type": "update.contract",
-                                "update": {
-                                    "$set": {
-                                        "local.cancel_trip_targets": {
-                                            "$arrayToObject": {
-                                                "$map": {
-                                                    "input": {
-                                                        "$filter": {
-                                                            "input": {
-                                                                "$objectToArray": "$states"
-                                                            },
-                                                            "as": "kv",
-                                                            "cond": {
-                                                                "$eq": [
-                                                                    "$$kv.v",
-                                                                    "ACCEPTED",
-                                                                ]
-                                                            },
-                                                        }
-                                                    },
-                                                    "as": "kv",
-                                                    "in": {
-                                                        "k": "$$kv.k",
-                                                        "v": ["in_app", "push"],
-                                                    },
-                                                }
-                                            }
-                                        }
-                                    }
-                                },
-                            },
-                            {
-                                "title": "Move State",
-                                "description": "Moves the contract state to support cancel the active trip.",
-                                "type": "update.contract",
-                                "update": {
-                                    "$set": {"status": "CANCELED", "state": "CANCELED"}
-                                },
-                            },
-                            {
-                                "title": "Notify Stakeholders",
-                                "description": "Sends contracts.trip_cancelled_by_driver so stakeholders can act at the right time.",
-                                "type": "notify",
-                                "notify": {
-                                    "event": "contracts.trip_cancelled_by_driver",
-                                    "targets": "$$ctx.local.cancel_trip_targets",
-                                    "payload": {"contract_id": {"$ctx": "doc._id"}},
-                                },
-                            },
-                        ],
-                    },
-                    "DriverSetReady": {
-                        "trigger": [
-                            {
-                                "type": "api",
-                                "path": "set-ready",
-                                "method": "POST",
-                                "response": {"ok": True, "event": "set_ready"},
-                            }
-                        ],
-                        "effects": [
-                            {
-                                "title": "Move State",
-                                "description": "Moves the contract state to support close recruiting and lock roster.",
-                                "type": "update.contract",
-                                "update": {"$set": {"state": "READY"}},
-                            }
-                        ],
-                    },
                 }
             },
             "READY": {
@@ -3298,7 +2307,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                 ]
                                             },
                                             "states.$$ctx.user": "CANCELLED",
-                                            "state": "RECRUITING",
+                                            "state": "ONBOARDING",
                                         }
                                     },
                                     {"$unset": "context.riders.$$ctx.user.seats"},
@@ -3321,7 +2330,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                             },
                         ],
                     },
-                    "DriverSetRecruiting": {
+                    "DriverSetOnboarding": {
                         "trigger": [
                             {
                                 "type": "api",
@@ -3335,7 +2344,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "title": "Move State",
                                 "description": "Moves the contract state to support reopen recruiting after ready.",
                                 "type": "update.contract",
-                                "update": {"$set": {"state": "RECRUITING"}},
+                                "update": {"$set": {"state": "ONBOARDING"}},
                             }
                         ],
                     },
@@ -4356,7 +3365,7 @@ class ContractsE2ETest(unittest.TestCase):
         return str(resp.json()["id"])
 
     def _create_contract(
-        self, template_id: str, context: Dict[str, Any], actor="owner-1", **extra: Any
+            self, template_id: str, context: Dict[str, Any], actor="owner-1", **extra: Any
     ) -> httpx.Response:
         body = {"context": context}
         body.update(extra)
@@ -4367,12 +3376,12 @@ class ContractsE2ETest(unittest.TestCase):
         )
 
     def _post_event(
-        self,
-        contract_id: str,
-        path: str,
-        *,
-        actor: str,
-        payload: Dict[str, Any] | None = None,
+            self,
+            contract_id: str,
+            path: str,
+            *,
+            actor: str,
+            payload: Dict[str, Any] | None = None,
     ) -> httpx.Response:
         if payload is None and path == "accept-user":
             payload = {
@@ -4409,8 +3418,8 @@ class ContractsE2ETest(unittest.TestCase):
 
         now = now or dt.datetime.now(dt.timezone.utc)
         with patch(
-            "schedula.utils.form.server.contracts.schedule._claim_job_now",
-            return_value=now,
+                "schedula.utils.form.server.contracts.schedule._claim_job_now",
+                return_value=now,
         ):
             with self.app.app_context():
                 coll = _queue_coll()
@@ -4485,7 +3494,7 @@ class ContractsE2ETest(unittest.TestCase):
         }
 
     def _create_gherkin_contract(
-        self, initial_state: str = "START", actor="owner-1"
+            self, initial_state: str = "START", actor="owner-1"
     ) -> str:
         definition = _gherkin_definition()
         template_id = self._create_template(
@@ -4510,7 +3519,7 @@ class ContractsE2ETest(unittest.TestCase):
             self._post_event(cid, "accept-user", actor="p1").status_code, 200
         )
         c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
-        self.assertEqual(c["state"], "START")
+        self.assertEqual(c["state"], "ONBOARDING")
         gid = str((c.get("context") or {}).get("group_id") or "")
         self.assertTrue(gid)
         return gid
@@ -4550,12 +3559,12 @@ class ContractsE2ETest(unittest.TestCase):
         return gid
 
     def test_start_user_initiated_sets_pending_driver_and_requesting_rider(
-        self,
+            self,
     ) -> None:
         cid = self._create_gherkin_contract(initial_state="START", actor="p1")
         c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
 
-        self.assertEqual(c["state"], "START")
+        self.assertEqual(c["state"], "ONBOARDING")
         self.assertEqual(self._user_state(c, self.user_ids["d1"]), "PENDING_DRIVER")
         self.assertEqual(self._user_state(c, self.user_ids["p1"]), "REQUESTING")
 
@@ -4577,13 +3586,13 @@ class ContractsE2ETest(unittest.TestCase):
         )
 
         c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
-        self.assertEqual(c["state"], "RECRUITING")
+        self.assertEqual(c["state"], "ONBOARDING")
         self.assertEqual(self._user_state(c, self.user_ids["d1"]), "DRIVER")
-        self.assertEqual(self._user_state(c, self.user_ids["p1"]), "PENDING")
+        self.assertEqual(self._user_state(c, self.user_ids["p1"]), "ACCEPTED")
         self.assertEqual(self._user_state(c, self.user_ids["p4"]), "REQUESTING")
 
     def test_start_driver_accept_start_sets_accepted_seats_total_from_rider(
-        self,
+            self,
     ) -> None:
         p1_principal = f"u:{self.user_ids['p1']}"
         route_id = self.route_by_principal[p1_principal]
@@ -4603,11 +3612,11 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertTrue(r.json().get("ok"))
 
         c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
-        self.assertEqual(c["state"], "RECRUITING")
+        self.assertEqual(c["state"], "ONBOARDING")
         self.assertEqual((c.get("context") or {}).get("accepted_seats_total"), 2)
 
     def test_start_driver_accept_start_returns_ok_false_for_non_requesting_rider(
-        self,
+            self,
     ) -> None:
         cid = self._create_gherkin_contract(initial_state="START", actor="p1")
         p4_principal = f"u:{self.user_ids['p4']}"
@@ -4622,7 +3631,7 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertFalse(r.json().get("ok"))
 
         c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
-        self.assertEqual(c["state"], "START")
+        self.assertEqual(c["state"], "ONBOARDING")
         self.assertEqual(self._user_state(c, self.user_ids["d1"]), "PENDING_DRIVER")
         self.assertEqual(self._user_state(c, self.user_ids["p1"]), "REQUESTING")
         self.assertEqual(self._user_state(c, self.user_ids["p4"]), "")
@@ -4657,7 +3666,7 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertTrue(cancel.json().get("ok"))
 
         c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
-        self.assertEqual(c["state"], "START")
+        self.assertEqual(c["state"], "ONBOARDING")
         self.assertEqual(self._user_state(c, self.user_ids["p2"]), "")
 
     def test_start_user_accept_invite_moves_to_confirming(self) -> None:
@@ -4685,7 +3694,7 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertTrue(accepted.json().get("ok"))
 
         c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
-        self.assertEqual(c["state"], "RECRUITING")
+        self.assertEqual(c["state"], "ONBOARDING")
         self.assertEqual(self._user_state(c, self.user_ids["p2"]), "ACCEPTED")
         self.assertEqual((c.get("context") or {}).get("accepted_seats_total"), 2)
 
@@ -4714,11 +3723,39 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertTrue(rejected.json().get("ok"))
 
         c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
-        self.assertEqual(c["state"], "START")
+        self.assertEqual(c["state"], "ONBOARDING")
         self.assertEqual(self._user_state(c, self.user_ids["p2"]), "")
 
+    def test_recruiting_driver_reject_user_marks_target_rejected(self) -> None:
+        cid = self._create_gherkin_contract(initial_state="START", actor="p1")
+        p1_principal = f"u:{self.user_ids['p1']}"
+
+        r = self._post_event(
+            cid,
+            "driver-reject-user",
+            actor="d1",
+            payload={"principal": p1_principal},
+        )
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue(r.json().get("ok"))
+
+        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
+        self.assertEqual(c["state"], "ONBOARDING")
+        self.assertEqual(self._user_state(c, self.user_ids["p1"]), "REJECTED")
+
+    def test_recruiting_user_cancel_ride_marks_user_cancelled(self) -> None:
+        cid = self._create_gherkin_contract(initial_state="START", actor="p1")
+
+        r = self._post_event(cid, "cancel-user", actor="p1")
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue(r.json().get("ok"))
+
+        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
+        self.assertEqual(c["state"], "ONBOARDING")
+        self.assertEqual(self._user_state(c, self.user_ids["p1"]), "CANCELLED")
+
     def test_start_request_join_adds_requesting_user_when_capacity_and_credits_ok(
-        self,
+            self,
     ) -> None:
         driver_principal = f"u:{self.user_ids['d1']}"
         before = self._count_notifications_for(
@@ -4731,7 +3768,7 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertTrue(r.json().get("ok"))
 
         c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
-        self.assertEqual(c["state"], "START")
+        self.assertEqual(c["state"], "ONBOARDING")
         self.assertEqual(self._user_state(c, self.user_ids["p4"]), "REQUESTING")
 
         after = self._count_notifications_for(
@@ -4772,7 +3809,7 @@ class ContractsE2ETest(unittest.TestCase):
         )
 
         c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
-        self.assertEqual(c["state"], "START")
+        self.assertEqual(c["state"], "ONBOARDING")
         self.assertIn((c.get("context") or {}).get("riders_map"), ({}, None))
 
         after_cancel = self._count_notifications_for(

@@ -129,16 +129,21 @@ TEMPLATE_CREATE_SCHEMA = {
                     ]
                 },
                 "updates": {
-                    "type": "object",
-                    "additionalProperties": {
-                        "anyOf": [
-                            {"$ref": "#/$defs/update_operation"},
-                            {
-                                "type": "array",
-                                "items": {"$ref": "#/$defs/update_operation"},
+                    "anyOf": [
+                        {
+                            "type": "object",
+                            "additionalProperties": {
+                                "anyOf": [
+                                    {"$ref": "#/$defs/update_operation"},
+                                    {
+                                        "type": "array",
+                                        "items": {"$ref": "#/$defs/update_operation"},
+                                    },
+                                ]
                             },
-                        ]
-                    },
+                        },
+                        {"$ref": "#/$defs/json_with_refs"},
+                    ]
                 },
                 "request": {
                     "title": "HTTP Request",
@@ -147,7 +152,7 @@ TEMPLATE_CREATE_SCHEMA = {
                 },
                 "requests": {
                     "type": "object",
-                    "additionalProperties": {"$ref": "#/$defs/request_kwargs"}
+                    "additionalProperties": {"$ref": "#/$defs/request_kwargs"},
                 },
                 "item_id": {
                     "anyOf": [
@@ -231,9 +236,15 @@ TEMPLATE_CREATE_SCHEMA = {
                     ],
                 },
                 "event": {"$ref": "#/$defs/schedule_event"},
-                "events": {"type": "object", "additionalProperties": {"$ref": "#/$defs/schedule_event"}},
+                "events": {
+                    "type": "object",
+                    "additionalProperties": {"$ref": "#/$defs/schedule_event"},
+                },
                 "credit": {"$ref": "#/$defs/credit"},
-                "credits": {"type": "object", "additionalProperties": {"$ref": "#/$defs/credit"}},
+                "credits": {
+                    "type": "object",
+                    "additionalProperties": {"$ref": "#/$defs/credit"},
+                },
                 "condition": {
                     "title": "Branch Condition",
                     "description": "Condition value for if.else branching.",
@@ -283,14 +294,20 @@ TEMPLATE_CREATE_SCHEMA = {
                             "item_id": {
                                 "anyOf": [
                                     {"type": "string"},
-                                    {"$ref": "#/$defs/json_with_refs"}
+                                    {"$ref": "#/$defs/json_with_refs"},
                                 ]
                             },
                         },
                         "anyOf": [
-                            {"required": ["item_id", "update"], "not": {"required": ["item", "updates"]}},
-                            {"required": ["updates"], "not": {"required": ["item_id", "update"]}}
-                        ]
+                            {
+                                "required": ["item_id", "update"],
+                                "not": {"required": ["item", "updates"]},
+                            },
+                            {
+                                "required": ["updates"],
+                                "not": {"required": ["item_id", "update"]},
+                            },
+                        ],
                     },
                 },
                 {
@@ -298,51 +315,99 @@ TEMPLATE_CREATE_SCHEMA = {
                     "then": {
                         "properties": {
                             "credit": {
-                                "required": ["amount"], "not": {"required": ["to_wallet_id", "to_user_id"]},
+                                "required": ["amount"],
+                                "not": {"required": ["to_wallet_id", "to_user_id"]},
                             },
-                            "credits": {"type": "object", "additionalProperties": {
-                                "required": ["amount"], "not": {"required": ["to_wallet_id", "to_user_id"]}
-                            }}
+                            "credits": {
+                                "type": "object",
+                                "additionalProperties": {
+                                    "required": ["amount"],
+                                    "not": {"required": ["to_wallet_id", "to_user_id"]},
+                                },
+                            },
                         },
                         "anyOf": [
-                            {"required": ["credits"], "not": {"required": ["credit", "key"]}},
-                            {"required": ["credit"], "not": {"required": ["credits", "key"]}}
-                        ]},
+                            {
+                                "required": ["credits"],
+                                "not": {"required": ["credit", "key"]},
+                            },
+                            {
+                                "required": ["credit"],
+                                "not": {"required": ["credits", "key"]},
+                            },
+                        ],
+                    },
                 },
                 {
                     "if": {"properties": {"type": {"const": "charge.credits"}}},
                     "then": {
                         "properties": {
                             "credit": {
-                                "required": ["amount"], "not": {"required": ["to_wallet_id", "to_user_id"]}
+                                "required": ["amount"],
+                                "not": {"required": ["to_wallet_id", "to_user_id"]},
                             },
-                            "credits": {"type": "object", "additionalProperties": {
-                                "required": ["amount"], "not": {"required": ["to_wallet_id", "to_user_id"]}
-                            }}
+                            "credits": {
+                                "type": "object",
+                                "additionalProperties": {
+                                    "required": ["amount"],
+                                    "not": {"required": ["to_wallet_id", "to_user_id"]},
+                                },
+                            },
                         },
                         "anyOf": [
-                            {"required": ["credits"], "not": {"required": ["credit", "key"]}},
-                            {"required": ["credit"], "not": {"required": ["credits", "key"]}}
-                        ]
+                            {
+                                "required": ["credits"],
+                                "not": {"required": ["credit", "key"]},
+                            },
+                            {
+                                "required": ["credit"],
+                                "not": {"required": ["credits", "key"]},
+                            },
+                        ],
                     },
                 },
                 {
                     "if": {"properties": {"type": {"const": "transfers.credits"}}},
                     "then": {
                         "properties": {
-                            "credit": {"anyOf": [
-                                {"required": ["amount", "to_wallet_id"], "not": {"required": ["to_user_id"]}},
-                                {"required": ["amount", "to_user_id"], "not": {"required": ["to_wallet_id"]}},
-                            ]},
-                            "credits": {"type": "object", "additionalProperties": {"anyOf": [
-                                {"required": ["amount", "to_wallet_id"], "not": {"required": ["to_user_id"]}},
-                                {"required": ["amount", "to_user_id"], "not": {"required": ["to_wallet_id"]}},
-                            ]}}
+                            "credit": {
+                                "anyOf": [
+                                    {
+                                        "required": ["amount", "to_wallet_id"],
+                                        "not": {"required": ["to_user_id"]},
+                                    },
+                                    {
+                                        "required": ["amount", "to_user_id"],
+                                        "not": {"required": ["to_wallet_id"]},
+                                    },
+                                ]
+                            },
+                            "credits": {
+                                "type": "object",
+                                "additionalProperties": {
+                                    "anyOf": [
+                                        {
+                                            "required": ["amount", "to_wallet_id"],
+                                            "not": {"required": ["to_user_id"]},
+                                        },
+                                        {
+                                            "required": ["amount", "to_user_id"],
+                                            "not": {"required": ["to_wallet_id"]},
+                                        },
+                                    ]
+                                },
+                            },
                         },
                         "anyOf": [
-                            {"required": ["credits"], "not": {"required": ["credit", "key"]}},
-                            {"required": ["credit"], "not": {"required": ["credits", "key"]}}
-                        ]
+                            {
+                                "required": ["credits"],
+                                "not": {"required": ["credit", "key"]},
+                            },
+                            {
+                                "required": ["credit"],
+                                "not": {"required": ["credits", "key"]},
+                            },
+                        ],
                     },
                 },
                 {
@@ -350,16 +415,33 @@ TEMPLATE_CREATE_SCHEMA = {
                     "then": {
                         "properties": {
                             "credit": {
-                                "not": {"required": ["amount", "to_wallet_id", "to_user_id"]}
+                                "not": {
+                                    "required": ["amount", "to_wallet_id", "to_user_id"]
+                                }
                             },
-                            "credits": {"type": "object", "additionalProperties": {
-                                "not": {"required": ["amount", "to_wallet_id", "to_user_id"]}
-                            }}
+                            "credits": {
+                                "type": "object",
+                                "additionalProperties": {
+                                    "not": {
+                                        "required": [
+                                            "amount",
+                                            "to_wallet_id",
+                                            "to_user_id",
+                                        ]
+                                    }
+                                },
+                            },
                         },
                         "anyOf": [
-                            {"required": ["credits"], "not": {"required": ["credit", "key"]}},
-                            {"required": ["credit", "key"], "not": {"required": ["credits"]}}
-                        ]
+                            {
+                                "required": ["credits"],
+                                "not": {"required": ["credit", "key"]},
+                            },
+                            {
+                                "required": ["credit", "key"],
+                                "not": {"required": ["credits"]},
+                            },
+                        ],
                     },
                 },
                 {
@@ -374,10 +456,18 @@ TEMPLATE_CREATE_SCHEMA = {
                 },
                 {
                     "if": {"properties": {"type": {"const": "schedule.event"}}},
-                    "then": {"anyOf": [
-                        {"required": ["event", "key"], "not": {"required": ["events"]}},
-                        {"required": ["events"], "not": {"required": ["event", "key"]}}
-                    ]},
+                    "then": {
+                        "anyOf": [
+                            {
+                                "required": ["event", "key"],
+                                "not": {"required": ["events"]},
+                            },
+                            {
+                                "required": ["events"],
+                                "not": {"required": ["event", "key"]},
+                            },
+                        ]
+                    },
                 },
                 {
                     "if": {"properties": {"type": {"const": "unschedule.event"}}},
@@ -387,17 +477,29 @@ TEMPLATE_CREATE_SCHEMA = {
                     "if": {"properties": {"type": {"const": "http.request"}}},
                     "then": {
                         "anyOf": [
-                            {"required": ["request", "key"], "not": {"required": ["requests"]}},
-                            {"required": ["requests"], "not": {"required": ["request", "key"]}}
+                            {
+                                "required": ["request", "key"],
+                                "not": {"required": ["requests"]},
+                            },
+                            {
+                                "required": ["requests"],
+                                "not": {"required": ["request", "key"]},
+                            },
                         ]
-                    }
+                    },
                 },
                 {
                     "if": {"properties": {"type": {"const": "create.item"}}},
                     "then": {
                         "anyOr": [
-                            {"required": ["item", "key"], "not": {"required": ["items"]}},
-                            {"required": ["items"], "not": {"required": ["item", "key"]}},
+                            {
+                                "required": ["item", "key"],
+                                "not": {"required": ["items"]},
+                            },
+                            {
+                                "required": ["items"],
+                                "not": {"required": ["item", "key"]},
+                            },
                         ]
                     },
                 },
@@ -421,7 +523,7 @@ TEMPLATE_CREATE_SCHEMA = {
                                 ]
                             }
                         },
-                        "required": ["item_id", "key"]
+                        "required": ["item_id", "key"],
                     },
                 },
                 {
@@ -444,7 +546,7 @@ TEMPLATE_CREATE_SCHEMA = {
                                 ]
                             }
                         },
-                        "required": ["item_id"]
+                        "required": ["item_id"],
                     },
                 },
                 {
@@ -493,21 +595,34 @@ TEMPLATE_CREATE_SCHEMA = {
                         {"type": "integer", "minimum": 0},
                         {"$ref": "#/$defs/json_with_refs"},
                     ],
-                }
+                },
             },
             "required": ["product"],
             "allOf": [
-                {"anyOf": [
-                    {"required": ["wallet_id"], "not": {"required": ["user_id"]}},
-                    {"required": ["user_id"], "not": {"required": ["wallet_id"]}},
-                    {"required": [], "not": {"required": ["wallet_id", "user_id"]}}
-                ]},
-                {"anyOf": [
-                    {"not": {"required": ["amount", "to_wallet_id", "to_user_id"]}},
-                    {"required": ["amount"], "not": {"required": ["to_wallet_id", "to_user_id"]}},
-                    {"required": ["amount", "to_wallet_id"], "not": {"required": ["to_user_id"]}},
-                    {"required": ["amount", "to_user_id"], "not": {"required": ["to_wallet_id"]}},
-                ]}
+                {
+                    "anyOf": [
+                        {"required": ["wallet_id"], "not": {"required": ["user_id"]}},
+                        {"required": ["user_id"], "not": {"required": ["wallet_id"]}},
+                        {"required": [], "not": {"required": ["wallet_id", "user_id"]}},
+                    ]
+                },
+                {
+                    "anyOf": [
+                        {"not": {"required": ["amount", "to_wallet_id", "to_user_id"]}},
+                        {
+                            "required": ["amount"],
+                            "not": {"required": ["to_wallet_id", "to_user_id"]},
+                        },
+                        {
+                            "required": ["amount", "to_wallet_id"],
+                            "not": {"required": ["to_user_id"]},
+                        },
+                        {
+                            "required": ["amount", "to_user_id"],
+                            "not": {"required": ["to_wallet_id"]},
+                        },
+                    ]
+                },
             ],
         },
         "edit_members": {
@@ -671,7 +786,7 @@ TEMPLATE_CREATE_SCHEMA = {
             "required": ["event_name"],
             "anyOf": [
                 {"required": ["at"], "not": {"required": ["cron"]}},
-                {"required": ["cron"], "not": {"required": ["at"]}}
+                {"required": ["cron"], "not": {"required": ["at"]}},
             ],
         },
         "event": {
@@ -1105,8 +1220,8 @@ def _validate_schema(payload: Dict[str, Any], schema: Dict[str, Any]) -> List[st
 
 
 def _validate_allowed_initial_states(
-        definition: Dict[str, Any],
-        allowed_initial_states: Any,
+    definition: Dict[str, Any],
+    allowed_initial_states: Any,
 ) -> List[str]:
     if allowed_initial_states is None:
         return []

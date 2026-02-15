@@ -306,7 +306,7 @@ def _apply_effect_step(
 
         for k, update in updates.items():
             update = [update] if isinstance(update, dict) else update
-            mongo_update_many(
+            mongo_update_one(
                 coll,
                 {"_id": k},
                 [
@@ -332,6 +332,14 @@ def _apply_effect_step(
         if isinstance(ef["item_id"], str):
             item_ids = [ef["item_id"]]
         docs = list(mongo_find(coll, {"_id": {"$in": item_ids}}))
+
+        found_ids = {doc["_id"] for doc in docs}
+        requested_ids = set(item_ids)
+
+        if found_ids != requested_ids:
+            missing = requested_ids - found_ids
+            abort_json(404, f"Items not found: {[str(x) for x in missing]}")
+
         if isinstance(ef["item_id"], str):
             docs = docs[0] if docs else None
         local[ef["key"]] = docs
