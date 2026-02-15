@@ -28,48 +28,6 @@ from schedula.utils.form.server.security.casbin.models import ensure_public_grou
 from tests.utils.server.conftest import DummySitemap
 
 
-def _ctx(path: str) -> Dict[str, str]:
-    return {"$ctx": path}
-
-
-def _rider_seats(principal_ref: str) -> Dict[str, Any]:
-    return {"$ifNull": [_ctx(f"doc.context.riders.{principal_ref}.seats"), 1]}
-
-
-def _payload_seats_or_one() -> Dict[str, Any]:
-    return {"$ifNull": ["$$ctx.payload.seats", 1]}
-
-
-def _accepted_total_plus_increment() -> Dict[str, Any]:
-    return {
-        "$add": [
-            {"$ifNull": ["$context.accepted_seats_total", 0]},
-            "$local.accepted_increment",
-        ]
-    }
-
-
-def _capacity_reached_from_increment() -> Dict[str, Any]:
-    return {
-        "$gte": [
-            _accepted_total_plus_increment(),
-            {"$ifNull": ["$context.capacity", 0]},
-        ]
-    }
-
-
-def _accepted_total_after_subtract(local_key: str) -> Dict[str, Any]:
-    delta = f"$local.{local_key}"
-    current = {"$ifNull": ["$context.accepted_seats_total", 0]}
-    return {
-        "$cond": [
-            {"$gte": [current, delta]},
-            {"$subtract": [current, delta]},
-            0,
-        ]
-    }
-
-
 def _gherkin_definition() -> Dict[str, Any]:
     return {
         "id": "contract-lifecycle-group-sync",
@@ -208,8 +166,8 @@ def _gherkin_definition() -> Dict[str, Any]:
                             ],
                         },
                         {
-                            "title": "Persist Progress",
-                            "description": "Persists transition data to keep the process deterministic.",
+                            "title": "Compute Start Context",
+                            "description": "Determines whether START was initiated by the driver or by a rider request.",
                             "type": "update.contract",
                             "update": {
                                 "$set": {
@@ -220,14 +178,14 @@ def _gherkin_definition() -> Dict[str, Any]:
                             },
                         },
                         {
-                            "title": "Evaluate Branch",
-                            "description": "Selects the branch that matches current trip conditions.",
+                            "title": "Branch Start Flow",
+                            "description": "Routes START initialization through driver-led or rider-led onboarding checks.",
                             "type": "if.else",
                             "condition": {"$ctx": "local.start_initiated_by_driver"},
                             "then_effects": [
                                 {
-                                    "title": "Set Pending Riders",
-                                    "description": "Marks initial riders as pending before opening recruiting.",
+                                    "title": "Mark Initial Riders Pending",
+                                    "description": "Sets all initial riders to pending confirmation before onboarding begins.",
                                     "type": "update.contract",
                                     "update": {
                                         "$set": {
@@ -249,8 +207,8 @@ def _gherkin_definition() -> Dict[str, Any]:
                                     },
                                 },
                                 {
-                                    "title": "Set Driver Committed",
-                                    "description": "Marks driver as DRIVER for recruiting lifecycle.",
+                                    "title": "Confirm Driver Participation",
+                                    "description": "Marks the driver as active for the onboarding lifecycle.",
                                     "type": "update.contract",
                                     "update": {
                                         "$set": {
@@ -259,8 +217,8 @@ def _gherkin_definition() -> Dict[str, Any]:
                                     },
                                 },
                                 {
-                                    "title": "Prepare Invite Targets",
-                                    "description": "Builds recipient targets for initial rider notifications.",
+                                    "title": "Build Initial Invite Targets",
+                                    "description": "Builds notification targets for riders included in the initial START context.",
                                     "type": "update.contract",
                                     "update": {
                                         "$set": {
@@ -285,8 +243,8 @@ def _gherkin_definition() -> Dict[str, Any]:
                                     },
                                 },
                                 {
-                                    "title": "Notify Stakeholders",
-                                    "description": "Sends initial invitation notifications to riders.",
+                                    "title": "Notify Initial Riders",
+                                    "description": "Sends invitation notifications to all initial riders.",
                                     "type": "notify",
                                     "notify": {
                                         "event": "contracts.user_invited",
@@ -298,15 +256,15 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 },
                                 {
                                     "title": "Move To Onboarding",
-                                    "description": "Moves contract from START to ONBOARDING once feasibility checks pass.",
+                                    "description": "Transitions the contract to ONBOARDING when driver-initiated checks succeed.",
                                     "type": "update.contract",
                                     "update": {"$set": {"state": "ONBOARDING"}},
                                 },
                             ],
                             "else_effects": [
                                 {
-                                    "title": "Compute Initial Join Checks",
-                                    "description": "Computes requester, seats, and route cost so START can gate user-initiated requests on balance and capacity.",
+                                    "title": "Load Rider Start Request",
+                                    "description": "Loads the requesting rider route from context for balance and feasibility validation.",
                                     "type": "update.contract",
                                     "update": {
                                         "$set": {
@@ -315,21 +273,21 @@ def _gherkin_definition() -> Dict[str, Any]:
                                     },
                                 },
                                 {
-                                    "title": "Evaluate Branch",
-                                    "description": "Selects the branch that matches current trip conditions.",
+                                    "title": "Validate Rider Presence",
+                                    "description": "Continues only when the requesting rider route is present in START context.",
                                     "type": "if.else",
                                     "condition": {"$ctx": "local.route"},
                                     "then_effects": [
                                         {
-                                            "title": "Read Requester Balance",
-                                            "description": "Reads requester trip credits before accepting a user-initiated START request.",
+                                            "title": "Read Requesting Rider Balance",
+                                            "description": "Reads rider credits to validate the initial START reservation.",
                                             "type": "balance.credits",
                                             "key": "balance_credits",
                                             "credit": {"product": "coin"},
                                         },
                                         {
-                                            "title": "Combine Eligibility",
-                                            "description": "Combines requester balance and seat capacity into a single eligibility decision for START.",
+                                            "title": "Compute Rider Eligibility",
+                                            "description": "Computes missing credits and validates rider affordability for START.",
                                             "type": "update.contract",
                                             "update": [
                                                 {
@@ -372,14 +330,14 @@ def _gherkin_definition() -> Dict[str, Any]:
                                             ],
                                         },
                                         {
-                                            "title": "Evaluate Start Request",
-                                            "description": "Routes user-initiated START into requesting flow only when credits and capacity are both valid.",
+                                            "title": "Evaluate Rider Start Feasibility",
+                                            "description": "Admits rider-initiated START only when credit reservation constraints are satisfied.",
                                             "type": "if.else",
                                             "condition": {"$ctx": "local.has_balance"},
                                             "then_effects": [
                                                 {
-                                                    "title": "Reserve Start Credits",
-                                                    "description": "Charges the requester credits when START proceeds through the valid branch.",
+                                                    "title": "Reserve Rider Credits",
+                                                    "description": "Reserves the missing rider credits required to enter onboarding.",
                                                     "type": "use.credits",
                                                     "credit": {
                                                         "product": "coin",
@@ -429,8 +387,8 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                     },
                                                 },
                                                 {
-                                                    "title": "Set initial Rider and Driver Statuses",
-                                                    "description": "Aligns rider and driver statuses for stabilize initial trip intent.",
+                                                    "title": "Set Initial Participant States",
+                                                    "description": "Sets rider to REQUESTING and driver to PENDING_DRIVER for onboarding.",
                                                     "type": "update.contract",
                                                     "update": [
                                                         {
@@ -446,8 +404,8 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                     ],
                                                 },
                                                 {
-                                                    "title": "Notify Stakeholders",
-                                                    "description": "Send ride request to driver.",
+                                                    "title": "Notify Driver Of Start Request",
+                                                    "description": "Notifies the driver that a rider requested to start onboarding.",
                                                     "type": "notify",
                                                     "notify": {
                                                         "event": "contracts.request_ride",
@@ -466,7 +424,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                 },
                                                 {
                                                     "title": "Move To Onboarding",
-                                                    "description": "Moves contract from START to ONBOARDING once request bootstrap is feasible.",
+                                                    "description": "Transitions the contract to ONBOARDING after rider-initiated checks succeed.",
                                                     "type": "update.contract",
                                                     "update": {
                                                         "$set": {"state": "ONBOARDING"}
@@ -475,8 +433,8 @@ def _gherkin_definition() -> Dict[str, Any]:
                                             ],
                                             "else_effects": [
                                                 {
-                                                    "title": "Delete Invalid Contract",
-                                                    "description": "Delete contract that fail balance checks during START hydration.",
+                                                    "title": "Delete Invalid Start Contract",
+                                                    "description": "Deletes the contract when rider-initiated START checks fail.",
                                                     "type": "delete.contract",
                                                 }
                                             ],
@@ -484,8 +442,8 @@ def _gherkin_definition() -> Dict[str, Any]:
                                     ],
                                     "else_effects": [
                                         {
-                                            "title": "Delete Invalid Contract",
-                                            "description": "Delete contract that fail availability checks during START hydration.",
+                                            "title": "Delete Invalid Start Contract",
+                                            "description": "Deletes the contract when START initialization constraints fail.",
                                             "type": "delete.contract",
                                         }
                                     ],
@@ -527,8 +485,8 @@ def _gherkin_definition() -> Dict[str, Any]:
                         ],
                         "effects": [
                             {
-                                "title": "Load Join Route",
-                                "description": "Loads the route selected in payload so join checks use item data.",
+                                "title": "Load Rider Join Route",
+                                "description": "Loads the rider route from payload to evaluate join feasibility in onboarding.",
                                 "type": "update.contract",
                                 "update": {
                                     "$set": {
@@ -563,8 +521,8 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 },
                             },
                             {
-                                "title": "Establish whether the driver has sufficient capacity",
-                                "description": "Checks if seats requests is within driver capacity.",
+                                "title": "Check Join Capacity",
+                                "description": "Verifies that adding the rider seats does not exceed driver capacity.",
                                 "type": "update.contract",
                                 "update": {
                                     "$set": {
@@ -584,14 +542,14 @@ def _gherkin_definition() -> Dict[str, Any]:
                             },
                             {
                                 "title": "Read Rider Credits",
-                                "description": "Reads rider credit balance before evaluating join feasibility in START.",
+                                "description": "Reads rider credits before evaluating onboarding join feasibility.",
                                 "type": "balance.credits",
                                 "credit": {"product": "coin"},
                                 "key": "balance_credits",
                             },
                             {
                                 "title": "Validate Join Prerequisites",
-                                "description": "Combines seat capacity and rider credits to decide whether START join can proceed.",
+                                "description": "Combines capacity and credit checks to decide whether the join request can proceed.",
                                 "type": "update.contract",
                                 "update": [
                                     {
@@ -655,14 +613,14 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 ],
                             },
                             {
-                                "title": "Evaluate Branch",
-                                "description": "Selects the branch that matches current trip conditions.",
+                                "title": "Evaluate Join Decision",
+                                "description": "Executes join effects only when onboarding feasibility checks are satisfied.",
                                 "type": "if.else",
                                 "condition": {"$ctx": "local.can_join_trip"},
                                 "then_effects": [
                                     {
-                                        "title": "Reserve Credits",
-                                        "description": "Charges the requester credits when START proceeds through the valid branch.",
+                                        "title": "Reserve Join Credits",
+                                        "description": "Reserves the missing rider credits needed for this join request.",
                                         "type": "use.credits",
                                         "credit": {
                                             "product": "coin",
@@ -670,8 +628,8 @@ def _gherkin_definition() -> Dict[str, Any]:
                                         },
                                     },
                                     {
-                                        "title": "Persist Route Credit Hold and Link Contract To Initial Route",
-                                        "description": "Stores the retained START credits on the requester route item for reconciliation.",
+                                        "title": "Persist Route Hold And Contract Link",
+                                        "description": "Stores reserved credits and links this contract on the rider route item.",
                                         "type": "update.item",
                                         "item_id": {"$ctx": "local.route.id"},
                                         "update": {
@@ -704,8 +662,8 @@ def _gherkin_definition() -> Dict[str, Any]:
                                         },
                                     },
                                     {
-                                        "title": "Set initial Rider Status",
-                                        "description": "Aligns rider status for stabilize initial trip intent.",
+                                        "title": "Set Rider Requesting State",
+                                        "description": "Marks the rider as REQUESTING while awaiting driver action.",
                                         "type": "update.contract",
                                         "update": [
                                             {
@@ -716,8 +674,8 @@ def _gherkin_definition() -> Dict[str, Any]:
                                         ],
                                     },
                                     {
-                                        "title": "Store Initial Route Info",
-                                        "description": "Stores retained credits for the first requester in START context.",
+                                        "title": "Store Rider Route Snapshot",
+                                        "description": "Stores route snapshot details for the requesting rider in contract context.",
                                         "type": "update.contract",
                                         "update": {
                                             "$set": {
@@ -730,8 +688,8 @@ def _gherkin_definition() -> Dict[str, Any]:
                                         },
                                     },
                                     {
-                                        "title": "Notify Stakeholders",
-                                        "description": "Sends join request notifications to the driver.",
+                                        "title": "Notify Driver Of Join Request",
+                                        "description": "Notifies the driver that a new rider requested to join.",
                                         "type": "notify",
                                         "notify": {
                                             "event": "contracts.join_requested",
@@ -765,8 +723,8 @@ def _gherkin_definition() -> Dict[str, Any]:
                         ],
                         "effects": [
                             {
-                                "title": "Capture Rider Route",
-                                "description": "Captures the rider route snapshot before removing REQUESTING state.",
+                                "title": "Capture Rider Route Snapshot",
+                                "description": "Captures the rider route before removing REQUESTING state and links.",
                                 "type": "update.contract",
                                 "update": {
                                     "$set": {
@@ -777,7 +735,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 },
                             },
                             {
-                                "title": "Remove Contract From Route",
+                                "title": "Unlink Contract From Rider Route",
                                 "description": "Removes this contract id from the rider route item linkage list.",
                                 "type": "update.item",
                                 "item_id": {"$ctx": "local.route.id"},
@@ -793,8 +751,8 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 },
                             },
                             {
-                                "title": "Clear Context",
-                                "description": "Clears obsolete lifecycle fields after this decision.",
+                                "title": "Clear Rider Join Context",
+                                "description": "Removes rider state and route context after join cancellation.",
                                 "type": "update.contract",
                                 "update": {
                                     "$unset": [
@@ -804,8 +762,8 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 },
                             },
                             {
-                                "title": "Compute Cancel Refund",
-                                "description": "Refunds reserved credits only when no contract still references the rider route.",
+                                "title": "Compute Cancellation Refund Eligibility",
+                                "description": "Determines whether reserved credits can be refunded based on remaining route links.",
                                 "type": "update.contract",
                                 "update": {
                                     "$set": {
@@ -829,13 +787,13 @@ def _gherkin_definition() -> Dict[str, Any]:
                             },
                             {
                                 "title": "Refund Cancelling Rider",
-                                "description": "Returns reserved join credits to the rider that cancels while still REQUESTING.",
+                                "description": "Refunds reserved credits when the cancelling rider has no remaining linked contracts.",
                                 "type": "if.else",
                                 "condition": {"$ctx": "local.has_cancel_refund"},
                                 "then_effects": [
                                     {
-                                        "title": "Apply Credit Refund",
-                                        "description": "Applies the computed refund to the cancelling rider wallet.",
+                                        "title": "Apply Rider Refund",
+                                        "description": "Applies the computed credit refund to the cancelling rider wallet.",
                                         "type": "charge.credits",
                                         "credit": {
                                             "product": "coin",
@@ -846,7 +804,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                     },
                                     {
                                         "title": "Clear Route Reserved Credits",
-                                        "description": "Clears route retained credits after refunding the final linked request.",
+                                        "description": "Clears retained route credits after refunding the final linked request.",
                                         "type": "update.item",
                                         "item_id": {"$ctx": "local.route.id"},
                                         "update": {
@@ -856,8 +814,8 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 ],
                             },
                             {
-                                "title": "Persist Progress",
-                                "description": "Persists transition data to keep the process deterministic.",
+                                "title": "Check Remaining Interested Riders",
+                                "description": "Checks whether any riders are still interested after cancellation.",
                                 "type": "update.contract",
                                 "update": {
                                     "$set": {
@@ -880,14 +838,14 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 },
                             },
                             {
-                                "title": "Evaluate Branch",
-                                "description": "Selects the branch that matches current trip conditions.",
+                                "title": "Evaluate Driver Re-Notification",
+                                "description": "Notifies the driver again when no interested riders remain.",
                                 "type": "if.else",
                                 "condition": {"$ctx": "local.has_interested_users"},
                                 "else_effects": [
                                     {
-                                        "title": "Notify Stakeholders",
-                                        "description": "Sends contracts.request_ride so stakeholders can act at the right time.",
+                                        "title": "Notify Driver Of Empty Queue",
+                                        "description": "Notifies the driver that no rider requests remain after cancellation.",
                                         "type": "notify",
                                         "notify": {
                                             "event": "contracts.request_ride",
@@ -932,8 +890,8 @@ def _gherkin_definition() -> Dict[str, Any]:
                         ],
                         "effects": [
                             {
-                                "title": "Compute Accept Eligibility",
-                                "description": "Validates the selected rider and computes accepted seats for START acceptance.",
+                                "title": "Validate Driver Acceptance",
+                                "description": "Validates rider state and seat capacity before driver acceptance.",
                                 "type": "update.contract",
                                 "update": {
                                     "$set": {
@@ -971,13 +929,13 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 },
                             },
                             {
-                                "title": "Evaluate Accept Start",
+                                "title": "Evaluate Driver Acceptance",
                                 "type": "if.else",
                                 "condition": {"$ctx": "doc.local.can_accept_start"},
                                 "then_effects": [
                                     {
-                                        "title": "Set Rider Status",
-                                        "description": "Aligns rider status for stabilize initial trip intent.",
+                                        "title": "Set Rider Accepted",
+                                        "description": "Marks the selected rider as accepted and prepares direct rider notification targets.",
                                         "type": "update.contract",
                                         "update": {
                                             "$set": {
@@ -1004,7 +962,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                     },
                                     {
                                         "title": "Load Accepted Rider Route",
-                                        "description": "Loads accepted rider route to identify other linked contracts.",
+                                        "description": "Loads the accepted rider route to identify related contracts.",
                                         "type": "get.item",
                                         "item_id": {
                                             "$ctx": "doc.context.riders.$$ctx.payload.rider.id"
@@ -1012,19 +970,8 @@ def _gherkin_definition() -> Dict[str, Any]:
                                         "key": "accepted_rider_route",
                                     },
                                     {
-                                        "title": "Persist Route Credit Hold and Link Contract To Initial Route",
-                                        "description": "Stores the retained START credits on the requester route item for reconciliation.",
-                                        "type": "update.item",
-                                        "item_id": {"$ctx": "doc.context.riders.$$ctx.payload.rider.id"},
-                                        "update": {
-                                            "$set": {
-                                                "data.contract_ids": [{"$ctx": "doc._id"}],
-                                            }
-                                        },
-                                    },
-                                    {
-                                        "title": "Prepare Rider Removal Updates",
-                                        "description": "Builds updates to remove accepted rider from all other contracts on the same route.",
+                                        "title": "Prepare Cross-Contract Rider Removal",
+                                        "description": "Builds updates to remove the accepted rider from other contracts sharing the route.",
                                         "type": "update.contract",
                                         "update": {
                                             "$set": {
@@ -1055,7 +1002,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                                     {
                                                                         "$unset": [
                                                                             "context.riders.$$ctx.payload.rider",
-                                                                            "states.$$ctx.payload.rider"
+                                                                            "states.$$ctx.payload.rider",
                                                                         ]
                                                                     },
                                                                 ],
@@ -1067,16 +1014,95 @@ def _gherkin_definition() -> Dict[str, Any]:
                                         },
                                     },
                                     {
-                                        "title": "Remove Rider From Other Contracts",
-                                        "description": "Applies rider-removal updates to the other contracts linked by this route item.",
+                                        "title": "Apply Rider Removal To Other Contracts",
+                                        "description": "Applies cross-contract updates that remove the accepted rider from competing contracts.",
                                         "type": "update.contract",
                                         "updates": {
                                             "$ctx": "local.remove_rider_other_contracts"
                                         },
                                     },
                                     {
-                                        "title": "Notify Stakeholders",
-                                        "description": "Notifies selected riders that they are now accepted.",
+                                        "title": "Load Related Contracts",
+                                        "description": "Loads contracts linked by the accepted rider route to collect affected driver principals.",
+                                        "type": "get.contract",
+                                        "contract_id": {
+                                            "$ifNull": [
+                                                "$local.accepted_rider_route.data.contract_ids",
+                                                [],
+                                            ]
+                                        },
+                                        "key": "accepted_rider_contracts",
+                                    },
+                                    {
+                                        "title": "Persist Winning Contract Link",
+                                        "description": "Persists the winning contract id on the accepted rider route item.",
+                                        "type": "update.item",
+                                        "item_id": {
+                                            "$ctx": "doc.context.riders.$$ctx.payload.rider.id"
+                                        },
+                                        "update": {
+                                            "$set": {
+                                                "data.contract_ids": [
+                                                    {"$ctx": "doc._id"}
+                                                ],
+                                            }
+                                        },
+                                    },
+                                    {
+                                        "title": "Build Other Driver Targets",
+                                        "description": "Builds notification targets for drivers of contracts that lost the rider.",
+                                        "type": "update.contract",
+                                        "update": {
+                                            "$set": {
+                                                "local.other_contract_driver_targets": {
+                                                    "$arrayToObject": {
+                                                        "$map": {
+                                                            "input": {
+                                                                "$filter": {
+                                                                    "input": {
+                                                                        "$ifNull": [
+                                                                            "$local.accepted_rider_contracts",
+                                                                            [],
+                                                                        ]
+                                                                    },
+                                                                    "as": "c",
+                                                                    "cond": {
+                                                                        "$ne": [
+                                                                            "$$c._id",
+                                                                            "$_id",
+                                                                        ]
+                                                                    },
+                                                                }
+                                                            },
+                                                            "as": "c",
+                                                            "in": {
+                                                                "k": "$$c.context.driver",
+                                                                "v": ["in_app", "push"],
+                                                            },
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        },
+                                    },
+                                    {
+                                        "title": "Notify Other Drivers",
+                                        "description": "Notifies affected drivers that the accepted rider is no longer available.",
+                                        "type": "notify",
+                                        "notify": {
+                                            "event": "contracts.rider_unavailable",
+                                            "targets": {
+                                                "$ctx": "local.other_contract_driver_targets"
+                                            },
+                                            "payload": {
+                                                "contract_id": {"$ctx": "doc._id"},
+                                                "principal": "$$ctx.payload.rider",
+                                            },
+                                        },
+                                    },
+                                    {
+                                        "title": "Notify Accepted Rider",
+                                        "description": "Notifies the selected rider that the join request was accepted.",
                                         "type": "notify",
                                         "notify": {
                                             "event": "contracts.accepted_request",
@@ -1087,8 +1113,8 @@ def _gherkin_definition() -> Dict[str, Any]:
                                         },
                                     },
                                     {
-                                        "title": "Confirm Driver And Seats",
-                                        "description": "Keeps selected rider accepted, confirms driver, and updates accepted seats.",
+                                        "title": "Finalize Driver Acceptance",
+                                        "description": "Confirms driver status and updates accepted seat totals after acceptance.",
                                         "type": "update.contract",
                                         "update": [
                                             {
@@ -3488,7 +3514,6 @@ class ContractsE2ETest(unittest.TestCase):
             self.route_by_principal[principal] for principal in rider_ids
         ]
         return {
-            "contract_id": "C-001",
             "driver_trip_id": self.route_by_principal[driver_principal],
             "riders": rider_route_ids,
         }

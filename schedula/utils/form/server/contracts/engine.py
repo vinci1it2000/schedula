@@ -33,7 +33,6 @@ from ..utils import (
     mongo_find,
     mongo_insert_one,
     mongo_update_one,
-    mongo_update_many,
     now_utc,
     mongo_delete_one,
     mongo_delete_many,
@@ -68,6 +67,7 @@ def validate_payload(
 
 def _get_wallet(wallet_id, user_id):
     from ..credits import Wallet, get_wallet
+
     if wallet_id:
         return db.session.get(Wallet, int(wallet_id))
     return get_wallet(u2id(user_id))
@@ -150,7 +150,12 @@ def _apply_effect_step(
                 to_wallet = _get_wallet(v["to_wallet_id"], None)
             else:
                 to_wallet = _get_wallet(None, ef["to_user_id"])
-            wallet.transfer_to(product=v["product"], credits=v["amount"], to_wallet=to_wallet.id, session=db.session)
+            wallet.transfer_to(
+                product=v["product"],
+                credits=v["amount"],
+                to_wallet=to_wallet.id,
+                session=db.session,
+            )
     elif ef_type == "http.request":
         if "requests" in ef:
             rqs = ef["requests"]
@@ -184,6 +189,7 @@ def _apply_effect_step(
         )
     elif ef_type == "schedule.event":
         from .schedule import schedule_event_at, schedule_event_cron
+
         contract_id = str(doc.get("_id") or "")
         if "events" in ef:
             events = ef["events"]
@@ -211,6 +217,7 @@ def _apply_effect_step(
         if isinstance(ef.get("event_id"), str):
             events = [ef["event_id"]]
         from .schedule import unschedule_events
+
         unschedule_events(events)
     elif ef_type == "create.group":
         from ..security.groups import Group
@@ -341,6 +348,22 @@ def _apply_effect_step(
             abort_json(404, f"Items not found: {[str(x) for x in missing]}")
 
         if isinstance(ef["item_id"], str):
+            docs = docs[0] if docs else None
+        local[ef["key"]] = docs
+    elif ef_type == "get.contract":
+        contract_ids = ef["contract_id"]
+        if isinstance(ef["contract_id"], str):
+            contract_ids = [ef["contract_id"]]
+        docs = list(mongo_find(_contracts_coll(), {"_id": {"$in": contract_ids}}))
+
+        found_ids = {doc["_id"] for doc in docs}
+        requested_ids = set(contract_ids)
+
+        if found_ids != requested_ids:
+            missing = requested_ids - found_ids
+            abort_json(404, f"Contracts not found: {[str(x) for x in missing]}")
+
+        if isinstance(ef["contract_id"], str):
             docs = docs[0] if docs else None
         local[ef["key"]] = docs
     else:
@@ -544,7 +567,6 @@ def _create_contract_from_template_doc(
     definition = template["definition"]
 
     contract_id = str(uuid.uuid4())
-    context["contract_id"] = contract_id
     default_initial_state = str(definition.get("initial_state") or "")
     allowed_initial_states = set(template.get("allowed_initial_states", []))
     allowed_initial_states.add(default_initial_state)

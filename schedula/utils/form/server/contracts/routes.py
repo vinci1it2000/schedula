@@ -102,6 +102,7 @@ TEMPLATE_CREATE_SCHEMA = {
                         "delete.item",
                         "update.item",
                         "get.item",
+                        "get.contract",
                         "create.group",
                         "update.group",
                         "update.contract",
@@ -233,6 +234,24 @@ TEMPLATE_CREATE_SCHEMA = {
                             },
                         },
                         {"$ref": "#/$defs/json_with_refs"},
+                    ],
+                },
+                "contract_id": {
+                    "title": "Contract Id",
+                    "description": "Target contract id(s) for get.contract effect.",
+                    "anyOf": [
+                        {"type": "string", "minLength": 1},
+                        {"$ref": "#/$defs/json_with_refs"},
+                        {
+                            "type": "array",
+                            "minItems": 1,
+                            "items": {
+                                "anyOf": [
+                                    {"type": "string", "minLength": 1},
+                                    {"$ref": "#/$defs/json_with_refs"},
+                                ]
+                            },
+                        },
                     ],
                 },
                 "event": {"$ref": "#/$defs/schedule_event"},
@@ -524,6 +543,29 @@ TEMPLATE_CREATE_SCHEMA = {
                             }
                         },
                         "required": ["item_id", "key"],
+                    },
+                },
+                {
+                    "if": {"properties": {"type": {"const": "get.contract"}}},
+                    "then": {
+                        "properties": {
+                            "contract_id": {
+                                "anyOf": [
+                                    {"type": "string"},
+                                    {"$ref": "#/$defs/json_with_refs"},
+                                    {
+                                        "type": "array",
+                                        "items": {
+                                            "anyOf": [
+                                                {"type": "string"},
+                                                {"$ref": "#/$defs/json_with_refs"},
+                                            ]
+                                        },
+                                    },
+                                ]
+                            }
+                        },
+                        "required": ["contract_id", "key"],
                     },
                 },
                 {
