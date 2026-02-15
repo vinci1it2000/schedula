@@ -1156,152 +1156,190 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "type": "api",
                                 "path": "driver-reject-start",
                                 "method": "POST",
+                                "payload_schema": {
+                                    "type": "object",
+                                    "required": ["rider"],
+                                    "properties": {
+                                        "rider": {
+                                            "type": "string",
+                                            "pattern": "^u:.+$",
+                                        }
+                                    },
+                                    "additionalProperties": False,
+                                },
                                 "allow_principals": ["$$ctx.doc.context.driver"],
                                 "response": {
-                                    "ok": True,
+                                    "ok": {"$ctx": "doc.local.can_reject_join"},
                                     "event": "driver_reject_start",
                                 },
                             }
                         ],
                         "effects": [
                             {
-                                "title": "Collect Requesting Targets",
-                                "description": "Builds notification targets for riders still in REQUESTING before closing START.",
+                                "title": "Validate Driver Rejection",
+                                "description": "Validates that the selected rider is currently REQUESTING before rejection.",
                                 "type": "update.contract",
                                 "update": {
                                     "$set": {
-                                        "local.requesting_targets": {
-                                            "$arrayToObject": {
-                                                "$map": {
-                                                    "input": {
-                                                        "$filter": {
-                                                            "input": {
-                                                                "$objectToArray": "$states"
-                                                            },
-                                                            "as": "kv",
-                                                            "cond": {
-                                                                "$eq": [
-                                                                    "$$kv.v",
-                                                                    "REQUESTING",
-                                                                ]
-                                                            },
-                                                        }
-                                                    },
-                                                    "as": "kv",
-                                                    "in": {
-                                                        "k": "$$kv.k",
-                                                        "v": ["in_app", "push"],
-                                                    },
-                                                }
-                                            }
-                                        }
-                                    }
-                                },
-                            },
-                            {
-                                "title": "Notify Requesting Riders",
-                                "description": "Notifies all REQUESTING riders that the driver rejected the trip request.",
-                                "type": "notify",
-                                "notify": {
-                                    "event": "contracts.driver_rejected_start",
-                                    "targets": {"$ctx": "local.requesting_targets"},
-                                    "payload": {"contract_id": {"$ctx": "doc._id"}},
-                                },
-                            },
-                            {
-                                "title": "Collect Requesting Refunds",
-                                "description": "Collects reserved credits for riders still in REQUESTING before marking START as rejected.",
-                                "type": "update.contract",
-                                "update": {
-                                    "$set": {
-                                        "local.requesting_refunds": {
-                                            "$arrayToObject": {
-                                                "$map": {
-                                                    "input": {
-                                                        "$filter": {
-                                                            "input": {
-                                                                "$objectToArray": "$states"
-                                                            },
-                                                            "as": "kv",
-                                                            "cond": {
-                                                                "$eq": [
-                                                                    "$$kv.v",
-                                                                    "REQUESTING",
-                                                                ]
-                                                            },
-                                                        }
-                                                    },
-                                                    "as": "kv",
-                                                    "in": {
-                                                        "k": "$$kv.k",
-                                                        "v": {
-                                                            "$let": {
-                                                                "vars": {
-                                                                    "r": {
-                                                                        "$getField": {
-                                                                            "field": "$$kv.k",
-                                                                            "input": "$context.riders",
-                                                                        }
-                                                                    }
-                                                                },
-                                                                "in": {
-                                                                    "$ifNull": [
-                                                                        "$$r.reserved_credits",
-                                                                        0,
-                                                                    ]
-                                                                },
-                                                            }
-                                                        },
-                                                    },
-                                                }
-                                            }
-                                        }
-                                    }
-                                },
-                            },
-                            {
-                                "title": "Refund Requesting Riders",
-                                "description": "Returns reserved join credits to riders that remain REQUESTING when the driver rejects START.",
-                                "type": "update.contract",
-                                "update": {
-                                    "$set": {"local.requesting_refunds_applied": True}
-                                },
-                            },
-                            {
-                                "title": "Move State",
-                                "description": "Moves the contract state to support close the declined request.",
-                                "type": "update.contract",
-                                "update": {
-                                    "$set": {
-                                        "state": "REJECTED",
-                                        "states.$$ctx.doc.context.driver": "REJECTED",
-                                        "states": {
-                                            "$arrayToObject": {
-                                                "$map": {
-                                                    "input": {
-                                                        "$objectToArray": "$states"
-                                                    },
-                                                    "as": "kv",
-                                                    "in": {
-                                                        "k": "$$kv.k",
-                                                        "v": {
-                                                            "$cond": [
-                                                                {
-                                                                    "$eq": [
-                                                                        "$$kv.v",
-                                                                        "REQUESTING",
-                                                                    ]
-                                                                },
-                                                                "REJECTED",
-                                                                "$$kv.v",
-                                                            ]
-                                                        },
-                                                    },
-                                                }
-                                            }
+                                        "local.can_reject_join": {
+                                            "$eq": [
+                                                {
+                                                    "$ctx": "doc.states.$$ctx.payload.rider"
+                                                },
+                                                "REQUESTING",
+                                            ]
+                                        },
+                                        "local.reject_route_id": {
+                                            "$ctx": "doc.context.riders.$$ctx.payload.rider.id"
                                         },
                                     }
                                 },
+                            },
+                            {
+                                "title": "Apply Driver Rejection",
+                                "description": "Rejects the selected rider, releases route hold when eligible, and notifies the rider.",
+                                "type": "if.else",
+                                "condition": {"$ctx": "doc.local.can_reject_join"},
+                                "then_effects": [
+                                    {
+                                        "title": "Unlink Contract From Rider Route",
+                                        "description": "Removes this contract id from the rejected rider route item.",
+                                        "type": "update.item",
+                                        "item_id": {"$ctx": "local.reject_route_id"},
+                                        "update": {
+                                            "$set": {
+                                                "data.contract_ids": {
+                                                    "$setDifference": [
+                                                        {
+                                                            "$ifNull": [
+                                                                "$data.contract_ids",
+                                                                [],
+                                                            ]
+                                                        },
+                                                        [{"$ctx": "doc._id"}],
+                                                    ]
+                                                }
+                                            }
+                                        },
+                                    },
+                                    {
+                                        "title": "Reload Rider Route",
+                                        "description": "Reloads route item to compute refund eligibility after unlinking.",
+                                        "type": "get.item",
+                                        "item_id": {"$ctx": "local.reject_route_id"},
+                                        "key": "reject_route_after",
+                                    },
+                                    {
+                                        "title": "Compute Rejection Refund",
+                                        "description": "Refunds reserved credits only when no contract remains linked to the route.",
+                                        "type": "update.contract",
+                                        "update": [
+                                            {
+                                                "$set": {
+                                                    "local.reject_refund": {
+                                                        "$cond": [
+                                                            {
+                                                                "$eq": [
+                                                                    {
+                                                                        "$size": {
+                                                                            "$ifNull": [
+                                                                                "$local.reject_route_after.data.contract_ids",
+                                                                                [],
+                                                                            ]
+                                                                        }
+                                                                    },
+                                                                    0,
+                                                                ]
+                                                            },
+                                                            {
+                                                                "$ifNull": [
+                                                                    "$local.reject_route_after.data.reserved_credits",
+                                                                    0,
+                                                                ]
+                                                            },
+                                                            0,
+                                                        ]
+                                                    },
+                                                }
+                                            },
+                                            {
+                                                "$set": {
+                                                    "local.has_reject_refund": {
+                                                        "$gt": [
+                                                            {
+                                                                "$ifNull": [
+                                                                    "$local.reject_refund",
+                                                                    0,
+                                                                ]
+                                                            },
+                                                            0,
+                                                        ]
+                                                    },
+                                                }
+                                            },
+                                        ]
+                                    },
+                                    {
+                                        "title": "Clear Route Reserved Credits",
+                                        "description": "Clears retained route credits when refund is applied.",
+                                        "type": "if.else",
+                                        "condition": {
+                                            "$ctx": "doc.local.has_reject_refund"
+                                        },
+                                        "then_effects": [
+                                            {
+                                                "title": "Refund Rejected Rider",
+                                                "description": "Refunds rider credits associated with the rejected request.",
+                                                "type": "charge.credits",
+                                                "credit": {
+                                                    "product": "coin",
+                                                    "user_id": "$$ctx.payload.rider",
+                                                    "amount": {"$ctx": "local.reject_refund"},
+                                                },
+                                            },
+                                            {
+                                                "title": "Reset Route Hold",
+                                                "description": "Resets route reserved credits after rider refund.",
+                                                "type": "update.item",
+                                                "item_id": {
+                                                    "$ctx": "local.reject_route_id"
+                                                },
+                                                "update": {
+                                                    "$set": {"data.reserved_credits": 0}
+                                                },
+                                            }
+                                        ],
+                                    },
+                                    {
+                                        "title": "Set Rider Rejected",
+                                        "description": "Sets rider to REJECTED and removes rider route snapshot from context.",
+                                        "type": "update.contract",
+                                        "update": [
+                                            {
+                                                "$set": {
+                                                    "states.$$ctx.payload.rider": "REJECTED"
+                                                }
+                                            },
+                                        ],
+                                    },
+                                    {
+                                        "title": "Notify Rejected Rider",
+                                        "description": "Notifies the rider that the driver rejected the join request.",
+                                        "type": "notify",
+                                        "notify": {
+                                            "event": "contracts.driver_rejected_start",
+                                            "targets": {
+                                                "$$ctx.payload.rider": [
+                                                    "in_app",
+                                                    "push",
+                                                ]
+                                            },
+                                            "payload": {
+                                                "contract_id": {"$ctx": "doc._id"}
+                                            },
+                                        },
+                                    },
+                                ],
                             },
                         ],
                     },
