@@ -6,12 +6,11 @@ import datetime as dt
 import os
 import unittest
 import uuid
-from typing import Any, Dict
+from typing import Any, Dict, List
 from unittest.mock import patch
 from urllib.parse import urlsplit, urlunsplit
 
 import httpx
-from bson import ObjectId
 from flask import Flask
 from flask_security.utils import hash_password
 from schedula.utils.form.server import basic_app
@@ -913,7 +912,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                                 {
                                                                     "$ifNull": [
                                                                         {
-                                                                            "$ctx": "doc.context.riders$$ctx.payload.rider.seats"
+                                                                            "$ctx": "doc.context.riders.$$ctx.payload.rider.seats"
                                                                         },
                                                                         1,
                                                                     ]
@@ -1000,10 +999,12 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                                 "k": "$$cid",
                                                                 "v": [
                                                                     {
-                                                                        "$unset": [
-                                                                            "context.riders.$$ctx.payload.rider",
-                                                                            "states.$$ctx.payload.rider",
-                                                                        ]
+                                                                        "$literal": {
+                                                                            "$unset": [
+                                                                                "context.riders.$$ctx.payload.rider",
+                                                                                "states.$$ctx.payload.rider",
+                                                                            ]
+                                                                        }
                                                                     },
                                                                 ],
                                                             },
@@ -1024,12 +1025,24 @@ def _gherkin_definition() -> Dict[str, Any]:
                                     {
                                         "title": "Load Related Contracts",
                                         "description": "Loads contracts linked by the accepted rider route to collect affected driver principals.",
+                                        "type": "update.contract",
+                                        "update": {
+                                            "$set": {
+                                                "local.accepted_rider_contract_ids": {
+                                                    "$ifNull": [
+                                                        "$local.accepted_rider_route.data.contract_ids",
+                                                        [],
+                                                    ]
+                                                }
+                                            }
+                                        },
+                                    },
+                                    {
+                                        "title": "Load Related Contracts",
+                                        "description": "Loads contracts linked by the accepted rider route to collect affected driver principals.",
                                         "type": "get.contract",
                                         "contract_id": {
-                                            "$ifNull": [
-                                                "$local.accepted_rider_route.data.contract_ids",
-                                                [],
-                                            ]
+                                            "$ctx": "local.accepted_rider_contract_ids"
                                         },
                                         "key": "accepted_rider_contracts",
                                     },
@@ -1081,24 +1094,51 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                             },
                                                         }
                                                     }
-                                                }
+                                                },
+                                                "local.has_other_contract_driver_targets": {
+                                                    "$gt": [
+                                                        {
+                                                            "$size": {
+                                                                "$objectToArray": {
+                                                                    "$ifNull": [
+                                                                        "$local.other_contract_driver_targets",
+                                                                        {},
+                                                                    ]
+                                                                }
+                                                            }
+                                                        },
+                                                        0,
+                                                    ]
+                                                },
                                             }
                                         },
                                     },
                                     {
                                         "title": "Notify Other Drivers",
                                         "description": "Notifies affected drivers that the accepted rider is no longer available.",
-                                        "type": "notify",
-                                        "notify": {
-                                            "event": "contracts.rider_unavailable",
-                                            "targets": {
-                                                "$ctx": "local.other_contract_driver_targets"
-                                            },
-                                            "payload": {
-                                                "contract_id": {"$ctx": "doc._id"},
-                                                "principal": "$$ctx.payload.rider",
-                                            },
+                                        "type": "if.else",
+                                        "condition": {
+                                            "$ctx": "doc.local.has_other_contract_driver_targets"
                                         },
+                                        "then_effects": [
+                                            {
+                                                "title": "Dispatch Rider Unavailable",
+                                                "description": "Sends rider unavailable notifications to affected drivers.",
+                                                "type": "notify",
+                                                "notify": {
+                                                    "event": "contracts.rider_unavailable",
+                                                    "targets": {
+                                                        "$ctx": "local.other_contract_driver_targets"
+                                                    },
+                                                    "payload": {
+                                                        "contract_id": {
+                                                            "$ctx": "doc._id"
+                                                        },
+                                                        "principal": "$$ctx.payload.rider",
+                                                    },
+                                                },
+                                            },
+                                        ],
                                     },
                                     {
                                         "title": "Notify Accepted Rider",
@@ -1135,7 +1175,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                             {
                                                                 "$ifNull": [
                                                                     {
-                                                                        "$ctx": "doc.context.riders$$ctx.payload.rider.seats"
+                                                                        "$ctx": "doc.context.riders.$$ctx.payload.rider.seats"
                                                                     },
                                                                     1,
                                                                 ]
@@ -1175,14 +1215,28 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                                 {
                                                                     "$in": [
                                                                         {
-                                                                            "$ifNull": [
+                                                                            "$arrayElemAt": [
                                                                                 {
-                                                                                    "$getField": {
-                                                                                        "field": "$$principal",
-                                                                                        "input": "$states",
+                                                                                    "$map": {
+                                                                                        "input": {
+                                                                                            "$filter": {
+                                                                                                "input": {
+                                                                                                    "$objectToArray": "$states"
+                                                                                                },
+                                                                                                "as": "kv",
+                                                                                                "cond": {
+                                                                                                    "$eq": [
+                                                                                                        "$$kv.k",
+                                                                                                        "$$principal",
+                                                                                                    ]
+                                                                                                },
+                                                                                            }
+                                                                                        },
+                                                                                        "as": "kv",
+                                                                                        "in": "$$kv.v",
                                                                                     }
                                                                                 },
-                                                                                "",
+                                                                                0,
                                                                             ]
                                                                         },
                                                                         [
@@ -1196,17 +1250,34 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                                         {
                                                                             "$ifNull": [
                                                                                 {
-                                                                                    "$let": {
-                                                                                        "vars": {
-                                                                                            "r": {
-                                                                                                "$getField": {
-                                                                                                    "field": "$$principal",
-                                                                                                    "input": "$context.riders",
-                                                                                                }
+                                                                                    "$arrayElemAt": [
+                                                                                        {
+                                                                                            "$map": {
+                                                                                                "input": {
+                                                                                                    "$filter": {
+                                                                                                        "input": {
+                                                                                                            "$objectToArray": {
+                                                                                                                "$ifNull": [
+                                                                                                                    "$context.riders",
+                                                                                                                    {},
+                                                                                                                ]
+                                                                                                            }
+                                                                                                        },
+                                                                                                        "as": "rv",
+                                                                                                        "cond": {
+                                                                                                            "$eq": [
+                                                                                                                "$$rv.k",
+                                                                                                                "$$principal",
+                                                                                                            ]
+                                                                                                        },
+                                                                                                    }
+                                                                                                },
+                                                                                                "as": "rv",
+                                                                                                "in": "$$rv.v.seats",
                                                                                             }
                                                                                         },
-                                                                                        "in": "$$r.seats",
-                                                                                    }
+                                                                                        0,
+                                                                                    ]
                                                                                 },
                                                                                 1,
                                                                             ]
@@ -1288,6 +1359,313 @@ def _gherkin_definition() -> Dict[str, Any]:
                                             "$ctx": "doc.local.has_over_capacity_riders"
                                         },
                                         "then_effects": [
+                                            {
+                                                "title": "Collect Pruned Route Ids",
+                                                "description": "Collects route ids for riders removed due to capacity pruning.",
+                                                "type": "update.contract",
+                                                "update": {
+                                                    "$set": {
+                                                        "local.over_capacity_route_ids": {
+                                                            "$setUnion": [
+                                                                {
+                                                                    "$map": {
+                                                                        "input": {
+                                                                            "$filter": {
+                                                                                "input": {
+                                                                                    "$objectToArray": {
+                                                                                        "$ifNull": [
+                                                                                            "$context.riders",
+                                                                                            {},
+                                                                                        ]
+                                                                                    }
+                                                                                },
+                                                                                "as": "rv",
+                                                                                "cond": {
+                                                                                    "$in": [
+                                                                                        "$$rv.k",
+                                                                                        {
+                                                                                            "$ifNull": [
+                                                                                                "$local.over_capacity_principals",
+                                                                                                [],
+                                                                                            ]
+                                                                                        },
+                                                                                    ]
+                                                                                },
+                                                                            }
+                                                                        },
+                                                                        "as": "rv",
+                                                                        "in": "$$rv.v.id",
+                                                                    }
+                                                                },
+                                                                [],
+                                                            ]
+                                                        },
+                                                        "local.over_capacity_route_unlink_updates": {
+                                                            "$arrayToObject": {
+                                                                "$map": {
+                                                                    "input": {
+                                                                        "$ifNull": [
+                                                                            "$local.over_capacity_route_ids",
+                                                                            [],
+                                                                        ]
+                                                                    },
+                                                                    "as": "rid",
+                                                                    "in": {
+                                                                        "k": "$$rid",
+                                                                        "v": {
+                                                                            "$literal": {
+                                                                                "$set": {
+                                                                                    "data.contract_ids": {
+                                                                                        "$setDifference": [
+                                                                                            {
+                                                                                                "$ifNull": [
+                                                                                                    "$data.contract_ids",
+                                                                                                    [],
+                                                                                                ]
+                                                                                            },
+                                                                                            [
+                                                                                                {
+                                                                                                    "$ctx": "doc._id"
+                                                                                                }
+                                                                                            ],
+                                                                                        ]
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        },
+                                                                    },
+                                                                }
+                                                            }
+                                                        },
+                                                    }
+                                                },
+                                            },
+                                            {
+                                                "title": "Unlink Contract From Pruned Routes",
+                                                "description": "Removes this contract from route linkage lists for pruned riders.",
+                                                "type": "update.item",
+                                                "updates": {
+                                                    "$ctx": "local.over_capacity_route_unlink_updates"
+                                                },
+                                            },
+                                            {
+                                                "title": "Load Pruned Routes",
+                                                "description": "Loads pruned route documents after unlink to compute refund eligibility.",
+                                                "type": "get.item",
+                                                "item_id": {
+                                                    "$ctx": "local.over_capacity_route_ids"
+                                                },
+                                                "key": "over_capacity_routes_after_unlink",
+                                            },
+                                            {
+                                                "title": "Compute Pruning Refunds",
+                                                "description": "Computes rider refunds and route resets when pruned routes have no linked contracts.",
+                                                "type": "update.contract",
+                                                "update": {
+                                                    "$set": {
+                                                        "local.over_capacity_refunds": {
+                                                            "$arrayToObject": {
+                                                                "$map": {
+                                                                    "input": {
+                                                                        "$filter": {
+                                                                            "input": {
+                                                                                "$ifNull": [
+                                                                                    "$local.over_capacity_routes_after_unlink",
+                                                                                    [],
+                                                                                ]
+                                                                            },
+                                                                            "as": "rt",
+                                                                            "cond": {
+                                                                                "$eq": [
+                                                                                    {
+                                                                                        "$size": {
+                                                                                            "$ifNull": [
+                                                                                                "$$rt.data.contract_ids",
+                                                                                                [],
+                                                                                            ]
+                                                                                        }
+                                                                                    },
+                                                                                    0,
+                                                                                ]
+                                                                            },
+                                                                        }
+                                                                    },
+                                                                    "as": "rt",
+                                                                    "in": {
+                                                                        "k": {
+                                                                            "$arrayElemAt": [
+                                                                                {
+                                                                                    "$map": {
+                                                                                        "input": {
+                                                                                            "$filter": {
+                                                                                                "input": {
+                                                                                                    "$objectToArray": {
+                                                                                                        "$ifNull": [
+                                                                                                            "$context.riders",
+                                                                                                            {},
+                                                                                                        ]
+                                                                                                    }
+                                                                                                },
+                                                                                                "as": "rv",
+                                                                                                "cond": {
+                                                                                                    "$and": [
+                                                                                                        {
+                                                                                                            "$in": [
+                                                                                                                "$$rv.k",
+                                                                                                                {
+                                                                                                                    "$ifNull": [
+                                                                                                                        "$local.over_capacity_principals",
+                                                                                                                        [],
+                                                                                                                    ]
+                                                                                                                },
+                                                                                                            ]
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "$eq": [
+                                                                                                                "$$rv.v.id",
+                                                                                                                "$$rt._id",
+                                                                                                            ]
+                                                                                                        },
+                                                                                                    ]
+                                                                                                },
+                                                                                            }
+                                                                                        },
+                                                                                        "as": "rv",
+                                                                                        "in": "$$rv.k",
+                                                                                    }
+                                                                                },
+                                                                                0,
+                                                                            ]
+                                                                        },
+                                                                        "v": {
+                                                                            "product": "coin",
+                                                                            "user_id": {
+                                                                                "$arrayElemAt": [
+                                                                                    {
+                                                                                        "$map": {
+                                                                                            "input": {
+                                                                                                "$filter": {
+                                                                                                    "input": {
+                                                                                                        "$objectToArray": {
+                                                                                                            "$ifNull": [
+                                                                                                                "$context.riders",
+                                                                                                                {},
+                                                                                                            ]
+                                                                                                        }
+                                                                                                    },
+                                                                                                    "as": "rv",
+                                                                                                    "cond": {
+                                                                                                        "$and": [
+                                                                                                            {
+                                                                                                                "$in": [
+                                                                                                                    "$$rv.k",
+                                                                                                                    {
+                                                                                                                        "$ifNull": [
+                                                                                                                            "$local.over_capacity_principals",
+                                                                                                                            [],
+                                                                                                                        ]
+                                                                                                                    },
+                                                                                                                ]
+                                                                                                            },
+                                                                                                            {
+                                                                                                                "$eq": [
+                                                                                                                    "$$rv.v.id",
+                                                                                                                    "$$rt._id",
+                                                                                                                ]
+                                                                                                            },
+                                                                                                        ]
+                                                                                                    },
+                                                                                                }
+                                                                                            },
+                                                                                            "as": "rv",
+                                                                                            "in": "$$rv.k",
+                                                                                        }
+                                                                                    },
+                                                                                    0,
+                                                                                ]
+                                                                            },
+                                                                            "amount": {
+                                                                                "$ifNull": [
+                                                                                    "$$rt.data.reserved_credits",
+                                                                                    0,
+                                                                                ]
+                                                                            },
+                                                                        },
+                                                                    },
+                                                                }
+                                                            }
+                                                        },
+                                                        "local.over_capacity_reset_route_updates": {
+                                                            "$arrayToObject": {
+                                                                "$map": {
+                                                                    "input": {
+                                                                        "$filter": {
+                                                                            "input": {
+                                                                                "$ifNull": [
+                                                                                    "$local.over_capacity_routes_after_unlink",
+                                                                                    [],
+                                                                                ]
+                                                                            },
+                                                                            "as": "rt",
+                                                                            "cond": {
+                                                                                "$eq": [
+                                                                                    {
+                                                                                        "$size": {
+                                                                                            "$ifNull": [
+                                                                                                "$$rt.data.contract_ids",
+                                                                                                [],
+                                                                                            ]
+                                                                                        }
+                                                                                    },
+                                                                                    0,
+                                                                                ]
+                                                                            },
+                                                                        }
+                                                                    },
+                                                                    "as": "rt",
+                                                                    "in": {
+                                                                        "k": "$$rt._id",
+                                                                        "v": {
+                                                                            "$literal": {
+                                                                                "$set": {
+                                                                                    "data.reserved_credits": 0
+                                                                                }
+                                                                            }
+                                                                        },
+                                                                    },
+                                                                }
+                                                            }
+                                                        },
+                                                        "local.has_over_capacity_refunds": {
+                                                            "$gt": [
+                                                                {
+                                                                    "$size": {
+                                                                        "$objectToArray": {
+                                                                            "$ifNull": [
+                                                                                "$local.over_capacity_refunds",
+                                                                                {},
+                                                                            ]
+                                                                        }
+                                                                    }
+                                                                },
+                                                                0,
+                                                            ]
+                                                        },
+                                                    }
+                                                },
+                                            },
+                                            {
+                                                "title": "Mark Pruning Refund Requirement",
+                                                "description": "Flags whether any pruned riders now qualify for refund after route unlink.",
+                                                "type": "update.contract",
+                                                "update": {
+                                                    "$set": {
+                                                        "local.over_capacity_refund_required": {
+                                                            "$ctx": "local.has_over_capacity_refunds"
+                                                        }
+                                                    }
+                                                },
+                                            },
                                             {
                                                 "title": "Apply Rejections",
                                                 "description": "Marks over-capacity riders as rejected and removes them from rider context.",
@@ -1727,7 +2105,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                 "$ifNull": [
                                                     {
                                                         "$getField": {
-                                                            "field": "$local.invite_route.principal",
+                                                            "field": "$$ctx.local.invite_route.principal",
                                                             "input": "$states",
                                                         }
                                                     },
@@ -2271,22 +2649,36 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                                                 {
                                                                                     "$ifNull": [
                                                                                         {
-                                                                                            "$getField": {
-                                                                                                "field": "seats",
-                                                                                                "input": {
-                                                                                                    "$getField": {
-                                                                                                        "field": "$$kv.k",
+                                                                                            "$arrayElemAt": [
+                                                                                                {
+                                                                                                    "$map": {
                                                                                                         "input": {
-                                                                                                            "$ifNull": [
-                                                                                                                "$context.riders",
-                                                                                                                {}
-                                                                                                            ]
-                                                                                                        }
+                                                                                                            "$filter": {
+                                                                                                                "input": {
+                                                                                                                    "$objectToArray": {
+                                                                                                                        "$ifNull": [
+                                                                                                                            "$context.riders",
+                                                                                                                            {},
+                                                                                                                        ]
+                                                                                                                    }
+                                                                                                                },
+                                                                                                                "as": "rv",
+                                                                                                                "cond": {
+                                                                                                                    "$eq": [
+                                                                                                                        "$$rv.k",
+                                                                                                                        "$$kv.k",
+                                                                                                                    ]
+                                                                                                                },
+                                                                                                            }
+                                                                                                        },
+                                                                                                        "as": "rv",
+                                                                                                        "in": "$$rv.v.seats",
                                                                                                     }
-                                                                                                }
-                                                                                            }
+                                                                                                },
+                                                                                                0,
+                                                                                            ]
                                                                                         },
-                                                                                        1
+                                                                                        1,
                                                                                     ]
                                                                                 },
                                                                                 {
@@ -2370,6 +2762,313 @@ def _gherkin_definition() -> Dict[str, Any]:
                                             "$ctx": "doc.local.has_over_capacity_riders"
                                         },
                                         "then_effects": [
+                                            {
+                                                "title": "Collect Pruned Route Ids",
+                                                "description": "Collects route ids for riders removed due to capacity pruning.",
+                                                "type": "update.contract",
+                                                "update": {
+                                                    "$set": {
+                                                        "local.over_capacity_route_ids": {
+                                                            "$setUnion": [
+                                                                {
+                                                                    "$map": {
+                                                                        "input": {
+                                                                            "$filter": {
+                                                                                "input": {
+                                                                                    "$objectToArray": {
+                                                                                        "$ifNull": [
+                                                                                            "$context.riders",
+                                                                                            {},
+                                                                                        ]
+                                                                                    }
+                                                                                },
+                                                                                "as": "rv",
+                                                                                "cond": {
+                                                                                    "$in": [
+                                                                                        "$$rv.k",
+                                                                                        {
+                                                                                            "$ifNull": [
+                                                                                                "$local.over_capacity_principals",
+                                                                                                [],
+                                                                                            ]
+                                                                                        },
+                                                                                    ]
+                                                                                },
+                                                                            }
+                                                                        },
+                                                                        "as": "rv",
+                                                                        "in": "$$rv.v.id",
+                                                                    }
+                                                                },
+                                                                [],
+                                                            ]
+                                                        },
+                                                        "local.over_capacity_route_unlink_updates": {
+                                                            "$arrayToObject": {
+                                                                "$map": {
+                                                                    "input": {
+                                                                        "$ifNull": [
+                                                                            "$local.over_capacity_route_ids",
+                                                                            [],
+                                                                        ]
+                                                                    },
+                                                                    "as": "rid",
+                                                                    "in": {
+                                                                        "k": "$$rid",
+                                                                        "v": {
+                                                                            "$literal": {
+                                                                                "$set": {
+                                                                                    "data.contract_ids": {
+                                                                                        "$setDifference": [
+                                                                                            {
+                                                                                                "$ifNull": [
+                                                                                                    "$data.contract_ids",
+                                                                                                    [],
+                                                                                                ]
+                                                                                            },
+                                                                                            [
+                                                                                                {
+                                                                                                    "$ctx": "doc._id"
+                                                                                                }
+                                                                                            ],
+                                                                                        ]
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        },
+                                                                    },
+                                                                }
+                                                            }
+                                                        },
+                                                    }
+                                                },
+                                            },
+                                            {
+                                                "title": "Unlink Contract From Pruned Routes",
+                                                "description": "Removes this contract from route linkage lists for pruned riders.",
+                                                "type": "update.item",
+                                                "updates": {
+                                                    "$ctx": "local.over_capacity_route_unlink_updates"
+                                                },
+                                            },
+                                            {
+                                                "title": "Load Pruned Routes",
+                                                "description": "Loads pruned route documents after unlink to compute refund eligibility.",
+                                                "type": "get.item",
+                                                "item_id": {
+                                                    "$ctx": "local.over_capacity_route_ids"
+                                                },
+                                                "key": "over_capacity_routes_after_unlink",
+                                            },
+                                            {
+                                                "title": "Compute Pruning Refunds",
+                                                "description": "Computes rider refunds and route resets when pruned routes have no linked contracts.",
+                                                "type": "update.contract",
+                                                "update": {
+                                                    "$set": {
+                                                        "local.over_capacity_refunds": {
+                                                            "$arrayToObject": {
+                                                                "$map": {
+                                                                    "input": {
+                                                                        "$filter": {
+                                                                            "input": {
+                                                                                "$ifNull": [
+                                                                                    "$local.over_capacity_routes_after_unlink",
+                                                                                    [],
+                                                                                ]
+                                                                            },
+                                                                            "as": "rt",
+                                                                            "cond": {
+                                                                                "$eq": [
+                                                                                    {
+                                                                                        "$size": {
+                                                                                            "$ifNull": [
+                                                                                                "$$rt.data.contract_ids",
+                                                                                                [],
+                                                                                            ]
+                                                                                        }
+                                                                                    },
+                                                                                    0,
+                                                                                ]
+                                                                            },
+                                                                        }
+                                                                    },
+                                                                    "as": "rt",
+                                                                    "in": {
+                                                                        "k": {
+                                                                            "$arrayElemAt": [
+                                                                                {
+                                                                                    "$map": {
+                                                                                        "input": {
+                                                                                            "$filter": {
+                                                                                                "input": {
+                                                                                                    "$objectToArray": {
+                                                                                                        "$ifNull": [
+                                                                                                            "$context.riders",
+                                                                                                            {},
+                                                                                                        ]
+                                                                                                    }
+                                                                                                },
+                                                                                                "as": "rv",
+                                                                                                "cond": {
+                                                                                                    "$and": [
+                                                                                                        {
+                                                                                                            "$in": [
+                                                                                                                "$$rv.k",
+                                                                                                                {
+                                                                                                                    "$ifNull": [
+                                                                                                                        "$local.over_capacity_principals",
+                                                                                                                        [],
+                                                                                                                    ]
+                                                                                                                },
+                                                                                                            ]
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "$eq": [
+                                                                                                                "$$rv.v.id",
+                                                                                                                "$$rt._id",
+                                                                                                            ]
+                                                                                                        },
+                                                                                                    ]
+                                                                                                },
+                                                                                            }
+                                                                                        },
+                                                                                        "as": "rv",
+                                                                                        "in": "$$rv.k",
+                                                                                    }
+                                                                                },
+                                                                                0,
+                                                                            ]
+                                                                        },
+                                                                        "v": {
+                                                                            "product": "coin",
+                                                                            "user_id": {
+                                                                                "$arrayElemAt": [
+                                                                                    {
+                                                                                        "$map": {
+                                                                                            "input": {
+                                                                                                "$filter": {
+                                                                                                    "input": {
+                                                                                                        "$objectToArray": {
+                                                                                                            "$ifNull": [
+                                                                                                                "$context.riders",
+                                                                                                                {},
+                                                                                                            ]
+                                                                                                        }
+                                                                                                    },
+                                                                                                    "as": "rv",
+                                                                                                    "cond": {
+                                                                                                        "$and": [
+                                                                                                            {
+                                                                                                                "$in": [
+                                                                                                                    "$$rv.k",
+                                                                                                                    {
+                                                                                                                        "$ifNull": [
+                                                                                                                            "$local.over_capacity_principals",
+                                                                                                                            [],
+                                                                                                                        ]
+                                                                                                                    },
+                                                                                                                ]
+                                                                                                            },
+                                                                                                            {
+                                                                                                                "$eq": [
+                                                                                                                    "$$rv.v.id",
+                                                                                                                    "$$rt._id",
+                                                                                                                ]
+                                                                                                            },
+                                                                                                        ]
+                                                                                                    },
+                                                                                                }
+                                                                                            },
+                                                                                            "as": "rv",
+                                                                                            "in": "$$rv.k",
+                                                                                        }
+                                                                                    },
+                                                                                    0,
+                                                                                ]
+                                                                            },
+                                                                            "amount": {
+                                                                                "$ifNull": [
+                                                                                    "$$rt.data.reserved_credits",
+                                                                                    0,
+                                                                                ]
+                                                                            },
+                                                                        },
+                                                                    },
+                                                                }
+                                                            }
+                                                        },
+                                                        "local.over_capacity_reset_route_updates": {
+                                                            "$arrayToObject": {
+                                                                "$map": {
+                                                                    "input": {
+                                                                        "$filter": {
+                                                                            "input": {
+                                                                                "$ifNull": [
+                                                                                    "$local.over_capacity_routes_after_unlink",
+                                                                                    [],
+                                                                                ]
+                                                                            },
+                                                                            "as": "rt",
+                                                                            "cond": {
+                                                                                "$eq": [
+                                                                                    {
+                                                                                        "$size": {
+                                                                                            "$ifNull": [
+                                                                                                "$$rt.data.contract_ids",
+                                                                                                [],
+                                                                                            ]
+                                                                                        }
+                                                                                    },
+                                                                                    0,
+                                                                                ]
+                                                                            },
+                                                                        }
+                                                                    },
+                                                                    "as": "rt",
+                                                                    "in": {
+                                                                        "k": "$$rt._id",
+                                                                        "v": {
+                                                                            "$literal": {
+                                                                                "$set": {
+                                                                                    "data.reserved_credits": 0
+                                                                                }
+                                                                            }
+                                                                        },
+                                                                    },
+                                                                }
+                                                            }
+                                                        },
+                                                        "local.has_over_capacity_refunds": {
+                                                            "$gt": [
+                                                                {
+                                                                    "$size": {
+                                                                        "$objectToArray": {
+                                                                            "$ifNull": [
+                                                                                "$local.over_capacity_refunds",
+                                                                                {},
+                                                                            ]
+                                                                        }
+                                                                    }
+                                                                },
+                                                                0,
+                                                            ]
+                                                        },
+                                                    }
+                                                },
+                                            },
+                                            {
+                                                "title": "Mark Pruning Refund Requirement",
+                                                "description": "Flags whether any pruned riders now qualify for refund after route unlink.",
+                                                "type": "update.contract",
+                                                "update": {
+                                                    "$set": {
+                                                        "local.over_capacity_refund_required": {
+                                                            "$ctx": "local.has_over_capacity_refunds"
+                                                        }
+                                                    }
+                                                },
+                                            },
                                             {
                                                 "title": "Reject Over-Capacity Riders",
                                                 "description": "Marks over-capacity riders as rejected and removes them from rider context.",
@@ -2670,6 +3369,10 @@ def _gherkin_definition() -> Dict[str, Any]:
                                         "local.is_target_accepted": {
                                             "$eq": ["$local.target_state", "ACCEPTED"]
                                         },
+                                        "local.target_route_id": {
+                                            "$ctx": "doc.context.riders.$$ctx.payload.principal.id"
+                                        },
+                                        "local.target_principal": "$$ctx.payload.principal",
                                     }
                                 },
                             },
@@ -2727,18 +3430,128 @@ def _gherkin_definition() -> Dict[str, Any]:
                                         "title": "Set Rejected User",
                                         "description": "Sets user state to rejected and clears rider context.",
                                         "type": "update.contract",
-                                        "update": [
-                                            {
-                                                "$set": {
-                                                    "states.$$ctx.payload.principal": "REJECTED"
+                                        "update": {
+                                            "$set": {
+                                                "states.$$ctx.payload.principal": "REJECTED"
+                                            }
+                                        },
+                                    },
+                                    {
+                                        "title": "Unlink Contract From Rider Route",
+                                        "description": "Removes this contract from the rejected rider route linkage list.",
+                                        "type": "update.item",
+                                        "item_id": {"$ctx": "local.target_route_id"},
+                                        "update": {
+                                            "$set": {
+                                                "data.contract_ids": {
+                                                    "$setDifference": [
+                                                        {
+                                                            "$ifNull": [
+                                                                "$data.contract_ids",
+                                                                [],
+                                                            ]
+                                                        },
+                                                        [{"$ctx": "doc._id"}],
+                                                    ]
                                                 }
+                                            }
+                                        },
+                                    },
+                                    {
+                                        "title": "Reload Target Route",
+                                        "description": "Reloads rider route after unlink to evaluate refund eligibility.",
+                                        "type": "get.item",
+                                        "item_id": {"$ctx": "local.target_route_id"},
+                                        "key": "driver_reject_route_after",
+                                    },
+                                    {
+                                        "title": "Compute Driver Reject Refund",
+                                        "description": "Refunds held credits only when rider route has no remaining links.",
+                                        "type": "update.contract",
+                                        "update": {
+                                            "$set": {
+                                                "local.driver_reject_refund": {
+                                                    "$cond": [
+                                                        {
+                                                            "$eq": [
+                                                                {
+                                                                    "$size": {
+                                                                        "$ifNull": [
+                                                                            "$local.driver_reject_route_after.data.contract_ids",
+                                                                            [],
+                                                                        ]
+                                                                    }
+                                                                },
+                                                                0,
+                                                            ]
+                                                        },
+                                                        {
+                                                            "$ifNull": [
+                                                                "$local.driver_reject_route_after.data.reserved_credits",
+                                                                0,
+                                                            ]
+                                                        },
+                                                        0,
+                                                    ]
+                                                },
+                                                "local.has_driver_reject_refund": {
+                                                    "$gt": [
+                                                        {
+                                                            "$ifNull": [
+                                                                "$local.driver_reject_refund",
+                                                                0,
+                                                            ]
+                                                        },
+                                                        0,
+                                                    ]
+                                                },
+                                            }
+                                        },
+                                    },
+                                    {
+                                        "title": "Apply Driver Reject Refund",
+                                        "description": "Refunds rider and resets retained credits when rejection unlinks final route.",
+                                        "type": "if.else",
+                                        "condition": {
+                                            "$ctx": "doc.local.has_driver_reject_refund"
+                                        },
+                                        "then_effects": [
+                                            {
+                                                "title": "Refund Rider",
+                                                "description": "Returns credits retained for the rejected rider.",
+                                                "type": "charge.credits",
+                                                "credit": {
+                                                    "product": "coin",
+                                                    "user_id": {
+                                                        "$ctx": "local.target_principal"
+                                                    },
+                                                    "amount": {
+                                                        "$ctx": "local.driver_reject_refund"
+                                                    },
+                                                },
                                             },
                                             {
-                                                "$unset": [
-                                                    "context.riders.$$ctx.payload.principal"
-                                                ]
+                                                "title": "Clear Route Reserved Credits",
+                                                "description": "Clears retained credits on rider route after driver rejection refund.",
+                                                "type": "update.item",
+                                                "item_id": {
+                                                    "$ctx": "local.target_route_id"
+                                                },
+                                                "update": {
+                                                    "$set": {"data.reserved_credits": 0}
+                                                },
                                             },
                                         ],
+                                    },
+                                    {
+                                        "title": "Clear Rider Context",
+                                        "description": "Removes rider context snapshot after driver rejection.",
+                                        "type": "update.contract",
+                                        "update": {
+                                            "$unset": [
+                                                "context.riders.$$ctx.payload.principal"
+                                            ]
+                                        },
                                     },
                                     {
                                         "title": "Notify Rejected User",
@@ -2855,6 +3668,83 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 },
                             },
                             {
+                                "title": "Reload Cancel Route",
+                                "description": "Reloads rider route after unlink to determine if hold refund is needed.",
+                                "type": "get.item",
+                                "item_id": {"$ctx": "local.cancel_route_id"},
+                                "key": "cancel_route_after",
+                            },
+                            {
+                                "title": "Compute Cancel Refund",
+                                "description": "Refunds held rider credits only when route has no remaining linked contracts.",
+                                "type": "update.contract",
+                                "update": {
+                                    "$set": {
+                                        "local.cancel_refund": {
+                                            "$cond": [
+                                                {
+                                                    "$eq": [
+                                                        {
+                                                            "$size": {
+                                                                "$ifNull": [
+                                                                    "$local.cancel_route_after.data.contract_ids",
+                                                                    [],
+                                                                ]
+                                                            }
+                                                        },
+                                                        0,
+                                                    ]
+                                                },
+                                                {
+                                                    "$ifNull": [
+                                                        "$local.cancel_route_after.data.reserved_credits",
+                                                        0,
+                                                    ]
+                                                },
+                                                0,
+                                            ]
+                                        },
+                                        "local.has_cancel_refund": {
+                                            "$gt": [
+                                                {
+                                                    "$ifNull": [
+                                                        "$local.cancel_refund",
+                                                        0,
+                                                    ]
+                                                },
+                                                0,
+                                            ]
+                                        },
+                                    }
+                                },
+                            },
+                            {
+                                "title": "Apply Cancel Refund",
+                                "description": "Refunds rider and clears route retained credits when cancellation unlinks final contract.",
+                                "type": "if.else",
+                                "condition": {"$ctx": "doc.local.has_cancel_refund"},
+                                "then_effects": [
+                                    {
+                                        "title": "Refund Cancelling Rider",
+                                        "description": "Returns retained credits to rider after cancellation.",
+                                        "type": "charge.credits",
+                                        "credit": {
+                                            "product": "coin",
+                                            "amount": {"$ctx": "local.cancel_refund"},
+                                        },
+                                    },
+                                    {
+                                        "title": "Clear Cancel Route Reserved Credits",
+                                        "description": "Clears retained credits on route after cancel refund.",
+                                        "type": "update.item",
+                                        "item_id": {"$ctx": "local.cancel_route_id"},
+                                        "update": {
+                                            "$set": {"data.reserved_credits": 0}
+                                        },
+                                    },
+                                ],
+                            },
+                            {
                                 "title": "Mark User Cancelled",
                                 "description": "Marks user as cancelled and removes rider context from recruiting roster.",
                                 "type": "update.contract",
@@ -2895,6 +3785,222 @@ def _gherkin_definition() -> Dict[str, Any]:
                         ],
                         "effects": [
                             {
+                                "title": "Collect Active Riders",
+                                "description": "Collects active rider principals and route ids for trip cancellation pruning.",
+                                "type": "update.contract",
+                                "update": {
+                                    "$set": {
+                                        "local.trip_cancel_riders": {
+                                            "$map": {
+                                                "input": {
+                                                    "$objectToArray": {
+                                                        "$ifNull": [
+                                                            "$context.riders",
+                                                            {},
+                                                        ]
+                                                    }
+                                                },
+                                                "as": "rv",
+                                                "in": {
+                                                    "principal": "$$rv.k",
+                                                    "route_id": "$$rv.v.id",
+                                                },
+                                            }
+                                        }
+                                    }
+                                },
+                            },
+                            {
+                                "title": "Build Trip Cancel Route Unlinks",
+                                "description": "Builds route update map to unlink this contract from every active rider route.",
+                                "type": "update.contract",
+                                "update": {
+                                    "$set": {
+                                        "local.trip_cancel_route_updates": {
+                                            "$arrayToObject": {
+                                                "$map": {
+                                                    "input": {
+                                                        "$ifNull": [
+                                                            "$local.trip_cancel_riders",
+                                                            [],
+                                                        ]
+                                                    },
+                                                    "as": "r",
+                                                    "in": {
+                                                        "k": "$$r.route_id",
+                                                        "v": {
+                                                            "$literal": {
+                                                                "$set": {
+                                                                    "data.contract_ids": {
+                                                                        "$setDifference": [
+                                                                            {
+                                                                                "$ifNull": [
+                                                                                    "$data.contract_ids",
+                                                                                    [],
+                                                                                ]
+                                                                            },
+                                                                            [
+                                                                                {
+                                                                                    "$ctx": "doc._id"
+                                                                                }
+                                                                            ],
+                                                                        ]
+                                                                    }
+                                                                }
+                                                            }
+                                                        },
+                                                    },
+                                                }
+                                            }
+                                        },
+                                        "local.trip_cancel_route_ids": {
+                                            "$setUnion": [
+                                                {
+                                                    "$map": {
+                                                        "input": {
+                                                            "$ifNull": [
+                                                                "$local.trip_cancel_riders",
+                                                                [],
+                                                            ]
+                                                        },
+                                                        "as": "r",
+                                                        "in": "$$r.route_id",
+                                                    }
+                                                },
+                                                [],
+                                            ]
+                                        },
+                                    }
+                                },
+                            },
+                            {
+                                "title": "Unlink Trip Routes",
+                                "description": "Removes this contract id from all active rider routes.",
+                                "type": "update.item",
+                                "updates": {"$ctx": "local.trip_cancel_route_updates"},
+                            },
+                            {
+                                "title": "Reload Trip Routes",
+                                "description": "Loads rider routes after unlink to compute cancellation refunds.",
+                                "type": "get.item",
+                                "item_id": {"$ctx": "local.trip_cancel_route_ids"},
+                                "key": "trip_cancel_routes_after",
+                            },
+                            {
+                                "title": "Compute Trip Cancel Refunds",
+                                "description": "Builds reset maps for routes with no remaining contract links.",
+                                "type": "update.contract",
+                                "update": {
+                                    "$set": {
+                                        "local.trip_cancel_reset_route_updates": {
+                                            "$arrayToObject": {
+                                                "$map": {
+                                                    "input": {
+                                                        "$filter": {
+                                                            "input": {
+                                                                "$ifNull": [
+                                                                    "$local.trip_cancel_routes_after",
+                                                                    [],
+                                                                ]
+                                                            },
+                                                            "as": "rt",
+                                                            "cond": {
+                                                                "$eq": [
+                                                                    {
+                                                                        "$size": {
+                                                                            "$ifNull": [
+                                                                                "$$rt.data.contract_ids",
+                                                                                [],
+                                                                            ]
+                                                                        }
+                                                                    },
+                                                                    0,
+                                                                ]
+                                                            },
+                                                        }
+                                                    },
+                                                    "as": "rt",
+                                                    "in": {
+                                                        "k": "$$rt._id",
+                                                        "v": {
+                                                            "$literal": {
+                                                                "$set": {
+                                                                    "data.reserved_credits": 0
+                                                                }
+                                                            }
+                                                        },
+                                                    },
+                                                }
+                                            }
+                                        },
+                                        "local.trip_cancel_targets": {
+                                            "$arrayToObject": {
+                                                "$map": {
+                                                    "input": {
+                                                        "$ifNull": [
+                                                            "$local.trip_cancel_riders",
+                                                            [],
+                                                        ]
+                                                    },
+                                                    "as": "r",
+                                                    "in": {
+                                                        "k": "$$r.principal",
+                                                        "v": ["in_app", "push"],
+                                                    },
+                                                }
+                                            }
+                                        },
+                                        "local.has_trip_cancel_targets": {
+                                            "$gt": [
+                                                {
+                                                    "$size": {
+                                                        "$objectToArray": {
+                                                            "$ifNull": [
+                                                                "$local.trip_cancel_targets",
+                                                                {},
+                                                            ]
+                                                        }
+                                                    }
+                                                },
+                                                0,
+                                            ]
+                                        },
+                                    }
+                                },
+                            },
+                            {
+                                "title": "Clear Trip Route Reserved Credits",
+                                "description": "Resets retained route credits for routes left without contract links.",
+                                "type": "update.item",
+                                "updates": {
+                                    "$ctx": "local.trip_cancel_reset_route_updates"
+                                },
+                            },
+                            {
+                                "title": "Notify Trip Riders",
+                                "description": "Notifies all active riders that the driver cancelled the trip.",
+                                "type": "if.else",
+                                "condition": {
+                                    "$ctx": "doc.local.has_trip_cancel_targets"
+                                },
+                                "then_effects": [
+                                    {
+                                        "title": "Dispatch Driver Cancelled Trip",
+                                        "description": "Delivers driver cancelled trip notification to all affected riders.",
+                                        "type": "notify",
+                                        "notify": {
+                                            "event": "contracts.driver_cancelled_trip",
+                                            "targets": {
+                                                "$ctx": "local.trip_cancel_targets"
+                                            },
+                                            "payload": {
+                                                "contract_id": {"$ctx": "doc._id"}
+                                            },
+                                        },
+                                    }
+                                ],
+                            },
+                            {
                                 "title": "Close Trip As Rejected",
                                 "description": "Closes the trip as rejected by the driver and updates all rider statuses consistently.",
                                 "type": "update.contract",
@@ -2934,7 +4040,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                         },
                                     }
                                 },
-                            }
+                            },
                         ],
                     },
                     "DriverSetReady": {
@@ -3980,6 +5086,7 @@ class ContractsE2ETest(unittest.TestCase):
             SECURITY_CONFIRMABLE=True,
             SECURITY_RECOVERABLE=True,
             SECURITY_CHANGEABLE=True,
+            CONTRACTS_ENABLED=True,
             SECURITY_LOGIN_AFTER_REGISTER=False,
             SECURITY_URL_PREFIX="/user",
             WTF_CSRF_ENABLED=False,
@@ -4056,7 +5163,7 @@ class ContractsE2ETest(unittest.TestCase):
             items_coll = self.app.config["MONGO_DB"]["items"]
             for uid in self.user_ids.values():
                 principal = f"u:{uid}"
-                route_id = str(ObjectId())
+                route_id = str(uuid.uuid4())
                 route_doc = {
                     "cost": 10,
                     "capacity": 3,
@@ -4278,6 +5385,66 @@ class ContractsE2ETest(unittest.TestCase):
                 )
             )
 
+    def _list_notifications(self, actor: str) -> List[Dict[str, Any]]:
+        resp = self.httpx.get("/notification", headers=self._headers(actor))
+        self.assertEqual(resp.status_code, 200, msg=resp.text)
+        data = resp.json() or {}
+        return list(data.get("notifications") or [])
+
+    def _count_notification_event_api(self, actor: str, event: str) -> int:
+        notes = self._list_notifications(actor)
+        return sum(1 for n in notes if n.get("event") == event)
+
+    def _get_route(self, actor: str, route_id: str) -> Dict[str, Any]:
+        resp = self.httpx.get(f"/item/route/{route_id}", headers=self._headers(actor))
+        self.assertEqual(resp.status_code, 200, msg=resp.text)
+        return resp.json() or {}
+
+    def _create_route(self, actor: str, **updates: Any) -> str:
+        principal = f"u:{self.user_ids[actor]}"
+        data = {
+            "cost": 10,
+            "capacity": 3,
+            "seats": 1,
+            "user_id": principal,
+            "origin": {"lat": 45.0, "lng": 9.0, "at": "1970-01-01T00:00:00+00:00"},
+            "destination": {"lat": 45.1, "lng": 9.1},
+        }
+        data.update(updates)
+        resp = self.httpx.post(
+            "/item/route",
+            json={"data": data},
+            headers=self._headers(actor),
+        )
+        self.assertEqual(resp.status_code, 201, msg=resp.text)
+        body = resp.json() or {}
+        return str(body.get("id"))
+
+    def _patch_route_data(
+            self, actor: str, route_id: str, **updates: Any
+    ) -> Dict[str, Any]:
+        current = self._get_route(actor, route_id)
+        data = dict(current.get("data") or {})
+        data.update(updates)
+        resp = self.httpx.patch(
+            f"/item/route/{route_id}",
+            json={"data": data},
+            headers=self._headers(actor),
+        )
+        self.assertEqual(resp.status_code, 200, msg=resp.text)
+        return resp.json() or {}
+
+    def _gherkin_context_for(self, driver: str, riders: List[str]) -> Dict[str, Any]:
+        driver_principal = f"u:{self.user_ids[driver]}"
+        rider_ids = [f"u:{self.user_ids[r]}" for r in riders]
+        rider_route_ids = [
+            self.route_by_principal[principal] for principal in rider_ids
+        ]
+        return {
+            "driver_trip_id": self.route_by_principal[driver_principal],
+            "riders": rider_route_ids,
+        }
+
     def _gherkin_context(self, initial_state: str = "START") -> Dict[str, Any]:
         driver_uid = self.user_ids["d1"]
         p1_uid = self.user_ids["p1"]
@@ -4291,9 +5458,7 @@ class ContractsE2ETest(unittest.TestCase):
             "riders": rider_route_ids,
         }
 
-    def _create_gherkin_contract(
-            self, initial_state: str = "START", actor="owner-1"
-    ) -> str:
+    def _create_gherkin_contract(self, initial_state: str = "START", actor="p1") -> str:
         definition = _gherkin_definition()
         template_id = self._create_template(
             definition,
@@ -4614,6 +5779,251 @@ class ContractsE2ETest(unittest.TestCase):
             driver_principal, "contracts.request_ride"
         )
         self.assertEqual(after_cancel, before + 2)
+
+    def test_onboarding_full_journey_all_apis_with_negatives_and_pruning(self) -> None:
+        definition = _gherkin_definition()
+        template_id = self._create_template(
+            definition,
+            allowed_initial_states=["START"],
+        )
+
+        p1_principal = f"u:{self.user_ids['p1']}"
+        p2_principal = f"u:{self.user_ids['p2']}"
+        p4_principal = f"u:{self.user_ids['p4']}"
+        p2_route_id = self._create_route("p2", cost=10, seats=1)
+        p2_route_low_credit = self._create_route("p2", cost=1000, seats=1)
+        p2_route_over_seats = self._create_route("p2", cost=10, seats=9)
+        p3_route_id = self._create_route("p3", cost=10, seats=1)
+        p4_route_id = self._create_route("p4", cost=10, seats=1)
+        p4_route_low_credit = self._create_route("p4", cost=1000, seats=1)
+        p4_route_over_seats = self._create_route("p4", cost=10, seats=9)
+        d1_route_id = self._create_route("d1")
+
+        created_a = self._create_contract(
+            template_id,
+            self._gherkin_context_for("d1", ["p1"]),
+            initial_state="START",
+            actor="p1",
+        )
+        self.assertEqual(created_a.status_code, 201, msg=created_a.text)
+        contract_a = str(created_a.json()["id"])
+
+        contract_a_doc = self.httpx.get(
+            f"/contracts/{contract_a}", headers=self._headers("owner-1")
+        ).json()
+        self.assertEqual(contract_a_doc["state"], "ONBOARDING")
+        self.assertEqual(
+            self._user_state(contract_a_doc, self.user_ids["d1"]), "PENDING_DRIVER"
+        )
+        self.assertEqual(
+            self._user_state(contract_a_doc, self.user_ids["p1"]), "REQUESTING"
+        )
+
+        # Negative: accept-start with non-requesting rider.
+        bad_accept = self._post_event(
+            contract_a,
+            "driver-accept-start",
+            actor="d1",
+            payload={"rider": p4_principal},
+        )
+        self.assertEqual(bad_accept.status_code, 200)
+        self.assertFalse(bad_accept.json().get("ok"))
+
+        # Negative request-join: driver cannot request join.
+        driver_join = self._post_event(
+            contract_a,
+            "request-join",
+            actor="d1",
+            payload={"route_id": d1_route_id},
+        )
+        self.assertEqual(driver_join.status_code, 403)
+
+        # request-join / cancel-join-request exercised on a dedicated contract.
+        created_req = self._create_contract(
+            template_id,
+            self._gherkin_context_for("d1", ["p1"]),
+            initial_state="START",
+            actor="p1",
+        )
+        self.assertEqual(created_req.status_code, 201, msg=created_req.text)
+        contract_req = str(created_req.json()["id"])
+
+        good_join = self._post_event(
+            contract_req,
+            "request-join",
+            actor="p4",
+            payload={"route_id": p4_route_id},
+        )
+        self.assertEqual(good_join.status_code, 200)
+        self.assertTrue(good_join.json().get("ok"))
+
+        join_p3 = self._post_event(contract_req, "request-join", actor="p3")
+        self.assertEqual(join_p3.status_code, 200)
+        self.assertTrue(join_p3.json().get("ok"))
+        cancel_p3 = self._post_event(contract_req, "cancel-join-request", actor="p3")
+        self.assertEqual(cancel_p3.status_code, 200)
+        self.assertTrue(cancel_p3.json().get("ok"))
+
+        # invite-user negatives.
+        bad_invite_self = self._post_event(
+            contract_a,
+            "invite-user",
+            actor="d1",
+            payload={"route_id": d1_route_id},
+        )
+        self.assertEqual(bad_invite_self.status_code, 200)
+        self.assertFalse(bad_invite_self.json().get("ok"))
+
+        bad_invite_low_credits = self._post_event(
+            contract_a,
+            "invite-user",
+            actor="d1",
+            payload={"route_id": p2_route_low_credit},
+        )
+        self.assertEqual(bad_invite_low_credits.status_code, 200)
+        self.assertFalse(bad_invite_low_credits.json().get("ok"))
+
+        bad_invite_over_seats = self._post_event(
+            contract_a,
+            "invite-user",
+            actor="d1",
+            payload={"route_id": p2_route_over_seats},
+        )
+        self.assertEqual(bad_invite_over_seats.status_code, 200)
+        self.assertFalse(bad_invite_over_seats.json().get("ok"))
+
+        # invite-user positives + driver-cancel-invite-user + reject-user.
+        invite_p2 = self._post_event(
+            contract_a,
+            "invite-user",
+            actor="d1",
+            payload={"route_id": p2_route_id},
+        )
+        self.assertEqual(invite_p2.status_code, 200)
+        self.assertTrue(invite_p2.json().get("ok"))
+
+        invite_p3 = self._post_event(
+            contract_a,
+            "invite-user",
+            actor="d1",
+            payload={"route_id": p3_route_id},
+        )
+        self.assertEqual(invite_p3.status_code, 200)
+        self.assertTrue(invite_p3.json().get("ok"))
+
+        cancel_invite_p3 = self._post_event(
+            contract_a,
+            "driver-cancel-invite-user",
+            actor="d1",
+            payload={"route_id": p3_route_id},
+        )
+        self.assertEqual(cancel_invite_p3.status_code, 200)
+        self.assertTrue(cancel_invite_p3.json().get("ok"))
+
+        invite_p3_again = self._post_event(
+            contract_a,
+            "invite-user",
+            actor="d1",
+            payload={"route_id": p3_route_id},
+        )
+        self.assertEqual(invite_p3_again.status_code, 200)
+        self.assertTrue(invite_p3_again.json().get("ok"))
+        reject_invite_p3 = self._post_event(contract_a, "reject-user", actor="p3")
+        self.assertEqual(reject_invite_p3.status_code, 200)
+        self.assertTrue(reject_invite_p3.json().get("ok"))
+
+        # Competitor contract used to verify pruning after user accept on contract A.
+        created_c = self._create_contract(
+            template_id,
+            self._gherkin_context_for("p3", ["p2"]),
+            initial_state="START",
+            actor="p2",
+        )
+        self.assertEqual(created_c.status_code, 201, msg=created_c.text)
+        contract_c = str(created_c.json()["id"])
+
+        before_rider_unavailable_c = self._count_notifications_for(
+            f"u:{self.user_ids['p3']}", "contracts.rider_unavailable"
+        )
+        accept_invite_p2 = self._post_event(contract_a, "accept-user", actor="p2")
+        self.assertEqual(accept_invite_p2.status_code, 200)
+        self.assertTrue(accept_invite_p2.json().get("ok"))
+
+        contract_c_doc = self.httpx.get(
+            f"/contracts/{contract_c}", headers=self._headers("owner-1")
+        ).json()
+        self.assertEqual(
+            self._user_state(contract_c_doc, self.user_ids["p2"]), "REJECTED"
+        )
+        after_rider_unavailable_c = self._count_notifications_for(
+            f"u:{self.user_ids['p3']}", "contracts.rider_unavailable"
+        )
+        self.assertGreaterEqual(
+            after_rider_unavailable_c, before_rider_unavailable_c + 1
+        )
+
+        # Driver remove accepted user and rider cancel flows.
+        driver_remove_p2 = self._post_event(
+            contract_a,
+            "driver-reject-user",
+            actor="d1",
+            payload={"principal": p2_principal},
+        )
+        self.assertEqual(driver_remove_p2.status_code, 200)
+        self.assertTrue(driver_remove_p2.json().get("ok"))
+
+        rider_cancel_p1 = self._post_event(contract_a, "cancel-user", actor="p1")
+        self.assertEqual(rider_cancel_p1.status_code, 200)
+        self.assertTrue(rider_cancel_p1.json().get("ok"))
+
+        contract_a_doc = self.httpx.get(
+            f"/contracts/{contract_a}", headers=self._headers("owner-1")
+        ).json()
+        self.assertEqual(
+            self._user_state(contract_a_doc, self.user_ids["p2"]), "REJECTED"
+        )
+        self.assertEqual(
+            self._user_state(contract_a_doc, self.user_ids["p1"]), "CANCELLED"
+        )
+
+        # ONBOARDING terminal events tested in same journey on dedicated contracts.
+        created_ready = self._create_contract(
+            template_id,
+            self._gherkin_context_for("d1", ["p4"]),
+            initial_state="START",
+            actor="p4",
+        )
+        self.assertEqual(created_ready.status_code, 201, msg=created_ready.text)
+        contract_ready = str(created_ready.json()["id"])
+        set_ready = self._post_event(contract_ready, "set-ready", actor="d1")
+        self.assertEqual(set_ready.status_code, 200)
+        self.assertTrue(set_ready.json().get("ok"))
+        ready_doc = self.httpx.get(
+            f"/contracts/{contract_ready}", headers=self._headers("owner-1")
+        ).json()
+        self.assertEqual(ready_doc["state"], "READY")
+
+        created_cancel_trip = self._create_contract(
+            template_id,
+            self._gherkin_context_for("d1", ["p4"]),
+            initial_state="START",
+            actor="p4",
+        )
+        self.assertEqual(
+            created_cancel_trip.status_code, 201, msg=created_cancel_trip.text
+        )
+        contract_cancel_trip = str(created_cancel_trip.json()["id"])
+        cancel_trip = self._post_event(
+            contract_cancel_trip,
+            "driver-reject-trip",
+            actor="d1",
+        )
+        self.assertEqual(cancel_trip.status_code, 200)
+        self.assertTrue(cancel_trip.json().get("ok"))
+        cancelled_trip_doc = self.httpx.get(
+            f"/contracts/{contract_cancel_trip}", headers=self._headers("owner-1")
+        ).json()
+        self.assertEqual(cancelled_trip_doc["state"], "REJECTED")
 
     def test_update_contract_effect_updates_another_contract(self) -> None:
         definition = {

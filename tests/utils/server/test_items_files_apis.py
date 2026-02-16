@@ -14,7 +14,6 @@ import gridfs
 import mongomock
 import mongomock.gridfs
 from botocore.config import Config as BotoConfig
-from bson import ObjectId
 from flask import Flask
 from flask_security.utils import hash_password
 
@@ -91,7 +90,7 @@ class TestItemsFilesApis(unittest.TestCase):
             self.other_user = self._create_user("files_other@gmail.com")
             bootstrap_user(self.other_user.id)
 
-            self.item_id = ObjectId()
+            self.item_id = str(uuid.uuid4())
             file_name = "report.txt"
             file_bytes = b"hello world"
 
@@ -189,7 +188,7 @@ class TestItemsFilesApis(unittest.TestCase):
         self.assertEqual(data.get("error"), "Invalid file name")
 
     def test_download_file_missing_item(self):
-        missing_id = ObjectId()
+        missing_id = str(uuid.uuid4())
         # Call file download with missing item id.
         r = self.auth_client.get(
             f"/item-file/{missing_id}/report.txt", headers=self._auth_headers()
@@ -235,7 +234,7 @@ class TestItemsFilesApis(unittest.TestCase):
         file_bytes = b"s3-bytes"
 
         with self.app.app_context():
-            s3_item_id = ObjectId()
+            s3_item_id = str(uuid.uuid4())
             self.vdb.items.insert_one(
                 {
                     "_id": s3_item_id,

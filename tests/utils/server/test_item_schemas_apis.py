@@ -8,7 +8,6 @@ import uuid
 from datetime import datetime, timezone
 
 import mongomock
-from bson import ObjectId
 from flask import Flask
 from flask_security.utils import hash_password
 
@@ -86,7 +85,7 @@ class TestItemSchemasApis(unittest.TestCase):
             bootstrap_user(member_user.id)
             self.member_user_id = member_user.id
 
-            self.seed_item_id = ObjectId()
+            self.seed_item_id = str(uuid.uuid4())
             vdb.items.insert_one(
                 {
                     "_id": self.seed_item_id,

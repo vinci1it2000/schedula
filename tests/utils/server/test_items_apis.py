@@ -12,7 +12,6 @@ from urllib.parse import quote
 
 import mongomock
 import mongomock.gridfs
-from bson import ObjectId
 from flask import Flask
 from flask_security.utils import hash_password
 from unittest import mock
@@ -99,7 +98,7 @@ class TestItemsApis(unittest.TestCase):
             self.other_user = self._create_user("items_other@gmail.com")
             bootstrap_user(self.other_user.id)
 
-            self.item_id = ObjectId()
+            self.item_id = str(uuid.uuid4())
             vdb.items.insert_one(
                 {
                     "_id": self.item_id,
@@ -244,7 +243,7 @@ class TestItemsApis(unittest.TestCase):
             # Insert a second item to exercise pagination.
             self.vdb.items.insert_one(
                 {
-                    "_id": ObjectId(),
+                    "_id": str(uuid.uuid4()),
                     "category": "note",
                     "data": {"title": "second"},
                     "files": {},
@@ -272,7 +271,7 @@ class TestItemsApis(unittest.TestCase):
         with self.app.app_context():
             self.vdb.items.insert_one(
                 {
-                    "_id": ObjectId(),
+                    "_id": str(uuid.uuid4()),
                     "category": "note",
                     "data": {"title": "other"},
                     "files": {},
@@ -332,7 +331,7 @@ class TestItemsApis(unittest.TestCase):
         with self.app.app_context():
             self.vdb.items.insert_one(
                 {
-                    "_id": ObjectId(),
+                    "_id": str(uuid.uuid4()),
                     "category": "note",
                     "data": {"title": "second"},
                     "files": {},
@@ -345,7 +344,7 @@ class TestItemsApis(unittest.TestCase):
             )
             self.vdb.items.insert_one(
                 {
-                    "_id": ObjectId(),
+                    "_id": str(uuid.uuid4()),
                     "category": "note",
                     "data": {"title": "third"},
                     "files": {},
@@ -371,10 +370,10 @@ class TestItemsApis(unittest.TestCase):
 
     def test_item_list_mq_with_pagination(self):
         with self.app.app_context():
-            owned_id = ObjectId()
-            shared_id = ObjectId()
-            public_id = ObjectId()
-            private_id = ObjectId()
+            owned_id = str(uuid.uuid4())
+            shared_id = str(uuid.uuid4())
+            public_id = str(uuid.uuid4())
+            private_id = str(uuid.uuid4())
 
             self.vdb.items.insert_one(
                 {
@@ -476,7 +475,7 @@ class TestItemsApis(unittest.TestCase):
             sub = u(str(self.user.id))
             e.add_policy(sub, PUBLIC_DOMAIN, f"item:{category}:*", "read", "allow")
 
-            other_id = ObjectId()
+            other_id = str(uuid.uuid4())
             self.vdb.items.insert_one(
                 {
                     "_id": other_id,
@@ -500,8 +499,8 @@ class TestItemsApis(unittest.TestCase):
         with self.app.app_context():
             e = get_enforcer()
             sub = u(str(self.user.id))
-            allowed_id = ObjectId()
-            other_id = ObjectId()
+            allowed_id = str(uuid.uuid4())
+            other_id = str(uuid.uuid4())
 
             e.add_policy(
                 sub,
@@ -537,7 +536,7 @@ class TestItemsApis(unittest.TestCase):
             sub = u(str(self.user.id))
             gid = uuid.uuid4().hex
             dom = acl_group(gid)
-            allowed_id = ObjectId()
+            allowed_id = str(uuid.uuid4())
 
             e.add_policy(
                 sub,
@@ -573,7 +572,7 @@ class TestItemsApis(unittest.TestCase):
             e.add_policy(sub, PUBLIC_DOMAIN, f"item:{category}:*", "read", "allow")
             e.add_policy(sub, PUBLIC_DOMAIN, f"item:{category}:*", "read", "deny")
 
-            other_id = ObjectId()
+            other_id = str(uuid.uuid4())
             self.vdb.items.insert_one(
                 {
                     "_id": other_id,
@@ -599,8 +598,8 @@ class TestItemsApis(unittest.TestCase):
             sub = u(str(self.user.id))
             e.add_policy(sub, PUBLIC_DOMAIN, f"item:{category}:*", "read", "allow")
 
-            denied_id = ObjectId()
-            allowed_id = ObjectId()
+            denied_id = str(uuid.uuid4())
+            allowed_id = str(uuid.uuid4())
             e.add_policy(
                 sub,
                 PUBLIC_DOMAIN,
@@ -636,7 +635,7 @@ class TestItemsApis(unittest.TestCase):
             dom = acl_user(self.user.id)
             e.add_policy(sub, dom, f"item:{category}:*", "read", "deny")
 
-            own_id = ObjectId()
+            own_id = str(uuid.uuid4())
             self.vdb.items.insert_one(
                 {
                     "_id": own_id,
@@ -662,8 +661,8 @@ class TestItemsApis(unittest.TestCase):
             sub = u(str(self.user.id))
             dom = acl_user(self.user.id)
 
-            denied_id = ObjectId()
-            allowed_id = ObjectId()
+            denied_id = str(uuid.uuid4())
+            allowed_id = str(uuid.uuid4())
             e.add_policy(
                 sub,
                 dom,
