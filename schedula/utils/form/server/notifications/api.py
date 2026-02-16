@@ -45,7 +45,7 @@ def list_my_notifications():
 
     cursor = mongo_find(coll, query).sort("created_at", -1).skip(offset).limit(limit)
     out = [{
-        "id": str(d["_id"]),
+        "id": d["_id"],
         "event": d["event"],
         "payload": d.get("payload", {}),
         "read_by": sorted(d.get("read_by", [])),
@@ -81,11 +81,11 @@ def create_watcher_api():
 
     watcher_id = create_watcher(
         user_id=sub,
-        event=payload.get("event"),
-        category=payload.get("category"),
-        object_id=payload.get("object_id"),
-        dom=payload.get("dom"),
-        channels=payload.get("channels"),
+        event=payload.get("event", "*"),
+        category=payload.get("category", "*"),
+        object_id=payload.get("object_id", "*"),
+        dom=payload.get("dom", "*"),
+        channels=payload["channels"],
         enabled=payload.get("enabled", True),
     )
     return jsonify({"id": watcher_id}), 200

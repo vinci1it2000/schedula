@@ -68,7 +68,7 @@ class Config:
         )
 
         self.CONTRACTS_ENABLED = (
-                os.environ.get("CONTRACTS_ENABLED", "true").lower() == "true"
+                os.environ.get("CONTRACTS_ENABLED", "false").lower() == "true"
         )
         self.CONTRACTS_ACTION_TYPES = os.environ.get("CONTRACTS_ACTION_TYPES", "noop")
 

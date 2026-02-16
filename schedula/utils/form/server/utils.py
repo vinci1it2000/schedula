@@ -323,6 +323,7 @@ def mongo_update_many(coll, *args, **kwargs):
 def mongo_delete_one(coll, *args, **kwargs):
     return coll.delete_one(*args, **kwargs)
 
+
 def mongo_delete_many(coll, *args, **kwargs):
     return coll.delete_many(*args, **kwargs)
 

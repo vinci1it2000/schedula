@@ -18,7 +18,7 @@ class Contracts:
         app.extensions = getattr(app, "extensions", {})
         defaults = {
             "CONTRACTS_ACTION_TYPES": "noop",
-            "CONTRACTS_ENABLED": True,
+            "CONTRACTS_ENABLED": False,
         }
         for k, v in defaults.items():
             app.config[k] = app.config.get(k, v)

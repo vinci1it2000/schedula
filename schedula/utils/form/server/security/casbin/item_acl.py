@@ -46,7 +46,7 @@ def set_item_public_read(*, item_doc: Dict, enabled: bool = True) -> bool:
     item_doc : Dict
         Item document containing at least:
           - "category": str
-          - "_id" or "id": str | ObjectId
+          - "_id" or "id": str
 
     enabled : bool, default True
         - True  -> make the item publicly readable
@@ -117,7 +117,7 @@ def authorize_item(*, sub: str, item_doc: Dict, act: str) -> bool:
         Required fields:
           - "category": str
               Logical item category (e.g. "invoice", "report").
-          - "_id" or "id": str | ObjectId
+          - "_id" or "id": str
               Unique item identifier.
           - "acl_dom": str
               Authorization domain for the item

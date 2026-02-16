@@ -22,7 +22,7 @@ Item Storage Service (files as dict, no sharing):
 FILES FORMAT (Mongo):
     "files": {
       "<name>": {
-        "id": "<file_id>",            # GridFS ObjectId string or S3 uuid
+        "id": "<file_id>",            # GridFS or S3 uuid
         "user_id": "u:<user_id>",       # owner (required)
         "content_type": "...",        # cache
         "size": <int>                 # cache
@@ -40,8 +40,8 @@ import uuid
 
 import gridfs
 from botocore.config import Config as BotoConfig
-from bson import ObjectId
 from flask import Blueprint, current_app, Response, stream_with_context
+
 from ..security.casbin import get_current_sub, authorize_item, ANON_USER
 from ..utils import abort_json, mongo_find_one, set_bp_error_handlers, get_mongo, config_get
 
@@ -217,6 +217,7 @@ def store_uploaded_file(file_name, storage, mongo_db, sub):
             filename=file_name,
             contentType=content_type,
             user_id=sub,
+            _id=str(uuid.uuid4()),
         )
 
         file_id_str = str(file_id)
@@ -224,7 +225,7 @@ def store_uploaded_file(file_name, storage, mongo_db, sub):
 
     else:
         s3, bucket, prefix = get_s3_client_and_bucket()
-        file_id_str = uuid.uuid4().hex
+        file_id_str = str(uuid.uuid4())
         key = f"{prefix}{file_id_str}" if prefix else file_id_str
 
         extra_args = {
@@ -260,7 +261,7 @@ def delete_files_meta(files_meta: dict, mongo_db):
 
                 fs = gridfs.GridFS(mongo_db)
             try:
-                fs.delete(ObjectId(fid))
+                fs.delete(fid)
             except Exception as exc:
                 logger.exception(
                     "Failed to delete GridFS file '%s' (name='%s'): %s", fid, name, exc
@@ -291,7 +292,7 @@ def download_file(item_id, file_name):
     try:
         item = mongo_find_one(
             mongo_db[config_get("ITEMS_COLLECTION", "items")],
-            {"_id": ObjectId(item_id)},
+            {"_id": item_id},
             {"category": 1, "acl_dom": 1, "files": 1},
         )
     except Exception:
@@ -316,7 +317,7 @@ def download_file(item_id, file_name):
     if backend == "gridfs":
         fs = gridfs.GridFS(mongo_db)
         try:
-            grid_out = fs.get(ObjectId(file_id_str))
+            grid_out = fs.get(file_id_str)
         except Exception:
             abort_json(404, "File not found")
 

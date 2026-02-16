@@ -41,7 +41,6 @@ from __future__ import annotations
 import re
 from typing import Dict, List, Set, Tuple
 
-from bson import ObjectId
 from flask import Blueprint, jsonify, request
 
 from . import normalize_category
@@ -69,15 +68,10 @@ set_bp_error_handlers(bp)
 
 
 def _load_item_or_404(category: str, item_id: str) -> Dict:
-    try:
-        oid = ObjectId(item_id)
-    except Exception:
-        abort_json(400, "Invalid item_id")
-
     coll = get_mongo(collection=config_get("ITEMS_COLLECTION", "items"))
 
     try:
-        doc = mongo_find_one(coll, {"_id": oid, "category": category})
+        doc = mongo_find_one(coll, {"_id": item_id, "category": category})
     except Exception:
         abort_json(500, "Database error")
 

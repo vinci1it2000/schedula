@@ -114,11 +114,11 @@ def get_readers(*, item_doc: Dict[str, Any]) -> Set[str]:
 
 
 def notify_item_event(
-    *,
-    event: str,
-    item_doc: Dict[str, Any],
-    created_by: Optional[str],
-    payload: Optional[Dict[str, Any]] = None,
+        *,
+        event: str,
+        item_doc: Dict[str, Any],
+        created_by: Optional[str],
+        payload: Optional[Dict[str, Any]] = None,
 ) -> None:
     """Dispatch item notifications based on Casbin policies.
 
@@ -230,8 +230,8 @@ def _normalize_persist(v: Optional[object], channels: Set[str]) -> bool:
 
 
 def _render_by_target_channel(
-    doc: Dict[str, Any],
-    targets: Dict[str, List[str]],
+        doc: Dict[str, Any],
+        targets: Dict[str, List[str]],
 ) -> Dict[str, Dict[str, Dict[str, str]]]:
     return {
         target: {
@@ -247,13 +247,13 @@ def _render_by_target_channel(
 
 
 def create_notification(
-    event: str,
-    targets: Dict[str, List[str]],
-    created_by: Optional[str] = None,
-    payload: Optional[Dict[str, Any]] = None,
-    severity: str = "info",
-    persist: Optional[object] = None,
-    sender_principal: Optional[str] = None,
+        event: str,
+        targets: Dict[str, List[str]],
+        created_by: Optional[str] = None,
+        payload: Optional[Dict[str, Any]] = None,
+        severity: str = "info",
+        persist: Optional[object] = None,
+        sender_principal: Optional[str] = None,
 ) -> str:
     """Create a notification.
 

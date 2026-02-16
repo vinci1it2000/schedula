@@ -56,6 +56,7 @@ POST /admin/item-schema/<category>/versions/<version>/disable
 from __future__ import annotations
 
 import re
+import uuid
 from typing import Any, Dict, List, Optional, Tuple, Set
 
 from flask import Blueprint, jsonify, request
@@ -340,6 +341,7 @@ def create_draft(category: str):
 
     now = now_utc()
     doc = {
+        "_id": str(uuid.uuid4()),
         "category": category,
         "version": version,
         "status": "draft",

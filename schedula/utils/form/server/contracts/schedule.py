@@ -32,7 +32,7 @@ def _cron_slot(now_dt: datetime) -> str:
 
 
 def _expand_cron_field(
-    field: str, min_v: int, max_v: int, *, allow_7_as_0: bool = False
+        field: str, min_v: int, max_v: int, *, allow_7_as_0: bool = False
 ) -> List[int]:
     values: set[int] = set()
     for chunk in field.split(","):

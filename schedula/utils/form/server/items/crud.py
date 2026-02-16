@@ -42,12 +42,11 @@ Operational notes:
 - The ACL domain set used in `$in` should remain reasonably bounded; otherwise consider alternative
   indexing/materialization strategies (e.g., grants_ref, per-domain partitioning, etc.).
 """
-
 import json
+import uuid
 from typing import Dict, Set, Tuple
 
 import schedula as sh
-from bson import ObjectId
 from flask import request, jsonify, Blueprint
 from flask_security import current_user as cu
 
@@ -207,7 +206,7 @@ def build_listing_filter(category: str, sub: str, mode: str) -> Dict:
     else:
         if allow_public_ids:
             allowed_filters.append(
-                {"_id": {"$in": list(map(ObjectId, sorted(allow_public_ids)))}}
+                {"_id": {"$in": sorted(allow_public_ids)}}
             )
         if allow_domain_all:
             allowed_filters.append({"acl_dom": {"$in": sorted(allow_domain_all)}})
@@ -216,7 +215,7 @@ def build_listing_filter(category: str, sub: str, mode: str) -> Dict:
                 {
                     "$and": [
                         {"acl_dom": dom},
-                        {"_id": {"$in": list(map(ObjectId, sorted(ids)))}},
+                        {"_id": {"$in": sorted(ids)}},
                     ]
                 }
             )
@@ -227,7 +226,7 @@ def build_listing_filter(category: str, sub: str, mode: str) -> Dict:
     deny_filters = []
     if deny_public_ids:
         deny_filters.append(
-            {"_id": {"$in": list(map(ObjectId, sorted(deny_public_ids)))}}
+            {"_id": {"$in": sorted(deny_public_ids)}}
         )
     if deny_domain_all:
         deny_filters.append({"acl_dom": {"$in": sorted(deny_domain_all)}})
@@ -236,7 +235,7 @@ def build_listing_filter(category: str, sub: str, mode: str) -> Dict:
             {
                 "$and": [
                     {"acl_dom": dom},
-                    {"_id": {"$in": list(map(ObjectId, sorted(ids)))}},
+                    {"_id": {"$in": sorted(ids)}},
                 ]
             }
         )
@@ -622,6 +621,7 @@ def item_create(category):
     now = now_utc()
 
     doc = {
+        "_id": str(uuid.uuid4()),
         "category": category,
         "data": data,
         "files": files_meta,

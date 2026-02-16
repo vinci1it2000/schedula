@@ -7,10 +7,9 @@
 
 from __future__ import annotations
 
+import uuid
 from datetime import timedelta
 from typing import Any, Dict, List, Optional, cast
-
-from bson import ObjectId
 
 from ..utils import (
     mongo_count_documents,
@@ -286,6 +285,8 @@ def create_rule(payload: Dict[str, Any]) -> str:
         collection=config_get("NOTIF_SETTINGS_COLLECTION", "notification_settings")
     )
     doc = dict(payload or {})
+    if "_id" not in doc:
+        doc["_id"] = str(uuid.uuid4())
     if "enabled" not in doc:
         doc["enabled"] = True
     res = mongo_insert_one(coll, doc)
@@ -332,8 +333,6 @@ def count_rules(
 
 def update_rule(rule_id: str, patch: Dict[str, Any]) -> bool:
     """Patch a settings rule by id."""
-    if not ObjectId.is_valid(rule_id):
-        return False
     coll = get_mongo(
         collection=config_get("NOTIF_SETTINGS_COLLECTION", "notification_settings")
     )
@@ -341,18 +340,17 @@ def update_rule(rule_id: str, patch: Dict[str, Any]) -> bool:
     doc.pop("_id", None)
     if not doc:
         return False
-    res = mongo_update_one(coll, {"_id": ObjectId(rule_id)}, {"$set": doc})
+    res = mongo_update_one(coll, {"_id": rule_id}, {"$set": doc})
     return res.matched_count > 0
 
 
 def delete_rule(rule_id: str) -> bool:
     """Delete a settings rule by id."""
-    if not ObjectId.is_valid(rule_id):
-        return False
+
     coll = get_mongo(
         collection=config_get("NOTIF_SETTINGS_COLLECTION", "notification_settings")
     )
-    res = mongo_delete_one(coll, {"_id": ObjectId(rule_id)})
+    res = mongo_delete_one(coll, {"_id": rule_id})
     return res.deleted_count > 0
 
 
@@ -372,6 +370,7 @@ def create_watcher(
     )
 
     doc = {
+        "_id": str(uuid.uuid4()),
         "user_id": user_id,
         "event": event,
         "category": category,
@@ -421,7 +420,6 @@ def update_watcher(
     coll = get_mongo(
         collection=config_get("NOTIF_WATCHERS_COLLECTION", "notification_watchers")
     )
-    oid = ObjectId(watcher_id)
 
     update: Dict[str, Any] = {}
     for key in ("event", "category", "object_id", "dom"):
@@ -435,7 +433,7 @@ def update_watcher(
     if not update:
         return False
 
-    res = mongo_update_one(coll, {"_id": oid, "user_id": user_id}, {"$set": update})
+    res = mongo_update_one(coll, {"_id": watcher_id, "user_id": user_id}, {"$set": update})
     return bool(res.matched_count)
 
 
@@ -444,8 +442,7 @@ def delete_watcher(*, watcher_id: str, user_id: str) -> bool:
     coll = get_mongo(
         collection=config_get("NOTIF_WATCHERS_COLLECTION", "notification_watchers")
     )
-    oid = ObjectId(watcher_id)
-    res = mongo_delete_one(coll, {"_id": oid, "user_id": user_id})
+    res = mongo_delete_one(coll, {"_id": watcher_id, "user_id": user_id})
     return bool(res.deleted_count)
 
 
@@ -469,11 +466,7 @@ def list_templates(
         .skip(int(offset))
         .limit(int(limit))
     )
-    out = []
-    for d in cur:
-        d["_id"] = str(d.get("_id"))
-        out.append(d)
-    return out
+    return list(cur)
 
 
 def count_templates(event: Optional[str] = None) -> int:
@@ -496,7 +489,6 @@ def get_template(template_id: str) -> Optional[Dict[str, Any]]:
     d = mongo_find_one(coll, {"_id": template_id})
     if not d:
         return None
-    d["_id"] = str(d.get("_id"))
     return d
 
 
@@ -510,10 +502,8 @@ def get_template_for_event(event: str) -> Optional[Dict[str, Any]]:
         {"event": event, "enabled": {"$ne": False}},
         sort=[("updated_at", -1)],
     )
-    if not d:
-        return None
-    d["_id"] = str(d.get("_id"))
-    return d
+    if d:
+        return d
 
 
 def upsert_template(template_id: str, doc: Dict[str, Any]) -> None:

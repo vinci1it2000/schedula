@@ -302,7 +302,7 @@ def _apply_effect_step(
         for k, v in items.items():
             item = dict(base_item)
             item.update(v)
-            local[k] = mongo_insert_one(coll, item).inserted_id
+            local[k] = str(mongo_insert_one(coll, item).inserted_id)
     elif ef_type == "update.item":
         coll = get_mongo(collection=config_get("ITEMS_COLLECTION", "items"))
         now = now_utc()
