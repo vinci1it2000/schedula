@@ -490,6 +490,13 @@
             {
               "title": "Load Rider Join Route",
               "description": "Loads the rider route from payload to evaluate join feasibility in onboarding.",
+              "type": "get.item",
+              "item_id": "$$ctx.payload.route_id",
+              "key": "join_route_item"
+            },
+            {
+              "title": "Build Join Route Snapshot",
+              "description": "Builds local route snapshot from loaded route item.",
               "type": "update.contract",
               "update": {
                 "$set": {
@@ -497,27 +504,19 @@
                     "id": "$$ctx.payload.route_id",
                     "cost": {
                       "$ifNull": [
-                        {
-                          "$ref": "/items/route/$$ctx.payload.route_id/data.cost"
-                        },
+                        "$local.join_route_item.data.cost",
                         0
                       ]
                     },
                     "seats": {
                       "$ifNull": [
-                        {
-                          "$ref": "/items/route/$$ctx.payload.route_id/data.seats"
-                        },
+                        "$local.join_route_item.data.seats",
                         1
                       ]
                     },
                     "trip": {
-                      "origin": {
-                        "$ref": "/items/route/$$ctx.payload.route_id/data.origin"
-                      },
-                      "destination": {
-                        "$ref": "/items/route/$$ctx.payload.route_id/data.destination"
-                      }
+                      "origin": "$local.join_route_item.data.origin",
+                      "destination": "$local.join_route_item.data.destination"
                     }
                   }
                 }
@@ -3861,7 +3860,7 @@
             },
             {
               "title": "Adjust Occupancy If Accepted",
-              "description": "Subtracts seats when an accepted rider cancels during recruiting.",
+              "description": "Subtracts seats when an accepted rider cancels during onboarding.",
               "type": "if.else",
               "condition": {
                 "$ctx": "doc.local.is_target_accepted"
@@ -4010,7 +4009,7 @@
             },
             {
               "title": "Mark User Cancelled",
-              "description": "Marks user as cancelled and removes rider context from recruiting roster.",
+              "description": "Marks user as cancelled and removes rider context from onboarding roster.",
               "type": "update.contract",
               "update": [
                 {
@@ -4027,7 +4026,7 @@
             },
             {
               "title": "Notify Driver",
-              "description": "Notifies driver when user cancels ride during recruiting.",
+              "description": "Notifies driver when user cancels ride during onboarding.",
               "type": "notify",
               "notify": {
                 "event": "contracts.user_cancelled",
@@ -4552,18 +4551,18 @@
           "trigger": [
             {
               "type": "api",
-              "path": "set-recruiting",
+              "path": "set-onboarding",
               "method": "POST",
               "response": {
                 "ok": true,
-                "event": "set_recruiting"
+                "event": "set_onboarding"
               }
             }
           ],
           "effects": [
             {
               "title": "Move State",
-              "description": "Moves the contract state to support reopen recruiting after ready.",
+              "description": "Moves the contract state to support reopen onboarding after ready.",
               "type": "update.contract",
               "update": {
                 "$set": {

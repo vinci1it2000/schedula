@@ -411,6 +411,16 @@ class ContractsE2ETest(unittest.TestCase):
                 )
             )
 
+    def _wallet_balance(self, actor: str, product: str = "coin") -> float:
+        with self.app.app_context():
+            from schedula.utils.form.server.credits import get_wallet
+
+            wallet = get_wallet(self.user_ids[actor])
+            bal = wallet.balance(product=product, session=_db.session)
+            if isinstance(bal, dict):
+                return float(bal.get(product, 0) or 0)
+            return float(bal or 0)
+
     def _list_notifications(self, actor: str) -> List[Dict[str, Any]]:
         resp = self.httpx.get("/notification", headers=self._headers(actor))
         self.assertEqual(resp.status_code, 200, msg=resp.text)
@@ -855,6 +865,33 @@ class ContractsE2ETest(unittest.TestCase):
         p4_route_over_seats = self._create_route("p4", cost=10, seats=9)
         d1_route_id = self._create_route("d1")
 
+        p2_balance_before = self._wallet_balance("p2")
+        p3_balance_before = self._wallet_balance("p3")
+        p4_balance_before = self._wallet_balance("p4")
+
+        d1_principal = f"u:{self.user_ids['d1']}"
+        p2_invite_before = self._count_notifications_for(
+            p2_principal, "contracts.user_invited"
+        )
+        p3_invite_before = self._count_notifications_for(
+            f"u:{self.user_ids['p3']}", "contracts.user_invited"
+        )
+        p3_cancel_invite_before = self._count_notifications_for(
+            f"u:{self.user_ids['p3']}", "contracts.driver_cancelled_invite"
+        )
+        d1_join_requested_before = self._count_notifications_for(
+            d1_principal, "contracts.join_requested"
+        )
+        d1_user_rejected_before = self._count_notifications_for(
+            d1_principal, "contracts.user_rejected"
+        )
+        d1_user_cancelled_before = self._count_notifications_for(
+            d1_principal, "contracts.user_cancelled"
+        )
+        p2_driver_rejected_before = self._count_notifications_for(
+            p2_principal, "contracts.user_rejected_by_driver"
+        )
+
         created_a = self._create_contract(
             template_id,
             self._gherkin_context_for("d1", ["p1"]),
@@ -874,6 +911,61 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(
             self._user_state(contract_a_doc, self.user_ids["p1"]), "REQUESTING"
         )
+
+        # Input and lookup validation errors.
+        missing_route_id = str(uuid.uuid4())
+        missing_join = self._post_event(
+            contract_a,
+            "request-join",
+            actor="p4",
+            payload={"route_id": missing_route_id},
+        )
+        self.assertEqual(missing_join.status_code, 404)
+        self.assertEqual(self._wallet_balance("p4"), p4_balance_before)
+
+        missing_invite = self._post_event(
+            contract_a,
+            "invite-user",
+            actor="d1",
+            payload={"route_id": missing_route_id},
+        )
+        self.assertEqual(missing_invite.status_code, 404)
+        self.assertEqual(self._wallet_balance("p2"), p2_balance_before)
+
+        missing_cancel_invite = self._post_event(
+            contract_a,
+            "driver-cancel-invite-user",
+            actor="d1",
+            payload={"route_id": missing_route_id},
+        )
+        self.assertEqual(missing_cancel_invite.status_code, 404)
+
+        bad_invite_payload = self.httpx.post(
+            f"/contracts/{contract_a}/event/invite-user",
+            json={},
+            headers=self._headers("d1"),
+        )
+        self.assertIn(bad_invite_payload.status_code, (409, 422))
+
+        bad_cancel_invite_payload = self.httpx.post(
+            f"/contracts/{contract_a}/event/driver-cancel-invite-user",
+            json={},
+            headers=self._headers("d1"),
+        )
+        self.assertIn(bad_cancel_invite_payload.status_code, (409, 422))
+
+        bad_reject_payload = self.httpx.post(
+            f"/contracts/{contract_a}/event/driver-reject-user",
+            json={"principal": "bad-principal"},
+            headers=self._headers("d1"),
+        )
+        self.assertIn(bad_reject_payload.status_code, (409, 422))
+
+        # State-gated errors for rider actions.
+        non_pending_accept = self._post_event(contract_a, "accept-user", actor="p4")
+        self.assertIn(non_pending_accept.status_code, (403, 409))
+        non_pending_reject = self._post_event(contract_a, "reject-user", actor="p4")
+        self.assertIn(non_pending_reject.status_code, (403, 409))
 
         # Negative: accept-start with non-requesting rider.
         bad_accept = self._post_event(
@@ -912,6 +1004,11 @@ class ContractsE2ETest(unittest.TestCase):
         )
         self.assertEqual(good_join.status_code, 200)
         self.assertTrue(good_join.json().get("ok"))
+        self.assertEqual(self._wallet_balance("p4"), p4_balance_before - 10)
+        p4_route_after_join = self._get_route("p4", p4_route_id)
+        p4_route_data_after_join = p4_route_after_join.get("data") or {}
+        self.assertEqual(p4_route_data_after_join.get("reserved_credits"), 10)
+        self.assertIn(contract_req, p4_route_data_after_join.get("contract_ids") or [])
 
         join_p3 = self._post_event(contract_req, "request-join", actor="p3")
         self.assertEqual(join_p3.status_code, 200)
@@ -919,6 +1016,16 @@ class ContractsE2ETest(unittest.TestCase):
         cancel_p3 = self._post_event(contract_req, "cancel-join-request", actor="p3")
         self.assertEqual(cancel_p3.status_code, 200)
         self.assertTrue(cancel_p3.json().get("ok"))
+        p3_route_after_cancel_join = self._get_route("p3", p3_route_id)
+        p3_route_data_after_cancel_join = p3_route_after_cancel_join.get("data") or {}
+        self.assertEqual(
+            p3_route_data_after_cancel_join.get("reserved_credits") or 0, 0
+        )
+        self.assertEqual(p3_route_data_after_cancel_join.get("contract_ids") or [], [])
+        self.assertEqual(
+            self._count_notifications_for(d1_principal, "contracts.join_requested"),
+            d1_join_requested_before + 2,
+        )
 
         # invite-user negatives.
         bad_invite_self = self._post_event(
@@ -938,6 +1045,7 @@ class ContractsE2ETest(unittest.TestCase):
         )
         self.assertEqual(bad_invite_low_credits.status_code, 200)
         self.assertFalse(bad_invite_low_credits.json().get("ok"))
+        self.assertEqual(self._wallet_balance("p2"), p2_balance_before)
 
         bad_invite_over_seats = self._post_event(
             contract_a,
@@ -947,6 +1055,7 @@ class ContractsE2ETest(unittest.TestCase):
         )
         self.assertEqual(bad_invite_over_seats.status_code, 200)
         self.assertFalse(bad_invite_over_seats.json().get("ok"))
+        self.assertEqual(self._wallet_balance("p2"), p2_balance_before)
 
         # invite-user positives + driver-cancel-invite-user + reject-user.
         invite_p2 = self._post_event(
@@ -957,6 +1066,15 @@ class ContractsE2ETest(unittest.TestCase):
         )
         self.assertEqual(invite_p2.status_code, 200)
         self.assertTrue(invite_p2.json().get("ok"))
+        self.assertEqual(self._wallet_balance("p2"), p2_balance_before - 10)
+        p2_route_after_invite = self._get_route("p2", p2_route_id)
+        p2_route_data_after_invite = p2_route_after_invite.get("data") or {}
+        self.assertEqual(p2_route_data_after_invite.get("reserved_credits"), 10)
+        self.assertIn(contract_a, p2_route_data_after_invite.get("contract_ids") or [])
+        self.assertEqual(
+            self._count_notifications_for(p2_principal, "contracts.user_invited"),
+            p2_invite_before + 1,
+        )
 
         invite_p3 = self._post_event(
             contract_a,
@@ -966,6 +1084,13 @@ class ContractsE2ETest(unittest.TestCase):
         )
         self.assertEqual(invite_p3.status_code, 200)
         self.assertTrue(invite_p3.json().get("ok"))
+        self.assertEqual(self._wallet_balance("p3"), p3_balance_before - 10)
+        self.assertEqual(
+            self._count_notifications_for(
+                f"u:{self.user_ids['p3']}", "contracts.user_invited"
+            ),
+            p3_invite_before + 1,
+        )
 
         cancel_invite_p3 = self._post_event(
             contract_a,
@@ -975,6 +1100,23 @@ class ContractsE2ETest(unittest.TestCase):
         )
         self.assertEqual(cancel_invite_p3.status_code, 200)
         self.assertTrue(cancel_invite_p3.json().get("ok"))
+        self.assertEqual(self._wallet_balance("p3"), p3_balance_before)
+        p3_route_after_cancel_invite = self._get_route("p3", p3_route_id)
+        p3_route_data_after_cancel_invite = (
+            p3_route_after_cancel_invite.get("data") or {}
+        )
+        self.assertEqual(
+            p3_route_data_after_cancel_invite.get("reserved_credits") or 0, 0
+        )
+        self.assertEqual(
+            p3_route_data_after_cancel_invite.get("contract_ids") or [], []
+        )
+        self.assertEqual(
+            self._count_notifications_for(
+                f"u:{self.user_ids['p3']}", "contracts.driver_cancelled_invite"
+            ),
+            p3_cancel_invite_before + 1,
+        )
 
         invite_p3_again = self._post_event(
             contract_a,
@@ -984,9 +1126,24 @@ class ContractsE2ETest(unittest.TestCase):
         )
         self.assertEqual(invite_p3_again.status_code, 200)
         self.assertTrue(invite_p3_again.json().get("ok"))
+        self.assertEqual(self._wallet_balance("p3"), p3_balance_before - 10)
+        self.assertEqual(
+            self._count_notifications_for(
+                f"u:{self.user_ids['p3']}", "contracts.user_invited"
+            ),
+            p3_invite_before + 2,
+        )
         reject_invite_p3 = self._post_event(contract_a, "reject-user", actor="p3")
         self.assertEqual(reject_invite_p3.status_code, 200)
         self.assertTrue(reject_invite_p3.json().get("ok"))
+        self.assertEqual(self._wallet_balance("p3"), p3_balance_before)
+        p3_route_after_reject = self._get_route("p3", p3_route_id)
+        p3_route_data_after_reject = p3_route_after_reject.get("data") or {}
+        self.assertEqual(p3_route_data_after_reject.get("contract_ids") or [], [])
+        self.assertEqual(
+            self._count_notifications_for(d1_principal, "contracts.user_rejected"),
+            d1_user_rejected_before + 1,
+        )
 
         # Competitor contract used to verify pruning after user accept on contract A.
         created_c = self._create_contract(
@@ -1007,6 +1164,13 @@ class ContractsE2ETest(unittest.TestCase):
         accept_invite_p2 = self._post_event(contract_a, "accept-user", actor="p2")
         self.assertEqual(accept_invite_p2.status_code, 200)
         self.assertTrue(accept_invite_p2.json().get("ok"))
+        p2_route_after_accept = self._get_route("p2", p2_route_id)
+        p2_route_data_after_accept = p2_route_after_accept.get("data") or {}
+        self.assertEqual(p2_route_data_after_accept.get("reserved_credits"), 10)
+        self.assertEqual(
+            p2_route_data_after_accept.get("contract_ids") or [],
+            [contract_a],
+        )
 
         contract_c_doc = self.httpx.get(
             f"/contracts/{contract_c}", headers=self._headers("owner-1")
@@ -1028,10 +1192,29 @@ class ContractsE2ETest(unittest.TestCase):
         )
         self.assertEqual(driver_remove_p2.status_code, 200)
         self.assertTrue(driver_remove_p2.json().get("ok"))
+        self.assertEqual(self._wallet_balance("p2"), p2_balance_before - 10)
+        p2_route_after_driver_reject = self._get_route("p2", p2_route_id)
+        p2_route_data_after_driver_reject = (
+            p2_route_after_driver_reject.get("data") or {}
+        )
+        self.assertEqual(
+            p2_route_data_after_driver_reject.get("contract_ids") or [], []
+        )
+        self.assertEqual(p2_route_data_after_driver_reject.get("reserved_credits"), 10)
+        self.assertEqual(
+            self._count_notifications_for(
+                p2_principal, "contracts.user_rejected_by_driver"
+            ),
+            p2_driver_rejected_before + 1,
+        )
 
         rider_cancel_p1 = self._post_event(contract_a, "cancel-user", actor="p1")
         self.assertEqual(rider_cancel_p1.status_code, 200)
         self.assertTrue(rider_cancel_p1.json().get("ok"))
+        self.assertEqual(
+            self._count_notifications_for(d1_principal, "contracts.user_cancelled"),
+            d1_user_cancelled_before + 1,
+        )
 
         contract_a_doc = self.httpx.get(
             f"/contracts/{contract_a}", headers=self._headers("owner-1")

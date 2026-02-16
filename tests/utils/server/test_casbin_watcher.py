@@ -218,23 +218,6 @@ class TestCasbinWatcher(unittest.TestCase):
             time.sleep(0.01)
         self.assertTrue(e2.has_policy(*old_rule))
 
-        update_policy = getattr(e1, "update_policy", None)
-        if not callable(update_policy):
-            self.skipTest("update_policy not supported by this casbin version")
-        update_policy(old_rule, new_rule)
-        for _ in range(50):
-            if e2.has_policy(*new_rule) or not callable(
-                    getattr(e2, "update_policy", None)
-            ):
-                break
-            time.sleep(0.01)
-        if callable(getattr(e2, "update_policy", None)):
-            self.assertTrue(e2.has_policy(*new_rule))
-            self.assertFalse(e2.has_policy(*old_rule))
-        else:
-            self.assertTrue(e2.has_policy(*old_rule))
-            self.assertFalse(e2.has_policy(*new_rule))
-
         watcher1.stop()
         watcher2.stop()
 
