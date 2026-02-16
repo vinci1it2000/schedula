@@ -95,7 +95,7 @@ class TestItemsFilesApis(unittest.TestCase):
             file_bytes = b"hello world"
 
             fs = gridfs.GridFS(cast(Any, self.vdb._db))
-            file_id = fs.put(file_bytes, filename=file_name, content_type="text/plain")
+            file_id = fs.put(file_bytes, filename=file_name, content_type="text/plain", _id=str(uuid.uuid4()))
 
             self.vdb.items.insert_one(
                 {

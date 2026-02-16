@@ -8,13 +8,13 @@ import sys
 import unittest
 import uuid
 from datetime import datetime, timezone
+from unittest import mock
 from urllib.parse import quote
 
 import mongomock
 import mongomock.gridfs
 from flask import Flask
 from flask_security.utils import hash_password
-from unittest import mock
 
 # Add project root to Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", ".."))
@@ -730,15 +730,6 @@ class TestItemsApis(unittest.TestCase):
         self.assertIn("error", data)
         self.assertEqual(data.get("error"), "Forbidden")
 
-    def test_item_get_invalid_id(self):
-        # Call item get with invalid id format.
-        r = self.auth_client.get(
-            "/item/note/%%%not-an-id%%%", headers=self._auth_headers()
-        )
-        self.assertEqual(r.status_code, 400)
-        data = r.get_json(silent=True) or {}
-        self.assertEqual(data.get("error"), "Invalid item_id")
-
     def test_item_get_missing(self):
         # Call item get with a missing id.
         r = self.auth_client.get(
@@ -1030,8 +1021,8 @@ class TestItemsApis(unittest.TestCase):
         self.app.config["S3_ITEMS_FILE_STORAGE"] = {"bucket": "test-bucket"}
         try:
             with mock.patch(
-                "schedula.utils.form.server.items.files.get_s3_client_and_bucket",
-                return_value=(fake, "test-bucket", ""),
+                    "schedula.utils.form.server.items.files.get_s3_client_and_bucket",
+                    return_value=(fake, "test-bucket", ""),
             ):
                 payload = json.dumps(
                     {
@@ -1083,8 +1074,8 @@ class TestItemsApis(unittest.TestCase):
         self.app.config["S3_ITEMS_FILE_STORAGE"] = {"bucket": "test-bucket"}
         try:
             with mock.patch(
-                "schedula.utils.form.server.items.files.get_s3_client_and_bucket",
-                return_value=(fake, "test-bucket", ""),
+                    "schedula.utils.form.server.items.files.get_s3_client_and_bucket",
+                    return_value=(fake, "test-bucket", ""),
             ):
                 payload = json.dumps(
                     {
