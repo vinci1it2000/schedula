@@ -534,7 +534,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                         "$local.route.seats",
                                                     ]
                                                 },
-                                                "$context.capacity",
+                                                "$context.driver_route.capacity",
                                             ]
                                         },
                                     }
@@ -920,7 +920,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                                 },
                                                             ]
                                                         },
-                                                        "$context.capacity",
+                                                        "$context.driver_route.capacity",
                                                     ]
                                                 },
                                             ]
@@ -1217,7 +1217,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                                                     "$subtract": [
                                                                                         {
                                                                                             "$ifNull": [
-                                                                                                "$context.capacity",
+                                                                                                "$context.driver_route.capacity",
                                                                                                 0,
                                                                                             ]
                                                                                         },
@@ -1845,7 +1845,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                         },
                                                         "PENDING_DRIVER",
                                                     ]
-                                                }
+                                                },
                                             }
                                         },
                                     },
@@ -2060,8 +2060,8 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                         ]
                                                     },
                                                 }
-                                            }]
-                                        ,
+                                            },
+                                        ],
                                     },
                                     {
                                         "title": "Reset Route Hold",
@@ -2093,7 +2093,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                 "update": {
                                                     "$set": {"data.reserved_credits": 0}
                                                 },
-                                            }
+                                            },
                                         ],
                                     },
                                     {
@@ -2104,7 +2104,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                             {
                                                 "$unset": [
                                                     "states.$$ctx.doc.local.cancel_invite_principal",
-                                                    "context.riders.$$ctx.doc.local.cancel_invite_principal"
+                                                    "context.riders.$$ctx.doc.local.cancel_invite_principal",
                                                 ]
                                             },
                                         ],
@@ -2138,31 +2138,40 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "method": "POST",
                                 "allow_user_states": ["PENDING"],
                                 "response": {
-                                    "ok": True,
+                                    "ok": {"$ctx": "doc.local.can_accept_invite"},
                                     "event": "accept_user",
                                 },
                             }
                         ],
                         "effects": [
                             {
-                                "title": "Accept Pending Invite",
-                                "description": "Marks invited rider as accepted and updates seat occupancy in START.",
+                                "title": "Validate Invite Acceptance",
+                                "description": "Validates pending state and remaining capacity before accepting invite.",
                                 "type": "update.contract",
                                 "update": {
                                     "$set": {
-                                        "states.$$ctx.user": "ACCEPTED",
-                                        "context.accepted_seats_total": {
-                                            "$add": [
+                                        "local.can_accept_invite": {
+                                            "$lte": [
                                                 {
-                                                    "$ifNull": [
-                                                        "$context.accepted_seats_total",
-                                                        0,
+                                                    "$add": [
+                                                        {
+                                                            "$ifNull": [
+                                                                "$context.accepted_seats_total",
+                                                                0,
+                                                            ]
+                                                        },
+                                                        {
+                                                            "$ifNull": [
+                                                                "$context.riders.$$ctx.user.seats",
+                                                                1,
+                                                            ]
+                                                        },
                                                     ]
                                                 },
                                                 {
                                                     "$ifNull": [
-                                                        "$context.riders.$$ctx.user.seats",
-                                                        1,
+                                                        "$context.driver_route.capacity",
+                                                        0,
                                                     ]
                                                 },
                                             ]
@@ -2171,33 +2180,290 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 },
                             },
                             {
-                                "title": "Confirm Driver If Needed",
-                                "description": "Promotes driver to DRIVER if still pending while first invite is accepted.",
+                                "title": "Apply Invite Acceptance",
+                                "description": "Applies acceptance side effects only when invite acceptance is still feasible.",
                                 "type": "if.else",
-                                "condition": {
-                                    "$eq": [
-                                        {"$ctx": "doc.states.$$ctx.doc.context.driver"},
-                                        "PENDING_DRIVER",
-                                    ]
-                                },
+                                "condition": {"$ctx": "doc.local.can_accept_invite"},
                                 "then_effects": [
                                     {
-                                        "title": "Set Driver As Confirmed",
-                                        "description": "Marks driver as DRIVER when invite acceptance confirms trip progression.",
+                                        "title": "Set Rider Accepted",
+                                        "description": "Marks rider as accepted and increments occupied seats.",
                                         "type": "update.contract",
                                         "update": {
                                             "$set": {
-                                                "states.$$ctx.doc.context.driver": "DRIVER"
+                                                "states.$$ctx.user": "ACCEPTED",
+                                                "context.accepted_seats_total": {
+                                                    "$add": [
+                                                        {
+                                                            "$ifNull": [
+                                                                "$context.accepted_seats_total",
+                                                                0,
+                                                            ]
+                                                        },
+                                                        {
+                                                            "$ifNull": [
+                                                                "$context.riders.$$ctx.user.seats",
+                                                                1,
+                                                            ]
+                                                        },
+                                                    ]
+                                                },
                                             }
                                         },
-                                    }
+                                    },
+                                    {
+                                        "title": "Load Accepted Rider Route",
+                                        "description": "Loads accepted rider route to remove rider from competing contracts.",
+                                        "type": "get.item",
+                                        "item_id": {
+                                            "$ctx": "doc.context.riders.$$ctx.user.id"
+                                        },
+                                        "key": "accepted_invite_route",
+                                    },
+                                    {
+                                        "title": "Confirm Winning Contract Link",
+                                        "description": "Keeps only current contract linked on the accepted rider route item.",
+                                        "type": "update.item",
+                                        "item_id": {
+                                            "$ctx": "doc.context.riders.$$ctx.user.id"
+                                        },
+                                        "update": {
+                                            "$set": {
+                                                "data.contract_ids": [
+                                                    {"$ctx": "doc._id"}
+                                                ]
+                                            }
+                                        },
+                                    },
+                                    {
+                                        "title": "Compute Over-Capacity Riders",
+                                        "description": "Finds pending or requesting riders that no longer fit remaining capacity after invite acceptance.",
+                                        "type": "update.contract",
+                                        "update": {
+                                            "$set": {
+                                                "local.over_capacity_principals": {
+                                                    "$map": {
+                                                        "input": {
+                                                            "$filter": {
+                                                                "input": {
+                                                                    "$objectToArray": "$states"
+                                                                },
+                                                                "as": "kv",
+                                                                "cond": {
+                                                                    "$and": [
+                                                                        {
+                                                                            "$ne": [
+                                                                                "$$kv.k",
+                                                                                "$$ctx.user",
+                                                                            ]
+                                                                        },
+                                                                        {
+                                                                            "$in": [
+                                                                                "$$kv.v",
+                                                                                [
+                                                                                    "REQUESTING",
+                                                                                    "PENDING",
+                                                                                ],
+                                                                            ]
+                                                                        },
+                                                                        {
+                                                                            "$gt": [
+                                                                                {
+                                                                                    "$ifNull": [
+                                                                                        {
+                                                                                            "$getField": {
+                                                                                                "field": "seats",
+                                                                                                "input": {
+                                                                                                    "$getField": {
+                                                                                                        "field": "$$kv.k",
+                                                                                                        "input": {
+                                                                                                            "$ifNull": [
+                                                                                                                "$context.riders",
+                                                                                                                {}
+                                                                                                            ]
+                                                                                                        }
+                                                                                                    }
+                                                                                                }
+                                                                                            }
+                                                                                        },
+                                                                                        1
+                                                                                    ]
+                                                                                },
+                                                                                {
+                                                                                    "$max": [
+                                                                                        {
+                                                                                            "$subtract": [
+                                                                                                {
+                                                                                                    "$ifNull": [
+                                                                                                        "$context.driver_route.capacity",
+                                                                                                        0,
+                                                                                                    ]
+                                                                                                },
+                                                                                                {
+                                                                                                    "$ifNull": [
+                                                                                                        "$context.accepted_seats_total",
+                                                                                                        0,
+                                                                                                    ]
+                                                                                                },
+                                                                                            ]
+                                                                                        },
+                                                                                        0,
+                                                                                    ]
+                                                                                },
+                                                                            ]
+                                                                        },
+                                                                    ]
+                                                                },
+                                                            }
+                                                        },
+                                                        "as": "kv",
+                                                        "in": "$$kv.k",
+                                                    }
+                                                }
+                                            }
+                                        },
+                                    },
+                                    {
+                                        "title": "Prepare Over-Capacity Targets",
+                                        "description": "Builds notification targets for riders removed by capacity constraints.",
+                                        "type": "update.contract",
+                                        "update": {
+                                            "$set": {
+                                                "local.over_capacity_targets": {
+                                                    "$arrayToObject": {
+                                                        "$map": {
+                                                            "input": {
+                                                                "$ifNull": [
+                                                                    "$local.over_capacity_principals",
+                                                                    [],
+                                                                ]
+                                                            },
+                                                            "as": "principal",
+                                                            "in": {
+                                                                "k": "$$principal",
+                                                                "v": ["in_app", "push"],
+                                                            },
+                                                        }
+                                                    }
+                                                },
+                                                "local.has_over_capacity_riders": {
+                                                    "$gt": [
+                                                        {
+                                                            "$size": {
+                                                                "$ifNull": [
+                                                                    "$local.over_capacity_principals",
+                                                                    [],
+                                                                ]
+                                                            }
+                                                        },
+                                                        0,
+                                                    ]
+                                                },
+                                            }
+                                        },
+                                    },
+                                    {
+                                        "title": "Apply Capacity Pruning",
+                                        "description": "Rejects and notifies riders that cannot fit remaining seats after acceptance.",
+                                        "type": "if.else",
+                                        "condition": {
+                                            "$ctx": "doc.local.has_over_capacity_riders"
+                                        },
+                                        "then_effects": [
+                                            {
+                                                "title": "Reject Over-Capacity Riders",
+                                                "description": "Marks over-capacity riders as rejected and removes them from rider context.",
+                                                "type": "update.contract",
+                                                "update": [
+                                                    {
+                                                        "$set": {
+                                                            "states": {
+                                                                "$arrayToObject": {
+                                                                    "$map": {
+                                                                        "input": {
+                                                                            "$objectToArray": "$states"
+                                                                        },
+                                                                        "as": "kv",
+                                                                        "in": {
+                                                                            "k": "$$kv.k",
+                                                                            "v": {
+                                                                                "$cond": [
+                                                                                    {
+                                                                                        "$in": [
+                                                                                            "$$kv.k",
+                                                                                            {
+                                                                                                "$ifNull": [
+                                                                                                    "$local.over_capacity_principals",
+                                                                                                    [],
+                                                                                                ]
+                                                                                            },
+                                                                                        ]
+                                                                                    },
+                                                                                    "REJECTED",
+                                                                                    "$$kv.v",
+                                                                                ]
+                                                                            },
+                                                                        },
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    },
+                                                    {
+                                                        "$set": {
+                                                            "context.riders": {
+                                                                "$arrayToObject": {
+                                                                    "$filter": {
+                                                                        "input": {
+                                                                            "$objectToArray": {
+                                                                                "$ifNull": [
+                                                                                    "$context.riders",
+                                                                                    {},
+                                                                                ]
+                                                                            }
+                                                                        },
+                                                                        "as": "rv",
+                                                                        "cond": {
+                                                                            "$not": [
+                                                                                {
+                                                                                    "$in": [
+                                                                                        "$$rv.k",
+                                                                                        {
+                                                                                            "$ifNull": [
+                                                                                                "$local.over_capacity_principals",
+                                                                                                [],
+                                                                                            ]
+                                                                                        },
+                                                                                    ]
+                                                                                }
+                                                                            ]
+                                                                        },
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    },
+                                                ],
+                                            },
+                                            {
+                                                "title": "Notify Pruned Riders",
+                                                "description": "Notifies removed riders that they are no longer admissible due to capacity.",
+                                                "type": "notify",
+                                                "notify": {
+                                                    "event": "contracts.rider_rejected_capacity",
+                                                    "targets": {
+                                                        "$ctx": "local.over_capacity_targets"
+                                                    },
+                                                    "payload": {
+                                                        "contract_id": {
+                                                            "$ctx": "doc._id"
+                                                        }
+                                                    },
+                                                },
+                                            },
+                                        ],
+                                    },
                                 ],
-                            },
-                            {
-                                "title": "Stay In Onboarding",
-                                "description": "Keeps flow in ONBOARDING after first invite acceptance.",
-                                "type": "update.contract",
-                                "update": {"$set": {"state": "ONBOARDING"}},
                             },
                         ],
                     },
@@ -2216,8 +2482,117 @@ def _gherkin_definition() -> Dict[str, Any]:
                         ],
                         "effects": [
                             {
-                                "title": "Reject Pending Invite",
-                                "description": "Clears pending invite state and removes rider snapshot from START context.",
+                                "title": "Capture Reject Invite Route",
+                                "description": "Captures rider route id used for invite hold cleanup and refund checks.",
+                                "type": "update.contract",
+                                "update": {
+                                    "$set": {
+                                        "local.reject_invite_route_id": {
+                                            "$ctx": "doc.context.riders.$$ctx.user.id"
+                                        }
+                                    }
+                                },
+                            },
+                            {
+                                "title": "Unlink Contract From Invite Route",
+                                "description": "Removes this contract from route link list before refund calculation.",
+                                "type": "update.item",
+                                "item_id": {"$ctx": "local.reject_invite_route_id"},
+                                "update": {
+                                    "$set": {
+                                        "data.contract_ids": {
+                                            "$setDifference": [
+                                                {"$ifNull": ["$data.contract_ids", []]},
+                                                [{"$ctx": "doc._id"}],
+                                            ]
+                                        }
+                                    }
+                                },
+                            },
+                            {
+                                "title": "Reload Invite Route",
+                                "description": "Reloads route data to compute rejection refund eligibility.",
+                                "type": "get.item",
+                                "item_id": {"$ctx": "local.reject_invite_route_id"},
+                                "key": "reject_invite_route_after",
+                            },
+                            {
+                                "title": "Compute Reject Invite Refund",
+                                "description": "Refunds reserved credits only when route has no remaining contract links.",
+                                "type": "update.contract",
+                                "update": {
+                                    "$set": {
+                                        "local.reject_invite_refund": {
+                                            "$cond": [
+                                                {
+                                                    "$eq": [
+                                                        {
+                                                            "$size": {
+                                                                "$ifNull": [
+                                                                    "$local.reject_invite_route_after.data.contract_ids",
+                                                                    [],
+                                                                ]
+                                                            }
+                                                        },
+                                                        0,
+                                                    ]
+                                                },
+                                                {
+                                                    "$ifNull": [
+                                                        "$local.reject_invite_route_after.data.reserved_credits",
+                                                        0,
+                                                    ]
+                                                },
+                                                0,
+                                            ]
+                                        },
+                                        "local.has_reject_invite_refund": {
+                                            "$gt": [
+                                                {
+                                                    "$ifNull": [
+                                                        "$local.reject_invite_refund",
+                                                        0,
+                                                    ]
+                                                },
+                                                0,
+                                            ]
+                                        },
+                                    }
+                                },
+                            },
+                            {
+                                "title": "Refund Rejecting Rider",
+                                "description": "Refunds rider credits reserved for the rejected invite.",
+                                "type": "charge.credits",
+                                "credit": {
+                                    "product": "coin",
+                                    "amount": {"$ctx": "local.reject_invite_refund"},
+                                },
+                            },
+                            {
+                                "title": "Reset Route Hold",
+                                "description": "Clears retained route credits when invite rejection refund is applied.",
+                                "type": "if.else",
+                                "condition": {
+                                    "$ctx": "doc.local.has_reject_invite_refund"
+                                },
+                                "then_effects": [
+                                    {
+                                        "title": "Clear Route Reserved Credits",
+                                        "description": "Resets route reserved credits after invite rejection refund.",
+                                        "type": "update.item",
+                                        "item_id": {
+                                            "$ctx": "local.reject_invite_route_id"
+                                        },
+                                        "update": {
+                                            "$set": {"data.reserved_credits": 0}
+                                        },
+                                    }
+                                ],
+                            },
+                            {
+                                "title": "Clear Rider Invite State",
+                                "description": "Removes rider pending state and route snapshot after invite rejection.",
                                 "type": "update.contract",
                                 "update": {
                                     "$unset": [
@@ -2228,7 +2603,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                             },
                             {
                                 "title": "Notify Driver",
-                                "description": "Notifies driver when invited rider rejects during START.",
+                                "description": "Notifies driver when invited rider rejects during onboarding.",
                                 "type": "notify",
                                 "notify": {
                                     "event": "contracts.user_rejected",
@@ -2292,6 +2667,9 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                 ["REQUESTING", "PENDING", "ACCEPTED"],
                                             ]
                                         },
+                                        "local.is_target_accepted": {
+                                            "$eq": ["$local.target_state", "ACCEPTED"]
+                                        },
                                     }
                                 },
                             },
@@ -2308,7 +2686,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                         "description": "Subtracts seats only when an accepted user is rejected.",
                                         "type": "if.else",
                                         "condition": {
-                                            "$eq": ["$local.target_state", "ACCEPTED"]
+                                            "$ctx": "doc.local.is_target_accepted"
                                         },
                                         "then_effects": [
                                             {
@@ -2407,12 +2785,6 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "type": "update.contract",
                                 "update": {
                                     "$set": {
-                                        "local.cancel_user_state": {
-                                            "$ifNull": [
-                                                {"$ctx": "doc.states.$$ctx.user"},
-                                                "",
-                                            ]
-                                        },
                                         "local.cancel_route_id": {
                                             "$ctx": "doc.context.riders.$$ctx.user.id"
                                         },
@@ -2424,6 +2796,12 @@ def _gherkin_definition() -> Dict[str, Any]:
                                                 1,
                                             ]
                                         },
+                                        "local.is_target_accepted": {
+                                            "$eq": [
+                                                {"$ctx": "doc.states.$$ctx.user"},
+                                                "ACCEPTED",
+                                            ]
+                                        },
                                     }
                                 },
                             },
@@ -2431,9 +2809,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                 "title": "Adjust Occupancy If Accepted",
                                 "description": "Subtracts seats when an accepted rider cancels during recruiting.",
                                 "type": "if.else",
-                                "condition": {
-                                    "$eq": ["$local.cancel_user_state", "ACCEPTED"]
-                                },
+                                "condition": {"$ctx": "doc.local.is_target_accepted"},
                                 "then_effects": [
                                     {
                                         "title": "Decrement Accepted Seats",
@@ -3360,19 +3736,31 @@ def _gherkin_definition() -> Dict[str, Any]:
                         ],
                         "effects": [
                             {
+                                "title": "Persist Progress",
+                                "description": "Persists transition data to keep the process deterministic.",
+                                "type": "update.contract",
+                                "update": {
+                                    "$set": {
+                                        "local.driver_not_in_pickup_zone": {
+                                            "$eq": [
+                                                {
+                                                    "$ifNull": [
+                                                        "$context.driver_in_pickup_zone",
+                                                        False,
+                                                    ]
+                                                },
+                                                False,
+                                            ]
+                                        }
+                                    }
+                                },
+                            },
+                            {
                                 "title": "Evaluate Branch",
                                 "description": "Selects the branch that matches current trip conditions.",
                                 "type": "if.else",
                                 "condition": {
-                                    "$eq": [
-                                        {
-                                            "$ifNull": [
-                                                "$context.driver_in_pickup_zone",
-                                                False,
-                                            ]
-                                        },
-                                        False,
-                                    ]
+                                    "$ctx": "docl.local.driver_not_in_pickup_zone"
                                 },
                                 "then_effects": [
                                     {
@@ -3393,7 +3781,7 @@ def _gherkin_definition() -> Dict[str, Any]:
                                         },
                                     }
                                 ],
-                            }
+                            },
                         ],
                     },
                     "RidersPickupCheckTimed": {
