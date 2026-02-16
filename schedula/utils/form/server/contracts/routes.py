@@ -261,8 +261,13 @@ TEMPLATE_CREATE_SCHEMA = {
                 },
                 "credit": {"$ref": "#/$defs/credit"},
                 "credits": {
-                    "type": "object",
-                    "additionalProperties": {"$ref": "#/$defs/credit"},
+                    "anyOf": [
+                        {
+                            "type": "object",
+                            "additionalProperties": {"$ref": "#/$defs/credit"},
+                        },
+                        {"$ref": "#/$defs/json_with_refs"},
+                    ],
                 },
                 "condition": {
                     "title": "Branch Condition",

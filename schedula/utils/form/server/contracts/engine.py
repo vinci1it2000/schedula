@@ -82,7 +82,7 @@ def _yield_wallets(ef, actor_id):
         if "wallet_id" in v:
             wallet = _get_wallet(v["wallet_id"], None)
         else:
-            wallet = _get_wallet(None, ef.get("user_id", actor_id))
+            wallet = _get_wallet(None, v.get("user_id", actor_id))
 
         yield k, v, wallet
 
@@ -309,7 +309,10 @@ def _apply_effect_step(
         if "updates" in ef:
             updates = ef["updates"]
         else:
-            updates = {ef["item_id"]: ef["update"]}
+            item_id = ef["item_id"]
+            if isinstance(item_id, list):
+                abort_json(400, "update.item item_id cannot be a list; use updates")
+            updates = {item_id: ef["update"]}
 
         for k, update in updates.items():
             update = [update] if isinstance(update, dict) else update
@@ -362,6 +365,11 @@ def _apply_effect_step(
         if found_ids != requested_ids:
             missing = requested_ids - found_ids
             abort_json(404, f"Contracts not found: {[str(x) for x in missing]}")
+
+        # Keep local payloads safe for Mongo `let`: contract definitions contain
+        # template tokens such as "$$ctx.*" that Mongo interprets as runtime
+        # variables when passed through `let`, causing write failures.
+        docs = [{k: v for k, v in d.items() if k != "definition"} for d in docs]
 
         if isinstance(ef["contract_id"], str):
             docs = docs[0] if docs else None
