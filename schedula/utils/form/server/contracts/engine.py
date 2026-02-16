@@ -87,6 +87,30 @@ def _yield_wallets(ef, actor_id):
         yield k, v, wallet
 
 
+def _safe_local(obj):
+    """
+    Recursively wraps values of keys starting with '$'
+    inside {"$literal": value}.
+    """
+
+    if isinstance(obj, dict):
+        new_obj = {}
+
+        for k, v in obj.items():
+            if k.startswith("$"):
+                # wrap the entire sub-object in $literal
+                return {"$literal": obj}
+            else:
+                new_obj[k] = _safe_local(v)
+
+        return new_obj
+
+    elif isinstance(obj, list):
+        return [_safe_local(i) for i in obj]
+
+    return obj
+
+
 def _apply_effect_step(
         *,
         doc: Dict[str, Any],
@@ -116,17 +140,18 @@ def _apply_effect_step(
             updates = {contract_id: ef["update"]}
         else:
             updates = ef["updates"] or {}
+        sft_local = _safe_local(local)
         for k, update in updates.items():
             update = [update] if isinstance(update, dict) else update
             mongo_update_one(
                 _contracts_coll(),
                 {"_id": k},
                 [
-                    {"$set": {"local": local, "updated_by": actor_id}},
+                    {"$set": {"local": sft_local, "updated_by": actor_id}},
                     *update,
                     {"$set": {"updated_at": now}},
                 ],
-                let={"user": actor_id, "payload": payload, "local": local},
+                let={"user": actor_id, "payload": payload, "local": sft_local},
             )
         if contract_id in updates:
             doc = _get_contract(contract_id)
@@ -313,7 +338,7 @@ def _apply_effect_step(
             if isinstance(item_id, list):
                 abort_json(400, "update.item item_id cannot be a list; use updates")
             updates = {item_id: ef["update"]}
-
+        sft_local = _safe_local(local)
         for k, update in updates.items():
             update = [update] if isinstance(update, dict) else update
             mongo_update_one(
@@ -327,7 +352,7 @@ def _apply_effect_step(
                 let={
                     "user": actor_id,
                     "payload": payload,
-                    "local": local,
+                    "local": sft_local,
                 },
             )
     elif ef_type == "delete.item":

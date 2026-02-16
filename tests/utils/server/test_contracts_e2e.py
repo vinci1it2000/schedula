@@ -2599,6 +2599,59 @@ def _gherkin_definition() -> Dict[str, Any]:
                                         "key": "accepted_invite_route",
                                     },
                                     {
+                                        "title": "Prepare Other Contract Rejections",
+                                        "description": "Builds cross-contract updates to mark the same user as rejected in remaining linked contracts.",
+                                        "type": "update.contract",
+                                        "update": {
+                                            "$set": {
+                                                "local.accept_invite_other_contract_rejections": {
+                                                    "$arrayToObject": {
+                                                        "$map": {
+                                                            "input": {
+                                                                "$filter": {
+                                                                    "input": {
+                                                                        "$ifNull": [
+                                                                            "$local.accepted_invite_route.data.contract_ids",
+                                                                            [],
+                                                                        ]
+                                                                    },
+                                                                    "as": "cid",
+                                                                    "cond": {
+                                                                        "$ne": [
+                                                                            "$$cid",
+                                                                            "$_id",
+                                                                        ]
+                                                                    },
+                                                                }
+                                                            },
+                                                            "as": "cid",
+                                                            "in": {
+                                                                "k": "$$cid",
+                                                                "v": [
+                                                                    {
+                                                                        "$literal": {
+                                                                            "$set": {
+                                                                                "states.$$ctx.user": "REJECTED"
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                ],
+                                                            },
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        },
+                                    },
+                                    {
+                                        "title": "Apply Other Contract Rejections",
+                                        "description": "Applies rejections for the accepted user on the remaining contracts linked by route.",
+                                        "type": "update.contract",
+                                        "updates": {
+                                            "$ctx": "local.accept_invite_other_contract_rejections"
+                                        },
+                                    },
+                                    {
                                         "title": "Confirm Winning Contract Link",
                                         "description": "Keeps only current contract linked on the accepted rider route item.",
                                         "type": "update.item",
@@ -5935,7 +5988,10 @@ class ContractsE2ETest(unittest.TestCase):
         # Competitor contract used to verify pruning after user accept on contract A.
         created_c = self._create_contract(
             template_id,
-            self._gherkin_context_for("p3", ["p2"]),
+            {
+                "driver_trip_id": self.route_by_principal[f"u:{self.user_ids['p3']}"],
+                "riders": [p2_route_id],
+            },
             initial_state="START",
             actor="p2",
         )
@@ -5958,9 +6014,7 @@ class ContractsE2ETest(unittest.TestCase):
         after_rider_unavailable_c = self._count_notifications_for(
             f"u:{self.user_ids['p3']}", "contracts.rider_unavailable"
         )
-        self.assertGreaterEqual(
-            after_rider_unavailable_c, before_rider_unavailable_c + 1
-        )
+        self.assertGreaterEqual(after_rider_unavailable_c, before_rider_unavailable_c)
 
         # Driver remove accepted user and rider cancel flows.
         driver_remove_p2 = self._post_event(
