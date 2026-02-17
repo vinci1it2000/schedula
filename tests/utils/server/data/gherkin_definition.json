@@ -802,6 +802,10 @@
               "type": "api",
               "path": "cancel-join-request",
               "method": "POST",
+              "payload_schema": {
+                "type": "object",
+                "additionalProperties": false
+              },
               "allow_user_states": [
                 "REQUESTING"
               ],
@@ -2481,12 +2485,12 @@
               "payload_schema": {
                 "type": "object",
                 "required": [
-                  "route_id"
+                  "rider"
                 ],
                 "properties": {
-                  "route_id": {
+                  "rider": {
                     "type": "string",
-                    "minLength": 1
+                    "pattern": "^u:.+$"
                   }
                 },
                 "additionalProperties": false
@@ -2504,13 +2508,6 @@
           ],
           "effects": [
             {
-              "title": "Load Invite Route",
-              "description": "Loads invite route to resolve principal and route hold for cancellation.",
-              "type": "get.item",
-              "item_id": "$$ctx.payload.route_id",
-              "key": "cancel_invite_route_item"
-            },
-            {
               "title": "Compute Cancel Invite Eligibility",
               "description": "Allows cancellation only when the target rider is currently pending.",
               "type": "update.contract",
@@ -2519,9 +2516,12 @@
                   "$set": {
                     "local.cancel_invite_principal": {
                       "$ifNull": [
-                        "$local.cancel_invite_route_item.data.user_id",
+                        "$$payload.rider",
                         ""
                       ]
+                    },
+                    "local.cancel_invite_route_id": {
+                      "$ctx": "doc.context.riders.$$ctx.payload.rider.id"
                     }
                   }
                 },
@@ -2571,10 +2571,21 @@
               },
               "then_effects": [
                 {
+                  "title": "Load Invite Route",
+                  "description": "Loads invite route to resolve route hold for cancellation.",
+                  "type": "get.item",
+                  "item_id": {
+                    "$ctx": "local.cancel_invite_route_id"
+                  },
+                  "key": "cancel_invite_route_item"
+                },
+                {
                   "title": "Unlink Contract From Invite Route",
                   "description": "Removes this contract id from the invite route linkage list.",
                   "type": "update.item",
-                  "item_id": "$$ctx.payload.route_id",
+                  "item_id": {
+                    "$ctx": "local.cancel_invite_route_id"
+                  },
                   "update": {
                     "$set": {
                       "data.contract_ids": {
@@ -2599,7 +2610,9 @@
                   "title": "Reload Invite Route",
                   "description": "Reloads route item after unlink to compute refund eligibility.",
                   "type": "get.item",
-                  "item_id": "$$ctx.payload.route_id",
+                  "item_id": {
+                    "$ctx": "local.cancel_invite_route_id"
+                  },
                   "key": "cancel_invite_route_after"
                 },
                 {
@@ -2678,7 +2691,9 @@
                       "title": "Clear Route Reserved Credits",
                       "description": "Clears retained credits on route item after invite cancellation refund.",
                       "type": "update.item",
-                      "item_id": "$$ctx.payload.route_id",
+                      "item_id": {
+                        "$ctx": "local.cancel_invite_route_id"
+                      },
                       "update": {
                         "$set": {
                           "data.reserved_credits": 0
@@ -2729,6 +2744,11 @@
               "type": "api",
               "path": "accept-user",
               "method": "POST",
+              "payload_schema": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": false
+              },
               "allow_user_states": [
                 "PENDING"
               ],
@@ -3461,6 +3481,11 @@
               "type": "api",
               "path": "reject-user",
               "method": "POST",
+              "payload_schema": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": false
+              },
               "allow_user_states": [
                 "PENDING"
               ],
@@ -3651,10 +3676,10 @@
               "payload_schema": {
                 "type": "object",
                 "required": [
-                  "principal"
+                  "rider"
                 ],
                 "properties": {
-                  "principal": {
+                  "rider": {
                     "type": "string",
                     "pattern": "^u:.+$"
                   }
@@ -3679,7 +3704,7 @@
                   "local.target_state": {
                     "$ifNull": [
                       {
-                        "$ctx": "doc.states.$$ctx.payload.principal"
+                        "$ctx": "doc.states.$$ctx.payload.rider"
                       },
                       ""
                     ]
@@ -3689,7 +3714,7 @@
                       {
                         "$ifNull": [
                           {
-                            "$ctx": "doc.states.$$ctx.payload.principal"
+                            "$ctx": "doc.states.$$ctx.payload.rider"
                           },
                           ""
                         ]
@@ -3708,9 +3733,9 @@
                     ]
                   },
                   "local.target_route_id": {
-                    "$ctx": "doc.context.riders.$$ctx.payload.principal.id"
+                    "$ctx": "doc.context.riders.$$ctx.payload.rider.id"
                   },
-                  "local.target_principal": "$$ctx.payload.principal",
+                  "local.target_principal": "$$ctx.payload.rider",
                   "local.has_group_id": {
                     "$ifNull": [
                       "$context.group_id",
@@ -3755,7 +3780,7 @@
                                   {
                                     "$ifNull": [
                                       {
-                                        "$ctx": "doc.context.riders.$$ctx.payload.principal.seats"
+                                        "$ctx": "doc.context.riders.$$ctx.payload.rider.seats"
                                       },
                                       1
                                     ]
@@ -3776,7 +3801,7 @@
                   "type": "update.contract",
                   "update": {
                     "$set": {
-                      "states.$$ctx.payload.principal": "REJECTED"
+                      "states.$$ctx.payload.rider": "REJECTED"
                     }
                   }
                 },
@@ -3903,7 +3928,7 @@
                   "type": "update.contract",
                   "update": {
                     "$unset": [
-                      "context.riders.$$ctx.payload.principal"
+                      "context.riders.$$ctx.payload.rider"
                     ]
                   }
                 },
@@ -3924,7 +3949,7 @@
                       },
                       "edit_members": {
                         "remove_members": [
-                          "$$ctx.payload.principal"
+                          "$$ctx.payload.rider"
                         ]
                       }
                     }
@@ -3937,7 +3962,7 @@
                   "notify": {
                     "event": "contracts.user_rejected_by_driver",
                     "targets": {
-                      "$$ctx.payload.principal": [
+                      "$$ctx.payload.rider": [
                         "in_app",
                         "push"
                       ]
@@ -3969,6 +3994,11 @@
               "type": "api",
               "path": "cancel-user",
               "method": "POST",
+              "payload_schema": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": false
+              },
               "allow_user_states": [
                 "REQUESTING",
                 "PENDING",
@@ -4213,6 +4243,11 @@
               "type": "api",
               "path": "driver-reject-trip",
               "method": "POST",
+              "payload_schema": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": false
+              },
               "allow_principals": [
                 "$$ctx.doc.context.driver"
               ],
@@ -4496,6 +4531,380 @@
     },
     "IN_PROGRESS": {
       "events": {
+        "UserCancelRide": {
+          "trigger": [
+            {
+              "type": "api",
+              "path": "cancel-user",
+              "method": "POST",
+              "payload_schema": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": false
+              },
+              "allow_user_states": [
+                "ACCEPTED"
+              ],
+              "response": {
+                "ok": true,
+                "event": "cancel_user"
+              }
+            }
+          ],
+          "effects": [
+            {
+              "title": "Capture In-Progress Cancel Inputs",
+              "description": "Captures rider cancellation cost for driver compensation updates.",
+              "type": "update.contract",
+              "update": {
+                "$set": {
+                  "local.cancel_route_id": {
+                    "$ctx": "doc.context.riders.$$ctx.user.id"
+                  }
+                }
+              }
+            },
+            {
+              "title": "Load Cancelled Rider Route",
+              "description": "Loads cancelled rider route to derive stable cost for compensation.",
+              "type": "get.item",
+              "item_id": {
+                "$ctx": "local.cancel_route_id"
+              },
+              "key": "cancel_route_item"
+            },
+            {
+              "title": "Mark User Cancelled In Progress",
+              "description": "Marks rider cancelled while trip is in progress and updates driver compensation.",
+              "type": "update.contract",
+              "update": {
+                "$set": {
+                  "local.cancel_cost": {
+                    "$ifNull": [
+                      "$local.cancel_route_item.data.cost",
+                      {
+                        "$ifNull": [
+                          {
+                            "$ctx": "doc.context.riders.$$ctx.user.cost"
+                          },
+                          10
+                        ]
+                      }
+                    ]
+                  },
+                  "states.$$ctx.user": "CANCELLED",
+                  "context.driver_compensation": {
+                    "$add": [
+                      {
+                        "$ifNull": [
+                          "$context.driver_compensation",
+                          0
+                        ]
+                      },
+                      {
+                        "$ifNull": [
+                          "$local.cancel_route_item.data.cost",
+                          {
+                            "$ifNull": [
+                              {
+                                "$ctx": "doc.context.riders.$$ctx.user.cost"
+                              },
+                              10
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            {
+              "title": "Remove Cancelled Rider From Group",
+              "description": "Removes cancelled rider from trip coordination group when present.",
+              "type": "if.else",
+              "condition": {
+                "$ifNull": [
+                  "$context.group_id",
+                  false
+                ]
+              },
+              "then_effects": [
+                {
+                  "title": "Apply Group Removal For Cancelled Rider",
+                  "description": "Removes cancelled rider member from coordination group.",
+                  "type": "update.group",
+                  "group_id": {
+                    "$ctx": "doc.context.group_id"
+                  },
+                  "edit_members": {
+                    "remove_members": [
+                      "$$ctx.user"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "title": "Notify Driver About In-Progress Cancel",
+              "description": "Notifies driver when rider cancels during in-progress trip.",
+              "type": "notify",
+              "notify": {
+                "event": "contracts.user_cancelled",
+                "targets": {
+                  "$$ctx.doc.context.driver": [
+                    "in_app",
+                    "push"
+                  ]
+                },
+                "payload": {
+                  "contract_id": {
+                    "$ctx": "doc._id"
+                  },
+                  "principal": "$$ctx.user"
+                }
+              }
+            }
+          ]
+        },
+        "DriverRejectUser": {
+          "trigger": [
+            {
+              "type": "api",
+              "path": "driver-reject-user",
+              "method": "POST",
+              "allow_principals": [
+                "$$ctx.doc.context.driver"
+              ],
+              "payload_schema": {
+                "type": "object",
+                "required": [
+                  "rider"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "rider": {
+                    "type": "string",
+                    "pattern": "^u:.+$"
+                  }
+                }
+              },
+              "response": {
+                "ok": true,
+                "event": "driver_reject_user"
+              }
+            }
+          ],
+          "effects": [
+            {
+              "title": "Capture In-Progress Driver Rejection Inputs",
+              "description": "Captures target rider data for rejection refund and route cleanup.",
+              "type": "update.contract",
+              "update": [
+                {
+                  "$set": {
+                    "local.reject_route_id": {
+                      "$ctx": "doc.context.riders.$$ctx.payload.rider.id"
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "title": "Load Rejected Rider Route",
+              "description": "Loads rejected rider route to derive stable refund amount.",
+              "type": "get.item",
+              "item_id": {
+                "$ctx": "local.reject_route_id"
+              },
+              "key": "reject_route_item"
+            },
+            {
+              "title": "Mark User Rejected In Progress",
+              "description": "Marks rider rejected by driver while trip is in progress.",
+              "type": "update.contract",
+              "update": [
+                {
+                  "$set": {
+                    "local.reject_cost": {
+                      "$ifNull": [
+                        "$local.reject_route_item.data.cost",
+                        {
+                          "$ifNull": [
+                            {
+                              "$ctx": "doc.context.riders.$$ctx.payload.rider.cost"
+                            },
+                            10
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "$set": {
+                    "local.reject_refund": {
+                      "$add": [
+                        {
+                          "$ifNull": [
+                            "$local.reject_cost",
+                            0
+                          ]
+                        },
+                        {
+                          "$multiply": [
+                            {
+                              "$ifNull": [
+                                "$local.reject_cost",
+                                0
+                              ]
+                            },
+                            0.1
+                          ]
+                        }
+                      ]
+                    },
+                    "local.has_reject_refund": {
+                      "$gt": [
+                        {
+                          "$add": [
+                            {
+                              "$ifNull": [
+                                "$local.reject_cost",
+                                0
+                              ]
+                            },
+                            {
+                              "$multiply": [
+                                {
+                                  "$ifNull": [
+                                    "$local.reject_cost",
+                                    0
+                                  ]
+                                },
+                                0.1
+                              ]
+                            }
+                          ]
+                        },
+                        0
+                      ]
+                    },
+                    "states.$$ctx.payload.rider": "REJECTED"
+                  }
+                }
+              ]
+            },
+            {
+              "title": "Refund Rejected Rider With Bonus",
+              "description": "Refunds rejected rider with 10% extra compensation.",
+              "type": "if.else",
+              "condition": {
+                "$ctx": "doc.local.has_reject_refund"
+              },
+              "then_effects": [
+                {
+                  "title": "Apply Rejection Refund",
+                  "description": "Credits rider wallet with full refund and 10% bonus.",
+                  "type": "charge.credits",
+                  "credit": {
+                    "product": "coin",
+                    "user_id": "$$ctx.payload.rider",
+                    "amount": {
+                      "$ctx": "local.reject_refund"
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "title": "Clear Rejected Rider Route Hold",
+              "description": "Unlinks contract and clears reserved credits for rejected rider route.",
+              "type": "if.else",
+              "condition": {
+                "$ifNull": [
+                  "$local.reject_route_id",
+                  false
+                ]
+              },
+              "then_effects": [
+                {
+                  "title": "Reset Rejected Rider Route",
+                  "description": "Removes contract linkage and reserved credits on rider route.",
+                  "type": "update.item",
+                  "item_id": {
+                    "$ctx": "local.reject_route_id"
+                  },
+                  "update": {
+                    "$set": {
+                      "data.contract_ids": {
+                        "$setDifference": [
+                          {
+                            "$ifNull": [
+                              "$data.contract_ids",
+                              []
+                            ]
+                          },
+                          [
+                            {
+                              "$ctx": "doc._id"
+                            }
+                          ]
+                        ]
+                      },
+                      "data.reserved_credits": 0
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "title": "Remove Rejected Rider From Group",
+              "description": "Removes rejected rider from trip coordination group when present.",
+              "type": "if.else",
+              "condition": {
+                "$ifNull": [
+                  "$context.group_id",
+                  false
+                ]
+              },
+              "then_effects": [
+                {
+                  "title": "Apply Group Removal For Rejected Rider",
+                  "description": "Removes rejected rider member from coordination group.",
+                  "type": "update.group",
+                  "group_id": {
+                    "$ctx": "doc.context.group_id"
+                  },
+                  "edit_members": {
+                    "remove_members": [
+                      "$$ctx.payload.rider"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "title": "Notify Rejected Rider In Progress",
+              "description": "Notifies rider when rejected by driver during in-progress trip.",
+              "type": "notify",
+              "notify": {
+                "event": "contracts.user_rejected_by_driver",
+                "targets": {
+                  "$$ctx.payload.rider": [
+                    "in_app",
+                    "push"
+                  ]
+                },
+                "payload": {
+                  "contract_id": {
+                    "$ctx": "doc._id"
+                  }
+                }
+              }
+            }
+          ]
+        },
         "LogLocation": {
           "trigger": [
             {
@@ -4806,6 +5215,29 @@
                           }
                         }
                       }
+                    },
+                    "context.driver_compensation": {
+                      "$add": [
+                        {
+                          "$ifNull": [
+                            "$context.driver_compensation",
+                            0
+                          ]
+                        },
+                        {
+                          "$multiply": [
+                            {
+                              "$size": {
+                                "$ifNull": [
+                                  "$local.confirmed_principals",
+                                  []
+                                ]
+                              }
+                            },
+                            10
+                          ]
+                        }
+                      ]
                     }
                   }
                 }
@@ -4840,6 +5272,11 @@
               "type": "api",
               "path": "driver-did-not-pick-me",
               "method": "POST",
+              "payload_schema": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": false
+              },
               "allow_user_states": [
                 "ACCEPTED"
               ],
@@ -4891,11 +5328,11 @@
               "payload_schema": {
                 "type": "object",
                 "required": [
-                  "principal"
+                  "rider"
                 ],
                 "additionalProperties": false,
                 "properties": {
-                  "principal": {
+                  "rider": {
                     "type": "string",
                     "pattern": "^u:.+$"
                   }
@@ -4925,7 +5362,7 @@
                       [
                         {
                           "type": "rider_not_at_pickup",
-                          "rider_principal": "$$ctx.payload.principal",
+                          "rider_principal": "$$ctx.payload.rider",
                           "reported_by": "$$ctx.user",
                           "at": "$$NOW"
                         }
@@ -4938,12 +5375,6 @@
           ]
         },
         "TripPaymentTimed": {
-          "trigger": [
-            {
-              "type": "api",
-              "path": "trip-payment-timeout"
-            }
-          ],
           "effects": [
             {
               "title": "Move To Payment",
@@ -4963,6 +5394,11 @@
               "type": "api",
               "path": "driver-cancel-trip",
               "method": "POST",
+              "payload_schema": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": false
+              },
               "allow_principals": [
                 "$$ctx.doc.context.driver"
               ],
@@ -4987,25 +5423,6 @@
           ]
         },
         "RiderPickupReminderTimed": {
-          "trigger": [
-            {
-              "type": "api",
-              "path": "rider-pickup-reminder-timeout",
-              "payload_schema": {
-                "type": "object",
-                "required": [
-                  "principal"
-                ],
-                "additionalProperties": false,
-                "properties": {
-                  "principal": {
-                    "type": "string",
-                    "pattern": "^u:.+$"
-                  }
-                }
-              }
-            }
-          ],
           "effects": [
             {
               "title": "Check Reminder Targets",
@@ -5408,15 +5825,15 @@
                         ]
                       },
                       "as": "p",
-                        "in": {
-                          "principal": "$$p",
-                          "route_id": null,
-                          "pickup_zone": "$context.driver_route.trip.origin",
-                          "pickup_window": {
-                            "start": "$context.driver_route.trip.origin.at",
-                            "end": "$context.driver_route.trip.origin.at"
-                          },
-                          "pin": {
+                      "in": {
+                        "principal": "$$p",
+                        "route_id": null,
+                        "pickup_zone": "$context.driver_route.trip.origin",
+                        "pickup_window": {
+                          "start": "$context.driver_route.trip.origin.at",
+                          "end": "$context.driver_route.trip.origin.at"
+                        },
+                        "pin": {
                           "$toString": {
                             "$floor": {
                               "$add": [
@@ -5642,6 +6059,12 @@
                       "unit": "hour",
                       "amount": 2
                     }
+                  },
+                  "context.driver_compensation": {
+                    "$ifNull": [
+                      "$context.driver_compensation",
+                      0
+                    ]
                   }
                 }
               }
@@ -5975,72 +6398,75 @@
             "type": "update.contract",
             "update": {
               "$set": {
-                "local.driver_total_payout": {
-                  "$sum": {
-                    "$map": {
+                "local.accepted_without_dispute_count": {
+                  "$size": {
+                    "$filter": {
                       "input": {
-                        "$filter": {
-                          "input": {
-                            "$objectToArray": {
-                              "$ifNull": [
-                                "$context.riders",
-                                {}
-                              ]
-                            }
-                          },
-                          "as": "rv",
-                          "cond": {
-                            "$or": [
-                              {
-                                "$eq": [
-                                  {
-                                    "$ifNull": [
-                                      {
-                                        "$ctx": "doc.states.$$ctx.rv.k"
-                                      },
-                                      ""
-                                    ]
-                                  },
-                                  "ONBOARD"
-                                ]
-                              },
-                              {
-                                "$eq": [
-                                  {
-                                    "$size": {
-                                      "$filter": {
-                                        "input": {
-                                          "$ifNull": [
-                                            "$context.disputes",
-                                            []
-                                          ]
-                                        },
-                                        "as": "d",
-                                        "cond": {
-                                          "$eq": [
-                                            "$$d.rider_principal",
-                                            "$$rv.k"
-                                          ]
-                                        }
-                                      }
-                                    }
-                                  },
-                                  0
-                                ]
-                              }
-                            ]
-                          }
+                        "$objectToArray": {
+                          "$ifNull": [
+                            "$states",
+                            {}
+                          ]
                         }
                       },
-                      "as": "rv",
-                      "in": {
-                        "$ifNull": [
-                          "$$rv.v.cost",
-                          0
+                      "as": "sv",
+                      "cond": {
+                        "$and": [
+                          {
+                            "$eq": [
+                              "$$sv.v",
+                              "ACCEPTED"
+                            ]
+                          },
+                          {
+                            "$eq": [
+                              {
+                                "$size": {
+                                  "$filter": {
+                                    "input": {
+                                      "$ifNull": [
+                                        "$context.disputes",
+                                        []
+                                      ]
+                                    },
+                                    "as": "d",
+                                    "cond": {
+                                      "$eq": [
+                                        "$$d.rider_principal",
+                                        "$$sv.k"
+                                      ]
+                                    }
+                                  }
+                                }
+                              },
+                              0
+                            ]
+                          }
                         ]
                       }
                     }
                   }
+                },
+                "local.driver_total_payout": {
+                  "$add": [
+                    {
+                      "$multiply": [
+                        {
+                          "$ifNull": [
+                            "$local.accepted_without_dispute_count",
+                            0
+                          ]
+                        },
+                        10
+                      ]
+                    },
+                    {
+                      "$ifNull": [
+                        "$context.driver_compensation",
+                        0
+                      ]
+                    }
+                  ]
                 }
               }
             }
