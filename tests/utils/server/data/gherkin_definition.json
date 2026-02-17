@@ -239,6 +239,49 @@
                 }
               },
               {
+                "title": "Compute Pre-Departure Check Time",
+                "description": "Computes the timed checkpoint two hours before planned departure.",
+                "type": "update.contract",
+                "update": {
+                  "$set": {
+                    "local.pre_departure_check_at": {
+                      "$dateSubtract": {
+                        "startDate": {
+                          "$toDate": "$context.driver_route.trip.origin.at"
+                        },
+                        "unit": "hour",
+                        "amount": 2
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "title": "Create Pre-Departure Job",
+                "description": "Schedules a timed event that moves contract to IN_PROGRESS or CANCELLED.",
+                "type": "schedule.event",
+                "key": "pre_departure_check_id",
+                "event": {
+                  "event_name": "PreDepartureGateTimed",
+                  "at": {
+                    "$ctx": "local.pre_departure_check_at"
+                  },
+                  "actor_id": "system:cron"
+                }
+              },
+              {
+                "title": "Store Pre-Departure Job Id",
+                "description": "Stores pre-departure scheduled job id for observability.",
+                "type": "update.contract",
+                "update": {
+                  "$set": {
+                    "context.pre_departure_check_id": {
+                      "$ctx": "local.pre_departure_check_id"
+                    }
+                  }
+                }
+              },
+              {
                 "title": "Move To Onboarding",
                 "description": "Transitions the contract to ONBOARDING when driver-initiated checks succeed.",
                 "type": "update.contract",
@@ -417,6 +460,49 @@
                         }
                       },
                       {
+                        "title": "Compute Pre-Departure Check Time",
+                        "description": "Computes the timed checkpoint two hours before planned departure.",
+                        "type": "update.contract",
+                        "update": {
+                          "$set": {
+                            "local.pre_departure_check_at": {
+                              "$dateSubtract": {
+                                "startDate": {
+                                  "$toDate": "$context.driver_route.trip.origin.at"
+                                },
+                                "unit": "hour",
+                                "amount": 2
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "title": "Create Pre-Departure Job",
+                        "description": "Schedules a timed event that moves contract to IN_PROGRESS or CANCELLED.",
+                        "type": "schedule.event",
+                        "key": "pre_departure_check_id",
+                        "event": {
+                          "event_name": "PreDepartureGateTimed",
+                          "at": {
+                            "$ctx": "local.pre_departure_check_at"
+                          },
+                          "actor_id": "system:cron"
+                        }
+                      },
+                      {
+                        "title": "Store Pre-Departure Job Id",
+                        "description": "Stores pre-departure scheduled job id for observability.",
+                        "type": "update.contract",
+                        "update": {
+                          "$set": {
+                            "context.pre_departure_check_id": {
+                              "$ctx": "local.pre_departure_check_id"
+                            }
+                          }
+                        }
+                      },
+                      {
                         "title": "Move To Onboarding",
                         "description": "Transitions the contract to ONBOARDING after rider-initiated checks succeed.",
                         "type": "update.contract",
@@ -426,21 +512,7 @@
                           }
                         }
                       }
-                    ],
-                    "else_effects": [
-                      {
-                        "title": "Delete Invalid Start Contract",
-                        "description": "Deletes the contract when rider-initiated START checks fail.",
-                        "type": "delete.contract"
-                      }
                     ]
-                  }
-                ],
-                "else_effects": [
-                  {
-                    "title": "Delete Invalid Start Contract",
-                    "description": "Deletes the contract when START initialization constraints fail.",
-                    "type": "delete.contract"
                   }
                 ]
               }
@@ -1818,6 +1890,16 @@
                       }
                     }
                   ]
+                },
+                {
+                  "title": "Move To Sync Chat",
+                  "description": "Triggers transient chat/member synchronization after rider status changes.",
+                  "type": "update.contract",
+                  "update": {
+                    "$set": {
+                      "state": "SYNC_CHAT"
+                    }
+                  }
                 }
               ]
             }
@@ -2036,6 +2118,16 @@
                       "contract_id": {
                         "$ctx": "doc._id"
                       }
+                    }
+                  }
+                },
+                {
+                  "title": "Move To Sync Chat",
+                  "description": "Triggers transient chat/member synchronization after rider status changes.",
+                  "type": "update.contract",
+                  "update": {
+                    "$set": {
+                      "state": "SYNC_CHAT"
                     }
                   }
                 }
@@ -3348,6 +3440,16 @@
                       }
                     }
                   ]
+                },
+                {
+                  "title": "Move To Sync Chat",
+                  "description": "Triggers transient chat/member synchronization after rider status changes.",
+                  "type": "update.contract",
+                  "update": {
+                    "$set": {
+                      "state": "SYNC_CHAT"
+                    }
+                  }
                 }
               ]
             }
@@ -3524,6 +3626,16 @@
                   }
                 }
               }
+            },
+            {
+              "title": "Move To Sync Chat",
+              "description": "Triggers transient chat/member synchronization after rider status changes.",
+              "type": "update.contract",
+              "update": {
+                "$set": {
+                  "state": "SYNC_CHAT"
+                }
+              }
             }
           ]
         },
@@ -3598,7 +3710,13 @@
                   "local.target_route_id": {
                     "$ctx": "doc.context.riders.$$ctx.payload.principal.id"
                   },
-                  "local.target_principal": "$$ctx.payload.principal"
+                  "local.target_principal": "$$ctx.payload.principal",
+                  "local.has_group_id": {
+                    "$ifNull": [
+                      "$context.group_id",
+                      false
+                    ]
+                  }
                 }
               }
             },
@@ -3790,6 +3908,29 @@
                   }
                 },
                 {
+                  "title": "Remove Rider From Group",
+                  "description": "Removes rejected rider from coordination group when present.",
+                  "type": "if.else",
+                  "condition": {
+                    "$ctx": "doc.local.has_group_id"
+                  },
+                  "then_effects": [
+                    {
+                      "title": "Apply Group Member Removal",
+                      "description": "Applies direct group member removal for rejected rider.",
+                      "type": "update.group",
+                      "group_id": {
+                        "$ctx": "doc.context.group_id"
+                      },
+                      "edit_members": {
+                        "remove_members": [
+                          "$$ctx.payload.principal"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
                   "title": "Notify Rejected User",
                   "description": "Notifies user that the driver rejected their ride participation.",
                   "type": "notify",
@@ -3805,6 +3946,16 @@
                       "contract_id": {
                         "$ctx": "doc._id"
                       }
+                    }
+                  }
+                },
+                {
+                  "title": "Move To Sync Chat",
+                  "description": "Triggers transient chat/member synchronization after rider status changes.",
+                  "type": "update.contract",
+                  "update": {
+                    "$set": {
+                      "state": "SYNC_CHAT"
                     }
                   }
                 }
@@ -4041,6 +4192,16 @@
                     "$ctx": "doc._id"
                   },
                   "principal": "$$ctx.user"
+                }
+              }
+            },
+            {
+              "title": "Move To Sync Chat",
+              "description": "Triggers transient chat/member synchronization after rider status changes.",
+              "type": "update.contract",
+              "update": {
+                "$set": {
+                  "state": "SYNC_CHAT"
                 }
               }
             }
@@ -4330,336 +4491,399 @@
               }
             }
           ]
-        },
-        "DriverSetReady": {
+        }
+      }
+    },
+    "IN_PROGRESS": {
+      "events": {
+        "LogLocation": {
           "trigger": [
             {
               "type": "api",
-              "path": "set-ready",
+              "path": "log-location",
               "method": "POST",
+              "allow_user_states": [
+                "DRIVER",
+                "ACCEPTED",
+                "ONBOARD"
+              ],
+              "payload_schema": {
+                "type": "object",
+                "required": [
+                  "locations"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "locations": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "lat",
+                        "lng",
+                        "at",
+                        "accuracy"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "lat": {
+                          "type": "number"
+                        },
+                        "lng": {
+                          "type": "number"
+                        },
+                        "at": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "accuracy": {
+                          "type": "number",
+                          "minimum": 0
+                        }
+                      }
+                    }
+                  }
+                }
+              },
               "response": {
                 "ok": true,
-                "event": "set_ready"
+                "event": "log_location"
               }
             }
           ],
           "effects": [
             {
-              "title": "Move State",
-              "description": "Moves the contract state to support close recruiting and lock roster.",
+              "title": "Append Actor Locations",
+              "description": "Appends batched actor locations for dispute checks.",
               "type": "update.contract",
               "update": {
                 "$set": {
-                  "state": "READY"
-                }
-              }
-            }
-          ]
-        }
-      }
-    },
-    "CONFIRMING": {
-      "on_enter": {
-        "effects": [
-          {
-            "title": "Create Group",
-            "description": "Creates the coordination group for active riders.",
-            "type": "create.group",
-            "name": "trip-$$ctx.doc._id",
-            "sub": "$$ctx.doc.context.driver",
-            "key": "group_ref"
-          },
-          {
-            "title": "Link Coordination Group",
-            "description": "Stores group linkage for roster synchronization.",
-            "type": "update.contract",
-            "update": {
-              "$set": {
-                "context.group_id": {
-                  "$ctx": "local.group_ref"
-                }
-              }
-            }
-          },
-          {
-            "title": "Store Context",
-            "description": "Stores lifecycle context needed to collect rider confirmations.",
-            "type": "update.contract",
-            "update": {
-              "$set": {
-                "local.accepted_riders": {
-                  "$map": {
-                    "input": {
-                      "$filter": {
-                        "input": {
-                          "$objectToArray": "$states"
-                        },
-                        "as": "kv",
-                        "cond": {
-                          "$eq": [
-                            "$$kv.v",
-                            "ACCEPTED"
-                          ]
-                        }
-                      }
-                    },
-                    "as": "kv",
-                    "in": "$$kv.k"
+                  "context.locations.$$ctx.user.last": {
+                    "$arrayElemAt": [
+                      "$$payload.locations",
+                      -1
+                    ]
+                  },
+                  "context.locations.$$ctx.user.history": {
+                    "$slice": [
+                      {
+                        "$concatArrays": [
+                          {
+                            "$ifNull": [
+                              {
+                                "$ctx": "doc.context.locations.$$ctx.user.history"
+                              },
+                              []
+                            ]
+                          },
+                          "$$payload.locations"
+                        ]
+                      },
+                      -200
+                    ]
                   }
                 }
               }
             }
-          },
-          {
-            "title": "Sync Group",
-            "description": "Synchronizes group membership with current trip roster.",
-            "type": "update.group",
-            "group_id": {
-              "$ctx": "doc.context.group_id"
-            },
-            "edit_members": {
-              "add_members": "$$ctx.local.accepted_riders"
-            }
-          },
-          {
-            "title": "Move State",
-            "description": "Moves the contract state to support collect rider confirmations.",
-            "type": "update.contract",
-            "update": {
-              "$set": {
-                "state": "ONBOARDING"
-              }
-            }
-          }
-        ]
-      }
-    },
-    "READY": {
-      "events": {
-        "CancelUser": {
+          ]
+        },
+        "DriverConfirmPickup": {
           "trigger": [
             {
               "type": "api",
-              "path": "cancel-user",
+              "path": "driver-confirm-pick-up",
+              "method": "POST",
+              "allow_principals": [
+                "$$ctx.doc.context.driver"
+              ],
+              "payload_schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "anyOf": [
+                  {
+                    "required": [
+                      "pin"
+                    ],
+                    "not": {
+                      "required": [
+                        "pins"
+                      ]
+                    }
+                  },
+                  {
+                    "required": [
+                      "pins"
+                    ],
+                    "not": {
+                      "required": [
+                        "pin"
+                      ]
+                    }
+                  }
+                ],
+                "properties": {
+                  "pin": {
+                    "type": "string",
+                    "pattern": "^\\d{6}$"
+                  },
+                  "pins": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "type": "string",
+                      "pattern": "^\\d{6}$"
+                    }
+                  }
+                }
+              },
+              "response": {
+                "ok": true,
+                "event": "driver_confirm_pickup"
+              }
+            }
+          ],
+          "effects": [
+            {
+              "title": "Resolve Pickup Pins",
+              "description": "Resolves rider principals from provided pickup pins.",
+              "type": "update.contract",
+              "update": [
+                {
+                  "$set": {
+                    "local.confirm_pins": {
+                      "$cond": [
+                        {
+                          "$ifNull": [
+                            "$$payload.pin",
+                            false
+                          ]
+                        },
+                        [
+                          "$$payload.pin"
+                        ],
+                        {
+                          "$ifNull": [
+                            "$$payload.pins",
+                            []
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "$set": {
+                    "local.confirmed_principals": {
+                      "$setUnion": [
+                        {
+                          "$map": {
+                            "input": {
+                              "$ifNull": [
+                                "$local.confirm_pins",
+                                []
+                              ]
+                            },
+                            "as": "pin",
+                            "in": {
+                              "$arrayElemAt": [
+                                {
+                                  "$map": {
+                                    "input": {
+                                      "$filter": {
+                                        "input": {
+                                          "$objectToArray": {
+                                            "$ifNull": [
+                                              "$context.pickup_verifications",
+                                              {}
+                                            ]
+                                          }
+                                        },
+                                        "as": "pv",
+                                        "cond": {
+                                          "$eq": [
+                                            "$$pv.k",
+                                            "$$pin"
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    "as": "pv",
+                                    "in": "$$pv.v.principal"
+                                  }
+                                },
+                                0
+                              ]
+                            }
+                          }
+                        },
+                        []
+                      ]
+                    }
+                  }
+                },
+                {
+                  "$set": {
+                    "local.confirmed_states": {
+                      "$arrayToObject": {
+                        "$map": {
+                          "input": {
+                            "$filter": {
+                              "input": {
+                                "$ifNull": [
+                                  "$local.confirmed_principals",
+                                  []
+                                ]
+                              },
+                              "as": "p",
+                              "cond": {
+                                "$and": [
+                                  {
+                                    "$ne": [
+                                      "$$p",
+                                      null
+                                    ]
+                                  },
+                                  {
+                                    "$ne": [
+                                      "$$p",
+                                      ""
+                                    ]
+                                  }
+                                ]
+                              }
+                            }
+                          },
+                          "as": "p",
+                          "in": {
+                            "k": "$$p",
+                            "v": "ONBOARD"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "$set": {
+                    "states": {
+                      "$mergeObjects": [
+                        "$states",
+                        {
+                          "$ifNull": [
+                            "$local.confirmed_states",
+                            {}
+                          ]
+                        }
+                      ]
+                    },
+                    "context.pending_pickup_targets": {
+                      "$arrayToObject": {
+                        "$filter": {
+                          "input": {
+                            "$objectToArray": {
+                              "$ifNull": [
+                                "$context.pending_pickup_targets",
+                                {}
+                              ]
+                            }
+                          },
+                          "as": "kv",
+                          "cond": {
+                            "$not": [
+                              {
+                                "$in": [
+                                  "$$kv.k",
+                                  {
+                                    "$ifNull": [
+                                      "$local.confirmed_principals",
+                                      []
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "title": "Unschedule Pickup Reminder After Boarding",
+              "description": "Cancels scheduled pickup reminder once a rider is confirmed onboard.",
+              "type": "if.else",
+              "condition": {
+                "$ifNull": [
+                  "$context.first_pickup_reminder_id",
+                  false
+                ]
+              },
+              "then_effects": [
+                {
+                  "title": "Cancel Reminder Job",
+                  "description": "Unschedules first pickup reminder timed job.",
+                  "type": "unschedule.event",
+                  "event_id": {
+                    "$ctx": "doc.context.first_pickup_reminder_id"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        "RiderDidNotGetPicked": {
+          "trigger": [
+            {
+              "type": "api",
+              "path": "driver-did-not-pick-me",
               "method": "POST",
               "allow_user_states": [
                 "ACCEPTED"
               ],
               "response": {
                 "ok": true,
-                "event": "cancel_user"
+                "event": "driver_did_not_pick_me"
               }
             }
           ],
           "effects": [
             {
-              "title": "Sync Group",
-              "description": "Synchronizes group membership with current trip roster.",
-              "type": "update.group",
-              "group_id": {
-                "$ctx": "doc.context.group_id"
-              },
-              "edit_members": {
-                "remove_members": [
-                  "$$ctx.user"
-                ]
-              }
-            },
-            {
-              "title": "Persist Progress",
-              "description": "Persists transition data to keep the process deterministic.",
+              "title": "Register Rider Dispute",
+              "description": "Stores rider dispute for payment resolution.",
               "type": "update.contract",
               "update": {
                 "$set": {
-                  "local.cancel_seats": {
-                    "$ifNull": [
+                  "context.disputes": {
+                    "$concatArrays": [
                       {
-                        "$ctx": "doc.context.riders.$$ctx.user.seats"
+                        "$ifNull": [
+                          "$context.disputes",
+                          []
+                        ]
                       },
-                      1
+                      [
+                        {
+                          "type": "rider_not_picked",
+                          "rider_principal": "$$ctx.user",
+                          "reported_by": "$$ctx.user",
+                          "at": "$$NOW"
+                        }
+                      ]
                     ]
                   }
                 }
               }
-            },
-            {
-              "title": "Persist Progress",
-              "description": "Persists transition data to keep the process deterministic.",
-              "type": "update.contract",
-              "update": [
-                {
-                  "$set": {
-                    "context.accepted_seats_total": {
-                      "$cond": [
-                        {
-                          "$gte": [
-                            {
-                              "$ifNull": [
-                                "$context.accepted_seats_total",
-                                0
-                              ]
-                            },
-                            "$local.cancel_seats"
-                          ]
-                        },
-                        {
-                          "$subtract": [
-                            {
-                              "$ifNull": [
-                                "$context.accepted_seats_total",
-                                0
-                              ]
-                            },
-                            "$local.cancel_seats"
-                          ]
-                        },
-                        0
-                      ]
-                    },
-                    "states.$$ctx.user": "CANCELLED",
-                    "state": "ONBOARDING"
-                  }
-                },
-                {
-                  "$unset": "context.riders.$$ctx.user.seats"
-                }
-              ]
-            },
-            {
-              "title": "Notify Stakeholders",
-              "description": "Sends contracts.user_cancelled so stakeholders can act at the right time.",
-              "type": "notify",
-              "notify": {
-                "event": "contracts.user_cancelled",
-                "targets": {
-                  "$$ctx.doc.context.driver": [
-                    "in_app",
-                    "push"
-                  ]
-                },
-                "payload": {
-                  "principal": "$$ctx.user",
-                  "contract_id": {
-                    "$ctx": "doc._id"
-                  }
-                }
-              }
             }
           ]
         },
-        "DriverSetOnboarding": {
+        "RiderNotAtPickup": {
           "trigger": [
             {
               "type": "api",
-              "path": "set-onboarding",
-              "method": "POST",
-              "response": {
-                "ok": true,
-                "event": "set_onboarding"
-              }
-            }
-          ],
-          "effects": [
-            {
-              "title": "Move State",
-              "description": "Moves the contract state to support reopen onboarding after ready.",
-              "type": "update.contract",
-              "update": {
-                "$set": {
-                  "state": "ONBOARDING"
-                }
-              }
-            }
-          ]
-        },
-        "DriverStartTrip": {
-          "trigger": [
-            {
-              "type": "api",
-              "path": "start-trip",
-              "method": "POST",
-              "allow_principals": [
-                "$$ctx.doc.context.driver"
-              ],
-              "response": {
-                "ok": true,
-                "event": "start_trip"
-              }
-            }
-          ],
-          "effects": [
-            {
-              "title": "Schedule Timed Step",
-              "description": "Schedules RidersPickupCheckTimed as a timed lifecycle checkpoint.",
-              "type": "schedule.event",
-              "key": "riders_pickup_check_id",
-              "event": {
-                "event_name": "RidersPickupCheckTimed",
-                "at": {
-                  "$ctx": "doc.context.driver_trip.origin.at"
-                },
-                "actor_id": "system:cron"
-              }
-            },
-            {
-              "title": "Store Context",
-              "description": "Stores lifecycle context needed to start trip execution.",
-              "type": "update.contract",
-              "update": {
-                "$set": {
-                  "context.riders_pickup_check_id": {
-                    "$ctx": "local.riders_pickup_check_id"
-                  },
-                  "context.driver_in_pickup_zone": false,
-                  "context.riders_picked_up": {},
-                  "context.pending_pickup_targets": {
-                    "$arrayToObject": {
-                      "$map": {
-                        "input": {
-                          "$filter": {
-                            "input": {
-                              "$objectToArray": "$states"
-                            },
-                            "as": "kv",
-                            "cond": {
-                              "$eq": [
-                                "$$kv.v",
-                                "ACCEPTED"
-                              ]
-                            }
-                          }
-                        },
-                        "as": "kv",
-                        "in": {
-                          "k": "$$kv.k",
-                          "v": [
-                            "in_app",
-                            "push"
-                          ]
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            },
-            {
-              "title": "Move State",
-              "description": "Moves the contract state to support start trip execution.",
-              "type": "update.contract",
-              "update": {
-                "$set": {
-                  "state": "IN_PROGRESS"
-                }
-              }
-            }
-          ]
-        },
-        "DriverRemoveUser": {
-          "trigger": [
-            {
-              "type": "api",
-              "path": "driver-remove-user",
+              "path": "rider-not-at-pickup",
               "method": "POST",
               "allow_principals": [
                 "$$ctx.doc.context.driver"
@@ -4669,143 +4893,67 @@
                 "required": [
                   "principal"
                 ],
+                "additionalProperties": false,
                 "properties": {
                   "principal": {
                     "type": "string",
                     "pattern": "^u:.+$"
                   }
-                },
-                "additionalProperties": false
+                }
               },
               "response": {
                 "ok": true,
-                "event": "driver_remove_user"
+                "event": "rider_not_at_pickup"
               }
             }
           ],
           "effects": [
             {
-              "title": "Persist Progress",
-              "description": "Persists transition data to keep the process deterministic.",
+              "title": "Register Driver Dispute",
+              "description": "Stores driver dispute for payment resolution.",
               "type": "update.contract",
               "update": {
                 "$set": {
-                  "local.target_is_accepted": {
-                    "$eq": [
+                  "context.disputes": {
+                    "$concatArrays": [
                       {
                         "$ifNull": [
-                          {
-                            "$ctx": "doc.states.$$ctx.payload.principal"
-                          },
-                          ""
+                          "$context.disputes",
+                          []
                         ]
                       },
-                      "ACCEPTED"
+                      [
+                        {
+                          "type": "rider_not_at_pickup",
+                          "rider_principal": "$$ctx.payload.principal",
+                          "reported_by": "$$ctx.user",
+                          "at": "$$NOW"
+                        }
+                      ]
                     ]
                   }
                 }
               }
-            },
+            }
+          ]
+        },
+        "TripPaymentTimed": {
+          "trigger": [
             {
-              "title": "Evaluate Branch",
-              "description": "Selects the branch that matches current trip conditions.",
-              "type": "if.else",
-              "condition": {
-                "$ctx": "local.target_is_accepted"
-              },
-              "then_effects": [
-                {
-                  "title": "Sync Group",
-                  "description": "Synchronizes group membership with current trip roster.",
-                  "type": "update.group",
-                  "group_id": {
-                    "$ctx": "doc.context.group_id"
-                  },
-                  "edit_members": {
-                    "remove_members": [
-                      "$$ctx.payload.principal"
-                    ]
-                  }
-                },
-                {
-                  "title": "Persist Progress",
-                  "description": "Persists transition data to keep the process deterministic.",
-                  "type": "update.contract",
-                  "update": {
-                    "$set": {
-                      "local.remove_seats": {
-                        "$ifNull": [
-                          {
-                            "$ctx": "doc.context.riders.$$ctx.payload.principal.seats"
-                          },
-                          1
-                        ]
-                      }
-                    }
-                  }
-                },
-                {
-                  "title": "Persist Progress",
-                  "description": "Persists transition data to keep the process deterministic.",
-                  "type": "update.contract",
-                  "update": [
-                    {
-                      "$set": {
-                        "context.accepted_seats_total": {
-                          "$cond": [
-                            {
-                              "$gte": [
-                                {
-                                  "$ifNull": [
-                                    "$context.accepted_seats_total",
-                                    0
-                                  ]
-                                },
-                                "$local.remove_seats"
-                              ]
-                            },
-                            {
-                              "$subtract": [
-                                {
-                                  "$ifNull": [
-                                    "$context.accepted_seats_total",
-                                    0
-                                  ]
-                                },
-                                "$local.remove_seats"
-                              ]
-                            },
-                            0
-                          ]
-                        },
-                        "states.$$ctx.payload.principal": "CANCELLED"
-                      }
-                    },
-                    {
-                      "$unset": "context.riders.$$ctx.payload.principal.seats"
-                    }
-                  ]
-                },
-                {
-                  "title": "Notify Stakeholders",
-                  "description": "Sends contracts.user_removed_by_driver so stakeholders can act at the right time.",
-                  "type": "notify",
-                  "notify": {
-                    "event": "contracts.user_removed_by_driver",
-                    "targets": {
-                      "$$ctx.payload.principal": [
-                        "in_app",
-                        "push"
-                      ]
-                    },
-                    "payload": {
-                      "contract_id": {
-                        "$ctx": "doc._id"
-                      }
-                    }
-                  }
+              "type": "api",
+              "path": "trip-payment-timeout"
+            }
+          ],
+          "effects": [
+            {
+              "title": "Move To Payment",
+              "description": "Moves contract to PAYMENT after timed post-trip window.",
+              "type": "update.contract",
+              "update": {
+                "$set": {
+                  "state": "PAYMENT"
                 }
-              ]
+              }
             }
           ]
         },
@@ -4826,505 +4974,46 @@
           ],
           "effects": [
             {
-              "title": "Persist Progress",
-              "description": "Persists transition data to keep the process deterministic.",
+              "title": "Move Cancelled",
+              "description": "Cancels active trip by driver action.",
               "type": "update.contract",
               "update": {
                 "$set": {
-                  "local.cancel_trip_targets": {
-                    "$arrayToObject": {
-                      "$map": {
-                        "input": {
-                          "$filter": {
-                            "input": {
-                              "$objectToArray": "$states"
-                            },
-                            "as": "kv",
-                            "cond": {
-                              "$eq": [
-                                "$$kv.v",
-                                "ACCEPTED"
-                              ]
-                            }
-                          }
-                        },
-                        "as": "kv",
-                        "in": {
-                          "k": "$$kv.k",
-                          "v": [
-                            "in_app",
-                            "push"
-                          ]
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            },
-            {
-              "title": "Move State",
-              "description": "Moves the contract state to support cancel the active trip.",
-              "type": "update.contract",
-              "update": {
-                "$set": {
-                  "status": "CANCELED",
-                  "state": "CANCELED"
-                }
-              }
-            },
-            {
-              "title": "Notify Stakeholders",
-              "description": "Sends contracts.trip_cancelled_by_driver so stakeholders can act at the right time.",
-              "type": "notify",
-              "notify": {
-                "event": "contracts.trip_cancelled_by_driver",
-                "targets": "$$ctx.local.cancel_trip_targets",
-                "payload": {
-                  "contract_id": {
-                    "$ctx": "doc._id"
-                  }
-                }
-              }
-            }
-          ]
-        }
-      }
-    },
-    "IN_PROGRESS": {
-      "events": {
-        "DriverAtPickup": {
-          "trigger": [
-            {
-              "type": "api",
-              "path": "driver-at-pickup",
-              "method": "POST",
-              "allow_principals": [
-                "$$ctx.doc.context.driver"
-              ],
-              "response": {
-                "ok": true,
-                "event": "driver_at_pickup"
-              }
-            }
-          ],
-          "effects": [
-            {
-              "title": "Store Context",
-              "description": "Stores lifecycle context needed to record driver pickup arrival.",
-              "type": "update.contract",
-              "update": {
-                "$set": {
-                  "context.driver_in_pickup_zone": true
-                }
-              }
-            },
-            {
-              "title": "Cancel Schedule",
-              "description": "Cancels timers that are no longer relevant on this path.",
-              "type": "unschedule.event",
-              "event_id": {
-                "$ctx": "doc.context.driver_pickup_check_id"
-              }
-            }
-          ]
-        },
-        "RiderAtPickup": {
-          "trigger": [
-            {
-              "type": "api",
-              "path": "rider-at-pickup",
-              "method": "POST",
-              "allow_user_states": [
-                "ACCEPTED"
-              ],
-              "response": {
-                "ok": true,
-                "event": "rider_at_pickup"
-              }
-            }
-          ],
-          "effects": [
-            {
-              "title": "Store Context",
-              "description": "Stores lifecycle context needed to record rider pickup arrival.",
-              "type": "update.contract",
-              "update": {
-                "$set": {
-                  "context.riders_in_pickup_zone.$$ctx.user": true
+                  "state": "CANCELLED",
+                  "status": "CANCELLED"
                 }
               }
             }
           ]
         },
-        "DriverMarkPickedUp": {
+        "RiderPickupReminderTimed": {
           "trigger": [
             {
               "type": "api",
-              "path": "driver-mark-picked-up",
-              "method": "POST",
-              "allow_principals": [
-                "$$ctx.doc.context.driver"
-              ],
+              "path": "rider-pickup-reminder-timeout",
               "payload_schema": {
                 "type": "object",
                 "required": [
                   "principal"
                 ],
+                "additionalProperties": false,
                 "properties": {
                   "principal": {
                     "type": "string",
                     "pattern": "^u:.+$"
                   }
-                },
-                "additionalProperties": false
-              },
-              "response": {
-                "ok": true,
-                "event": "driver_mark_picked_up"
+                }
               }
             }
           ],
           "effects": [
             {
-              "title": "Persist Progress",
-              "description": "Persists transition data to keep the process deterministic.",
+              "title": "Check Reminder Targets",
+              "description": "Checks that at least one reminder target is available.",
               "type": "update.contract",
               "update": {
                 "$set": {
-                  "local.can_pick_user": {
-                    "$and": [
-                      {
-                        "$eq": [
-                          {
-                            "$ifNull": [
-                              {
-                                "$ctx": "doc.states.$$ctx.payload.principal"
-                              },
-                              ""
-                            ]
-                          },
-                          "ACCEPTED"
-                        ]
-                      },
-                      {
-                        "$eq": [
-                          {
-                            "$ifNull": [
-                              {
-                                "$ctx": "doc.context.riders_in_pickup_zone.$$ctx.payload.principal"
-                              },
-                              false
-                            ]
-                          },
-                          true
-                        ]
-                      }
-                    ]
-                  }
-                }
-              }
-            },
-            {
-              "title": "Evaluate Branch",
-              "description": "Selects the branch that matches current trip conditions.",
-              "type": "if.else",
-              "condition": {
-                "$ctx": "local.can_pick_user"
-              },
-              "then_effects": [
-                {
-                  "title": "Persist Progress",
-                  "description": "Persists transition data to keep the process deterministic.",
-                  "type": "update.contract",
-                  "update": [
-                    {
-                      "$set": {
-                        "context.riders_picked_up.$$ctx.payload.principal": true
-                      }
-                    },
-                    {
-                      "$unset": "context.pending_pickup_targets.$$ctx.payload.principal"
-                    }
-                  ]
-                },
-                {
-                  "title": "Notify Stakeholders",
-                  "description": "Sends contracts.user_picked_up so stakeholders can act at the right time.",
-                  "type": "notify",
-                  "notify": {
-                    "event": "contracts.user_picked_up",
-                    "targets": {
-                      "$$ctx.payload.principal": [
-                        "in_app",
-                        "push"
-                      ]
-                    },
-                    "payload": {
-                      "contract_id": {
-                        "$ctx": "doc._id"
-                      }
-                    }
-                  }
-                }
-              ]
-            },
-            {
-              "title": "Persist Progress",
-              "description": "Persists transition data to keep the process deterministic.",
-              "type": "update.contract",
-              "update": {
-                "$set": {
-                  "local.all_riders_picked_up": {
-                    "$eq": [
-                      {
-                        "$size": {
-                          "$objectToArray": {
-                            "$ifNull": [
-                              "$context.pending_pickup_targets",
-                              {}
-                            ]
-                          }
-                        }
-                      },
-                      0
-                    ]
-                  }
-                }
-              }
-            },
-            {
-              "title": "Evaluate Branch",
-              "description": "Selects the branch that matches current trip conditions.",
-              "type": "if.else",
-              "condition": {
-                "$ctx": "local.all_riders_picked_up"
-              },
-              "then_effects": [
-                {
-                  "title": "Cancel Schedule",
-                  "description": "Cancels timers that are no longer relevant on this path.",
-                  "type": "unschedule.event",
-                  "event_id": {
-                    "$ctx": "doc.context.riders_pickup_check_id"
-                  }
-                },
-                {
-                  "title": "Move State",
-                  "description": "Moves the contract state to support confirm a rider pickup.",
-                  "type": "update.contract",
-                  "update": {
-                    "$set": {
-                      "state": "COMPLETED",
-                      "status": "COMPLETED"
-                    }
-                  }
-                }
-              ],
-              "else_effects": [
-                {
-                  "title": "Move State",
-                  "description": "Moves the contract state to support confirm a rider pickup.",
-                  "type": "update.contract",
-                  "update": {
-                    "$set": {
-                      "state": "IN_PROGRESS"
-                    }
-                  }
-                }
-              ]
-            }
-          ]
-        },
-        "CancelUser": {
-          "trigger": [
-            {
-              "type": "api",
-              "path": "cancel-user",
-              "method": "POST",
-              "allow_user_states": [
-                "ACCEPTED"
-              ],
-              "response": {
-                "ok": true,
-                "event": "cancel_user"
-              }
-            }
-          ],
-          "effects": [
-            {
-              "title": "Sync Group",
-              "description": "Synchronizes group membership with current trip roster.",
-              "type": "update.group",
-              "group_id": {
-                "$ctx": "doc.context.group_id"
-              },
-              "edit_members": {
-                "remove_members": [
-                  "$$ctx.user"
-                ]
-              }
-            },
-            {
-              "title": "Persist Progress",
-              "description": "Persists transition data to keep the process deterministic.",
-              "type": "update.contract",
-              "update": {
-                "$set": {
-                  "local.cancel_seats": {
-                    "$ifNull": [
-                      {
-                        "$ctx": "doc.context.riders.$$ctx.user.seats"
-                      },
-                      1
-                    ]
-                  }
-                }
-              }
-            },
-            {
-              "title": "Persist Progress",
-              "description": "Persists transition data to keep the process deterministic.",
-              "type": "update.contract",
-              "update": [
-                {
-                  "$set": {
-                    "context.accepted_seats_total": {
-                      "$cond": [
-                        {
-                          "$gte": [
-                            {
-                              "$ifNull": [
-                                "$context.accepted_seats_total",
-                                0
-                              ]
-                            },
-                            "$local.cancel_seats"
-                          ]
-                        },
-                        {
-                          "$subtract": [
-                            {
-                              "$ifNull": [
-                                "$context.accepted_seats_total",
-                                0
-                              ]
-                            },
-                            "$local.cancel_seats"
-                          ]
-                        },
-                        0
-                      ]
-                    },
-                    "states.$$ctx.user": "CANCELLED"
-                  }
-                },
-                {
-                  "$unset": [
-                    "context.riders.$$ctx.user.seats",
-                    "context.pending_pickup_targets.$$ctx.user",
-                    "context.riders_in_pickup_zone.$$ctx.user",
-                    "context.riders_picked_up.$$ctx.user"
-                  ]
-                }
-              ]
-            },
-            {
-              "title": "Notify Stakeholders",
-              "description": "Sends contracts.user_cancelled so stakeholders can act at the right time.",
-              "type": "notify",
-              "notify": {
-                "event": "contracts.user_cancelled",
-                "targets": {
-                  "$$ctx.doc.context.driver": [
-                    "in_app",
-                    "push"
-                  ]
-                },
-                "payload": {
-                  "principal": "$$ctx.user",
-                  "contract_id": {
-                    "$ctx": "doc._id"
-                  }
-                }
-              }
-            }
-          ]
-        },
-        "DriverPickupCheckTimed": {
-          "trigger": [
-            {
-              "type": "api",
-              "path": "driver-pickup-check-timeout"
-            }
-          ],
-          "effects": [
-            {
-              "title": "Persist Progress",
-              "description": "Persists transition data to keep the process deterministic.",
-              "type": "update.contract",
-              "update": {
-                "$set": {
-                  "local.driver_not_in_pickup_zone": {
-                    "$eq": [
-                      {
-                        "$ifNull": [
-                          "$context.driver_in_pickup_zone",
-                          false
-                        ]
-                      },
-                      false
-                    ]
-                  }
-                }
-              }
-            },
-            {
-              "title": "Evaluate Branch",
-              "description": "Selects the branch that matches current trip conditions.",
-              "type": "if.else",
-              "condition": {
-                "$ctx": "docl.local.driver_not_in_pickup_zone"
-              },
-              "then_effects": [
-                {
-                  "title": "Notify Stakeholders",
-                  "description": "Sends contracts.driver_pickup_check so stakeholders can act at the right time.",
-                  "type": "notify",
-                  "notify": {
-                    "event": "contracts.driver_pickup_check",
-                    "targets": {
-                      "$$ctx.doc.context.driver": [
-                        "in_app",
-                        "push"
-                      ]
-                    },
-                    "payload": {
-                      "contract_id": {
-                        "$ctx": "doc._id"
-                      }
-                    }
-                  }
-                }
-              ]
-            }
-          ]
-        },
-        "RidersPickupCheckTimed": {
-          "trigger": [
-            {
-              "type": "api",
-              "path": "riders-pickup-check-timeout"
-            }
-          ],
-          "effects": [
-            {
-              "title": "Persist Progress",
-              "description": "Persists transition data to keep the process deterministic.",
-              "type": "update.contract",
-              "update": {
-                "$set": {
-                  "local.has_pending_pickups": {
+                  "local.has_pickup_reminder_targets": {
                     "$gt": [
                       {
                         "$size": {
@@ -5343,73 +5032,602 @@
               }
             },
             {
-              "title": "Evaluate Branch",
-              "description": "Selects the branch that matches current trip conditions.",
+              "title": "Dispatch Reminder",
+              "description": "Dispatches rider pickup reminder.",
               "type": "if.else",
               "condition": {
-                "$ctx": "local.has_pending_pickups"
+                "$ctx": "doc.local.has_pickup_reminder_targets"
               },
               "then_effects": [
                 {
-                  "title": "Notify Stakeholders",
-                  "description": "Sends contracts.rider_pickup_check so stakeholders can act at the right time.",
+                  "title": "Send Reminder Notification",
+                  "description": "Sends pickup reminder to pending pickup targets.",
                   "type": "notify",
                   "notify": {
-                    "event": "contracts.rider_pickup_check",
-                    "targets": "$$ctx.doc.context.pending_pickup_targets",
+                    "event": "contracts.pickup_reminder",
+                    "targets": {
+                      "$ctx": "doc.context.pending_pickup_targets"
+                    },
                     "payload": {
                       "contract_id": {
                         "$ctx": "doc._id"
-                      }
+                      },
+                      "principal": "$$ctx.payload.principal"
                     }
                   }
                 }
               ]
             }
           ]
-        },
-        "DriverCancelTrip": {
-          "trigger": [
-            {
-              "type": "api",
-              "path": "driver-cancel-trip",
-              "method": "POST",
-              "allow_principals": [
-                "$$ctx.doc.context.driver"
-              ],
-              "response": {
-                "ok": true,
-                "event": "driver_cancel_trip"
-              }
-            }
-          ],
-          "effects": [
-            {
-              "title": "Persist Progress",
-              "description": "Persists transition data to keep the process deterministic.",
-              "type": "update.contract",
-              "update": {
+        }
+      },
+      "on_enter": {
+        "effects": [
+          {
+            "title": "Compute Rider Buckets",
+            "description": "Computes accepted and requesting rider principals.",
+            "type": "update.contract",
+            "update": [
+              {
                 "$set": {
-                  "local.cancel_trip_targets": {
+                  "local.accepted_principals": {
+                    "$map": {
+                      "input": {
+                        "$filter": {
+                          "input": {
+                            "$objectToArray": {
+                              "$ifNull": [
+                                "$states",
+                                {}
+                              ]
+                            }
+                          },
+                          "as": "kv",
+                          "cond": {
+                            "$eq": [
+                              "$$kv.v",
+                              "ACCEPTED"
+                            ]
+                          }
+                        }
+                      },
+                      "as": "kv",
+                      "in": "$$kv.k"
+                    }
+                  },
+                  "local.requesting_principals": {
+                    "$map": {
+                      "input": {
+                        "$filter": {
+                          "input": {
+                            "$objectToArray": {
+                              "$ifNull": [
+                                "$states",
+                                {}
+                              ]
+                            }
+                          },
+                          "as": "kv",
+                          "cond": {
+                            "$eq": [
+                              "$$kv.v",
+                              "REQUESTING"
+                            ]
+                          }
+                        }
+                      },
+                      "as": "kv",
+                      "in": "$$kv.k"
+                    }
+                  }
+                }
+              },
+              {
+                "$set": {
+                  "local.requesting_cancelled_states": {
                     "$arrayToObject": {
                       "$map": {
                         "input": {
-                          "$filter": {
-                            "input": {
-                              "$objectToArray": "$states"
-                            },
-                            "as": "kv",
-                            "cond": {
-                              "$eq": [
-                                "$$kv.v",
-                                "ACCEPTED"
+                          "$ifNull": [
+                            "$local.requesting_principals",
+                            []
+                          ]
+                        },
+                        "as": "p",
+                        "in": {
+                          "k": "$$p",
+                          "v": "CANCELLED"
+                        }
+                      }
+                    }
+                  },
+                  "local.requesting_refunds": {
+                    "$arrayToObject": {
+                      "$map": {
+                        "input": {
+                          "$ifNull": [
+                            "$local.requesting_principals",
+                            []
+                          ]
+                        },
+                        "as": "p",
+                        "in": {
+                          "k": "$$p",
+                          "v": {
+                            "product": "coin",
+                            "user_id": "$$p",
+                            "amount": {
+                              "$ifNull": [
+                                {
+                                  "$ctx": "doc.context.riders.$$ctx.p.cost"
+                                },
+                                0
                               ]
                             }
                           }
+                        }
+                      }
+                    }
+                  },
+                  "local.requesting_route_updates": {
+                    "$literal": {}
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "title": "Cleanup Requesting Routes",
+            "description": "Unlinks requesting riders and clears reserved credits.",
+            "type": "update.item",
+            "updates": {
+              "$ctx": "local.requesting_route_updates"
+            }
+          },
+          {
+            "title": "Compute First Requesting Refund",
+            "description": "Computes refund for the first requesting rider when present.",
+            "type": "update.contract",
+            "update": [
+              {
+                "$set": {
+                  "local.first_requesting_principal": {
+                    "$arrayElemAt": [
+                      {
+                        "$ifNull": [
+                          "$local.requesting_principals",
+                          []
+                        ]
+                      },
+                      0
+                    ]
+                  }
+                }
+              },
+              {
+                "$set": {
+                  "local.first_requesting_refund": {
+                    "$cond": [
+                      {
+                        "$ifNull": [
+                          "$local.first_requesting_principal",
+                          false
+                        ]
+                      },
+                      10,
+                      0
+                    ]
+                  },
+                  "local.first_requesting_route_id": {
+                    "$arrayElemAt": [
+                      {
+                        "$map": {
+                          "input": {
+                            "$filter": {
+                              "input": {
+                                "$objectToArray": {
+                                  "$ifNull": [
+                                    "$context.riders",
+                                    {}
+                                  ]
+                                }
+                              },
+                              "as": "rv",
+                              "cond": {
+                                "$eq": [
+                                  "$$rv.k",
+                                  "$local.first_requesting_principal"
+                                ]
+                              }
+                            }
+                          },
+                          "as": "rv",
+                          "in": "$$rv.v.id"
+                        }
+                      },
+                      0
+                    ]
+                  },
+                  "local.has_first_requesting_refund": {
+                    "$ifNull": [
+                      "$local.first_requesting_principal",
+                      false
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "title": "Refund First Requesting Rider",
+            "description": "Refunds first requesting rider credits before cancellation.",
+            "type": "if.else",
+            "condition": {
+              "$ctx": "doc.local.has_first_requesting_refund"
+            },
+            "then_effects": [
+              {
+                "title": "Apply Requesting Refund",
+                "description": "Applies requesting refund to rider wallet.",
+                "type": "charge.credits",
+                "credit": {
+                  "product": "coin",
+                  "user_id": {
+                    "$ctx": "local.first_requesting_principal"
+                  },
+                  "amount": {
+                    "$ctx": "local.first_requesting_refund"
+                  }
+                }
+              },
+              {
+                "title": "Reset Requesting Route Hold",
+                "description": "Clears requesting rider reserved credits and contract linkage.",
+                "type": "update.item",
+                "item_id": {
+                  "$ctx": "local.first_requesting_route_id"
+                },
+                "update": {
+                  "$set": {
+                    "data.reserved_credits": 0,
+                    "data.contract_ids": {
+                      "$setDifference": [
+                        {
+                          "$ifNull": [
+                            "$data.contract_ids",
+                            []
+                          ]
                         },
-                        "as": "kv",
+                        [
+                          {
+                            "$ctx": "doc._id"
+                          }
+                        ]
+                      ]
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "title": "Apply Requesting Cancellations",
+            "description": "Marks requestings cancelled and removes them from rider snapshots.",
+            "type": "update.contract",
+            "update": {
+              "$set": {
+                "states": {
+                  "$mergeObjects": [
+                    "$states",
+                    {
+                      "$ifNull": [
+                        "$local.requesting_cancelled_states",
+                        {}
+                      ]
+                    }
+                  ]
+                },
+                "context.riders": {
+                  "$arrayToObject": {
+                    "$filter": {
+                      "input": {
+                        "$objectToArray": {
+                          "$ifNull": [
+                            "$context.riders",
+                            {}
+                          ]
+                        }
+                      },
+                      "as": "rv",
+                      "cond": {
+                        "$not": [
+                          {
+                            "$in": [
+                              "$$rv.k",
+                              {
+                                "$ifNull": [
+                                  "$local.requesting_principals",
+                                  []
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  }
+                },
+                "context.pending_pickup_targets": {
+                  "$arrayToObject": {
+                    "$map": {
+                      "input": {
+                        "$ifNull": [
+                          "$local.accepted_principals",
+                          []
+                        ]
+                      },
+                      "as": "p",
+                      "in": {
+                        "k": "$$p",
+                        "v": [
+                          "in_app",
+                          "push"
+                        ]
+                      }
+                    }
+                  }
+                },
+                "context.locations": {
+                  "$ifNull": [
+                    "$context.locations",
+                    {}
+                  ]
+                },
+                "context.disputes": {
+                  "$ifNull": [
+                    "$context.disputes",
+                    []
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "title": "Build Pickup Plan And Pins",
+            "description": "Builds mocked pickup plan and pin verifications for accepted riders.",
+            "type": "update.contract",
+            "update": [
+              {
+                "$set": {
+                  "local.pickup_entries": {
+                    "$map": {
+                      "input": {
+                        "$ifNull": [
+                          "$local.accepted_principals",
+                          []
+                        ]
+                      },
+                      "as": "p",
                         "in": {
-                          "k": "$$kv.k",
+                          "principal": "$$p",
+                          "route_id": null,
+                          "pickup_zone": "$context.driver_route.trip.origin",
+                          "pickup_window": {
+                            "start": "$context.driver_route.trip.origin.at",
+                            "end": "$context.driver_route.trip.origin.at"
+                          },
+                          "pin": {
+                          "$toString": {
+                            "$floor": {
+                              "$add": [
+                                100000,
+                                {
+                                  "$multiply": [
+                                    {
+                                      "$rand": {}
+                                    },
+                                    900000
+                                  ]
+                                }
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "$set": {
+                  "context.pickup_plan": {
+                    "$arrayToObject": {
+                      "$map": {
+                        "input": {
+                          "$ifNull": [
+                            "$local.pickup_entries",
+                            []
+                          ]
+                        },
+                        "as": "e",
+                        "in": {
+                          "k": "$$e.principal",
+                          "v": {
+                            "route_id": "$$e.route_id",
+                            "pickup_zone": "$$e.pickup_zone",
+                            "pickup_window": "$$e.pickup_window"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "context.pickup_verifications": {
+                    "$arrayToObject": {
+                      "$map": {
+                        "input": {
+                          "$ifNull": [
+                            "$local.pickup_entries",
+                            []
+                          ]
+                        },
+                        "as": "e",
+                        "in": {
+                          "k": "$$e.pin",
+                          "v": {
+                            "principal": "$$e.principal",
+                            "masked": {
+                              "$let": {
+                                "vars": {
+                                  "p": "$$e.pin"
+                                },
+                                "in": {
+                                  "$concat": [
+                                    {
+                                      "$cond": [
+                                        {
+                                          "$lt": [
+                                            {
+                                              "$rand": {}
+                                            },
+                                            0.5
+                                          ]
+                                        },
+                                        {
+                                          "$substrBytes": [
+                                            "$$p",
+                                            0,
+                                            1
+                                          ]
+                                        },
+                                        "_"
+                                      ]
+                                    },
+                                    " ",
+                                    {
+                                      "$cond": [
+                                        {
+                                          "$lt": [
+                                            {
+                                              "$rand": {}
+                                            },
+                                            0.5
+                                          ]
+                                        },
+                                        {
+                                          "$substrBytes": [
+                                            "$$p",
+                                            1,
+                                            1
+                                          ]
+                                        },
+                                        "_"
+                                      ]
+                                    },
+                                    " ",
+                                    {
+                                      "$cond": [
+                                        {
+                                          "$lt": [
+                                            {
+                                              "$rand": {}
+                                            },
+                                            0.5
+                                          ]
+                                        },
+                                        {
+                                          "$substrBytes": [
+                                            "$$p",
+                                            2,
+                                            1
+                                          ]
+                                        },
+                                        "_"
+                                      ]
+                                    },
+                                    " ",
+                                    {
+                                      "$cond": [
+                                        {
+                                          "$lt": [
+                                            {
+                                              "$rand": {}
+                                            },
+                                            0.5
+                                          ]
+                                        },
+                                        {
+                                          "$substrBytes": [
+                                            "$$p",
+                                            3,
+                                            1
+                                          ]
+                                        },
+                                        "_"
+                                      ]
+                                    },
+                                    " ",
+                                    {
+                                      "$cond": [
+                                        {
+                                          "$lt": [
+                                            {
+                                              "$rand": {}
+                                            },
+                                            0.5
+                                          ]
+                                        },
+                                        {
+                                          "$substrBytes": [
+                                            "$$p",
+                                            4,
+                                            1
+                                          ]
+                                        },
+                                        "_"
+                                      ]
+                                    },
+                                    " ",
+                                    {
+                                      "$cond": [
+                                        {
+                                          "$lt": [
+                                            {
+                                              "$rand": {}
+                                            },
+                                            0.5
+                                          ]
+                                        },
+                                        {
+                                          "$substrBytes": [
+                                            "$$p",
+                                            5,
+                                            1
+                                          ]
+                                        },
+                                        "_"
+                                      ]
+                                    }
+                                  ]
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "local.rider_targets": {
+                    "$arrayToObject": {
+                      "$map": {
+                        "input": {
+                          "$ifNull": [
+                            "$local.pickup_entries",
+                            []
+                          ]
+                        },
+                        "as": "e",
+                        "in": {
+                          "k": "$$e.principal",
                           "v": [
                             "in_app",
                             "push"
@@ -5417,47 +5635,561 @@
                         }
                       }
                     }
+                  },
+                  "local.trip_payment_at": {
+                    "$dateAdd": {
+                      "startDate": "$$NOW",
+                      "unit": "hour",
+                      "amount": 2
+                    }
                   }
                 }
               }
-            },
-            {
-              "title": "Move State",
-              "description": "Moves the contract state to support cancel the active trip.",
-              "type": "update.contract",
-              "update": {
-                "$set": {
-                  "status": "CANCELED",
-                  "state": "CANCELED"
-                }
-              }
-            },
-            {
-              "title": "Notify Stakeholders",
-              "description": "Sends contracts.trip_cancelled_by_driver so stakeholders can act at the right time.",
-              "type": "notify",
-              "notify": {
-                "event": "contracts.trip_cancelled_by_driver",
-                "targets": "$$ctx.local.cancel_trip_targets",
-                "payload": {
-                  "contract_id": {
-                    "$ctx": "doc._id"
-                  }
+            ]
+          },
+          {
+            "title": "Notify Riders Pins",
+            "description": "Notifies riders with pin and pickup data payload.",
+            "type": "notify",
+            "notify": {
+              "event": "contracts.pickup_pin_created",
+              "targets": {
+                "$ctx": "local.rider_targets"
+              },
+              "payload": {
+                "contract_id": {
+                  "$ctx": "doc._id"
+                },
+                "pickup_plan": {
+                  "$ctx": "doc.context.pickup_plan"
+                },
+                "pickup_verifications": {
+                  "$ctx": "doc.context.pickup_verifications"
                 }
               }
             }
-          ]
-        }
+          },
+          {
+            "title": "Notify Driver Masks",
+            "description": "Notifies driver with masked pins and pickup data payload.",
+            "type": "notify",
+            "notify": {
+              "event": "contracts.pickup_pin_hint",
+              "targets": {
+                "$$ctx.doc.context.driver": [
+                  "in_app",
+                  "push"
+                ]
+              },
+              "payload": {
+                "contract_id": {
+                  "$ctx": "doc._id"
+                },
+                "pickup_plan": {
+                  "$ctx": "doc.context.pickup_plan"
+                },
+                "pickup_verifications": {
+                  "$ctx": "doc.context.pickup_verifications"
+                }
+              }
+            }
+          },
+          {
+            "title": "Compute First Reminder",
+            "description": "Computes first accepted rider reminder timestamp and principal.",
+            "type": "update.contract",
+            "update": {
+              "$set": {
+                "local.first_pickup_entry": {
+                  "$arrayElemAt": [
+                    {
+                      "$ifNull": [
+                        "$local.pickup_entries",
+                        []
+                      ]
+                    },
+                    0
+                  ]
+                },
+                "local.first_pickup_reminder_at": "$$NOW"
+              }
+            }
+          },
+          {
+            "title": "Schedule First Pickup Reminder",
+            "description": "Schedules first rider reminder 20 minutes before pickup window.",
+            "type": "if.else",
+            "condition": {
+              "$ifNull": [
+                "$local.first_pickup_entry.principal",
+                false
+              ]
+            },
+            "then_effects": [
+              {
+                "title": "Schedule Reminder",
+                "description": "Schedules rider pickup reminder timed event.",
+                "type": "schedule.event",
+                "key": "first_pickup_reminder_id",
+                "event": {
+                  "event_name": "RiderPickupReminderTimed",
+                  "at": {
+                    "$ctx": "local.first_pickup_reminder_at"
+                  },
+                  "actor_id": "system:cron",
+                  "payload": {
+                    "principal": {
+                      "$ctx": "local.first_pickup_entry.principal"
+                    }
+                  }
+                }
+              },
+              {
+                "title": "Store Reminder Id",
+                "description": "Stores first pickup reminder id.",
+                "type": "update.contract",
+                "update": {
+                  "$set": {
+                    "context.first_pickup_reminder_id": {
+                      "$ctx": "local.first_pickup_reminder_id"
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "title": "Schedule Payment Timeout",
+            "description": "Schedules payment timeout two hours after destination.",
+            "type": "schedule.event",
+            "key": "trip_payment_check_id",
+            "event": {
+              "event_name": "TripPaymentTimed",
+              "at": {
+                "$ctx": "local.trip_payment_at"
+              },
+              "actor_id": "system:cron"
+            }
+          },
+          {
+            "title": "Store Payment Timeout Id",
+            "description": "Stores payment timeout event id.",
+            "type": "update.contract",
+            "update": {
+              "$set": {
+                "context.trip_payment_check_id": {
+                  "$ctx": "local.trip_payment_check_id"
+                }
+              }
+            }
+          }
+        ]
       }
     },
     "REJECTED": {
       "final": true
     },
-    "EXPIRED": {
-      "final": true
-    },
     "COMPLETED": {
       "final": true
+    },
+    "SYNC_CHAT": {
+      "on_enter": {
+        "effects": [
+          {
+            "title": "Detect Missing Group",
+            "description": "Detects when chat group must be created for this contract.",
+            "type": "update.contract",
+            "update": {
+              "$set": {
+                "local.group_missing": {
+                  "$not": [
+                    {
+                      "$ifNull": [
+                        "$context.group_id",
+                        false
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "title": "Create Group If Missing",
+            "description": "Creates coordination group only once when missing.",
+            "type": "if.else",
+            "condition": {
+              "$ctx": "doc.local.group_missing"
+            },
+            "then_effects": [
+              {
+                "title": "Create Group",
+                "description": "Creates the coordination group for active riders.",
+                "type": "create.group",
+                "name": "trip-$$ctx.doc._id",
+                "sub": "$$ctx.doc.context.driver",
+                "key": "group_ref"
+              },
+              {
+                "title": "Link Coordination Group",
+                "description": "Stores group linkage for roster synchronization.",
+                "type": "update.contract",
+                "update": {
+                  "$set": {
+                    "context.group_id": {
+                      "$ctx": "local.group_ref"
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "title": "Build Chat Membership",
+            "description": "Builds desired members and removals from current user states.",
+            "type": "update.contract",
+            "update": [
+              {
+                "$set": {
+                  "local.accepted_riders": {
+                    "$map": {
+                      "input": {
+                        "$filter": {
+                          "input": {
+                            "$objectToArray": {
+                              "$ifNull": [
+                                "$states",
+                                {}
+                              ]
+                            }
+                          },
+                          "as": "kv",
+                          "cond": {
+                            "$eq": [
+                              "$$kv.v",
+                              "ACCEPTED"
+                            ]
+                          }
+                        }
+                      },
+                      "as": "kv",
+                      "in": "$$kv.k"
+                    }
+                  }
+                }
+              },
+              {
+                "$set": {
+                  "local.chat_add_members": {
+                    "$setUnion": [
+                      [
+                        "$context.driver"
+                      ],
+                      {
+                        "$ifNull": [
+                          "$local.accepted_riders",
+                          []
+                        ]
+                      }
+                    ]
+                  },
+                  "local.chat_remove_members": {
+                    "$map": {
+                      "input": {
+                        "$filter": {
+                          "input": {
+                            "$objectToArray": {
+                              "$ifNull": [
+                                "$states",
+                                {}
+                              ]
+                            }
+                          },
+                          "as": "kv",
+                          "cond": {
+                            "$and": [
+                              {
+                                "$ne": [
+                                  "$$kv.k",
+                                  "$context.driver"
+                                ]
+                              },
+                              {
+                                "$ne": [
+                                  "$$kv.v",
+                                  "ACCEPTED"
+                                ]
+                              }
+                            ]
+                          }
+                        }
+                      },
+                      "as": "kv",
+                      "in": "$$kv.k"
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "title": "Sync Group Members",
+            "description": "Aligns chat members with accepted riders and driver roster.",
+            "type": "update.group",
+            "group_id": {
+              "$ctx": "doc.context.group_id"
+            },
+            "edit_members": {
+              "add_members": {
+                "$ctx": "local.chat_add_members"
+              },
+              "promote_admins": [
+                {
+                  "$ctx": "doc.context.driver"
+                }
+              ]
+            }
+          },
+          {
+            "title": "Return To Onboarding",
+            "description": "Returns to ONBOARDING after transient chat synchronization.",
+            "type": "update.contract",
+            "update": {
+              "$set": {
+                "state": "ONBOARDING"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "CANCELLED": {
+      "final": true
+    },
+    "PAYMENT": {
+      "on_enter": {
+        "effects": [
+          {
+            "title": "Compute Driver Payout",
+            "description": "Computes aggregate driver payout from onboard and non-disputed riders.",
+            "type": "update.contract",
+            "update": {
+              "$set": {
+                "local.driver_total_payout": {
+                  "$sum": {
+                    "$map": {
+                      "input": {
+                        "$filter": {
+                          "input": {
+                            "$objectToArray": {
+                              "$ifNull": [
+                                "$context.riders",
+                                {}
+                              ]
+                            }
+                          },
+                          "as": "rv",
+                          "cond": {
+                            "$or": [
+                              {
+                                "$eq": [
+                                  {
+                                    "$ifNull": [
+                                      {
+                                        "$ctx": "doc.states.$$ctx.rv.k"
+                                      },
+                                      ""
+                                    ]
+                                  },
+                                  "ONBOARD"
+                                ]
+                              },
+                              {
+                                "$eq": [
+                                  {
+                                    "$size": {
+                                      "$filter": {
+                                        "input": {
+                                          "$ifNull": [
+                                            "$context.disputes",
+                                            []
+                                          ]
+                                        },
+                                        "as": "d",
+                                        "cond": {
+                                          "$eq": [
+                                            "$$d.rider_principal",
+                                            "$$rv.k"
+                                          ]
+                                        }
+                                      }
+                                    }
+                                  },
+                                  0
+                                ]
+                              }
+                            ]
+                          }
+                        }
+                      },
+                      "as": "rv",
+                      "in": {
+                        "$ifNull": [
+                          "$$rv.v.cost",
+                          0
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "title": "Check Driver Payout",
+            "description": "Checks whether payout is positive before charging driver wallet.",
+            "type": "update.contract",
+            "update": {
+              "$set": {
+                "local.has_driver_payout": {
+                  "$gt": [
+                    {
+                      "$ifNull": [
+                        "$local.driver_total_payout",
+                        0
+                      ]
+                    },
+                    0
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "title": "Pay Driver If Any",
+            "description": "Pays aggregate driver amount when positive.",
+            "type": "if.else",
+            "condition": {
+              "$ctx": "doc.local.has_driver_payout"
+            },
+            "then_effects": [
+              {
+                "title": "Charge Driver",
+                "description": "Credits driver wallet with aggregate payout.",
+                "type": "charge.credits",
+                "credit": {
+                  "product": "coin",
+                  "user_id": {
+                    "$ctx": "doc.context.driver"
+                  },
+                  "amount": {
+                    "$ctx": "local.driver_total_payout"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "title": "Complete Contract",
+            "description": "Stores payment decision and marks contract completed.",
+            "type": "update.contract",
+            "update": {
+              "$set": {
+                "context.payment_decision": {
+                  "driver_total_payout": {
+                    "$ifNull": [
+                      "$local.driver_total_payout",
+                      0
+                    ]
+                  }
+                },
+                "state": "COMPLETED",
+                "status": "COMPLETED"
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "events": {
+    "PreDepartureGateTimed": {
+      "effects": [
+        {
+          "title": "Compute Accepted Riders",
+          "description": "Checks whether at least one rider is accepted before departure gate.",
+          "type": "update.contract",
+          "update": [
+            {
+              "$set": {
+                "local.accepted_riders_count": {
+                  "$size": {
+                    "$filter": {
+                      "input": {
+                        "$objectToArray": {
+                          "$ifNull": [
+                            "$states",
+                            {}
+                          ]
+                        }
+                      },
+                      "as": "kv",
+                      "cond": {
+                        "$eq": [
+                          "$$kv.v",
+                          "ACCEPTED"
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "$set": {
+                "local.has_accepted_riders": {
+                  "$gt": [
+                    "$local.accepted_riders_count",
+                    0
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "title": "Apply Pre-Departure Transition",
+          "description": "Moves to IN_PROGRESS when riders are accepted, otherwise CANCELLED.",
+          "type": "if.else",
+          "condition": {
+            "$ctx": "doc.local.has_accepted_riders"
+          },
+          "then_effects": [
+            {
+              "title": "Move To In Progress",
+              "description": "Transitions contract to IN_PROGRESS when accepted riders are present.",
+              "type": "update.contract",
+              "update": {
+                "$set": {
+                  "state": "IN_PROGRESS"
+                }
+              }
+            }
+          ],
+          "else_effects": [
+            {
+              "title": "Move To Cancelled",
+              "description": "Cancels contract when no accepted riders are present at gate time.",
+              "type": "update.contract",
+              "update": {
+                "$set": {
+                  "state": "CANCELLED"
+                }
+              }
+            }
+          ]
+        }
+      ]
     }
   }
 }
