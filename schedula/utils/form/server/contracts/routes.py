@@ -120,6 +120,7 @@ TEMPLATE_CREATE_SCHEMA = {
                 },
                 "title": {"type": "string"},
                 "description": {"type": "string"},
+                "projection": {"type": "object"},
                 "update": {
                     "anyOf": [
                         {"$ref": "#/$defs/update_operation"},
@@ -171,12 +172,6 @@ TEMPLATE_CREATE_SCHEMA = {
                     ]
                 },
                 "group_id": {
-                    "anyOf": [
-                        {"type": "string"},
-                        {"$ref": "#/$defs/json_with_refs"},
-                    ]
-                },
-                "category": {
                     "anyOf": [
                         {"type": "string"},
                         {"$ref": "#/$defs/json_with_refs"},
@@ -314,14 +309,6 @@ TEMPLATE_CREATE_SCHEMA = {
                         }
                     },
                     "then": {
-                        "properties": {
-                            "item_id": {
-                                "anyOf": [
-                                    {"type": "string"},
-                                    {"$ref": "#/$defs/json_with_refs"},
-                                ]
-                            },
-                        },
                         "anyOf": [
                             {
                                 "required": ["item_id", "update"],
@@ -1267,8 +1254,8 @@ def _validate_schema(payload: Dict[str, Any], schema: Dict[str, Any]) -> List[st
 
 
 def _validate_allowed_initial_states(
-    definition: Dict[str, Any],
-    allowed_initial_states: Any,
+        definition: Dict[str, Any],
+        allowed_initial_states: Any,
 ) -> List[str]:
     if allowed_initial_states is None:
         return []

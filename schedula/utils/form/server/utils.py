@@ -316,6 +316,10 @@ def mongo_update_one(coll, *args, **kwargs):
     return coll.update_one(*args, **kwargs)
 
 
+def mongo_find_one_and_update(coll, *args, **kwargs):
+    return coll.find_one_and_update(*args, **kwargs)
+
+
 def mongo_update_many(coll, *args, **kwargs):
     return coll.update_many(*args, **kwargs)
 

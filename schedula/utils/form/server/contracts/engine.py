@@ -33,6 +33,7 @@ from ..utils import (
     mongo_find,
     mongo_insert_one,
     mongo_update_one,
+    mongo_find_one_and_update,
     now_utc,
     mongo_delete_one,
     mongo_delete_many,
@@ -198,7 +199,8 @@ def _apply_effect_step(
             "sender_principal": actor_id,
         }
         notify_kw.update(ef["notify"] or {})
-        create_notification(**notify_kw)
+        if notify_kw["targets"]:
+            create_notification(**notify_kw)
     elif ef_type == "if.else":
         condition = ef.get("condition")
         then_effects = raw_ef.get("then_effects") or []
@@ -331,17 +333,21 @@ def _apply_effect_step(
     elif ef_type == "update.item":
         coll = get_mongo(collection=config_get("ITEMS_COLLECTION", "items"))
         now = now_utc()
+        out_key = None
         if "updates" in ef:
             updates = ef["updates"]
         else:
             item_id = ef["item_id"]
             if isinstance(item_id, list):
-                abort_json(400, "update.item item_id cannot be a list; use updates")
-            updates = {item_id: ef["update"]}
+                updates = {k: ef["update"] for k in item_id}
+            else:
+                out_key = item_id
+                updates = {item_id: ef["update"]}
         sft_local = _safe_local(local)
+        docs = {}
         for k, update in updates.items():
             update = [update] if isinstance(update, dict) else update
-            mongo_update_one(
+            docs[k] = mongo_find_one_and_update(
                 coll,
                 {"_id": k},
                 [
@@ -349,12 +355,18 @@ def _apply_effect_step(
                     *update,
                     {"$set": {"updated_at": now}},
                 ],
+                {"returnDocument": "after", "projection": ef.get("projection", {})},
                 let={
                     "user": actor_id,
                     "payload": payload,
                     "local": sft_local,
                 },
             )
+
+        if "key" in ef:
+            if out_key is not None:
+                docs = docs[out_key]
+            local[ef["key"]] = docs
     elif ef_type == "delete.item":
         coll = get_mongo(collection=config_get("ITEMS_COLLECTION", "items"))
         item_ids = ef["item_id"]
@@ -366,7 +378,7 @@ def _apply_effect_step(
         item_ids = ef["item_id"]
         if isinstance(ef["item_id"], str):
             item_ids = [ef["item_id"]]
-        docs = list(mongo_find(coll, {"_id": {"$in": item_ids}}))
+        docs = list(mongo_find(coll, {"_id": {"$in": item_ids}}, projection=ef.get("projection", {})))
 
         found_ids = {doc["_id"] for doc in docs}
         requested_ids = set(item_ids)
@@ -377,12 +389,14 @@ def _apply_effect_step(
 
         if isinstance(ef["item_id"], str):
             docs = docs[0] if docs else None
+        else:
+            docs = {doc["_id"]: doc for doc in docs}
         local[ef["key"]] = docs
     elif ef_type == "get.contract":
         contract_ids = ef["contract_id"]
         if isinstance(ef["contract_id"], str):
             contract_ids = [ef["contract_id"]]
-        docs = list(mongo_find(_contracts_coll(), {"_id": {"$in": contract_ids}}))
+        docs = list(mongo_find(_contracts_coll(), {"_id": {"$in": contract_ids}}, projection=ef.get("projection", {})))
 
         found_ids = {doc["_id"] for doc in docs}
         requested_ids = set(contract_ids)
