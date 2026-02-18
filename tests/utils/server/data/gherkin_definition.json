@@ -1374,18 +1374,7 @@
                       "state": "SYNC_CHAT",
                       "local.sync_chat_needs_pruning": true,
                       "local.sync_chat_needs_accept_reconcile": true,
-                      "local.sync_chat_accepted_rider": "$$ctx.payload.rider",
-                      "local.sync_chat_accepted_route_id": {
-                        "$ctx": "doc.context.riders.$$ctx.payload.rider.id"
-                      },
-                      "local.sync_chat_accepted_rider_cost": {
-                        "$ifNull": [
-                          {
-                            "$ctx": "doc.context.riders.$$ctx.payload.rider.cost"
-                          },
-                          0
-                        ]
-                      }
+                      "local.sync_chat_accepted_rider": "$$ctx.payload.rider"
                     }
                   }
                 }
@@ -1946,39 +1935,120 @@
           ],
           "effects": [
             {
+              "title": "Load Accept Invite Route",
+              "description": "Loads rider route snapshot before charging invite acceptance credits.",
+              "type": "get.item",
+              "item_id": {
+                "$ctx": "doc.context.riders.$$ctx.user.id"
+              },
+              "key": "accept_invite_route"
+            },
+            {
+              "title": "Read Invitee Credits",
+              "description": "Reads rider wallet balance before invite acceptance charge.",
+              "type": "balance.credits",
+              "credit": {
+                "product": "coin"
+              },
+              "key": "invite_balance_credits"
+            },
+            {
               "title": "Validate Invite Acceptance",
               "description": "Validates pending state and remaining capacity before accepting invite.",
               "type": "update.contract",
-              "update": {
-                "$set": {
-                  "local.can_accept_invite": {
-                    "$lte": [
-                      {
-                        "$add": [
-                          {
-                            "$ifNull": [
-                              "$context.driver_route.accepted_seats",
-                              0
-                            ]
-                          },
-                          {
-                            "$ifNull": [
-                              "$context.riders.$$ctx.user.seats",
-                              1
-                            ]
-                          }
-                        ]
-                      },
-                      {
-                        "$ifNull": [
-                          "$context.driver_route.capacity",
-                          0
-                        ]
-                      }
-                    ]
+              "update": [
+                {
+                  "$set": {
+                    "local.accept_invite_missing_credits": {
+                      "$max": [
+                        {
+                          "$subtract": [
+                            {
+                              "$ifNull": [
+                                "$context.riders.$$ctx.user.cost",
+                                0
+                              ]
+                            },
+                            {
+                              "$ifNull": [
+                                "$local.accept_invite_route.data.reserved_credits",
+                                0
+                              ]
+                            }
+                          ]
+                        },
+                        0
+                      ]
+                    },
+                    "local.has_capacity_for_invite": {
+                      "$lte": [
+                        {
+                          "$add": [
+                            {
+                              "$ifNull": [
+                                "$context.driver_route.accepted_seats",
+                                0
+                              ]
+                            },
+                            {
+                              "$ifNull": [
+                                "$context.riders.$$ctx.user.seats",
+                                1
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "$ifNull": [
+                            "$context.driver_route.capacity",
+                            0
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "$set": {
+                    "local.has_balance_for_invite": {
+                      "$gte": [
+                        {
+                          "$ifNull": [
+                            "$local.invite_balance_credits",
+                            0
+                          ]
+                        },
+                        {
+                          "$ifNull": [
+                            "$local.accept_invite_missing_credits",
+                            0
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "$set": {
+                    "local.can_accept_invite": {
+                      "$and": [
+                        {
+                          "$ifNull": [
+                            "$local.has_capacity_for_invite",
+                            false
+                          ]
+                        },
+                        {
+                          "$ifNull": [
+                            "$local.has_balance_for_invite",
+                            false
+                          ]
+                        }
+                      ]
+                    }
                   }
                 }
-              }
+              ]
             },
             {
               "title": "Apply Invite Acceptance",
@@ -1988,6 +2058,60 @@
                 "$ctx": "doc.local.can_accept_invite"
               },
               "then_effects": [
+                {
+                  "title": "Reserve Invite Credits",
+                  "description": "Reserves missing rider credits only at invite acceptance time.",
+                  "type": "use.credits",
+                  "credit": {
+                    "product": "coin",
+                    "amount": {
+                      "$ctx": "local.accept_invite_missing_credits"
+                    }
+                  }
+                },
+                {
+                  "title": "Persist Invite Route Hold",
+                  "description": "Stores reserved credits and links contract on rider route at acceptance.",
+                  "type": "update.item",
+                  "item_id": {
+                    "$ctx": "doc.context.riders.$$ctx.user.id"
+                  },
+                  "update": {
+                    "$set": {
+                      "data.reserved_credits": {
+                        "$add": [
+                          {
+                            "$ifNull": [
+                              "$data.reserved_credits",
+                              0
+                            ]
+                          },
+                          {
+                            "$ifNull": [
+                              "$local.accept_invite_missing_credits",
+                              0
+                            ]
+                          }
+                        ]
+                      },
+                      "data.contract_ids": {
+                        "$setUnion": [
+                          {
+                            "$ifNull": [
+                              "$data.contract_ids",
+                              []
+                            ]
+                          },
+                          [
+                            {
+                              "$ctx": "doc._id"
+                            }
+                          ]
+                        ]
+                      }
+                    }
+                  }
+                },
                 {
                   "title": "Set Rider Accepted",
                   "description": "Marks rider as accepted and increments occupied seats.",
@@ -2023,18 +2147,7 @@
                       "state": "SYNC_CHAT",
                       "local.sync_chat_needs_pruning": true,
                       "local.sync_chat_needs_accept_reconcile": true,
-                      "local.sync_chat_accepted_rider": "$$ctx.user",
-                      "local.sync_chat_accepted_route_id": {
-                        "$ctx": "doc.context.riders.$$ctx.user.id"
-                      },
-                      "local.sync_chat_accepted_rider_cost": {
-                        "$ifNull": [
-                          {
-                            "$ctx": "doc.context.riders.$$ctx.user.cost"
-                          },
-                          0
-                        ]
-                      }
+                      "local.sync_chat_accepted_rider": "$$ctx.user"
                     }
                   }
                 }
@@ -2064,141 +2177,21 @@
           ],
           "effects": [
             {
-              "title": "Capture Reject Invite Route",
-              "description": "Captures rider route id used for invite hold cleanup and refund checks.",
-              "type": "update.contract",
-              "update": {
-                "$set": {
-                  "local.reject_invite_route_id": {
-                    "$ctx": "doc.context.riders.$$ctx.user.id"
-                  }
-                }
-              }
-            },
-            {
-              "title": "Unlink Contract From Invite Route",
-              "description": "Removes this contract from route link list before refund calculation.",
-              "type": "update.item",
-              "item_id": {
-                "$ctx": "local.reject_invite_route_id"
-              },
-              "update": {
-                "$set": {
-                  "data.contract_ids": {
-                    "$setDifference": [
-                      {
-                        "$ifNull": [
-                          "$data.contract_ids",
-                          []
-                        ]
-                      },
-                      [
-                        {
-                          "$ctx": "doc._id"
-                        }
-                      ]
-                    ]
-                  }
-                }
-              }
-            },
-            {
-              "title": "Reload Invite Route",
-              "description": "Reloads route data to compute rejection refund eligibility.",
-              "type": "get.item",
-              "item_id": {
-                "$ctx": "local.reject_invite_route_id"
-              },
-              "key": "reject_invite_route_after"
-            },
-            {
-              "title": "Compute Reject Invite Refund",
-              "description": "Refunds reserved credits only when route has no remaining contract links.",
-              "type": "update.contract",
-              "update": {
-                "$set": {
-                  "local.reject_invite_refund": {
-                    "$cond": [
-                      {
-                        "$eq": [
-                          {
-                            "$size": {
-                              "$ifNull": [
-                                "$local.reject_invite_route_after.data.contract_ids",
-                                []
-                              ]
-                            }
-                          },
-                          0
-                        ]
-                      },
-                      {
-                        "$ifNull": [
-                          "$local.reject_invite_route_after.data.reserved_credits",
-                          0
-                        ]
-                      },
-                      0
-                    ]
-                  },
-                  "local.has_reject_invite_refund": {
-                    "$gt": [
-                      {
-                        "$ifNull": [
-                          "$local.reject_invite_refund",
-                          0
-                        ]
-                      },
-                      0
-                    ]
-                  }
-                }
-              }
-            },
-            {
-              "title": "Refund Rejecting Rider",
-              "description": "Refunds rider credits reserved for the rejected invite.",
-              "type": "charge.credits",
-              "credit": {
-                "product": "coin",
-                "amount": {
-                  "$ctx": "local.reject_invite_refund"
-                }
-              }
-            },
-            {
-              "title": "Reset Route Hold",
-              "description": "Clears retained route credits when invite rejection refund is applied.",
-              "type": "if.else",
-              "condition": {
-                "$ctx": "doc.local.has_reject_invite_refund"
-              },
-              "then_effects": [
-                {
-                  "title": "Clear Route Reserved Credits",
-                  "description": "Resets route reserved credits after invite rejection refund.",
-                  "type": "update.item",
-                  "item_id": {
-                    "$ctx": "local.reject_invite_route_id"
-                  },
-                  "update": {
-                    "$set": {
-                      "data.reserved_credits": 0
-                    }
-                  }
-                }
-              ]
-            },
-            {
               "title": "Clear Rider Invite State",
               "description": "Removes rider pending state and route snapshot after invite rejection.",
               "type": "update.contract",
-              "update": {
-                "$unset": [
-                  "states.$$ctx.user",
-                  "context.riders.$$ctx.user"
-                ]
-              }
+              "update": [
+                {
+                  "$set": {
+                    "states.$$ctx.user": "REJECTED"
+                  }
+                },
+                {
+                  "$unset": [
+                    "context.riders.$$ctx.user"
+                  ]
+                }
+              ]
             },
             {
               "title": "Notify Driver",
@@ -5391,13 +5384,17 @@
                 },
                 "local.sync_chat_accepted_route_id": {
                   "$ifNull": [
-                    "$local.sync_chat_accepted_route_id",
+                    {
+                      "$ctx": "doc.context.riders.$$ctx.local.sync_chat_accepted_rider.id"
+                    },
                     ""
                   ]
                 },
                 "local.sync_chat_accepted_rider_cost": {
                   "$ifNull": [
-                    "$local.sync_chat_accepted_rider_cost",
+                    {
+                      "$ctx": "doc.context.riders.$$ctx.local.sync_chat_accepted_rider.cost"
+                    },
                     0
                   ]
                 }

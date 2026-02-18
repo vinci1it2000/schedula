@@ -1632,6 +1632,70 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(self._user_state(c, self.user_ids["p2"]), "ACCEPTED")
         self.assertEqual(pydash.get(c, "context.driver_route.accepted_seats"), 2)
 
+    def test_start_user_accept_invite_fails_when_balance_insufficient(self) -> None:
+        cid = self._create_gherkin_contract(initial_state="START", actor="p1")
+        p2_principal = f"u:{self.user_ids['p2']}"
+        low_credit_route_id = self._create_route("p2", cost=1000, seats=1)
+
+        invited = self._post_event(
+            cid,
+            "invite-user",
+            actor="d1",
+            payload={"route_id": low_credit_route_id},
+        )
+        self.assertEqual(invited.status_code, 200)
+        self.assertTrue(invited.json().get("ok"))
+
+        balance_before_accept = self._wallet_balance("p2")
+        accepted = self._post_event(cid, "accept-user", actor="p2")
+        self.assertEqual(accepted.status_code, 200)
+        self.assertFalse(accepted.json().get("ok"))
+
+        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
+        self.assertEqual(c["state"], "ONBOARDING")
+        self.assertEqual(self._user_state(c, self.user_ids["p2"]), "PENDING")
+        self.assertEqual(self._wallet_balance("p2"), balance_before_accept)
+        route_after = self._get_route("p2", low_credit_route_id)
+        route_data_after = route_after.get("data") or {}
+        self.assertEqual(route_data_after.get("reserved_credits") or 0, 0)
+        self.assertNotIn(cid, route_data_after.get("contract_ids") or [])
+
+    def test_start_user_accept_invite_charges_only_missing_delta(self) -> None:
+        cid = self._create_gherkin_contract(initial_state="START", actor="p1")
+        p2_principal = f"u:{self.user_ids['p2']}"
+        route_id = self._create_route("p2", cost=10, seats=1)
+
+        with self.app.app_context():
+            self.app.config["MONGO_DB"]["items"].update_one(
+                {"_id": route_id},
+                {
+                    "$set": {
+                        "data.reserved_credits": 7,
+                        "data.contract_ids": [],
+                    }
+                },
+            )
+
+        invited = self._post_event(
+            cid,
+            "invite-user",
+            actor="d1",
+            payload={"route_id": route_id},
+        )
+        self.assertEqual(invited.status_code, 200)
+        self.assertTrue(invited.json().get("ok"))
+
+        balance_before_accept = self._wallet_balance("p2")
+        accepted = self._post_event(cid, "accept-user", actor="p2")
+        self.assertEqual(accepted.status_code, 200)
+        self.assertTrue(accepted.json().get("ok"))
+        self.assertEqual(self._wallet_balance("p2"), balance_before_accept - 3)
+
+        route_after = self._get_route("p2", route_id)
+        route_data_after = route_after.get("data") or {}
+        self.assertEqual(route_data_after.get("reserved_credits"), 10)
+        self.assertIn(cid, route_data_after.get("contract_ids") or [])
+
     def test_start_user_reject_invite_clears_pending_rider(self) -> None:
         cid = self._create_gherkin_contract(initial_state="START", actor="p1")
         p2_principal = f"u:{self.user_ids['p2']}"
@@ -1669,7 +1733,7 @@ class ContractsE2ETest(unittest.TestCase):
 
         c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
         self.assertEqual(c["state"], "ONBOARDING")
-        self.assertEqual(self._user_state(c, self.user_ids["p2"]), "")
+        self.assertEqual(self._user_state(c, self.user_ids["p2"]), "REJECTED")
 
     def test_recruiting_driver_reject_user_marks_target_rejected(self) -> None:
         cid = self._create_gherkin_contract(initial_state="START", actor="p1")
@@ -1973,8 +2037,16 @@ class ContractsE2ETest(unittest.TestCase):
             payload={"route_id": p2_route_low_credit},
         )
         self.assertEqual(bad_invite_low_credits.status_code, 200)
-        self.assertFalse(bad_invite_low_credits.json().get("ok"))
+        self.assertTrue(bad_invite_low_credits.json().get("ok"))
         self.assertEqual(self._wallet_balance("p2"), p2_balance_before)
+        clear_low_credit_invite = self._post_event(
+            contract_a,
+            "driver-cancel-invite-user",
+            actor="d1",
+            payload={"rider": p2_principal},
+        )
+        self.assertEqual(clear_low_credit_invite.status_code, 200)
+        self.assertTrue(clear_low_credit_invite.json().get("ok"))
 
         bad_invite_over_seats = self._post_event(
             contract_a,
@@ -1995,14 +2067,16 @@ class ContractsE2ETest(unittest.TestCase):
         )
         self.assertEqual(invite_p2.status_code, 200)
         self.assertTrue(invite_p2.json().get("ok"))
-        self.assertEqual(self._wallet_balance("p2"), p2_balance_before - 10)
+        self.assertEqual(self._wallet_balance("p2"), p2_balance_before)
         p2_route_after_invite = self._get_route("p2", p2_route_id)
         p2_route_data_after_invite = p2_route_after_invite.get("data") or {}
-        self.assertEqual(p2_route_data_after_invite.get("reserved_credits"), 10)
-        self.assertIn(contract_a, p2_route_data_after_invite.get("contract_ids") or [])
+        self.assertEqual(p2_route_data_after_invite.get("reserved_credits") or 0, 0)
+        self.assertNotIn(
+            contract_a, p2_route_data_after_invite.get("contract_ids") or []
+        )
         self.assertEqual(
             self._count_notifications_for(p2_principal, "contracts.user_invited"),
-            p2_invite_before + 1,
+            p2_invite_before + 2,
         )
 
         invite_p3 = self._post_event(
@@ -2013,7 +2087,7 @@ class ContractsE2ETest(unittest.TestCase):
         )
         self.assertEqual(invite_p3.status_code, 200)
         self.assertTrue(invite_p3.json().get("ok"))
-        self.assertEqual(self._wallet_balance("p3"), p3_balance_before - 10)
+        self.assertEqual(self._wallet_balance("p3"), p3_balance_before)
         self.assertEqual(
             self._count_notifications_for(
                 f"u:{self.user_ids['p3']}", "contracts.user_invited"
@@ -2055,7 +2129,7 @@ class ContractsE2ETest(unittest.TestCase):
         )
         self.assertEqual(invite_p3_again.status_code, 200)
         self.assertTrue(invite_p3_again.json().get("ok"))
-        self.assertEqual(self._wallet_balance("p3"), p3_balance_before - 10)
+        self.assertEqual(self._wallet_balance("p3"), p3_balance_before)
         self.assertEqual(
             self._count_notifications_for(
                 f"u:{self.user_ids['p3']}", "contracts.user_invited"
@@ -2148,6 +2222,7 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertGreaterEqual(after_rider_unavailable_c, before_rider_unavailable_c)
 
         # Driver remove accepted user and rider cancel flows.
+        p2_balance_before_driver_reject = self._wallet_balance("p2")
         driver_remove_p2 = self._post_event(
             contract_a,
             "driver-reject-user",
@@ -2156,7 +2231,7 @@ class ContractsE2ETest(unittest.TestCase):
         )
         self.assertEqual(driver_remove_p2.status_code, 200)
         self.assertTrue(driver_remove_p2.json().get("ok"))
-        self.assertEqual(self._wallet_balance("p2"), p2_balance_before - 10)
+        self.assertEqual(self._wallet_balance("p2"), p2_balance_before_driver_reject)
         p2_route_after_driver_reject = self._get_route("p2", p2_route_id)
         p2_route_data_after_driver_reject = (
             p2_route_after_driver_reject.get("data") or {}
