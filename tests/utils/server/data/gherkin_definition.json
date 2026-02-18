@@ -853,7 +853,7 @@
                     "seats": {
                       "$ifNull": [
                         "$local.join_route_item.data.seats",
-                        1
+                        0
                       ]
                     },
                     "trip": {
@@ -1356,7 +1356,7 @@
                                 {
                                   "$ctx": "doc.context.riders.$$ctx.payload.rider.seats"
                                 },
-                                1
+                                0
                               ]
                             }
                           ]
@@ -1668,7 +1668,7 @@
                     "seats": {
                       "$ifNull": [
                         "$local.invite_route_item.data.seats",
-                        1
+                        0
                       ]
                     },
                     "trip": {
@@ -1705,7 +1705,7 @@
                             {
                               "$ifNull": [
                                 "$local.invite_route.seats",
-                                1
+                                0
                               ]
                             }
                           ]
@@ -1993,7 +1993,7 @@
                             {
                               "$ifNull": [
                                 "$context.riders.$$ctx.user.seats",
-                                1
+                                0
                               ]
                             }
                           ]
@@ -2130,7 +2130,7 @@
                           {
                             "$ifNull": [
                               "$context.riders.$$ctx.user.seats",
-                              1
+                              0
                             ]
                           }
                         ]
@@ -2585,7 +2585,7 @@
                       {
                         "$ctx": "doc.context.riders.$$ctx.user.seats"
                       },
-                      1
+                      0
                     ]
                   },
                   "local.is_target_accepted": {
@@ -5311,7 +5311,7 @@
         "effects": [
           {
             "title": "Detect Missing Group",
-            "description": "Detects when chat group must be created for this contract.",
+            "description": "Checks whether the coordination group exists.",
             "type": "update.contract",
             "update": {
               "$set": {
@@ -5330,7 +5330,7 @@
           },
           {
             "title": "Create Group If Missing",
-            "description": "Creates coordination group only once when missing.",
+            "description": "Creates and links the coordination group when absent.",
             "type": "if.else",
             "condition": {
               "$ctx": "doc.local.group_missing"
@@ -5360,7 +5360,7 @@
           },
           {
             "title": "Resolve Sync Flags",
-            "description": "Resolves SYNC_CHAT transient flags and accepted rider inputs.",
+            "description": "Normalizes SYNC_CHAT transient flags and accepted-rider inputs.",
             "type": "update.contract",
             "update": {
               "$set": {
@@ -5403,7 +5403,7 @@
           },
           {
             "title": "Run Accepted Rider Reconcile",
-            "description": "Applies accepted rider partial refund and cross-contract rider removal before chat sync.",
+            "description": "Runs accepted-rider reconciliation before pruning and member sync.",
             "type": "if.else",
             "condition": {
               "$ctx": "doc.local.sync_chat_needs_accept_reconcile"
@@ -5411,7 +5411,7 @@
             "then_effects": [
               {
                 "title": "Load Accepted Rider Route",
-                "description": "Loads accepted rider route to reconcile links and reserved credits.",
+                "description": "Loads accepted rider route for reconciliation.",
                 "type": "get.item",
                 "item_id": {
                   "$ctx": "local.sync_chat_accepted_route_id"
@@ -5420,7 +5420,7 @@
               },
               {
                 "title": "Compute Accepted Rider Partial Refund",
-                "description": "Computes partial refund when route reserved credits exceed accepted rider cost.",
+                "description": "Computes accepted-rider partial refund from route hold delta.",
                 "type": "update.contract",
                 "update": [
                   {
@@ -5508,7 +5508,7 @@
               },
               {
                 "title": "Apply Accepted Rider Partial Refund",
-                "description": "Refunds excess route reserved credits to accepted rider before pruning steps.",
+                "description": "Applies accepted-rider partial refund when positive.",
                 "type": "if.else",
                 "condition": {
                   "$ctx": "doc.local.sync_chat_has_accepted_rider_partial_refund"
@@ -5532,7 +5532,7 @@
               },
               {
                 "title": "Prepare Cross-Contract Rider Removal",
-                "description": "Builds updates to remove accepted rider from competing contracts sharing the route.",
+                "description": "Builds updates to remove accepted rider from competing contracts.",
                 "type": "update.contract",
                 "update": {
                   "$set": {
@@ -5584,7 +5584,7 @@
               },
               {
                 "title": "Apply Rider Removal To Other Contracts",
-                "description": "Applies cross-contract updates that remove accepted rider from competing contracts.",
+                "description": "Applies accepted-rider removal updates to competing contracts.",
                 "type": "update.contract",
                 "updates": {
                   "$ctx": "local.remove_rider_other_contracts"
@@ -5592,7 +5592,7 @@
               },
               {
                 "title": "Load Related Contracts",
-                "description": "Loads contracts linked by the accepted rider route to collect affected driver principals.",
+                "description": "Loads related contracts to gather affected driver targets.",
                 "type": "get.contract",
                 "contract_id": {
                   "$ctx": "local.accepted_rider_contract_ids"
@@ -5601,7 +5601,7 @@
               },
               {
                 "title": "Persist Winning Contract Link",
-                "description": "Persists winning contract id and aligned reserved credits on accepted rider route item.",
+                "description": "Persists winning contract link and aligned reserved credits on route.",
                 "type": "update.item",
                 "item_id": {
                   "$ctx": "local.sync_chat_accepted_route_id"
@@ -5631,7 +5631,7 @@
               },
               {
                 "title": "Build Other Driver Targets",
-                "description": "Builds notification targets for drivers of contracts that lost the rider.",
+                "description": "Builds notification targets for affected drivers.",
                 "type": "update.contract",
                 "update": {
                   "$set": {
@@ -5671,7 +5671,7 @@
               },
               {
                 "title": "Dispatch Rider Unavailable",
-                "description": "Sends rider unavailable notifications to affected drivers.",
+                "description": "Notifies affected drivers that rider is no longer available.",
                 "type": "notify",
                 "notify": {
                   "event": "contracts.rider_unavailable",
@@ -5690,7 +5690,7 @@
               },
               {
                 "title": "Notify Accepted Rider",
-                "description": "Notifies accepted rider that contract reconciliation completed.",
+                "description": "Notifies accepted rider that reconciliation completed.",
                 "type": "notify",
                 "notify": {
                   "event": "contracts.accepted_request",
@@ -5708,7 +5708,7 @@
           },
           {
             "title": "Run Over-Capacity Pruning",
-            "description": "Runs over-capacity rejection, refunds and notifications when requested by prior onboarding events.",
+            "description": "Runs over-capacity pruning when requested by onboarding transitions.",
             "type": "if.else",
             "condition": {
               "$ctx": "doc.local.sync_chat_needs_pruning"
@@ -5812,7 +5812,7 @@
                                         0
                                       ]
                                     },
-                                    1
+                                    0
                                   ]
                                 },
                                 {
@@ -6325,7 +6325,7 @@
           },
           {
             "title": "Clear Sync Flags",
-            "description": "Clears SYNC_CHAT transient flags after reconciliation and pruning.",
+            "description": "Clears SYNC_CHAT transient flags after all sync phases.",
             "type": "update.contract",
             "update": {
               "$set": {
@@ -6339,7 +6339,7 @@
           },
           {
             "title": "Build Chat Membership",
-            "description": "Builds desired members and removals from current user states.",
+            "description": "Builds desired chat membership from current contract states.",
             "type": "update.contract",
             "update": [
               {
@@ -6427,7 +6427,7 @@
           },
           {
             "title": "Sync Group Members",
-            "description": "Aligns chat members with accepted riders and driver roster.",
+            "description": "Applies group member alignment for driver and active riders.",
             "type": "update.group",
             "group_id": {
               "$ctx": "doc.context.group_id"
@@ -6445,7 +6445,7 @@
           },
           {
             "title": "Return To Onboarding",
-            "description": "Returns to ONBOARDING after transient chat synchronization.",
+            "description": "Returns to ONBOARDING after SYNC_CHAT processing.",
             "type": "update.contract",
             "update": {
               "$set": {
