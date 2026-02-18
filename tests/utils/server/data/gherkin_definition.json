@@ -1363,6 +1363,135 @@
                   "key": "accepted_rider_route"
                 },
                 {
+                  "title": "Compute Accepted Rider Partial Refund",
+                  "description": "Computes partial refund when route reserved credits exceed accepted rider cost.",
+                  "type": "update.contract",
+                  "update": {
+                    "$set": {
+                      "local.accepted_rider_cost": {
+                        "$ifNull": [
+                          {
+                            "$ctx": "doc.context.riders.$$ctx.payload.rider.cost"
+                          },
+                          0
+                        ]
+                      },
+                      "local.accepted_rider_reserved": {
+                        "$ifNull": [
+                          "$local.accepted_rider_route.data.reserved_credits",
+                          0
+                        ]
+                      },
+                      "local.accepted_rider_partial_refund": {
+                        "$max": [
+                          {
+                            "$subtract": [
+                              {
+                                "$ifNull": [
+                                  "$local.accepted_rider_route.data.reserved_credits",
+                                  0
+                                ]
+                              },
+                              {
+                                "$ifNull": [
+                                  {
+                                    "$ctx": "doc.context.riders.$$ctx.payload.rider.cost"
+                                  },
+                                  0
+                                ]
+                              }
+                            ]
+                          },
+                          0
+                        ]
+                      },
+                      "local.accepted_rider_has_partial_refund": {
+                        "$gt": [
+                          {
+                            "$max": [
+                              {
+                                "$subtract": [
+                                  {
+                                    "$ifNull": [
+                                      "$local.accepted_rider_route.data.reserved_credits",
+                                      0
+                                    ]
+                                  },
+                                  {
+                                    "$ifNull": [
+                                      {
+                                        "$ctx": "doc.context.riders.$$ctx.payload.rider.cost"
+                                      },
+                                      0
+                                    ]
+                                  }
+                                ]
+                              },
+                              0
+                            ]
+                          },
+                          0
+                        ]
+                      },
+                      "local.accepted_rider_reserved_after_refund": {
+                        "$subtract": [
+                          {
+                            "$ifNull": [
+                              "$local.accepted_rider_route.data.reserved_credits",
+                              0
+                            ]
+                          },
+                          {
+                            "$max": [
+                              {
+                                "$subtract": [
+                                  {
+                                    "$ifNull": [
+                                      "$local.accepted_rider_route.data.reserved_credits",
+                                      0
+                                    ]
+                                  },
+                                  {
+                                    "$ifNull": [
+                                      {
+                                        "$ctx": "doc.context.riders.$$ctx.payload.rider.cost"
+                                      },
+                                      0
+                                    ]
+                                  }
+                                ]
+                              },
+                              0
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  }
+                },
+                {
+                  "title": "Apply Accepted Rider Partial Refund",
+                  "description": "Refunds excess route reserved credits to accepted rider before pruning steps.",
+                  "type": "if.else",
+                  "condition": {
+                    "$ctx": "doc.local.accepted_rider_has_partial_refund"
+                  },
+                  "then_effects": [
+                    {
+                      "title": "Refund Accepted Rider Excess",
+                      "description": "Credits accepted rider with excess reserved route credits.",
+                      "type": "charge.credits",
+                      "credit": {
+                        "product": "coin",
+                        "user_id": "$$ctx.payload.rider",
+                        "amount": {
+                          "$ctx": "local.accepted_rider_partial_refund"
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
                   "title": "Prepare Cross-Contract Rider Removal",
                   "description": "Builds updates to remove the accepted rider from other contracts sharing the route.",
                   "type": "update.contract",
@@ -1453,7 +1582,10 @@
                         {
                           "$ctx": "doc._id"
                         }
-                      ]
+                      ],
+                      "data.reserved_credits": {
+                        "$ctx": "local.accepted_rider_reserved_after_refund"
+                      }
                     }
                   }
                 },
@@ -1987,6 +2119,47 @@
                         },
                         {
                           "$set": {
+                            "local.over_capacity_reset_route_updates": {
+                              "$arrayToObject": {
+                                "$map": {
+                                  "input": {
+                                    "$filter": {
+                                      "input": {
+                                        "$ifNull": [
+                                          "$local.over_capacity_routes_after_unlink",
+                                          []
+                                        ]
+                                      },
+                                      "as": "rt",
+                                      "cond": {
+                                        "$eq": [
+                                          {
+                                            "$size": {
+                                              "$ifNull": [
+                                                "$$rt.data.contract_ids",
+                                                []
+                                              ]
+                                            }
+                                          },
+                                          0
+                                        ]
+                                      }
+                                    }
+                                  },
+                                  "as": "rt",
+                                  "in": {
+                                    "k": "$$rt._id",
+                                    "v": {
+                                      "$literal": {
+                                        "$set": {
+                                          "data.reserved_credits": 0
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            },
                             "local.has_over_capacity_refunds": {
                               "$gt": [
                                 {
@@ -2002,6 +2175,32 @@
                                 0
                               ]
                             }
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "title": "Apply Pruning Refunds",
+                      "description": "Refunds pruned riders and clears route reserved credits when route links are exhausted.",
+                      "type": "if.else",
+                      "condition": {
+                        "$ctx": "doc.local.has_over_capacity_refunds"
+                      },
+                      "then_effects": [
+                        {
+                          "title": "Refund Pruned Riders",
+                          "description": "Credits reserved funds back to riders removed by capacity pruning.",
+                          "type": "charge.credits",
+                          "credits": {
+                            "$ctx": "doc.local.over_capacity_refunds"
+                          }
+                        },
+                        {
+                          "title": "Clear Pruned Route Reserved Credits",
+                          "description": "Clears reserved credits on pruned routes after refunds.",
+                          "type": "update.item",
+                          "updates": {
+                            "$ctx": "local.over_capacity_reset_route_updates"
                           }
                         }
                       ]
@@ -3571,6 +3770,32 @@
                           }
                         }
                       }
+                    },
+                    {
+                      "title": "Apply Pruning Refunds",
+                      "description": "Refunds pruned riders and clears route reserved credits when route links are exhausted.",
+                      "type": "if.else",
+                      "condition": {
+                        "$ctx": "doc.local.over_capacity_refund_required"
+                      },
+                      "then_effects": [
+                        {
+                          "title": "Refund Pruned Riders",
+                          "description": "Credits reserved funds back to riders removed by capacity pruning.",
+                          "type": "charge.credits",
+                          "credits": {
+                            "$ctx": "doc.local.over_capacity_refunds"
+                          }
+                        },
+                        {
+                          "title": "Clear Pruned Route Reserved Credits",
+                          "description": "Clears reserved credits on pruned routes after refunds.",
+                          "type": "update.item",
+                          "updates": {
+                            "$ctx": "local.over_capacity_reset_route_updates"
+                          }
+                        }
+                      ]
                     },
                     {
                       "title": "Reject Over-Capacity Riders",

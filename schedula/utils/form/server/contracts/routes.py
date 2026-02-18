@@ -330,11 +330,21 @@ TEMPLATE_CREATE_SCHEMA = {
                                 "not": {"required": ["to_wallet_id", "to_user_id"]},
                             },
                             "credits": {
-                                "type": "object",
-                                "additionalProperties": {
-                                    "required": ["amount"],
-                                    "not": {"required": ["to_wallet_id", "to_user_id"]},
-                                },
+                                "anyOf": [
+                                    {
+                                        "type": "object",
+                                        "additionalProperties": {
+                                            "required": ["amount"],
+                                            "not": {
+                                                "required": [
+                                                    "to_wallet_id",
+                                                    "to_user_id",
+                                                ]
+                                            },
+                                        },
+                                    },
+                                    {"$ref": "#/$defs/json_with_refs"},
+                                ]
                             },
                         },
                         "anyOf": [
@@ -358,11 +368,21 @@ TEMPLATE_CREATE_SCHEMA = {
                                 "not": {"required": ["to_wallet_id", "to_user_id"]},
                             },
                             "credits": {
-                                "type": "object",
-                                "additionalProperties": {
-                                    "required": ["amount"],
-                                    "not": {"required": ["to_wallet_id", "to_user_id"]},
-                                },
+                                "anyOf": [
+                                    {
+                                        "type": "object",
+                                        "additionalProperties": {
+                                            "required": ["amount"],
+                                            "not": {
+                                                "required": [
+                                                    "to_wallet_id",
+                                                    "to_user_id",
+                                                ]
+                                            },
+                                        },
+                                    },
+                                    {"$ref": "#/$defs/json_with_refs"},
+                                ]
                             },
                         },
                         "anyOf": [
@@ -394,19 +414,32 @@ TEMPLATE_CREATE_SCHEMA = {
                                 ]
                             },
                             "credits": {
-                                "type": "object",
-                                "additionalProperties": {
-                                    "anyOf": [
-                                        {
-                                            "required": ["amount", "to_wallet_id"],
-                                            "not": {"required": ["to_user_id"]},
+                                "anyOf": [
+                                    {
+                                        "type": "object",
+                                        "additionalProperties": {
+                                            "anyOf": [
+                                                {
+                                                    "required": [
+                                                        "amount",
+                                                        "to_wallet_id",
+                                                    ],
+                                                    "not": {"required": ["to_user_id"]},
+                                                },
+                                                {
+                                                    "required": [
+                                                        "amount",
+                                                        "to_user_id",
+                                                    ],
+                                                    "not": {
+                                                        "required": ["to_wallet_id"]
+                                                    },
+                                                },
+                                            ]
                                         },
-                                        {
-                                            "required": ["amount", "to_user_id"],
-                                            "not": {"required": ["to_wallet_id"]},
-                                        },
-                                    ]
-                                },
+                                    },
+                                    {"$ref": "#/$defs/json_with_refs"},
+                                ]
                             },
                         },
                         "anyOf": [
@@ -431,16 +464,21 @@ TEMPLATE_CREATE_SCHEMA = {
                                 }
                             },
                             "credits": {
-                                "type": "object",
-                                "additionalProperties": {
-                                    "not": {
-                                        "required": [
-                                            "amount",
-                                            "to_wallet_id",
-                                            "to_user_id",
-                                        ]
-                                    }
-                                },
+                                "anyOf": [
+                                    {
+                                        "type": "object",
+                                        "additionalProperties": {
+                                            "not": {
+                                                "required": [
+                                                    "amount",
+                                                    "to_wallet_id",
+                                                    "to_user_id",
+                                                ]
+                                            }
+                                        },
+                                    },
+                                    {"$ref": "#/$defs/json_with_refs"},
+                                ]
                             },
                         },
                         "anyOf": [
@@ -1254,8 +1292,8 @@ def _validate_schema(payload: Dict[str, Any], schema: Dict[str, Any]) -> List[st
 
 
 def _validate_allowed_initial_states(
-        definition: Dict[str, Any],
-        allowed_initial_states: Any,
+    definition: Dict[str, Any],
+    allowed_initial_states: Any,
 ) -> List[str]:
     if allowed_initial_states is None:
         return []

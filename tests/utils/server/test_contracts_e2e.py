@@ -622,6 +622,51 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(self._user_state(c, self.user_ids["d1"]), "PENDING_DRIVER")
         self.assertEqual(self._user_state(c, self.user_ids["p1"]), "REQUESTING")
 
+    def test_driver_accept_start_refunds_excess_reserved_credits(self) -> None:
+        p1_principal = f"u:{self.user_ids['p1']}"
+        template_id = self._create_template(
+            _gherkin_definition(), allowed_initial_states=["START"]
+        )
+        created = self._create_contract(
+            template_id,
+            {
+                "driver_trip_id": self.route_by_principal[f"u:{self.user_ids['d1']}"],
+                "riders": [self.route_by_principal[p1_principal]],
+            },
+            initial_state="START",
+            actor="p1",
+        )
+        self.assertEqual(created.status_code, 201, msg=created.text)
+        cid = str(created.json()["id"])
+
+        route_id = self.route_by_principal[p1_principal]
+        with self.app.app_context():
+            items = self.app.config["MONGO_DB"]["items"]
+            route_before = items.find_one({"_id": route_id}) or {}
+            self.assertEqual(
+                (route_before.get("data") or {}).get("reserved_credits"), 10
+            )
+            items.update_one({"_id": route_id}, {"$set": {"data.reserved_credits": 25}})
+        p1_balance_before_accept = self._wallet_balance("p1")
+
+        accepted = self._post_event(
+            cid,
+            "driver-accept-start",
+            actor="d1",
+            payload={"rider": p1_principal},
+        )
+        self.assertEqual(accepted.status_code, 200)
+        self.assertTrue(accepted.json().get("ok"))
+
+        self.assertEqual(self._wallet_balance("p1"), p1_balance_before_accept + 15)
+        with self.app.app_context():
+            route_after = (
+                self.app.config["MONGO_DB"]["items"].find_one({"_id": route_id}) or {}
+            )
+        route_data_after = route_after.get("data") or {}
+        self.assertEqual(route_data_after.get("reserved_credits"), 10)
+        self.assertEqual(route_data_after.get("contract_ids") or [], [cid])
+
     def test_start_pre_departure_gate_moves_in_progress_when_has_accepted(self) -> None:
         now = dt.datetime.now(dt.timezone.utc).replace(microsecond=0)
         departure = now + dt.timedelta(hours=3)
