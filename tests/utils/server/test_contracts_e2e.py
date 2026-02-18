@@ -426,6 +426,12 @@ class ContractsE2ETest(unittest.TestCase):
     def _user_state(self, contract: Dict[str, Any], user_id: int) -> str:
         return str((contract.get("states") or {}).get(f"u:{user_id}") or "")
 
+    def _rider_pin(self, contract: Dict[str, Any], principal: str) -> str:
+        rider = (
+            ((contract.get("context") or {}).get("riders") or {}).get(principal)
+        ) or {}
+        return str(((rider.get("verification") or {}).get("pin")) or "")
+
     def _count_notifications_for(self, principal: str, event: str) -> int:
         with self.app.app_context():
             coll = self.app.config["MONGO_DB"]["notifications"]
@@ -772,8 +778,6 @@ class ContractsE2ETest(unittest.TestCase):
         )
         p1_principal = f"u:{self.user_ids['p1']}"
         d1_principal = f"u:{self.user_ids['d1']}"
-        d1_principal = f"u:{self.user_ids['d1']}"
-        d1_principal = f"u:{self.user_ids['d1']}"
 
         created = self._create_contract(
             template_id,
@@ -878,16 +882,7 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertTrue(self._run_worker_once(now=pre + dt.timedelta(seconds=1)))
 
         c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
-        pin = str(
-            (
-                (
-                    ((c.get("context") or {}).get("riders") or {}).get(p1_principal)
-                    or {}
-                ).get("verification")
-                or {}
-            ).get("pin")
-            or ""
-        )
+        pin = self._rider_pin(c, p1_principal)
         self.assertRegex(pin, r"^\d{6}$")
 
         before_pickup_confirmed = self._count_notifications_for(
@@ -898,7 +893,7 @@ class ContractsE2ETest(unittest.TestCase):
             cid,
             "driver-confirm-pick-up",
             actor="d1",
-            payload={"pin": pin},
+            payload={"pins": [pin]},
         )
         self.assertEqual(confirm.status_code, 200)
         self.assertTrue(confirm.json().get("ok"))
@@ -1146,23 +1141,14 @@ class ContractsE2ETest(unittest.TestCase):
 
         c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
         self.assertEqual(c.get("state"), "IN_PROGRESS")
-        p1_pin = str(
-            (
-                (
-                    ((c.get("context") or {}).get("riders") or {}).get(p1_principal)
-                    or {}
-                ).get("verification")
-                or {}
-            ).get("pin")
-            or ""
-        )
+        p1_pin = self._rider_pin(c, p1_principal)
         self.assertRegex(p1_pin, r"^\d{6}$")
 
         confirm = self._post_event(
             cid,
             "driver-confirm-pick-up",
             actor="d1",
-            payload={"pin": p1_pin},
+            payload={"pins": [p1_pin]},
         )
         self.assertEqual(confirm.status_code, 200)
         self.assertTrue(confirm.json().get("ok"))
@@ -1352,24 +1338,13 @@ class ContractsE2ETest(unittest.TestCase):
 
         # 5) rider picked up and PIN confirmed, then tries to claim.
         c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
-        p5_pin = str(
-            (
-                (
-                    ((c.get("context") or {}).get("riders") or {}).get(
-                        rider_principals["p5"]
-                    )
-                    or {}
-                ).get("verification")
-                or {}
-            ).get("pin")
-            or ""
-        )
+        p5_pin = self._rider_pin(c, rider_principals["p5"])
         self.assertRegex(p5_pin, r"^\d{6}$")
         confirm_p5 = self._post_event(
             cid,
             "driver-confirm-pick-up",
             actor="d1",
-            payload={"pin": p5_pin},
+            payload={"pins": [p5_pin]},
         )
         self.assertEqual(confirm_p5.status_code, 200)
         self.assertTrue(confirm_p5.json().get("ok"))
@@ -1677,7 +1652,7 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertTrue(r.json().get("ok"))
 
         c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
-        self.assertEqual(c["state"], "REJECTED")
+        self.assertEqual(c["state"], "CANCELLED")
         self.assertEqual((c.get("context") or {}).get("riders") or {}, {})
 
     def test_recruiting_user_cancel_ride_marks_user_cancelled(self) -> None:
@@ -2317,7 +2292,7 @@ class ContractsE2ETest(unittest.TestCase):
         cancelled_trip_doc = self.httpx.get(
             f"/contracts/{contract_cancel_trip}", headers=self._headers("owner-1")
         ).json()
-        self.assertEqual(cancelled_trip_doc["state"], "REJECTED")
+        self.assertEqual(cancelled_trip_doc["state"], "CANCELLED")
 
     def test_sync_chat_keeps_driver_admin_across_membership_changes(self) -> None:
         cid = self._create_gherkin_contract(initial_state="START", actor="p1")

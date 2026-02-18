@@ -1744,72 +1744,78 @@
                       "title": "Collect Pruned Route Ids",
                       "description": "Collects route ids for riders removed due to capacity pruning.",
                       "type": "update.contract",
-                      "update": {
-                        "$set": {
-                          "local.over_capacity_route_ids": {
-                            "$setUnion": [
-                              {
-                                "$map": {
-                                  "input": {
-                                    "$filter": {
-                                      "input": {
-                                        "$objectToArray": {
-                                          "$ifNull": [
-                                            "$context.riders",
-                                            {}
-                                          ]
-                                        }
-                                      },
-                                      "as": "rv",
-                                      "cond": {
-                                        "$in": [
-                                          "$$rv.k",
-                                          {
+                      "update": [
+                        {
+                          "$set": {
+                            "local.over_capacity_route_ids": {
+                              "$setUnion": [
+                                {
+                                  "$map": {
+                                    "input": {
+                                      "$filter": {
+                                        "input": {
+                                          "$objectToArray": {
                                             "$ifNull": [
-                                              "$local.over_capacity_principals",
-                                              []
+                                              "$context.riders",
+                                              {}
                                             ]
                                           }
-                                        ]
-                                      }
-                                    }
-                                  },
-                                  "as": "rv",
-                                  "in": "$$rv.v.id"
-                                }
-                              },
-                              []
-                            ]
-                          },
-                          "local.over_capacity_route_unlink_updates": {
-                            "$arrayToObject": {
-                              "$map": {
-                                "input": {
-                                  "$ifNull": [
-                                    "$local.over_capacity_route_ids",
-                                    []
-                                  ]
-                                },
-                                "as": "rid",
-                                "in": {
-                                  "k": "$$rid",
-                                  "v": {
-                                    "$literal": {
-                                      "$set": {
-                                        "data.contract_ids": {
-                                          "$setDifference": [
+                                        },
+                                        "as": "rv",
+                                        "cond": {
+                                          "$in": [
+                                            "$$rv.k",
                                             {
                                               "$ifNull": [
-                                                "$data.contract_ids",
+                                                "$local.over_capacity_principals",
                                                 []
                                               ]
-                                            },
-                                            [
-                                              {
-                                                "$ctx": "doc._id"
-                                              }
-                                            ]
+                                            }
                                           ]
+                                        }
+                                      }
+                                    },
+                                    "as": "rv",
+                                    "in": "$$rv.v.id"
+                                  }
+                                },
+                                []
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "$set": {
+                            "local.over_capacity_route_unlink_updates": {
+                              "$arrayToObject": {
+                                "$map": {
+                                  "input": {
+                                    "$ifNull": [
+                                      "$local.over_capacity_route_ids",
+                                      []
+                                    ]
+                                  },
+                                  "as": "rid",
+                                  "in": {
+                                    "k": "$$rid",
+                                    "v": {
+                                      "$literal": {
+                                        "$set": {
+                                          "data.contract_ids": {
+                                            "$setDifference": [
+                                              {
+                                                "$ifNull": [
+                                                  "$data.contract_ids",
+                                                  []
+                                                ]
+                                              },
+                                              [
+                                                {
+                                                  "$ctx": "doc._id"
+                                                }
+                                              ]
+                                            ]
+                                          }
                                         }
                                       }
                                     }
@@ -1819,7 +1825,7 @@
                             }
                           }
                         }
-                      }
+                      ]
                     },
                     {
                       "title": "Unlink Contract From Pruned Routes",
@@ -1842,85 +1848,39 @@
                       "title": "Compute Pruning Refunds",
                       "description": "Computes rider refunds and route resets when pruned routes have no linked contracts.",
                       "type": "update.contract",
-                      "update": {
-                        "$set": {
-                          "local.over_capacity_refunds": {
-                            "$arrayToObject": {
-                              "$map": {
-                                "input": {
-                                  "$filter": {
-                                    "input": {
-                                      "$ifNull": [
-                                        "$local.over_capacity_routes_after_unlink",
-                                        []
-                                      ]
-                                    },
-                                    "as": "rt",
-                                    "cond": {
-                                      "$eq": [
-                                        {
-                                          "$size": {
-                                            "$ifNull": [
-                                              "$$rt.data.contract_ids",
-                                              []
-                                            ]
-                                          }
-                                        },
-                                        0
-                                      ]
-                                    }
-                                  }
-                                },
-                                "as": "rt",
-                                "in": {
-                                  "k": {
-                                    "$arrayElemAt": [
-                                      {
-                                        "$map": {
-                                          "input": {
-                                            "$filter": {
-                                              "input": {
-                                                "$objectToArray": {
-                                                  "$ifNull": [
-                                                    "$context.riders",
-                                                    {}
-                                                  ]
-                                                }
-                                              },
-                                              "as": "rv",
-                                              "cond": {
-                                                "$and": [
-                                                  {
-                                                    "$in": [
-                                                      "$$rv.k",
-                                                      {
-                                                        "$ifNull": [
-                                                          "$local.over_capacity_principals",
-                                                          []
-                                                        ]
-                                                      }
-                                                    ]
-                                                  },
-                                                  {
-                                                    "$eq": [
-                                                      "$$rv.v.id",
-                                                      "$$rt._id"
-                                                    ]
-                                                  }
-                                                ]
-                                              }
+                      "update": [
+                        {
+                          "$set": {
+                            "local.over_capacity_refunds": {
+                              "$arrayToObject": {
+                                "$map": {
+                                  "input": {
+                                    "$filter": {
+                                      "input": {
+                                        "$ifNull": [
+                                          "$local.over_capacity_routes_after_unlink",
+                                          []
+                                        ]
+                                      },
+                                      "as": "rt",
+                                      "cond": {
+                                        "$eq": [
+                                          {
+                                            "$size": {
+                                              "$ifNull": [
+                                                "$$rt.data.contract_ids",
+                                                []
+                                              ]
                                             }
                                           },
-                                          "as": "rv",
-                                          "in": "$$rv.k"
-                                        }
-                                      },
-                                      0
-                                    ]
+                                          0
+                                        ]
+                                      }
+                                    }
                                   },
-                                  "v": {
-                                    "product": "coin",
-                                    "user_id": {
+                                  "as": "rt",
+                                  "in": {
+                                    "k": {
                                       "$arrayElemAt": [
                                         {
                                           "$map": {
@@ -1965,87 +1925,86 @@
                                         0
                                       ]
                                     },
-                                    "amount": {
-                                      "$ifNull": [
-                                        "$$rt.data.reserved_credits",
-                                        0
-                                      ]
-                                    }
-                                  }
-                                }
-                              }
-                            }
-                          },
-                          "local.over_capacity_reset_route_updates": {
-                            "$arrayToObject": {
-                              "$map": {
-                                "input": {
-                                  "$filter": {
-                                    "input": {
-                                      "$ifNull": [
-                                        "$local.over_capacity_routes_after_unlink",
-                                        []
-                                      ]
-                                    },
-                                    "as": "rt",
-                                    "cond": {
-                                      "$eq": [
-                                        {
-                                          "$size": {
-                                            "$ifNull": [
-                                              "$$rt.data.contract_ids",
-                                              []
-                                            ]
-                                          }
-                                        },
-                                        0
-                                      ]
-                                    }
-                                  }
-                                },
-                                "as": "rt",
-                                "in": {
-                                  "k": "$$rt._id",
-                                  "v": {
-                                    "$literal": {
-                                      "$set": {
-                                        "data.reserved_credits": 0
+                                    "v": {
+                                      "product": "coin",
+                                      "user_id": {
+                                        "$arrayElemAt": [
+                                          {
+                                            "$map": {
+                                              "input": {
+                                                "$filter": {
+                                                  "input": {
+                                                    "$objectToArray": {
+                                                      "$ifNull": [
+                                                        "$context.riders",
+                                                        {}
+                                                      ]
+                                                    }
+                                                  },
+                                                  "as": "rv",
+                                                  "cond": {
+                                                    "$and": [
+                                                      {
+                                                        "$in": [
+                                                          "$$rv.k",
+                                                          {
+                                                            "$ifNull": [
+                                                              "$local.over_capacity_principals",
+                                                              []
+                                                            ]
+                                                          }
+                                                        ]
+                                                      },
+                                                      {
+                                                        "$eq": [
+                                                          "$$rv.v.id",
+                                                          "$$rt._id"
+                                                        ]
+                                                      }
+                                                    ]
+                                                  }
+                                                }
+                                              },
+                                              "as": "rv",
+                                              "in": "$$rv.k"
+                                            }
+                                          },
+                                          0
+                                        ]
+                                      },
+                                      "amount": {
+                                        "$ifNull": [
+                                          "$$rt.data.reserved_credits",
+                                          0
+                                        ]
                                       }
                                     }
                                   }
                                 }
                               }
                             }
-                          },
-                          "local.has_over_capacity_refunds": {
-                            "$gt": [
-                              {
-                                "$size": {
-                                  "$objectToArray": {
-                                    "$ifNull": [
-                                      "$local.over_capacity_refunds",
-                                      {}
-                                    ]
+                          }
+                        },
+                        {
+                          "$set": {
+                            "local.has_over_capacity_refunds": {
+                              "$gt": [
+                                {
+                                  "$size": {
+                                    "$objectToArray": {
+                                      "$ifNull": [
+                                        "$local.over_capacity_refunds",
+                                        {}
+                                      ]
+                                    }
                                   }
-                                }
-                              },
-                              0
-                            ]
+                                },
+                                0
+                              ]
+                            }
                           }
                         }
-                      }
-                    },
-                    {
-                      "title": "Mark Pruning Refund Requirement",
-                      "description": "Flags whether any pruned riders now qualify for refund after route unlink.",
-                      "type": "update.contract",
-                      "update": {
-                        "$set": {
-                          "local.over_capacity_refund_required": {
-                            "$ctx": "local.has_over_capacity_refunds"
-                          }
-                        }
-                      }
+                      ]
                     },
                     {
                       "title": "Apply Rejections",
@@ -4504,252 +4463,18 @@
           ],
           "effects": [
             {
-              "title": "Collect Active Riders",
-              "description": "Collects active rider principals and route ids for trip cancellation pruning.",
+              "title": "Mark Cancellation Request",
+              "description": "Marks onboarding driver cancellation request metadata.",
               "type": "update.contract",
               "update": {
                 "$set": {
-                  "local.trip_cancel_riders": {
-                    "$map": {
-                      "input": {
-                        "$objectToArray": {
-                          "$ifNull": [
-                            "$context.riders",
-                            {}
-                          ]
-                        }
-                      },
-                      "as": "rv",
-                      "in": {
-                        "principal": "$$rv.k",
-                        "route_id": "$$rv.v.id"
-                      }
-                    }
-                  }
-                }
-              }
-            },
-            {
-              "title": "Build Trip Cancel Route Unlinks",
-              "description": "Builds route update map to unlink this contract from every active rider route.",
-              "type": "update.contract",
-              "update": {
-                "$set": {
-                  "local.trip_cancel_route_updates": {
-                    "$arrayToObject": {
-                      "$map": {
-                        "input": {
-                          "$ifNull": [
-                            "$local.trip_cancel_riders",
-                            []
-                          ]
-                        },
-                        "as": "r",
-                        "in": {
-                          "k": "$$r.route_id",
-                          "v": {
-                            "$literal": {
-                              "$set": {
-                                "data.contract_ids": {
-                                  "$setDifference": [
-                                    {
-                                      "$ifNull": [
-                                        "$data.contract_ids",
-                                        []
-                                      ]
-                                    },
-                                    [
-                                      {
-                                        "$ctx": "doc._id"
-                                      }
-                                    ]
-                                  ]
-                                }
-                              }
-                            }
-                          }
-                        }
-                      }
-                    }
+                  "context.cancellation": {
+                    "phase": "ONBOARDING",
+                    "requested_by": "$$ctx.user",
+                    "at": "$$NOW"
                   },
-                  "local.trip_cancel_route_ids": {
-                    "$setUnion": [
-                      {
-                        "$map": {
-                          "input": {
-                            "$ifNull": [
-                              "$local.trip_cancel_riders",
-                              []
-                            ]
-                          },
-                          "as": "r",
-                          "in": "$$r.route_id"
-                        }
-                      },
-                      []
-                    ]
-                  }
-                }
-              }
-            },
-            {
-              "title": "Unlink Trip Routes",
-              "description": "Removes this contract id from all active rider routes.",
-              "type": "update.item",
-              "updates": {
-                "$ctx": "local.trip_cancel_route_updates"
-              }
-            },
-            {
-              "title": "Reload Trip Routes",
-              "description": "Loads rider routes after unlink to compute cancellation refunds.",
-              "type": "get.item",
-              "item_id": {
-                "$ctx": "local.trip_cancel_route_ids"
-              },
-              "key": "trip_cancel_routes_after"
-            },
-            {
-              "title": "Compute Trip Cancel Refunds",
-              "description": "Builds reset maps for routes with no remaining contract links.",
-              "type": "update.contract",
-              "update": {
-                "$set": {
-                  "local.trip_cancel_reset_route_updates": {
-                    "$arrayToObject": {
-                      "$map": {
-                        "input": {
-                          "$filter": {
-                            "input": {
-                              "$map": {
-                                "input": {
-                                  "$objectToArray": {
-                                    "$ifNull": [
-                                      "$local.trip_cancel_routes_after",
-                                      {}
-                                    ]
-                                  }
-                                },
-                                "as": "rtv",
-                                "in": "$$rtv.v"
-                              }
-                            },
-                            "as": "rt",
-                            "cond": {
-                              "$eq": [
-                                {
-                                  "$size": {
-                                    "$ifNull": [
-                                      "$$rt.data.contract_ids",
-                                      []
-                                    ]
-                                  }
-                                },
-                                0
-                              ]
-                            }
-                          }
-                        },
-                        "as": "rt",
-                        "in": {
-                          "k": "$$rt._id",
-                          "v": {
-                            "$literal": {
-                              "$set": {
-                                "data.reserved_credits": 0
-                              }
-                            }
-                          }
-                        }
-                      }
-                    }
-                  },
-                  "local.trip_cancel_targets": {
-                    "$arrayToObject": {
-                      "$map": {
-                        "input": {
-                          "$ifNull": [
-                            "$local.trip_cancel_riders",
-                            []
-                          ]
-                        },
-                        "as": "r",
-                        "in": {
-                          "k": "$$r.principal",
-                          "v": [
-                            "in_app",
-                            "push"
-                          ]
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            },
-            {
-              "title": "Clear Trip Route Reserved Credits",
-              "description": "Resets retained route credits for routes left without contract links.",
-              "type": "update.item",
-              "updates": {
-                "$ctx": "local.trip_cancel_reset_route_updates"
-              }
-            },
-            {
-              "title": "Dispatch Driver Cancelled Trip",
-              "description": "Delivers driver cancelled trip notification to all affected riders.",
-              "type": "notify",
-              "notify": {
-                "event": "contracts.driver_cancelled_trip",
-                "targets": {
-                  "$ctx": "local.trip_cancel_targets"
-                },
-                "payload": {
-                  "contract_id": {
-                    "$ctx": "doc._id"
-                  }
-                }
-              }
-            },
-            {
-              "title": "Close Trip As Rejected",
-              "description": "Closes the trip as rejected by the driver and updates all rider statuses consistently.",
-              "type": "update.contract",
-              "update": {
-                "$set": {
-                  "state": "REJECTED",
-                  "context.riders": {},
-                  "states": {
-                    "$arrayToObject": {
-                      "$map": {
-                        "input": {
-                          "$objectToArray": "$states"
-                        },
-                        "as": "kv",
-                        "in": {
-                          "k": "$$kv.k",
-                          "v": {
-                            "$cond": [
-                              {
-                                "$in": [
-                                  "$$kv.v",
-                                  [
-                                    "REQUESTING",
-                                    "PENDING",
-                                    "ACCEPTED",
-                                    "PENDING_DRIVER",
-                                    "DRIVER"
-                                  ]
-                                ]
-                              },
-                              "REJECTED",
-                              "$$kv.v"
-                            ]
-                          }
-                        }
-                      }
-                    }
-                  }
+                  "state": "CANCELLED",
+                  "status": "CANCELLED"
                 }
               }
             }
@@ -5183,697 +4908,67 @@
       "on_enter": {
         "effects": [
           {
-            "title": "Compute Rider Routes",
-            "description": "Computes accepted rider routes.",
-            "type": "update.contract",
-            "update": [
-              {
-                "$set": {
-                  "local.accepted_riders": {
-                    "$setUnion": [
-                      {
-                        "$map": {
-                          "input": {
-                            "$filter": {
-                              "input": {
-                                "$objectToArray": {
-                                  "$ifNull": [
-                                    "$states",
-                                    {}
-                                  ]
-                                }
-                              },
-                              "as": "kv",
-                              "cond": {
-                                "$in": [
-                                  "$$kv.v",
-                                  [
-                                    "ACCEPTED"
-                                  ]
-                                ]
-                              }
-                            }
-                          },
-                          "as": "kv",
-                          "in": "$$kv.k"
-                        }
-                      },
-                      []
-                    ]
-                  },
-                  "local.requesting_riders": {
-                    "$setUnion": [
-                      {
-                        "$map": {
-                          "input": {
-                            "$filter": {
-                              "input": {
-                                "$objectToArray": {
-                                  "$ifNull": [
-                                    "$states",
-                                    {}
-                                  ]
-                                }
-                              },
-                              "as": "kv",
-                              "cond": {
-                                "$in": [
-                                  "$$kv.v",
-                                  [
-                                    "REQUESTING"
-                                  ]
-                                ]
-                              }
-                            }
-                          },
-                          "as": "kv",
-                          "in": "$$kv.k"
-                        }
-                      },
-                      []
-                    ]
-                  }
-                }
-              },
-              {
-                "$set": {
-                  "local.accepted_route_ids": {
-                    "$setUnion": [
-                      {
-                        "$map": {
-                          "input": "$local.accepted_riders",
-                          "as": "k",
-                          "in": {
-                            "$getField": {
-                              "input": {
-                                "$getField": {
-                                  "input": {
-                                    "$ifNull": [
-                                      "$context.riders",
-                                      {}
-                                    ]
-                                  },
-                                  "field": "$$k"
-                                }
-                              },
-                              "field": "id"
-                            }
-                          }
-                        }
-                      },
-                      []
-                    ]
-                  },
-                  "local.requesting_route_ids": {
-                    "$setUnion": [
-                      {
-                        "$map": {
-                          "input": "$local.requesting_riders",
-                          "as": "k",
-                          "in": {
-                            "$getField": {
-                              "input": {
-                                "$getField": {
-                                  "input": {
-                                    "$ifNull": [
-                                      "$context.riders",
-                                      {}
-                                    ]
-                                  },
-                                  "field": "$$k"
-                                }
-                              },
-                              "field": "id"
-                            }
-                          }
-                        }
-                      },
-                      []
-                    ]
-                  }
-                }
-              },
-              {
-                "$set": {
-                  "local.route_ids": {
-                    "$setUnion": [
-                      "$local.accepted_route_ids",
-                      "$local.requesting_route_ids",
-                      []
-                    ]
-                  }
-                }
-              }
-            ]
-          },
-          {
-            "title": "Compute Rider Routes",
-            "description": "Computes accepted and requesting rider routes.",
-            "type": "get.item",
-            "item_id": {
-              "$ctx": "local.requesting_route_ids"
-            },
-            "key": "before_requesting_routes",
-            "update": {
-              "$set": {
-                "data.contract_ids": {
-                  "$setDifference": [
-                    {
-                      "$ifNull": [
-                        "$data.contract_ids",
-                        []
-                      ]
-                    },
-                    [
-                      {
-                        "$ctx": "doc._id"
-                      }
-                    ]
-                  ]
-                },
-                "data.reserved_credits": {
-                  "$let": {
-                    "vars": {
-                      "beforeSize": {
-                        "$size": {
-                          "$ifNull": [
-                            "$data.contract_ids",
-                            []
-                          ]
-                        }
-                      },
-                      "prevCredits": {
-                        "$ifNull": [
-                          "$data.reserved_credits",
-                          0
-                        ]
-                      },
-                      "cost": {
-                        "$ifNull": [
-                          {
-                            "$ctx": "doc.context.riders.$$ctx.payload.rider.cost"
-                          },
-                          0
-                        ]
-                      }
-                    },
-                    "in": {
-                      "$cond": [
-                        {
-                          "$eq": [
-                            "$$beforeSize",
-                            1
-                          ]
-                        },
-                        0,
-                        {
-                          "$max": [
-                            0,
-                            {
-                              "$subtract": [
-                                "$$prevCredits",
-                                "$$cost"
-                              ]
-                            }
-                          ]
-                        }
-                      ]
-                    }
-                  }
-                }
-              }
-            },
-            "key": "partial_refund_route_candidates"
-          },
-          {
-            "title": "Compute Rider Routes",
-            "description": "Computes accepted and requesting rider routes.",
-            "type": "update.item",
-            "item_id": {
-              "$ctx": "local.requesting_route_ids"
-            },
-            "key": "requesting_routes",
-            "update": {
-              "$set": {
-                "data.contract_ids": {
-                  "$setDifference": [
-                    {
-                      "$ifNull": [
-                        "$data.contract_ids",
-                        []
-                      ]
-                    },
-                    [
-                      {
-                        "$ctx": "doc._id"
-                      }
-                    ]
-                  ]
-                },
-                "data.reserved_credits": {
-                  "$let": {
-                    "vars": {
-                      "beforeSize": {
-                        "$size": {
-                          "$ifNull": [
-                            "$data.contract_ids",
-                            []
-                          ]
-                        }
-                      },
-                      "prevCredits": {
-                        "$ifNull": [
-                          "$data.reserved_credits",
-                          0
-                        ]
-                      },
-                      "cost": {
-                        "$ifNull": [
-                          {
-                            "$ctx": "doc.context.riders.$$ctx.payload.rider.cost"
-                          },
-                          0
-                        ]
-                      }
-                    },
-                    "in": {
-                      "$cond": [
-                        {
-                          "$eq": [
-                            "$$beforeSize",
-                            1
-                          ]
-                        },
-                        0,
-                        {
-                          "$max": [
-                            0,
-                            {
-                              "$subtract": [
-                                "$$prevCredits",
-                                "$$cost"
-                              ]
-                            }
-                          ]
-                        }
-                      ]
-                    }
-                  }
-                }
-              }
-            },
-            "key": "partial_refund_route_candidates"
-          },
-          {
-            "title": "Compute Rider Routes",
-            "description": "Computes accepted rider routes.",
-            "type": "update.contract",
-            "update": [
-              {
-                "$set": {
-                  "local.partial_refund_route_candidates": {
-                    "$arrayToObject": {
-                      "$map": {
-                        "input": {
-                          "$ifNull": [
-                            "$local.partial_refund_route_candidates",
-                            []
-                          ]
-                        },
-                        "as": "item",
-                        "in": {
-                          "k": "$$item._id",
-                          "v": "$$item"
-                        }
-                      }
-                    }
-                  }
-                }
-              },
-              {
-                "$set": {
-                  "local.accepted_route_ids": {
-                    "$setUnion": [
-                      {
-                        "$map": {
-                          "input": "$local.accepted_riders",
-                          "as": "k",
-                          "in": {
-                            "$getField": {
-                              "input": {
-                                "$getField": {
-                                  "input": {
-                                    "$ifNull": [
-                                      "$context.riders",
-                                      {}
-                                    ]
-                                  },
-                                  "field": "$$k"
-                                }
-                              },
-                              "field": "id"
-                            }
-                          }
-                        }
-                      },
-                      []
-                    ]
-                  }
-                }
-              },
-              {
-                "$set": {
-                  "local.requesting_route_ids": {
-                    "$setUnion": [
-                      {
-                        "$map": {
-                          "input": "$local.requesting_riders",
-                          "as": "k",
-                          "in": {
-                            "$getField": {
-                              "input": {
-                                "$getField": {
-                                  "input": {
-                                    "$ifNull": [
-                                      "$context.riders",
-                                      {}
-                                    ]
-                                  },
-                                  "field": "$$k"
-                                }
-                              },
-                              "field": "id"
-                            }
-                          }
-                        }
-                      },
-                      []
-                    ]
-                  }
-                }
-              },
-              {
-                "$set": {
-                  "local.route_ids": {
-                    "$setUnion": [
-                      "$local.accepted_route_ids",
-                      "$local.requesting_route_ids",
-                      []
-                    ]
-                  }
-                }
-              }
-            ]
-          },
-          {
-            "title": "Compute Rider Routes",
-            "description": "Computes accepted and requesting rider routes.",
-            "type": "update.contract",
-            "update": [
-              {
-                "$set": {
-                  "local.route_ids": {
-                    "$setUnion": [
-                      {
-                        "$map": {
-                          "input": {
-                            "$filter": {
-                              "input": {
-                                "$objectToArray": {
-                                  "$ifNull": [
-                                    "$states",
-                                    {}
-                                  ]
-                                }
-                              },
-                              "as": "kv",
-                              "cond": {
-                                "$in": [
-                                  "$$kv.v",
-                                  [
-                                    "ACCEPTED"
-                                  ]
-                                ]
-                              }
-                            }
-                          },
-                          "as": "kv",
-                          "in": {
-                            "$getField": {
-                              "input": {
-                                "$getField": {
-                                  "input": {
-                                    "$ifNull": [
-                                      "$context.riders",
-                                      {}
-                                    ]
-                                  },
-                                  "field": "$$kv.k"
-                                }
-                              },
-                              "field": "id"
-                            }
-                          }
-                        }
-                      },
-                      []
-                    ]
-                  }
-                }
-              }
-            ]
-          },
-          {
-            "title": "Compute Rider Routes",
-            "description": "Computes accepted and requesting rider routes.",
-            "type": "update.contract",
-            "update": [
-              {
-                "$set": {
-                  "local.route_ids": {
-                    "$setUnion": [
-                      {
-                        "$map": {
-                          "input": {
-                            "$filter": {
-                              "input": {
-                                "$objectToArray": {
-                                  "$ifNull": [
-                                    "$states",
-                                    {}
-                                  ]
-                                }
-                              },
-                              "as": "kv",
-                              "cond": {
-                                "$in": [
-                                  "$$kv.v",
-                                  [
-                                    "ACCEPTED"
-                                  ]
-                                ]
-                              }
-                            }
-                          },
-                          "as": "kv",
-                          "in": {
-                            "$getField": {
-                              "input": {
-                                "$getField": {
-                                  "input": {
-                                    "$ifNull": [
-                                      "$context.riders",
-                                      {}
-                                    ]
-                                  },
-                                  "field": "$$kv.k"
-                                }
-                              },
-                              "field": "id"
-                            }
-                          }
-                        }
-                      },
-                      []
-                    ]
-                  }
-                }
-              }
-            ]
-          },
-          {
             "title": "Compute Rider Buckets",
-            "description": "Computes accepted and requesting rider principals.",
+            "description": "Computes accepted and requesting rider principals for in-progress normalization.",
             "type": "update.contract",
-            "update": [
-              {
-                "$set": {
-                  "local.route_ids": {
-                    "$setUnion": [
-                      {
-                        "$map": {
-                          "input": {
-                            "$filter": {
-                              "input": {
-                                "$objectToArray": {
-                                  "$ifNull": [
-                                    "$states",
-                                    {}
-                                  ]
-                                }
-                              },
-                              "as": "kv",
-                              "cond": {
-                                "$in": [
-                                  "$$kv.v",
-                                  [
-                                    "ACCEPTED",
-                                    "REQUESTING"
-                                  ]
-                                ]
-                              }
-                            }
-                          },
-                          "as": "kv",
-                          "in": {
-                            "$getField": {
-                              "input": {
-                                "$getField": {
-                                  "input": {
-                                    "$ifNull": [
-                                      "$context.riders",
-                                      {}
-                                    ]
-                                  },
-                                  "field": "$$kv.k"
-                                }
-                              },
-                              "field": "id"
-                            }
-                          }
-                        }
-                      },
-                      []
-                    ]
-                  }
-                }
-              },
-              {
-                "$set": {
-                  "local.accepted_principals": {
-                    "$map": {
-                      "input": {
-                        "$filter": {
-                          "input": {
-                            "$objectToArray": {
-                              "$ifNull": [
-                                "$states",
-                                {}
-                              ]
-                            }
-                          },
-                          "as": "kv",
-                          "cond": {
-                            "$eq": [
-                              "$$kv.v",
-                              "ACCEPTED"
+            "update": {
+              "$set": {
+                "local.accepted_principals": {
+                  "$map": {
+                    "input": {
+                      "$filter": {
+                        "input": {
+                          "$objectToArray": {
+                            "$ifNull": [
+                              "$states",
+                              {}
                             ]
                           }
+                        },
+                        "as": "sv",
+                        "cond": {
+                          "$eq": [
+                            "$$sv.v",
+                            "ACCEPTED"
+                          ]
                         }
-                      },
-                      "as": "kv",
-                      "in": "$$kv.k"
-                    }
-                  },
-                  "local.requesting_principals": {
-                    "$map": {
-                      "input": {
-                        "$filter": {
-                          "input": {
-                            "$objectToArray": {
-                              "$ifNull": [
-                                "$states",
-                                {}
-                              ]
-                            }
-                          },
-                          "as": "kv",
-                          "cond": {
-                            "$eq": [
-                              "$$kv.v",
-                              "REQUESTING"
+                      }
+                    },
+                    "as": "sv",
+                    "in": "$$sv.k"
+                  }
+                },
+                "local.requesting_principals": {
+                  "$map": {
+                    "input": {
+                      "$filter": {
+                        "input": {
+                          "$objectToArray": {
+                            "$ifNull": [
+                              "$states",
+                              {}
                             ]
                           }
-                        }
-                      },
-                      "as": "kv",
-                      "in": "$$kv.k"
-                    }
-                  }
-                }
-              },
-              {
-                "$set": {
-                  "local.requesting_cancelled_states": {
-                    "$arrayToObject": {
-                      "$map": {
-                        "input": {
-                          "$ifNull": [
-                            "$local.requesting_principals",
-                            []
-                          ]
                         },
-                        "as": "p",
-                        "in": {
-                          "k": "$$p",
-                          "v": "CANCELLED"
+                        "as": "sv",
+                        "cond": {
+                          "$eq": [
+                            "$$sv.v",
+                            "REQUESTING"
+                          ]
                         }
                       }
-                    }
-                  },
-                  "local.requesting_refunds": {
-                    "$arrayToObject": {
-                      "$map": {
-                        "input": {
-                          "$ifNull": [
-                            "$local.requesting_principals",
-                            []
-                          ]
-                        },
-                        "as": "p",
-                        "in": {
-                          "k": "$$p",
-                          "v": {
-                            "product": "coin",
-                            "user_id": "$$p",
-                            "amount": {
-                              "$ifNull": [
-                                {
-                                  "$ctx": "doc.context.riders.$$ctx.p.cost"
-                                },
-                                0
-                              ]
-                            }
-                          }
-                        }
-                      }
-                    }
+                    },
+                    "as": "sv",
+                    "in": "$$sv.k"
                   }
                 }
               }
-            ]
-          },
-          {
-            "title": "Cleanup Requesting Routes",
-            "description": "Unlinks requesting riders and clears reserved credits.",
-            "type": "update.item",
-            "updates": {
-              "$ctx": "local.requesting_route_updates"
             }
           },
           {
-            "title": "Compute First Requesting Refund",
-            "description": "Computes refund for the first requesting rider when present.",
+            "title": "Prepare Requesting Cleanup",
+            "description": "Builds refund and route cleanup maps for riders still requesting at departure gate.",
             "type": "update.contract",
             "update": [
               {
@@ -5893,15 +4988,49 @@
               },
               {
                 "$set": {
+                  "local.has_requesting_riders": {
+                    "$ifNull": [
+                      "$local.first_requesting_principal",
+                      false
+                    ]
+                  },
                   "local.first_requesting_refund": {
-                    "$cond": [
+                    "$ifNull": [
                       {
-                        "$ifNull": [
-                          "$local.first_requesting_principal",
-                          false
+                        "$arrayElemAt": [
+                          {
+                            "$map": {
+                              "input": {
+                                "$filter": {
+                                  "input": {
+                                    "$objectToArray": {
+                                      "$ifNull": [
+                                        "$context.riders",
+                                        {}
+                                      ]
+                                    }
+                                  },
+                                  "as": "rv",
+                                  "cond": {
+                                    "$eq": [
+                                      "$$rv.k",
+                                      "$local.first_requesting_principal"
+                                    ]
+                                  }
+                                }
+                              },
+                              "as": "rv",
+                              "in": {
+                                "$ifNull": [
+                                  "$$rv.v.cost",
+                                  0
+                                ]
+                              }
+                            }
+                          },
+                          0
                         ]
                       },
-                      10,
                       0
                     ]
                   },
@@ -5934,28 +5063,22 @@
                       },
                       0
                     ]
-                  },
-                  "local.has_first_requesting_refund": {
-                    "$ifNull": [
-                      "$local.first_requesting_principal",
-                      false
-                    ]
                   }
                 }
               }
             ]
           },
           {
-            "title": "Refund First Requesting Rider",
-            "description": "Refunds first requesting rider credits before cancellation.",
+            "title": "Refund Requesting Riders",
+            "description": "Returns held credits to riders still requesting when trip starts.",
             "type": "if.else",
             "condition": {
-              "$ctx": "doc.local.has_first_requesting_refund"
+              "$ctx": "doc.local.has_requesting_riders"
             },
             "then_effects": [
               {
                 "title": "Apply Requesting Refund",
-                "description": "Applies requesting refund to rider wallet.",
+                "description": "Credits first requesting rider before cancellation pruning.",
                 "type": "charge.credits",
                 "credit": {
                   "product": "coin",
@@ -5968,8 +5091,8 @@
                 }
               },
               {
-                "title": "Reset Requesting Route Hold",
-                "description": "Clears requesting rider reserved credits and contract linkage.",
+                "title": "Reset Requesting Route",
+                "description": "Clears route hold and unlinks contract for first requesting rider.",
                 "type": "update.item",
                 "item_id": {
                   "$ctx": "local.first_requesting_route_id"
@@ -5998,107 +5121,70 @@
             ]
           },
           {
-            "title": "Apply Requesting Cancellations",
-            "description": "Marks requestings cancelled and removes them from rider snapshots.",
+            "title": "Cancel Requesting Riders",
+            "description": "Marks requesting riders cancelled and prunes them from in-progress rider snapshots.",
             "type": "update.contract",
             "update": {
               "$set": {
                 "states": {
                   "$mergeObjects": [
-                    "$states",
                     {
                       "$ifNull": [
-                        "$local.requesting_cancelled_states",
+                        "$states",
                         {}
                       ]
+                    },
+                    {
+                      "$arrayToObject": {
+                        "$map": {
+                          "input": {
+                            "$ifNull": [
+                              "$local.requesting_principals",
+                              []
+                            ]
+                          },
+                          "as": "p",
+                          "in": {
+                            "k": "$$p",
+                            "v": "CANCELLED"
+                          }
+                        }
+                      }
                     }
                   ]
                 },
                 "context.riders": {
                   "$arrayToObject": {
-                    "$map": {
+                    "$filter": {
                       "input": {
-                        "$filter": {
-                          "input": {
-                            "$objectToArray": {
-                              "$ifNull": [
-                                "$context.riders",
-                                {}
-                              ]
-                            }
-                          },
-                          "as": "rv",
-                          "cond": {
-                            "$not": [
-                              {
-                                "$in": [
-                                  "$$rv.k",
-                                  {
-                                    "$ifNull": [
-                                      "$local.requesting_principals",
-                                      []
-                                    ]
-                                  }
-                                ]
-                              }
-                            ]
-                          }
+                        "$objectToArray": {
+                          "$ifNull": [
+                            "$context.riders",
+                            {}
+                          ]
                         }
                       },
                       "as": "rv",
-                      "in": {
-                        "k": "$$rv.k",
-                        "v": {
-                          "id": "$$rv.v.id",
-                          "cost": "$$rv.v.cost",
-                          "seats": "$$rv.v.seats",
-                          "trip": "$$rv.v.trip",
-                          "pickup": {
-                            "reminder_id": "pending",
-                            "zone": {
-                              "radius": 300,
-                              "location": "$context.driver_route.trip.origin.location"
-                            },
-                            "window": {
-                              "start": "$context.driver_route.trip.origin.at",
-                              "end": "$context.driver_route.trip.origin.at"
-                            }
-                          },
-                          "locations": [],
-                          "verification": {
-                            "pin": "000000",
-                            "masked": "___000"
-                          },
-                          "dispute": false
-                        }
+                      "cond": {
+                        "$in": [
+                          "$$rv.k",
+                          {
+                            "$ifNull": [
+                              "$local.accepted_principals",
+                              []
+                            ]
+                          }
+                        ]
                       }
                     }
                   }
-                },
-                "context.driver_route.compensation": {
-                  "$ifNull": [
-                    "$context.driver_route.compensation",
-                    0
-                  ]
-                },
-                "context.driver_route.locations": {
-                  "$ifNull": [
-                    "$context.driver_route.locations",
-                    []
-                  ]
-                },
-                "context.driver_route.first_pickup_reminder_id": {
-                  "$ifNull": [
-                    "$context.driver_route.first_pickup_reminder_id",
-                    "pending"
-                  ]
                 }
               }
             }
           },
           {
-            "title": "Build Pickup Plan And Pins",
-            "description": "Builds mocked pickup plan and pin verifications for accepted riders.",
+            "title": "Build Pickup Entries",
+            "description": "Builds deterministic pickup entries and pin metadata for accepted riders.",
             "type": "update.contract",
             "update": [
               {
@@ -6131,8 +5217,10 @@
                             "$$idx"
                           ]
                         },
-                        "route_id": null,
-                        "pickup_zone": "$context.driver_route.trip.origin",
+                        "pickup_zone": {
+                          "radius": 300,
+                          "location": "$context.driver_route.trip.origin.location"
+                        },
                         "pickup_window": {
                           "start": "$context.driver_route.trip.origin.at",
                           "end": "$context.driver_route.trip.origin.at"
@@ -6144,6 +5232,25 @@
                               "$$idx"
                             ]
                           }
+                        },
+                        "masked": {
+                          "$concat": [
+                            "___",
+                            {
+                              "$substrBytes": [
+                                {
+                                  "$toString": {
+                                    "$add": [
+                                      100000,
+                                      "$$idx"
+                                    ]
+                                  }
+                                },
+                                3,
+                                3
+                              ]
+                            }
+                          ]
                         }
                       }
                     }
@@ -6172,13 +5279,6 @@
                       }
                     }
                   },
-                  "local.trip_payment_at": {
-                    "$dateAdd": {
-                      "startDate": "$$NOW",
-                      "unit": "hour",
-                      "amount": 2
-                    }
-                  },
                   "local.pickup_plan": {
                     "$arrayToObject": {
                       "$map": {
@@ -6192,7 +5292,6 @@
                         "in": {
                           "k": "$$e.principal",
                           "v": {
-                            "route_id": "$$e.route_id",
                             "pickup_zone": "$$e.pickup_zone",
                             "pickup_window": "$$e.pickup_window"
                           }
@@ -6214,341 +5313,298 @@
                           "k": "$$e.pin",
                           "v": {
                             "principal": "$$e.principal",
-                            "masked": {
-                              "$let": {
-                                "vars": {
-                                  "p": "$$e.pin"
-                                },
-                                "in": {
-                                  "$concat": [
-                                    {
-                                      "$cond": [
-                                        {
-                                          "$lt": [
-                                            {
-                                              "$rand": {}
-                                            },
-                                            0.5
-                                          ]
-                                        },
-                                        {
-                                          "$substrBytes": [
-                                            "$$p",
-                                            0,
-                                            1
-                                          ]
-                                        },
-                                        "_"
-                                      ]
-                                    },
-                                    " ",
-                                    {
-                                      "$cond": [
-                                        {
-                                          "$lt": [
-                                            {
-                                              "$rand": {}
-                                            },
-                                            0.5
-                                          ]
-                                        },
-                                        {
-                                          "$substrBytes": [
-                                            "$$p",
-                                            1,
-                                            1
-                                          ]
-                                        },
-                                        "_"
-                                      ]
-                                    },
-                                    " ",
-                                    {
-                                      "$cond": [
-                                        {
-                                          "$lt": [
-                                            {
-                                              "$rand": {}
-                                            },
-                                            0.5
-                                          ]
-                                        },
-                                        {
-                                          "$substrBytes": [
-                                            "$$p",
-                                            2,
-                                            1
-                                          ]
-                                        },
-                                        "_"
-                                      ]
-                                    },
-                                    " ",
-                                    {
-                                      "$cond": [
-                                        {
-                                          "$lt": [
-                                            {
-                                              "$rand": {}
-                                            },
-                                            0.5
-                                          ]
-                                        },
-                                        {
-                                          "$substrBytes": [
-                                            "$$p",
-                                            3,
-                                            1
-                                          ]
-                                        },
-                                        "_"
-                                      ]
-                                    },
-                                    " ",
-                                    {
-                                      "$cond": [
-                                        {
-                                          "$lt": [
-                                            {
-                                              "$rand": {}
-                                            },
-                                            0.5
-                                          ]
-                                        },
-                                        {
-                                          "$substrBytes": [
-                                            "$$p",
-                                            4,
-                                            1
-                                          ]
-                                        },
-                                        "_"
-                                      ]
-                                    },
-                                    " ",
-                                    {
-                                      "$cond": [
-                                        {
-                                          "$lt": [
-                                            {
-                                              "$rand": {}
-                                            },
-                                            0.5
-                                          ]
-                                        },
-                                        {
-                                          "$substrBytes": [
-                                            "$$p",
-                                            5,
-                                            1
-                                          ]
-                                        },
-                                        "_"
-                                      ]
-                                    }
-                                  ]
-                                }
-                              }
-                            }
+                            "masked": "$$e.masked"
                           }
                         }
                       }
                     }
-                  },
-                  "context.riders": {
-                    "$arrayToObject": {
-                      "$map": {
-                        "input": {
-                          "$objectToArray": {
-                            "$ifNull": [
-                              "$context.riders",
-                              {}
-                            ]
-                          }
-                        },
-                        "as": "rv",
-                        "in": {
-                          "k": "$$rv.k",
-                          "v": {
-                            "$mergeObjects": [
-                              "$$rv.v",
-                              {
-                                "pickup": {
-                                  "reminder_id": "pending",
-                                  "zone": {
-                                    "radius": 300,
-                                    "location": {
-                                      "$ifNull": [
-                                        {
-                                          "$ctx": "local.pickup_plan.$$ctx.rv.k.pickup_zone.location"
-                                        },
-                                        "$context.driver_route.trip.origin.location"
-                                      ]
-                                    }
-                                  },
-                                  "window": {
-                                    "start": {
-                                      "$ifNull": [
-                                        {
-                                          "$ctx": "local.pickup_plan.$$ctx.rv.k.pickup_window.start"
-                                        },
-                                        "$context.driver_route.trip.origin.at"
-                                      ]
-                                    },
-                                    "end": {
-                                      "$ifNull": [
-                                        {
-                                          "$ctx": "local.pickup_plan.$$ctx.rv.k.pickup_window.end"
-                                        },
-                                        "$context.driver_route.trip.origin.at"
-                                      ]
-                                    }
-                                  }
-                                },
-                                "verification": {
-                                  "pin": {
-                                    "$toString": {
-                                      "$add": [
-                                        100000,
-                                        {
-                                          "$max": [
-                                            0,
-                                            {
-                                              "$indexOfArray": [
-                                                {
-                                                  "$ifNull": [
-                                                    "$local.accepted_principals",
-                                                    []
-                                                  ]
-                                                },
-                                                "$$rv.k"
-                                              ]
-                                            }
-                                          ]
-                                        }
-                                      ]
-                                    }
-                                  },
-                                  "masked": {
-                                    "$concat": [
-                                      "___",
-                                      {
-                                        "$substrBytes": [
-                                          {
-                                            "$toString": {
-                                              "$add": [
-                                                100000,
-                                                {
-                                                  "$max": [
-                                                    0,
-                                                    {
-                                                      "$indexOfArray": [
-                                                        {
-                                                          "$ifNull": [
-                                                            "$local.accepted_principals",
-                                                            []
-                                                          ]
-                                                        },
-                                                        "$$rv.k"
-                                                      ]
-                                                    }
-                                                  ]
-                                                }
-                                              ]
-                                            }
-                                          },
-                                          3,
-                                          3
-                                        ]
-                                      }
-                                    ]
-                                  }
-                                },
-                                "locations": {
-                                  "$ifNull": [
-                                    "$$rv.v.locations",
-                                    []
-                                  ]
-                                },
-                                "dispute": {
-                                  "$ifNull": [
-                                    "$$rv.v.dispute",
-                                    false
-                                  ]
-                                }
-                              }
-                            ]
-                          }
-                        }
-                      }
-                    }
-                  },
-                  "context.driver_route.compensation": {
-                    "$ifNull": [
-                      "$context.driver_route.compensation",
-                      0
-                    ]
-                  },
-                  "context.driver_route.locations": {
-                    "$ifNull": [
-                      "$context.driver_route.locations",
-                      []
-                    ]
                   }
                 }
               }
             ]
           },
           {
+            "title": "Hydrate In-Progress Rider Snapshots",
+            "description": "Ensures riders and driver route match strict IN_PROGRESS context schema.",
+            "type": "update.contract",
+            "update": {
+              "$set": {
+                "context.riders": {
+                  "$arrayToObject": {
+                    "$map": {
+                      "input": {
+                        "$filter": {
+                          "input": {
+                            "$objectToArray": {
+                              "$ifNull": [
+                                "$context.riders",
+                                {}
+                              ]
+                            }
+                          },
+                          "as": "rv",
+                          "cond": {
+                            "$in": [
+                              "$$rv.k",
+                              {
+                                "$ifNull": [
+                                  "$local.accepted_principals",
+                                  []
+                                ]
+                              }
+                            ]
+                          }
+                        }
+                      },
+                      "as": "rv",
+                      "in": {
+                        "k": "$$rv.k",
+                        "v": {
+                          "$mergeObjects": [
+                            "$$rv.v",
+                            {
+                              "trip": {
+                                "$ifNull": [
+                                  "$$rv.v.trip",
+                                  "$context.driver_route.trip"
+                                ]
+                              },
+                              "pickup": {
+                                "reminder_id": "pending",
+                                "zone": {
+                                  "$ifNull": [
+                                    {
+                                      "$arrayElemAt": [
+                                        {
+                                          "$map": {
+                                            "input": {
+                                              "$filter": {
+                                                "input": {
+                                                  "$ifNull": [
+                                                    "$local.pickup_entries",
+                                                    []
+                                                  ]
+                                                },
+                                                "as": "pe",
+                                                "cond": {
+                                                  "$eq": [
+                                                    "$$pe.principal",
+                                                    "$$rv.k"
+                                                  ]
+                                                }
+                                              }
+                                            },
+                                            "as": "pe",
+                                            "in": "$$pe.pickup_zone"
+                                          }
+                                        },
+                                        0
+                                      ]
+                                    },
+                                    {
+                                      "radius": 300,
+                                      "location": "$context.driver_route.trip.origin.location"
+                                    }
+                                  ]
+                                },
+                                "window": {
+                                  "$ifNull": [
+                                    {
+                                      "$arrayElemAt": [
+                                        {
+                                          "$map": {
+                                            "input": {
+                                              "$filter": {
+                                                "input": {
+                                                  "$ifNull": [
+                                                    "$local.pickup_entries",
+                                                    []
+                                                  ]
+                                                },
+                                                "as": "pe",
+                                                "cond": {
+                                                  "$eq": [
+                                                    "$$pe.principal",
+                                                    "$$rv.k"
+                                                  ]
+                                                }
+                                              }
+                                            },
+                                            "as": "pe",
+                                            "in": "$$pe.pickup_window"
+                                          }
+                                        },
+                                        0
+                                      ]
+                                    },
+                                    {
+                                      "start": "$context.driver_route.trip.origin.at",
+                                      "end": "$context.driver_route.trip.origin.at"
+                                    }
+                                  ]
+                                }
+                              },
+                              "locations": {
+                                "$ifNull": [
+                                  "$$rv.v.locations",
+                                  []
+                                ]
+                              },
+                              "verification": {
+                                "$ifNull": [
+                                  {
+                                    "$arrayElemAt": [
+                                      {
+                                        "$map": {
+                                          "input": {
+                                            "$filter": {
+                                              "input": {
+                                                "$ifNull": [
+                                                  "$local.pickup_entries",
+                                                  []
+                                                ]
+                                              },
+                                              "as": "pe",
+                                              "cond": {
+                                                "$eq": [
+                                                  "$$pe.principal",
+                                                  "$$rv.k"
+                                                ]
+                                              }
+                                            }
+                                          },
+                                          "as": "pe",
+                                          "in": {
+                                            "pin": "$$pe.pin",
+                                            "masked": "$$pe.masked"
+                                          }
+                                        }
+                                      },
+                                      0
+                                    ]
+                                  },
+                                  {
+                                    "pin": "000000",
+                                    "masked": "___000"
+                                  }
+                                ]
+                              },
+                              "dispute": {
+                                "$ifNull": [
+                                  "$$rv.v.dispute",
+                                  false
+                                ]
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  }
+                },
+                "context.driver_route.compensation": {
+                  "$ifNull": [
+                    "$context.driver_route.compensation",
+                    0
+                  ]
+                },
+                "context.driver_route.locations": {
+                  "$ifNull": [
+                    "$context.driver_route.locations",
+                    []
+                  ]
+                },
+                "context.driver_route.first_pickup_reminder_id": {
+                  "$ifNull": [
+                    "$context.driver_route.first_pickup_reminder_id",
+                    "pending"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "title": "Check Pickup Entries",
+            "description": "Checks whether accepted riders exist for pickup notifications.",
+            "type": "update.contract",
+            "update": {
+              "$set": {
+                "local.has_pickup_entries": {
+                  "$gt": [
+                    {
+                      "$size": {
+                        "$ifNull": [
+                          "$local.pickup_entries",
+                          []
+                        ]
+                      }
+                    },
+                    0
+                  ]
+                }
+              }
+            }
+          },
+          {
             "title": "Notify Riders Pins",
-            "description": "Notifies riders with pin and pickup data payload.",
-            "type": "notify",
-            "notify": {
-              "event": "contracts.pickup_pin_created",
-              "targets": {
-                "$ctx": "local.rider_targets"
+            "description": "Notifies accepted riders with pickup plan and pin verification payload.",
+            "type": "if.else",
+            "condition": {
+              "$ctx": "doc.local.has_pickup_entries"
+            },
+            "then_effects": [
+              {
+                "title": "Dispatch Rider Pin Notifications",
+                "description": "Sends pickup pin notifications to accepted riders.",
+                "type": "notify",
+                "notify": {
+                  "event": "contracts.pickup_pin_created",
+                  "targets": {
+                    "$ctx": "doc.local.rider_targets"
+                  },
+                  "payload": {
+                    "contract_id": {
+                      "$ctx": "doc._id"
+                    },
+                    "pickup_plan": {
+                      "$ctx": "doc.local.pickup_plan"
+                    },
+                    "pickup_verifications": {
+                      "$ctx": "doc.local.pickup_verifications"
+                    }
+                  }
+                }
               },
-              "payload": {
-                "contract_id": {
-                  "$ctx": "doc._id"
-                },
-                "pickup_plan": {
-                  "$ctx": "doc.local.pickup_plan"
-                },
-                "pickup_verifications": {
-                  "$ctx": "doc.local.pickup_verifications"
+              {
+                "title": "Dispatch Driver Pin Hints",
+                "description": "Sends masked pin hints to driver.",
+                "type": "notify",
+                "notify": {
+                  "event": "contracts.pickup_pin_hint",
+                  "targets": {
+                    "$$ctx.doc.context.driver": [
+                      "in_app",
+                      "push"
+                    ]
+                  },
+                  "payload": {
+                    "contract_id": {
+                      "$ctx": "doc._id"
+                    },
+                    "pickup_plan": {
+                      "$ctx": "doc.local.pickup_plan"
+                    },
+                    "pickup_verifications": {
+                      "$ctx": "doc.local.pickup_verifications"
+                    }
+                  }
                 }
               }
-            }
+            ]
           },
           {
-            "title": "Notify Driver Masks",
-            "description": "Notifies driver with masked pins and pickup data payload.",
-            "type": "notify",
-            "notify": {
-              "event": "contracts.pickup_pin_hint",
-              "targets": {
-                "$$ctx.doc.context.driver": [
-                  "in_app",
-                  "push"
-                ]
-              },
-              "payload": {
-                "contract_id": {
-                  "$ctx": "doc._id"
-                },
-                "pickup_plan": {
-                  "$ctx": "doc.local.pickup_plan"
-                },
-                "pickup_verifications": {
-                  "$ctx": "doc.local.pickup_verifications"
-                }
-              }
-            }
-          },
-          {
-            "title": "Compute First Reminder",
-            "description": "Computes first accepted rider reminder timestamp and principal.",
+            "title": "Compute Timers",
+            "description": "Computes first pickup reminder and trip payment timeout timestamps.",
             "type": "update.contract",
             "update": {
               "$set": {
@@ -6563,13 +5619,58 @@
                     0
                   ]
                 },
-                "local.first_pickup_reminder_at": "$$NOW"
+                "local.first_pickup_reminder_at": {
+                  "$cond": [
+                    {
+                      "$ifNull": [
+                        "$local.first_pickup_entry.pickup_window.start",
+                        false
+                      ]
+                    },
+                    {
+                      "$dateSubtract": {
+                        "startDate": {
+                          "$toDate": "$local.first_pickup_entry.pickup_window.start"
+                        },
+                        "unit": "minute",
+                        "amount": 20
+                      }
+                    },
+                    "$$NOW"
+                  ]
+                },
+                "local.trip_payment_at": {
+                  "$cond": [
+                    {
+                      "$ifNull": [
+                        "$context.driver_route.trip.destination.at",
+                        false
+                      ]
+                    },
+                    {
+                      "$dateAdd": {
+                        "startDate": {
+                          "$toDate": "$context.driver_route.trip.destination.at"
+                        },
+                        "unit": "hour",
+                        "amount": 2
+                      }
+                    },
+                    {
+                      "$dateAdd": {
+                        "startDate": "$$NOW",
+                        "unit": "hour",
+                        "amount": 2
+                      }
+                    }
+                  ]
+                }
               }
             }
           },
           {
             "title": "Schedule First Pickup Reminder",
-            "description": "Schedules first rider reminder 20 minutes before pickup window.",
+            "description": "Schedules first rider pickup reminder 20 minutes before pickup window.",
             "type": "if.else",
             "condition": {
               "$ifNull": [
@@ -6598,7 +5699,7 @@
               },
               {
                 "title": "Store Reminder Id",
-                "description": "Stores first pickup reminder id.",
+                "description": "Stores first pickup reminder id on driver route.",
                 "type": "update.contract",
                 "update": {
                   "$set": {
@@ -6647,7 +5748,12 @@
                       "trip_payment_check_id": {
                         "$ifNull": [
                           "$local.trip_payment_check_id",
-                          "pending"
+                          {
+                            "$ifNull": [
+                              "$context.trip_payment_check_id",
+                              "pending"
+                            ]
+                          }
                         ]
                       },
                       "driver": "$context.driver",
@@ -6792,6 +5898,42 @@
               ]
             },
             {
+              "title": "Compute Rejection Refund",
+              "description": "Computes full refund plus 10 percent bonus for rejected rider.",
+              "type": "update.contract",
+              "update": {
+                "$set": {
+                  "local.rejection_refund_amount": {
+                    "$add": [
+                      {
+                        "$ifNull": [
+                          {
+                            "$ctx": "doc.context.riders.$$ctx.payload.rider.cost"
+                          },
+                          0
+                        ]
+                      },
+                      {
+                        "$floor": {
+                          "$multiply": [
+                            {
+                              "$ifNull": [
+                                {
+                                  "$ctx": "doc.context.riders.$$ctx.payload.rider.cost"
+                                },
+                                0
+                              ]
+                            },
+                            0.1
+                          ]
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            {
               "title": "Apply Rejection Refund",
               "description": "Credits rider wallet with full refund and 10% bonus.",
               "type": "charge.credits",
@@ -6799,7 +5941,7 @@
                 "product": "coin",
                 "user_id": "$$ctx.payload.rider",
                 "amount": {
-                  "$ctx": "doc.context.riders.$$ctx.payload.rider.cost"
+                  "$ctx": "local.rejection_refund_amount"
                 }
               }
             },
@@ -6828,18 +5970,26 @@
                     ]
                   },
                   "data.reserved_credits": {
-                    "$setDifference": [
+                    "$max": [
+                      0,
                       {
-                        "$ifNull": [
-                          "$data.reserved_credits",
-                          0
+                        "$subtract": [
+                          {
+                            "$ifNull": [
+                              "$data.reserved_credits",
+                              0
+                            ]
+                          },
+                          {
+                            "$ifNull": [
+                              {
+                                "$ctx": "doc.context.riders.$$ctx.payload.rider.cost"
+                              },
+                              0
+                            ]
+                          }
                         ]
-                      },
-                      [
-                        {
-                          "$ctx": "doc.context.riders.$$ctx.payload.rider.cost"
-                        }
-                      ]
+                      }
                     ]
                   }
                 }
@@ -7011,7 +6161,12 @@
                                           "accuracy": {
                                             "$divide": [
                                               "$$value.sumAcc",
-                                              "$$value.n"
+                                              {
+                                                "$max": [
+                                                  1,
+                                                  "$$value.n"
+                                                ]
+                                              }
                                             ]
                                           },
                                           "location": {
@@ -7020,13 +6175,23 @@
                                               {
                                                 "$divide": [
                                                   "$$value.sumLng",
-                                                  "$$value.n"
+                                                  {
+                                                    "$max": [
+                                                      1,
+                                                      "$$value.n"
+                                                    ]
+                                                  }
                                                 ]
                                               },
                                               {
                                                 "$divide": [
                                                   "$$value.sumLat",
-                                                  "$$value.n"
+                                                  {
+                                                    "$max": [
+                                                      1,
+                                                      "$$value.n"
+                                                    ]
+                                                  }
                                                 ]
                                               }
                                             ]
@@ -7155,8 +6320,20 @@
                         },
                         {
                           "$concatArrays": [
-                            "$context.driver_route.locations",
-                            "$$ctx.local.locations"
+                            {
+                              "$ifNull": [
+                                "$context.driver_route.locations",
+                                []
+                              ]
+                            },
+                            {
+                              "$ifNull": [
+                                {
+                                  "$ctx": "local.locations"
+                                },
+                                []
+                              ]
+                            }
                           ]
                         },
                         "$context.driver_route.locations"
@@ -7171,14 +6348,31 @@
                           ]
                         },
                         {
-                          "$ctx": "doc.context.riders.$$ctx.user.locations"
+                          "$ifNull": [
+                            {
+                              "$ctx": "doc.context.riders.$$ctx.user.locations"
+                            },
+                            []
+                          ]
                         },
                         {
                           "$concatArrays": [
                             {
-                              "$ctx": "doc.context.riders.$$ctx.user.locations"
+                              "$ifNull": [
+                                {
+                                  "$ctx": "doc.context.riders.$$ctx.user.locations"
+                                },
+                                []
+                              ]
                             },
-                            "$$ctx.local.locations"
+                            {
+                              "$ifNull": [
+                                {
+                                  "$ctx": "local.locations"
+                                },
+                                []
+                              ]
+                            }
                           ]
                         }
                       ]
@@ -7245,19 +6439,39 @@
                             "cond": {
                               "$and": [
                                 {
-                                  "$eq": [
+                                  "$gt": [
                                     {
-                                      "$ifNull": [
-                                        {
-                                          "$getField": {
-                                            "input": "$states",
-                                            "field": "$$rv.k"
+                                      "$size": {
+                                        "$filter": {
+                                          "input": {
+                                            "$objectToArray": {
+                                              "$ifNull": [
+                                                "$states",
+                                                {}
+                                              ]
+                                            }
+                                          },
+                                          "as": "sv",
+                                          "cond": {
+                                            "$and": [
+                                              {
+                                                "$eq": [
+                                                  "$$sv.k",
+                                                  "$$rv.k"
+                                                ]
+                                              },
+                                              {
+                                                "$eq": [
+                                                  "$$sv.v",
+                                                  "ACCEPTED"
+                                                ]
+                                              }
+                                            ]
                                           }
-                                        },
-                                        null
-                                      ]
+                                        }
+                                      }
                                     },
-                                    "ACCEPTED"
+                                    0
                                   ]
                                 },
                                 {
@@ -7321,46 +6535,51 @@
                       ]
                     },
                     "context.driver_route.compensation": {
-                      "$reduce": {
-                        "input": {
-                          "$ifNull": [
-                            "$local.confirmed_riders",
-                            []
-                          ]
-                        },
-                        "initialValue": {
+                      "$add": [
+                        {
                           "$ifNull": [
                             "$context.driver_route.compensation",
                             0
                           ]
                         },
-                        "in": {
-                          "$add": [
-                            "$$value",
-                            {
-                              "$ifNull": [
-                                {
-                                  "$getField": {
-                                    "input": {
-                                      "$getField": {
-                                        "input": {
-                                          "$ifNull": [
-                                            "$context.riders",
-                                            {}
-                                          ]
-                                        },
-                                        "field": "$$this"
+                        {
+                          "$sum": {
+                            "$map": {
+                              "input": {
+                                "$filter": {
+                                  "input": {
+                                    "$objectToArray": {
+                                      "$ifNull": [
+                                        "$context.riders",
+                                        {}
+                                      ]
+                                    }
+                                  },
+                                  "as": "rv",
+                                  "cond": {
+                                    "$in": [
+                                      "$$rv.k",
+                                      {
+                                        "$ifNull": [
+                                          "$local.confirmed_riders",
+                                          []
+                                        ]
                                       }
-                                    },
-                                    "field": "cost"
+                                    ]
                                   }
-                                },
-                                0
-                              ]
+                                }
+                              },
+                              "as": "rv",
+                              "in": {
+                                "$ifNull": [
+                                  "$$rv.v.cost",
+                                  0
+                                ]
+                              }
                             }
-                          ]
+                          }
                         }
-                      }
+                      ]
                     }
                   }
                 },
@@ -7387,21 +6606,30 @@
                       }
                     },
                     "local.reminder_ids": {
-                      "$map": {
-                        "input": "$local.confirmed_riders",
-                        "as": "rid",
-                        "in": {
-                          "$getField": {
-                            "input": {
-                              "$getField": {
-                                "input": "$context.riders",
-                                "field": "$$rid"
+                      "$cond": [
+                        {
+                          "$gt": [
+                            {
+                              "$size": {
+                                "$ifNull": [
+                                  "$local.confirmed_riders",
+                                  []
+                                ]
                               }
                             },
-                            "field": "reminder_id"
+                            0
+                          ]
+                        },
+                        [
+                          {
+                            "$ifNull": [
+                              "$context.driver_route.first_pickup_reminder_id",
+                              ""
+                            ]
                           }
-                        }
-                      }
+                        ],
+                        []
+                      ]
                     }
                   }
                 }
@@ -7461,13 +6689,14 @@
               "update": {
                 "$set": {
                   "local.valid_request": {
-                    "$gte": [
-                      "$$NOW",
+                    "$eq": [
                       {
-                        "$toDate": {
-                          "$ctx": "doc.context.riders.$$ctx.user.pickup.window.end"
-                        }
-                      }
+                        "$ifNull": [
+                          "$states.$$ctx.user",
+                          ""
+                        ]
+                      },
+                      "ACCEPTED"
                     ]
                   }
                 }
@@ -7551,31 +6780,9 @@
               "update": {
                 "$set": {
                   "local.valid_request": {
-                    "$and": [
-                      {
-                        "$ne": [
-                          "ACCEPTED",
-                          "$states.$$ctx.payload.rider"
-                        ]
-                      },
-                      {
-                        "$ne": [
-                          true,
-                          {
-                            "$ctx": "doc.context.riders.$$ctx.payload.rider.dispute"
-                          }
-                        ]
-                      },
-                      {
-                        "$gte": [
-                          "$$NOW",
-                          {
-                            "$toDate": {
-                              "$ctx": "doc.context.riders.$$ctx.payload.rider.pickup.window.end"
-                            }
-                          }
-                        ]
-                      }
+                    "$eq": [
+                      "ACCEPTED",
+                      "$states.$$ctx.payload.rider"
                     ]
                   }
                 }
@@ -7659,339 +6866,16 @@
           ],
           "effects": [
             {
-              "title": "Collect Cancel Trip Inputs",
-              "description": "Collects first refundable and non-refundable riders for cancellation handling.",
-              "type": "update.contract",
-              "update": [
-                {
-                  "$set": {
-                    "local.first_refund_principal": {
-                      "$arrayElemAt": [
-                        {
-                          "$map": {
-                            "input": {
-                              "$filter": {
-                                "input": {
-                                  "$objectToArray": {
-                                    "$ifNull": [
-                                      "$states",
-                                      {}
-                                    ]
-                                  }
-                                },
-                                "as": "sv",
-                                "cond": {
-                                  "$eq": [
-                                    "$$sv.v",
-                                    "ACCEPTED"
-                                  ]
-                                }
-                              }
-                            },
-                            "as": "sv",
-                            "in": "$$sv.k"
-                          }
-                        },
-                        0
-                      ]
-                    },
-                    "local.first_non_refund_principal": {
-                      "$arrayElemAt": [
-                        {
-                          "$map": {
-                            "input": {
-                              "$filter": {
-                                "input": {
-                                  "$objectToArray": {
-                                    "$ifNull": [
-                                      "$states",
-                                      {}
-                                    ]
-                                  }
-                                },
-                                "as": "sv",
-                                "cond": {
-                                  "$eq": [
-                                    "$$sv.v",
-                                    "ONBOARD"
-                                  ]
-                                }
-                              }
-                            },
-                            "as": "sv",
-                            "in": "$$sv.k"
-                          }
-                        },
-                        0
-                      ]
-                    }
-                  }
-                },
-                {
-                  "$set": {
-                    "local.first_refund_route_id": {
-                      "$arrayElemAt": [
-                        {
-                          "$map": {
-                            "input": {
-                              "$filter": {
-                                "input": {
-                                  "$objectToArray": {
-                                    "$ifNull": [
-                                      "$context.riders",
-                                      {}
-                                    ]
-                                  }
-                                },
-                                "as": "rv",
-                                "cond": {
-                                  "$eq": [
-                                    "$$rv.k",
-                                    "$local.first_refund_principal"
-                                  ]
-                                }
-                              }
-                            },
-                            "as": "rv",
-                            "in": "$$rv.v.id"
-                          }
-                        },
-                        0
-                      ]
-                    },
-                    "local.first_refund_amount": {
-                      "$ifNull": [
-                        {
-                          "$arrayElemAt": [
-                            {
-                              "$map": {
-                                "input": {
-                                  "$filter": {
-                                    "input": {
-                                      "$objectToArray": {
-                                        "$ifNull": [
-                                          "$context.riders",
-                                          {}
-                                        ]
-                                      }
-                                    },
-                                    "as": "rv",
-                                    "cond": {
-                                      "$eq": [
-                                        "$$rv.k",
-                                        "$local.first_refund_principal"
-                                      ]
-                                    }
-                                  }
-                                },
-                                "as": "rv",
-                                "in": {
-                                  "$ifNull": [
-                                    "$$rv.v.cost",
-                                    10
-                                  ]
-                                }
-                              }
-                            },
-                            0
-                          ]
-                        },
-                        10
-                      ]
-                    },
-                    "local.has_first_refund": {
-                      "$ifNull": [
-                        "$local.first_refund_principal",
-                        false
-                      ]
-                    },
-                    "local.has_first_non_refund": {
-                      "$ifNull": [
-                        "$local.first_non_refund_principal",
-                        false
-                      ]
-                    }
-                  }
-                }
-              ]
-            },
-            {
-              "title": "Refund First Non-Onboard Rider",
-              "description": "Refunds first non-onboard rider when present.",
-              "type": "if.else",
-              "condition": {
-                "$ctx": "doc.local.has_first_refund"
-              },
-              "then_effects": [
-                {
-                  "title": "Apply First Refund",
-                  "description": "Credits first non-onboard rider wallet with cancellation refund.",
-                  "type": "charge.credits",
-                  "credit": {
-                    "product": "coin",
-                    "user_id": {
-                      "$ctx": "local.first_refund_principal"
-                    },
-                    "amount": {
-                      "$ctx": "local.first_refund_amount"
-                    }
-                  }
-                },
-                {
-                  "title": "Cleanup First Refunded Route",
-                  "description": "Unlinks first refunded rider route and clears reserved credits.",
-                  "type": "update.item",
-                  "item_id": {
-                    "$ctx": "local.first_refund_route_id"
-                  },
-                  "update": {
-                    "$set": {
-                      "data.contract_ids": {
-                        "$setDifference": [
-                          {
-                            "$ifNull": [
-                              "$data.contract_ids",
-                              []
-                            ]
-                          },
-                          [
-                            {
-                              "$ctx": "doc._id"
-                            }
-                          ]
-                        ]
-                      },
-                      "data.reserved_credits": 0
-                    }
-                  }
-                }
-              ]
-            },
-            {
-              "title": "Remove Riders From Group",
-              "description": "Removes refunded and onboard riders from trip group when present.",
-              "type": "if.else",
-              "condition": {
-                "$ifNull": [
-                  "$context.group_id",
-                  false
-                ]
-              },
-              "then_effects": [
-                {
-                  "title": "Apply Group Member Removal",
-                  "description": "Removes all rider members while keeping driver admin.",
-                  "type": "update.group",
-                  "group_id": {
-                    "$ctx": "doc.context.group_id"
-                  },
-                  "edit_members": {
-                    "remove_members": [
-                      {
-                        "$ctx": "local.first_refund_principal"
-                      },
-                      {
-                        "$ctx": "local.first_non_refund_principal"
-                      }
-                    ],
-                    "promote_admins": [
-                      {
-                        "$ctx": "doc.context.driver"
-                      }
-                    ]
-                  }
-                }
-              ]
-            },
-            {
-              "title": "Notify Refunded Riders",
-              "description": "Notifies refunded riders about in-progress driver cancellation.",
-              "type": "if.else",
-              "condition": {
-                "$ctx": "doc.local.has_first_refund"
-              },
-              "then_effects": [
-                {
-                  "title": "Dispatch Refunded Rider Cancellation",
-                  "description": "Sends cancellation notification with refunded=true to eligible riders.",
-                  "type": "notify",
-                  "notify": {
-                    "event": "contracts.driver_cancelled_trip",
-                    "targets": {
-                      "$$ctx.doc.local.first_refund_principal": [
-                        "in_app",
-                        "push"
-                      ]
-                    },
-                    "payload": {
-                      "contract_id": {
-                        "$ctx": "doc._id"
-                      },
-                      "reason": "driver_cancel_in_progress",
-                      "refunded": true
-                    }
-                  }
-                }
-              ]
-            },
-            {
-              "title": "Notify Non-Refunded Riders",
-              "description": "Notifies onboard riders about cancellation with no refund.",
-              "type": "if.else",
-              "condition": {
-                "$ctx": "doc.local.has_first_non_refund"
-              },
-              "then_effects": [
-                {
-                  "title": "Dispatch Non-Refunded Rider Cancellation",
-                  "description": "Sends cancellation notification with refunded=false to onboard riders.",
-                  "type": "notify",
-                  "notify": {
-                    "event": "contracts.driver_cancelled_trip",
-                    "targets": {
-                      "$$ctx.doc.local.first_non_refund_principal": [
-                        "in_app",
-                        "push"
-                      ]
-                    },
-                    "payload": {
-                      "contract_id": {
-                        "$ctx": "doc._id"
-                      },
-                      "reason": "driver_cancel_in_progress",
-                      "refunded": false
-                    }
-                  }
-                }
-              ]
-            },
-            {
-              "title": "Notify Driver Cancellation Applied",
-              "description": "Notifies driver that trip cancellation has been applied.",
-              "type": "notify",
-              "notify": {
-                "event": "contracts.driver_cancelled_trip",
-                "targets": {
-                  "$$ctx.doc.context.driver": [
-                    "in_app",
-                    "push"
-                  ]
-                },
-                "payload": {
-                  "contract_id": {
-                    "$ctx": "doc._id"
-                  },
-                  "reason": "driver_cancel_in_progress",
-                  "refunded": null
-                }
-              }
-            },
-            {
-              "title": "Move Cancelled",
-              "description": "Cancels active trip by driver action after refunds and notifications.",
+              "title": "Mark Cancellation Request",
+              "description": "Marks in-progress driver cancellation request metadata.",
               "type": "update.contract",
               "update": {
                 "$set": {
+                  "context.cancellation": {
+                    "phase": "IN_PROGRESS",
+                    "requested_by": "$$ctx.user",
+                    "at": "$$NOW"
+                  },
                   "state": "CANCELLED",
                   "status": "CANCELLED"
                 }
@@ -8238,7 +7122,642 @@
       }
     },
     "CANCELLED": {
-      "final": true
+      "final": true,
+      "on_enter": {
+        "effects": [
+          {
+            "title": "Resolve Cancellation Phase",
+            "description": "Resolves cancellation phase flags for conditional cancellation flow execution.",
+            "type": "update.contract",
+            "update": [
+              {
+                "$set": {
+                  "local.cancellation_phase": {
+                    "$ifNull": [
+                      "$context.cancellation.phase",
+                      ""
+                    ]
+                  }
+                }
+              },
+              {
+                "$set": {
+                  "local.is_onboarding_cancel": {
+                    "$eq": [
+                      "$local.cancellation_phase",
+                      "ONBOARDING"
+                    ]
+                  },
+                  "local.is_in_progress_cancel": {
+                    "$eq": [
+                      "$local.cancellation_phase",
+                      "IN_PROGRESS"
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "title": "Apply Onboarding Cancellation Flow",
+            "description": "Executes onboarding-specific cancellation cleanup and notifications.",
+            "type": "if.else",
+            "condition": {
+              "$ctx": "doc.local.is_onboarding_cancel"
+            },
+            "then_effects": [
+              {
+                "title": "Collect Active Riders",
+                "description": "Collects active rider principals and route ids for trip cancellation pruning.",
+                "type": "update.contract",
+                "update": {
+                  "$set": {
+                    "local.trip_cancel_riders": {
+                      "$map": {
+                        "input": {
+                          "$objectToArray": {
+                            "$ifNull": [
+                              "$context.riders",
+                              {}
+                            ]
+                          }
+                        },
+                        "as": "rv",
+                        "in": {
+                          "principal": "$$rv.k",
+                          "route_id": "$$rv.v.id"
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "title": "Build Trip Cancel Route Unlinks",
+                "description": "Builds route update map to unlink this contract from every active rider route.",
+                "type": "update.contract",
+                "update": {
+                  "$set": {
+                    "local.trip_cancel_route_updates": {
+                      "$arrayToObject": {
+                        "$map": {
+                          "input": {
+                            "$ifNull": [
+                              "$local.trip_cancel_riders",
+                              []
+                            ]
+                          },
+                          "as": "r",
+                          "in": {
+                            "k": "$$r.route_id",
+                            "v": {
+                              "$literal": {
+                                "$set": {
+                                  "data.contract_ids": {
+                                    "$setDifference": [
+                                      {
+                                        "$ifNull": [
+                                          "$data.contract_ids",
+                                          []
+                                        ]
+                                      },
+                                      [
+                                        {
+                                          "$ctx": "doc._id"
+                                        }
+                                      ]
+                                    ]
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "local.trip_cancel_route_ids": {
+                      "$setUnion": [
+                        {
+                          "$map": {
+                            "input": {
+                              "$ifNull": [
+                                "$local.trip_cancel_riders",
+                                []
+                              ]
+                            },
+                            "as": "r",
+                            "in": "$$r.route_id"
+                          }
+                        },
+                        []
+                      ]
+                    }
+                  }
+                }
+              },
+              {
+                "title": "Unlink Trip Routes",
+                "description": "Removes this contract id from all active rider routes.",
+                "type": "update.item",
+                "updates": {
+                  "$ctx": "local.trip_cancel_route_updates"
+                }
+              },
+              {
+                "title": "Reload Trip Routes",
+                "description": "Loads rider routes after unlink to compute cancellation refunds.",
+                "type": "get.item",
+                "item_id": {
+                  "$ctx": "local.trip_cancel_route_ids"
+                },
+                "key": "trip_cancel_routes_after"
+              },
+              {
+                "title": "Compute Trip Cancel Refunds",
+                "description": "Builds reset maps for routes with no remaining contract links.",
+                "type": "update.contract",
+                "update": {
+                  "$set": {
+                    "local.trip_cancel_reset_route_updates": {
+                      "$arrayToObject": {
+                        "$map": {
+                          "input": {
+                            "$filter": {
+                              "input": {
+                                "$map": {
+                                  "input": {
+                                    "$objectToArray": {
+                                      "$ifNull": [
+                                        "$local.trip_cancel_routes_after",
+                                        {}
+                                      ]
+                                    }
+                                  },
+                                  "as": "rtv",
+                                  "in": "$$rtv.v"
+                                }
+                              },
+                              "as": "rt",
+                              "cond": {
+                                "$eq": [
+                                  {
+                                    "$size": {
+                                      "$ifNull": [
+                                        "$$rt.data.contract_ids",
+                                        []
+                                      ]
+                                    }
+                                  },
+                                  0
+                                ]
+                              }
+                            }
+                          },
+                          "as": "rt",
+                          "in": {
+                            "k": "$$rt._id",
+                            "v": {
+                              "$literal": {
+                                "$set": {
+                                  "data.reserved_credits": 0
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "local.trip_cancel_targets": {
+                      "$arrayToObject": {
+                        "$map": {
+                          "input": {
+                            "$ifNull": [
+                              "$local.trip_cancel_riders",
+                              []
+                            ]
+                          },
+                          "as": "r",
+                          "in": {
+                            "k": "$$r.principal",
+                            "v": [
+                              "in_app",
+                              "push"
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "title": "Clear Trip Route Reserved Credits",
+                "description": "Resets retained route credits for routes left without contract links.",
+                "type": "update.item",
+                "updates": {
+                  "$ctx": "local.trip_cancel_reset_route_updates"
+                }
+              },
+              {
+                "title": "Dispatch Driver Cancelled Trip",
+                "description": "Delivers driver cancelled trip notification to all affected riders.",
+                "type": "notify",
+                "notify": {
+                  "event": "contracts.driver_cancelled_trip",
+                  "targets": {
+                    "$ctx": "local.trip_cancel_targets"
+                  },
+                  "payload": {
+                    "contract_id": {
+                      "$ctx": "doc._id"
+                    }
+                  }
+                }
+              },
+              {
+                "title": "Close Trip As Rejected",
+                "description": "Closes the trip as rejected by the driver and updates all rider statuses consistently.",
+                "type": "update.contract",
+                "update": {
+                  "$set": {
+                    "context.riders": {},
+                    "states": {
+                      "$arrayToObject": {
+                        "$map": {
+                          "input": {
+                            "$objectToArray": "$states"
+                          },
+                          "as": "kv",
+                          "in": {
+                            "k": "$$kv.k",
+                            "v": {
+                              "$cond": [
+                                {
+                                  "$in": [
+                                    "$$kv.v",
+                                    [
+                                      "REQUESTING",
+                                      "PENDING",
+                                      "ACCEPTED",
+                                      "PENDING_DRIVER",
+                                      "DRIVER"
+                                    ]
+                                  ]
+                                },
+                                "REJECTED",
+                                "$$kv.v"
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "status": "CANCELLED"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "title": "Apply In-Progress Cancellation Flow",
+            "description": "Executes in-progress cancellation cleanup and notifications.",
+            "type": "if.else",
+            "condition": {
+              "$ctx": "doc.local.is_in_progress_cancel"
+            },
+            "then_effects": [
+              {
+                "title": "Collect Cancel Trip Inputs",
+                "description": "Collects first refundable and non-refundable riders for cancellation handling.",
+                "type": "update.contract",
+                "update": [
+                  {
+                    "$set": {
+                      "local.first_refund_principal": {
+                        "$arrayElemAt": [
+                          {
+                            "$map": {
+                              "input": {
+                                "$filter": {
+                                  "input": {
+                                    "$objectToArray": {
+                                      "$ifNull": [
+                                        "$states",
+                                        {}
+                                      ]
+                                    }
+                                  },
+                                  "as": "sv",
+                                  "cond": {
+                                    "$eq": [
+                                      "$$sv.v",
+                                      "ACCEPTED"
+                                    ]
+                                  }
+                                }
+                              },
+                              "as": "sv",
+                              "in": "$$sv.k"
+                            }
+                          },
+                          0
+                        ]
+                      },
+                      "local.first_non_refund_principal": {
+                        "$arrayElemAt": [
+                          {
+                            "$map": {
+                              "input": {
+                                "$filter": {
+                                  "input": {
+                                    "$objectToArray": {
+                                      "$ifNull": [
+                                        "$states",
+                                        {}
+                                      ]
+                                    }
+                                  },
+                                  "as": "sv",
+                                  "cond": {
+                                    "$eq": [
+                                      "$$sv.v",
+                                      "ONBOARD"
+                                    ]
+                                  }
+                                }
+                              },
+                              "as": "sv",
+                              "in": "$$sv.k"
+                            }
+                          },
+                          0
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "$set": {
+                      "local.first_refund_route_id": {
+                        "$arrayElemAt": [
+                          {
+                            "$map": {
+                              "input": {
+                                "$filter": {
+                                  "input": {
+                                    "$objectToArray": {
+                                      "$ifNull": [
+                                        "$context.riders",
+                                        {}
+                                      ]
+                                    }
+                                  },
+                                  "as": "rv",
+                                  "cond": {
+                                    "$eq": [
+                                      "$$rv.k",
+                                      "$local.first_refund_principal"
+                                    ]
+                                  }
+                                }
+                              },
+                              "as": "rv",
+                              "in": "$$rv.v.id"
+                            }
+                          },
+                          0
+                        ]
+                      },
+                      "local.first_refund_amount": {
+                        "$ifNull": [
+                          {
+                            "$arrayElemAt": [
+                              {
+                                "$map": {
+                                  "input": {
+                                    "$filter": {
+                                      "input": {
+                                        "$objectToArray": {
+                                          "$ifNull": [
+                                            "$context.riders",
+                                            {}
+                                          ]
+                                        }
+                                      },
+                                      "as": "rv",
+                                      "cond": {
+                                        "$eq": [
+                                          "$$rv.k",
+                                          "$local.first_refund_principal"
+                                        ]
+                                      }
+                                    }
+                                  },
+                                  "as": "rv",
+                                  "in": {
+                                    "$ifNull": [
+                                      "$$rv.v.cost",
+                                      10
+                                    ]
+                                  }
+                                }
+                              },
+                              0
+                            ]
+                          },
+                          10
+                        ]
+                      },
+                      "local.has_first_refund": {
+                        "$ifNull": [
+                          "$local.first_refund_principal",
+                          false
+                        ]
+                      },
+                      "local.has_first_non_refund": {
+                        "$ifNull": [
+                          "$local.first_non_refund_principal",
+                          false
+                        ]
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "title": "Refund First Non-Onboard Rider",
+                "description": "Refunds first non-onboard rider when present.",
+                "type": "if.else",
+                "condition": {
+                  "$ctx": "doc.local.has_first_refund"
+                },
+                "then_effects": [
+                  {
+                    "title": "Apply First Refund",
+                    "description": "Credits first non-onboard rider wallet with cancellation refund.",
+                    "type": "charge.credits",
+                    "credit": {
+                      "product": "coin",
+                      "user_id": {
+                        "$ctx": "local.first_refund_principal"
+                      },
+                      "amount": {
+                        "$ctx": "local.first_refund_amount"
+                      }
+                    }
+                  },
+                  {
+                    "title": "Cleanup First Refunded Route",
+                    "description": "Unlinks first refunded rider route and clears reserved credits.",
+                    "type": "update.item",
+                    "item_id": {
+                      "$ctx": "local.first_refund_route_id"
+                    },
+                    "update": {
+                      "$set": {
+                        "data.contract_ids": {
+                          "$setDifference": [
+                            {
+                              "$ifNull": [
+                                "$data.contract_ids",
+                                []
+                              ]
+                            },
+                            [
+                              {
+                                "$ctx": "doc._id"
+                              }
+                            ]
+                          ]
+                        },
+                        "data.reserved_credits": 0
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "title": "Remove Riders From Group",
+                "description": "Removes refunded and onboard riders from trip group when present.",
+                "type": "if.else",
+                "condition": {
+                  "$ifNull": [
+                    "$context.group_id",
+                    false
+                  ]
+                },
+                "then_effects": [
+                  {
+                    "title": "Apply Group Member Removal",
+                    "description": "Removes all rider members while keeping driver admin.",
+                    "type": "update.group",
+                    "group_id": {
+                      "$ctx": "doc.context.group_id"
+                    },
+                    "edit_members": {
+                      "remove_members": [
+                        {
+                          "$ctx": "local.first_refund_principal"
+                        },
+                        {
+                          "$ctx": "local.first_non_refund_principal"
+                        }
+                      ],
+                      "promote_admins": [
+                        {
+                          "$ctx": "doc.context.driver"
+                        }
+                      ]
+                    }
+                  }
+                ]
+              },
+              {
+                "title": "Notify Refunded Riders",
+                "description": "Notifies refunded riders about in-progress driver cancellation.",
+                "type": "if.else",
+                "condition": {
+                  "$ctx": "doc.local.has_first_refund"
+                },
+                "then_effects": [
+                  {
+                    "title": "Dispatch Refunded Rider Cancellation",
+                    "description": "Sends cancellation notification with refunded=true to eligible riders.",
+                    "type": "notify",
+                    "notify": {
+                      "event": "contracts.driver_cancelled_trip",
+                      "targets": {
+                        "$$ctx.doc.local.first_refund_principal": [
+                          "in_app",
+                          "push"
+                        ]
+                      },
+                      "payload": {
+                        "contract_id": {
+                          "$ctx": "doc._id"
+                        },
+                        "reason": "driver_cancel_in_progress",
+                        "refunded": true
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "title": "Notify Non-Refunded Riders",
+                "description": "Notifies onboard riders about cancellation with no refund.",
+                "type": "if.else",
+                "condition": {
+                  "$ctx": "doc.local.has_first_non_refund"
+                },
+                "then_effects": [
+                  {
+                    "title": "Dispatch Non-Refunded Rider Cancellation",
+                    "description": "Sends cancellation notification with refunded=false to onboard riders.",
+                    "type": "notify",
+                    "notify": {
+                      "event": "contracts.driver_cancelled_trip",
+                      "targets": {
+                        "$$ctx.doc.local.first_non_refund_principal": [
+                          "in_app",
+                          "push"
+                        ]
+                      },
+                      "payload": {
+                        "contract_id": {
+                          "$ctx": "doc._id"
+                        },
+                        "reason": "driver_cancel_in_progress",
+                        "refunded": false
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "title": "Notify Driver Cancellation Applied",
+                "description": "Notifies driver that trip cancellation has been applied.",
+                "type": "notify",
+                "notify": {
+                  "event": "contracts.driver_cancelled_trip",
+                  "targets": {
+                    "$$ctx.doc.context.driver": [
+                      "in_app",
+                      "push"
+                    ]
+                  },
+                  "payload": {
+                    "contract_id": {
+                      "$ctx": "doc._id"
+                    },
+                    "reason": "driver_cancel_in_progress",
+                    "refunded": null
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
     },
     "PAYMENT": {
       "on_enter": {
