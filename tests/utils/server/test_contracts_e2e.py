@@ -2138,8 +2138,9 @@ class ContractsE2ETest(unittest.TestCase):
         contract_c_doc = self.httpx.get(
             f"/contracts/{contract_c}", headers=self._headers("owner-1")
         ).json()
-        self.assertEqual(
-            self._user_state(contract_c_doc, self.user_ids["p2"]), "REJECTED"
+        self.assertEqual(self._user_state(contract_c_doc, self.user_ids["p2"]), "")
+        self.assertNotIn(
+            p2_principal, ((contract_c_doc.get("context") or {}).get("riders") or {})
         )
         after_rider_unavailable_c = self._count_notifications_for(
             f"u:{self.user_ids['p3']}", "contracts.rider_unavailable"

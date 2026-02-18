@@ -1332,240 +1332,6 @@
                   }
                 },
                 {
-                  "title": "Load Accepted Rider Route",
-                  "description": "Loads the accepted rider route to identify related contracts.",
-                  "type": "get.item",
-                  "item_id": {
-                    "$ctx": "doc.context.riders.$$ctx.payload.rider.id"
-                  },
-                  "key": "accepted_rider_route"
-                },
-                {
-                  "title": "Compute Accepted Rider Partial Refund",
-                  "description": "Computes partial refund when route reserved credits exceed accepted rider cost.",
-                  "type": "update.contract",
-                  "update": {
-                    "$set": {
-                      "local.accepted_rider_partial_refund": {
-                        "$max": [
-                          {
-                            "$subtract": [
-                              {
-                                "$ifNull": [
-                                  "$local.accepted_rider_route.data.reserved_credits",
-                                  0
-                                ]
-                              },
-                              {
-                                "$ifNull": [
-                                  {
-                                    "$ctx": "doc.context.riders.$$ctx.payload.rider.cost"
-                                  },
-                                  0
-                                ]
-                              }
-                            ]
-                          },
-                          0
-                        ]
-                      }
-                    }
-                  }
-                },
-                {
-                  "title": "Apply Accepted Rider Partial Refund",
-                  "description": "Refunds excess route reserved credits to accepted rider before pruning steps.",
-                  "type": "if.else",
-                  "condition": {
-                    "$ctx": "doc.local.accepted_rider_partial_refund"
-                  },
-                  "then_effects": [
-                    {
-                      "title": "Refund Accepted Rider Excess",
-                      "description": "Credits accepted rider with excess reserved route credits.",
-                      "type": "charge.credits",
-                      "credit": {
-                        "product": "coin",
-                        "user_id": "$$ctx.payload.rider",
-                        "amount": {
-                          "$ctx": "local.accepted_rider_partial_refund"
-                        }
-                      }
-                    }
-                  ]
-                },
-                {
-                  "title": "Prepare Cross-Contract Rider Removal",
-                  "description": "Builds updates to remove the accepted rider from other contracts sharing the route.",
-                  "type": "update.contract",
-                  "update": {
-                    "$set": {
-                      "local.remove_rider_other_contracts": {
-                        "$arrayToObject": {
-                          "$map": {
-                            "input": {
-                              "$filter": {
-                                "input": {
-                                  "$ifNull": [
-                                    "$local.accepted_rider_route.data.contract_ids",
-                                    []
-                                  ]
-                                },
-                                "as": "cid",
-                                "cond": {
-                                  "$ne": [
-                                    "$$cid",
-                                    "$_id"
-                                  ]
-                                }
-                              }
-                            },
-                            "as": "cid",
-                            "in": {
-                              "k": "$$cid",
-                              "v": [
-                                {
-                                  "$literal": {
-                                    "$unset": [
-                                      "context.riders.$$ctx.payload.rider",
-                                      "states.$$ctx.payload.rider"
-                                    ]
-                                  }
-                                }
-                              ]
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-                },
-                {
-                  "title": "Apply Rider Removal To Other Contracts",
-                  "description": "Applies cross-contract updates that remove the accepted rider from competing contracts.",
-                  "type": "update.contract",
-                  "updates": {
-                    "$ctx": "local.remove_rider_other_contracts"
-                  }
-                },
-                {
-                  "title": "Load Related Contracts",
-                  "description": "Loads contracts linked by the accepted rider route to collect affected driver principals.",
-                  "type": "update.contract",
-                  "update": {
-                    "$set": {
-                      "local.accepted_rider_contract_ids": {
-                        "$ifNull": [
-                          "$local.accepted_rider_route.data.contract_ids",
-                          []
-                        ]
-                      }
-                    }
-                  }
-                },
-                {
-                  "title": "Load Related Contracts",
-                  "description": "Loads contracts linked by the accepted rider route to collect affected driver principals.",
-                  "type": "get.contract",
-                  "contract_id": {
-                    "$ctx": "local.accepted_rider_contract_ids"
-                  },
-                  "key": "accepted_rider_contracts"
-                },
-                {
-                  "title": "Persist Winning Contract Link",
-                  "description": "Persists the winning contract id on the accepted rider route item.",
-                  "type": "update.item",
-                  "item_id": {
-                    "$ctx": "doc.context.riders.$$ctx.payload.rider.id"
-                  },
-                  "update": {
-                    "$set": {
-                      "data.contract_ids": [
-                        {
-                          "$ctx": "doc._id"
-                        }
-                      ],
-                      "data.reserved_credits": {
-                        "$ctx": "doc.context.riders.$$ctx.payload.rider.cost"
-                      }
-                    }
-                  }
-                },
-                {
-                  "title": "Build Other Driver Targets",
-                  "description": "Builds notification targets for drivers of contracts that lost the rider.",
-                  "type": "update.contract",
-                  "update": {
-                    "$set": {
-                      "local.other_contract_driver_targets": {
-                        "$arrayToObject": {
-                          "$map": {
-                            "input": {
-                              "$filter": {
-                                "input": {
-                                  "$ifNull": [
-                                    "$local.accepted_rider_contracts",
-                                    []
-                                  ]
-                                },
-                                "as": "c",
-                                "cond": {
-                                  "$ne": [
-                                    "$$c._id",
-                                    "$_id"
-                                  ]
-                                }
-                              }
-                            },
-                            "as": "c",
-                            "in": {
-                              "k": "$$c.context.driver",
-                              "v": [
-                                "in_app",
-                                "push"
-                              ]
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-                },
-                {
-                  "title": "Dispatch Rider Unavailable",
-                  "description": "Sends rider unavailable notifications to affected drivers.",
-                  "type": "notify",
-                  "notify": {
-                    "event": "contracts.rider_unavailable",
-                    "targets": {
-                      "$ctx": "local.other_contract_driver_targets"
-                    },
-                    "payload": {
-                      "contract_id": {
-                        "$ctx": "doc._id"
-                      },
-                      "principal": "$$ctx.payload.rider"
-                    }
-                  }
-                },
-                {
-                  "title": "Notify Accepted Rider",
-                  "description": "Notifies the selected rider that the join request was accepted.",
-                  "type": "notify",
-                  "notify": {
-                    "event": "contracts.accepted_request",
-                    "targets": {
-                      "$ctx": "local.rider_targets"
-                    },
-                    "payload": {
-                      "contract_id": {
-                        "$ctx": "doc._id"
-                      }
-                    }
-                  }
-                },
-                {
                   "title": "Finalize Driver Acceptance",
                   "description": "Confirms driver status and updates accepted seat totals after acceptance.",
                   "type": "update.contract",
@@ -1606,7 +1372,20 @@
                   "update": {
                     "$set": {
                       "state": "SYNC_CHAT",
-                      "local.sync_chat_needs_pruning": true
+                      "local.sync_chat_needs_pruning": true,
+                      "local.sync_chat_needs_accept_reconcile": true,
+                      "local.sync_chat_accepted_rider": "$$ctx.payload.rider",
+                      "local.sync_chat_accepted_route_id": {
+                        "$ctx": "doc.context.riders.$$ctx.payload.rider.id"
+                      },
+                      "local.sync_chat_accepted_rider_cost": {
+                        "$ifNull": [
+                          {
+                            "$ctx": "doc.context.riders.$$ctx.payload.rider.cost"
+                          },
+                          0
+                        ]
+                      }
                     }
                   }
                 }
@@ -1918,60 +1697,12 @@
               }
             },
             {
-              "title": "Read Invitee Credits",
-              "description": "Reads invitee credits to validate additional reservation requirements.",
-              "type": "balance.credits",
-              "key": "invite_balance_credits",
-              "credit": {
-                "product": "coin",
-                "user_id": {
-                  "$ctx": "local.invite_route.principal"
-                }
-              }
-            },
-            {
               "title": "Compute Invite Eligibility",
-              "description": "Validates capacity, credit coverage, and rider state before invitation.",
+              "description": "Validates capacity and rider state before invitation.",
               "type": "update.contract",
               "update": [
                 {
                   "$set": {
-                    "local.invite_missing_credits": {
-                      "$max": [
-                        {
-                          "$subtract": [
-                            {
-                              "$ifNull": [
-                                "$local.invite_route.cost",
-                                0
-                              ]
-                            },
-                            {
-                              "$ifNull": [
-                                "$local.invite_route.reserved_credits",
-                                0
-                              ]
-                            }
-                          ]
-                        },
-                        0
-                      ]
-                    }
-                  }
-                },
-                {
-                  "$set": {
-                    "local.invite_has_balance": {
-                      "$gte": [
-                        {
-                          "$ifNull": [
-                            "$local.invite_balance_credits",
-                            0
-                          ]
-                        },
-                        "$local.invite_missing_credits"
-                      ]
-                    },
                     "local.invite_has_capacity": {
                       "$lte": [
                         {
@@ -2029,8 +1760,7 @@
                             ]
                           ]
                         },
-                        "$local.invite_has_capacity",
-                        "$local.invite_has_balance"
+                        "$local.invite_has_capacity"
                       ]
                     }
                   }
@@ -2045,63 +1775,6 @@
                 "$ctx": "doc.local.can_invite_user"
               },
               "then_effects": [
-                {
-                  "title": "Reserve Invite Credits",
-                  "description": "Reserves only missing credits needed by the invite route.",
-                  "type": "use.credits",
-                  "credit": {
-                    "product": "coin",
-                    "user_id": {
-                      "$ctx": "local.invite_route.principal"
-                    },
-                    "amount": {
-                      "$ctx": "local.invite_missing_credits"
-                    }
-                  }
-                },
-                {
-                  "title": "Persist Invite Route Hold",
-                  "description": "Persists reserved credits and contract linkage on invite route item.",
-                  "type": "update.item",
-                  "item_id": "$$ctx.payload.route_id",
-                  "update": {
-                    "$set": {
-                      "data.reserved_credits": {
-                        "$add": [
-                          {
-                            "$ifNull": [
-                              "$data.reserved_credits",
-                              0
-                            ]
-                          },
-                          {
-                            "$ifNull": [
-                              {
-                                "$ctx": "local.invite_missing_credits"
-                              },
-                              0
-                            ]
-                          }
-                        ]
-                      },
-                      "data.contract_ids": {
-                        "$setUnion": [
-                          {
-                            "$ifNull": [
-                              "$data.contract_ids",
-                              []
-                            ]
-                          },
-                          [
-                            {
-                              "$ctx": "doc._id"
-                            }
-                          ]
-                        ]
-                      }
-                    }
-                  }
-                },
                 {
                   "title": "Set Pending Invite State",
                   "description": "Marks invitee as pending and stores route snapshot for follow-up events.",
@@ -2120,14 +1793,6 @@
                       },
                       "context.riders.$$ctx.local.invite_route.principal.trip": {
                         "$ctx": "local.invite_route.trip"
-                      },
-                      "local.is_driver_pending": {
-                        "$eq": [
-                          {
-                            "$ctx": "doc.states.$$ctx.doc.context.driver"
-                          },
-                          "PENDING_DRIVER"
-                        ]
                       }
                     }
                   }
@@ -2152,30 +1817,14 @@
                   }
                 },
                 {
-                  "title": "Confirm Driver If Pending",
-                  "description": "Confirms driver when invitation is the first onboarding action.",
-                  "type": "if.else",
-                  "condition": {
-                    "$ctx": "doc.local.is_driver_pending"
-                  },
-                  "then_effects": [
-                    {
-                      "title": "Set Driver Confirmed",
-                      "description": "Marks driver as DRIVER.",
-                      "type": "update.contract",
-                      "update": {
-                        "$set": {
-                          "states.$$ctx.doc.context.driver": "DRIVER",
-                          "context.driver_route.accepted_seats": {
-                            "$ifNull": [
-                              "$context.driver_route.accepted_seats",
-                              0
-                            ]
-                          }
-                        }
-                      }
+                  "title": "Set Driver Confirmed",
+                  "description": "Marks driver as DRIVER.",
+                  "type": "update.contract",
+                  "update": {
+                    "$set": {
+                      "states.$$ctx.doc.context.driver": "DRIVER"
                     }
-                  ]
+                  }
                 }
               ]
             }
@@ -2216,56 +1865,18 @@
               "title": "Compute Cancel Invite Eligibility",
               "description": "Allows cancellation only when the target rider is currently pending.",
               "type": "update.contract",
-              "update": [
-                {
-                  "$set": {
-                    "local.cancel_invite_principal": {
-                      "$ifNull": [
-                        "$$payload.rider",
-                        ""
-                      ]
-                    },
-                    "local.cancel_invite_route_id": {
-                      "$ctx": "doc.context.riders.$$ctx.payload.rider.id"
-                    }
-                  }
-                },
-                {
-                  "$set": {
-                    "local.can_cancel_invite_user": {
-                      "$gt": [
-                        {
-                          "$size": {
-                            "$filter": {
-                              "input": {
-                                "$objectToArray": "$states"
-                              },
-                              "as": "kv",
-                              "cond": {
-                                "$and": [
-                                  {
-                                    "$eq": [
-                                      "$$kv.k",
-                                      "$local.cancel_invite_principal"
-                                    ]
-                                  },
-                                  {
-                                    "$eq": [
-                                      "$$kv.v",
-                                      "PENDING"
-                                    ]
-                                  }
-                                ]
-                              }
-                            }
-                          }
-                        },
-                        0
-                      ]
-                    }
+              "update": {
+                "$set": {
+                  "local.can_cancel_invite_user": {
+                    "$eq": [
+                      {
+                        "$ctx": "doc.states.$$ctx.payload.rider"
+                      },
+                      "PENDING"
+                    ]
                   }
                 }
-              ]
+              }
             },
             {
               "title": "Cancel Pending Invite",
@@ -2276,146 +1887,14 @@
               },
               "then_effects": [
                 {
-                  "title": "Load Invite Route",
-                  "description": "Loads invite route to resolve route hold for cancellation.",
-                  "type": "get.item",
-                  "item_id": {
-                    "$ctx": "local.cancel_invite_route_id"
-                  },
-                  "key": "cancel_invite_route_item"
-                },
-                {
-                  "title": "Unlink Contract From Invite Route",
-                  "description": "Removes this contract id from the invite route linkage list.",
-                  "type": "update.item",
-                  "item_id": {
-                    "$ctx": "local.cancel_invite_route_id"
-                  },
-                  "update": {
-                    "$set": {
-                      "data.contract_ids": {
-                        "$setDifference": [
-                          {
-                            "$ifNull": [
-                              "$data.contract_ids",
-                              []
-                            ]
-                          },
-                          [
-                            {
-                              "$ctx": "doc._id"
-                            }
-                          ]
-                        ]
-                      }
-                    }
-                  }
-                },
-                {
-                  "title": "Reload Invite Route",
-                  "description": "Reloads route item after unlink to compute refund eligibility.",
-                  "type": "get.item",
-                  "item_id": {
-                    "$ctx": "local.cancel_invite_route_id"
-                  },
-                  "key": "cancel_invite_route_after"
-                },
-                {
-                  "title": "Compute Invite Refund",
-                  "description": "Refunds reserved credits only when route has no remaining contract links.",
-                  "type": "update.contract",
-                  "update": [
-                    {
-                      "$set": {
-                        "local.cancel_invite_refund": {
-                          "$cond": [
-                            {
-                              "$eq": [
-                                {
-                                  "$size": {
-                                    "$ifNull": [
-                                      "$local.cancel_invite_route_after.data.contract_ids",
-                                      []
-                                    ]
-                                  }
-                                },
-                                0
-                              ]
-                            },
-                            {
-                              "$ifNull": [
-                                "$local.cancel_invite_route_after.data.reserved_credits",
-                                0
-                              ]
-                            },
-                            0
-                          ]
-                        }
-                      }
-                    },
-                    {
-                      "$set": {
-                        "local.has_cancel_invite_refund": {
-                          "$gt": [
-                            {
-                              "$ifNull": [
-                                "$local.cancel_invite_refund",
-                                0
-                              ]
-                            },
-                            0
-                          ]
-                        }
-                      }
-                    }
-                  ]
-                },
-                {
-                  "title": "Reset Route Hold",
-                  "description": "Clears route retained credits when invite refund is applied.",
-                  "type": "if.else",
-                  "condition": {
-                    "$ctx": "doc.local.has_cancel_invite_refund"
-                  },
-                  "then_effects": [
-                    {
-                      "title": "Refund Invitee",
-                      "description": "Refunds rider credits associated with the cancelled pending invite.",
-                      "type": "charge.credits",
-                      "credit": {
-                        "product": "coin",
-                        "user_id": {
-                          "$ctx": "local.cancel_invite_principal"
-                        },
-                        "amount": {
-                          "$ctx": "local.cancel_invite_refund"
-                        }
-                      }
-                    },
-                    {
-                      "title": "Clear Route Reserved Credits",
-                      "description": "Clears retained credits on route item after invite cancellation refund.",
-                      "type": "update.item",
-                      "item_id": {
-                        "$ctx": "local.cancel_invite_route_id"
-                      },
-                      "update": {
-                        "$set": {
-                          "data.reserved_credits": 0
-                        }
-                      }
-                    }
-                  ]
-                },
-                {
                   "title": "Clear Rider State",
                   "description": "Resets pending rider state and removes rider context snapshot.",
                   "type": "update.contract",
                   "update": [
                     {
                       "$unset": [
-                        "states.$$ctx.doc.local.cancel_invite_principal",
-                        "context.riders.$$ctx.doc.local.cancel_invite_principal"
+                        "states.$$ctx.payload.rider",
+                        "context.riders.$$ctx.payload.rider"
                       ]
                     }
                   ]
@@ -2427,7 +1906,7 @@
                   "notify": {
                     "event": "contracts.driver_cancelled_invite",
                     "targets": {
-                      "$$ctx.doc.local.cancel_invite_principal": [
+                      "$$ctx.payload.rider": [
                         "in_app",
                         "push"
                       ]
@@ -2536,92 +2015,26 @@
                   }
                 },
                 {
-                  "title": "Load Accepted Rider Route",
-                  "description": "Loads accepted rider route to remove rider from competing contracts.",
-                  "type": "get.item",
-                  "item_id": {
-                    "$ctx": "doc.context.riders.$$ctx.user.id"
-                  },
-                  "key": "accepted_invite_route"
-                },
-                {
-                  "title": "Prepare Other Contract Rejections",
-                  "description": "Builds cross-contract updates to mark the same user as rejected in remaining linked contracts.",
-                  "type": "update.contract",
-                  "update": {
-                    "$set": {
-                      "local.accept_invite_other_contract_rejections": {
-                        "$arrayToObject": {
-                          "$map": {
-                            "input": {
-                              "$filter": {
-                                "input": {
-                                  "$ifNull": [
-                                    "$local.accepted_invite_route.data.contract_ids",
-                                    []
-                                  ]
-                                },
-                                "as": "cid",
-                                "cond": {
-                                  "$ne": [
-                                    "$$cid",
-                                    "$_id"
-                                  ]
-                                }
-                              }
-                            },
-                            "as": "cid",
-                            "in": {
-                              "k": "$$cid",
-                              "v": [
-                                {
-                                  "$literal": {
-                                    "$set": {
-                                      "states.$$ctx.user": "REJECTED"
-                                    }
-                                  }
-                                }
-                              ]
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-                },
-                {
-                  "title": "Apply Other Contract Rejections",
-                  "description": "Applies rejections for the accepted user on the remaining contracts linked by route.",
-                  "type": "update.contract",
-                  "updates": {
-                    "$ctx": "local.accept_invite_other_contract_rejections"
-                  }
-                },
-                {
-                  "title": "Confirm Winning Contract Link",
-                  "description": "Keeps only current contract linked on the accepted rider route item.",
-                  "type": "update.item",
-                  "item_id": {
-                    "$ctx": "doc.context.riders.$$ctx.user.id"
-                  },
-                  "update": {
-                    "$set": {
-                      "data.contract_ids": [
-                        {
-                          "$ctx": "doc._id"
-                        }
-                      ]
-                    }
-                  }
-                },
-                {
                   "title": "Move To Sync Chat",
                   "description": "Triggers transient chat/member synchronization after rider status changes.",
                   "type": "update.contract",
                   "update": {
                     "$set": {
                       "state": "SYNC_CHAT",
-                      "local.sync_chat_needs_pruning": true
+                      "local.sync_chat_needs_pruning": true,
+                      "local.sync_chat_needs_accept_reconcile": true,
+                      "local.sync_chat_accepted_rider": "$$ctx.user",
+                      "local.sync_chat_accepted_route_id": {
+                        "$ctx": "doc.context.riders.$$ctx.user.id"
+                      },
+                      "local.sync_chat_accepted_rider_cost": {
+                        "$ifNull": [
+                          {
+                            "$ctx": "doc.context.riders.$$ctx.user.cost"
+                          },
+                          0
+                        ]
+                      }
                     }
                   }
                 }
@@ -5953,8 +5366,8 @@
             ]
           },
           {
-            "title": "Resolve Sync Pruning Flag",
-            "description": "Resolves whether over-capacity pruning should run in SYNC_CHAT.",
+            "title": "Resolve Sync Flags",
+            "description": "Resolves SYNC_CHAT transient flags and accepted rider inputs.",
             "type": "update.contract",
             "update": {
               "$set": {
@@ -5963,9 +5376,338 @@
                     "$local.sync_chat_needs_pruning",
                     false
                   ]
+                },
+                "local.sync_chat_needs_accept_reconcile": {
+                  "$ifNull": [
+                    "$local.sync_chat_needs_accept_reconcile",
+                    false
+                  ]
+                },
+                "local.sync_chat_accepted_rider": {
+                  "$ifNull": [
+                    "$local.sync_chat_accepted_rider",
+                    ""
+                  ]
+                },
+                "local.sync_chat_accepted_route_id": {
+                  "$ifNull": [
+                    "$local.sync_chat_accepted_route_id",
+                    ""
+                  ]
+                },
+                "local.sync_chat_accepted_rider_cost": {
+                  "$ifNull": [
+                    "$local.sync_chat_accepted_rider_cost",
+                    0
+                  ]
                 }
               }
             }
+          },
+          {
+            "title": "Run Accepted Rider Reconcile",
+            "description": "Applies accepted rider partial refund and cross-contract rider removal before chat sync.",
+            "type": "if.else",
+            "condition": {
+              "$ctx": "doc.local.sync_chat_needs_accept_reconcile"
+            },
+            "then_effects": [
+              {
+                "title": "Load Accepted Rider Route",
+                "description": "Loads accepted rider route to reconcile links and reserved credits.",
+                "type": "get.item",
+                "item_id": {
+                  "$ctx": "local.sync_chat_accepted_route_id"
+                },
+                "key": "accepted_rider_route"
+              },
+              {
+                "title": "Compute Accepted Rider Partial Refund",
+                "description": "Computes partial refund when route reserved credits exceed accepted rider cost.",
+                "type": "update.contract",
+                "update": [
+                  {
+                    "$set": {
+                      "local.sync_chat_accepted_rider_cost": {
+                        "$ifNull": [
+                          {
+                            "$ctx": "doc.context.riders.$$ctx.local.sync_chat_accepted_rider.cost"
+                          },
+                          {
+                            "$ifNull": [
+                              "$local.accepted_rider_route.data.cost",
+                              0
+                            ]
+                          }
+                        ]
+                      },
+                      "local.sync_chat_accepted_rider_targets": {
+                        "$arrayToObject": [
+                          [
+                            {
+                              "k": "$local.sync_chat_accepted_rider",
+                              "v": [
+                                "in_app",
+                                "push"
+                              ]
+                            }
+                          ]
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "$set": {
+                      "local.sync_chat_accepted_rider_partial_refund": {
+                        "$max": [
+                          {
+                            "$subtract": [
+                              {
+                                "$ifNull": [
+                                  "$local.accepted_rider_route.data.reserved_credits",
+                                  0
+                                ]
+                              },
+                              {
+                                "$ifNull": [
+                                  "$local.sync_chat_accepted_rider_cost",
+                                  0
+                                ]
+                              }
+                            ]
+                          },
+                          0
+                        ]
+                      },
+                      "local.sync_chat_has_accepted_rider_partial_refund": {
+                        "$gt": [
+                          {
+                            "$max": [
+                              {
+                                "$subtract": [
+                                  {
+                                    "$ifNull": [
+                                      "$local.accepted_rider_route.data.reserved_credits",
+                                      0
+                                    ]
+                                  },
+                                  {
+                                    "$ifNull": [
+                                      "$local.sync_chat_accepted_rider_cost",
+                                      0
+                                    ]
+                                  }
+                                ]
+                              },
+                              0
+                            ]
+                          },
+                          0
+                        ]
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "title": "Apply Accepted Rider Partial Refund",
+                "description": "Refunds excess route reserved credits to accepted rider before pruning steps.",
+                "type": "if.else",
+                "condition": {
+                  "$ctx": "doc.local.sync_chat_has_accepted_rider_partial_refund"
+                },
+                "then_effects": [
+                  {
+                    "title": "Refund Accepted Rider Excess",
+                    "description": "Credits accepted rider with excess reserved route credits.",
+                    "type": "charge.credits",
+                    "credit": {
+                      "product": "coin",
+                      "user_id": {
+                        "$ctx": "local.sync_chat_accepted_rider"
+                      },
+                      "amount": {
+                        "$ctx": "local.sync_chat_accepted_rider_partial_refund"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "title": "Prepare Cross-Contract Rider Removal",
+                "description": "Builds updates to remove accepted rider from competing contracts sharing the route.",
+                "type": "update.contract",
+                "update": {
+                  "$set": {
+                    "local.remove_rider_other_contracts": {
+                      "$arrayToObject": {
+                        "$map": {
+                          "input": {
+                            "$filter": {
+                              "input": {
+                                "$ifNull": [
+                                  "$local.accepted_rider_route.data.contract_ids",
+                                  []
+                                ]
+                              },
+                              "as": "cid",
+                              "cond": {
+                                "$ne": [
+                                  "$$cid",
+                                  "$_id"
+                                ]
+                              }
+                            }
+                          },
+                          "as": "cid",
+                          "in": {
+                            "k": "$$cid",
+                            "v": [
+                              {
+                                "$literal": {
+                                  "$unset": [
+                                    "context.riders.$$ctx.local.sync_chat_accepted_rider",
+                                    "states.$$ctx.local.sync_chat_accepted_rider"
+                                  ]
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "local.accepted_rider_contract_ids": {
+                      "$ifNull": [
+                        "$local.accepted_rider_route.data.contract_ids",
+                        []
+                      ]
+                    }
+                  }
+                }
+              },
+              {
+                "title": "Apply Rider Removal To Other Contracts",
+                "description": "Applies cross-contract updates that remove accepted rider from competing contracts.",
+                "type": "update.contract",
+                "updates": {
+                  "$ctx": "local.remove_rider_other_contracts"
+                }
+              },
+              {
+                "title": "Load Related Contracts",
+                "description": "Loads contracts linked by the accepted rider route to collect affected driver principals.",
+                "type": "get.contract",
+                "contract_id": {
+                  "$ctx": "local.accepted_rider_contract_ids"
+                },
+                "key": "accepted_rider_contracts"
+              },
+              {
+                "title": "Persist Winning Contract Link",
+                "description": "Persists winning contract id and aligned reserved credits on accepted rider route item.",
+                "type": "update.item",
+                "item_id": {
+                  "$ctx": "local.sync_chat_accepted_route_id"
+                },
+                "update": {
+                  "$set": {
+                    "data.contract_ids": [
+                      {
+                        "$ctx": "doc._id"
+                      }
+                    ],
+                    "data.reserved_credits": {
+                      "$ifNull": [
+                        {
+                          "$ctx": "doc.context.riders.$$ctx.local.sync_chat_accepted_rider.cost"
+                        },
+                        {
+                          "$ifNull": [
+                            "$local.sync_chat_accepted_rider_cost",
+                            0
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                }
+              },
+              {
+                "title": "Build Other Driver Targets",
+                "description": "Builds notification targets for drivers of contracts that lost the rider.",
+                "type": "update.contract",
+                "update": {
+                  "$set": {
+                    "local.other_contract_driver_targets": {
+                      "$arrayToObject": {
+                        "$map": {
+                          "input": {
+                            "$filter": {
+                              "input": {
+                                "$ifNull": [
+                                  "$local.accepted_rider_contracts",
+                                  []
+                                ]
+                              },
+                              "as": "c",
+                              "cond": {
+                                "$ne": [
+                                  "$$c._id",
+                                  "$_id"
+                                ]
+                              }
+                            }
+                          },
+                          "as": "c",
+                          "in": {
+                            "k": "$$c.context.driver",
+                            "v": [
+                              "in_app",
+                              "push"
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "title": "Dispatch Rider Unavailable",
+                "description": "Sends rider unavailable notifications to affected drivers.",
+                "type": "notify",
+                "notify": {
+                  "event": "contracts.rider_unavailable",
+                  "targets": {
+                    "$ctx": "local.other_contract_driver_targets"
+                  },
+                  "payload": {
+                    "contract_id": {
+                      "$ctx": "doc._id"
+                    },
+                    "principal": {
+                      "$ctx": "local.sync_chat_accepted_rider"
+                    }
+                  }
+                }
+              },
+              {
+                "title": "Notify Accepted Rider",
+                "description": "Notifies accepted rider that contract reconciliation completed.",
+                "type": "notify",
+                "notify": {
+                  "event": "contracts.accepted_request",
+                  "targets": {
+                    "$ctx": "local.sync_chat_accepted_rider_targets"
+                  },
+                  "payload": {
+                    "contract_id": {
+                      "$ctx": "doc._id"
+                    }
+                  }
+                }
+              }
+            ]
           },
           {
             "title": "Run Over-Capacity Pruning",
@@ -5998,7 +5740,12 @@
                             {
                               "$ne": [
                                 "$$principal",
-                                "$$payload.rider"
+                                {
+                                  "$ifNull": [
+                                    "$local.sync_chat_accepted_rider",
+                                    ""
+                                  ]
+                                }
                               ]
                             },
                             {
@@ -6580,12 +6327,16 @@
             ]
           },
           {
-            "title": "Clear Sync Pruning Flag",
-            "description": "Clears over-capacity pruning request flag after SYNC_CHAT processing.",
+            "title": "Clear Sync Flags",
+            "description": "Clears SYNC_CHAT transient flags after reconciliation and pruning.",
             "type": "update.contract",
             "update": {
               "$set": {
-                "local.sync_chat_needs_pruning": false
+                "local.sync_chat_needs_pruning": false,
+                "local.sync_chat_needs_accept_reconcile": false,
+                "local.sync_chat_accepted_rider": "",
+                "local.sync_chat_accepted_route_id": "",
+                "local.sync_chat_accepted_rider_cost": 0
               }
             }
           },
