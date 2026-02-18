@@ -1442,142 +1442,14 @@
               },
               "then_effects": [
                 {
-                  "title": "Unlink Contract From Rider Route",
-                  "description": "Removes this contract id from the rejected rider route item.",
-                  "type": "update.item",
-                  "item_id": {
-                    "$ctx": "local.reject_route_id"
-                  },
-                  "update": {
-                    "$set": {
-                      "data.contract_ids": {
-                        "$setDifference": [
-                          {
-                            "$ifNull": [
-                              "$data.contract_ids",
-                              []
-                            ]
-                          },
-                          [
-                            {
-                              "$ctx": "doc._id"
-                            }
-                          ]
-                        ]
-                      }
-                    }
-                  }
-                },
-                {
-                  "title": "Reload Rider Route",
-                  "description": "Reloads route item to compute refund eligibility after unlinking.",
-                  "type": "get.item",
-                  "item_id": {
-                    "$ctx": "local.reject_route_id"
-                  },
-                  "key": "reject_route_after"
-                },
-                {
-                  "title": "Compute Rejection Refund",
-                  "description": "Refunds reserved credits only when no contract remains linked to the route.",
-                  "type": "update.contract",
-                  "update": [
-                    {
-                      "$set": {
-                        "local.reject_refund": {
-                          "$cond": [
-                            {
-                              "$eq": [
-                                {
-                                  "$size": {
-                                    "$ifNull": [
-                                      "$local.reject_route_after.data.contract_ids",
-                                      []
-                                    ]
-                                  }
-                                },
-                                0
-                              ]
-                            },
-                            {
-                              "$ifNull": [
-                                "$local.reject_route_after.data.reserved_credits",
-                                0
-                              ]
-                            },
-                            0
-                          ]
-                        }
-                      }
-                    },
-                    {
-                      "$set": {
-                        "local.has_reject_refund": {
-                          "$gt": [
-                            {
-                              "$ifNull": [
-                                "$local.reject_refund",
-                                0
-                              ]
-                            },
-                            0
-                          ]
-                        }
-                      }
-                    }
-                  ]
-                },
-                {
-                  "title": "Clear Route Reserved Credits",
-                  "description": "Clears retained route credits when refund is applied.",
-                  "type": "if.else",
-                  "condition": {
-                    "$ctx": "doc.local.has_reject_refund"
-                  },
-                  "then_effects": [
-                    {
-                      "title": "Refund Rejected Rider",
-                      "description": "Refunds rider credits associated with the rejected request.",
-                      "type": "charge.credits",
-                      "credit": {
-                        "product": "coin",
-                        "user_id": "$$ctx.payload.rider",
-                        "amount": {
-                          "$ctx": "local.reject_refund"
-                        }
-                      }
-                    },
-                    {
-                      "title": "Reset Route Hold",
-                      "description": "Resets route reserved credits after rider refund.",
-                      "type": "update.item",
-                      "item_id": {
-                        "$ctx": "local.reject_route_id"
-                      },
-                      "update": {
-                        "$set": {
-                          "data.reserved_credits": 0
-                        }
-                      }
-                    }
-                  ]
-                },
-                {
                   "title": "Set Rider Rejected",
                   "description": "Sets rider to REJECTED and removes rider route snapshot from context.",
                   "type": "update.contract",
-                  "update": [
-                    {
-                      "$set": {
-                        "states.$$ctx.payload.rider": "REJECTED"
-                      }
-                    },
-                    {
-                      "$unset": [
-                        "context.riders.$$ctx.payload.rider"
-                      ]
+                  "update": {
+                    "$set": {
+                      "states.$$ctx.payload.rider": "REJECTED"
                     }
-                  ]
+                  }
                 },
                 {
                   "title": "Notify Rejected Rider",
@@ -1604,7 +1476,9 @@
                   "type": "update.contract",
                   "update": {
                     "$set": {
-                      "state": "SYNC_CHAT"
+                      "state": "SYNC_CHAT",
+                      "local.sync_chat_needs_route_cleanup": true,
+                      "local.sync_chat_cleanup_principal": "$$ctx.payload.rider"
                     }
                   }
                 }
@@ -2261,45 +2135,12 @@
               "type": "update.contract",
               "update": {
                 "$set": {
-                  "local.target_state": {
-                    "$ifNull": [
+                  "local.can_driver_reject_user": {
+                    "$eq": [
                       {
                         "$ctx": "doc.states.$$ctx.payload.rider"
                       },
-                      ""
-                    ]
-                  },
-                  "local.can_driver_reject_user": {
-                    "$in": [
-                      {
-                        "$ifNull": [
-                          {
-                            "$ctx": "doc.states.$$ctx.payload.rider"
-                          },
-                          ""
-                        ]
-                      },
-                      [
-                        "REQUESTING",
-                        "PENDING",
-                        "ACCEPTED"
-                      ]
-                    ]
-                  },
-                  "local.is_target_accepted": {
-                    "$eq": [
-                      "$local.target_state",
                       "ACCEPTED"
-                    ]
-                  },
-                  "local.target_route_id": {
-                    "$ctx": "doc.context.riders.$$ctx.payload.rider.id"
-                  },
-                  "local.target_principal": "$$ctx.payload.rider",
-                  "local.has_group_id": {
-                    "$ifNull": [
-                      "$context.group_id",
-                      false
                     ]
                   }
                 }
@@ -2314,46 +2155,36 @@
               },
               "then_effects": [
                 {
-                  "title": "Adjust Accepted Seats",
-                  "description": "Subtracts seats only when an accepted user is rejected.",
-                  "type": "if.else",
-                  "condition": {
-                    "$ctx": "doc.local.is_target_accepted"
-                  },
-                  "then_effects": [
-                    {
-                      "title": "Decrement Occupancy",
-                      "description": "Recalculates accepted seats total after driver rejection.",
-                      "type": "update.contract",
-                      "update": {
-                        "$set": {
-                          "context.driver_route.accepted_seats": {
-                            "$max": [
+                  "title": "Decrement Occupancy",
+                  "description": "Recalculates accepted seats total after driver rejection.",
+                  "type": "update.contract",
+                  "update": {
+                    "$set": {
+                      "context.driver_route.accepted_seats": {
+                        "$max": [
+                          {
+                            "$subtract": [
                               {
-                                "$subtract": [
-                                  {
-                                    "$ifNull": [
-                                      "$context.driver_route.accepted_seats",
-                                      0
-                                    ]
-                                  },
-                                  {
-                                    "$ifNull": [
-                                      {
-                                        "$ctx": "doc.context.riders.$$ctx.payload.rider.seats"
-                                      },
-                                      1
-                                    ]
-                                  }
+                                "$ifNull": [
+                                  "$context.driver_route.accepted_seats",
+                                  0
                                 ]
                               },
-                              0
+                              {
+                                "$ifNull": [
+                                  {
+                                    "$ctx": "doc.context.riders.$$ctx.payload.rider.seats"
+                                  },
+                                  0
+                                ]
+                              }
                             ]
-                          }
-                        }
+                          },
+                          0
+                        ]
                       }
                     }
-                  ]
+                  }
                 },
                 {
                   "title": "Set Rejected User",
@@ -2364,156 +2195,6 @@
                       "states.$$ctx.payload.rider": "REJECTED"
                     }
                   }
-                },
-                {
-                  "title": "Unlink Contract From Rider Route",
-                  "description": "Removes this contract from the rejected rider route linkage list.",
-                  "type": "update.item",
-                  "item_id": {
-                    "$ctx": "local.target_route_id"
-                  },
-                  "update": {
-                    "$set": {
-                      "data.contract_ids": {
-                        "$setDifference": [
-                          {
-                            "$ifNull": [
-                              "$data.contract_ids",
-                              []
-                            ]
-                          },
-                          [
-                            {
-                              "$ctx": "doc._id"
-                            }
-                          ]
-                        ]
-                      }
-                    }
-                  }
-                },
-                {
-                  "title": "Reload Target Route",
-                  "description": "Reloads rider route after unlink to evaluate refund eligibility.",
-                  "type": "get.item",
-                  "item_id": {
-                    "$ctx": "local.target_route_id"
-                  },
-                  "key": "driver_reject_route_after"
-                },
-                {
-                  "title": "Compute Driver Reject Refund",
-                  "description": "Refunds held credits only when rider route has no remaining links.",
-                  "type": "update.contract",
-                  "update": {
-                    "$set": {
-                      "local.driver_reject_refund": {
-                        "$cond": [
-                          {
-                            "$eq": [
-                              {
-                                "$size": {
-                                  "$ifNull": [
-                                    "$local.driver_reject_route_after.data.contract_ids",
-                                    []
-                                  ]
-                                }
-                              },
-                              0
-                            ]
-                          },
-                          {
-                            "$ifNull": [
-                              "$local.driver_reject_route_after.data.reserved_credits",
-                              0
-                            ]
-                          },
-                          0
-                        ]
-                      },
-                      "local.has_driver_reject_refund": {
-                        "$gt": [
-                          {
-                            "$ifNull": [
-                              "$local.driver_reject_refund",
-                              0
-                            ]
-                          },
-                          0
-                        ]
-                      }
-                    }
-                  }
-                },
-                {
-                  "title": "Apply Driver Reject Refund",
-                  "description": "Refunds rider and resets retained credits when rejection unlinks final route.",
-                  "type": "if.else",
-                  "condition": {
-                    "$ctx": "doc.local.has_driver_reject_refund"
-                  },
-                  "then_effects": [
-                    {
-                      "title": "Refund Rider",
-                      "description": "Returns credits retained for the rejected rider.",
-                      "type": "charge.credits",
-                      "credit": {
-                        "product": "coin",
-                        "user_id": {
-                          "$ctx": "local.target_principal"
-                        },
-                        "amount": {
-                          "$ctx": "local.driver_reject_refund"
-                        }
-                      }
-                    },
-                    {
-                      "title": "Clear Route Reserved Credits",
-                      "description": "Clears retained credits on rider route after driver rejection refund.",
-                      "type": "update.item",
-                      "item_id": {
-                        "$ctx": "local.target_route_id"
-                      },
-                      "update": {
-                        "$set": {
-                          "data.reserved_credits": 0
-                        }
-                      }
-                    }
-                  ]
-                },
-                {
-                  "title": "Clear Rider Context",
-                  "description": "Removes rider context snapshot after driver rejection.",
-                  "type": "update.contract",
-                  "update": {
-                    "$unset": [
-                      "context.riders.$$ctx.payload.rider"
-                    ]
-                  }
-                },
-                {
-                  "title": "Remove Rider From Group",
-                  "description": "Removes rejected rider from coordination group when present.",
-                  "type": "if.else",
-                  "condition": {
-                    "$ctx": "doc.local.has_group_id"
-                  },
-                  "then_effects": [
-                    {
-                      "title": "Apply Group Member Removal",
-                      "description": "Applies direct group member removal for rejected rider.",
-                      "type": "update.group",
-                      "group_id": {
-                        "$ctx": "doc.context.group_id"
-                      },
-                      "edit_members": {
-                        "remove_members": [
-                          "$$ctx.payload.rider"
-                        ]
-                      }
-                    }
-                  ]
                 },
                 {
                   "title": "Notify Rejected User",
@@ -2540,7 +2221,9 @@
                   "type": "update.contract",
                   "update": {
                     "$set": {
-                      "state": "SYNC_CHAT"
+                      "state": "SYNC_CHAT",
+                      "local.sync_chat_needs_route_cleanup": true,
+                      "local.sync_chat_cleanup_principal": "$$ctx.payload.rider"
                     }
                   }
                 }
@@ -2560,8 +2243,6 @@
                 "additionalProperties": false
               },
               "allow_user_states": [
-                "REQUESTING",
-                "PENDING",
                 "ACCEPTED"
               ],
               "response": {
@@ -2572,140 +2253,29 @@
           ],
           "effects": [
             {
-              "title": "Capture Cancel Inputs",
-              "description": "Captures current user state, route id and seats for recruiting cancellation.",
+              "title": "Decrement Accepted Seats",
+              "description": "Updates accepted seats after accepted rider cancellation.",
               "type": "update.contract",
               "update": {
                 "$set": {
-                  "local.cancel_route_id": {
-                    "$ctx": "doc.context.riders.$$ctx.user.id"
-                  },
-                  "local.cancel_user_seats": {
-                    "$ifNull": [
+                  "context.driver_route.accepted_seats": {
+                    "$max": [
                       {
-                        "$ctx": "doc.context.riders.$$ctx.user.seats"
-                      },
-                      0
-                    ]
-                  },
-                  "local.is_target_accepted": {
-                    "$eq": [
-                      {
-                        "$ctx": "doc.states.$$ctx.user"
-                      },
-                      "ACCEPTED"
-                    ]
-                  }
-                }
-              }
-            },
-            {
-              "title": "Adjust Occupancy If Accepted",
-              "description": "Subtracts seats when an accepted rider cancels during onboarding.",
-              "type": "if.else",
-              "condition": {
-                "$ctx": "doc.local.is_target_accepted"
-              },
-              "then_effects": [
-                {
-                  "title": "Decrement Accepted Seats",
-                  "description": "Updates accepted seats after accepted rider cancellation.",
-                  "type": "update.contract",
-                  "update": {
-                    "$set": {
-                      "context.driver_route.accepted_seats": {
-                        "$max": [
+                        "$subtract": [
                           {
-                            "$subtract": [
-                              {
-                                "$ifNull": [
-                                  "$context.driver_route.accepted_seats",
-                                  0
-                                ]
-                              },
-                              "$local.cancel_user_seats"
+                            "$ifNull": [
+                              "$context.driver_route.accepted_seats",
+                              0
                             ]
                           },
-                          0
-                        ]
-                      }
-                    }
-                  }
-                }
-              ]
-            },
-            {
-              "title": "Unlink Contract From Route",
-              "description": "Removes this contract id from rider route hold tracking.",
-              "type": "update.item",
-              "item_id": {
-                "$ctx": "local.cancel_route_id"
-              },
-              "update": {
-                "$set": {
-                  "data.contract_ids": {
-                    "$setDifference": [
-                      {
-                        "$ifNull": [
-                          "$data.contract_ids",
-                          []
-                        ]
-                      },
-                      [
-                        {
-                          "$ctx": "doc._id"
-                        }
-                      ]
-                    ]
-                  }
-                }
-              }
-            },
-            {
-              "title": "Reload Cancel Route",
-              "description": "Reloads rider route after unlink to determine if hold refund is needed.",
-              "type": "get.item",
-              "item_id": {
-                "$ctx": "local.cancel_route_id"
-              },
-              "key": "cancel_route_after"
-            },
-            {
-              "title": "Compute Cancel Refund",
-              "description": "Refunds held rider credits only when route has no remaining linked contracts.",
-              "type": "update.contract",
-              "update": {
-                "$set": {
-                  "local.cancel_refund": {
-                    "$cond": [
-                      {
-                        "$eq": [
                           {
-                            "$size": {
-                              "$ifNull": [
-                                "$local.cancel_route_after.data.contract_ids",
-                                []
-                              ]
-                            }
-                          },
-                          0
-                        ]
-                      },
-                      {
-                        "$ifNull": [
-                          "$local.cancel_route_after.data.reserved_credits",
-                          0
-                        ]
-                      },
-                      0
-                    ]
-                  },
-                  "local.has_cancel_refund": {
-                    "$gt": [
-                      {
-                        "$ifNull": [
-                          "$local.cancel_refund",
-                          0
+                            "$ifNull": [
+                              {
+                                "$ctx": "doc.context.riders.$$ctx.user.seats"
+                              },
+                              0
+                            ]
+                          }
                         ]
                       },
                       0
@@ -2713,40 +2283,6 @@
                   }
                 }
               }
-            },
-            {
-              "title": "Apply Cancel Refund",
-              "description": "Refunds rider and clears route retained credits when cancellation unlinks final contract.",
-              "type": "if.else",
-              "condition": {
-                "$ctx": "doc.local.has_cancel_refund"
-              },
-              "then_effects": [
-                {
-                  "title": "Refund Cancelling Rider",
-                  "description": "Returns retained credits to rider after cancellation.",
-                  "type": "charge.credits",
-                  "credit": {
-                    "product": "coin",
-                    "amount": {
-                      "$ctx": "local.cancel_refund"
-                    }
-                  }
-                },
-                {
-                  "title": "Clear Cancel Route Reserved Credits",
-                  "description": "Clears retained credits on route after cancel refund.",
-                  "type": "update.item",
-                  "item_id": {
-                    "$ctx": "local.cancel_route_id"
-                  },
-                  "update": {
-                    "$set": {
-                      "data.reserved_credits": 0
-                    }
-                  }
-                }
-              ]
             },
             {
               "title": "Mark User Cancelled",
@@ -2757,11 +2293,6 @@
                   "$set": {
                     "states.$$ctx.user": "CANCELLED"
                   }
-                },
-                {
-                  "$unset": [
-                    "context.riders.$$ctx.user"
-                  ]
                 }
               ]
             },
@@ -2791,7 +2322,9 @@
               "type": "update.contract",
               "update": {
                 "$set": {
-                  "state": "SYNC_CHAT"
+                  "state": "SYNC_CHAT",
+                  "local.sync_chat_needs_route_cleanup": true,
+                  "local.sync_chat_cleanup_principal": "$$ctx.user"
                 }
               }
             }
@@ -5397,6 +4930,26 @@
                     },
                     0
                   ]
+                },
+                "local.sync_chat_needs_route_cleanup": {
+                  "$ifNull": [
+                    "$local.sync_chat_needs_route_cleanup",
+                    false
+                  ]
+                },
+                "local.sync_chat_cleanup_principal": {
+                  "$ifNull": [
+                    "$local.sync_chat_cleanup_principal",
+                    ""
+                  ]
+                },
+                "local.sync_chat_cleanup_route_id": {
+                  "$ifNull": [
+                    {
+                      "$ctx": "doc.context.riders.$$ctx.local.sync_chat_cleanup_principal.id"
+                    },
+                    ""
+                  ]
                 }
               }
             }
@@ -5703,6 +5256,143 @@
                     }
                   }
                 }
+              }
+            ]
+          },
+          {
+            "title": "Run Route Hold Cleanup",
+            "description": "Runs shared route unlink and conditional refund cleanup.",
+            "type": "if.else",
+            "condition": {
+              "$ctx": "doc.local.sync_chat_needs_route_cleanup"
+            },
+            "then_effects": [
+              {
+                "title": "Compute Route Cleanup Refund",
+                "description": "Computes refund eligibility and amount for cleanup route.",
+                "type": "update.contract",
+                "update": {
+                  "$unset": [
+                    "$context.riders.$$ctx.local.sync_chat_cleanup_principal"
+                  ]
+                }
+              },
+              {
+                "title": "Unlink Contract From Cleanup Route",
+                "description": "Unlinks current contract from cleanup route contract list.",
+                "type": "update.item",
+                "item_id": {
+                  "$ctx": "local.sync_chat_cleanup_route_id"
+                },
+                "update": {
+                  "$set": {
+                    "data.contract_ids": {
+                      "$setDifference": [
+                        {
+                          "$ifNull": [
+                            "$data.contract_ids",
+                            []
+                          ]
+                        },
+                        [
+                          {
+                            "$ctx": "doc._id"
+                          }
+                        ]
+                      ]
+                    }
+                  }
+                }
+              },
+              {
+                "title": "Reload Cleanup Route",
+                "description": "Reloads cleanup route after unlink.",
+                "type": "get.item",
+                "item_id": {
+                  "$ctx": "local.sync_chat_cleanup_route_id"
+                },
+                "key": "sync_chat_cleanup_route_after"
+              },
+              {
+                "title": "Compute Route Cleanup Refund",
+                "description": "Computes refund eligibility and amount for cleanup route.",
+                "type": "update.contract",
+                "update": {
+                  "$set": {
+                    "local.sync_chat_cleanup_refund_amount": {
+                      "$cond": [
+                        {
+                          "$eq": [
+                            {
+                              "$size": {
+                                "$ifNull": [
+                                  "$local.sync_chat_cleanup_route_after.data.contract_ids",
+                                  []
+                                ]
+                              }
+                            },
+                            0
+                          ]
+                        },
+                        {
+                          "$ifNull": [
+                            "$local.sync_chat_cleanup_route_after.data.reserved_credits",
+                            0
+                          ]
+                        },
+                        0
+                      ]
+                    },
+                    "local.sync_chat_cleanup_has_refund": {
+                      "$gt": [
+                        {
+                          "$ifNull": [
+                            "$local.sync_chat_cleanup_refund_amount",
+                            0
+                          ]
+                        },
+                        0
+                      ]
+                    }
+                  }
+                }
+              },
+              {
+                "title": "Apply Route Cleanup Refund",
+                "description": "Applies cleanup refund and route credit reset when eligible.",
+                "type": "if.else",
+                "condition": {
+                  "$ctx": "doc.local.sync_chat_cleanup_has_refund"
+                },
+                "then_effects": [
+                  {
+                    "title": "Refund Cleanup Rider",
+                    "description": "Credits rider with retained route credits.",
+                    "type": "charge.credits",
+                    "credit": {
+                      "product": "coin",
+                      "user_id": {
+                        "$ctx": "local.sync_chat_cleanup_principal"
+                      },
+                      "amount": {
+                        "$ctx": "local.sync_chat_cleanup_refund_amount"
+                      }
+                    }
+                  },
+                  {
+                    "title": "Clear Cleanup Route Reserved Credits",
+                    "description": "Resets cleanup route reserved credits after refund.",
+                    "type": "update.item",
+                    "item_id": {
+                      "$ctx": "local.sync_chat_cleanup_route_id"
+                    },
+                    "update": {
+                      "$set": {
+                        "data.reserved_credits": 0
+                      }
+                    }
+                  }
+                ]
               }
             ]
           },
@@ -6333,7 +6023,12 @@
                 "local.sync_chat_needs_accept_reconcile": false,
                 "local.sync_chat_accepted_rider": "",
                 "local.sync_chat_accepted_route_id": "",
-                "local.sync_chat_accepted_rider_cost": 0
+                "local.sync_chat_accepted_rider_cost": 0,
+                "local.sync_chat_needs_route_cleanup": false,
+                "local.sync_chat_cleanup_principal": "",
+                "local.sync_chat_cleanup_route_id": "",
+                "local.sync_chat_cleanup_refund_amount": 0,
+                "local.sync_chat_cleanup_has_refund": false
               }
             }
           },
