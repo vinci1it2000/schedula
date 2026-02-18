@@ -434,9 +434,9 @@ def validate_context_schema(doc, state):
 
 
 def _apply_effects(
-        state, doc, actor_id, payload=None, local=None, validate_schema=True
+        event, doc, actor_id, payload=None, local=None, validate_schema=True
 ):
-    for ef in state.get("effects", []):
+    for ef in event.get("effects", []):
         changed, doc = _apply_effect_step(
             doc=doc, ef=ef, payload=payload, actor_id=actor_id, local=local
         )
@@ -444,7 +444,7 @@ def _apply_effects(
             doc = _close_contract(doc)
             return changed, doc
     if validate_schema:
-        validate_context_schema(doc, state)
+        validate_context_schema(doc, pydash.get(doc, f"definition.states.{doc['state']}"))
     return False, doc
 
 
@@ -477,7 +477,7 @@ def _apply_on_enter(
 
     on_enter = pydash.get(doc, f"definition.states.{doc.get('state')}.on_enter", {})
     validate_context_schema(doc, on_enter)
-    _, doc = _apply_effects(on_enter, doc, actor_id, local=local, validate_schema=False)
+    _, doc = _apply_effects(on_enter, doc, actor_id, local=local, validate_schema=True)
     if not _get_contract(str(doc.get("_id") or "")):
         abort_json(422, "Contract rejected by on_enter controls")
     return doc

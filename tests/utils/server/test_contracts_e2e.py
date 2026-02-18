@@ -15,8 +15,10 @@ from unittest.mock import patch
 from urllib.parse import urlsplit, urlunsplit
 
 import httpx
+import pydash
 from flask import Flask
 from flask_security.utils import hash_password
+
 from schedula.utils.form.server import basic_app
 from schedula.utils.form.server.extensions import db as _db
 from schedula.utils.form.server.security import User
@@ -195,11 +197,13 @@ class ContractsE2ETest(unittest.TestCase):
                     "capacity": 3,
                     "user_id": principal,
                     "origin": {
-                        "lat": 45.0,
-                        "lng": 9.0,
+                        "location": {"type": "Point", "coordinates": [45.0, 9.0]},
                         "at": "1970-01-01T00:00:00+00:00",
                     },
-                    "destination": {"lat": 45.1, "lng": 9.1},
+                    "destination": {
+                        "location": {"type": "Point", "coordinates": [45.1, 9.1]},
+                        "at": "1970-01-01T03:00:00+00:00"
+                    },
                 }
                 items_coll.insert_one(
                     {
@@ -297,7 +301,7 @@ class ContractsE2ETest(unittest.TestCase):
         return str(resp.json()["id"])
 
     def _create_contract(
-        self, template_id: str, context: Dict[str, Any], actor="owner-1", **extra: Any
+            self, template_id: str, context: Dict[str, Any], actor="owner-1", **extra: Any
     ) -> httpx.Response:
         body = {"context": context}
         body.update(extra)
@@ -308,12 +312,12 @@ class ContractsE2ETest(unittest.TestCase):
         )
 
     def _post_event(
-        self,
-        contract_id: str,
-        path: str,
-        *,
-        actor: str,
-        payload: Dict[str, Any] | None = None,
+            self,
+            contract_id: str,
+            path: str,
+            *,
+            actor: str,
+            payload: Dict[str, Any] | None = None,
     ) -> httpx.Response:
         if payload is None and path == "request-join":
             actor_principal = f"u:{self.user_ids[actor]}"
@@ -340,8 +344,8 @@ class ContractsE2ETest(unittest.TestCase):
 
         now = now or dt.datetime.now(dt.timezone.utc)
         with patch(
-            "schedula.utils.form.server.contracts.schedule._claim_job_now",
-            return_value=now,
+                "schedula.utils.form.server.contracts.schedule._claim_job_now",
+                return_value=now,
         ):
             with self.app.app_context():
                 coll = _queue_coll()
@@ -407,7 +411,7 @@ class ContractsE2ETest(unittest.TestCase):
             return out
 
     def _queue_jobs(
-        self, *, contract_id: str | None = None, event_name: str | None = None
+            self, *, contract_id: str | None = None, event_name: str | None = None
     ) -> List[Dict[str, Any]]:
         from schedula.utils.form.server.contracts.schedule import _queue_coll
 
@@ -451,6 +455,25 @@ class ContractsE2ETest(unittest.TestCase):
         notes = self._list_notifications(actor)
         return sum(1 for n in notes if n.get("event") == event)
 
+    def _latest_notification_event_api(
+            self, actor: str, event: str
+    ) -> Dict[str, Any] | None:
+        notes = self._list_notifications(actor)
+        filtered = [n for n in notes if n.get("event") == event]
+        if not filtered:
+            return None
+        return filtered[0]
+
+    def _latest_notification_doc(
+            self, principal: str, event: str
+    ) -> Dict[str, Any] | None:
+        with self.app.app_context():
+            coll = self.app.config["MONGO_DB"]["notifications"]
+            return coll.find_one(
+                {"event": event, f"targets.{principal}": {"$exists": True}},
+                sort=[("_id", -1)],
+            )
+
     def _get_route(self, actor: str, route_id: str) -> Dict[str, Any]:
         resp = self.httpx.get(f"/item/route/{route_id}", headers=self._headers(actor))
         self.assertEqual(resp.status_code, 200, msg=resp.text)
@@ -463,8 +486,14 @@ class ContractsE2ETest(unittest.TestCase):
             "capacity": 3,
             "seats": 1,
             "user_id": principal,
-            "origin": {"lat": 45.0, "lng": 9.0, "at": "1970-01-01T00:00:00+00:00"},
-            "destination": {"lat": 45.1, "lng": 9.1},
+            "origin": {
+                "location": {"type": "Point", "coordinates": [45.0, 9.0]},
+                "at": "1970-01-01T00:00:00+00:00"
+            },
+            "destination": {
+                "location": {"type": "Point", "coordinates": [45.1, 9.1]},
+                "at": "1970-01-01T03:00:00+00:00"
+            },
         }
         data.update(updates)
         resp = self.httpx.post(
@@ -477,7 +506,7 @@ class ContractsE2ETest(unittest.TestCase):
         return str(body.get("id"))
 
     def _patch_route_data(
-        self, actor: str, route_id: str, **updates: Any
+            self, actor: str, route_id: str, **updates: Any
     ) -> Dict[str, Any]:
         current = self._get_route(actor, route_id)
         data = dict(current.get("data") or {})
@@ -578,7 +607,7 @@ class ContractsE2ETest(unittest.TestCase):
         return gid
 
     def test_start_user_initiated_sets_pending_driver_and_requesting_rider(
-        self,
+            self,
     ) -> None:
         cid = self._create_gherkin_contract(initial_state="START", actor="p1")
         c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
@@ -595,8 +624,8 @@ class ContractsE2ETest(unittest.TestCase):
         driver_route_id = self._create_route(
             "d1",
             capacity=10,
-            origin={"lat": 45.0, "lng": 9.0, "at": departure.isoformat()},
-            destination={"lat": 45.2, "lng": 9.2, "at": departure.isoformat()},
+            origin={"location": {"type": "Point", "coordinates": [45.0, 9.0]}, "at": departure.isoformat()},
+            destination={"location": {"type": "Point", "coordinates": [45.2, 9.2]}, "at": departure.isoformat()},
         )
         self.assertEqual(
             (self._get_route("d1", driver_route_id).get("data") or {}).get("capacity"),
@@ -687,7 +716,7 @@ class ContractsE2ETest(unittest.TestCase):
 
         driver_route_id = self._create_route(
             "d1",
-            origin={"lat": 45.0, "lng": 9.0, "at": departure.isoformat()},
+            origin={"location": {"type": "Point", "coordinates": [45.0, 9.0]}, "at": departure.isoformat()},
         )
 
         p1_principal = f"u:{self.user_ids['p1']}"
@@ -724,12 +753,14 @@ class ContractsE2ETest(unittest.TestCase):
 
         driver_route_id = self._create_route(
             "d1",
-            origin={"lat": 45.0, "lng": 9.0, "at": departure.isoformat()},
+            origin={"location": {"type": "Point", "coordinates": [45.0, 9.0]}, "at": departure.isoformat()},
         )
         template_id = self._create_template(
             _gherkin_definition(), allowed_initial_states=["START"]
         )
         p1_principal = f"u:{self.user_ids['p1']}"
+        d1_principal = f"u:{self.user_ids['d1']}"
+        d1_principal = f"u:{self.user_ids['d1']}"
         d1_principal = f"u:{self.user_ids['d1']}"
 
         created = self._create_contract(
@@ -789,17 +820,18 @@ class ContractsE2ETest(unittest.TestCase):
     def test_in_progress_confirm_pin_and_payment_timeout_completes(self) -> None:
         now = dt.datetime.now(dt.timezone.utc).replace(microsecond=0)
         departure = now + dt.timedelta(hours=3)
-
+        arrival = now + dt.timedelta(hours=5)
         driver_route_id = self._create_route(
             "d1",
             capacity=10,
-            origin={"lat": 45.0, "lng": 9.0, "at": departure.isoformat()},
-            destination={"lat": 45.2, "lng": 9.2, "at": departure.isoformat()},
+            origin={"location": {"type": "Point", "coordinates": [45.0, 9.0]}, "at": departure.isoformat()},
+            destination={"location": {"type": "Point", "coordinates": [45.2, 9.2]}, "at": arrival.isoformat()},
         )
         template_id = self._create_template(
             _gherkin_definition(), allowed_initial_states=["START"]
         )
         p1_principal = f"u:{self.user_ids['p1']}"
+        d1_principal = f"u:{self.user_ids['d1']}"
 
         created = self._create_contract(
             template_id,
@@ -834,6 +866,10 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertGreaterEqual(len(verifs), 1)
         pin = next(iter(verifs.keys()))
 
+        before_pickup_confirmed = self._count_notifications_for(
+            p1_principal, "contracts.pickup_confirmed"
+        )
+
         confirm = self._post_event(
             cid,
             "driver-confirm-pick-up",
@@ -845,8 +881,18 @@ class ContractsE2ETest(unittest.TestCase):
 
         c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
         self.assertEqual(self._user_state(c, self.user_ids["p1"]), "ONBOARD")
+        after_pickup_confirmed = self._count_notifications_for(
+            p1_principal, "contracts.pickup_confirmed"
+        )
+        self.assertGreaterEqual(after_pickup_confirmed, before_pickup_confirmed + 1)
 
         d1_before = self._wallet_balance("d1")
+        before_driver_settled = self._count_notifications_for(
+            d1_principal, "contracts.payment_settled_driver"
+        )
+        before_rider_settled = self._count_notifications_for(
+            p1_principal, "contracts.payment_settled_rider"
+        )
         pay_job = self._queue_jobs(contract_id=cid, event_name="TripPaymentTimed")[0][
             "run_at"
         ]
@@ -857,16 +903,25 @@ class ContractsE2ETest(unittest.TestCase):
         c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
         self.assertEqual(c.get("state"), "COMPLETED")
         self.assertGreaterEqual(self._wallet_balance("d1"), d1_before + 10)
+        after_driver_settled = self._count_notifications_for(
+            d1_principal, "contracts.payment_settled_driver"
+        )
+        after_rider_settled = self._count_notifications_for(
+            p1_principal, "contracts.payment_settled_rider"
+        )
+        self.assertGreaterEqual(after_driver_settled, before_driver_settled + 1)
+        self.assertGreaterEqual(after_rider_settled, before_rider_settled + 1)
 
     def test_in_progress_sends_pickup_reminder_20_min_before_window(self) -> None:
         now = dt.datetime.now(dt.timezone.utc).replace(microsecond=0)
         departure = now + dt.timedelta(hours=3)
+        arrival = now + dt.timedelta(hours=5)
 
         driver_route_id = self._create_route(
             "d1",
             capacity=10,
-            origin={"lat": 45.0, "lng": 9.0, "at": departure.isoformat()},
-            destination={"lat": 45.2, "lng": 9.2, "at": departure.isoformat()},
+            origin={"location": {"type": "Point", "coordinates": [45.0, 9.0]}, "at": departure.isoformat()},
+            destination={"location": {"type": "Point", "coordinates": [45.2, 9.2]}, "at": arrival.isoformat()},
         )
         template_id = self._create_template(
             _gherkin_definition(), allowed_initial_states=["START"]
@@ -913,6 +968,209 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertTrue(self._run_worker_once(now=run_at + dt.timedelta(seconds=1)))
         after = self._count_notifications_for(p1_principal, "contracts.pickup_reminder")
         self.assertGreaterEqual(after, before + 1)
+        latest_reminder = self._latest_notification_doc(
+            p1_principal, "contracts.pickup_reminder"
+        )
+        self.assertIsNotNone(latest_reminder)
+        assert latest_reminder is not None
+        payload = latest_reminder.get("payload") or {}
+        self.assertIn("pickup_plan", payload)
+
+    def test_in_progress_dispute_events_notify_counterpart(self) -> None:
+        now = dt.datetime.now(dt.timezone.utc).replace(microsecond=0)
+        departure = now + dt.timedelta(hours=3)
+        arrival = now + dt.timedelta(hours=5)
+        driver_route_id = self._create_route(
+            "d1",
+            capacity=10,
+            origin={"location": {"type": "Point", "coordinates": [45.0, 9.0]}, "at": departure.isoformat()},
+            destination={"location": {"type": "Point", "coordinates": [45.2, 9.2]}, "at": arrival.isoformat()},
+        )
+        template_id = self._create_template(
+            _gherkin_definition(), allowed_initial_states=["START"]
+        )
+        p1_principal = f"u:{self.user_ids['p1']}"
+        d1_principal = f"u:{self.user_ids['d1']}"
+
+        created = self._create_contract(
+            template_id,
+            {
+                "driver_trip_id": driver_route_id,
+                "riders": [self.route_by_principal[p1_principal]],
+            },
+            initial_state="START",
+            actor="p1",
+        )
+        self.assertEqual(created.status_code, 201, msg=created.text)
+        cid = str(created.json()["id"])
+
+        accept = self._post_event(
+            cid,
+            "driver-accept-start",
+            actor="d1",
+            payload={"rider": p1_principal},
+        )
+        self.assertEqual(accept.status_code, 200)
+        self.assertTrue(accept.json().get("ok"))
+
+        pre = self._queue_jobs(contract_id=cid, event_name="PreDepartureGateTimed")[0][
+            "run_at"
+        ]
+        if pre.tzinfo is None:
+            pre = pre.replace(tzinfo=dt.timezone.utc)
+        self.assertTrue(self._run_worker_once(now=pre + dt.timedelta(seconds=1)))
+
+        before_driver_dispute = self._count_notifications_for(
+            d1_principal, "contracts.dispute_opened"
+        )
+        rider_dispute = self._post_event(cid, "driver-did-not-pick-me", actor="p1")
+        self.assertEqual(rider_dispute.status_code, 200)
+        self.assertTrue(rider_dispute.json().get("ok"))
+        after_driver_dispute = self._count_notifications_for(
+            d1_principal, "contracts.dispute_opened"
+        )
+        self.assertGreaterEqual(after_driver_dispute, before_driver_dispute + 1)
+
+        before_rider_dispute = self._count_notifications_for(
+            p1_principal, "contracts.dispute_opened"
+        )
+        driver_dispute = self._post_event(
+            cid,
+            "rider-not-at-pickup",
+            actor="d1",
+            payload={"rider": p1_principal},
+        )
+        self.assertEqual(driver_dispute.status_code, 200)
+        self.assertTrue(driver_dispute.json().get("ok"))
+        after_rider_dispute = self._count_notifications_for(
+            p1_principal, "contracts.dispute_opened"
+        )
+        self.assertGreaterEqual(after_rider_dispute, before_rider_dispute + 1)
+
+    def test_in_progress_driver_cancel_trip_refunds_only_non_onboard(self) -> None:
+        now = dt.datetime.now(dt.timezone.utc).replace(microsecond=0)
+        departure = now + dt.timedelta(hours=3)
+        arrival = now + dt.timedelta(hours=5)
+        driver_route_id = self._create_route(
+            "d1",
+            capacity=10,
+            origin={"location": {"type": "Point", "coordinates": [45.0, 9.0]}, "at": departure.isoformat()},
+            destination={"location": {"type": "Point", "coordinates": [45.2, 9.2]}, "at": arrival.isoformat()},
+        )
+        p1_principal = f"u:{self.user_ids['p1']}"
+        p2_principal = f"u:{self.user_ids['p2']}"
+        p2_route_id = self._create_route("p2", cost=10, seats=1)
+        template_id = self._create_template(
+            _gherkin_definition(), allowed_initial_states=["START"]
+        )
+
+        created = self._create_contract(
+            template_id,
+            {
+                "driver_trip_id": driver_route_id,
+                "riders": [self.route_by_principal[p1_principal]],
+            },
+            initial_state="START",
+            actor="p1",
+        )
+        self.assertEqual(created.status_code, 201, msg=created.text)
+        cid = str(created.json()["id"])
+
+        join_p2 = self._post_event(
+            cid,
+            "request-join",
+            actor="p2",
+            payload={"route_id": p2_route_id},
+        )
+        self.assertEqual(join_p2.status_code, 200)
+        self.assertTrue(join_p2.json().get("ok"))
+
+        for rider in (p1_principal, p2_principal):
+            accepted = self._post_event(
+                cid,
+                "driver-accept-start",
+                actor="d1",
+                payload={"rider": rider},
+            )
+            self.assertEqual(accepted.status_code, 200)
+            self.assertTrue(accepted.json().get("ok"))
+
+        pre = self._queue_jobs(contract_id=cid, event_name="PreDepartureGateTimed")[0][
+            "run_at"
+        ]
+        if pre.tzinfo is None:
+            pre = pre.replace(tzinfo=dt.timezone.utc)
+        self.assertTrue(self._run_worker_once(now=pre + dt.timedelta(seconds=1)))
+
+        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
+        self.assertEqual(c.get("state"), "IN_PROGRESS")
+        verifs = (c.get("context") or {}).get("pickup_verifications") or {}
+        p1_pin = next(
+            (
+                pin
+                for pin, entry in verifs.items()
+                if str((entry or {}).get("principal") or "") == p1_principal
+            ),
+            None,
+        )
+        self.assertIsInstance(p1_pin, str)
+        assert isinstance(p1_pin, str)
+
+        confirm = self._post_event(
+            cid,
+            "driver-confirm-pick-up",
+            actor="d1",
+            payload={"pin": p1_pin},
+        )
+        self.assertEqual(confirm.status_code, 200)
+        self.assertTrue(confirm.json().get("ok"))
+
+        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
+        self.assertEqual(self._user_state(c, self.user_ids["p1"]), "ONBOARD")
+        self.assertEqual(self._user_state(c, self.user_ids["p2"]), "ACCEPTED")
+
+        p1_balance_before_cancel = self._wallet_balance("p1")
+        p2_balance_before_cancel = self._wallet_balance("p2")
+        d1_principal = f"u:{self.user_ids['d1']}"
+        before_cancel_driver = self._count_notifications_for(
+            d1_principal, "contracts.driver_cancelled_trip"
+        )
+        before_cancel_p1 = self._count_notifications_for(
+            p1_principal, "contracts.driver_cancelled_trip"
+        )
+        before_cancel_p2 = self._count_notifications_for(
+            p2_principal, "contracts.driver_cancelled_trip"
+        )
+
+        cancel_trip = self._post_event(cid, "driver-cancel-trip", actor="d1")
+        self.assertEqual(cancel_trip.status_code, 200)
+        self.assertTrue(cancel_trip.json().get("ok"))
+
+        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
+        self.assertEqual(c.get("state"), "CANCELLED")
+        self.assertEqual(self._wallet_balance("p1"), p1_balance_before_cancel)
+        self.assertEqual(self._wallet_balance("p2"), p2_balance_before_cancel + 10)
+
+        after_cancel_driver = self._count_notifications_for(
+            d1_principal, "contracts.driver_cancelled_trip"
+        )
+        after_cancel_p1 = self._count_notifications_for(
+            p1_principal, "contracts.driver_cancelled_trip"
+        )
+        after_cancel_p2 = self._count_notifications_for(
+            p2_principal, "contracts.driver_cancelled_trip"
+        )
+        self.assertGreaterEqual(after_cancel_driver, before_cancel_driver + 1)
+        self.assertGreaterEqual(after_cancel_p1, before_cancel_p1 + 1)
+        self.assertGreaterEqual(after_cancel_p2, before_cancel_p2 + 1)
+
+        group_id = (c.get("context") or {}).get("group_id")
+        self.assertIsInstance(group_id, str)
+        assert isinstance(group_id, str)
+        members = self._group_member_ids(group_id)
+        self.assertNotIn(p1_principal, members)
+        self.assertNotIn(p2_principal, members)
+        self.assertIn(d1_principal, self._group_admin_ids(group_id))
 
     def test_in_progress_seven_riders_mixed_outcomes_and_disputes(self) -> None:
         for rider in ("p5", "p6", "p7"):
@@ -930,11 +1188,12 @@ class ContractsE2ETest(unittest.TestCase):
 
         now = dt.datetime.now(dt.timezone.utc).replace(microsecond=0)
         departure = now + dt.timedelta(hours=3)
+        arrival = now + dt.timedelta(hours=5)
         driver_route_id = self._create_route(
             "d1",
             capacity=10,
-            origin={"lat": 45.0, "lng": 9.0, "at": departure.isoformat()},
-            destination={"lat": 45.2, "lng": 9.2, "at": departure.isoformat()},
+            origin={"location": {"type": "Point", "coordinates": [45.0, 9.0]}, "at": departure.isoformat()},
+            destination={"location": {"type": "Point", "coordinates": [45.2, 9.2]}, "at": arrival.isoformat()},
         )
 
         rider_keys = ["p1", "p2", "p3", "p4", "p5", "p6", "p7"]
@@ -990,7 +1249,7 @@ class ContractsE2ETest(unittest.TestCase):
         for _ in range(20):
             self._run_worker_once(now=pre_job + dt.timedelta(seconds=1))
             if not self._queue_jobs(
-                contract_id=cid, event_name="PreDepartureGateTimed"
+                    contract_id=cid, event_name="PreDepartureGateTimed"
             ):
                 break
 
@@ -1152,8 +1411,8 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(self._user_state(c, self.user_ids["p1"]), "ACCEPTED")
         self.assertEqual(self._user_state(c, self.user_ids["p4"]), "REQUESTING")
 
-    def test_start_driver_accept_start_sets_accepted_seats_total_from_rider(
-        self,
+    def test_start_driver_accept_start_sets_accepted_seats_from_rider(
+            self,
     ) -> None:
         p1_principal = f"u:{self.user_ids['p1']}"
         route_id = self.route_by_principal[p1_principal]
@@ -1174,10 +1433,10 @@ class ContractsE2ETest(unittest.TestCase):
 
         c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
         self.assertEqual(c["state"], "ONBOARDING")
-        self.assertEqual((c.get("context") or {}).get("accepted_seats_total"), 2)
+        self.assertEqual(pydash.get(c, "context.driver_route.accepted_seats"), 2)
 
     def test_start_driver_accept_start_returns_ok_false_for_non_requesting_rider(
-        self,
+            self,
     ) -> None:
         cid = self._create_gherkin_contract(initial_state="START", actor="p1")
         p4_principal = f"u:{self.user_ids['p4']}"
@@ -1275,7 +1534,7 @@ class ContractsE2ETest(unittest.TestCase):
         c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
         self.assertEqual(c["state"], "ONBOARDING")
         self.assertEqual(self._user_state(c, self.user_ids["p2"]), "ACCEPTED")
-        self.assertEqual((c.get("context") or {}).get("accepted_seats_total"), 2)
+        self.assertEqual(pydash.get(c, "context.driver_route.accepted_seats"), 2)
 
     def test_start_user_reject_invite_clears_pending_rider(self) -> None:
         cid = self._create_gherkin_contract(initial_state="START", actor="p1")
@@ -1346,7 +1605,7 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(self._user_state(c, self.user_ids["p1"]), "CANCELLED")
 
     def test_start_request_join_adds_requesting_user_when_capacity_and_credits_ok(
-        self,
+            self,
     ) -> None:
         driver_principal = f"u:{self.user_ids['d1']}"
         before = self._count_notifications_for(
@@ -1666,7 +1925,7 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(self._wallet_balance("p3"), p3_balance_before)
         p3_route_after_cancel_invite = self._get_route("p3", p3_route_id)
         p3_route_data_after_cancel_invite = (
-            p3_route_after_cancel_invite.get("data") or {}
+                p3_route_after_cancel_invite.get("data") or {}
         )
         self.assertEqual(
             p3_route_data_after_cancel_invite.get("reserved_credits") or 0, 0
@@ -1792,7 +2051,7 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(self._wallet_balance("p2"), p2_balance_before - 10)
         p2_route_after_driver_reject = self._get_route("p2", p2_route_id)
         p2_route_data_after_driver_reject = (
-            p2_route_after_driver_reject.get("data") or {}
+                p2_route_after_driver_reject.get("data") or {}
         )
         self.assertEqual(
             p2_route_data_after_driver_reject.get("contract_ids") or [], []
@@ -1832,12 +2091,13 @@ class ContractsE2ETest(unittest.TestCase):
         # Full positive journey through IN_PROGRESS up to COMPLETED.
         now = dt.datetime.now(dt.timezone.utc).replace(microsecond=0)
         departure = now + dt.timedelta(hours=3)
+        arrival = now + dt.timedelta(hours=5)
         p4_complete_route_id = self._create_route("p4", cost=10, seats=1)
         p4_complete_principal = f"u:{self.user_ids['p4']}"
         d1_route_complete_id = self._create_route(
             "d1",
-            origin={"lat": 45.0, "lng": 9.0, "at": departure.isoformat()},
-            destination={"lat": 45.2, "lng": 9.2, "at": departure.isoformat()},
+            origin={"location": {"type": "Point", "coordinates": [45.0, 9.0]}, "at": departure.isoformat()},
+            destination={"location": {"type": "Point", "coordinates": [45.2, 9.2]}, "at": arrival.isoformat()},
         )
         created_completed = self._create_contract(
             template_id,
@@ -1880,7 +2140,7 @@ class ContractsE2ETest(unittest.TestCase):
         for _ in range(20):
             self._run_worker_once(now=pre_completed + dt.timedelta(seconds=1))
             if not self._queue_jobs(
-                contract_id=contract_completed, event_name="PreDepartureGateTimed"
+                    contract_id=contract_completed, event_name="PreDepartureGateTimed"
             ):
                 break
 

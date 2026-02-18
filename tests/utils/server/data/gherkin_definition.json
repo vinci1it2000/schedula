@@ -36,6 +36,16 @@
             "key": "driver_route"
           },
           {
+            "title": "Clear Driver Trip Id from Context",
+            "description": "Removes driver_trip_id from context after Load Driver Route.",
+            "type": "update.contract",
+            "update": {
+              "$unset": [
+                "context.driver_trip_id"
+              ]
+            }
+          },
+          {
             "title": "Load Rider Routes",
             "description": "Loads rider route items from the initial route id list to hydrate rider identities and trips.",
             "type": "get.item",
@@ -50,7 +60,9 @@
               {
                 "$set": {
                   "context.driver_route": {
+                    "id": "$local.driver_route._id",
                     "accepted_seats": 0,
+                    "compensation": 0,
                     "trip": {
                       "origin": "$local.driver_route.data.origin",
                       "destination": "$local.driver_route.data.destination"
@@ -522,6 +534,251 @@
       }
     },
     "ONBOARDING": {
+      "context_schema": {
+        "type": "object",
+        "required": [
+          "pre_departure_check_id",
+          "driver",
+          "riders",
+          "driver_route"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "group_id": {
+            "type": "string",
+            "pattern": "^g:.+$"
+          },
+          "pre_departure_check_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "driver": {
+            "type": "string",
+            "pattern": "^u:\\d+$"
+          },
+          "driver_route": {
+            "type": "object",
+            "required": [
+              "id",
+              "trip",
+              "capacity",
+              "accepted_seats",
+              "compensation"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "trip": {
+                "type": "object",
+                "required": [
+                  "origin",
+                  "destination"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "origin": {
+                    "type": "object",
+                    "required": [
+                      "at",
+                      "location"
+                    ],
+                    "additionalProperties": false,
+                    "properties": {
+                      "at": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "location": {
+                        "type": "object",
+                        "required": [
+                          "type",
+                          "coordinates"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "const": "Point"
+                          },
+                          "coordinates": {
+                            "type": "array",
+                            "minItems": 2,
+                            "maxItems": 2,
+                            "items": {
+                              "type": "number"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "destination": {
+                    "type": "object",
+                    "required": [
+                      "at",
+                      "location"
+                    ],
+                    "additionalProperties": false,
+                    "properties": {
+                      "at": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "location": {
+                        "type": "object",
+                        "required": [
+                          "type",
+                          "coordinates"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "const": "Point"
+                          },
+                          "coordinates": {
+                            "type": "array",
+                            "minItems": 2,
+                            "maxItems": 2,
+                            "items": {
+                              "type": "number"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "compensation": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "accepted_seats": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "capacity": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          },
+          "riders": {
+            "type": "object",
+            "patternProperties": {
+              "^u:\\d+$": {
+                "type": "object",
+                "required": [
+                  "id",
+                  "cost",
+                  "seats",
+                  "trip"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "cost": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "seats": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "trip": {
+                    "type": "object",
+                    "required": [
+                      "origin",
+                      "destination"
+                    ],
+                    "additionalProperties": false,
+                    "properties": {
+                      "origin": {
+                        "type": "object",
+                        "required": [
+                          "at",
+                          "location"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "at": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "location": {
+                            "type": "object",
+                            "required": [
+                              "type",
+                              "coordinates"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "const": "Point"
+                              },
+                              "coordinates": {
+                                "type": "array",
+                                "minItems": 2,
+                                "maxItems": 2,
+                                "items": {
+                                  "type": "number"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "destination": {
+                        "type": "object",
+                        "required": [
+                          "at",
+                          "location"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "at": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "location": {
+                            "type": "object",
+                            "required": [
+                              "type",
+                              "coordinates"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "const": "Point"
+                              },
+                              "coordinates": {
+                                "type": "array",
+                                "minItems": 2,
+                                "maxItems": 2,
+                                "items": {
+                                  "type": "number"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
       "events": {
         "JoinRequest": {
           "trigger": [
@@ -1297,11 +1554,11 @@
                     },
                     {
                       "$set": {
-                        "context.accepted_seats_total": {
+                        "context.driver_route.accepted_seats": {
                           "$add": [
                             {
                               "$ifNull": [
-                                "$context.accepted_seats_total",
+                                "$context.driver_route.accepted_seats",
                                 0
                               ]
                             },
@@ -1427,7 +1684,7 @@
                                           },
                                           {
                                             "$ifNull": [
-                                              "$context.accepted_seats_total",
+                                              "$context.driver_route.accepted_seats",
                                               0
                                             ]
                                           }
@@ -2273,7 +2530,7 @@
                           "$add": [
                             {
                               "$ifNull": [
-                                "$context.accepted_seats_total",
+                                "$context.driver_route.accepted_seats",
                                 0
                               ]
                             },
@@ -2461,9 +2718,9 @@
                       "update": {
                         "$set": {
                           "states.$$ctx.doc.context.driver": "DRIVER",
-                          "context.accepted_seats_total": {
+                          "context.driver_route.accepted_seats": {
                             "$ifNull": [
-                              "$context.accepted_seats_total",
+                              "$context.driver_route.accepted_seats",
                               0
                             ]
                           }
@@ -2773,7 +3030,7 @@
                         "$add": [
                           {
                             "$ifNull": [
-                              "$context.accepted_seats_total",
+                              "$context.driver_route.accepted_seats",
                               0
                             ]
                           },
@@ -2811,11 +3068,11 @@
                   "update": {
                     "$set": {
                       "states.$$ctx.user": "ACCEPTED",
-                      "context.accepted_seats_total": {
+                      "context.driver_route.accepted_seats": {
                         "$add": [
                           {
                             "$ifNull": [
-                              "$context.accepted_seats_total",
+                              "$context.driver_route.accepted_seats",
                               0
                             ]
                           },
@@ -2989,7 +3246,7 @@
                                               },
                                               {
                                                 "$ifNull": [
-                                                  "$context.accepted_seats_total",
+                                                  "$context.driver_route.accepted_seats",
                                                   0
                                                 ]
                                               }
@@ -3767,13 +4024,13 @@
                       "type": "update.contract",
                       "update": {
                         "$set": {
-                          "context.accepted_seats_total": {
+                          "context.driver_route.accepted_seats": {
                             "$max": [
                               {
                                 "$subtract": [
                                   {
                                     "$ifNull": [
-                                      "$context.accepted_seats_total",
+                                      "$context.driver_route.accepted_seats",
                                       0
                                     ]
                                   },
@@ -4053,13 +4310,13 @@
                   "type": "update.contract",
                   "update": {
                     "$set": {
-                      "context.accepted_seats_total": {
+                      "context.driver_route.accepted_seats": {
                         "$max": [
                           {
                             "$subtract": [
                               {
                                 "$ifNull": [
-                                  "$context.accepted_seats_total",
+                                  "$context.driver_route.accepted_seats",
                                   0
                                 ]
                               },
@@ -4530,6 +4787,428 @@
       }
     },
     "IN_PROGRESS": {
+      "context_schema": {
+        "type": "object",
+        "required": [
+          "trip_payment_check_id",
+          "driver",
+          "riders",
+          "driver_route"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "group_id": {
+            "type": "string",
+            "pattern": "^g:.+$"
+          },
+          "trip_payment_check_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "driver": {
+            "type": "string",
+            "pattern": "^u:\\d+$"
+          },
+          "driver_route": {
+            "type": "object",
+            "required": [
+              "id",
+              "trip",
+              "capacity",
+              "accepted_seats",
+              "compensation",
+              "first_pickup_reminder_id",
+              "locations"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "locations": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "at",
+                    "location"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "accuracy": {
+                      "type": "number"
+                    },
+                    "at": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "location": {
+                      "type": "object",
+                      "required": [
+                        "type",
+                        "coordinates"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "const": "Point"
+                        },
+                        "coordinates": {
+                          "type": "array",
+                          "minItems": 2,
+                          "maxItems": 2,
+                          "items": {
+                            "type": "number"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "first_pickup_reminder_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "trip": {
+                "type": "object",
+                "required": [
+                  "origin",
+                  "destination"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "origin": {
+                    "type": "object",
+                    "required": [
+                      "at",
+                      "location"
+                    ],
+                    "additionalProperties": false,
+                    "properties": {
+                      "at": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "location": {
+                        "type": "object",
+                        "required": [
+                          "type",
+                          "coordinates"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "const": "Point"
+                          },
+                          "coordinates": {
+                            "type": "array",
+                            "minItems": 2,
+                            "maxItems": 2,
+                            "items": {
+                              "type": "number"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "destination": {
+                    "type": "object",
+                    "required": [
+                      "at",
+                      "location"
+                    ],
+                    "additionalProperties": false,
+                    "properties": {
+                      "at": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "location": {
+                        "type": "object",
+                        "required": [
+                          "type",
+                          "coordinates"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "const": "Point"
+                          },
+                          "coordinates": {
+                            "type": "array",
+                            "minItems": 2,
+                            "maxItems": 2,
+                            "items": {
+                              "type": "number"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "accepted_seats": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "compensation": {
+                "type": "number",
+                "minimum": 0
+              },
+              "capacity": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          },
+          "riders": {
+            "type": "object",
+            "additionalProperties": false,
+            "patternProperties": {
+              "^u:\\d+$": {
+                "type": "object",
+                "required": [
+                  "id",
+                  "cost",
+                  "seats",
+                  "trip",
+                  "pickup",
+                  "locations",
+                  "verification",
+                  "dispute"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "cost": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "seats": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "trip": {
+                    "type": "object",
+                    "required": [
+                      "origin",
+                      "destination"
+                    ],
+                    "additionalProperties": false,
+                    "properties": {
+                      "origin": {
+                        "type": "object",
+                        "required": [
+                          "at",
+                          "location"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "at": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "location": {
+                            "type": "object",
+                            "required": [
+                              "type",
+                              "coordinates"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "const": "Point"
+                              },
+                              "coordinates": {
+                                "type": "array",
+                                "minItems": 2,
+                                "maxItems": 2,
+                                "items": {
+                                  "type": "number"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "destination": {
+                        "type": "object",
+                        "required": [
+                          "at",
+                          "location"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "at": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "location": {
+                            "type": "object",
+                            "required": [
+                              "type",
+                              "coordinates"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "const": "Point"
+                              },
+                              "coordinates": {
+                                "type": "array",
+                                "minItems": 2,
+                                "maxItems": 2,
+                                "items": {
+                                  "type": "number"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "pickup": {
+                    "type": "object",
+                    "required": [
+                      "reminder_id",
+                      "zone",
+                      "window"
+                    ],
+                    "additionalProperties": false,
+                    "properties": {
+                      "reminder_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "zone": {
+                        "type": "object",
+                        "required": [
+                          "radius",
+                          "location"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "radius": {
+                            "type": "number",
+                            "minimum": 200
+                          },
+                          "location": {
+                            "type": "object",
+                            "required": [
+                              "type",
+                              "coordinates"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "const": "Point"
+                              },
+                              "coordinates": {
+                                "type": "array",
+                                "minItems": 2,
+                                "maxItems": 2,
+                                "items": {
+                                  "type": "number"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "window": {
+                        "start": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "end": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      }
+                    }
+                  },
+                  "locations": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "at",
+                        "location"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "accuracy": {
+                          "type": "number"
+                        },
+                        "at": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "location": {
+                          "type": "object",
+                          "required": [
+                            "type",
+                            "coordinates"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "const": "Point"
+                            },
+                            "coordinates": {
+                              "type": "array",
+                              "minItems": 2,
+                              "maxItems": 2,
+                              "items": {
+                                "type": "number"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "verification": {
+                    "type": "object",
+                    "required": [
+                      "pin",
+                      "masked"
+                    ],
+                    "additionalProperties": false,
+                    "properties": {
+                      "pin": {
+                        "type": "string",
+                        "pattern": "^\\d{6}$"
+                      },
+                      "masked": {
+                        "type": "string",
+                        "pattern": "^(?=(?:.*_){3})(?=(?:.*\\d){3})[\\d_]{6}$"
+                      }
+                    }
+                  },
+                  "dispute": {
+                    "type": "boolean",
+                    "default": false
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
       "events": {
         "UserCancelRide": {
           "trigger": [
@@ -5238,6 +5917,69 @@
                           ]
                         }
                       ]
+                    },
+                    "local.confirmed_targets": {
+                      "$arrayToObject": {
+                        "$map": {
+                          "input": {
+                            "$ifNull": [
+                              "$local.confirmed_principals",
+                              []
+                            ]
+                          },
+                          "as": "p",
+                          "in": {
+                            "k": "$$p",
+                            "v": [
+                              "in_app",
+                              "push"
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "local.has_confirmed_targets": {
+                      "$gt": [
+                        {
+                          "$size": {
+                            "$ifNull": [
+                              "$local.confirmed_principals",
+                              []
+                            ]
+                          }
+                        },
+                        0
+                      ]
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "title": "Notify Pickup Confirmed Riders",
+              "description": "Notifies riders when pickup is confirmed by driver PIN check.",
+              "type": "if.else",
+              "condition": {
+                "$ctx": "doc.local.has_confirmed_targets"
+              },
+              "then_effects": [
+                {
+                  "title": "Dispatch Pickup Confirmed",
+                  "description": "Delivers pickup confirmation notifications to confirmed riders.",
+                  "type": "notify",
+                  "notify": {
+                    "event": "contracts.pickup_confirmed",
+                    "targets": {
+                      "$ctx": "doc.local.confirmed_targets"
+                    },
+                    "payload": {
+                      "contract_id": {
+                        "$ctx": "doc._id"
+                      },
+                      "confirmed_principals": {
+                        "$ctx": "doc.local.confirmed_principals"
+                      },
+                      "confirmed_at": "$$NOW"
                     }
                   }
                 }
@@ -5313,6 +6055,29 @@
                   }
                 }
               }
+            },
+            {
+              "title": "Notify Driver About Rider Dispute",
+              "description": "Notifies driver immediately when rider reports not picked.",
+              "type": "notify",
+              "notify": {
+                "event": "contracts.dispute_opened",
+                "targets": {
+                  "$$ctx.doc.context.driver": [
+                    "in_app",
+                    "push"
+                  ]
+                },
+                "payload": {
+                  "contract_id": {
+                    "$ctx": "doc._id"
+                  },
+                  "type": "rider_not_picked",
+                  "rider": "$$ctx.user",
+                  "reported_by": "$$ctx.user",
+                  "at": "$$NOW"
+                }
+              }
             }
           ]
         },
@@ -5371,6 +6136,29 @@
                   }
                 }
               }
+            },
+            {
+              "title": "Notify Rider About Driver Dispute",
+              "description": "Notifies target rider when driver reports pickup absence.",
+              "type": "notify",
+              "notify": {
+                "event": "contracts.dispute_opened",
+                "targets": {
+                  "$$ctx.payload.rider": [
+                    "in_app",
+                    "push"
+                  ]
+                },
+                "payload": {
+                  "contract_id": {
+                    "$ctx": "doc._id"
+                  },
+                  "type": "rider_not_at_pickup",
+                  "rider": "$$ctx.payload.rider",
+                  "reported_by": "$$ctx.user",
+                  "at": "$$NOW"
+                }
+              }
             }
           ]
         },
@@ -5410,8 +6198,336 @@
           ],
           "effects": [
             {
+              "title": "Collect Cancel Trip Inputs",
+              "description": "Collects first refundable and non-refundable riders for cancellation handling.",
+              "type": "update.contract",
+              "update": [
+                {
+                  "$set": {
+                    "local.first_refund_principal": {
+                      "$arrayElemAt": [
+                        {
+                          "$map": {
+                            "input": {
+                              "$filter": {
+                                "input": {
+                                  "$objectToArray": {
+                                    "$ifNull": [
+                                      "$states",
+                                      {}
+                                    ]
+                                  }
+                                },
+                                "as": "sv",
+                                "cond": {
+                                  "$eq": [
+                                    "$$sv.v",
+                                    "ACCEPTED"
+                                  ]
+                                }
+                              }
+                            },
+                            "as": "sv",
+                            "in": "$$sv.k"
+                          }
+                        },
+                        0
+                      ]
+                    },
+                    "local.first_non_refund_principal": {
+                      "$arrayElemAt": [
+                        {
+                          "$map": {
+                            "input": {
+                              "$filter": {
+                                "input": {
+                                  "$objectToArray": {
+                                    "$ifNull": [
+                                      "$states",
+                                      {}
+                                    ]
+                                  }
+                                },
+                                "as": "sv",
+                                "cond": {
+                                  "$eq": [
+                                    "$$sv.v",
+                                    "ONBOARD"
+                                  ]
+                                }
+                              }
+                            },
+                            "as": "sv",
+                            "in": "$$sv.k"
+                          }
+                        },
+                        0
+                      ]
+                    }
+                  }
+                },
+                {
+                  "$set": {
+                    "local.first_refund_route_id": {
+                      "$arrayElemAt": [
+                        {
+                          "$map": {
+                            "input": {
+                              "$filter": {
+                                "input": {
+                                  "$objectToArray": {
+                                    "$ifNull": [
+                                      "$context.riders",
+                                      {}
+                                    ]
+                                  }
+                                },
+                                "as": "rv",
+                                "cond": {
+                                  "$eq": [
+                                    "$$rv.k",
+                                    "$local.first_refund_principal"
+                                  ]
+                                }
+                              }
+                            },
+                            "as": "rv",
+                            "in": "$$rv.v.id"
+                          }
+                        },
+                        0
+                      ]
+                    },
+                    "local.first_refund_amount": {
+                      "$ifNull": [
+                        {
+                          "$arrayElemAt": [
+                            {
+                              "$map": {
+                                "input": {
+                                  "$filter": {
+                                    "input": {
+                                      "$objectToArray": {
+                                        "$ifNull": [
+                                          "$context.riders",
+                                          {}
+                                        ]
+                                      }
+                                    },
+                                    "as": "rv",
+                                    "cond": {
+                                      "$eq": [
+                                        "$$rv.k",
+                                        "$local.first_refund_principal"
+                                      ]
+                                    }
+                                  }
+                                },
+                                "as": "rv",
+                                "in": {
+                                  "$ifNull": [
+                                    "$$rv.v.cost",
+                                    10
+                                  ]
+                                }
+                              }
+                            },
+                            0
+                          ]
+                        },
+                        10
+                      ]
+                    },
+                    "local.has_first_refund": {
+                      "$ifNull": [
+                        "$local.first_refund_principal",
+                        false
+                      ]
+                    },
+                    "local.has_first_non_refund": {
+                      "$ifNull": [
+                        "$local.first_non_refund_principal",
+                        false
+                      ]
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "title": "Refund First Non-Onboard Rider",
+              "description": "Refunds first non-onboard rider when present.",
+              "type": "if.else",
+              "condition": {
+                "$ctx": "doc.local.has_first_refund"
+              },
+              "then_effects": [
+                {
+                  "title": "Apply First Refund",
+                  "description": "Credits first non-onboard rider wallet with cancellation refund.",
+                  "type": "charge.credits",
+                  "credit": {
+                    "product": "coin",
+                    "user_id": {
+                      "$ctx": "local.first_refund_principal"
+                    },
+                    "amount": {
+                      "$ctx": "local.first_refund_amount"
+                    }
+                  }
+                },
+                {
+                  "title": "Cleanup First Refunded Route",
+                  "description": "Unlinks first refunded rider route and clears reserved credits.",
+                  "type": "update.item",
+                  "item_id": {
+                    "$ctx": "local.first_refund_route_id"
+                  },
+                  "update": {
+                    "$set": {
+                      "data.contract_ids": {
+                        "$setDifference": [
+                          {
+                            "$ifNull": [
+                              "$data.contract_ids",
+                              []
+                            ]
+                          },
+                          [
+                            {
+                              "$ctx": "doc._id"
+                            }
+                          ]
+                        ]
+                      },
+                      "data.reserved_credits": 0
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "title": "Remove Riders From Group",
+              "description": "Removes refunded and onboard riders from trip group when present.",
+              "type": "if.else",
+              "condition": {
+                "$ifNull": [
+                  "$context.group_id",
+                  false
+                ]
+              },
+              "then_effects": [
+                {
+                  "title": "Apply Group Member Removal",
+                  "description": "Removes all rider members while keeping driver admin.",
+                  "type": "update.group",
+                  "group_id": {
+                    "$ctx": "doc.context.group_id"
+                  },
+                  "edit_members": {
+                    "remove_members": [
+                      {
+                        "$ctx": "local.first_refund_principal"
+                      },
+                      {
+                        "$ctx": "local.first_non_refund_principal"
+                      }
+                    ],
+                    "promote_admins": [
+                      {
+                        "$ctx": "doc.context.driver"
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "title": "Notify Refunded Riders",
+              "description": "Notifies refunded riders about in-progress driver cancellation.",
+              "type": "if.else",
+              "condition": {
+                "$ctx": "doc.local.has_first_refund"
+              },
+              "then_effects": [
+                {
+                  "title": "Dispatch Refunded Rider Cancellation",
+                  "description": "Sends cancellation notification with refunded=true to eligible riders.",
+                  "type": "notify",
+                  "notify": {
+                    "event": "contracts.driver_cancelled_trip",
+                    "targets": {
+                      "$$ctx.doc.local.first_refund_principal": [
+                        "in_app",
+                        "push"
+                      ]
+                    },
+                    "payload": {
+                      "contract_id": {
+                        "$ctx": "doc._id"
+                      },
+                      "reason": "driver_cancel_in_progress",
+                      "refunded": true
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "title": "Notify Non-Refunded Riders",
+              "description": "Notifies onboard riders about cancellation with no refund.",
+              "type": "if.else",
+              "condition": {
+                "$ctx": "doc.local.has_first_non_refund"
+              },
+              "then_effects": [
+                {
+                  "title": "Dispatch Non-Refunded Rider Cancellation",
+                  "description": "Sends cancellation notification with refunded=false to onboard riders.",
+                  "type": "notify",
+                  "notify": {
+                    "event": "contracts.driver_cancelled_trip",
+                    "targets": {
+                      "$$ctx.doc.local.first_non_refund_principal": [
+                        "in_app",
+                        "push"
+                      ]
+                    },
+                    "payload": {
+                      "contract_id": {
+                        "$ctx": "doc._id"
+                      },
+                      "reason": "driver_cancel_in_progress",
+                      "refunded": false
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "title": "Notify Driver Cancellation Applied",
+              "description": "Notifies driver that trip cancellation has been applied.",
+              "type": "notify",
+              "notify": {
+                "event": "contracts.driver_cancelled_trip",
+                "targets": {
+                  "$$ctx.doc.context.driver": [
+                    "in_app",
+                    "push"
+                  ]
+                },
+                "payload": {
+                  "contract_id": {
+                    "$ctx": "doc._id"
+                  },
+                  "reason": "driver_cancel_in_progress",
+                  "refunded": null
+                }
+              }
+            },
+            {
               "title": "Move Cancelled",
-              "description": "Cancels active trip by driver action.",
+              "description": "Cancels active trip by driver action after refunds and notifications.",
               "type": "update.contract",
               "update": {
                 "$set": {
@@ -5469,7 +6585,10 @@
                       "contract_id": {
                         "$ctx": "doc._id"
                       },
-                      "principal": "$$ctx.payload.principal"
+                      "principal": "$$ctx.payload.principal",
+                      "pickup_plan": {
+                        "$ctx": "doc.context.pickup_plan"
+                      }
                     }
                   }
                 }
@@ -6517,7 +7636,7 @@
           },
           {
             "title": "Complete Contract",
-            "description": "Stores payment decision and marks contract completed.",
+            "description": "Stores payment decision before settlement notifications.",
             "type": "update.contract",
             "update": {
               "$set": {
@@ -6527,8 +7646,155 @@
                       "$local.driver_total_payout",
                       0
                     ]
+                  },
+                  "driver_compensation": {
+                    "$ifNull": [
+                      "$context.driver_compensation",
+                      0
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          {
+            "title": "Notify Driver Payment Settlement",
+            "description": "Notifies driver with final payment settlement summary.",
+            "type": "notify",
+            "notify": {
+              "event": "contracts.payment_settled_driver",
+              "targets": {
+                "$$ctx.doc.context.driver": [
+                  "in_app",
+                  "push"
+                ]
+              },
+              "payload": {
+                "contract_id": {
+                  "$ctx": "doc._id"
+                },
+                "driver_total_payout": {
+                  "$ifNull": [
+                    "$local.driver_total_payout",
+                    0
+                  ]
+                },
+                "driver_compensation": {
+                  "$ifNull": [
+                    "$context.driver_compensation",
+                    0
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "title": "Build Rider Settlement Targets",
+            "description": "Builds rider notification targets for settlement outcomes.",
+            "type": "update.contract",
+            "update": {
+              "$set": {
+                "local.payment_rider_targets": {
+                  "$arrayToObject": {
+                    "$map": {
+                      "input": {
+                        "$ifNull": [
+                          {
+                            "$map": {
+                              "input": {
+                                "$objectToArray": {
+                                  "$ifNull": [
+                                    "$context.riders",
+                                    {}
+                                  ]
+                                }
+                              },
+                              "as": "rv",
+                              "in": "$$rv.k"
+                            }
+                          },
+                          []
+                        ]
+                      },
+                      "as": "p",
+                      "in": {
+                        "k": "$$p",
+                        "v": [
+                          "in_app",
+                          "push"
+                        ]
+                      }
+                    }
                   }
                 },
+                "local.has_payment_rider_targets": {
+                  "$gt": [
+                    {
+                      "$size": {
+                        "$objectToArray": {
+                          "$ifNull": [
+                            "$context.riders",
+                            {}
+                          ]
+                        }
+                      }
+                    },
+                    0
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "title": "Notify Rider Payment Settlement",
+            "description": "Notifies riders with settlement summary payload.",
+            "type": "if.else",
+            "condition": {
+              "$ctx": "doc.local.has_payment_rider_targets"
+            },
+            "then_effects": [
+              {
+                "title": "Dispatch Rider Settlement",
+                "description": "Sends rider settlement notification to all rider targets.",
+                "type": "notify",
+                "notify": {
+                  "event": "contracts.payment_settled_rider",
+                  "targets": {
+                    "$ctx": "doc.local.payment_rider_targets"
+                  },
+                  "payload": {
+                    "contract_id": {
+                      "$ctx": "doc._id"
+                    },
+                    "driver_total_payout": {
+                      "$ifNull": [
+                        "$local.driver_total_payout",
+                        0
+                      ]
+                    },
+                    "driver_compensation": {
+                      "$ifNull": [
+                        "$context.driver_compensation",
+                        0
+                      ]
+                    },
+                    "disputes": {
+                      "$ifNull": [
+                        "$context.disputes",
+                        []
+                      ]
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "title": "Mark Contract Completed",
+            "description": "Marks contract completed after settlement notifications.",
+            "type": "update.contract",
+            "update": {
+              "$set": {
                 "state": "COMPLETED",
                 "status": "COMPLETED"
               }
