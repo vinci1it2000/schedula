@@ -84,7 +84,20 @@
                       "$map": {
                         "input": {
                           "$filter": {
-                            "input": "$local.rider_routes",
+                            "input": {
+                              "$map": {
+                                "input": {
+                                  "$objectToArray": {
+                                    "$ifNull": [
+                                      "$local.rider_routes",
+                                      {}
+                                    ]
+                                  }
+                                },
+                                "as": "rr",
+                                "in": "$$rr.v"
+                              }
+                            },
                             "as": "r",
                             "cond": {
                               "$and": [
@@ -4608,10 +4621,18 @@
                         "input": {
                           "$filter": {
                             "input": {
-                              "$ifNull": [
-                                "$local.trip_cancel_routes_after",
-                                []
-                              ]
+                              "$map": {
+                                "input": {
+                                  "$objectToArray": {
+                                    "$ifNull": [
+                                      "$local.trip_cancel_routes_after",
+                                      {}
+                                    ]
+                                  }
+                                },
+                                "as": "rtv",
+                                "in": "$$rtv.v"
+                              }
                             },
                             "as": "rt",
                             "cond": {

@@ -241,11 +241,17 @@ def _apply_effect_step(
             }
             local[key] = func(what, job)
     elif ef_type == "unschedule.event":
-        if isinstance(ef.get("event_id"), str):
-            events = [ef["event_id"]]
+        event_id = ef.get("event_id")
+        if isinstance(event_id, str):
+            events = [event_id]
+        elif isinstance(event_id, list):
+            events = event_id
+        else:
+            events = []
         from .schedule import unschedule_events
 
-        unschedule_events(events)
+        if events:
+            unschedule_events(events)
     elif ef_type == "create.group":
         from ..security.groups import Group
         from ..security.casbin import bootstrap_group
@@ -334,6 +340,9 @@ def _apply_effect_step(
         coll = get_mongo(collection=config_get("ITEMS_COLLECTION", "items"))
         now = now_utc()
         out_key = None
+        find_one_and_update_opts = {"returnDocument": "after"}
+        if ef.get("projection"):
+            find_one_and_update_opts["projection"] = ef["projection"]
         if "updates" in ef:
             updates = ef["updates"]
         else:
@@ -355,7 +364,7 @@ def _apply_effect_step(
                     *update,
                     {"$set": {"updated_at": now}},
                 ],
-                {"returnDocument": "after", "projection": ef.get("projection", {})},
+                find_one_and_update_opts,
                 let={
                     "user": actor_id,
                     "payload": payload,
@@ -378,7 +387,11 @@ def _apply_effect_step(
         item_ids = ef["item_id"]
         if isinstance(ef["item_id"], str):
             item_ids = [ef["item_id"]]
-        docs = list(mongo_find(coll, {"_id": {"$in": item_ids}}, projection=ef.get("projection", {})))
+        docs = list(
+            mongo_find(
+                coll, {"_id": {"$in": item_ids}}, projection=ef.get("projection", {})
+            )
+        )
 
         found_ids = {doc["_id"] for doc in docs}
         requested_ids = set(item_ids)
@@ -396,7 +409,13 @@ def _apply_effect_step(
         contract_ids = ef["contract_id"]
         if isinstance(ef["contract_id"], str):
             contract_ids = [ef["contract_id"]]
-        docs = list(mongo_find(_contracts_coll(), {"_id": {"$in": contract_ids}}, projection=ef.get("projection", {})))
+        docs = list(
+            mongo_find(
+                _contracts_coll(),
+                {"_id": {"$in": contract_ids}},
+                projection=ef.get("projection", {}),
+            )
+        )
 
         found_ids = {doc["_id"] for doc in docs}
         requested_ids = set(contract_ids)
@@ -458,7 +477,9 @@ def _apply_effects(
             doc = _close_contract(doc)
             return changed, doc
     if validate_schema:
-        validate_context_schema(doc, pydash.get(doc, f"definition.states.{doc['state']}"))
+        validate_context_schema(
+            doc, pydash.get(doc, f"definition.states.{doc['state']}")
+        )
     return False, doc
 
 
