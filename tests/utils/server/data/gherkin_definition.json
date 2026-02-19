@@ -1371,10 +1371,8 @@
                   "type": "update.contract",
                   "update": {
                     "$set": {
-                      "state": "SYNC_CHAT",
-                      "local.sync_chat_needs_pruning": true,
-                      "local.sync_chat_needs_accept_reconcile": true,
-                      "local.sync_chat_accepted_rider": "$$ctx.payload.rider"
+                      "state": "SYNC",
+                      "local.sync_accepted_rider": "$$ctx.payload.rider"
                     }
                   }
                 }
@@ -1476,9 +1474,9 @@
                   "type": "update.contract",
                   "update": {
                     "$set": {
-                      "state": "SYNC_CHAT",
-                      "local.sync_chat_needs_route_cleanup": true,
-                      "local.sync_chat_cleanup_principal": "$$ctx.payload.rider"
+                      "state": "SYNC",
+                      "local.sync_needs_route_cleanup": true,
+                      "local.sync_cleanup_principal": "$$ctx.payload.rider"
                     }
                   }
                 }
@@ -2018,10 +2016,8 @@
                   "type": "update.contract",
                   "update": {
                     "$set": {
-                      "state": "SYNC_CHAT",
-                      "local.sync_chat_needs_pruning": true,
-                      "local.sync_chat_needs_accept_reconcile": true,
-                      "local.sync_chat_accepted_rider": "$$ctx.user"
+                      "state": "SYNC",
+                      "local.sync_accepted_rider": "$$ctx.user"
                     }
                   }
                 }
@@ -2211,9 +2207,9 @@
                   "type": "update.contract",
                   "update": {
                     "$set": {
-                      "state": "SYNC_CHAT",
-                      "local.sync_chat_needs_route_cleanup": true,
-                      "local.sync_chat_cleanup_principal": "$$ctx.payload.rider"
+                      "state": "SYNC",
+                      "local.sync_needs_route_cleanup": true,
+                      "local.sync_cleanup_principal": "$$ctx.payload.rider"
                     }
                   }
                 }
@@ -2312,9 +2308,9 @@
               "type": "update.contract",
               "update": {
                 "$set": {
-                  "state": "SYNC_CHAT",
-                  "local.sync_chat_needs_route_cleanup": true,
-                  "local.sync_chat_cleanup_principal": "$$ctx.user"
+                  "state": "SYNC",
+                  "local.sync_needs_route_cleanup": true,
+                  "local.sync_cleanup_principal": "$$ctx.user"
                 }
               }
             }
@@ -2439,127 +2435,67 @@
         }
       }
     },
-    "SYNC_CHAT": {
+    "SYNC": {
       "on_enter": {
         "effects": [
           {
-            "title": "Detect Missing Group",
-            "description": "Checks whether the coordination group exists.",
+            "title": "Resolve Sync Flags",
+            "description": "Normalizes SYNC transient flags and accepted-rider inputs.",
             "type": "update.contract",
-            "update": {
-              "$set": {
-                "local.group_missing": {
-                  "$not": [
-                    {
-                      "$ifNull": [
-                        "$context.group_id",
-                        false
-                      ]
-                    }
-                  ]
-                }
-              }
-            }
-          },
-          {
-            "title": "Create Group If Missing",
-            "description": "Creates and links the coordination group when absent.",
-            "type": "if.else",
-            "condition": {
-              "$ctx": "doc.local.group_missing"
-            },
-            "then_effects": [
+            "update": [
               {
-                "title": "Create Group",
-                "description": "Creates the coordination group for active riders.",
-                "type": "create.group",
-                "name": "trip-$$ctx.doc._id",
-                "sub": "$$ctx.doc.context.driver",
-                "key": "group_ref"
+                "$set": {
+                  "local.sync_accepted_rider": {
+                    "$ifNull": [
+                      "$local.sync_accepted_rider",
+                      ""
+                    ]
+                  },
+                  "local.sync_cleanup_principal": {
+                    "$ifNull": [
+                      "$local.sync_cleanup_principal",
+                      ""
+                    ]
+                  }
+                }
               },
               {
-                "title": "Link Coordination Group",
-                "description": "Stores group linkage for roster synchronization.",
-                "type": "update.contract",
-                "update": {
-                  "$set": {
-                    "context.group_id": {
-                      "$ctx": "local.group_ref"
-                    }
+                "$set": {
+                  "local.sync_needs_pruning": {
+                    "$ifNull": [
+                      "$local.sync_needs_pruning",
+                      {
+                        "$ne": [
+                          "$local.sync_accepted_rider",
+                          ""
+                        ]
+                      }
+                    ]
+                  },
+                  "local.sync_needs_route_cleanup": {
+                    "$ifNull": [
+                      "$local.sync_needs_route_cleanup",
+                      false
+                    ]
+                  },
+                  "local.sync_cleanup_route_id": {
+                    "$ifNull": [
+                      {
+                        "$ctx": "doc.context.riders.$$ctx.local.sync_cleanup_principal.id"
+                      },
+                      ""
+                    ]
                   }
                 }
               }
             ]
           },
           {
-            "title": "Resolve Sync Flags",
-            "description": "Normalizes SYNC_CHAT transient flags and accepted-rider inputs.",
-            "type": "update.contract",
-            "update": {
-              "$set": {
-                "local.sync_chat_needs_pruning": {
-                  "$ifNull": [
-                    "$local.sync_chat_needs_pruning",
-                    false
-                  ]
-                },
-                "local.sync_chat_needs_accept_reconcile": {
-                  "$ifNull": [
-                    "$local.sync_chat_needs_accept_reconcile",
-                    false
-                  ]
-                },
-                "local.sync_chat_accepted_rider": {
-                  "$ifNull": [
-                    "$local.sync_chat_accepted_rider",
-                    ""
-                  ]
-                },
-                "local.sync_chat_accepted_route_id": {
-                  "$ifNull": [
-                    {
-                      "$ctx": "doc.context.riders.$$ctx.local.sync_chat_accepted_rider.id"
-                    },
-                    ""
-                  ]
-                },
-                "local.sync_chat_accepted_rider_cost": {
-                  "$ifNull": [
-                    {
-                      "$ctx": "doc.context.riders.$$ctx.local.sync_chat_accepted_rider.cost"
-                    },
-                    0
-                  ]
-                },
-                "local.sync_chat_needs_route_cleanup": {
-                  "$ifNull": [
-                    "$local.sync_chat_needs_route_cleanup",
-                    false
-                  ]
-                },
-                "local.sync_chat_cleanup_principal": {
-                  "$ifNull": [
-                    "$local.sync_chat_cleanup_principal",
-                    ""
-                  ]
-                },
-                "local.sync_chat_cleanup_route_id": {
-                  "$ifNull": [
-                    {
-                      "$ctx": "doc.context.riders.$$ctx.local.sync_chat_cleanup_principal.id"
-                    },
-                    ""
-                  ]
-                }
-              }
-            }
-          },
-          {
             "title": "Run Accepted Rider Reconcile",
             "description": "Runs accepted-rider reconciliation before pruning and member sync.",
             "type": "if.else",
             "condition": {
-              "$ctx": "doc.local.sync_chat_needs_accept_reconcile"
+              "$ctx": "doc.local.sync_accepted_rider"
             },
             "then_effects": [
               {
@@ -2567,7 +2503,7 @@
                 "description": "Loads accepted rider route for reconciliation.",
                 "type": "get.item",
                 "item_id": {
-                  "$ctx": "local.sync_chat_accepted_route_id"
+                  "$ctx": "doc.context.riders.$$ctx.local.sync_accepted_rider.id"
                 },
                 "key": "accepted_rider_route"
               },
@@ -2578,24 +2514,19 @@
                 "update": [
                   {
                     "$set": {
-                      "local.sync_chat_accepted_rider_cost": {
+                      "local.sync_accepted_rider_cost": {
                         "$ifNull": [
                           {
-                            "$ctx": "doc.context.riders.$$ctx.local.sync_chat_accepted_rider.cost"
+                            "$ctx": "doc.context.riders.$$ctx.local.sync_accepted_rider.cost"
                           },
-                          {
-                            "$ifNull": [
-                              "$local.accepted_rider_route.data.cost",
-                              0
-                            ]
-                          }
+                          0
                         ]
                       },
-                      "local.sync_chat_accepted_rider_targets": {
+                      "local.sync_accepted_rider_targets": {
                         "$arrayToObject": [
                           [
                             {
-                              "k": "$local.sync_chat_accepted_rider",
+                              "k": "$local.sync_accepted_rider",
                               "v": [
                                 "in_app",
                                 "push"
@@ -2608,7 +2539,7 @@
                   },
                   {
                     "$set": {
-                      "local.sync_chat_accepted_rider_partial_refund": {
+                      "local.sync_accepted_rider_partial_refund": {
                         "$max": [
                           {
                             "$subtract": [
@@ -2618,40 +2549,19 @@
                                   0
                                 ]
                               },
-                              {
-                                "$ifNull": [
-                                  "$local.sync_chat_accepted_rider_cost",
-                                  0
-                                ]
-                              }
+                              "$local.sync_accepted_rider_cost"
                             ]
                           },
                           0
                         ]
-                      },
-                      "local.sync_chat_has_accepted_rider_partial_refund": {
+                      }
+                    }
+                  },
+                  {
+                    "$set": {
+                      "local.sync_has_accepted_rider_partial_refund": {
                         "$gt": [
-                          {
-                            "$max": [
-                              {
-                                "$subtract": [
-                                  {
-                                    "$ifNull": [
-                                      "$local.accepted_rider_route.data.reserved_credits",
-                                      0
-                                    ]
-                                  },
-                                  {
-                                    "$ifNull": [
-                                      "$local.sync_chat_accepted_rider_cost",
-                                      0
-                                    ]
-                                  }
-                                ]
-                              },
-                              0
-                            ]
-                          },
+                          "$local.sync_accepted_rider_partial_refund",
                           0
                         ]
                       }
@@ -2664,7 +2574,7 @@
                 "description": "Applies accepted-rider partial refund when positive.",
                 "type": "if.else",
                 "condition": {
-                  "$ctx": "doc.local.sync_chat_has_accepted_rider_partial_refund"
+                  "$ctx": "doc.local.sync_has_accepted_rider_partial_refund"
                 },
                 "then_effects": [
                   {
@@ -2673,12 +2583,8 @@
                     "type": "charge.credits",
                     "credit": {
                       "product": "coin",
-                      "user_id": {
-                        "$ctx": "local.sync_chat_accepted_rider"
-                      },
-                      "amount": {
-                        "$ctx": "local.sync_chat_accepted_rider_partial_refund"
-                      }
+                      "user_id": "$$ctx.local.sync_accepted_rider",
+                      "amount": "$$ctx.local.sync_accepted_rider_partial_refund"
                     }
                   }
                 ]
@@ -2716,8 +2622,8 @@
                               {
                                 "$literal": {
                                   "$unset": [
-                                    "context.riders.$$ctx.local.sync_chat_accepted_rider",
-                                    "states.$$ctx.local.sync_chat_accepted_rider"
+                                    "context.riders.$$ctx.local.sync_accepted_rider",
+                                    "states.$$ctx.local.sync_accepted_rider"
                                   ]
                                 }
                               }
@@ -2725,12 +2631,6 @@
                           }
                         }
                       }
-                    },
-                    "local.accepted_rider_contract_ids": {
-                      "$ifNull": [
-                        "$local.accepted_rider_route.data.contract_ids",
-                        []
-                      ]
                     }
                   }
                 }
@@ -2741,14 +2641,9 @@
                 "type": "update.contract",
                 "updates": {
                   "$ctx": "local.remove_rider_other_contracts"
-                }
-              },
-              {
-                "title": "Load Related Contracts",
-                "description": "Loads related contracts to gather affected driver targets.",
-                "type": "get.contract",
-                "contract_id": {
-                  "$ctx": "local.accepted_rider_contract_ids"
+                },
+                "projection": {
+                  "context.driver": 1
                 },
                 "key": "accepted_rider_contracts"
               },
@@ -2757,7 +2652,7 @@
                 "description": "Persists winning contract link and aligned reserved credits on route.",
                 "type": "update.item",
                 "item_id": {
-                  "$ctx": "local.sync_chat_accepted_route_id"
+                  "$ctx": "doc.context.riders.$$ctx.local.sync_accepted_rider.id"
                 },
                 "update": {
                   "$set": {
@@ -2766,19 +2661,7 @@
                         "$ctx": "doc._id"
                       }
                     ],
-                    "data.reserved_credits": {
-                      "$ifNull": [
-                        {
-                          "$ctx": "doc.context.riders.$$ctx.local.sync_chat_accepted_rider.cost"
-                        },
-                        {
-                          "$ifNull": [
-                            "$local.sync_chat_accepted_rider_cost",
-                            0
-                          ]
-                        }
-                      ]
-                    }
+                    "data.reserved_credits": "$$ctx.local.sync_accepted_rider_cost"
                   }
                 }
               },
@@ -2792,25 +2675,16 @@
                       "$arrayToObject": {
                         "$map": {
                           "input": {
-                            "$filter": {
-                              "input": {
-                                "$ifNull": [
-                                  "$local.accepted_rider_contracts",
-                                  []
-                                ]
-                              },
-                              "as": "c",
-                              "cond": {
-                                "$ne": [
-                                  "$$c._id",
-                                  "$_id"
-                                ]
-                              }
+                            "$objectToArray": {
+                              "$ifNull": [
+                                "$$ctx.local.accepted_rider_contracts",
+                                {}
+                              ]
                             }
                           },
                           "as": "c",
                           "in": {
-                            "k": "$$c.context.driver",
+                            "k": "$$c.v.context.driver",
                             "v": [
                               "in_app",
                               "push"
@@ -2836,7 +2710,7 @@
                       "$ctx": "doc._id"
                     },
                     "principal": {
-                      "$ctx": "local.sync_chat_accepted_rider"
+                      "$ctx": "local.sync_accepted_rider"
                     }
                   }
                 }
@@ -2848,7 +2722,7 @@
                 "notify": {
                   "event": "contracts.accepted_request",
                   "targets": {
-                    "$ctx": "local.sync_chat_accepted_rider_targets"
+                    "$ctx": "local.sync_accepted_rider_targets"
                   },
                   "payload": {
                     "contract_id": {
@@ -2864,7 +2738,7 @@
             "description": "Runs shared route unlink and conditional refund cleanup.",
             "type": "if.else",
             "condition": {
-              "$ctx": "doc.local.sync_chat_needs_route_cleanup"
+              "$ctx": "doc.local.sync_needs_route_cleanup"
             },
             "then_effects": [
               {
@@ -2873,7 +2747,7 @@
                 "type": "update.contract",
                 "update": {
                   "$unset": [
-                    "context.riders.$$ctx.local.sync_chat_cleanup_principal"
+                    "context.riders.$$ctx.local.sync_cleanup_principal"
                   ]
                 }
               },
@@ -2882,7 +2756,7 @@
                 "description": "Unlinks current contract from cleanup route contract list.",
                 "type": "update.item",
                 "item_id": {
-                  "$ctx": "local.sync_chat_cleanup_route_id"
+                  "$ctx": "local.sync_cleanup_route_id"
                 },
                 "update": {
                   "$set": {
@@ -2909,9 +2783,9 @@
                 "description": "Reloads cleanup route after unlink.",
                 "type": "get.item",
                 "item_id": {
-                  "$ctx": "local.sync_chat_cleanup_route_id"
+                  "$ctx": "local.sync_cleanup_route_id"
                 },
-                "key": "sync_chat_cleanup_route_after"
+                "key": "sync_cleanup_route_after"
               },
               {
                 "title": "Compute Route Cleanup Refund",
@@ -2919,14 +2793,14 @@
                 "type": "update.contract",
                 "update": {
                   "$set": {
-                    "local.sync_chat_cleanup_refund_amount": {
+                    "local.sync_cleanup_refund_amount": {
                       "$cond": [
                         {
                           "$eq": [
                             {
                               "$size": {
                                 "$ifNull": [
-                                  "$local.sync_chat_cleanup_route_after.data.contract_ids",
+                                  "$$ctx.local.sync_cleanup_route_after.data.contract_ids",
                                   []
                                 ]
                               }
@@ -2936,18 +2810,18 @@
                         },
                         {
                           "$ifNull": [
-                            "$local.sync_chat_cleanup_route_after.data.reserved_credits",
+                            "$local.sync_cleanup_route_after.data.reserved_credits",
                             0
                           ]
                         },
                         0
                       ]
                     },
-                    "local.sync_chat_cleanup_has_refund": {
+                    "local.sync_cleanup_has_refund": {
                       "$gt": [
                         {
                           "$ifNull": [
-                            "$local.sync_chat_cleanup_refund_amount",
+                            "$local.sync_cleanup_refund_amount",
                             0
                           ]
                         },
@@ -2962,7 +2836,7 @@
                 "description": "Applies cleanup refund and route credit reset when eligible.",
                 "type": "if.else",
                 "condition": {
-                  "$ctx": "doc.local.sync_chat_cleanup_has_refund"
+                  "$ctx": "doc.local.sync_cleanup_has_refund"
                 },
                 "then_effects": [
                   {
@@ -2972,10 +2846,10 @@
                     "credit": {
                       "product": "coin",
                       "user_id": {
-                        "$ctx": "local.sync_chat_cleanup_principal"
+                        "$ctx": "local.sync_cleanup_principal"
                       },
                       "amount": {
-                        "$ctx": "local.sync_chat_cleanup_refund_amount"
+                        "$ctx": "local.sync_cleanup_refund_amount"
                       }
                     }
                   },
@@ -2984,7 +2858,7 @@
                     "description": "Resets cleanup route reserved credits after refund.",
                     "type": "update.item",
                     "item_id": {
-                      "$ctx": "local.sync_chat_cleanup_route_id"
+                      "$ctx": "local.sync_cleanup_route_id"
                     },
                     "update": {
                       "$set": {
@@ -3001,7 +2875,7 @@
             "description": "Runs over-capacity pruning when requested by onboarding transitions.",
             "type": "if.else",
             "condition": {
-              "$ctx": "doc.local.sync_chat_needs_pruning"
+              "$ctx": "doc.local.sync_needs_pruning"
             },
             "then_effects": [
               {
@@ -3029,7 +2903,7 @@
                                 "$$principal",
                                 {
                                   "$ifNull": [
-                                    "$local.sync_chat_accepted_rider",
+                                    "$local.sync_accepted_rider",
                                     ""
                                   ]
                                 }
@@ -3615,22 +3489,68 @@
           },
           {
             "title": "Clear Sync Flags",
-            "description": "Clears SYNC_CHAT transient flags after all sync phases.",
+            "description": "Clears SYNC transient flags after all sync phases.",
             "type": "update.contract",
             "update": {
               "$set": {
-                "local.sync_chat_needs_pruning": false,
-                "local.sync_chat_needs_accept_reconcile": false,
-                "local.sync_chat_accepted_rider": "",
-                "local.sync_chat_accepted_route_id": "",
-                "local.sync_chat_accepted_rider_cost": 0,
-                "local.sync_chat_needs_route_cleanup": false,
-                "local.sync_chat_cleanup_principal": "",
-                "local.sync_chat_cleanup_route_id": "",
-                "local.sync_chat_cleanup_refund_amount": 0,
-                "local.sync_chat_cleanup_has_refund": false
+                "local.sync_needs_pruning": false,
+                "local.sync_accepted_rider": "",
+                "local.sync_needs_route_cleanup": false,
+                "local.sync_cleanup_principal": "",
+                "local.sync_cleanup_route_id": "",
+                "local.sync_cleanup_refund_amount": 0,
+                "local.sync_cleanup_has_refund": false
               }
             }
+          },
+          {
+            "title": "Detect Missing Group",
+            "description": "Checks whether the coordination group exists.",
+            "type": "update.contract",
+            "update": {
+              "$set": {
+                "local.group_missing": {
+                  "$not": [
+                    {
+                      "$ifNull": [
+                        "$context.group_id",
+                        false
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "title": "Create Group If Missing",
+            "description": "Creates and links the coordination group when absent.",
+            "type": "if.else",
+            "condition": {
+              "$ctx": "doc.local.group_missing"
+            },
+            "then_effects": [
+              {
+                "title": "Create Group",
+                "description": "Creates the coordination group for active riders.",
+                "type": "create.group",
+                "name": "trip-$$ctx.doc._id",
+                "sub": "$$ctx.doc.context.driver",
+                "key": "group_ref"
+              },
+              {
+                "title": "Link Coordination Group",
+                "description": "Stores group linkage for roster synchronization.",
+                "type": "update.contract",
+                "update": {
+                  "$set": {
+                    "context.group_id": {
+                      "$ctx": "local.group_ref"
+                    }
+                  }
+                }
+              }
+            ]
           },
           {
             "title": "Build Chat Membership",
@@ -3743,7 +3663,7 @@
           },
           {
             "title": "Return To Onboarding",
-            "description": "Returns to ONBOARDING after SYNC_CHAT processing.",
+            "description": "Returns to ONBOARDING after SYNC processing.",
             "type": "update.contract",
             "update": {
               "$set": {

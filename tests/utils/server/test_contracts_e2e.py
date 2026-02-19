@@ -2470,7 +2470,7 @@ class ContractsE2ETest(unittest.TestCase):
         ).json()
         self.assertEqual(cancelled_trip_doc["state"], "CANCELLED")
 
-    def test_sync_chat_keeps_driver_admin_across_membership_changes(self) -> None:
+    def test_sync_keeps_driver_admin_across_membership_changes(self) -> None:
         cid = self._create_gherkin_contract(initial_state="START", actor="p1")
         d1_principal = f"u:{self.user_ids['d1']}"
 

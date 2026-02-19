@@ -15,6 +15,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import pydash
 import requests
 from jsonschema import Draft202012Validator
+from pymongo import ReturnDocument
 from sqlalchemy_dlock import create_sadlock
 
 from ..extensions import db
@@ -142,9 +143,14 @@ def _apply_effect_step(
         else:
             updates = ef["updates"] or {}
         sft_local = _safe_local(local)
+
+        find_one_and_update_opts = {"return_document": ReturnDocument.AFTER}
+        if ef.get("projection"):
+            find_one_and_update_opts["projection"] = ef["projection"]
+        docs = {}
         for k, update in updates.items():
             update = [update] if isinstance(update, dict) else update
-            mongo_update_one(
+            docs[k] = mongo_find_one_and_update(
                 _contracts_coll(),
                 {"_id": k},
                 [
@@ -152,11 +158,16 @@ def _apply_effect_step(
                     *update,
                     {"$set": {"updated_at": now}},
                 ],
+                **find_one_and_update_opts,
                 let={"user": actor_id, "payload": payload, "local": sft_local},
             )
         if contract_id in updates:
             doc = _get_contract(contract_id)
             local.update(doc.get("local") or {})
+        if "key" in ef:
+            if "update" in ef:
+                docs = docs[contract_id]
+            local[ef["key"]] = docs
     elif ef_type == "delete.contract":
         contract_id = doc["_id"]
         mongo_delete_one(_contracts_coll(), {"_id": contract_id})
@@ -340,7 +351,7 @@ def _apply_effect_step(
         coll = get_mongo(collection=config_get("ITEMS_COLLECTION", "items"))
         now = now_utc()
         out_key = None
-        find_one_and_update_opts = {"returnDocument": "after"}
+        find_one_and_update_opts = {"return_document": ReturnDocument.AFTER}
         if ef.get("projection"):
             find_one_and_update_opts["projection"] = ef["projection"]
         if "updates" in ef:
@@ -364,7 +375,7 @@ def _apply_effect_step(
                     *update,
                     {"$set": {"updated_at": now}},
                 ],
-                find_one_and_update_opts,
+                **find_one_and_update_opts,
                 let={
                     "user": actor_id,
                     "payload": payload,
