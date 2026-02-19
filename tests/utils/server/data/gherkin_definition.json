@@ -2802,8 +2802,8 @@
                 },
                 "then_effects": [
                   {
-                    "title": "Unlink Contract From Cleanup Route",
-                    "description": "Unlinks current contract from cleanup route contract list.",
+                    "title": "Clear Cleanup Route Reserved Credits",
+                    "description": "Clears cleanup route reserved credits after applying refund.",
                     "type": "update.item",
                     "item_id": {
                       "$ctx": "local.sync_cleanup_route_id"
@@ -2831,8 +2831,8 @@
                 ]
               },
               {
-                "title": "Compute Route Cleanup Refund",
-                "description": "Computes refund eligibility and amount for cleanup route.",
+                "title": "Prune Cleanup Rider Snapshot",
+                "description": "Removes cleaned rider snapshot from context after route cleanup.",
                 "type": "update.contract",
                 "update": {
                   "$unset": [
@@ -2884,29 +2884,26 @@
                             {
                               "$in": [
                                 {
-                                  "$arrayElemAt": [
-                                    {
-                                      "$map": {
-                                        "input": {
-                                          "$filter": {
-                                            "input": {
-                                              "$objectToArray": "$states"
-                                            },
-                                            "as": "kv",
-                                            "cond": {
-                                              "$eq": [
-                                                "$$kv.k",
-                                                "$$principal"
-                                              ]
-                                            }
+                                  "$first": {
+                                    "$map": {
+                                      "input": {
+                                        "$filter": {
+                                          "input": {
+                                            "$objectToArray": "$states"
+                                          },
+                                          "as": "kv",
+                                          "cond": {
+                                            "$eq": [
+                                              "$$kv.k",
+                                              "$$principal"
+                                            ]
                                           }
-                                        },
-                                        "as": "kv",
-                                        "in": "$$kv.v"
-                                      }
-                                    },
-                                    0
-                                  ]
+                                        }
+                                      },
+                                      "as": "kv",
+                                      "in": "$$kv.v"
+                                    }
+                                  }
                                 },
                                 [
                                   "REQUESTING",
@@ -2919,34 +2916,31 @@
                                 {
                                   "$ifNull": [
                                     {
-                                      "$arrayElemAt": [
-                                        {
-                                          "$map": {
-                                            "input": {
-                                              "$filter": {
-                                                "input": {
-                                                  "$objectToArray": {
-                                                    "$ifNull": [
-                                                      "$context.riders",
-                                                      {}
-                                                    ]
-                                                  }
-                                                },
-                                                "as": "rv",
-                                                "cond": {
-                                                  "$eq": [
-                                                    "$$rv.k",
-                                                    "$$principal"
+                                      "$first": {
+                                        "$map": {
+                                          "input": {
+                                            "$filter": {
+                                              "input": {
+                                                "$objectToArray": {
+                                                  "$ifNull": [
+                                                    "$context.riders",
+                                                    {}
                                                   ]
                                                 }
+                                              },
+                                              "as": "rv",
+                                              "cond": {
+                                                "$eq": [
+                                                  "$$rv.k",
+                                                  "$$principal"
+                                                ]
                                               }
-                                            },
-                                            "as": "rv",
-                                            "in": "$$rv.v.seats"
-                                          }
-                                        },
-                                        0
-                                      ]
+                                            }
+                                          },
+                                          "as": "rv",
+                                          "in": "$$rv.v.seats"
+                                        }
+                                      }
                                     },
                                     0
                                   ]
@@ -3172,8 +3166,51 @@
                                 "as": "rt",
                                 "in": {
                                   "k": {
-                                    "$arrayElemAt": [
-                                      {
+                                    "$first": {
+                                      "$map": {
+                                        "input": {
+                                          "$filter": {
+                                            "input": {
+                                              "$objectToArray": {
+                                                "$ifNull": [
+                                                  "$context.riders",
+                                                  {}
+                                                ]
+                                              }
+                                            },
+                                            "as": "rv",
+                                            "cond": {
+                                              "$and": [
+                                                {
+                                                  "$in": [
+                                                    "$$rv.k",
+                                                    {
+                                                      "$ifNull": [
+                                                        "$local.over_capacity_principals",
+                                                        []
+                                                      ]
+                                                    }
+                                                  ]
+                                                },
+                                                {
+                                                  "$eq": [
+                                                    "$$rv.v.id",
+                                                    "$$rt._id"
+                                                  ]
+                                                }
+                                              ]
+                                            }
+                                          }
+                                        },
+                                        "as": "rv",
+                                        "in": "$$rv.k"
+                                      }
+                                    }
+                                  },
+                                  "v": {
+                                    "product": "coin",
+                                    "user_id": {
+                                      "$first": {
                                         "$map": {
                                           "input": {
                                             "$filter": {
@@ -3212,56 +3249,7 @@
                                           "as": "rv",
                                           "in": "$$rv.k"
                                         }
-                                      },
-                                      0
-                                    ]
-                                  },
-                                  "v": {
-                                    "product": "coin",
-                                    "user_id": {
-                                      "$arrayElemAt": [
-                                        {
-                                          "$map": {
-                                            "input": {
-                                              "$filter": {
-                                                "input": {
-                                                  "$objectToArray": {
-                                                    "$ifNull": [
-                                                      "$context.riders",
-                                                      {}
-                                                    ]
-                                                  }
-                                                },
-                                                "as": "rv",
-                                                "cond": {
-                                                  "$and": [
-                                                    {
-                                                      "$in": [
-                                                        "$$rv.k",
-                                                        {
-                                                          "$ifNull": [
-                                                            "$local.over_capacity_principals",
-                                                            []
-                                                          ]
-                                                        }
-                                                      ]
-                                                    },
-                                                    {
-                                                      "$eq": [
-                                                        "$$rv.v.id",
-                                                        "$$rt._id"
-                                                      ]
-                                                    }
-                                                  ]
-                                                }
-                                              }
-                                            },
-                                            "as": "rv",
-                                            "in": "$$rv.k"
-                                          }
-                                        },
-                                        0
-                                      ]
+                                      }
                                     },
                                     "amount": {
                                       "$ifNull": [
@@ -4138,15 +4126,12 @@
               {
                 "$set": {
                   "local.first_requesting_principal": {
-                    "$arrayElemAt": [
-                      {
-                        "$ifNull": [
-                          "$local.requesting_principals",
-                          []
-                        ]
-                      },
-                      0
-                    ]
+                    "$first": {
+                      "$ifNull": [
+                        "$local.requesting_principals",
+                        []
+                      ]
+                    }
                   }
                 }
               },
@@ -4161,72 +4146,66 @@
                   "local.first_requesting_refund": {
                     "$ifNull": [
                       {
-                        "$arrayElemAt": [
-                          {
-                            "$map": {
-                              "input": {
-                                "$filter": {
-                                  "input": {
-                                    "$objectToArray": {
-                                      "$ifNull": [
-                                        "$context.riders",
-                                        {}
-                                      ]
-                                    }
-                                  },
-                                  "as": "rv",
-                                  "cond": {
-                                    "$eq": [
-                                      "$$rv.k",
-                                      "$local.first_requesting_principal"
+                        "$first": {
+                          "$map": {
+                            "input": {
+                              "$filter": {
+                                "input": {
+                                  "$objectToArray": {
+                                    "$ifNull": [
+                                      "$context.riders",
+                                      {}
                                     ]
                                   }
+                                },
+                                "as": "rv",
+                                "cond": {
+                                  "$eq": [
+                                    "$$rv.k",
+                                    "$local.first_requesting_principal"
+                                  ]
                                 }
-                              },
-                              "as": "rv",
-                              "in": {
-                                "$ifNull": [
-                                  "$$rv.v.cost",
-                                  0
-                                ]
                               }
+                            },
+                            "as": "rv",
+                            "in": {
+                              "$ifNull": [
+                                "$$rv.v.cost",
+                                0
+                              ]
                             }
-                          },
-                          0
-                        ]
+                          }
+                        }
                       },
                       0
                     ]
                   },
                   "local.first_requesting_route_id": {
-                    "$arrayElemAt": [
-                      {
-                        "$map": {
-                          "input": {
-                            "$filter": {
-                              "input": {
-                                "$objectToArray": {
-                                  "$ifNull": [
-                                    "$context.riders",
-                                    {}
-                                  ]
-                                }
-                              },
-                              "as": "rv",
-                              "cond": {
-                                "$eq": [
-                                  "$$rv.k",
-                                  "$local.first_requesting_principal"
+                    "$first": {
+                      "$map": {
+                        "input": {
+                          "$filter": {
+                            "input": {
+                              "$objectToArray": {
+                                "$ifNull": [
+                                  "$context.riders",
+                                  {}
                                 ]
                               }
+                            },
+                            "as": "rv",
+                            "cond": {
+                              "$eq": [
+                                "$$rv.k",
+                                "$local.first_requesting_principal"
+                              ]
                             }
-                          },
-                          "as": "rv",
-                          "in": "$$rv.v.id"
-                        }
-                      },
-                      0
-                    ]
+                          }
+                        },
+                        "as": "rv",
+                        "in": "$$rv.v.id"
+                      }
+                    }
                   }
                 }
               }
@@ -4538,87 +4517,7 @@
                                 "zone": {
                                   "$ifNull": [
                                     {
-                                      "$arrayElemAt": [
-                                        {
-                                          "$map": {
-                                            "input": {
-                                              "$filter": {
-                                                "input": {
-                                                  "$ifNull": [
-                                                    "$local.pickup_entries",
-                                                    []
-                                                  ]
-                                                },
-                                                "as": "pe",
-                                                "cond": {
-                                                  "$eq": [
-                                                    "$$pe.principal",
-                                                    "$$rv.k"
-                                                  ]
-                                                }
-                                              }
-                                            },
-                                            "as": "pe",
-                                            "in": "$$pe.pickup_zone"
-                                          }
-                                        },
-                                        0
-                                      ]
-                                    },
-                                    {
-                                      "radius": 300,
-                                      "location": "$context.driver_route.trip.origin.location"
-                                    }
-                                  ]
-                                },
-                                "window": {
-                                  "$ifNull": [
-                                    {
-                                      "$arrayElemAt": [
-                                        {
-                                          "$map": {
-                                            "input": {
-                                              "$filter": {
-                                                "input": {
-                                                  "$ifNull": [
-                                                    "$local.pickup_entries",
-                                                    []
-                                                  ]
-                                                },
-                                                "as": "pe",
-                                                "cond": {
-                                                  "$eq": [
-                                                    "$$pe.principal",
-                                                    "$$rv.k"
-                                                  ]
-                                                }
-                                              }
-                                            },
-                                            "as": "pe",
-                                            "in": "$$pe.pickup_window"
-                                          }
-                                        },
-                                        0
-                                      ]
-                                    },
-                                    {
-                                      "start": "$context.driver_route.trip.origin.at",
-                                      "end": "$context.driver_route.trip.origin.at"
-                                    }
-                                  ]
-                                }
-                              },
-                              "locations": {
-                                "$ifNull": [
-                                  "$$rv.v.locations",
-                                  []
-                                ]
-                              },
-                              "verification": {
-                                "$ifNull": [
-                                  {
-                                    "$arrayElemAt": [
-                                      {
+                                      "$first": {
                                         "$map": {
                                           "input": {
                                             "$filter": {
@@ -4638,14 +4537,85 @@
                                             }
                                           },
                                           "as": "pe",
-                                          "in": {
-                                            "pin": "$$pe.pin",
-                                            "masked": "$$pe.masked"
-                                          }
+                                          "in": "$$pe.pickup_zone"
                                         }
-                                      },
-                                      0
-                                    ]
+                                      }
+                                    },
+                                    {
+                                      "radius": 300,
+                                      "location": "$context.driver_route.trip.origin.location"
+                                    }
+                                  ]
+                                },
+                                "window": {
+                                  "$ifNull": [
+                                    {
+                                      "$first": {
+                                        "$map": {
+                                          "input": {
+                                            "$filter": {
+                                              "input": {
+                                                "$ifNull": [
+                                                  "$local.pickup_entries",
+                                                  []
+                                                ]
+                                              },
+                                              "as": "pe",
+                                              "cond": {
+                                                "$eq": [
+                                                  "$$pe.principal",
+                                                  "$$rv.k"
+                                                ]
+                                              }
+                                            }
+                                          },
+                                          "as": "pe",
+                                          "in": "$$pe.pickup_window"
+                                        }
+                                      }
+                                    },
+                                    {
+                                      "start": "$context.driver_route.trip.origin.at",
+                                      "end": "$context.driver_route.trip.origin.at"
+                                    }
+                                  ]
+                                }
+                              },
+                              "locations": {
+                                "$ifNull": [
+                                  "$$rv.v.locations",
+                                  []
+                                ]
+                              },
+                              "verification": {
+                                "$ifNull": [
+                                  {
+                                    "$first": {
+                                      "$map": {
+                                        "input": {
+                                          "$filter": {
+                                            "input": {
+                                              "$ifNull": [
+                                                "$local.pickup_entries",
+                                                []
+                                              ]
+                                            },
+                                            "as": "pe",
+                                            "cond": {
+                                              "$eq": [
+                                                "$$pe.principal",
+                                                "$$rv.k"
+                                              ]
+                                            }
+                                          }
+                                        },
+                                        "as": "pe",
+                                        "in": {
+                                          "pin": "$$pe.pin",
+                                          "masked": "$$pe.masked"
+                                        }
+                                      }
+                                    }
                                   },
                                   {
                                     "pin": "000000",
@@ -4773,15 +4743,12 @@
             "update": {
               "$set": {
                 "local.first_pickup_entry": {
-                  "$arrayElemAt": [
-                    {
-                      "$ifNull": [
-                        "$local.pickup_entries",
-                        []
-                      ]
-                    },
-                    0
-                  ]
+                  "$first": {
+                    "$ifNull": [
+                      "$local.pickup_entries",
+                      []
+                    ]
+                  }
                 },
                 "local.first_pickup_reminder_at": {
                   "$cond": [
@@ -6425,135 +6392,123 @@
                   {
                     "$set": {
                       "local.first_refund_principal": {
-                        "$arrayElemAt": [
-                          {
-                            "$map": {
-                              "input": {
-                                "$filter": {
-                                  "input": {
-                                    "$objectToArray": {
-                                      "$ifNull": [
-                                        "$states",
-                                        {}
-                                      ]
-                                    }
-                                  },
-                                  "as": "sv",
-                                  "cond": {
-                                    "$eq": [
-                                      "$$sv.v",
-                                      "ACCEPTED"
+                        "$first": {
+                          "$map": {
+                            "input": {
+                              "$filter": {
+                                "input": {
+                                  "$objectToArray": {
+                                    "$ifNull": [
+                                      "$states",
+                                      {}
                                     ]
                                   }
+                                },
+                                "as": "sv",
+                                "cond": {
+                                  "$eq": [
+                                    "$$sv.v",
+                                    "ACCEPTED"
+                                  ]
                                 }
-                              },
-                              "as": "sv",
-                              "in": "$$sv.k"
-                            }
-                          },
-                          0
-                        ]
+                              }
+                            },
+                            "as": "sv",
+                            "in": "$$sv.k"
+                          }
+                        }
                       },
                       "local.first_non_refund_principal": {
-                        "$arrayElemAt": [
-                          {
-                            "$map": {
-                              "input": {
-                                "$filter": {
-                                  "input": {
-                                    "$objectToArray": {
-                                      "$ifNull": [
-                                        "$states",
-                                        {}
-                                      ]
-                                    }
-                                  },
-                                  "as": "sv",
-                                  "cond": {
-                                    "$eq": [
-                                      "$$sv.v",
-                                      "ONBOARD"
+                        "$first": {
+                          "$map": {
+                            "input": {
+                              "$filter": {
+                                "input": {
+                                  "$objectToArray": {
+                                    "$ifNull": [
+                                      "$states",
+                                      {}
                                     ]
                                   }
+                                },
+                                "as": "sv",
+                                "cond": {
+                                  "$eq": [
+                                    "$$sv.v",
+                                    "ONBOARD"
+                                  ]
                                 }
-                              },
-                              "as": "sv",
-                              "in": "$$sv.k"
-                            }
-                          },
-                          0
-                        ]
+                              }
+                            },
+                            "as": "sv",
+                            "in": "$$sv.k"
+                          }
+                        }
                       }
                     }
                   },
                   {
                     "$set": {
                       "local.first_refund_route_id": {
-                        "$arrayElemAt": [
-                          {
-                            "$map": {
-                              "input": {
-                                "$filter": {
-                                  "input": {
-                                    "$objectToArray": {
-                                      "$ifNull": [
-                                        "$context.riders",
-                                        {}
-                                      ]
-                                    }
-                                  },
-                                  "as": "rv",
-                                  "cond": {
-                                    "$eq": [
-                                      "$$rv.k",
-                                      "$local.first_refund_principal"
+                        "$first": {
+                          "$map": {
+                            "input": {
+                              "$filter": {
+                                "input": {
+                                  "$objectToArray": {
+                                    "$ifNull": [
+                                      "$context.riders",
+                                      {}
                                     ]
                                   }
+                                },
+                                "as": "rv",
+                                "cond": {
+                                  "$eq": [
+                                    "$$rv.k",
+                                    "$local.first_refund_principal"
+                                  ]
                                 }
-                              },
-                              "as": "rv",
-                              "in": "$$rv.v.id"
-                            }
-                          },
-                          0
-                        ]
+                              }
+                            },
+                            "as": "rv",
+                            "in": "$$rv.v.id"
+                          }
+                        }
                       },
                       "local.first_refund_amount": {
                         "$ifNull": [
                           {
-                            "$arrayElemAt": [
-                              {
-                                "$map": {
-                                  "input": {
-                                    "$filter": {
-                                      "input": {
-                                        "$objectToArray": {
-                                          "$ifNull": [
-                                            "$context.riders",
-                                            {}
-                                          ]
-                                        }
-                                      },
-                                      "as": "rv",
-                                      "cond": {
-                                        "$eq": [
-                                          "$$rv.k",
-                                          "$local.first_refund_principal"
+                            "$first": {
+                              "$map": {
+                                "input": {
+                                  "$filter": {
+                                    "input": {
+                                      "$objectToArray": {
+                                        "$ifNull": [
+                                          "$context.riders",
+                                          {}
                                         ]
                                       }
+                                    },
+                                    "as": "rv",
+                                    "cond": {
+                                      "$eq": [
+                                        "$$rv.k",
+                                        "$local.first_refund_principal"
+                                      ]
                                     }
-                                  },
-                                  "as": "rv",
-                                  "in": {
-                                    "$ifNull": [
-                                      "$$rv.v.cost",
-                                      10
-                                    ]
                                   }
+                                },
+                                "as": "rv",
+                                "in": {
+                                  "$ifNull": [
+                                    "$$rv.v.cost",
+                                    10
+                                  ]
                                 }
-                              },
-                              0
-                            ]
+                              }
+                            }
                           },
                           10
                         ]

@@ -2311,7 +2311,9 @@ class ContractsE2ETest(unittest.TestCase):
         )
         self.assertEqual(driver_remove_p2.status_code, 200)
         self.assertTrue(driver_remove_p2.json().get("ok"))
-        self.assertEqual(self._wallet_balance("p2"), p2_balance_before + extra_p2_balance_before)
+        self.assertEqual(
+            self._wallet_balance("p2"), p2_balance_before + extra_p2_balance_before
+        )
 
         p2_route_after_driver_reject = self._get_route("p2", p2_route_id)
         p2_route_data_after_driver_reject = (
@@ -2346,6 +2348,10 @@ class ContractsE2ETest(unittest.TestCase):
         ).json()
         self.assertEqual(
             self._user_state(contract_a_doc, self.user_ids["p2"]), "REJECTED"
+        )
+        self.assertNotIn(
+            p2_principal,
+            ((contract_a_doc.get("context") or {}).get("riders") or {}),
         )
         self.assertEqual(
             self._user_state(contract_a_doc, self.user_ids["p1"]), "REQUESTING"
