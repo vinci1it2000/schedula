@@ -2459,34 +2459,19 @@
               {
                 "$set": {
                   "local.sync_needs_pruning": {
-                    "$ifNull": [
-                      "$local.sync_needs_pruning",
-                      {
-                        "$ne": [
-                          "$local.sync_accepted_rider",
-                          ""
-                        ]
-                      }
+                    "$ne": [
+                      "$local.sync_accepted_rider",
+                      ""
                     ]
                   },
                   "local.sync_needs_route_cleanup": {
-                    "$ifNull": [
-                      "$local.sync_needs_route_cleanup",
-                      {
-                        "$ne": [
-                          "$local.sync_cleanup_principal",
-                          ""
-                        ]
-                      }
+                    "$ne": [
+                      "$local.sync_cleanup_principal",
+                      ""
                     ]
                   },
                   "local.sync_cleanup_route_id": {
-                    "$ifNull": [
-                      {
-                        "$ctx": "doc.context.riders.$$ctx.local.sync_cleanup_principal.id"
-                      },
-                      ""
-                    ]
+                    "$ctx": "doc.context.riders.$$ctx.local.sync_cleanup_principal.id"
                   }
                 }
               }
@@ -2871,17 +2856,6 @@
                         "cond": {
                           "$and": [
                             {
-                              "$ne": [
-                                "$$principal",
-                                {
-                                  "$ifNull": [
-                                    "$local.sync_accepted_rider",
-                                    ""
-                                  ]
-                                }
-                              ]
-                            },
-                            {
                               "$in": [
                                 {
                                   "$first": {
@@ -3033,39 +3007,26 @@
                       {
                         "$set": {
                           "local.over_capacity_route_ids": {
-                            "$setUnion": [
-                              {
-                                "$map": {
+                            "$map": {
+                              "input": "$local.over_capacity_principals",
+                              "as": "p",
+                              "in": {
+                                "$getField": {
                                   "input": {
-                                    "$filter": {
+                                    "$getField": {
                                       "input": {
-                                        "$objectToArray": {
-                                          "$ifNull": [
-                                            "$context.riders",
-                                            {}
-                                          ]
-                                        }
-                                      },
-                                      "as": "rv",
-                                      "cond": {
-                                        "$in": [
-                                          "$$rv.k",
-                                          {
-                                            "$ifNull": [
-                                              "$local.over_capacity_principals",
-                                              []
-                                            ]
-                                          }
+                                        "$ifNull": [
+                                          "$context.riders",
+                                          {}
                                         ]
-                                      }
+                                      },
+                                      "field": "$$p"
                                     }
                                   },
-                                  "as": "rv",
-                                  "in": "$$rv.v.id"
+                                  "field": "id"
                                 }
-                              },
-                              []
-                            ]
+                              }
+                            }
                           }
                         }
                       },
@@ -3118,14 +3079,6 @@
                     "type": "update.item",
                     "updates": {
                       "$ctx": "local.over_capacity_route_unlink_updates"
-                    }
-                  },
-                  {
-                    "title": "Load Pruned Routes",
-                    "description": "Loads pruned route documents after unlink to compute refund eligibility.",
-                    "type": "get.item",
-                    "item_id": {
-                      "$ctx": "local.over_capacity_route_ids"
                     },
                     "key": "over_capacity_routes_after_unlink"
                   },
@@ -3138,126 +3091,78 @@
                         "$set": {
                           "local.over_capacity_refunds": {
                             "$arrayToObject": {
-                              "$map": {
+                              "$filter": {
                                 "input": {
-                                  "$filter": {
+                                  "$map": {
                                     "input": {
                                       "$ifNull": [
-                                        "$local.over_capacity_routes_after_unlink",
+                                        "$local.over_capacity_principals",
                                         []
                                       ]
                                     },
-                                    "as": "rt",
-                                    "cond": {
-                                      "$eq": [
-                                        {
-                                          "$size": {
-                                            "$ifNull": [
-                                              "$$rt.data.contract_ids",
-                                              []
-                                            ]
+                                    "as": "p",
+                                    "in": {
+                                      "$let": {
+                                        "vars": {
+                                          "route_id": {
+                                            "$getField": {
+                                              "input": {
+                                                "$getField": {
+                                                  "input": "$context.riders",
+                                                  "field": "$$p"
+                                                }
+                                              },
+                                              "field": "id"
+                                            }
+                                          },
+                                          "rt": {
+                                            "$getField": {
+                                              "input": "$local.over_capacity_routes_after_unlink",
+                                              "field": "$$route_id"
+                                            }
                                           }
                                         },
-                                        0
-                                      ]
-                                    }
-                                  }
-                                },
-                                "as": "rt",
-                                "in": {
-                                  "k": {
-                                    "$first": {
-                                      "$map": {
-                                        "input": {
-                                          "$filter": {
-                                            "input": {
-                                              "$objectToArray": {
-                                                "$ifNull": [
-                                                  "$context.riders",
-                                                  {}
-                                                ]
-                                              }
-                                            },
-                                            "as": "rv",
-                                            "cond": {
-                                              "$and": [
-                                                {
-                                                  "$in": [
-                                                    "$$rv.k",
-                                                    {
+                                        "in": {
+                                          "k": "$$p",
+                                          "v": {
+                                            "$cond": [
+                                              {
+                                                "$eq": [
+                                                  {
+                                                    "$size": {
                                                       "$ifNull": [
-                                                        "$local.over_capacity_principals",
+                                                        "$$rt.data.contract_ids",
                                                         []
                                                       ]
                                                     }
-                                                  ]
-                                                },
-                                                {
-                                                  "$eq": [
-                                                    "$$rv.v.id",
-                                                    "$$rt._id"
-                                                  ]
-                                                }
-                                              ]
-                                            }
-                                          }
-                                        },
-                                        "as": "rv",
-                                        "in": "$$rv.k"
-                                      }
-                                    }
-                                  },
-                                  "v": {
-                                    "product": "coin",
-                                    "user_id": {
-                                      "$first": {
-                                        "$map": {
-                                          "input": {
-                                            "$filter": {
-                                              "input": {
-                                                "$objectToArray": {
+                                                  },
+                                                  0
+                                                ]
+                                              },
+                                              {
+                                                "product": "coin",
+                                                "user_id": "$$p",
+                                                "amount": {
                                                   "$ifNull": [
-                                                    "$context.riders",
-                                                    {}
+                                                    "$$rt.data.reserved_credits",
+                                                    0
                                                   ]
                                                 }
                                               },
-                                              "as": "rv",
-                                              "cond": {
-                                                "$and": [
-                                                  {
-                                                    "$in": [
-                                                      "$$rv.k",
-                                                      {
-                                                        "$ifNull": [
-                                                          "$local.over_capacity_principals",
-                                                          []
-                                                        ]
-                                                      }
-                                                    ]
-                                                  },
-                                                  {
-                                                    "$eq": [
-                                                      "$$rv.v.id",
-                                                      "$$rt._id"
-                                                    ]
-                                                  }
-                                                ]
-                                              }
-                                            }
-                                          },
-                                          "as": "rv",
-                                          "in": "$$rv.k"
+                                              null
+                                            ]
+                                          }
                                         }
                                       }
-                                    },
-                                    "amount": {
-                                      "$ifNull": [
-                                        "$$rt.data.reserved_credits",
-                                        0
-                                      ]
                                     }
                                   }
+                                },
+                                "as": "kv",
+                                "cond": {
+                                  "$ne": [
+                                    "$$kv.v",
+                                    null
+                                  ]
                                 }
                               }
                             }
@@ -3353,38 +3258,30 @@
                     ]
                   },
                   {
-                    "title": "Apply Rejections",
-                    "description": "Marks over-capacity riders as rejected and removes them from rider context.",
+                    "title": "Prune Over-Capacity Riders",
+                    "description": "Unsets over-capacity riders from both states and rider context.",
                     "type": "update.contract",
                     "update": [
                       {
                         "$set": {
-                          "states": {
-                            "$arrayToObject": {
-                              "$map": {
-                                "input": {
-                                  "$objectToArray": "$states"
-                                },
-                                "as": "kv",
-                                "in": {
-                                  "k": "$$kv.k",
-                                  "v": {
-                                    "$cond": [
-                                      {
-                                        "$in": [
-                                          "$$kv.k",
-                                          {
-                                            "$ifNull": [
-                                              "$local.over_capacity_principals",
-                                              []
-                                            ]
-                                          }
-                                        ]
-                                      },
-                                      "REJECTED",
-                                      "$$kv.v"
-                                    ]
-                                  }
+                          "context.riders": {
+                            "$reduce": {
+                              "input": {
+                                "$ifNull": [
+                                  "$local.over_capacity_principals",
+                                  []
+                                ]
+                              },
+                              "initialValue": {
+                                "$ifNull": [
+                                  "$context.riders",
+                                  {}
+                                ]
+                              },
+                              "in": {
+                                "$unsetField": {
+                                  "input": "$$value",
+                                  "field": "$$this"
                                 }
                               }
                             }
@@ -3393,32 +3290,24 @@
                       },
                       {
                         "$set": {
-                          "context.riders": {
-                            "$arrayToObject": {
-                              "$filter": {
-                                "input": {
-                                  "$objectToArray": {
-                                    "$ifNull": [
-                                      "$context.riders",
-                                      {}
-                                    ]
-                                  }
-                                },
-                                "as": "rv",
-                                "cond": {
-                                  "$not": [
-                                    {
-                                      "$in": [
-                                        "$$rv.k",
-                                        {
-                                          "$ifNull": [
-                                            "$local.over_capacity_principals",
-                                            []
-                                          ]
-                                        }
-                                      ]
-                                    }
-                                  ]
+                          "states": {
+                            "$reduce": {
+                              "input": {
+                                "$ifNull": [
+                                  "$local.over_capacity_principals",
+                                  []
+                                ]
+                              },
+                              "initialValue": {
+                                "$ifNull": [
+                                  "$states",
+                                  {}
+                                ]
+                              },
+                              "in": {
+                                "$unsetField": {
+                                  "input": "$$value",
+                                  "field": "$$this"
                                 }
                               }
                             }
@@ -3452,15 +3341,10 @@
             "description": "Clears SYNC transient flags after all sync phases.",
             "type": "update.contract",
             "update": {
-              "$set": {
-                "local.sync_needs_pruning": false,
-                "local.sync_accepted_rider": "",
-                "local.sync_needs_route_cleanup": false,
-                "local.sync_cleanup_principal": "",
-                "local.sync_cleanup_route_id": "",
-                "local.sync_cleanup_refund_amount": 0,
-                "local.sync_cleanup_has_refund": false
-              }
+              "$unset": [
+                "local.sync_accepted_rider",
+                "local.sync_cleanup_principal"
+              ]
             }
           },
           {
