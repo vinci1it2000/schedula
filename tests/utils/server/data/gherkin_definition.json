@@ -1477,7 +1477,6 @@
                   "update": {
                     "$set": {
                       "state": "SYNC_CHAT",
-                      "local.sync_chat_needs_pruning": true,
                       "local.sync_chat_needs_route_cleanup": true,
                       "local.sync_chat_cleanup_principal": "$$ctx.payload.rider"
                     }
@@ -2357,6 +2356,84 @@
                   "status": "CANCELLED"
                 }
               }
+            }
+          ]
+        },
+        "PreDepartureGateTimed": {
+          "effects": [
+            {
+              "title": "Compute Accepted Riders",
+              "description": "Checks whether at least one rider is accepted before departure gate.",
+              "type": "update.contract",
+              "update": [
+                {
+                  "$set": {
+                    "local.accepted_riders_count": {
+                      "$size": {
+                        "$filter": {
+                          "input": {
+                            "$objectToArray": {
+                              "$ifNull": [
+                                "$states",
+                                {}
+                              ]
+                            }
+                          },
+                          "as": "kv",
+                          "cond": {
+                            "$eq": [
+                              "$$kv.v",
+                              "ACCEPTED"
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "$set": {
+                    "local.has_accepted_riders": {
+                      "$gt": [
+                        "$local.accepted_riders_count",
+                        0
+                      ]
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "title": "Apply Pre-Departure Transition",
+              "description": "Moves to IN_PROGRESS when riders are accepted, otherwise CANCELLED.",
+              "type": "if.else",
+              "condition": {
+                "$ctx": "doc.local.has_accepted_riders"
+              },
+              "then_effects": [
+                {
+                  "title": "Move To In Progress",
+                  "description": "Transitions contract to IN_PROGRESS when accepted riders are present.",
+                  "type": "update.contract",
+                  "update": {
+                    "$set": {
+                      "state": "IN_PROGRESS"
+                    }
+                  }
+                }
+              ],
+              "else_effects": [
+                {
+                  "title": "Move To Cancelled",
+                  "description": "Cancels contract when no accepted riders are present at gate time.",
+                  "type": "update.contract",
+                  "update": {
+                    "$set": {
+                      "state": "CANCELLED"
+                    }
+                  }
+                }
+              ]
             }
           ]
         }
@@ -3653,6 +3730,9 @@
             "edit_members": {
               "add_members": {
                 "$ctx": "local.chat_add_members"
+              },
+              "remove_members": {
+                "$ctx": "local.chat_remove_members"
               },
               "promote_admins": [
                 {
@@ -7114,86 +7194,6 @@
           }
         ]
       }
-    }
-  },
-  "events": {
-    "PreDepartureGateTimed": {
-      "effects": [
-        {
-          "title": "Compute Accepted Riders",
-          "description": "Checks whether at least one rider is accepted before departure gate.",
-          "type": "update.contract",
-          "update": [
-            {
-              "$set": {
-                "local.accepted_riders_count": {
-                  "$size": {
-                    "$filter": {
-                      "input": {
-                        "$objectToArray": {
-                          "$ifNull": [
-                            "$states",
-                            {}
-                          ]
-                        }
-                      },
-                      "as": "kv",
-                      "cond": {
-                        "$eq": [
-                          "$$kv.v",
-                          "ACCEPTED"
-                        ]
-                      }
-                    }
-                  }
-                }
-              }
-            },
-            {
-              "$set": {
-                "local.has_accepted_riders": {
-                  "$gt": [
-                    "$local.accepted_riders_count",
-                    0
-                  ]
-                }
-              }
-            }
-          ]
-        },
-        {
-          "title": "Apply Pre-Departure Transition",
-          "description": "Moves to IN_PROGRESS when riders are accepted, otherwise CANCELLED.",
-          "type": "if.else",
-          "condition": {
-            "$ctx": "doc.local.has_accepted_riders"
-          },
-          "then_effects": [
-            {
-              "title": "Move To In Progress",
-              "description": "Transitions contract to IN_PROGRESS when accepted riders are present.",
-              "type": "update.contract",
-              "update": {
-                "$set": {
-                  "state": "IN_PROGRESS"
-                }
-              }
-            }
-          ],
-          "else_effects": [
-            {
-              "title": "Move To Cancelled",
-              "description": "Cancels contract when no accepted riders are present at gate time.",
-              "type": "update.contract",
-              "update": {
-                "$set": {
-                  "state": "CANCELLED"
-                }
-              }
-            }
-          ]
-        }
-      ]
     }
   }
 }

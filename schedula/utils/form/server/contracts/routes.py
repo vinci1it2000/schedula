@@ -717,49 +717,74 @@ TEMPLATE_CREATE_SCHEMA = {
                     ],
                 },
                 "remove_members": {
-                    "type": "array",
-                    "items": {
-                        "anyOf": [
-                            {"type": "string", "pattern": "^[ug]:.+$"},
-                            {"$ref": "#/$defs/json_with_refs"},
-                        ]
-                    },
+                    "anyOf": [
+                        {
+                            "type": "array",
+                            "items": {
+                                "anyOf": [
+                                    {"type": "string", "pattern": "^[ug]:.+$"},
+                                    {"$ref": "#/$defs/json_with_refs"},
+                                ]
+                            },
+                        },
+                        {"$ref": "#/$defs/json_with_refs"},
+                    ]
                 },
                 "promote_admins": {
-                    "type": "array",
-                    "items": {
-                        "anyOf": [
-                            {"type": "string", "pattern": "^[ug]:.+$"},
-                            {"$ref": "#/$defs/json_with_refs"},
-                        ]
-                    },
+                    "anyOf": [
+                        {
+                            "type": "array",
+                            "items": {
+                                "anyOf": [
+                                    {"type": "string", "pattern": "^[ug]:.+$"},
+                                    {"$ref": "#/$defs/json_with_refs"},
+                                ]
+                            },
+                        },
+                        {"$ref": "#/$defs/json_with_refs"},
+                    ]
                 },
-                "demote_admins": {
-                    "type": "array",
-                    "items": {
-                        "anyOf": [
-                            {"type": "string", "pattern": "^[ug]:.+$"},
-                            {"$ref": "#/$defs/json_with_refs"},
-                        ]
-                    },
+                "demote_admins":  {
+                    "anyOf": [
+                        {
+                            "type": "array",
+                            "items": {
+                                "anyOf": [
+                                    {"type": "string", "pattern": "^[ug]:.+$"},
+                                    {"$ref": "#/$defs/json_with_refs"},
+                                ]
+                            },
+                        },
+                        {"$ref": "#/$defs/json_with_refs"},
+                    ]
                 },
                 "ban_members": {
-                    "type": "array",
-                    "items": {
-                        "anyOf": [
-                            {"type": "string", "pattern": "^[ug]:.+$"},
-                            {"$ref": "#/$defs/json_with_refs"},
-                        ]
-                    },
+                    "anyOf": [
+                        {
+                            "type": "array",
+                            "items": {
+                                "anyOf": [
+                                    {"type": "string", "pattern": "^[ug]:.+$"},
+                                    {"$ref": "#/$defs/json_with_refs"},
+                                ]
+                            },
+                        },
+                        {"$ref": "#/$defs/json_with_refs"},
+                    ]
                 },
                 "unban_members": {
-                    "type": "array",
-                    "items": {
-                        "anyOf": [
-                            {"type": "string", "pattern": "^[ug]:.+$"},
-                            {"$ref": "#/$defs/json_with_refs"},
-                        ]
-                    },
+                    "anyOf": [
+                        {
+                            "type": "array",
+                            "items": {
+                                "anyOf": [
+                                    {"type": "string", "pattern": "^[ug]:.+$"},
+                                    {"$ref": "#/$defs/json_with_refs"},
+                                ]
+                            },
+                        },
+                        {"$ref": "#/$defs/json_with_refs"},
+                    ]
                 },
             },
             "additionalProperties": False,
@@ -1292,8 +1317,8 @@ def _validate_schema(payload: Dict[str, Any], schema: Dict[str, Any]) -> List[st
 
 
 def _validate_allowed_initial_states(
-    definition: Dict[str, Any],
-    allowed_initial_states: Any,
+        definition: Dict[str, Any],
+        allowed_initial_states: Any,
 ) -> List[str]:
     if allowed_initial_states is None:
         return []

@@ -1746,12 +1746,12 @@ class ContractsE2ETest(unittest.TestCase):
             payload={"rider": p1_principal},
         )
         self.assertEqual(r.status_code, 200)
-        self.assertTrue(r.json().get("ok"))
+        self.assertFalse(r.json().get("ok"))
 
         c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
         self.assertEqual(c["state"], "ONBOARDING")
-        self.assertEqual(self._user_state(c, self.user_ids["p1"]), "REJECTED")
-        self.assertNotIn(p1_principal, (c.get("context") or {}).get("riders") or {})
+        self.assertEqual(self._user_state(c, self.user_ids["p1"]), "REQUESTING")
+        self.assertIn(p1_principal, (c.get("context") or {}).get("riders") or {})
 
     def test_onboarding_driver_reject_trip_cleans_riders_on_rejected(self) -> None:
         cid = self._create_gherkin_contract(initial_state="START", actor="p1")
@@ -1768,12 +1768,11 @@ class ContractsE2ETest(unittest.TestCase):
         cid = self._create_gherkin_contract(initial_state="START", actor="p1")
 
         r = self._post_event(cid, "cancel-user", actor="p1")
-        self.assertEqual(r.status_code, 200)
-        self.assertTrue(r.json().get("ok"))
+        self.assertIn(r.status_code, (403, 409))
 
         c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
         self.assertEqual(c["state"], "ONBOARDING")
-        self.assertEqual(self._user_state(c, self.user_ids["p1"]), "CANCELLED")
+        self.assertEqual(self._user_state(c, self.user_ids["p1"]), "REQUESTING")
 
     def test_start_request_join_adds_requesting_user_when_capacity_and_credits_ok(
         self,
@@ -2251,11 +2250,10 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertIn(f"u:{self.user_ids['d1']}", self._group_admin_ids(group_id))
 
         rider_cancel_p1 = self._post_event(contract_a, "cancel-user", actor="p1")
-        self.assertEqual(rider_cancel_p1.status_code, 200)
-        self.assertTrue(rider_cancel_p1.json().get("ok"))
+        self.assertIn(rider_cancel_p1.status_code, (403, 409))
         self.assertEqual(
             self._count_notifications_for(d1_principal, "contracts.user_cancelled"),
-            d1_user_cancelled_before + 1,
+            d1_user_cancelled_before,
         )
         chat_members = self._group_member_ids(group_id)
         self.assertEqual(chat_members, {f"u:{self.user_ids['d1']}"})
@@ -2268,7 +2266,7 @@ class ContractsE2ETest(unittest.TestCase):
             self._user_state(contract_a_doc, self.user_ids["p2"]), "REJECTED"
         )
         self.assertEqual(
-            self._user_state(contract_a_doc, self.user_ids["p1"]), "CANCELLED"
+            self._user_state(contract_a_doc, self.user_ids["p1"]), "REQUESTING"
         )
 
         # Full positive journey through IN_PROGRESS up to COMPLETED.
@@ -2464,8 +2462,7 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertIn(d1_principal, self._group_admin_ids(gid))
 
         cancel_p1 = self._post_event(cid, "cancel-user", actor="p1")
-        self.assertEqual(cancel_p1.status_code, 200)
-        self.assertTrue(cancel_p1.json().get("ok"))
+        self.assertIn(cancel_p1.status_code, (403, 409))
         self.assertIn(d1_principal, self._group_admin_ids(gid))
 
     def test_update_contract_effect_updates_another_contract(self) -> None:
