@@ -18,7 +18,6 @@ import httpx
 import pydash
 from flask import Flask
 from flask_security.utils import hash_password
-
 from schedula.utils.form.server import basic_app
 from schedula.utils.form.server.extensions import db as _db
 from schedula.utils.form.server.security import User
@@ -301,7 +300,7 @@ class ContractsE2ETest(unittest.TestCase):
         return str(resp.json()["id"])
 
     def _create_contract(
-        self, template_id: str, context: Dict[str, Any], actor="owner-1", **extra: Any
+            self, template_id: str, context: Dict[str, Any], actor="owner-1", **extra: Any
     ) -> httpx.Response:
         body = {"context": context}
         body.update(extra)
@@ -312,12 +311,12 @@ class ContractsE2ETest(unittest.TestCase):
         )
 
     def _post_event(
-        self,
-        contract_id: str,
-        path: str,
-        *,
-        actor: str,
-        payload: Dict[str, Any] | None = None,
+            self,
+            contract_id: str,
+            path: str,
+            *,
+            actor: str,
+            payload: Dict[str, Any] | None = None,
     ) -> httpx.Response:
         if payload is None and path == "request-join":
             actor_principal = f"u:{self.user_ids[actor]}"
@@ -344,8 +343,8 @@ class ContractsE2ETest(unittest.TestCase):
 
         now = now or dt.datetime.now(dt.timezone.utc)
         with patch(
-            "schedula.utils.form.server.contracts.schedule._claim_job_now",
-            return_value=now,
+                "schedula.utils.form.server.contracts.schedule._claim_job_now",
+                return_value=now,
         ):
             with self.app.app_context():
                 coll = _queue_coll()
@@ -411,7 +410,7 @@ class ContractsE2ETest(unittest.TestCase):
             return out
 
     def _queue_jobs(
-        self, *, contract_id: str | None = None, event_name: str | None = None
+            self, *, contract_id: str | None = None, event_name: str | None = None
     ) -> List[Dict[str, Any]]:
         from schedula.utils.form.server.contracts.schedule import _queue_coll
 
@@ -428,8 +427,8 @@ class ContractsE2ETest(unittest.TestCase):
 
     def _rider_pin(self, contract: Dict[str, Any], principal: str) -> str:
         rider = (
-            ((contract.get("context") or {}).get("riders") or {}).get(principal)
-        ) or {}
+                    ((contract.get("context") or {}).get("riders") or {}).get(principal)
+                ) or {}
         return str(((rider.get("verification") or {}).get("pin")) or "")
 
     def _count_notifications_for(self, principal: str, event: str) -> int:
@@ -462,7 +461,7 @@ class ContractsE2ETest(unittest.TestCase):
         return sum(1 for n in notes if n.get("event") == event)
 
     def _latest_notification_event_api(
-        self, actor: str, event: str
+            self, actor: str, event: str
     ) -> Dict[str, Any] | None:
         notes = self._list_notifications(actor)
         filtered = [n for n in notes if n.get("event") == event]
@@ -471,7 +470,7 @@ class ContractsE2ETest(unittest.TestCase):
         return filtered[0]
 
     def _latest_notification_doc(
-        self, principal: str, event: str
+            self, principal: str, event: str
     ) -> Dict[str, Any] | None:
         with self.app.app_context():
             coll = self.app.config["MONGO_DB"]["notifications"]
@@ -512,7 +511,7 @@ class ContractsE2ETest(unittest.TestCase):
         return str(body.get("id"))
 
     def _patch_route_data(
-        self, actor: str, route_id: str, **updates: Any
+            self, actor: str, route_id: str, **updates: Any
     ) -> Dict[str, Any]:
         current = self._get_route(actor, route_id)
         data = dict(current.get("data") or {})
@@ -613,7 +612,7 @@ class ContractsE2ETest(unittest.TestCase):
         return gid
 
     def test_start_user_initiated_sets_pending_driver_and_requesting_rider(
-        self,
+            self,
     ) -> None:
         cid = self._create_gherkin_contract(initial_state="START", actor="p1")
         c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
@@ -661,7 +660,7 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(self._wallet_balance("p1"), p1_balance_before_accept + 15)
         with self.app.app_context():
             route_after = (
-                self.app.config["MONGO_DB"]["items"].find_one({"_id": route_id}) or {}
+                    self.app.config["MONGO_DB"]["items"].find_one({"_id": route_id}) or {}
             )
         route_data_after = route_after.get("data") or {}
         self.assertEqual(route_data_after.get("reserved_credits"), 10)
@@ -1328,7 +1327,7 @@ class ContractsE2ETest(unittest.TestCase):
         for _ in range(20):
             self._run_worker_once(now=pre_job + dt.timedelta(seconds=1))
             if not self._queue_jobs(
-                contract_id=cid, event_name="PreDepartureGateTimed"
+                    contract_id=cid, event_name="PreDepartureGateTimed"
             ):
                 break
 
@@ -1429,7 +1428,7 @@ class ContractsE2ETest(unittest.TestCase):
         disputed_principals = {
             principal
             for principal, rider in (
-                (c.get("context") or {}).get("riders") or {}
+                    (c.get("context") or {}).get("riders") or {}
             ).items()
             if bool((rider or {}).get("dispute"))
         }
@@ -1486,7 +1485,7 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(self._user_state(c, self.user_ids["p4"]), "REQUESTING")
 
     def test_start_driver_accept_start_sets_accepted_seats_from_rider(
-        self,
+            self,
     ) -> None:
         p1_principal = f"u:{self.user_ids['p1']}"
         route_id = self.route_by_principal[p1_principal]
@@ -1510,7 +1509,7 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(pydash.get(c, "context.driver_route.accepted_seats"), 2)
 
     def test_start_driver_accept_start_returns_ok_false_for_non_requesting_rider(
-        self,
+            self,
     ) -> None:
         cid = self._create_gherkin_contract(initial_state="START", actor="p1")
         p4_principal = f"u:{self.user_ids['p4']}"
@@ -1745,9 +1744,9 @@ class ContractsE2ETest(unittest.TestCase):
         )
         with self.app.app_context():
             route_data_before = (
-                self.app.config["MONGO_DB"]["items"].find_one({"_id": p1_route_id})
-                or {}
-            ).get("data") or {}
+                                        self.app.config["MONGO_DB"]["items"].find_one({"_id": p1_route_id})
+                                        or {}
+                                ).get("data") or {}
 
         r = self._post_event(
             cid,
@@ -1765,9 +1764,9 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(self._wallet_balance("p1"), p1_balance_before)
         with self.app.app_context():
             route_data_after = (
-                self.app.config["MONGO_DB"]["items"].find_one({"_id": p1_route_id})
-                or {}
-            ).get("data") or {}
+                                       self.app.config["MONGO_DB"]["items"].find_one({"_id": p1_route_id})
+                                       or {}
+                               ).get("data") or {}
         self.assertEqual(route_data_after, route_data_before)
         self.assertEqual(
             self._count_notifications_for(
@@ -1798,9 +1797,9 @@ class ContractsE2ETest(unittest.TestCase):
         )
         with self.app.app_context():
             route_data_before = (
-                self.app.config["MONGO_DB"]["items"].find_one({"_id": p1_route_id})
-                or {}
-            ).get("data") or {}
+                                        self.app.config["MONGO_DB"]["items"].find_one({"_id": p1_route_id})
+                                        or {}
+                                ).get("data") or {}
 
         r = self._post_event(cid, "cancel-user", actor="p1")
         self.assertIn(r.status_code, (403, 409))
@@ -1811,9 +1810,9 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(self._wallet_balance("p1"), p1_balance_before)
         with self.app.app_context():
             route_data_after = (
-                self.app.config["MONGO_DB"]["items"].find_one({"_id": p1_route_id})
-                or {}
-            ).get("data") or {}
+                                       self.app.config["MONGO_DB"]["items"].find_one({"_id": p1_route_id})
+                                       or {}
+                               ).get("data") or {}
         self.assertEqual(route_data_after, route_data_before)
         self.assertEqual(
             self._count_notifications_for(driver_principal, "contracts.user_cancelled"),
@@ -1821,7 +1820,7 @@ class ContractsE2ETest(unittest.TestCase):
         )
 
     def test_start_request_join_adds_requesting_user_when_capacity_and_credits_ok(
-        self,
+            self,
     ) -> None:
         driver_principal = f"u:{self.user_ids['d1']}"
         p4_principal = f"u:{self.user_ids['p4']}"
@@ -1842,9 +1841,9 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(self._wallet_balance("p4"), p4_balance_before - 10)
         with self.app.app_context():
             p4_route_data = (
-                self.app.config["MONGO_DB"]["items"].find_one({"_id": p4_route_id})
-                or {}
-            ).get("data") or {}
+                                    self.app.config["MONGO_DB"]["items"].find_one({"_id": p4_route_id})
+                                    or {}
+                            ).get("data") or {}
         self.assertEqual(p4_route_data.get("reserved_credits"), 10)
         self.assertIn(cid, p4_route_data.get("contract_ids") or [])
 
@@ -1912,6 +1911,16 @@ class ContractsE2ETest(unittest.TestCase):
         p4_route_low_credit = self._create_route("p4", cost=1000, seats=1)
         p4_route_over_seats = self._create_route("p4", cost=10, seats=9)
         d1_route_id = self._create_route("d1")
+        extra_p2_balance_before = 10
+        with self.app.app_context():
+            self.app.config["MONGO_DB"]["items"].update_one(
+                {"_id": p2_route_id},
+                {
+                    "$inc": {
+                        "data.reserved_credits": extra_p2_balance_before,
+                    }
+                },
+            )
 
         p2_balance_before = self._wallet_balance("p2")
         p3_balance_before = self._wallet_balance("p3")
@@ -2126,7 +2135,7 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(self._wallet_balance("p2"), p2_balance_before)
         p2_route_after_invite = self._get_route("p2", p2_route_id)
         p2_route_data_after_invite = p2_route_after_invite.get("data") or {}
-        self.assertEqual(p2_route_data_after_invite.get("reserved_credits") or 0, 0)
+        self.assertEqual(p2_route_data_after_invite.get("reserved_credits") or 0, 10)
         self.assertNotIn(
             contract_a, p2_route_data_after_invite.get("contract_ids") or []
         )
@@ -2162,7 +2171,7 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(self._wallet_balance("p3"), p3_balance_before)
         p3_route_after_cancel_invite = self._get_route("p3", p3_route_id)
         p3_route_data_after_cancel_invite = (
-            p3_route_after_cancel_invite.get("data") or {}
+                p3_route_after_cancel_invite.get("data") or {}
         )
         self.assertEqual(
             p3_route_data_after_cancel_invite.get("reserved_credits") or 0, 0
@@ -2276,7 +2285,12 @@ class ContractsE2ETest(unittest.TestCase):
             f"u:{self.user_ids['p3']}", "contracts.rider_unavailable"
         )
         self.assertGreaterEqual(after_rider_unavailable_c, before_rider_unavailable_c)
-
+        self._post_event(
+            contract_req,
+            "request-join",
+            actor="p2",
+            payload={"route_id": p2_route_id},
+        )
         # Driver remove accepted user and rider cancel flows.
         p2_balance_before_driver_reject = self._wallet_balance("p2")
         driver_remove_p2 = self._post_event(
@@ -2288,14 +2302,25 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(driver_remove_p2.status_code, 200)
         self.assertTrue(driver_remove_p2.json().get("ok"))
         self.assertEqual(self._wallet_balance("p2"), p2_balance_before_driver_reject)
+
+        driver_remove_p2 = self._post_event(
+            contract_req,
+            "driver-reject-start",
+            actor="d1",
+            payload={"rider": p2_principal},
+        )
+        self.assertEqual(driver_remove_p2.status_code, 200)
+        self.assertTrue(driver_remove_p2.json().get("ok"))
+        self.assertEqual(self._wallet_balance("p2"), p2_balance_before + extra_p2_balance_before)
+
         p2_route_after_driver_reject = self._get_route("p2", p2_route_id)
         p2_route_data_after_driver_reject = (
-            p2_route_after_driver_reject.get("data") or {}
+                p2_route_after_driver_reject.get("data") or {}
         )
         self.assertEqual(
             p2_route_data_after_driver_reject.get("contract_ids") or [], []
         )
-        self.assertEqual(p2_route_data_after_driver_reject.get("reserved_credits"), 10)
+        self.assertEqual(p2_route_data_after_driver_reject.get("reserved_credits"), 0)
         self.assertEqual(
             self._count_notifications_for(
                 p2_principal, "contracts.user_rejected_by_driver"
@@ -2384,7 +2409,7 @@ class ContractsE2ETest(unittest.TestCase):
         for _ in range(20):
             self._run_worker_once(now=pre_completed + dt.timedelta(seconds=1))
             if not self._queue_jobs(
-                contract_id=contract_completed, event_name="PreDepartureGateTimed"
+                    contract_id=contract_completed, event_name="PreDepartureGateTimed"
             ):
                 break
 
@@ -2523,7 +2548,7 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertIn(d1_principal, self._group_admin_ids(gid))
 
     def test_onboarding_driver_reject_user_no_refund_when_route_still_linked(
-        self,
+            self,
     ) -> None:
         cid = self._create_gherkin_contract(initial_state="START", actor="p1")
         p2_principal = f"u:{self.user_ids['p2']}"
@@ -2566,8 +2591,8 @@ class ContractsE2ETest(unittest.TestCase):
 
         with self.app.app_context():
             route_after = (
-                self.app.config["MONGO_DB"]["items"].find_one({"_id": p2_route_id})
-                or {}
+                    self.app.config["MONGO_DB"]["items"].find_one({"_id": p2_route_id})
+                    or {}
             )
         route_data_after = route_after.get("data") or {}
         self.assertEqual(route_data_after.get("reserved_credits"), 10)

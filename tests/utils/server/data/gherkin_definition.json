@@ -1475,7 +1475,6 @@
                   "update": {
                     "$set": {
                       "state": "SYNC",
-                      "local.sync_needs_route_cleanup": true,
                       "local.sync_cleanup_principal": "$$ctx.payload.rider"
                     }
                   }
@@ -2208,7 +2207,6 @@
                   "update": {
                     "$set": {
                       "state": "SYNC",
-                      "local.sync_needs_route_cleanup": true,
                       "local.sync_cleanup_principal": "$$ctx.payload.rider"
                     }
                   }
@@ -2309,7 +2307,6 @@
               "update": {
                 "$set": {
                   "state": "SYNC",
-                  "local.sync_needs_route_cleanup": true,
                   "local.sync_cleanup_principal": "$$ctx.user"
                 }
               }
@@ -2475,7 +2472,12 @@
                   "local.sync_needs_route_cleanup": {
                     "$ifNull": [
                       "$local.sync_needs_route_cleanup",
-                      false
+                      {
+                        "$ne": [
+                          "$local.sync_cleanup_principal",
+                          ""
+                        ]
+                      }
                     ]
                   },
                   "local.sync_cleanup_route_id": {
@@ -2742,16 +2744,6 @@
             },
             "then_effects": [
               {
-                "title": "Compute Route Cleanup Refund",
-                "description": "Computes refund eligibility and amount for cleanup route.",
-                "type": "update.contract",
-                "update": {
-                  "$unset": [
-                    "context.riders.$$ctx.local.sync_cleanup_principal"
-                  ]
-                }
-              },
-              {
                 "title": "Unlink Contract From Cleanup Route",
                 "description": "Unlinks current contract from cleanup route contract list.",
                 "type": "update.item",
@@ -2776,16 +2768,8 @@
                       ]
                     }
                   }
-                }
-              },
-              {
-                "title": "Reload Cleanup Route",
-                "description": "Reloads cleanup route after unlink.",
-                "type": "get.item",
-                "item_id": {
-                  "$ctx": "local.sync_cleanup_route_id"
                 },
-                "key": "sync_cleanup_route_after"
+                "key": "sync_cleanup_route"
               },
               {
                 "title": "Compute Route Cleanup Refund",
@@ -2793,37 +2777,15 @@
                 "type": "update.contract",
                 "update": {
                   "$set": {
-                    "local.sync_cleanup_refund_amount": {
-                      "$cond": [
-                        {
-                          "$eq": [
-                            {
-                              "$size": {
-                                "$ifNull": [
-                                  "$$ctx.local.sync_cleanup_route_after.data.contract_ids",
-                                  []
-                                ]
-                              }
-                            },
-                            0
-                          ]
-                        },
-                        {
-                          "$ifNull": [
-                            "$local.sync_cleanup_route_after.data.reserved_credits",
-                            0
-                          ]
-                        },
-                        0
-                      ]
-                    },
                     "local.sync_cleanup_has_refund": {
-                      "$gt": [
+                      "$eq": [
                         {
-                          "$ifNull": [
-                            "$local.sync_cleanup_refund_amount",
-                            0
-                          ]
+                          "$size": {
+                            "$ifNull": [
+                              "$$ctx.local.sync_cleanup_route.data.contract_ids",
+                              []
+                            ]
+                          }
                         },
                         0
                       ]
@@ -2840,22 +2802,8 @@
                 },
                 "then_effects": [
                   {
-                    "title": "Refund Cleanup Rider",
-                    "description": "Credits rider with retained route credits.",
-                    "type": "charge.credits",
-                    "credit": {
-                      "product": "coin",
-                      "user_id": {
-                        "$ctx": "local.sync_cleanup_principal"
-                      },
-                      "amount": {
-                        "$ctx": "local.sync_cleanup_refund_amount"
-                      }
-                    }
-                  },
-                  {
-                    "title": "Clear Cleanup Route Reserved Credits",
-                    "description": "Resets cleanup route reserved credits after refund.",
+                    "title": "Unlink Contract From Cleanup Route",
+                    "description": "Unlinks current contract from cleanup route contract list.",
                     "type": "update.item",
                     "item_id": {
                       "$ctx": "local.sync_cleanup_route_id"
@@ -2865,8 +2813,32 @@
                         "data.reserved_credits": 0
                       }
                     }
+                  },
+                  {
+                    "title": "Refund Cleanup Rider",
+                    "description": "Credits rider with retained route credits.",
+                    "type": "charge.credits",
+                    "credit": {
+                      "product": "coin",
+                      "user_id": {
+                        "$ctx": "local.sync_cleanup_principal"
+                      },
+                      "amount": {
+                        "$ctx": "doc.local.sync_cleanup_route.data.reserved_credits"
+                      }
+                    }
                   }
                 ]
+              },
+              {
+                "title": "Compute Route Cleanup Refund",
+                "description": "Computes refund eligibility and amount for cleanup route.",
+                "type": "update.contract",
+                "update": {
+                  "$unset": [
+                    "context.riders.$$ctx.local.sync_cleanup_principal"
+                  ]
+                }
               }
             ]
           },
