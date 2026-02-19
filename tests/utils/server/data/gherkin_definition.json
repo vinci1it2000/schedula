@@ -1477,6 +1477,7 @@
                   "update": {
                     "$set": {
                       "state": "SYNC_CHAT",
+                      "local.sync_chat_needs_pruning": true,
                       "local.sync_chat_needs_route_cleanup": true,
                       "local.sync_chat_cleanup_principal": "$$ctx.payload.rider"
                     }
@@ -2083,16 +2084,6 @@
                   "contract_id": {
                     "$ctx": "doc._id"
                   }
-                }
-              }
-            },
-            {
-              "title": "Move To Sync Chat",
-              "description": "Triggers transient chat/member synchronization after rider status changes.",
-              "type": "update.contract",
-              "update": {
-                "$set": {
-                  "state": "SYNC_CHAT"
                 }
               }
             }

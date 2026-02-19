@@ -1455,7 +1455,7 @@ class ContractsE2ETest(unittest.TestCase):
         after_driver = self._wallet_balance("d1")
         self.assertEqual(after_driver, before_balances["d1"] + 20)
         self.assertEqual(self._wallet_balance("p1"), before_balances["p1"] - 10)
-        self.assertEqual(self._wallet_balance("p2"), before_balances["p2"] + 1)
+        self.assertEqual(self._wallet_balance("p2"), before_balances["p2"] + 3)
         self.assertEqual(self._wallet_balance("p3"), before_balances["p3"] - 10)
         self.assertEqual(self._wallet_balance("p4"), before_balances["p4"] - 10)
         self.assertEqual(self._wallet_balance("p5"), before_balances["p5"] - 10)
