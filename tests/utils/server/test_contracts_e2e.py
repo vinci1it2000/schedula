@@ -1738,6 +1738,16 @@ class ContractsE2ETest(unittest.TestCase):
     def test_recruiting_driver_reject_user_marks_target_rejected(self) -> None:
         cid = self._create_gherkin_contract(initial_state="START", actor="p1")
         p1_principal = f"u:{self.user_ids['p1']}"
+        p1_route_id = self.route_by_principal[p1_principal]
+        p1_balance_before = self._wallet_balance("p1")
+        reject_notify_before = self._count_notifications_for(
+            p1_principal, "contracts.user_rejected_by_driver"
+        )
+        with self.app.app_context():
+            route_data_before = (
+                self.app.config["MONGO_DB"]["items"].find_one({"_id": p1_route_id})
+                or {}
+            ).get("data") or {}
 
         r = self._post_event(
             cid,
@@ -1752,6 +1762,19 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(c["state"], "ONBOARDING")
         self.assertEqual(self._user_state(c, self.user_ids["p1"]), "REQUESTING")
         self.assertIn(p1_principal, (c.get("context") or {}).get("riders") or {})
+        self.assertEqual(self._wallet_balance("p1"), p1_balance_before)
+        with self.app.app_context():
+            route_data_after = (
+                self.app.config["MONGO_DB"]["items"].find_one({"_id": p1_route_id})
+                or {}
+            ).get("data") or {}
+        self.assertEqual(route_data_after, route_data_before)
+        self.assertEqual(
+            self._count_notifications_for(
+                p1_principal, "contracts.user_rejected_by_driver"
+            ),
+            reject_notify_before,
+        )
 
     def test_onboarding_driver_reject_trip_cleans_riders_on_rejected(self) -> None:
         cid = self._create_gherkin_contract(initial_state="START", actor="p1")
@@ -1766,6 +1789,18 @@ class ContractsE2ETest(unittest.TestCase):
 
     def test_recruiting_user_cancel_ride_marks_user_cancelled(self) -> None:
         cid = self._create_gherkin_contract(initial_state="START", actor="p1")
+        p1_principal = f"u:{self.user_ids['p1']}"
+        p1_route_id = self.route_by_principal[p1_principal]
+        p1_balance_before = self._wallet_balance("p1")
+        driver_principal = f"u:{self.user_ids['d1']}"
+        user_cancelled_before = self._count_notifications_for(
+            driver_principal, "contracts.user_cancelled"
+        )
+        with self.app.app_context():
+            route_data_before = (
+                self.app.config["MONGO_DB"]["items"].find_one({"_id": p1_route_id})
+                or {}
+            ).get("data") or {}
 
         r = self._post_event(cid, "cancel-user", actor="p1")
         self.assertIn(r.status_code, (403, 409))
@@ -1773,11 +1808,25 @@ class ContractsE2ETest(unittest.TestCase):
         c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
         self.assertEqual(c["state"], "ONBOARDING")
         self.assertEqual(self._user_state(c, self.user_ids["p1"]), "REQUESTING")
+        self.assertEqual(self._wallet_balance("p1"), p1_balance_before)
+        with self.app.app_context():
+            route_data_after = (
+                self.app.config["MONGO_DB"]["items"].find_one({"_id": p1_route_id})
+                or {}
+            ).get("data") or {}
+        self.assertEqual(route_data_after, route_data_before)
+        self.assertEqual(
+            self._count_notifications_for(driver_principal, "contracts.user_cancelled"),
+            user_cancelled_before,
+        )
 
     def test_start_request_join_adds_requesting_user_when_capacity_and_credits_ok(
         self,
     ) -> None:
         driver_principal = f"u:{self.user_ids['d1']}"
+        p4_principal = f"u:{self.user_ids['p4']}"
+        p4_route_id = self.route_by_principal[p4_principal]
+        p4_balance_before = self._wallet_balance("p4")
         before = self._count_notifications_for(
             driver_principal, "contracts.join_requested"
         )
@@ -1790,6 +1839,14 @@ class ContractsE2ETest(unittest.TestCase):
         c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
         self.assertEqual(c["state"], "ONBOARDING")
         self.assertEqual(self._user_state(c, self.user_ids["p4"]), "REQUESTING")
+        self.assertEqual(self._wallet_balance("p4"), p4_balance_before - 10)
+        with self.app.app_context():
+            p4_route_data = (
+                self.app.config["MONGO_DB"]["items"].find_one({"_id": p4_route_id})
+                or {}
+            ).get("data") or {}
+        self.assertEqual(p4_route_data.get("reserved_credits"), 10)
+        self.assertIn(cid, p4_route_data.get("contract_ids") or [])
 
         after = self._count_notifications_for(
             driver_principal, "contracts.join_requested"
@@ -2464,6 +2521,64 @@ class ContractsE2ETest(unittest.TestCase):
         cancel_p1 = self._post_event(cid, "cancel-user", actor="p1")
         self.assertIn(cancel_p1.status_code, (403, 409))
         self.assertIn(d1_principal, self._group_admin_ids(gid))
+
+    def test_onboarding_driver_reject_user_no_refund_when_route_still_linked(
+        self,
+    ) -> None:
+        cid = self._create_gherkin_contract(initial_state="START", actor="p1")
+        p2_principal = f"u:{self.user_ids['p2']}"
+        p2_route_id = self._create_route("p2", cost=10, seats=1)
+
+        invited = self._post_event(
+            cid,
+            "invite-user",
+            actor="d1",
+            payload={"route_id": p2_route_id},
+        )
+        self.assertEqual(invited.status_code, 200)
+        self.assertTrue(invited.json().get("ok"))
+
+        accepted = self._post_event(cid, "accept-user", actor="p2")
+        self.assertEqual(accepted.status_code, 200)
+        self.assertTrue(accepted.json().get("ok"))
+
+        balance_before_reject = self._wallet_balance("p2")
+        with self.app.app_context():
+            self.app.config["MONGO_DB"]["items"].update_one(
+                {"_id": p2_route_id},
+                {
+                    "$set": {
+                        "data.contract_ids": [cid, "other-contract"],
+                        "data.reserved_credits": 10,
+                    }
+                },
+            )
+
+        rejected = self._post_event(
+            cid,
+            "driver-reject-user",
+            actor="d1",
+            payload={"rider": p2_principal},
+        )
+        self.assertEqual(rejected.status_code, 200)
+        self.assertTrue(rejected.json().get("ok"))
+        self.assertEqual(self._wallet_balance("p2"), balance_before_reject)
+
+        with self.app.app_context():
+            route_after = (
+                self.app.config["MONGO_DB"]["items"].find_one({"_id": p2_route_id})
+                or {}
+            )
+        route_data_after = route_after.get("data") or {}
+        self.assertEqual(route_data_after.get("reserved_credits"), 10)
+        self.assertEqual(route_data_after.get("contract_ids") or [], ["other-contract"])
+
+        contract_doc = self.httpx.get(
+            f"/contracts/{cid}", headers=self._headers("owner-1")
+        ).json()
+        self.assertEqual(
+            self._user_state(contract_doc, self.user_ids["p2"]), "REJECTED"
+        )
 
     def test_update_contract_effect_updates_another_contract(self) -> None:
         definition = {
