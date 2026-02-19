@@ -3788,36 +3788,24 @@
             },
             {
               "title": "Compute Rejection Refund",
-              "description": "Computes full refund plus 10 percent bonus for rejected rider.",
+              "description": "Computes full refund plus 30 percent bonus for rejected rider.",
               "type": "update.contract",
               "update": {
                 "$set": {
                   "local.rejection_refund_amount": {
-                    "$add": [
-                      {
-                        "$ifNull": [
-                          {
-                            "$ctx": "doc.context.riders.$$ctx.payload.rider.cost"
-                          },
-                          0
-                        ]
-                      },
-                      {
-                        "$floor": {
-                          "$multiply": [
+                    "$floor": {
+                      "$multiply": [
+                        {
+                          "$ifNull": [
                             {
-                              "$ifNull": [
-                                {
-                                  "$ctx": "doc.context.riders.$$ctx.payload.rider.cost"
-                                },
-                                0
-                              ]
+                              "$ctx": "doc.context.riders.$$ctx.payload.rider.cost"
                             },
-                            0.1
+                            0
                           ]
-                        }
-                      }
-                    ]
+                        },
+                        1.3
+                      ]
+                    }
                   }
                 }
               }
@@ -4598,36 +4586,44 @@
               },
               "then_effects": [
                 {
-                  "title": "Register Rider Dispute",
-                  "description": "Stores rider dispute for payment resolution.",
-                  "type": "update.contract",
-                  "update": {
-                    "$set": {
-                      "context.riders.$$ctx.user.dispute": true
-                    }
-                  }
-                },
-                {
-                  "title": "Notify Driver About Rider Dispute",
-                  "description": "Notifies driver immediately when rider reports not picked.",
-                  "type": "notify",
-                  "notify": {
-                    "event": "contracts.dispute_opened",
-                    "targets": {
-                      "$$ctx.doc.context.driver": [
-                        "in_app",
-                        "push"
-                      ]
+                  "type": "if.else",
+                  "condition": {
+                    "$ctx": "context.riders.$$ctx.user.dispute"
+                  },
+                  "else_effects": [
+                    {
+                      "title": "Register Rider Dispute",
+                      "description": "Stores rider dispute for payment resolution.",
+                      "type": "update.contract",
+                      "update": {
+                        "$set": {
+                          "context.riders.$$ctx.user.dispute": true
+                        }
+                      }
                     },
-                    "payload": {
-                      "contract_id": {
-                        "$ctx": "doc._id"
-                      },
-                      "type": "rider_not_picked",
-                      "rider": "$$ctx.user",
-                      "reported_by": "$$ctx.user"
+                    {
+                      "title": "Notify Driver About Rider Dispute",
+                      "description": "Notifies driver immediately when rider reports not picked.",
+                      "type": "notify",
+                      "notify": {
+                        "event": "contracts.dispute_opened",
+                        "targets": {
+                          "$$ctx.doc.context.driver": [
+                            "in_app",
+                            "push"
+                          ]
+                        },
+                        "payload": {
+                          "contract_id": {
+                            "$ctx": "doc._id"
+                          },
+                          "type": "rider_not_picked",
+                          "rider": "$$ctx.user",
+                          "reported_by": "$$ctx.user"
+                        }
+                      }
                     }
-                  }
+                  ]
                 }
               ]
             }
@@ -4680,40 +4676,48 @@
             {
               "type": "if.else",
               "condition": {
-                "$ctx": "doc.local.valid_request"
+                "$ctx": "context.riders.$$ctx.payload.rider.dispute"
               },
-              "then_effects": [
+              "else_effects": [
                 {
-                  "title": "Register Driver Dispute",
-                  "description": "Stores driver dispute for payment resolution.",
-                  "type": "update.contract",
-                  "update": {
-                    "$set": {
-                      "context.riders.$$ctx.payload.rider.dispute": true
-                    }
-                  }
-                },
-                {
-                  "title": "Notify Rider About Driver Dispute",
-                  "description": "Notifies target rider when driver reports pickup absence.",
-                  "type": "notify",
-                  "notify": {
-                    "event": "contracts.dispute_opened",
-                    "targets": {
-                      "$$ctx.payload.rider": [
-                        "in_app",
-                        "push"
-                      ]
+                  "type": "if.else",
+                  "condition": {
+                    "$ctx": "doc.local.valid_request"
+                  },
+                  "then_effects": [
+                    {
+                      "title": "Register Driver Dispute",
+                      "description": "Stores driver dispute for payment resolution.",
+                      "type": "update.contract",
+                      "update": {
+                        "$set": {
+                          "context.riders.$$ctx.payload.rider.dispute": true
+                        }
+                      }
                     },
-                    "payload": {
-                      "contract_id": {
-                        "$ctx": "doc._id"
-                      },
-                      "type": "rider_not_at_pickup",
-                      "rider": "$$ctx.payload.rider",
-                      "reported_by": "$$ctx.user"
+                    {
+                      "title": "Notify Rider About Driver Dispute",
+                      "description": "Notifies target rider when driver reports pickup absence.",
+                      "type": "notify",
+                      "notify": {
+                        "event": "contracts.dispute_opened",
+                        "targets": {
+                          "$$ctx.payload.rider": [
+                            "in_app",
+                            "push"
+                          ]
+                        },
+                        "payload": {
+                          "contract_id": {
+                            "$ctx": "doc._id"
+                          },
+                          "type": "rider_not_at_pickup",
+                          "rider": "$$ctx.payload.rider",
+                          "reported_by": "$$ctx.user"
+                        }
+                      }
                     }
-                  }
+                  ]
                 }
               ]
             }
@@ -4832,9 +4836,6 @@
           ]
         }
       }
-    },
-    "REJECTED": {
-      "final": true
     },
     "COMPLETED": {
       "final": true
