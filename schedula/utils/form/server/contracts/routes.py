@@ -105,6 +105,7 @@ TEMPLATE_CREATE_SCHEMA = {
                         "get.contract",
                         "execute.event",
                         "iter.effects",
+                        "custom.function",
                         "create.group",
                         "update.group",
                         "update.contract",
@@ -288,6 +289,30 @@ TEMPLATE_CREATE_SCHEMA = {
                     "description": "Nested effects list used by iter.effects.",
                     "type": "array",
                     "items": {"$ref": "#/$defs/effect"},
+                },
+                "func": {
+                    "title": "Function Name",
+                    "description": "Registered function key for custom.function effects.",
+                    "anyOf": [
+                        {"type": "string", "minLength": 1},
+                        {"$ref": "#/$defs/json_with_refs"},
+                    ],
+                },
+                "args": {
+                    "title": "Function Args",
+                    "description": "Positional arguments for custom.function effects.",
+                    "anyOf": [
+                        {"type": "array"},
+                        {"$ref": "#/$defs/json_with_refs"},
+                    ],
+                },
+                "kwargs": {
+                    "title": "Function Kwargs",
+                    "description": "Keyword arguments for custom.function effects.",
+                    "anyOf": [
+                        {"type": "object"},
+                        {"$ref": "#/$defs/json_with_refs"},
+                    ],
                 },
                 "credit": {"$ref": "#/$defs/credit"},
                 "credits": {
@@ -530,13 +555,15 @@ TEMPLATE_CREATE_SCHEMA = {
                 },
                 {
                     "if": {"properties": {"type": {"const": "execute.event"}}},
-                    "then": {
-                        "required": ["event_name"]
-                    },
+                    "then": {"required": ["event_name"]},
                 },
                 {
                     "if": {"properties": {"type": {"const": "iter.effects"}}},
                     "then": {"required": ["iter", "effects"]},
+                },
+                {
+                    "if": {"properties": {"type": {"const": "custom.function"}}},
+                    "then": {"required": ["func", "key"]},
                 },
                 {
                     "if": {"properties": {"type": {"const": "if.else"}}},
@@ -1362,8 +1389,8 @@ def _validate_schema(payload: Dict[str, Any], schema: Dict[str, Any]) -> List[st
 
 
 def _validate_allowed_initial_states(
-        definition: Dict[str, Any],
-        allowed_initial_states: Any,
+    definition: Dict[str, Any],
+    allowed_initial_states: Any,
 ) -> List[str]:
     if allowed_initial_states is None:
         return []

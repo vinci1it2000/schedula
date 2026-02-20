@@ -1714,10 +1714,15 @@
                     "type": "object",
                     "required": [
                       "at",
-                      "location"
+                      "location",
+                      "flexibility"
                     ],
                     "additionalProperties": false,
                     "properties": {
+                      "flexibility": {
+                        "type": "number",
+                        "minimum": 0
+                      },
                       "at": {
                         "type": "string",
                         "format": "date-time"
@@ -1750,10 +1755,15 @@
                     "type": "object",
                     "required": [
                       "at",
-                      "location"
+                      "location",
+                      "flexibility"
                     ],
                     "additionalProperties": false,
                     "properties": {
+                      "flexibility": {
+                        "type": "number",
+                        "minimum": 0
+                      },
                       "at": {
                         "type": "string",
                         "format": "date-time"
@@ -1834,10 +1844,15 @@
                         "type": "object",
                         "required": [
                           "at",
-                          "location"
+                          "location",
+                          "flexibility"
                         ],
                         "additionalProperties": false,
                         "properties": {
+                          "flexibility": {
+                            "type": "number",
+                            "minimum": 0
+                          },
                           "at": {
                             "type": "string",
                             "format": "date-time"
@@ -1870,10 +1885,15 @@
                         "type": "object",
                         "required": [
                           "at",
-                          "location"
+                          "location",
+                          "flexibility"
                         ],
                         "additionalProperties": false,
                         "properties": {
+                          "flexibility": {
+                            "type": "number",
+                            "minimum": 0
+                          },
                           "at": {
                             "type": "string",
                             "format": "date-time"
@@ -3663,10 +3683,15 @@
                     "type": "object",
                     "required": [
                       "at",
-                      "location"
+                      "location",
+                      "flexibility"
                     ],
                     "additionalProperties": false,
                     "properties": {
+                      "flexibility": {
+                        "type": "number",
+                        "minimum": 0
+                      },
                       "at": {
                         "type": "string",
                         "format": "date-time"
@@ -3699,10 +3724,15 @@
                     "type": "object",
                     "required": [
                       "at",
-                      "location"
+                      "location",
+                      "flexibility"
                     ],
                     "additionalProperties": false,
                     "properties": {
+                      "flexibility": {
+                        "type": "number",
+                        "minimum": 0
+                      },
                       "at": {
                         "type": "string",
                         "format": "date-time"
@@ -3788,10 +3818,15 @@
                         "type": "object",
                         "required": [
                           "at",
-                          "location"
+                          "location",
+                          "flexibility"
                         ],
                         "additionalProperties": false,
                         "properties": {
+                          "flexibility": {
+                            "type": "number",
+                            "minimum": 0
+                          },
                           "at": {
                             "type": "string",
                             "format": "date-time"
@@ -3824,10 +3859,15 @@
                         "type": "object",
                         "required": [
                           "at",
-                          "location"
+                          "location",
+                          "flexibility"
                         ],
                         "additionalProperties": false,
                         "properties": {
+                          "flexibility": {
+                            "type": "number",
+                            "minimum": 0
+                          },
                           "at": {
                             "type": "string",
                             "format": "date-time"
@@ -4223,6 +4263,18 @@
                     }
                   }
                 }
+              }
+            ]
+          },
+          {
+            "title": "Build Pickup Entries",
+            "description": "Builds deterministic pickup entries and pin metadata for accepted riders.",
+            "type": "custom.function",
+            "key": "pickup_times",
+            "func": "get_riders_order",
+            "args": [
+              {
+                "$ctx": "doc.context"
               }
             ]
           },

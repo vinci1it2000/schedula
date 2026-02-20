@@ -40,6 +40,12 @@ from ..utils import (
     mongo_delete_many,
 )
 
+REGISTERED_FUNCTIONS: Dict[str, Any] = {}
+
+
+def register_function(name: str, func: Any):
+    REGISTERED_FUNCTIONS[name] = func
+
 
 def _contracts_coll():
     return get_mongo(collection=config_get("CONTRACTS_COLLECTION", "contracts"))
@@ -467,6 +473,9 @@ def _apply_effect_step(
         if isinstance(ef["contract_id"], str):
             docs = docs[0] if docs else None
         local[ef["key"]] = docs
+    elif ef_type == "custom.function":
+        func = REGISTERED_FUNCTIONS[ef["func"]]
+        local[ef["key"]] = func(*ef.get("args", ()), **ef.get("kwargs", {}))
     else:
         abort_json(400, f"Unknown effect type: {ef_type}")
 
