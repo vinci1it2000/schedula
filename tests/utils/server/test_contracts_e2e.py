@@ -752,7 +752,7 @@ class ContractsE2ETest(unittest.TestCase):
         c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
         self.assertEqual(c.get("state"), "IN_PROGRESS")
         self.assertEqual(self._user_state(c, self.user_ids["p1"]), "ACCEPTED")
-        self.assertEqual(self._user_state(c, self.user_ids["p4"]), "CANCELLED")
+        self.assertEqual(self._user_state(c, self.user_ids["p4"]), "")
         self.assertEqual(self._wallet_balance("p4"), p4_balance_before)
         with self.app.app_context():
             p4_route_after = self.app.config["MONGO_DB"]["items"].find_one(
@@ -829,7 +829,17 @@ class ContractsE2ETest(unittest.TestCase):
         )
         self.assertEqual(accepted.status_code, 200)
         self.assertTrue(accepted.json().get("ok"))
-
+        created_second = self._create_contract(
+            template_id,
+            {
+                "driver_trip_id": driver_route_id,
+                "riders": [self.route_by_principal[p4_principal]],
+            },
+            initial_state="START",
+            actor="p4",
+        )
+        self.assertEqual(created_second.status_code, 201, msg=created.text)
+        cid_second = str(created_second.json()["id"])
         run_at = self._queue_jobs(contract_id=cid, event_name="PreDepartureGateTimed")[
             0
         ]["run_at"]
@@ -840,10 +850,10 @@ class ContractsE2ETest(unittest.TestCase):
         c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
         self.assertEqual(c.get("state"), "IN_PROGRESS")
         self.assertEqual(self._user_state(c, self.user_ids["p1"]), "ACCEPTED")
-        self.assertEqual(self._user_state(c, self.user_ids["p2"]), "CANCELLED")
-        self.assertEqual(self._user_state(c, self.user_ids["p4"]), "CANCELLED")
+        self.assertEqual(self._user_state(c, self.user_ids["p2"]), "")
+        self.assertEqual(self._user_state(c, self.user_ids["p4"]), "")
         self.assertEqual(self._wallet_balance("p2"), p2_before)
-        self.assertEqual(self._wallet_balance("p4"), p4_before)
+        self.assertEqual(self._wallet_balance("p4"), p4_before - 10)
 
         with self.app.app_context():
             p2_route_after = self.app.config["MONGO_DB"]["items"].find_one(
@@ -855,9 +865,9 @@ class ContractsE2ETest(unittest.TestCase):
         p2_route_data = (p2_route_after or {}).get("data") or {}
         p4_route_data = (p4_route_after or {}).get("data") or {}
         self.assertEqual(p2_route_data.get("reserved_credits") or 0, 0)
-        self.assertEqual(p4_route_data.get("reserved_credits") or 0, 0)
+        self.assertEqual(p4_route_data.get("reserved_credits") or 0, 10)
         self.assertNotIn(cid, p2_route_data.get("contract_ids") or [])
-        self.assertNotIn(cid, p4_route_data.get("contract_ids") or [])
+        self.assertNotIn(cid, p4_route_data.get("contract_ids") or [cid_second])
 
         riders_ctx = (c.get("context") or {}).get("riders") or {}
         self.assertIn(p1_principal, riders_ctx)
