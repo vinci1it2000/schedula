@@ -225,6 +225,30 @@ def _apply_effect_step(
             local=local,
             validate_schema=False,
         )
+    elif ef_type == "execute.event":
+        contract_id = doc["_id"]
+        event = ef["event_name"]
+        if ef.get("contract_id", contract_id) != contract_id:
+            _process_event(
+                contract_id=ef["contract_id"], dyn_path="", actor_id=actor_id, body_payload=payload, event_name=event
+            )
+        else:
+            events = dict(pydash.get(doc, f"definition.events", {}))
+            events.update(pydash.get(doc, f"definition.states.{ef.get('state', initial_state)}.events", {}))
+            if event in events:
+                return _apply_effects(events[event], doc, actor_id, payload=payload, local=local, validate_schema=False)
+    elif ef_type == "iter.effects":
+        effects = raw_ef["effects"] or []
+        for d in ef.get("iter") or [{}]:
+            changed, doc = _apply_effects(
+                {"effects": effects}, doc,
+                actor_id=d.get("actor_id", actor_id),
+                payload=d.get("payload", payload),
+                local=d.get("local", local),
+                validate_schema=False
+            )
+            if changed:
+                return changed, doc
     elif ef_type == "schedule.event":
         from .schedule import schedule_event_at, schedule_event_cron
 
@@ -535,6 +559,7 @@ def _process_event(
         dyn_path: str,
         actor_id: str,
         body_payload: Dict[str, Any],
+        event_name: Optional[str] = None,
 ) -> Tuple[Dict[str, Any], int]:
     with create_sadlock(db.session, contract_id):
         doc = _get_contract(contract_id)
@@ -547,23 +572,26 @@ def _process_event(
         state = str(doc.get("state") or "")
         events = dict(pydash.get(doc, f"definition.events", {}))
         events.update(pydash.get(doc, f"definition.states.{state}.events", {}))
-
         selected_edef: Optional[Dict[str, Any]] = None
         selected_trigger: Optional[Dict[str, Any]] = None
-        for _, candidate in sorted(events.items()):
-            if "trigger" in candidate:
-                for t in candidate["trigger"]:
-                    if str(t.get("type") or "") != "api":
-                        continue
-                    path = t.get("path")
-                    if isinstance(path, str) and path == dyn_path:
-                        selected_edef = candidate
-                        selected_trigger = t
+        if event_name is None:
+            for _, candidate in sorted(events.items()):
+                if "trigger" in candidate:
+                    for t in candidate["trigger"]:
+                        if str(t.get("type") or "") != "api":
+                            continue
+                        path = t.get("path")
+                        if isinstance(path, str) and path == dyn_path:
+                            selected_edef = candidate
+                            selected_trigger = t
+                            break
+                    if selected_edef is not None:
                         break
-                if selected_edef is not None:
-                    break
-        if selected_edef is None or selected_trigger is None:
-            abort_json(409, "Event not available in this state")
+            if selected_edef is None or selected_trigger is None:
+                abort_json(409, "Event not available in this state")
+        else:
+            selected_edef = events.get(event_name)
+            selected_trigger = {}
         return _process_selected_event(
             doc=doc,
             edef=selected_edef,
@@ -662,7 +690,6 @@ def _create_contract_from_template_doc(
         "context": context,
         "definition": definition,
         "metadata": template.get("metadata") or {},
-        "scheduled_events": {},
         "created_by": owner_id,
         "created_at": now,
         "updated_at": now,

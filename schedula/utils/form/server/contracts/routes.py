@@ -103,6 +103,8 @@ TEMPLATE_CREATE_SCHEMA = {
                         "update.item",
                         "get.item",
                         "get.contract",
+                        "execute.event",
+                        "iter.effects",
                         "create.group",
                         "update.group",
                         "update.contract",
@@ -253,6 +255,39 @@ TEMPLATE_CREATE_SCHEMA = {
                 "events": {
                     "type": "object",
                     "additionalProperties": {"$ref": "#/$defs/schedule_event"},
+                },
+                "event_name": {
+                    "title": "Event Name",
+                    "description": "Target event name for execute.event effects.",
+                    "anyOf": [
+                        {"type": "string", "minLength": 1},
+                        {"$ref": "#/$defs/json_with_refs"},
+                    ],
+                },
+                "state": {
+                    "title": "State",
+                    "description": "Optional state scope used by execute.event.",
+                    "anyOf": [
+                        {"type": "string", "minLength": 1},
+                        {"$ref": "#/$defs/json_with_refs"},
+                    ],
+                },
+                "iter": {
+                    "title": "Iter Items",
+                    "description": "Iteration payload entries for iter.effects.",
+                    "anyOf": [
+                        {
+                            "type": "array",
+                            "items": {"type": "object"},
+                        },
+                        {"$ref": "#/$defs/json_with_refs"},
+                    ],
+                },
+                "effects": {
+                    "title": "Nested Effects",
+                    "description": "Nested effects list used by iter.effects.",
+                    "type": "array",
+                    "items": {"$ref": "#/$defs/effect"},
                 },
                 "credit": {"$ref": "#/$defs/credit"},
                 "credits": {
@@ -492,6 +527,16 @@ TEMPLATE_CREATE_SCHEMA = {
                             },
                         ],
                     },
+                },
+                {
+                    "if": {"properties": {"type": {"const": "execute.event"}}},
+                    "then": {
+                        "required": ["event_name"]
+                    },
+                },
+                {
+                    "if": {"properties": {"type": {"const": "iter.effects"}}},
+                    "then": {"required": ["iter", "effects"]},
                 },
                 {
                     "if": {"properties": {"type": {"const": "if.else"}}},
@@ -744,7 +789,7 @@ TEMPLATE_CREATE_SCHEMA = {
                         {"$ref": "#/$defs/json_with_refs"},
                     ]
                 },
-                "demote_admins":  {
+                "demote_admins": {
                     "anyOf": [
                         {
                             "type": "array",
