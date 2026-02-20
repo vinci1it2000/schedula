@@ -971,9 +971,11 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(c.get("state"), "IN_PROGRESS")
         rider = (((c.get("context") or {}).get("riders") or {}).get(p1_principal)) or {}
         pin = str(pydash.get(rider, "verification.pin") or "")
+        self.assertNotEqual(len(set(pin)), 1)
         masked = str(pydash.get(rider, "verification.masked") or "")
         self.assertRegex(pin, r"^\d{6}$")
         self.assertIn("_", masked)
+        self.assertRegex(pin, f"^{masked.replace('_', '.')}$")
 
         after_rider_pin = self._count_notifications_for(
             p1_principal, "contracts.pickup_pin_created"

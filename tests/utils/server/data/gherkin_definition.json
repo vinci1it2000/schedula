@@ -4043,66 +4043,117 @@
                 "$set": {
                   "local.pickup_entries": {
                     "$map": {
-                      "input": {
-                        "$range": [
-                          0,
-                          {
-                            "$size": {
-                              "$ifNull": [
-                                "$local.accepted_principals",
-                                []
-                              ]
-                            }
-                          }
-                        ]
-                      },
-                      "as": "idx",
+                      "input": "$local.accepted_principals",
+                      "as": "p",
                       "in": {
-                        "principal": {
-                          "$arrayElemAt": [
-                            {
-                              "$ifNull": [
-                                "$local.accepted_principals",
-                                []
-                              ]
-                            },
-                            "$$idx"
-                          ]
-                        },
-                        "pickup_zone": {
-                          "radius": 300,
-                          "location": "$context.driver_route.trip.origin.location"
-                        },
-                        "pickup_window": {
-                          "start": "$context.driver_route.trip.origin.at",
-                          "end": "$context.driver_route.trip.origin.at"
-                        },
-                        "pin": {
-                          "$toString": {
-                            "$add": [
-                              100000,
-                              "$$idx"
-                            ]
-                          }
-                        },
-                        "masked": {
-                          "$concat": [
-                            "___",
-                            {
-                              "$substrBytes": [
-                                {
-                                  "$toString": {
-                                    "$add": [
-                                      100000,
-                                      "$$idx"
+                        "$let": {
+                          "vars": {
+                            "rnd": {
+                              "$floor": {
+                                "$add": [
+                                  {
+                                    "$multiply": [
+                                      {
+                                        "$rand": {}
+                                      },
+                                      900000
                                     ]
+                                  },
+                                  100000
+                                ]
+                              }
+                            }
+                          },
+                          "in": {
+                            "$let": {
+                              "vars": {
+                                "pinStr": {
+                                  "$toString": "$$rnd"
+                                },
+                                "maskIndexes": {
+                                  "$map": {
+                                    "input": {
+                                      "$slice": [
+                                        {
+                                          "$sortArray": {
+                                            "input": {
+                                              "$map": {
+                                                "input": {
+                                                  "$range": [
+                                                    0,
+                                                    6
+                                                  ]
+                                                },
+                                                "as": "i",
+                                                "in": {
+                                                  "idx": "$$i",
+                                                  "r": {
+                                                    "$rand": {}
+                                                  }
+                                                }
+                                              }
+                                            },
+                                            "sortBy": {
+                                              "r": 1
+                                            }
+                                          }
+                                        },
+                                        3
+                                      ]
+                                    },
+                                    "as": "x",
+                                    "in": "$$x.idx"
+                                  }
+                                }
+                              },
+                              "in": {
+                                "pin": "$$pinStr",
+                                "masked": {
+                                  "$reduce": {
+                                    "input": {
+                                      "$range": [
+                                        0,
+                                        6
+                                      ]
+                                    },
+                                    "initialValue": "",
+                                    "in": {
+                                      "$concat": [
+                                        "$$value",
+                                        {
+                                          "$cond": [
+                                            {
+                                              "$in": [
+                                                "$$this",
+                                                "$$maskIndexes"
+                                              ]
+                                            },
+                                            "_",
+                                            {
+                                              "$substrBytes": [
+                                                "$$pinStr",
+                                                "$$this",
+                                                1
+                                              ]
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
                                   }
                                 },
-                                3,
-                                3
-                              ]
+                                "principal": "$$p",
+                                "pickup_zone": {
+                                  "radius": 300,
+                                  "location": "$context.driver_route.trip.origin.location"
+                                },
+                                "pickup_window": {
+                                  "start": "$context.driver_route.trip.origin.at",
+                                  "end": "$context.driver_route.trip.origin.at"
+                                }
+                              }
                             }
-                          ]
+                          }
                         }
                       }
                     }
