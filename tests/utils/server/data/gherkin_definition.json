@@ -3576,6 +3576,11 @@
                   "type": "update.contract",
                   "update": {
                     "$set": {
+                      "context.cancellation": {
+                        "phase": "ONBOARDING",
+                        "requested_by": "system:cron",
+                        "at": "$$NOW"
+                      },
                       "state": "CANCELLED"
                     }
                   }
@@ -4609,7 +4614,7 @@
             }
           ]
         },
-        "DriverRejectUser": {
+        "DriverRemoveUser": {
           "trigger": [
             {
               "type": "api",
@@ -4667,7 +4672,7 @@
                             0
                           ]
                         },
-                        1.3
+                        1.1
                       ]
                     }
                   }
@@ -5794,620 +5799,77 @@
             "title": "Resolve Cancellation Phase",
             "description": "Resolves cancellation phase flags for conditional cancellation flow execution.",
             "type": "update.contract",
-            "update": [
-              {
-                "$set": {
-                  "local.cancellation_phase": {
-                    "$ifNull": [
-                      "$context.cancellation.phase",
-                      ""
-                    ]
-                  }
-                }
-              },
-              {
-                "$set": {
-                  "local.is_onboarding_cancel": {
-                    "$eq": [
-                      "$local.cancellation_phase",
-                      "ONBOARDING"
-                    ]
-                  },
-                  "local.is_in_progress_cancel": {
-                    "$eq": [
-                      "$local.cancellation_phase",
-                      "IN_PROGRESS"
-                    ]
-                  }
-                }
-              }
-            ]
-          },
-          {
-            "title": "Apply Onboarding Cancellation Flow",
-            "description": "Executes onboarding-specific cancellation cleanup and notifications.",
-            "type": "if.else",
-            "condition": {
-              "$ctx": "doc.local.is_onboarding_cancel"
-            },
-            "then_effects": [
-              {
-                "title": "Collect Active Riders",
-                "description": "Collects active rider principals and route ids for trip cancellation pruning.",
-                "type": "update.contract",
-                "update": {
-                  "$set": {
-                    "local.trip_cancel_riders": {
-                      "$map": {
+            "update": {
+              "$set": {
+                "local.remaining_capacity": 0,
+                "local.trip_cancel_riders": {
+                  "$map": {
+                    "input": {
+                      "$filter": {
                         "input": {
                           "$objectToArray": {
                             "$ifNull": [
-                              "$context.riders",
+                              "$states",
                               {}
                             ]
                           }
                         },
-                        "as": "rv",
-                        "in": {
-                          "principal": "$$rv.k",
-                          "route_id": "$$rv.v.id"
-                        }
-                      }
-                    }
-                  }
-                }
-              },
-              {
-                "title": "Build Trip Cancel Route Unlinks",
-                "description": "Builds route update map to unlink this contract from every active rider route.",
-                "type": "update.contract",
-                "update": {
-                  "$set": {
-                    "local.trip_cancel_route_updates": {
-                      "$arrayToObject": {
-                        "$map": {
-                          "input": {
-                            "$ifNull": [
-                              "$local.trip_cancel_riders",
-                              []
-                            ]
-                          },
-                          "as": "r",
-                          "in": {
-                            "k": "$$r.route_id",
-                            "v": {
-                              "$literal": {
-                                "$set": {
-                                  "data.contract_ids": {
-                                    "$setDifference": [
-                                      {
-                                        "$ifNull": [
-                                          "$data.contract_ids",
-                                          []
-                                        ]
-                                      },
-                                      [
-                                        {
-                                          "$ctx": "doc._id"
-                                        }
-                                      ]
-                                    ]
-                                  }
-                                }
-                              }
-                            }
-                          }
-                        }
-                      }
-                    },
-                    "local.trip_cancel_route_ids": {
-                      "$setUnion": [
-                        {
-                          "$map": {
-                            "input": {
-                              "$ifNull": [
-                                "$local.trip_cancel_riders",
-                                []
-                              ]
-                            },
-                            "as": "r",
-                            "in": "$$r.route_id"
-                          }
-                        },
-                        []
-                      ]
-                    }
-                  }
-                }
-              },
-              {
-                "title": "Unlink Trip Routes",
-                "description": "Removes this contract id from all active rider routes.",
-                "type": "update.item",
-                "updates": {
-                  "$ctx": "local.trip_cancel_route_updates"
-                }
-              },
-              {
-                "title": "Reload Trip Routes",
-                "description": "Loads rider routes after unlink to compute cancellation refunds.",
-                "type": "get.item",
-                "item_id": {
-                  "$ctx": "local.trip_cancel_route_ids"
-                },
-                "key": "trip_cancel_routes_after"
-              },
-              {
-                "title": "Compute Trip Cancel Refunds",
-                "description": "Builds reset maps for routes with no remaining contract links.",
-                "type": "update.contract",
-                "update": {
-                  "$set": {
-                    "local.trip_cancel_reset_route_updates": {
-                      "$arrayToObject": {
-                        "$map": {
-                          "input": {
-                            "$filter": {
-                              "input": {
-                                "$map": {
-                                  "input": {
-                                    "$objectToArray": {
-                                      "$ifNull": [
-                                        "$local.trip_cancel_routes_after",
-                                        {}
-                                      ]
-                                    }
-                                  },
-                                  "as": "rtv",
-                                  "in": "$$rtv.v"
-                                }
-                              },
-                              "as": "rt",
-                              "cond": {
-                                "$eq": [
-                                  {
-                                    "$size": {
-                                      "$ifNull": [
-                                        "$$rt.data.contract_ids",
-                                        []
-                                      ]
-                                    }
-                                  },
-                                  0
+                        "as": "sv",
+                        "cond": {
+                          "$and": [
+                            {
+                              "$in": [
+                                "$$sv.v",
+                                [
+                                  "ACCEPTED"
                                 ]
-                              }
-                            }
-                          },
-                          "as": "rt",
-                          "in": {
-                            "k": "$$rt._id",
-                            "v": {
-                              "$literal": {
-                                "$set": {
-                                  "data.reserved_credits": 0
-                                }
-                              }
-                            }
-                          }
-                        }
-                      }
-                    },
-                    "local.trip_cancel_targets": {
-                      "$arrayToObject": {
-                        "$map": {
-                          "input": {
-                            "$ifNull": [
-                              "$local.trip_cancel_riders",
-                              []
-                            ]
-                          },
-                          "as": "r",
-                          "in": {
-                            "k": "$$r.principal",
-                            "v": [
-                              "in_app",
-                              "push"
-                            ]
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              },
-              {
-                "title": "Clear Trip Route Reserved Credits",
-                "description": "Resets retained route credits for routes left without contract links.",
-                "type": "update.item",
-                "updates": {
-                  "$ctx": "local.trip_cancel_reset_route_updates"
-                }
-              },
-              {
-                "title": "Dispatch Driver Cancelled Trip",
-                "description": "Delivers driver cancelled trip notification to all affected riders.",
-                "type": "notify",
-                "notify": {
-                  "event": "contracts.driver_cancelled_trip",
-                  "targets": {
-                    "$ctx": "local.trip_cancel_targets"
-                  },
-                  "payload": {
-                    "contract_id": {
-                      "$ctx": "doc._id"
-                    }
-                  }
-                }
-              },
-              {
-                "title": "Close Trip As Rejected",
-                "description": "Closes the trip as rejected by the driver and updates all rider statuses consistently.",
-                "type": "update.contract",
-                "update": {
-                  "$set": {
-                    "context.riders": {},
-                    "states": {
-                      "$arrayToObject": {
-                        "$map": {
-                          "input": {
-                            "$objectToArray": "$states"
-                          },
-                          "as": "kv",
-                          "in": {
-                            "k": "$$kv.k",
-                            "v": {
-                              "$cond": [
-                                {
-                                  "$in": [
-                                    "$$kv.v",
-                                    [
-                                      "REQUESTING",
-                                      "PENDING",
-                                      "ACCEPTED",
-                                      "PENDING_DRIVER",
-                                      "DRIVER"
-                                    ]
-                                  ]
-                                },
-                                "REJECTED",
-                                "$$kv.v"
                               ]
                             }
-                          }
+                          ]
                         }
                       }
                     },
-                    "status": "CANCELLED"
+                    "as": "rv",
+                    "in": {
+                      "payload": {
+                        "rider": "$$rv.k"
+                      }
+                    }
                   }
                 }
+              }
+            }
+          },
+          {
+            "title": "Execute Sync",
+            "description": "Triggers transient synchronization after rider status changes.",
+            "type": "execute.event",
+            "event_name": "Sync"
+          },
+          {
+            "title": "Collect Active Riders",
+            "description": "Collects active rider principals and route ids for trip cancellation pruning.",
+            "type": "iter.effects",
+            "iter": {
+              "$ctx": "doc.local.trip_cancel_riders"
+            },
+            "effects": [
+              {
+                "type": "execute.event",
+                "event_name": "DriverRemoveUser",
+                "state": "$$ctx.doc.context.cancellation.phase"
               }
             ]
           },
           {
-            "title": "Apply In-Progress Cancellation Flow",
-            "description": "Executes in-progress cancellation cleanup and notifications.",
-            "type": "if.else",
-            "condition": {
-              "$ctx": "doc.local.is_in_progress_cancel"
-            },
-            "then_effects": [
-              {
-                "title": "Collect Cancel Trip Inputs",
-                "description": "Collects first refundable and non-refundable riders for cancellation handling.",
-                "type": "update.contract",
-                "update": [
-                  {
-                    "$set": {
-                      "local.first_refund_principal": {
-                        "$first": {
-                          "$map": {
-                            "input": {
-                              "$filter": {
-                                "input": {
-                                  "$objectToArray": {
-                                    "$ifNull": [
-                                      "$states",
-                                      {}
-                                    ]
-                                  }
-                                },
-                                "as": "sv",
-                                "cond": {
-                                  "$eq": [
-                                    "$$sv.v",
-                                    "ACCEPTED"
-                                  ]
-                                }
-                              }
-                            },
-                            "as": "sv",
-                            "in": "$$sv.k"
-                          }
-                        }
-                      },
-                      "local.first_non_refund_principal": {
-                        "$first": {
-                          "$map": {
-                            "input": {
-                              "$filter": {
-                                "input": {
-                                  "$objectToArray": {
-                                    "$ifNull": [
-                                      "$states",
-                                      {}
-                                    ]
-                                  }
-                                },
-                                "as": "sv",
-                                "cond": {
-                                  "$eq": [
-                                    "$$sv.v",
-                                    "ONBOARD"
-                                  ]
-                                }
-                              }
-                            },
-                            "as": "sv",
-                            "in": "$$sv.k"
-                          }
-                        }
-                      }
-                    }
-                  },
-                  {
-                    "$set": {
-                      "local.first_refund_route_id": {
-                        "$first": {
-                          "$map": {
-                            "input": {
-                              "$filter": {
-                                "input": {
-                                  "$objectToArray": {
-                                    "$ifNull": [
-                                      "$context.riders",
-                                      {}
-                                    ]
-                                  }
-                                },
-                                "as": "rv",
-                                "cond": {
-                                  "$eq": [
-                                    "$$rv.k",
-                                    "$local.first_refund_principal"
-                                  ]
-                                }
-                              }
-                            },
-                            "as": "rv",
-                            "in": "$$rv.v.id"
-                          }
-                        }
-                      },
-                      "local.first_refund_amount": {
-                        "$ifNull": [
-                          {
-                            "$first": {
-                              "$map": {
-                                "input": {
-                                  "$filter": {
-                                    "input": {
-                                      "$objectToArray": {
-                                        "$ifNull": [
-                                          "$context.riders",
-                                          {}
-                                        ]
-                                      }
-                                    },
-                                    "as": "rv",
-                                    "cond": {
-                                      "$eq": [
-                                        "$$rv.k",
-                                        "$local.first_refund_principal"
-                                      ]
-                                    }
-                                  }
-                                },
-                                "as": "rv",
-                                "in": {
-                                  "$ifNull": [
-                                    "$$rv.v.cost",
-                                    10
-                                  ]
-                                }
-                              }
-                            }
-                          },
-                          10
-                        ]
-                      },
-                      "local.has_first_refund": {
-                        "$ifNull": [
-                          "$local.first_refund_principal",
-                          false
-                        ]
-                      },
-                      "local.has_first_non_refund": {
-                        "$ifNull": [
-                          "$local.first_non_refund_principal",
-                          false
-                        ]
-                      }
-                    }
-                  }
-                ]
-              },
-              {
-                "title": "Refund First Non-Onboard Rider",
-                "description": "Refunds first non-onboard rider when present.",
-                "type": "if.else",
-                "condition": {
-                  "$ctx": "doc.local.has_first_refund"
-                },
-                "then_effects": [
-                  {
-                    "title": "Apply First Refund",
-                    "description": "Credits first non-onboard rider wallet with cancellation refund.",
-                    "type": "charge.credits",
-                    "credit": {
-                      "product": "coin",
-                      "user_id": {
-                        "$ctx": "local.first_refund_principal"
-                      },
-                      "amount": {
-                        "$ctx": "local.first_refund_amount"
-                      }
-                    }
-                  },
-                  {
-                    "title": "Cleanup First Refunded Route",
-                    "description": "Unlinks first refunded rider route and clears reserved credits.",
-                    "type": "update.item",
-                    "item_id": {
-                      "$ctx": "local.first_refund_route_id"
-                    },
-                    "update": {
-                      "$set": {
-                        "data.contract_ids": {
-                          "$setDifference": [
-                            {
-                              "$ifNull": [
-                                "$data.contract_ids",
-                                []
-                              ]
-                            },
-                            [
-                              {
-                                "$ctx": "doc._id"
-                              }
-                            ]
-                          ]
-                        },
-                        "data.reserved_credits": 0
-                      }
-                    }
-                  }
-                ]
-              },
-              {
-                "title": "Remove Riders From Group",
-                "description": "Removes refunded and onboard riders from trip group when present.",
-                "type": "if.else",
-                "condition": {
-                  "$ifNull": [
-                    "$context.group_id",
-                    false
-                  ]
-                },
-                "then_effects": [
-                  {
-                    "title": "Apply Group Member Removal",
-                    "description": "Removes all rider members while keeping driver admin.",
-                    "type": "update.group",
-                    "group_id": {
-                      "$ctx": "doc.context.group_id"
-                    },
-                    "edit_members": {
-                      "remove_members": [
-                        {
-                          "$ctx": "local.first_refund_principal"
-                        },
-                        {
-                          "$ctx": "local.first_non_refund_principal"
-                        }
-                      ],
-                      "promote_admins": [
-                        {
-                          "$ctx": "doc.context.driver"
-                        }
-                      ]
-                    }
-                  }
-                ]
-              },
-              {
-                "title": "Notify Refunded Riders",
-                "description": "Notifies refunded riders about in-progress driver cancellation.",
-                "type": "if.else",
-                "condition": {
-                  "$ctx": "doc.local.has_first_refund"
-                },
-                "then_effects": [
-                  {
-                    "title": "Dispatch Refunded Rider Cancellation",
-                    "description": "Sends cancellation notification with refunded=true to eligible riders.",
-                    "type": "notify",
-                    "notify": {
-                      "event": "contracts.driver_cancelled_trip",
-                      "targets": {
-                        "$$ctx.doc.local.first_refund_principal": [
-                          "in_app",
-                          "push"
-                        ]
-                      },
-                      "payload": {
-                        "contract_id": {
-                          "$ctx": "doc._id"
-                        },
-                        "reason": "driver_cancel_in_progress",
-                        "refunded": true
-                      }
-                    }
-                  }
-                ]
-              },
-              {
-                "title": "Notify Non-Refunded Riders",
-                "description": "Notifies onboard riders about cancellation with no refund.",
-                "type": "if.else",
-                "condition": {
-                  "$ctx": "doc.local.has_first_non_refund"
-                },
-                "then_effects": [
-                  {
-                    "title": "Dispatch Non-Refunded Rider Cancellation",
-                    "description": "Sends cancellation notification with refunded=false to onboard riders.",
-                    "type": "notify",
-                    "notify": {
-                      "event": "contracts.driver_cancelled_trip",
-                      "targets": {
-                        "$$ctx.doc.local.first_non_refund_principal": [
-                          "in_app",
-                          "push"
-                        ]
-                      },
-                      "payload": {
-                        "contract_id": {
-                          "$ctx": "doc._id"
-                        },
-                        "reason": "driver_cancel_in_progress",
-                        "refunded": false
-                      }
-                    }
-                  }
-                ]
-              },
-              {
-                "title": "Notify Driver Cancellation Applied",
-                "description": "Notifies driver that trip cancellation has been applied.",
-                "type": "notify",
-                "notify": {
-                  "event": "contracts.driver_cancelled_trip",
-                  "targets": {
-                    "$$ctx.doc.context.driver": [
-                      "in_app",
-                      "push"
-                    ]
-                  },
-                  "payload": {
-                    "contract_id": {
-                      "$ctx": "doc._id"
-                    },
-                    "reason": "driver_cancel_in_progress",
-                    "refunded": null
-                  }
-                }
+            "title": "Close Trip As Rejected",
+            "description": "Closes the trip as rejected by the driver and updates all rider statuses consistently.",
+            "type": "update.contract",
+            "update": {
+              "$set": {
+                "status": "CANCELLED"
               }
-            ]
+            }
           }
         ]
       }

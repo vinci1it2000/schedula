@@ -1801,14 +1801,12 @@ class ContractsE2ETest(unittest.TestCase):
         p1_balance_before_cancel = self._wallet_balance("p1")
         p2_balance_before_cancel = self._wallet_balance("p2")
         d1_principal = f"u:{self.user_ids['d1']}"
-        before_cancel_driver = self._count_notifications_for(
-            d1_principal, "contracts.driver_cancelled_trip"
-        )
+
         before_cancel_p1 = self._count_notifications_for(
-            p1_principal, "contracts.driver_cancelled_trip"
+            p1_principal, "contracts.user_rejected_by_driver"
         )
         before_cancel_p2 = self._count_notifications_for(
-            p2_principal, "contracts.driver_cancelled_trip"
+            p2_principal, "contracts.user_rejected_by_driver"
         )
 
         cancel_trip = self._post_event(cid, "driver-cancel-trip", actor="d1")
@@ -1818,18 +1816,15 @@ class ContractsE2ETest(unittest.TestCase):
         c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
         self.assertEqual(c.get("state"), "CANCELLED")
         self.assertEqual(self._wallet_balance("p1"), p1_balance_before_cancel)
-        self.assertEqual(self._wallet_balance("p2"), p2_balance_before_cancel + 10)
+        self.assertEqual(self._wallet_balance("p2"), p2_balance_before_cancel + 11)
 
-        after_cancel_driver = self._count_notifications_for(
-            d1_principal, "contracts.driver_cancelled_trip"
-        )
+
         after_cancel_p1 = self._count_notifications_for(
-            p1_principal, "contracts.driver_cancelled_trip"
+            p1_principal, "contracts.user_rejected_by_driver"
         )
         after_cancel_p2 = self._count_notifications_for(
-            p2_principal, "contracts.driver_cancelled_trip"
+            p2_principal, "contracts.user_rejected_by_driver"
         )
-        self.assertGreaterEqual(after_cancel_driver, before_cancel_driver + 1)
         self.assertGreaterEqual(after_cancel_p1, before_cancel_p1 + 1)
         self.assertGreaterEqual(after_cancel_p2, before_cancel_p2 + 1)
 
@@ -2037,7 +2032,7 @@ class ContractsE2ETest(unittest.TestCase):
         after_driver = self._wallet_balance("d1")
         self.assertEqual(after_driver, before_balances["d1"] + 20)
         self.assertEqual(self._wallet_balance("p1"), before_balances["p1"] - 10)
-        self.assertEqual(self._wallet_balance("p2"), before_balances["p2"] + 3)
+        self.assertEqual(self._wallet_balance("p2"), before_balances["p2"] + 1)
         self.assertEqual(self._wallet_balance("p3"), before_balances["p3"] - 10)
         self.assertEqual(self._wallet_balance("p4"), before_balances["p4"] - 10)
         self.assertEqual(self._wallet_balance("p5"), before_balances["p5"] - 10)
