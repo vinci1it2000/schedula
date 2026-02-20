@@ -10,7 +10,7 @@ import uuid
 from copy import deepcopy
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Dict, Any, List, Tuple
 from unittest.mock import patch
 from urllib.parse import urlsplit, urlunsplit
 
@@ -19,6 +19,7 @@ import pydash
 from flask import Flask
 from flask_security.utils import hash_password
 from schedula.utils.form.server import basic_app
+from schedula.utils.form.server.contracts.engine import register_function
 from schedula.utils.form.server.extensions import db as _db
 from schedula.utils.form.server.security import User
 from schedula.utils.form.server.security.casbin import get_enforcer
@@ -30,6 +31,470 @@ from schedula.utils.form.server.security.casbin.helpers import ADMIN_DOMAIN, ANO
 from schedula.utils.form.server.security.casbin.models import Group
 from schedula.utils.form.server.security.casbin.models import ensure_public_group
 from tests.utils.server.conftest import DummySitemap
+
+
+def get_riders_order(doc: Dict[str, Any], pop_size: int = 200, n_gen: int = 300) -> Dict[str, Any]:
+    """
+    GA permutation optimizer for Pickup&Delivery with time windows.
+
+    Included features:
+    1) Dropoff uses ONLY a deadline (latest = destination.at + flexibility). No earliest on dropoff.
+    2) Precedence (pickup before dropoff) enforced via a REPAIR step (so GA always evaluates precedence-feasible routes).
+    3) Start time (start_epoch) is optimized within driver's origin window (origin.at +/- origin.flexibility if present),
+       choosing the latest feasible start (reduces waiting) in HARD mode; in SOFT mode uses latest allowed.
+
+    Outputs:
+      - "stops": list of stops including "at"
+      - "riders": dict keyed by rider_id with pickup/drop_off objects (at, reminder_id, zone, window)
+      - "summary": feasibility/mode and stats
+    """
+    context = doc["context"]
+    contract_id = doc["_id"]
+    import requests
+    import numpy as np
+    from schedula.utils.form.server.contracts.schedule import schedule_event_at
+    from dateutil.parser import isoparse
+    from datetime import datetime, timezone
+
+    # ---------------- helpers ----------------
+    def fmt(coords) -> str:
+        return "{0},{1}".format(*coords)
+
+    def to_epoch_seconds(s: str) -> float:
+        return isoparse(s).timestamp()
+
+    def epoch_to_iso(ts: float) -> str:
+        return datetime.fromtimestamp(ts, tz=timezone.utc).astimezone().isoformat()
+
+    # ---------------- read riders ----------------
+    riders_items = sorted(context.get("riders", {}).items(), key=lambda kv: kv[0])
+    n_riders = len(riders_items)
+
+    # ---------------- driver start window (optional) ----------------
+    origin = context["driver_route"]["trip"]["origin"]
+    driver_at = to_epoch_seconds(origin["at"])
+    driver_f = float(origin.get("flexibility", 0) or 0)
+    driver_start_min = driver_at - driver_f
+    driver_start_max = driver_at + driver_f
+
+    # ---------------- build ABS time windows (epoch seconds) ----------------
+    # Global indexing:
+    # 0 = driver start, 1 = driver end,
+    # rider j: pickup = 2+2*j, drop = 3+2*j
+    tw_abs_earliest: Dict[int, float] = {}  # ONLY pickups (earliest)
+    tw_abs_latest: Dict[int, float] = {}  # pickups + drops (latest)
+
+    for j, (_rid, r) in enumerate(riders_items):
+        p = 2 + 2 * j
+        d = 3 + 2 * j
+
+        # pickup window: [at-flex, at+flex]
+        p_at = to_epoch_seconds(r["trip"]["origin"]["at"])
+        p_f = float(r["trip"]["origin"].get("flexibility", 0) or 0)
+        tw_abs_earliest[p] = p_at - p_f
+        tw_abs_latest[p] = p_at + p_f
+
+        # drop: ONLY deadline (latest = at + flex)
+        d_at = to_epoch_seconds(r["trip"]["destination"]["at"])
+        d_f = float(r["trip"]["destination"].get("flexibility", 0) or 0)
+        tw_abs_latest[d] = d_at + d_f
+
+    # ---------------- build coordinates and duration matrix ----------------
+    start_coords = origin["location"]["coordinates"]
+    end_coords = context["driver_route"]["trip"]["destination"]["location"]["coordinates"]
+
+    coords_list = [fmt(start_coords), fmt(end_coords)]
+    for _j, (_rid, r) in enumerate(riders_items):
+        coords_list.extend([
+            fmt(r["trip"]["origin"]["location"]["coordinates"]),
+            fmt(r["trip"]["destination"]["location"]["coordinates"]),
+        ])
+    coordinates = ";".join(coords_list)
+
+    matrix = requests.get(
+        f"https://www.consapi.eu/api/table/v1/duration/{coordinates}?api_key=test"
+    ).json()["durations"]
+
+    D = np.array(matrix, dtype=float)
+
+    # NOTE: flexibility is seconds (3600 = 1h). Ensure D is seconds.
+    # If D is minutes, uncomment:
+    # D *= 60.0
+
+    internal = np.arange(2, 2 + 2 * n_riders, dtype=int)
+    s = np.zeros(D.shape[0], dtype=float)  # service times per node (seconds). Fill if you have them.
+
+    # ---------------- precedence repair ----------------
+    # Perm genes are in [0..2*n_riders-1] => internal[gene] is a global node index.
+    # For rider j:
+    #   pickup gene id = 2*j
+    #   drop gene id   = 2*j + 1
+    def repair_perm(perm: np.ndarray) -> np.ndarray:
+        pos = np.empty_like(perm)
+        for i, g in enumerate(perm):
+            pos[g] = i
+
+        perm = perm.copy()
+        for j in range(n_riders):
+            gp = 2 * j
+            gd = 2 * j + 1
+            if pos[gd] < pos[gp]:
+                i_d = int(pos[gd])
+                i_p = int(pos[gp])
+                perm[i_d], perm[i_p] = perm[i_p], perm[i_d]
+                pos[gd], pos[gp] = pos[gp], pos[gd]
+        return perm
+
+    # ---------------- simulate with a given start epoch ----------------
+    def simulate_with_start(start_epoch: float, full: np.ndarray):
+        t = float(start_epoch)
+        t_service_abs: Dict[int, float] = {0: t}
+        lateness: Dict[int, float] = {}
+        total_travel = 0.0
+        total_wait = 0.0
+
+        for a, b in zip(full[:-1], full[1:]):
+            a = int(a)
+            b = int(b)
+
+            travel = float(D[a, b])
+            total_travel += travel
+            t = t + travel
+
+            eb = tw_abs_earliest.get(b)
+            if eb is not None and t < eb:
+                total_wait += (eb - t)
+                t = eb
+
+            t_service_abs[b] = t
+
+            lb = tw_abs_latest.get(b)
+            lateness[b] = max(0.0, t - lb) if lb is not None else 0.0
+
+            t += float(s[b])
+
+        return t_service_abs, lateness, total_travel, total_wait
+
+    def is_feasible_start(start_epoch: float, full: np.ndarray) -> bool:
+        _t_service_abs, lateness, _travel, _wait = simulate_with_start(start_epoch, full)
+        return max(lateness.values() or [0.0]) <= 0.0
+
+    # ---------------- GA: hard then soft fallback ----------------
+    from pymoo.core.problem import Problem
+    from pymoo.operators.sampling.rnd import PermutationRandomSampling
+    from pymoo.operators.crossover.ox import OrderCrossover
+    from pymoo.operators.mutation.inversion import InversionMutation
+    from pymoo.algorithms.soo.nonconvex.ga import GA
+    from pymoo.optimize import minimize
+    from pymoo.termination import get_termination
+
+    # HARD constraints count:
+    # pickups: earliest + latest (2 each) => 2*n_riders
+    # drops: latest only (1 each)        => 1*n_riders
+    # total: 3*n_riders
+    class PDRouteHard(Problem):
+        def __init__(self):
+            super().__init__(
+                n_var=2 * n_riders,
+                n_obj=1,
+                n_ieq_constr=3 * n_riders,
+                xl=0,
+                xu=2 * n_riders - 1,
+                type_var=int,
+            )
+
+        def _evaluate(self, X, out, *args, **kwargs):
+            pop = X.shape[0]
+            F = np.zeros(pop)
+            G = np.zeros((pop, self.n_ieq_constr))
+
+            start_nominal = driver_start_min  # fixed for GA eval; optimized after route chosen
+
+            for i in range(pop):
+                perm = repair_perm(X[i])
+                route_internal = internal[perm]
+                full = np.concatenate(([0], route_internal, [1]))
+
+                t_service_abs, _lateness, travel_cost, _wait = simulate_with_start(start_nominal, full)
+                F[i] = travel_cost
+
+                c = 0
+                for j in range(n_riders):
+                    p = 2 + 2 * j
+                    d = 3 + 2 * j
+
+                    # pickup earliest: a - t <= 0
+                    a_p = tw_abs_earliest[p]
+                    t_p = t_service_abs.get(p, 1e30)
+                    G[i, c] = a_p - t_p
+                    c += 1
+
+                    # pickup latest: t - b <= 0
+                    b_p = tw_abs_latest[p]
+                    G[i, c] = t_p - b_p
+                    c += 1
+
+                    # drop latest: t - b <= 0
+                    b_d = tw_abs_latest[d]
+                    t_d = t_service_abs.get(d, 1e30)
+                    G[i, c] = t_d - b_d
+                    c += 1
+
+            out["F"] = F.reshape(-1, 1)
+            out["G"] = G
+
+    class PDRouteSoft(Problem):
+        def __init__(self):
+            super().__init__(
+                n_var=2 * n_riders,
+                n_obj=1,
+                n_ieq_constr=0,
+                xl=0,
+                xu=2 * n_riders - 1,
+                type_var=int,
+            )
+
+        def _evaluate(self, X, out, *args, **kwargs):
+            pop = X.shape[0]
+            F = np.zeros(pop)
+
+            start_nominal = driver_start_min
+            PEN_LATE = 2000.0  # lateness penalty weight
+            PEN_WAIT = 1.0  # mild wait penalty
+
+            for i in range(pop):
+                perm = repair_perm(X[i])
+                route_internal = internal[perm]
+                full = np.concatenate(([0], route_internal, [1]))
+
+                _t_service_abs, lateness, travel_cost, total_wait = simulate_with_start(start_nominal, full)
+
+                late_sum = 0.0
+                for node in route_internal:
+                    late_sum += float(lateness.get(int(node), 0.0))
+
+                F[i] = travel_cost + PEN_LATE * late_sum + PEN_WAIT * total_wait
+
+            out["F"] = F.reshape(-1, 1)
+
+    def run_ga(problem: Problem):
+        algorithm = GA(
+            pop_size=pop_size,
+            sampling=PermutationRandomSampling(),
+            crossover=OrderCrossover(prob=0.9),
+            mutation=InversionMutation(prob=0.2),
+        )
+        res = minimize(
+            problem,
+            algorithm,
+            termination=get_termination("n_gen", n_gen),
+            seed=1,
+            verbose=False,
+        )
+        return res
+
+    # Execute
+    res_hard = run_ga(PDRouteHard())
+    feasible_hard = False
+    if hasattr(res_hard, "G") and res_hard.G is not None:
+        feasible_hard = float(np.max(res_hard.G)) <= 0.0
+
+    if feasible_hard:
+        res = res_hard
+        mode = "hard"
+    else:
+        res = run_ga(PDRouteSoft())
+        mode = "soft"
+
+    # Best repaired perm -> route
+    best_perm = repair_perm(res.X)
+    route_internal = internal[best_perm]
+    full = np.concatenate(([0], route_internal, [1]))
+
+    # ---------------- optimize start time within driver window ----------------
+    # Choose latest feasible start in hard mode (reduces waiting).
+    # In soft mode choose driver_start_max (heuristic).
+    if mode == "hard" and is_feasible_start(driver_start_min, full):
+        if is_feasible_start(driver_start_max, full):
+            start_opt = driver_start_max
+        else:
+            lo, hi = driver_start_min, driver_start_max
+            for _ in range(40):
+                mid = (lo + hi) / 2.0
+                if is_feasible_start(mid, full):
+                    lo = mid
+                else:
+                    hi = mid
+            start_opt = lo
+    else:
+        start_opt = driver_start_max if mode == "soft" else driver_start_min
+
+    # Final simulation at optimized start
+    t_service_abs, lateness_abs, travel_cost, total_wait = simulate_with_start(start_opt, full)
+    lateness_values = [float(lateness_abs.get(int(node), 0.0)) for node in route_internal]
+    total_lateness = float(np.sum(lateness_values))
+    max_lateness = float(np.max(lateness_values)) if lateness_values else 0.0
+    feasible_final = (mode == "hard") and (max_lateness <= 0.0)
+
+    summary = {
+        "feasible": feasible_final,
+        "mode": mode,
+        "start_epoch": float(start_opt),
+        "start_iso": epoch_to_iso(start_opt),
+        "travel_time_sec": float(travel_cost),
+        "total_wait_sec": float(total_wait),
+        "total_lateness_sec": float(total_lateness),
+        "max_lateness_sec": float(max_lateness),
+    }
+    context["_route_summary"] = summary
+
+    # ---------------- stops output ----------------
+    idx_to_stop: Dict[int, Tuple[str, str]] = {}
+    for j, (rid, _r) in enumerate(riders_items):
+        idx_to_stop[2 + 2 * j] = ("pickup", rid)
+        idx_to_stop[3 + 2 * j] = ("drop_off", rid)  # renamed to drop_off
+
+    stops: List[Dict[str, Any]] = []
+    for idx in full:
+        idx = int(idx)
+        if idx == 0:
+            stops.append({
+                "type": "origin",
+                "location": context["driver_route"]["trip"]["origin"]["location"],
+                "at": epoch_to_iso(start_opt),
+            })
+        elif idx == 1:
+            stops.append({
+                "type": "destination",
+                "location": context["driver_route"]["trip"]["destination"]["location"],
+                "at": epoch_to_iso(t_service_abs.get(1, start_opt)),
+            })
+        else:
+            stop_type, rid = idx_to_stop[idx]
+            rider = context["riders"][rid]
+            if stop_type == "pickup":
+                loc = rider["trip"]["origin"]["location"]
+            else:
+                loc = rider["trip"]["destination"]["location"]
+
+            stop = {
+                "type": stop_type,
+                "rider_id": rid,
+                "location": loc,
+                "at": epoch_to_iso(t_service_abs[idx]),
+            }
+            late = float(lateness_abs.get(idx, 0.0))
+            if late > 0:
+                stop["lateness_sec"] = late
+            stops.append(stop)
+
+    # ---------------- rider-centered output (requested format) ----------------
+    # radius: choose >= 200. Use context["zone_radius"] if provided, else 200.
+    default_radius = float(context.get("zone_radius", 300))
+    if default_radius < 200:
+        default_radius = 200.0
+
+    reminder_prefix = str(context.get("reminder_prefix", "rem"))
+
+    riders_out: Dict[str, Any] = {}
+    for j, (rid, r) in enumerate(riders_items):
+        p_idx = 2 + 2 * j
+        d_idx = 3 + 2 * j
+
+        p_loc = r["trip"]["origin"]["location"]
+        d_loc = r["trip"]["destination"]["location"]
+
+        # Pickup window ISO
+        p_at = to_epoch_seconds(r["trip"]["origin"]["at"])
+        p_f = float(r["trip"]["origin"].get("flexibility", 0) or 0)
+        p_win_start = epoch_to_iso(p_at - p_f)
+        p_win_end = epoch_to_iso(p_at + p_f)
+
+        # Drop window ISO:
+        # "drop_off only deadline" => represent window as [destination.at - flex, destination.at + flex] for transparency
+        # (even if earliest isn't enforced). If you prefer start == at, tell me.
+        d_at = to_epoch_seconds(r["trip"]["destination"]["at"])
+        d_f = float(r["trip"]["destination"].get("flexibility", 0) or 0)
+        d_win_start = epoch_to_iso(d_at - d_f)
+        d_win_end = epoch_to_iso(d_at + d_f)
+
+        riders_out[rid] = {
+            "pickup": {
+                "reminder_id": schedule_event_at(
+                    datetime.fromtimestamp(t_service_abs[p_idx] - 20 * 60, tz=timezone.utc), {
+                        "contract_id": contract_id,
+                        "event_name": "RiderPickupReminderTimed",
+                        "payload": {
+                            "principal": rid
+                        },
+                        "actor_id": "system:cron",
+                    }
+                ),
+                "at": epoch_to_iso(t_service_abs[p_idx]),
+                "zone": {
+                    "radius": default_radius,
+                    "location": p_loc,
+                },
+                "window": {
+                    "start": p_win_start,
+                    "end": p_win_end,
+                },
+            },
+            "drop_off": {
+                "reminder_id": schedule_event_at(
+                    datetime.fromtimestamp(t_service_abs[d_idx] + 20 * 60, tz=timezone.utc), {
+                        "contract_id": contract_id,
+                        "event_name": "RiderDropOffReminderTimed",
+                        "payload": {
+                            "principal": rid
+                        },
+                        "actor_id": "system:cron",
+                    }
+                ),
+                "at": epoch_to_iso(t_service_abs[d_idx]),
+                "zone": {
+                    "radius": default_radius,
+                    "location": d_loc,
+                },
+                "window": {
+                    "start": d_win_start,
+                    "end": d_win_end,
+                },
+            },
+        }
+
+    return {
+        "driver": {
+            "stops": stops,
+            "start": {
+                "at": epoch_to_iso(start_opt),
+                "reminder_id": schedule_event_at(
+                    datetime.fromtimestamp(start_opt - 60 * 60, tz=timezone.utc), {
+                        "contract_id": contract_id,
+                        "event_name": "TripDepartureReminderTimed",
+                        "actor_id": "system:cron",
+                        "payload": {}
+                    }
+                ),
+            },
+            "end": {
+                "at": epoch_to_iso(t_service_abs[1]),
+                "reminder_id": schedule_event_at(
+                    datetime.fromtimestamp(t_service_abs[1] + 2 * 60 * 60, tz=timezone.utc), {
+                        "contract_id": contract_id,
+                        "event_name": "TripPaymentTimed",
+                        "actor_id": "system:cron",
+                        "payload": {}
+                    }
+                ),
+            }
+        },
+        "riders": riders_out,
+        "summary": summary,
+    }
+
+
+register_function("get_riders_order", get_riders_order)
 
 
 @lru_cache(maxsize=1)
@@ -183,26 +648,120 @@ class ContractsE2ETest(unittest.TestCase):
                 "p3": p3.id,
                 "p4": p4.id,
             }
+            self._locations = {
+                "owner-1": {
+                    "origin": {
+                        "location": {"type": "Point", "coordinates": [7.6869, 45.0703]},  # Torino
+                        "at": "2026-02-20T08:00:00+01:00",
+                        "flexibility": 3600
+                    },
+                    "destination": {
+                        "location": {"type": "Point", "coordinates": [9.1900, 45.4642]},  # Milano
+                        "at": "2026-02-20T10:04:00+01:00",
+                        "flexibility": 3600
+                    }
+                },
+                "u1": {
+                    "origin": {
+                        "location": {"type": "Point", "coordinates": [8.8470, 45.4627]},  # Novara
+                        "at": "2026-02-20T09:13:00+01:00",
+                        "flexibility": 3600
+                    },
+                    "destination": {
+                        "location": {"type": "Point", "coordinates": [10.2118, 45.5416]},  # Brescia
+                        "at": "2026-02-20T11:44:00+01:00",
+                        "flexibility": 3600
+                    }
+                },
+                "admin": {
+                    "origin": {
+                        "location": {"type": "Point", "coordinates": [9.1900, 45.4642]},  # Milano
+                        "at": "2026-02-20T10:04:00+01:00",
+                        "flexibility": 3600
+                    },
+                    "destination": {
+                        "location": {"type": "Point", "coordinates": [10.9916, 45.4384]},  # Verona
+                        "at": "2026-02-20T12:43:00+01:00",
+                        "flexibility": 3600
+                    }
+                },
+                "p1": {
+                    "origin": {
+                        "location": {"type": "Point", "coordinates": [9.6773, 45.6983]},  # Bergamo
+                        "at": "2026-02-20T10:56:00+01:00",
+                        "flexibility": 3600
+                    },
+                    "destination": {
+                        "location": {"type": "Point", "coordinates": [11.8768, 45.4064]},  # Padova
+                        "at": "2026-02-20T13:48:00+01:00",
+                        "flexibility": 3600
+                    }
+                },
+                "p2": {
+                    "origin": {
+                        "location": {"type": "Point", "coordinates": [10.2118, 45.5416]},  # Brescia
+                        "at": "2026-02-20T11:44:00+01:00",
+                        "flexibility": 3600
+                    },
+                    "destination": {
+                        "location": {"type": "Point", "coordinates": [12.3155, 45.4408]},  # Venezia
+                        "at": "2026-02-20T14:30:00+01:00",
+                        "flexibility": 3600
+                    }
+                },
+                "p3": {
+                    "origin": {
+                        "location": {"type": "Point", "coordinates": [10.9916, 45.4384]},  # Verona
+                        "at": "2026-02-20T12:43:00+01:00",
+                        "flexibility": 3600
+                    },
+                    "destination": {
+                        "location": {"type": "Point", "coordinates": [12.3155, 45.4408]},  # Venezia
+                        "at": "2026-02-20T14:30:00+01:00",
+                        "flexibility": 3600
+                    }
+                },
+                "p4": {
+                    "origin": {
+                        "location": {"type": "Point", "coordinates": [11.8768, 45.4064]},  # Padova
+                        "at": "2026-02-20T13:48:00+01:00",
+                        "flexibility": 3600
+                    },
+                    "destination": {
+                        "location": {"type": "Point", "coordinates": [12.3155, 45.4408]},  # Venezia
+                        "at": "2026-02-20T14:30:00+01:00",
+                        "flexibility": 3600
+                    }
+                },
+                "d1": {
+                    "origin": {
+                        "location": {"type": "Point", "coordinates": [7.6869, 45.0703]},  # Torino
+                        "at": "2026-02-20T08:00:00+01:00",
+                        "flexibility": 3600 * 5
+                    },
+                    "destination": {
+                        "location": {"type": "Point", "coordinates": [12.3155, 45.4408]},  # Venezia
+                        "at": "2026-02-20T14:30:00+01:00",
+                        "flexibility": 3600 * 5
+                    }
+                }
+            }
 
             from schedula.utils.form.server.credits import get_wallet
 
             self.route_by_principal: Dict[str, str] = {}
             items_coll = self.app.config["MONGO_DB"]["items"]
-            for uid in self.user_ids.values():
+            self.now = now = dt.datetime.now(dt.timezone.utc).replace(microsecond=0)
+            self.departure = departure = now + dt.timedelta(hours=3)
+            self.locations = locations = self.shift_locations(departure)
+            for k, uid in self.user_ids.items():
                 principal = f"u:{uid}"
                 route_id = str(uuid.uuid4())
                 route_doc = {
                     "cost": 10,
                     "capacity": 3,
                     "user_id": principal,
-                    "origin": {
-                        "location": {"type": "Point", "coordinates": [45.0, 9.0]},
-                        "at": "1970-01-01T00:00:00+00:00",
-                    },
-                    "destination": {
-                        "location": {"type": "Point", "coordinates": [45.1, 9.1]},
-                        "at": "1970-01-01T03:00:00+00:00",
-                    },
+                    **locations[k]
                 }
                 items_coll.insert_one(
                     {
@@ -484,20 +1043,38 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(resp.status_code, 200, msg=resp.text)
         return resp.json() or {}
 
+    def shift_locations(self, departure: dt.datetime) -> None:
+        """
+        Shift semplice:
+        diff = new_departure - old_d1_departure
+        poi somma diff a tutti gli origin.at e destination.at
+        """
+
+        # parse old departure di d1
+        old_departure = dt.datetime.fromisoformat(self._locations["d1"]["origin"]["at"])
+
+        diff = departure - old_departure
+        locations = {}
+        for actor, d in self._locations.items():
+            locations[actor] = new_d = {}
+            for point in ("origin", "destination"):
+                new_d[point] = d[point].copy()
+                new_d[point]["at"] = (dt.datetime.fromisoformat(d[point]["at"]) + diff).isoformat()
+        return locations
+
     def _create_route(self, actor: str, **updates: Any) -> str:
         principal = f"u:{self.user_ids[actor]}"
+        locations = self.locations.get(actor, self.locations["p1"])
         data = {
             "cost": 10,
             "capacity": 3,
             "seats": 1,
             "user_id": principal,
             "origin": {
-                "location": {"type": "Point", "coordinates": [45.0, 9.0]},
-                "at": "1970-01-01T00:00:00+00:00",
+                **locations["origin"]
             },
             "destination": {
-                "location": {"type": "Point", "coordinates": [45.1, 9.1]},
-                "at": "1970-01-01T03:00:00+00:00",
+                **locations["destination"]
             },
         }
         data.update(updates)
@@ -667,22 +1244,7 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(route_data_after.get("contract_ids") or [], [cid])
 
     def test_start_pre_departure_gate_moves_in_progress_when_has_accepted(self) -> None:
-        now = dt.datetime.now(dt.timezone.utc).replace(microsecond=0)
-        departure = now + dt.timedelta(hours=3)
-        threshold = departure - dt.timedelta(hours=2)
-
-        driver_route_id = self._create_route(
-            "d1",
-            capacity=10,
-            origin={
-                "location": {"type": "Point", "coordinates": [45.0, 9.0]},
-                "at": departure.isoformat(),
-            },
-            destination={
-                "location": {"type": "Point", "coordinates": [45.2, 9.2]},
-                "at": departure.isoformat(),
-            },
-        )
+        driver_route_id = self._create_route("d1", capacity=10)
         self.assertEqual(
             (self._get_route("d1", driver_route_id).get("data") or {}).get("capacity"),
             10,
@@ -724,7 +1286,7 @@ class ContractsE2ETest(unittest.TestCase):
         assert isinstance(run_at, dt.datetime)
         if run_at.tzinfo is None:
             run_at = run_at.replace(tzinfo=dt.timezone.utc)
-        self.assertLess(run_at, departure)
+        self.assertLess(run_at, self.departure)
 
         p4_principal = f"u:{self.user_ids['p4']}"
         p4_balance_before = self._wallet_balance("p4")
@@ -766,21 +1328,7 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertNotIn(p4_principal, riders_ctx)
 
     def test_start_pre_departure_gate_cleans_all_requesting_riders(self) -> None:
-        now = dt.datetime.now(dt.timezone.utc).replace(microsecond=0)
-        departure = now + dt.timedelta(hours=3)
-
-        driver_route_id = self._create_route(
-            "d1",
-            capacity=10,
-            origin={
-                "location": {"type": "Point", "coordinates": [45.0, 9.0]},
-                "at": departure.isoformat(),
-            },
-            destination={
-                "location": {"type": "Point", "coordinates": [45.2, 9.2]},
-                "at": departure.isoformat(),
-            },
-        )
+        driver_route_id = self._create_route("d1", capacity=10)
 
         p1_principal = f"u:{self.user_ids['p1']}"
         p2_principal = f"u:{self.user_ids['p2']}"
@@ -875,17 +1423,8 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertNotIn(p4_principal, riders_ctx)
 
     def test_start_pre_departure_gate_moves_cancelled_when_no_accepted(self) -> None:
-        now = dt.datetime.now(dt.timezone.utc).replace(microsecond=0)
-        departure = now + dt.timedelta(hours=3)
-        threshold = departure - dt.timedelta(hours=2)
 
-        driver_route_id = self._create_route(
-            "d1",
-            origin={
-                "location": {"type": "Point", "coordinates": [45.0, 9.0]},
-                "at": departure.isoformat(),
-            },
-        )
+        driver_route_id = self._create_route("d1")
 
         p1_principal = f"u:{self.user_ids['p1']}"
         template_id = self._create_template(
@@ -916,16 +1455,7 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(c.get("state"), "CANCELLED")
 
     def test_in_progress_on_start_generates_pickup_pins_and_notifications(self) -> None:
-        now = dt.datetime.now(dt.timezone.utc).replace(microsecond=0)
-        departure = now + dt.timedelta(hours=3)
-
-        driver_route_id = self._create_route(
-            "d1",
-            origin={
-                "location": {"type": "Point", "coordinates": [45.0, 9.0]},
-                "at": departure.isoformat(),
-            },
-        )
+        driver_route_id = self._create_route("d1")
         template_id = self._create_template(
             _gherkin_definition(), allowed_initial_states=["START"]
         )
@@ -987,21 +1517,7 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertGreaterEqual(after_driver_hint, before_driver_hint + 1)
 
     def test_in_progress_confirm_pin_and_payment_timeout_completes(self) -> None:
-        now = dt.datetime.now(dt.timezone.utc).replace(microsecond=0)
-        departure = now + dt.timedelta(hours=3)
-        arrival = now + dt.timedelta(hours=5)
-        driver_route_id = self._create_route(
-            "d1",
-            capacity=10,
-            origin={
-                "location": {"type": "Point", "coordinates": [45.0, 9.0]},
-                "at": departure.isoformat(),
-            },
-            destination={
-                "location": {"type": "Point", "coordinates": [45.2, 9.2]},
-                "at": arrival.isoformat(),
-            },
-        )
+        driver_route_id = self._create_route("d1")
         template_id = self._create_template(
             _gherkin_definition(), allowed_initial_states=["START"]
         )
@@ -1072,7 +1588,12 @@ class ContractsE2ETest(unittest.TestCase):
         ]
         if pay_job.tzinfo is None:
             pay_job = pay_job.replace(tzinfo=dt.timezone.utc)
-        self.assertTrue(self._run_worker_once(now=pay_job + dt.timedelta(seconds=1)))
+        for _ in range(20):
+            self._run_worker_once(now=pay_job + dt.timedelta(seconds=1))
+            if not self._queue_jobs(
+                    contract_id=cid, event_name="TripPaymentTimed"
+            ):
+                break
 
         c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
         self.assertEqual(c.get("state"), "COMPLETED")
@@ -1087,22 +1608,9 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertGreaterEqual(after_rider_settled, before_rider_settled + 1)
 
     def test_in_progress_sends_pickup_reminder_20_min_before_window(self) -> None:
-        now = dt.datetime.now(dt.timezone.utc).replace(microsecond=0)
-        departure = now + dt.timedelta(hours=3)
-        arrival = now + dt.timedelta(hours=5)
 
-        driver_route_id = self._create_route(
-            "d1",
-            capacity=10,
-            origin={
-                "location": {"type": "Point", "coordinates": [45.0, 9.0]},
-                "at": departure.isoformat(),
-            },
-            destination={
-                "location": {"type": "Point", "coordinates": [45.2, 9.2]},
-                "at": arrival.isoformat(),
-            },
-        )
+        driver_route_id = self._create_route("d1", capacity=10)
+
         template_id = self._create_template(
             _gherkin_definition(), allowed_initial_states=["START"]
         )
@@ -1141,7 +1649,12 @@ class ContractsE2ETest(unittest.TestCase):
         run_at = jobs[0]["run_at"]
         if run_at.tzinfo is None:
             run_at = run_at.replace(tzinfo=dt.timezone.utc)
-
+        before = self._count_notifications_for(
+            f"u:{self.user_ids['d1']}", "contracts.trip_departure_reminder"
+        )
+        self.assertTrue(self._run_worker_once(now=run_at + dt.timedelta(seconds=1)))  # 'TripDepartureReminderTimed'
+        after = self._count_notifications_for(f"u:{self.user_ids['d1']}", "contracts.trip_departure_reminder")
+        self.assertGreaterEqual(after, before + 1)
         before = self._count_notifications_for(
             p1_principal, "contracts.pickup_reminder"
         )
@@ -1157,21 +1670,8 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertIn("pickup", payload)
 
     def test_in_progress_dispute_events_notify_counterpart(self) -> None:
-        now = dt.datetime.now(dt.timezone.utc).replace(microsecond=0)
-        departure = now + dt.timedelta(hours=3)
-        arrival = now + dt.timedelta(hours=5)
-        driver_route_id = self._create_route(
-            "d1",
-            capacity=10,
-            origin={
-                "location": {"type": "Point", "coordinates": [45.0, 9.0]},
-                "at": departure.isoformat(),
-            },
-            destination={
-                "location": {"type": "Point", "coordinates": [45.2, 9.2]},
-                "at": arrival.isoformat(),
-            },
-        )
+
+        driver_route_id = self._create_route("d1", capacity=10)
         template_id = self._create_template(
             _gherkin_definition(), allowed_initial_states=["START"]
         )
@@ -1234,21 +1734,7 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertGreaterEqual(after_rider_dispute, before_rider_dispute + 1)
 
     def test_in_progress_driver_cancel_trip_refunds_only_non_onboard(self) -> None:
-        now = dt.datetime.now(dt.timezone.utc).replace(microsecond=0)
-        departure = now + dt.timedelta(hours=3)
-        arrival = now + dt.timedelta(hours=5)
-        driver_route_id = self._create_route(
-            "d1",
-            capacity=10,
-            origin={
-                "location": {"type": "Point", "coordinates": [45.0, 9.0]},
-                "at": departure.isoformat(),
-            },
-            destination={
-                "location": {"type": "Point", "coordinates": [45.2, 9.2]},
-                "at": arrival.isoformat(),
-            },
-        )
+        driver_route_id = self._create_route("d1", capacity=10, )
         p1_principal = f"u:{self.user_ids['p1']}"
         p2_principal = f"u:{self.user_ids['p2']}"
         p2_route_id = self._create_route("p2", cost=10, seats=1)
@@ -1369,21 +1855,7 @@ class ContractsE2ETest(unittest.TestCase):
                 self.user_ids[rider] = user.id
             self.tokens[rider] = self._login_token(email)
 
-        now = dt.datetime.now(dt.timezone.utc).replace(microsecond=0)
-        departure = now + dt.timedelta(hours=3)
-        arrival = now + dt.timedelta(hours=5)
-        driver_route_id = self._create_route(
-            "d1",
-            capacity=10,
-            origin={
-                "location": {"type": "Point", "coordinates": [45.0, 9.0]},
-                "at": departure.isoformat(),
-            },
-            destination={
-                "location": {"type": "Point", "coordinates": [45.2, 9.2]},
-                "at": arrival.isoformat(),
-            },
-        )
+        driver_route_id = self._create_route("d1", capacity=10)
 
         rider_keys = ["p1", "p2", "p3", "p4", "p5", "p6", "p7"]
         rider_principals = {k: f"u:{self.user_ids[k]}" for k in rider_keys}
@@ -1480,7 +1952,7 @@ class ContractsE2ETest(unittest.TestCase):
                     {
                         "lat": 45.0,
                         "lng": 9.0,
-                        "at": now.isoformat(),
+                        "at": self.now.isoformat(),
                         "accuracy": 10,
                     }
                 ]
@@ -1706,16 +2178,7 @@ class ContractsE2ETest(unittest.TestCase):
         cid = self._create_gherkin_contract(initial_state="START", actor="p1")
         p2_principal = f"u:{self.user_ids['p2']}"
         p2_route_id = self.route_by_principal[p2_principal]
-        p2_trip = {
-            "origin": {
-                "at": "1970-01-01T00:00:00+00:00",
-                "location": {"type": "Point", "coordinates": [45.0, 9.0]},
-            },
-            "destination": {
-                "at": "1970-01-01T00:00:00+00:00",
-                "location": {"type": "Point", "coordinates": [45.1, 9.1]},
-            },
-        }
+        p2_trip = self.locations["p2"]
 
         with self.app.app_context():
             self.app.config["MONGO_DB"]["contracts"].update_one(
@@ -2469,22 +2932,10 @@ class ContractsE2ETest(unittest.TestCase):
         )
 
         # Full positive journey through IN_PROGRESS up to COMPLETED.
-        now = dt.datetime.now(dt.timezone.utc).replace(microsecond=0)
-        departure = now + dt.timedelta(hours=3)
-        arrival = now + dt.timedelta(hours=5)
+
         p4_complete_route_id = self._create_route("p4", cost=10, seats=1)
         p4_complete_principal = f"u:{self.user_ids['p4']}"
-        d1_route_complete_id = self._create_route(
-            "d1",
-            origin={
-                "location": {"type": "Point", "coordinates": [45.0, 9.0]},
-                "at": departure.isoformat(),
-            },
-            destination={
-                "location": {"type": "Point", "coordinates": [45.2, 9.2]},
-                "at": arrival.isoformat(),
-            },
-        )
+        d1_route_complete_id = self._create_route("d1")
         created_completed = self._create_contract(
             template_id,
             {

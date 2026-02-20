@@ -3590,7 +3590,7 @@
       "context_schema": {
         "type": "object",
         "required": [
-          "trip_payment_check_id",
+          "group_id",
           "driver",
           "riders",
           "driver_route"
@@ -3600,10 +3600,6 @@
           "group_id": {
             "type": "string",
             "pattern": "^g:.+$"
-          },
-          "trip_payment_check_id": {
-            "type": "string",
-            "minLength": 1
           },
           "driver": {
             "type": "string",
@@ -3617,7 +3613,7 @@
               "capacity",
               "accepted_seats",
               "compensation",
-              "first_pickup_reminder_id",
+              "plan",
               "locations"
             ],
             "additionalProperties": false,
@@ -3667,9 +3663,136 @@
                   }
                 }
               },
-              "first_pickup_reminder_id": {
-                "type": "string",
-                "minLength": 1
+              "plan": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "start",
+                  "end",
+                  "stops"
+                ],
+                "properties": {
+                  "start": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "at",
+                      "reminder_id"
+                    ],
+                    "properties": {
+                      "at": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "reminder_id": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
+                  },
+                  "end": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "at",
+                      "reminder_id"
+                    ],
+                    "properties": {
+                      "at": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "reminder_id": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
+                  },
+                  "stops": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "type",
+                        "at",
+                        "location"
+                      ],
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "origin",
+                            "destination",
+                            "pickup",
+                            "drop_off"
+                          ]
+                        },
+                        "at": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "location": {
+                          "type": "object",
+                          "required": [
+                            "type",
+                            "coordinates"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "const": "Point"
+                            },
+                            "coordinates": {
+                              "type": "array",
+                              "minItems": 2,
+                              "maxItems": 2,
+                              "items": {
+                                "type": "number"
+                              }
+                            }
+                          }
+                        },
+                        "rider_id": {
+                          "type": "string",
+                          "pattern": "^u:.+$"
+                        },
+                        "lateness_sec": {
+                          "type": "number",
+                          "minimum": 0
+                        }
+                      },
+                      "allOf": [
+                        {
+                          "if": {
+                            "properties": {
+                              "type": {
+                                "enum": [
+                                  "pickup",
+                                  "drop_off"
+                                ]
+                              }
+                            }
+                          },
+                          "then": {
+                            "required": [
+                              "rider_id"
+                            ]
+                          },
+                          "else": {
+                            "not": {
+                              "required": [
+                                "rider_id",
+                                "lateness_sec"
+                              ]
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
               },
               "trip": {
                 "type": "object",
@@ -3789,6 +3912,7 @@
                   "seats",
                   "trip",
                   "pickup",
+                  "drop_off",
                   "locations",
                   "verification",
                   "dispute"
@@ -3901,12 +4025,83 @@
                   "pickup": {
                     "type": "object",
                     "required": [
+                      "at",
                       "reminder_id",
                       "zone",
                       "window"
                     ],
                     "additionalProperties": false,
                     "properties": {
+                      "at": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "reminder_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "zone": {
+                        "type": "object",
+                        "required": [
+                          "radius",
+                          "location"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "radius": {
+                            "type": "number",
+                            "minimum": 200
+                          },
+                          "location": {
+                            "type": "object",
+                            "required": [
+                              "type",
+                              "coordinates"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "const": "Point"
+                              },
+                              "coordinates": {
+                                "type": "array",
+                                "minItems": 2,
+                                "maxItems": 2,
+                                "items": {
+                                  "type": "number"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "window": {
+                        "start": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "end": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      }
+                    }
+                  },
+                  "drop_off": {
+                    "type": "object",
+                    "required": [
+                      "at",
+                      "reminder_id",
+                      "zone",
+                      "window"
+                    ],
+                    "additionalProperties": false,
+                    "properties": {
+                      "at": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
                       "reminder_id": {
                         "type": "string",
                         "minLength": 1
@@ -4037,6 +4232,11 @@
             "type": "update.contract",
             "update": [
               {
+                "$unset": [
+                  "context.pre_departure_check_id"
+                ]
+              },
+              {
                 "$set": {
                   "local.accepted_principals": {
                     "$map": {
@@ -4065,6 +4265,30 @@
                   },
                   "local.remaining_capacity": 0
                 }
+              },
+              {
+                "$set": {
+                  "local.rider_targets": {
+                    "$arrayToObject": {
+                      "$map": {
+                        "input": {
+                          "$ifNull": [
+                            "$local.accepted_principals",
+                            []
+                          ]
+                        },
+                        "as": "e",
+                        "in": {
+                          "k": "$$e",
+                          "v": [
+                            "in_app",
+                            "push"
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
               }
             ]
           },
@@ -4077,204 +4301,12 @@
           {
             "title": "Build Pickup Entries",
             "description": "Builds deterministic pickup entries and pin metadata for accepted riders.",
-            "type": "update.contract",
-            "update": [
-              {
-                "$set": {
-                  "local.pickup_entries": {
-                    "$map": {
-                      "input": "$local.accepted_principals",
-                      "as": "p",
-                      "in": {
-                        "$let": {
-                          "vars": {
-                            "rnd": {
-                              "$floor": {
-                                "$add": [
-                                  {
-                                    "$multiply": [
-                                      {
-                                        "$rand": {}
-                                      },
-                                      900000
-                                    ]
-                                  },
-                                  100000
-                                ]
-                              }
-                            }
-                          },
-                          "in": {
-                            "$let": {
-                              "vars": {
-                                "pinStr": {
-                                  "$toString": "$$rnd"
-                                },
-                                "maskIndexes": {
-                                  "$map": {
-                                    "input": {
-                                      "$slice": [
-                                        {
-                                          "$sortArray": {
-                                            "input": {
-                                              "$map": {
-                                                "input": {
-                                                  "$range": [
-                                                    0,
-                                                    6
-                                                  ]
-                                                },
-                                                "as": "i",
-                                                "in": {
-                                                  "idx": "$$i",
-                                                  "r": {
-                                                    "$rand": {}
-                                                  }
-                                                }
-                                              }
-                                            },
-                                            "sortBy": {
-                                              "r": 1
-                                            }
-                                          }
-                                        },
-                                        3
-                                      ]
-                                    },
-                                    "as": "x",
-                                    "in": "$$x.idx"
-                                  }
-                                }
-                              },
-                              "in": {
-                                "pin": "$$pinStr",
-                                "masked": {
-                                  "$reduce": {
-                                    "input": {
-                                      "$range": [
-                                        0,
-                                        6
-                                      ]
-                                    },
-                                    "initialValue": "",
-                                    "in": {
-                                      "$concat": [
-                                        "$$value",
-                                        {
-                                          "$cond": [
-                                            {
-                                              "$in": [
-                                                "$$this",
-                                                "$$maskIndexes"
-                                              ]
-                                            },
-                                            "_",
-                                            {
-                                              "$substrBytes": [
-                                                "$$pinStr",
-                                                "$$this",
-                                                1
-                                              ]
-                                            }
-                                          ]
-                                        }
-                                      ]
-                                    }
-                                  }
-                                },
-                                "principal": "$$p",
-                                "pickup_zone": {
-                                  "radius": 300,
-                                  "location": "$context.driver_route.trip.origin.location"
-                                },
-                                "pickup_window": {
-                                  "start": "$context.driver_route.trip.origin.at",
-                                  "end": "$context.driver_route.trip.origin.at"
-                                }
-                              }
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              },
-              {
-                "$set": {
-                  "local.rider_targets": {
-                    "$arrayToObject": {
-                      "$map": {
-                        "input": {
-                          "$ifNull": [
-                            "$local.pickup_entries",
-                            []
-                          ]
-                        },
-                        "as": "e",
-                        "in": {
-                          "k": "$$e.principal",
-                          "v": [
-                            "in_app",
-                            "push"
-                          ]
-                        }
-                      }
-                    }
-                  },
-                  "local.pickup_plan": {
-                    "$arrayToObject": {
-                      "$map": {
-                        "input": {
-                          "$ifNull": [
-                            "$local.pickup_entries",
-                            []
-                          ]
-                        },
-                        "as": "e",
-                        "in": {
-                          "k": "$$e.principal",
-                          "v": {
-                            "pickup_zone": "$$e.pickup_zone",
-                            "pickup_window": "$$e.pickup_window"
-                          }
-                        }
-                      }
-                    }
-                  },
-                  "local.pickup_verifications": {
-                    "$arrayToObject": {
-                      "$map": {
-                        "input": {
-                          "$ifNull": [
-                            "$local.pickup_entries",
-                            []
-                          ]
-                        },
-                        "as": "e",
-                        "in": {
-                          "k": "$$e.pin",
-                          "v": {
-                            "principal": "$$e.principal",
-                            "masked": "$$e.masked"
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            ]
-          },
-          {
-            "title": "Build Pickup Entries",
-            "description": "Builds deterministic pickup entries and pin metadata for accepted riders.",
             "type": "custom.function",
-            "key": "pickup_times",
+            "key": "pickup_plan",
             "func": "get_riders_order",
             "args": [
               {
-                "$ctx": "doc.context"
+                "$ctx": "doc"
               }
             ]
           },
@@ -4318,128 +4350,132 @@
                           "$mergeObjects": [
                             "$$rv.v",
                             {
-                              "trip": {
-                                "$ifNull": [
-                                  "$$rv.v.trip",
-                                  "$context.driver_route.trip"
-                                ]
-                              },
-                              "pickup": {
-                                "reminder_id": "pending",
-                                "zone": {
-                                  "$ifNull": [
-                                    {
-                                      "$first": {
-                                        "$map": {
-                                          "input": {
-                                            "$filter": {
-                                              "input": {
-                                                "$ifNull": [
-                                                  "$local.pickup_entries",
-                                                  []
-                                                ]
-                                              },
-                                              "as": "pe",
-                                              "cond": {
-                                                "$eq": [
-                                                  "$$pe.principal",
-                                                  "$$rv.k"
-                                                ]
-                                              }
-                                            }
-                                          },
-                                          "as": "pe",
-                                          "in": "$$pe.pickup_zone"
-                                        }
-                                      }
-                                    },
-                                    {
-                                      "radius": 300,
-                                      "location": "$context.driver_route.trip.origin.location"
+                              "$let": {
+                                "vars": {
+                                  "rnd": {
+                                    "$floor": {
+                                      "$add": [
+                                        {
+                                          "$multiply": [
+                                            {
+                                              "$rand": {}
+                                            },
+                                            900000
+                                          ]
+                                        },
+                                        100000
+                                      ]
                                     }
-                                  ]
+                                  }
                                 },
-                                "window": {
-                                  "$ifNull": [
-                                    {
-                                      "$first": {
+                                "in": {
+                                  "$let": {
+                                    "vars": {
+                                      "pinStr": {
+                                        "$toString": "$$rnd"
+                                      },
+                                      "maskIndexes": {
                                         "$map": {
                                           "input": {
-                                            "$filter": {
-                                              "input": {
-                                                "$ifNull": [
-                                                  "$local.pickup_entries",
-                                                  []
-                                                ]
+                                            "$slice": [
+                                              {
+                                                "$sortArray": {
+                                                  "input": {
+                                                    "$map": {
+                                                      "input": {
+                                                        "$range": [
+                                                          0,
+                                                          6
+                                                        ]
+                                                      },
+                                                      "as": "i",
+                                                      "in": {
+                                                        "idx": "$$i",
+                                                        "r": {
+                                                          "$rand": {}
+                                                        }
+                                                      }
+                                                    }
+                                                  },
+                                                  "sortBy": {
+                                                    "r": 1
+                                                  }
+                                                }
                                               },
-                                              "as": "pe",
-                                              "cond": {
-                                                "$eq": [
-                                                  "$$pe.principal",
-                                                  "$$rv.k"
-                                                ]
-                                              }
-                                            }
+                                              3
+                                            ]
                                           },
-                                          "as": "pe",
-                                          "in": "$$pe.pickup_window"
+                                          "as": "x",
+                                          "in": "$$x.idx"
                                         }
                                       }
                                     },
-                                    {
-                                      "start": "$context.driver_route.trip.origin.at",
-                                      "end": "$context.driver_route.trip.origin.at"
-                                    }
-                                  ]
-                                }
-                              },
-                              "locations": {
-                                "$ifNull": [
-                                  "$$rv.v.locations",
-                                  []
-                                ]
-                              },
-                              "verification": {
-                                "$ifNull": [
-                                  {
-                                    "$first": {
-                                      "$map": {
-                                        "input": {
-                                          "$filter": {
+                                    "in": {
+                                      "verification": {
+                                        "pin": "$$pinStr",
+                                        "masked": {
+                                          "$reduce": {
                                             "input": {
-                                              "$ifNull": [
-                                                "$local.pickup_entries",
-                                                []
+                                              "$range": [
+                                                0,
+                                                6
                                               ]
                                             },
-                                            "as": "pe",
-                                            "cond": {
-                                              "$eq": [
-                                                "$$pe.principal",
-                                                "$$rv.k"
+                                            "initialValue": "",
+                                            "in": {
+                                              "$concat": [
+                                                "$$value",
+                                                {
+                                                  "$cond": [
+                                                    {
+                                                      "$in": [
+                                                        "$$this",
+                                                        "$$maskIndexes"
+                                                      ]
+                                                    },
+                                                    "_",
+                                                    {
+                                                      "$substrBytes": [
+                                                        "$$pinStr",
+                                                        "$$this",
+                                                        1
+                                                      ]
+                                                    }
+                                                  ]
+                                                }
                                               ]
                                             }
                                           }
+                                        }
+                                      },
+                                      "locations": [],
+                                      "dispute": false
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            {
+                              "$let": {
+                                "vars": {
+                                  "res": {
+                                    "$first": {
+                                      "$filter": {
+                                        "input": {
+                                          "$objectToArray": "$local.pickup_plan.riders"
                                         },
-                                        "as": "pe",
-                                        "in": {
-                                          "pin": "$$pe.pin",
-                                          "masked": "$$pe.masked"
+                                        "as": "r",
+                                        "cond": {
+                                          "$eq": [
+                                            "$$r.k",
+                                            "$$rv.k"
+                                          ]
                                         }
                                       }
                                     }
-                                  },
-                                  {
-                                    "pin": "000000",
-                                    "masked": "___000"
                                   }
-                                ]
-                              },
-                              "dispute": {
-                                "$ifNull": [
-                                  "$$rv.v.dispute",
-                                  false
-                                ]
+                                },
+                                "in": "$$res.v"
                               }
                             }
                           ]
@@ -4448,276 +4484,50 @@
                     }
                   }
                 },
+                "context.driver_route.plan": {
+                  "$ctx": "local.pickup_plan.driver"
+                },
                 "context.driver_route.compensation": {
                   "$ifNull": [
                     "$context.driver_route.compensation",
                     0
                   ]
                 },
-                "context.driver_route.locations": {
-                  "$ifNull": [
-                    "$context.driver_route.locations",
-                    []
-                  ]
-                },
-                "context.driver_route.first_pickup_reminder_id": {
-                  "$ifNull": [
-                    "$context.driver_route.first_pickup_reminder_id",
-                    "pending"
-                  ]
-                }
+                "context.driver_route.locations": []
               }
             }
           },
           {
-            "title": "Check Pickup Entries",
-            "description": "Checks whether accepted riders exist for pickup notifications.",
-            "type": "update.contract",
-            "update": {
-              "$set": {
-                "local.has_pickup_entries": {
-                  "$gt": [
-                    {
-                      "$size": {
-                        "$ifNull": [
-                          "$local.pickup_entries",
-                          []
-                        ]
-                      }
-                    },
-                    0
-                  ]
-                }
-              }
-            }
-          },
-          {
-            "title": "Notify Riders Pins",
-            "description": "Notifies accepted riders with pickup plan and pin verification payload.",
-            "type": "if.else",
-            "condition": {
-              "$ctx": "doc.local.has_pickup_entries"
-            },
-            "then_effects": [
-              {
-                "title": "Dispatch Rider Pin Notifications",
-                "description": "Sends pickup pin notifications to accepted riders.",
-                "type": "notify",
-                "notify": {
-                  "event": "contracts.pickup_pin_created",
-                  "targets": {
-                    "$ctx": "doc.local.rider_targets"
-                  },
-                  "payload": {
-                    "contract_id": {
-                      "$ctx": "doc._id"
-                    },
-                    "pickup_plan": {
-                      "$ctx": "doc.local.pickup_plan"
-                    },
-                    "pickup_verifications": {
-                      "$ctx": "doc.local.pickup_verifications"
-                    }
-                  }
-                }
+            "title": "Dispatch Rider Pin Notifications",
+            "description": "Sends pickup pin notifications to accepted riders.",
+            "type": "notify",
+            "notify": {
+              "event": "contracts.pickup_pin_created",
+              "targets": {
+                "$ctx": "doc.local.rider_targets"
               },
-              {
-                "title": "Dispatch Driver Pin Hints",
-                "description": "Sends masked pin hints to driver.",
-                "type": "notify",
-                "notify": {
-                  "event": "contracts.pickup_pin_hint",
-                  "targets": {
-                    "$$ctx.doc.context.driver": [
-                      "in_app",
-                      "push"
-                    ]
-                  },
-                  "payload": {
-                    "contract_id": {
-                      "$ctx": "doc._id"
-                    },
-                    "pickup_plan": {
-                      "$ctx": "doc.local.pickup_plan"
-                    },
-                    "pickup_verifications": {
-                      "$ctx": "doc.local.pickup_verifications"
-                    }
-                  }
-                }
-              }
-            ]
-          },
-          {
-            "title": "Compute Timers",
-            "description": "Computes first pickup reminder and trip payment timeout timestamps.",
-            "type": "update.contract",
-            "update": {
-              "$set": {
-                "local.first_pickup_entry": {
-                  "$first": {
-                    "$ifNull": [
-                      "$local.pickup_entries",
-                      []
-                    ]
-                  }
-                },
-                "local.first_pickup_reminder_at": {
-                  "$cond": [
-                    {
-                      "$ifNull": [
-                        "$local.first_pickup_entry.pickup_window.start",
-                        false
-                      ]
-                    },
-                    {
-                      "$dateSubtract": {
-                        "startDate": {
-                          "$toDate": "$local.first_pickup_entry.pickup_window.start"
-                        },
-                        "unit": "minute",
-                        "amount": 20
-                      }
-                    },
-                    "$$NOW"
-                  ]
-                },
-                "local.trip_payment_at": {
-                  "$cond": [
-                    {
-                      "$ifNull": [
-                        "$context.driver_route.trip.destination.at",
-                        false
-                      ]
-                    },
-                    {
-                      "$dateAdd": {
-                        "startDate": {
-                          "$toDate": "$context.driver_route.trip.destination.at"
-                        },
-                        "unit": "hour",
-                        "amount": 2
-                      }
-                    },
-                    {
-                      "$dateAdd": {
-                        "startDate": "$$NOW",
-                        "unit": "hour",
-                        "amount": 2
-                      }
-                    }
-                  ]
+              "payload": {
+                "contract_id": {
+                  "$ctx": "doc._id"
                 }
               }
             }
           },
           {
-            "title": "Schedule First Pickup Reminder",
-            "description": "Schedules first rider pickup reminder 20 minutes before pickup window.",
-            "type": "if.else",
-            "condition": {
-              "$ifNull": [
-                "$local.first_pickup_entry.principal",
-                false
-              ]
-            },
-            "then_effects": [
-              {
-                "title": "Schedule Reminder",
-                "description": "Schedules rider pickup reminder timed event.",
-                "type": "schedule.event",
-                "key": "first_pickup_reminder_id",
-                "event": {
-                  "event_name": "RiderPickupReminderTimed",
-                  "at": {
-                    "$ctx": "local.first_pickup_reminder_at"
-                  },
-                  "actor_id": "system:cron",
-                  "payload": {
-                    "principal": {
-                      "$ctx": "local.first_pickup_entry.principal"
-                    }
-                  }
-                }
+            "title": "Dispatch Driver Pin Hints",
+            "description": "Sends masked pin hints to driver.",
+            "type": "notify",
+            "notify": {
+              "event": "contracts.pickup_pin_hint",
+              "targets": {
+                "$$ctx.doc.context.driver": [
+                  "in_app",
+                  "push"
+                ]
               },
-              {
-                "title": "Store Reminder Id",
-                "description": "Stores first pickup reminder id on driver route.",
-                "type": "update.contract",
-                "update": {
-                  "$set": {
-                    "context.driver_route.first_pickup_reminder_id": {
-                      "$ctx": "local.first_pickup_reminder_id"
-                    }
-                  }
-                }
-              }
-            ]
-          },
-          {
-            "title": "Schedule Payment Timeout",
-            "description": "Schedules payment timeout two hours after destination.",
-            "type": "schedule.event",
-            "key": "trip_payment_check_id",
-            "event": {
-              "event_name": "TripPaymentTimed",
-              "at": {
-                "$ctx": "local.trip_payment_at"
-              },
-              "actor_id": "system:cron"
-            }
-          },
-          {
-            "title": "Store Payment Timeout Id",
-            "description": "Stores payment timeout event id.",
-            "type": "update.contract",
-            "update": {
-              "$set": {
-                "context.trip_payment_check_id": {
-                  "$ctx": "local.trip_payment_check_id"
-                }
-              }
-            }
-          },
-          {
-            "title": "Normalize In-Progress Context",
-            "description": "Normalizes context keys to match strict IN_PROGRESS schema.",
-            "type": "update.contract",
-            "update": {
-              "$set": {
-                "context": {
-                  "$mergeObjects": [
-                    {
-                      "trip_payment_check_id": {
-                        "$ifNull": [
-                          "$local.trip_payment_check_id",
-                          {
-                            "$ifNull": [
-                              "$context.trip_payment_check_id",
-                              "pending"
-                            ]
-                          }
-                        ]
-                      },
-                      "driver": "$context.driver",
-                      "driver_route": "$context.driver_route",
-                      "riders": "$context.riders"
-                    },
-                    {
-                      "$cond": [
-                        {
-                          "$ifNull": [
-                            "$context.group_id",
-                            false
-                          ]
-                        },
-                        {
-                          "group_id": "$context.group_id"
-                        },
-                        {}
-                      ]
-                    }
-                  ]
+              "payload": {
+                "contract_id": {
+                  "$ctx": "doc._id"
                 }
               }
             }
@@ -5886,6 +5696,91 @@
                   }
                 }
               ]
+            }
+          ]
+        },
+        "RiderDropOffReminderTimed": {
+          "effects": [
+            {
+              "title": "Check Reminder Eligibility",
+              "description": "Checks rider still accepted before sending pickup reminder.",
+              "type": "update.contract",
+              "update": {
+                "$set": {
+                  "local.send_pickup_reminder": {
+                    "$in": [
+                      {
+                        "$ifNull": [
+                          {
+                            "$ctx": "doc.states.$$ctx.payload.principal"
+                          },
+                          ""
+                        ]
+                      },
+                      [
+                        "ACCEPTED",
+                        "ONBOARD"
+                      ]
+                    ]
+                  }
+                }
+              }
+            },
+            {
+              "title": "Dispatch Reminder",
+              "description": "Dispatches rider pickup reminder.",
+              "type": "if.else",
+              "condition": {
+                "$ctx": "doc.local.send_pickup_reminder"
+              },
+              "then_effects": [
+                {
+                  "title": "Send Reminder Notification",
+                  "description": "Sends pickup reminder to target rider.",
+                  "type": "notify",
+                  "notify": {
+                    "event": "contracts.pickup_reminder",
+                    "targets": {
+                      "$$ctx.payload.principal": [
+                        "in_app",
+                        "push"
+                      ]
+                    },
+                    "payload": {
+                      "contract_id": {
+                        "$ctx": "doc._id"
+                      },
+                      "principal": "$$ctx.payload.principal",
+                      "drop_off": {
+                        "$ctx": "doc.context.riders.$$ctx.payload.principal.drop_off"
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        "TripDepartureReminderTimed": {
+          "effects": [
+            {
+              "title": "Send Reminder Notification",
+              "description": "Sends pickup reminder to target rider.",
+              "type": "notify",
+              "notify": {
+                "event": "contracts.trip_departure_reminder",
+                "targets": {
+                  "$$ctx.doc.context.driver": [
+                    "in_app",
+                    "push"
+                  ]
+                },
+                "payload": {
+                  "contract_id": {
+                    "$ctx": "doc._id"
+                  }
+                }
+              }
             }
           ]
         }
