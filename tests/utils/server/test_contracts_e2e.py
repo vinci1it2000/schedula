@@ -3314,3 +3314,108 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(
             (got2.json().get("context") or {}).get("bulk_marker"), "uniform"
         )
+
+    def test_execute_event_effect_fails_fast_when_event_missing_same_contract(self) -> None:
+        definition = {
+            "id": "contract-execute-event-failfast-local",
+            "version": "1.0",
+            "initial_state": "S1",
+            "states": {
+                "S1": {
+                    "events": {
+                        "Outer": {
+                            "trigger": [
+                                {
+                                    "type": "api",
+                                    "path": "outer",
+                                    "method": "POST",
+                                }
+                            ],
+                            "effects": [
+                                {
+                                    "type": "execute.event",
+                                    "event_name": "MissingEvent",
+                                }
+                            ],
+                        }
+                    }
+                }
+            },
+        }
+
+        template_id = self._create_template(definition)
+        created = self._create_contract(template_id, {"seed": 1})
+        self.assertEqual(created.status_code, 201)
+        cid = created.json()["id"]
+
+        r = self._post_event(cid, "outer", actor="u1")
+        self.assertEqual(r.status_code, 409)
+        self.assertIn("Event not available in this state", r.text)
+
+        got = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1"))
+        self.assertEqual(got.status_code, 200)
+        self.assertEqual(got.json().get("state"), "S1")
+
+    def test_execute_event_effect_fails_fast_when_event_missing_other_contract(self) -> None:
+        definition = {
+            "id": "contract-execute-event-failfast-remote",
+            "version": "1.0",
+            "initial_state": "S1",
+            "states": {
+                "S1": {
+                    "events": {
+                        "Outer": {
+                            "trigger": [
+                                {
+                                    "type": "api",
+                                    "path": "outer",
+                                    "method": "POST",
+                                    "payload_schema": {
+                                        "type": "object",
+                                        "required": ["target_contract"],
+                                        "properties": {
+                                            "target_contract": {
+                                                "type": "string",
+                                                "minLength": 1,
+                                            }
+                                        },
+                                        "additionalProperties": False,
+                                    },
+                                }
+                            ],
+                            "effects": [
+                                {
+                                    "type": "execute.event",
+                                    "event_name": "MissingEvent",
+                                    "contract_id": "$$ctx.payload.target_contract",
+                                }
+                            ],
+                        }
+                    }
+                }
+            },
+        }
+
+        template_id = self._create_template(definition)
+        c1 = self._create_contract(template_id, {"seed": 1})
+        c2 = self._create_contract(template_id, {"seed": 2})
+        self.assertEqual(c1.status_code, 201)
+        self.assertEqual(c2.status_code, 201)
+
+        cid1 = c1.json()["id"]
+        cid2 = c2.json()["id"]
+        r = self._post_event(
+            cid1,
+            "outer",
+            actor="u1",
+            payload={"target_contract": cid2},
+        )
+        self.assertEqual(r.status_code, 409)
+        self.assertIn("Event not available in this state", r.text)
+
+        got1 = self.httpx.get(f"/contracts/{cid1}", headers=self._headers("owner-1"))
+        got2 = self.httpx.get(f"/contracts/{cid2}", headers=self._headers("owner-1"))
+        self.assertEqual(got1.status_code, 200)
+        self.assertEqual(got2.status_code, 200)
+        self.assertEqual((got1.json().get("context") or {}).get("seed"), 1)
+        self.assertEqual((got2.json().get("context") or {}).get("seed"), 2)

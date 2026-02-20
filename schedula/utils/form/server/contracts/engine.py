@@ -243,6 +243,7 @@ def _apply_effect_step(
             events.update(pydash.get(doc, f"definition.states.{ef.get('state', initial_state)}.events", {}))
             if event in events:
                 return _apply_effects(events[event], doc, actor_id, payload=payload, local=local, validate_schema=False)
+            abort_json(409, "Event not available in this state")
     elif ef_type == "iter.effects":
         effects = raw_ef["effects"] or []
         for d in ef.get("iter") or [{}]:
@@ -600,6 +601,8 @@ def _process_event(
                 abort_json(409, "Event not available in this state")
         else:
             selected_edef = events.get(event_name)
+            if selected_edef is None:
+                abort_json(409, "Event not available in this state")
             selected_trigger = {}
         return _process_selected_event(
             doc=doc,
