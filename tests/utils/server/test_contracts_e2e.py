@@ -765,6 +765,105 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertIn(p1_principal, riders_ctx)
         self.assertNotIn(p4_principal, riders_ctx)
 
+    def test_start_pre_departure_gate_cleans_all_requesting_riders(self) -> None:
+        now = dt.datetime.now(dt.timezone.utc).replace(microsecond=0)
+        departure = now + dt.timedelta(hours=3)
+
+        driver_route_id = self._create_route(
+            "d1",
+            capacity=10,
+            origin={
+                "location": {"type": "Point", "coordinates": [45.0, 9.0]},
+                "at": departure.isoformat(),
+            },
+            destination={
+                "location": {"type": "Point", "coordinates": [45.2, 9.2]},
+                "at": departure.isoformat(),
+            },
+        )
+
+        p1_principal = f"u:{self.user_ids['p1']}"
+        p2_principal = f"u:{self.user_ids['p2']}"
+        p4_principal = f"u:{self.user_ids['p4']}"
+        template_id = self._create_template(
+            _gherkin_definition(), allowed_initial_states=["START"]
+        )
+        created = self._create_contract(
+            template_id,
+            {
+                "driver_trip_id": driver_route_id,
+                "riders": [self.route_by_principal[p1_principal]],
+            },
+            initial_state="START",
+            actor="p1",
+        )
+        self.assertEqual(created.status_code, 201, msg=created.text)
+        cid = str(created.json()["id"])
+
+        p2_before = self._wallet_balance("p2")
+        p4_before = self._wallet_balance("p4")
+        join_p2 = self._post_event(
+            cid,
+            "request-join",
+            actor="p2",
+            payload={"route_id": self.route_by_principal[p2_principal]},
+        )
+        join_p4 = self._post_event(
+            cid,
+            "request-join",
+            actor="p4",
+            payload={"route_id": self.route_by_principal[p4_principal]},
+        )
+        self.assertEqual(join_p2.status_code, 200)
+        self.assertEqual(join_p4.status_code, 200)
+        self.assertTrue(join_p2.json().get("ok"))
+        self.assertTrue(join_p4.json().get("ok"))
+        self.assertEqual(self._wallet_balance("p2"), p2_before - 10)
+        self.assertEqual(self._wallet_balance("p4"), p4_before - 10)
+
+        accepted = self._post_event(
+            cid,
+            "driver-accept-start",
+            actor="d1",
+            payload={"rider": p1_principal},
+        )
+        self.assertEqual(accepted.status_code, 200)
+        self.assertTrue(accepted.json().get("ok"))
+
+        run_at = self._queue_jobs(contract_id=cid, event_name="PreDepartureGateTimed")[
+            0
+        ]["run_at"]
+        if run_at.tzinfo is None:
+            run_at = run_at.replace(tzinfo=dt.timezone.utc)
+        self.assertTrue(self._run_worker_once(now=run_at + dt.timedelta(seconds=1)))
+
+        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
+        self.assertEqual(c.get("state"), "IN_PROGRESS")
+        self.assertEqual(self._user_state(c, self.user_ids["p1"]), "ACCEPTED")
+        self.assertEqual(self._user_state(c, self.user_ids["p2"]), "CANCELLED")
+        self.assertEqual(self._user_state(c, self.user_ids["p4"]), "CANCELLED")
+        self.assertEqual(self._wallet_balance("p2"), p2_before)
+        self.assertEqual(self._wallet_balance("p4"), p4_before)
+
+        with self.app.app_context():
+            p2_route_after = self.app.config["MONGO_DB"]["items"].find_one(
+                {"_id": self.route_by_principal[p2_principal]}
+            )
+            p4_route_after = self.app.config["MONGO_DB"]["items"].find_one(
+                {"_id": self.route_by_principal[p4_principal]}
+            )
+        p2_route_data = (p2_route_after or {}).get("data") or {}
+        p4_route_data = (p4_route_after or {}).get("data") or {}
+        self.assertEqual(p2_route_data.get("reserved_credits") or 0, 0)
+        self.assertEqual(p4_route_data.get("reserved_credits") or 0, 0)
+        self.assertNotIn(cid, p2_route_data.get("contract_ids") or [])
+        self.assertNotIn(cid, p4_route_data.get("contract_ids") or [])
+
+        riders_ctx = (c.get("context") or {}).get("riders") or {}
+        self.assertIn(p1_principal, riders_ctx)
+        self.assertNotIn(p2_principal, riders_ctx)
+        self.assertNotIn(p4_principal, riders_ctx)
+
     def test_start_pre_departure_gate_moves_cancelled_when_no_accepted(self) -> None:
         now = dt.datetime.now(dt.timezone.utc).replace(microsecond=0)
         departure = now + dt.timedelta(hours=3)
