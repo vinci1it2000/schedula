@@ -154,7 +154,7 @@
                   "description": "Credits accepted rider with excess reserved route credits.",
                   "type": "charge.credits",
                   "credit": {
-                    "product": "coin",
+                    "product": "credit",
                     "user_id": "$$ctx.local.sync_accepted_rider",
                     "amount": "$$ctx.local.sync_accepted_rider_partial_refund"
                   }
@@ -389,7 +389,7 @@
                   "description": "Credits rider with retained route credits.",
                   "type": "charge.credits",
                   "credit": {
-                    "product": "coin",
+                    "product": "credit",
                     "user_id": {
                       "$ctx": "local.sync_cleanup_principal"
                     },
@@ -745,7 +745,7 @@
                                                   ]
                                                 },
                                                 {
-                                                  "product": "coin",
+                                                  "product": "credit",
                                                   "user_id": "$$p",
                                                   "amount": "$$rt.reserved_credits"
                                                 },
@@ -1119,6 +1119,158 @@
           }
         }
       ]
+    },
+    "PayDriver": {
+      "effects": [
+        {
+          "title": "Compute Settlement Totals",
+          "description": "Computes dispute refunds and driver payout for final settlement.",
+          "type": "update.contract",
+          "update": {
+            "$set": {
+              "local.has_driver_payout": {
+                "$gt": [
+                  "$context.driver_route.compensation",
+                  0
+                ]
+              }
+            }
+          }
+        },
+        {
+          "title": "Pay Driver If Any",
+          "description": "Pays aggregate driver amount when positive.",
+          "type": "if.else",
+          "condition": {
+            "$ctx": "doc.local.has_driver_payout"
+          },
+          "then_effects": [
+            {
+              "title": "Charge Driver",
+              "description": "Credits driver wallet with aggregate payout.",
+              "type": "charge.credits",
+              "credit": {
+                "product": "coin",
+                "user_id": {
+                  "$ctx": "doc.context.driver"
+                },
+                "amount": {
+                  "$ctx": "doc.context.driver_route.compensation"
+                }
+              }
+            }
+          ],
+          "else_effects": [
+            {
+              "title": "Read Driver Coin Balance",
+              "description": "Reads driver coin balance to split negative-compensation settlement.",
+              "type": "balance.credits",
+              "key": "balance_coins",
+              "credit": {
+                "user_id": "$$ctx.doc.context.driver",
+                "product": "coin"
+              }
+            },
+            {
+              "title": "Compute Negative Compensation Split",
+              "description": "Splits absolute negative compensation across coin then credit wallets.",
+              "type": "update.contract",
+              "update": [
+                {
+                  "$set": {
+                    "local.charge": {
+                      "$multiply": [
+                        {
+                          "$ctx": "doc.context.driver_route.compensation"
+                        },
+                        -1
+                      ]
+                    }
+                  }
+                },
+                {
+                  "$set": {
+                    "local.coin_charge": {
+                      "$min": [
+                        {
+                          "$max": [
+                            0,
+                            "$local.balance_coins"
+                          ]
+                        },
+                        "$local.charge"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "$set": {
+                    "local.credit_charge": {
+                      "$subtract": [
+                        "$local.charge",
+                        "$local.coin_charge"
+                      ]
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "title": "Settle Driver Coin Share",
+              "description": "Credits driver coin wallet with the computed coin share.",
+              "type": "use.credits",
+              "credit": {
+                "product": "coin",
+                "user_id": {
+                  "$ctx": "doc.context.driver"
+                },
+                "amount": {
+                  "$ctx": "local.coin_charge"
+                }
+              }
+            },
+            {
+              "title": "Settle Driver Credit Share",
+              "description": "Credits driver credit wallet with the remaining share.",
+              "type": "use.credits",
+              "credit": {
+                "product": "credit",
+                "user_id": {
+                  "$ctx": "doc.context.driver"
+                },
+                "amount": {
+                  "$ctx": "local.credit_charge"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "title": "Notify Driver Payment Settlement",
+          "description": "Notifies driver with final payment settlement summary.",
+          "type": "notify",
+          "notify": {
+            "event": "contracts.payment_settled_driver",
+            "targets": {
+              "$$ctx.doc.context.driver": [
+                "in_app",
+                "push"
+              ]
+            },
+            "payload": {
+              "contract_id": {
+                "$ctx": "doc._id"
+              },
+              "driver_compensation": {
+                "$ifNull": [
+                  "$context.driver_route.compensation",
+                  0
+                ]
+              }
+            }
+          }
+        }
+      ]
     }
   },
   "states": {
@@ -1461,7 +1613,7 @@
                     "type": "balance.credits",
                     "key": "balance_credits",
                     "credit": {
-                      "product": "coin"
+                      "product": "credit"
                     }
                   },
                   {
@@ -1521,7 +1673,7 @@
                         "description": "Reserves the missing rider credits required to enter onboarding.",
                         "type": "use.credits",
                         "credit": {
-                          "product": "coin",
+                          "product": "credit",
                           "amount": {
                             "$ctx": "local.missing_credits"
                           }
@@ -2028,7 +2180,7 @@
               "description": "Reads rider credits before evaluating onboarding join feasibility.",
               "type": "balance.credits",
               "credit": {
-                "product": "coin"
+                "product": "credit"
               },
               "key": "balance_credits"
             },
@@ -2110,7 +2262,7 @@
                   "description": "Reserves the missing rider credits needed for this join request.",
                   "type": "use.credits",
                   "credit": {
-                    "product": "coin",
+                    "product": "credit",
                     "amount": {
                       "$ctx": "local.missing_credits"
                     }
@@ -2312,7 +2464,7 @@
                   "description": "Applies the computed credit refund to the cancelling rider wallet.",
                   "type": "charge.credits",
                   "credit": {
-                    "product": "coin",
+                    "product": "credit",
                     "amount": {
                       "$ref": "/items/route/$$ctx.local.route.id/data.reserved_credits"
                     }
@@ -2968,7 +3120,7 @@
               "description": "Reads rider wallet balance before invite acceptance charge.",
               "type": "balance.credits",
               "credit": {
-                "product": "coin"
+                "product": "credit"
               },
               "key": "invite_balance_credits"
             },
@@ -3083,7 +3235,7 @@
                   "description": "Reserves missing rider credits only at invite acceptance time.",
                   "type": "use.credits",
                   "credit": {
-                    "product": "coin",
+                    "product": "credit",
                     "amount": {
                       "$ctx": "local.accept_invite_missing_credits"
                     }
@@ -3896,8 +4048,7 @@
                 "minimum": 0
               },
               "compensation": {
-                "type": "number",
-                "minimum": 0
+                "type": "number"
               },
               "capacity": {
                 "type": "integer",
@@ -4220,8 +4371,22 @@
                     }
                   },
                   "dispute": {
-                    "type": "boolean",
-                    "default": false
+                    "type": "object",
+                    "required": [
+                      "driver",
+                      "rider"
+                    ],
+                    "additionalProperties": false,
+                    "properties": {
+                      "driver": {
+                        "type": "boolean",
+                        "default": false
+                      },
+                      "rider": {
+                        "type": "boolean",
+                        "default": false
+                      }
+                    }
                   }
                 }
               }
@@ -4454,7 +4619,10 @@
                                         }
                                       },
                                       "locations": [],
-                                      "dispute": false
+                                      "dispute": {
+                                        "driver": false,
+                                        "rider": false
+                                      }
                                     }
                                   }
                                 }
@@ -4572,7 +4740,12 @@
                     "$add": [
                       "$context.driver_route.compensation",
                       {
-                        "$ctx": "doc.context.riders.$$ctx.user.cost"
+                        "$multiply": [
+                          {
+                            "$ctx": "doc.context.riders.$$ctx.user.cost"
+                          },
+                          0.7
+                        ]
                       }
                     ]
                   }
@@ -4659,32 +4832,66 @@
               "title": "Compute Rejection Refund",
               "description": "Computes full refund plus 30 percent bonus for rejected rider.",
               "type": "update.contract",
-              "update": {
-                "$set": {
-                  "local.rejection_refund_amount": {
-                    "$floor": {
-                      "$multiply": [
+              "update": [
+                {
+                  "$set": {
+                    "local.rejection_refund_amount": {
+                      "$floor": {
+                        "$multiply": [
+                          {
+                            "$ifNull": [
+                              {
+                                "$ctx": "doc.context.riders.$$ctx.payload.rider.cost"
+                              },
+                              0
+                            ]
+                          },
+                          1.1
+                        ]
+                      }
+                    }
+                  }
+                },
+                {
+                  "$set": {
+                    "context.driver_route.compensation": {
+                      "$add": [
+                        "$context.driver_route.compensation",
                         {
-                          "$ifNull": [
+                          "$subtract": [
+                            "$local.rejection_refund_amount",
                             {
                               "$ctx": "doc.context.riders.$$ctx.payload.rider.cost"
-                            },
-                            0
+                            }
                           ]
-                        },
-                        1.1
+                        }
                       ]
+                    },
+                    "local.rejection_refund_amount": {
+                      "$floor": {
+                        "$multiply": [
+                          {
+                            "$ifNull": [
+                              {
+                                "$ctx": "doc.context.riders.$$ctx.payload.rider.cost"
+                              },
+                              0
+                            ]
+                          },
+                          1.1
+                        ]
+                      }
                     }
                   }
                 }
-              }
+              ]
             },
             {
               "title": "Apply Rejection Refund",
               "description": "Credits rider wallet with full refund and 10% bonus.",
               "type": "charge.credits",
               "credit": {
-                "product": "coin",
+                "product": "credit",
                 "user_id": "$$ctx.payload.rider",
                 "amount": {
                   "$ctx": "local.rejection_refund_amount"
@@ -5279,53 +5486,6 @@
                           }
                         }
                       ]
-                    },
-                    "context.driver_route.compensation": {
-                      "$add": [
-                        {
-                          "$ifNull": [
-                            "$context.driver_route.compensation",
-                            0
-                          ]
-                        },
-                        {
-                          "$sum": {
-                            "$map": {
-                              "input": {
-                                "$filter": {
-                                  "input": {
-                                    "$objectToArray": {
-                                      "$ifNull": [
-                                        "$context.riders",
-                                        {}
-                                      ]
-                                    }
-                                  },
-                                  "as": "rv",
-                                  "cond": {
-                                    "$in": [
-                                      "$$rv.k",
-                                      {
-                                        "$ifNull": [
-                                          "$local.confirmed_riders",
-                                          []
-                                        ]
-                                      }
-                                    ]
-                                  }
-                                }
-                              },
-                              "as": "rv",
-                              "in": {
-                                "$ifNull": [
-                                  "$$rv.v.cost",
-                                  0
-                                ]
-                              }
-                            }
-                          }
-                        }
-                      ]
                     }
                   }
                 },
@@ -5435,14 +5595,31 @@
               "update": {
                 "$set": {
                   "local.valid_request": {
-                    "$eq": [
+                    "$and": [
                       {
-                        "$ifNull": [
-                          "$states.$$ctx.user",
-                          ""
+                        "$eq": [
+                          {
+                            "$ifNull": [
+                              "$states.$$ctx.user",
+                              ""
+                            ]
+                          },
+                          "ACCEPTED"
                         ]
                       },
-                      "ACCEPTED"
+                      {
+                        "$eq": [
+                          {
+                            "$ifNull": [
+                              {
+                                "$ctx": "context.riders.$$ctx.user.dispute.rider"
+                              },
+                              false
+                            ]
+                          },
+                          false
+                        ]
+                      }
                     ]
                   }
                 }
@@ -5455,44 +5632,131 @@
               },
               "then_effects": [
                 {
-                  "type": "if.else",
-                  "condition": {
-                    "$ctx": "context.riders.$$ctx.user.dispute"
-                  },
-                  "else_effects": [
-                    {
-                      "title": "Register Rider Dispute",
-                      "description": "Stores rider dispute for payment resolution.",
-                      "type": "update.contract",
-                      "update": {
-                        "$set": {
-                          "context.riders.$$ctx.user.dispute": true
-                        }
-                      }
-                    },
-                    {
-                      "title": "Notify Driver About Rider Dispute",
-                      "description": "Notifies driver immediately when rider reports not picked.",
-                      "type": "notify",
-                      "notify": {
-                        "event": "contracts.dispute_opened",
-                        "targets": {
-                          "$$ctx.doc.context.driver": [
-                            "in_app",
-                            "push"
-                          ]
-                        },
-                        "payload": {
-                          "contract_id": {
-                            "$ctx": "doc._id"
-                          },
-                          "type": "rider_not_picked",
-                          "rider": "$$ctx.user",
-                          "reported_by": "$$ctx.user"
-                        }
-                      }
+                  "title": "Register Rider Dispute",
+                  "description": "Stores rider dispute for payment resolution.",
+                  "type": "update.contract",
+                  "update": {
+                    "$set": {
+                      "context.riders.$$ctx.user.dispute.rider": true
                     }
-                  ]
+                  }
+                },
+                {
+                  "title": "Notify Driver About Rider Dispute",
+                  "description": "Notifies driver immediately when rider reports not picked.",
+                  "type": "notify",
+                  "notify": {
+                    "event": "contracts.dispute_opened",
+                    "targets": {
+                      "$$ctx.doc.context.driver": [
+                        "in_app",
+                        "push"
+                      ]
+                    },
+                    "payload": {
+                      "contract_id": {
+                        "$ctx": "doc._id"
+                      },
+                      "type": "rider_not_picked",
+                      "rider": "$$ctx.user",
+                      "reported_by": "$$ctx.user"
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        "RiderDidNotGetPickedUndo": {
+          "trigger": [
+            {
+              "type": "api",
+              "path": "driver-did-not-pick-me-undo",
+              "method": "POST",
+              "payload_schema": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": false
+              },
+              "allow_user_states": [
+                "ACCEPTED"
+              ],
+              "response": {
+                "ok": "$$ctx.local.valid_request",
+                "event": "driver_did_not_pick_me"
+              }
+            }
+          ],
+          "effects": [
+            {
+              "title": "Register Rider Dispute",
+              "description": "Stores rider dispute for payment resolution.",
+              "type": "update.contract",
+              "update": {
+                "$set": {
+                  "local.valid_request": {
+                    "$and": [
+                      {
+                        "$eq": [
+                          {
+                            "$ifNull": [
+                              "$states.$$ctx.user",
+                              ""
+                            ]
+                          },
+                          "ACCEPTED"
+                        ]
+                      },
+                      {
+                        "$eq": [
+                          {
+                            "$ctx": "context.riders.$$ctx.user.dispute.rider"
+                          },
+                          true
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            {
+              "type": "if.else",
+              "condition": {
+                "$ctx": "doc.local.valid_request"
+              },
+              "then_effects": [
+                {
+                  "title": "Register Rider Dispute",
+                  "description": "Stores rider dispute for payment resolution.",
+                  "type": "update.contract",
+                  "update": {
+                    "$set": {
+                      "context.riders.$$ctx.user.dispute.rider": false
+                    }
+                  }
+                },
+                {
+                  "title": "Notify Driver About Rider Dispute",
+                  "description": "Notifies driver immediately when rider reports not picked.",
+                  "type": "notify",
+                  "notify": {
+                    "event": "contracts.dispute_canceled",
+                    "targets": {
+                      "$$ctx.doc.context.driver": [
+                        "in_app",
+                        "push"
+                      ]
+                    },
+                    "payload": {
+                      "contract_id": {
+                        "$ctx": "doc._id"
+                      },
+                      "type": "rider_not_picked",
+                      "rider": "$$ctx.user",
+                      "reported_by": "$$ctx.user"
+                    }
+                  }
                 }
               ]
             }
@@ -5528,65 +5792,163 @@
           ],
           "effects": [
             {
-              "title": "Register Rider Dispute",
+              "title": "Register Driver Dispute",
               "description": "Stores rider dispute for payment resolution.",
               "type": "update.contract",
               "update": {
                 "$set": {
-                  "local.valid_request": {
-                    "$eq": [
-                      "ACCEPTED",
-                      "$states.$$ctx.payload.rider"
-                    ]
-                  }
+                  "local.valid_request": [
+                    {
+                      "$eq": [
+                        "ACCEPTED",
+                        "$states.$$ctx.payload.rider"
+                      ]
+                    },
+                    {
+                      "$eq": [
+                        {
+                          "$ctx": "context.riders.$$ctx.payload.rider.dispute.driver"
+                        },
+                        false
+                      ]
+                    }
+                  ]
                 }
               }
             },
             {
               "type": "if.else",
               "condition": {
-                "$ctx": "context.riders.$$ctx.payload.rider.dispute"
+                "$ctx": "doc.local.valid_request"
               },
-              "else_effects": [
+              "then_effects": [
                 {
-                  "type": "if.else",
-                  "condition": {
-                    "$ctx": "doc.local.valid_request"
-                  },
-                  "then_effects": [
+                  "title": "Register Driver Dispute",
+                  "description": "Stores driver dispute for payment resolution.",
+                  "type": "update.contract",
+                  "update": {
+                    "$set": {
+                      "context.riders.$$ctx.payload.rider.dispute.driver": true
+                    }
+                  }
+                },
+                {
+                  "title": "Notify Rider About Driver Dispute",
+                  "description": "Notifies target rider when driver reports pickup absence.",
+                  "type": "notify",
+                  "notify": {
+                    "event": "contracts.dispute_opened",
+                    "targets": {
+                      "$$ctx.payload.rider": [
+                        "in_app",
+                        "push"
+                      ]
+                    },
+                    "payload": {
+                      "contract_id": {
+                        "$ctx": "doc._id"
+                      },
+                      "type": "rider_not_at_pickup",
+                      "rider": "$$ctx.payload.rider",
+                      "reported_by": "$$ctx.user"
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        "RiderNotAtPickupUndo": {
+          "trigger": [
+            {
+              "type": "api",
+              "path": "rider-not-at-pickup-undo",
+              "method": "POST",
+              "allow_principals": [
+                "$$ctx.doc.context.driver"
+              ],
+              "payload_schema": {
+                "type": "object",
+                "required": [
+                  "rider"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "rider": {
+                    "type": "string",
+                    "pattern": "^u:.+$"
+                  }
+                }
+              },
+              "response": {
+                "ok": "$$ctx.local.valid_request",
+                "event": "rider_not_at_pickup"
+              }
+            }
+          ],
+          "effects": [
+            {
+              "title": "Register Driver Dispute",
+              "description": "Stores rider dispute for payment resolution.",
+              "type": "update.contract",
+              "update": {
+                "$set": {
+                  "local.valid_request": [
                     {
-                      "title": "Register Driver Dispute",
-                      "description": "Stores driver dispute for payment resolution.",
-                      "type": "update.contract",
-                      "update": {
-                        "$set": {
-                          "context.riders.$$ctx.payload.rider.dispute": true
-                        }
-                      }
+                      "$eq": [
+                        "ACCEPTED",
+                        "$states.$$ctx.payload.rider"
+                      ]
                     },
                     {
-                      "title": "Notify Rider About Driver Dispute",
-                      "description": "Notifies target rider when driver reports pickup absence.",
-                      "type": "notify",
-                      "notify": {
-                        "event": "contracts.dispute_opened",
-                        "targets": {
-                          "$$ctx.payload.rider": [
-                            "in_app",
-                            "push"
-                          ]
+                      "$eq": [
+                        {
+                          "$ctx": "context.riders.$$ctx.payload.rider.dispute.driver"
                         },
-                        "payload": {
-                          "contract_id": {
-                            "$ctx": "doc._id"
-                          },
-                          "type": "rider_not_at_pickup",
-                          "rider": "$$ctx.payload.rider",
-                          "reported_by": "$$ctx.user"
-                        }
-                      }
+                        true
+                      ]
                     }
                   ]
+                }
+              }
+            },
+            {
+              "type": "if.else",
+              "condition": {
+                "$ctx": "doc.local.valid_request"
+              },
+              "then_effects": [
+                {
+                  "title": "Register Driver Dispute",
+                  "description": "Stores driver dispute for payment resolution.",
+                  "type": "update.contract",
+                  "update": {
+                    "$set": {
+                      "context.riders.$$ctx.payload.rider.dispute.driver": false
+                    }
+                  }
+                },
+                {
+                  "title": "Notify Rider About Driver Dispute",
+                  "description": "Notifies target rider when driver reports pickup absence.",
+                  "type": "notify",
+                  "notify": {
+                    "event": "contracts.dispute_canceled",
+                    "targets": {
+                      "$$ctx.payload.rider": [
+                        "in_app",
+                        "push"
+                      ]
+                    },
+                    "payload": {
+                      "contract_id": {
+                        "$ctx": "doc._id"
+                      },
+                      "type": "rider_not_at_pickup",
+                      "rider": "$$ctx.payload.rider",
+                      "reported_by": "$$ctx.user"
+                    }
+                  }
                 }
               ]
             }
@@ -5862,6 +6224,12 @@
             ]
           },
           {
+            "title": "Execute PayDriver",
+            "description": "Settles final driver payout before closing cancellation flow.",
+            "type": "execute.event",
+            "event_name": "PayDriver"
+          },
+          {
             "title": "Close Trip As Rejected",
             "description": "Closes the trip as rejected by the driver and updates all rider statuses consistently.",
             "type": "update.contract",
@@ -5876,326 +6244,1198 @@
     },
     "COMPLETED": {
       "final": true,
+      "context_schema": {
+        "type": "object",
+        "required": [
+          "group_id",
+          "driver",
+          "riders",
+          "driver_route"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "group_id": {
+            "type": "string",
+            "pattern": "^g:.+$"
+          },
+          "driver": {
+            "type": "string",
+            "pattern": "^u:\\d+$"
+          },
+          "driver_route": {
+            "type": "object",
+            "required": [
+              "id",
+              "trip",
+              "capacity",
+              "accepted_seats",
+              "compensation",
+              "plan",
+              "locations"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "locations": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "at",
+                    "location"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "accuracy": {
+                      "type": "number"
+                    },
+                    "at": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "location": {
+                      "type": "object",
+                      "required": [
+                        "type",
+                        "coordinates"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "const": "Point"
+                        },
+                        "coordinates": {
+                          "type": "array",
+                          "minItems": 2,
+                          "maxItems": 2,
+                          "items": {
+                            "type": "number"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "plan": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "start",
+                  "end",
+                  "stops"
+                ],
+                "properties": {
+                  "start": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "at",
+                      "reminder_id"
+                    ],
+                    "properties": {
+                      "at": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "reminder_id": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
+                  },
+                  "end": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "at",
+                      "reminder_id"
+                    ],
+                    "properties": {
+                      "at": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "reminder_id": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
+                  },
+                  "stops": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "type",
+                        "at",
+                        "location"
+                      ],
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "origin",
+                            "destination",
+                            "pickup",
+                            "drop_off"
+                          ]
+                        },
+                        "at": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "location": {
+                          "type": "object",
+                          "required": [
+                            "type",
+                            "coordinates"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "const": "Point"
+                            },
+                            "coordinates": {
+                              "type": "array",
+                              "minItems": 2,
+                              "maxItems": 2,
+                              "items": {
+                                "type": "number"
+                              }
+                            }
+                          }
+                        },
+                        "rider_id": {
+                          "type": "string",
+                          "pattern": "^u:.+$"
+                        },
+                        "lateness_sec": {
+                          "type": "number",
+                          "minimum": 0
+                        }
+                      },
+                      "allOf": [
+                        {
+                          "if": {
+                            "properties": {
+                              "type": {
+                                "enum": [
+                                  "pickup",
+                                  "drop_off"
+                                ]
+                              }
+                            }
+                          },
+                          "then": {
+                            "required": [
+                              "rider_id"
+                            ]
+                          },
+                          "else": {
+                            "not": {
+                              "required": [
+                                "rider_id",
+                                "lateness_sec"
+                              ]
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              },
+              "trip": {
+                "type": "object",
+                "required": [
+                  "origin",
+                  "destination"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "origin": {
+                    "type": "object",
+                    "required": [
+                      "at",
+                      "location",
+                      "flexibility"
+                    ],
+                    "additionalProperties": false,
+                    "properties": {
+                      "flexibility": {
+                        "type": "number",
+                        "minimum": 0
+                      },
+                      "at": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "location": {
+                        "type": "object",
+                        "required": [
+                          "type",
+                          "coordinates"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "const": "Point"
+                          },
+                          "coordinates": {
+                            "type": "array",
+                            "minItems": 2,
+                            "maxItems": 2,
+                            "items": {
+                              "type": "number"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "destination": {
+                    "type": "object",
+                    "required": [
+                      "at",
+                      "location",
+                      "flexibility"
+                    ],
+                    "additionalProperties": false,
+                    "properties": {
+                      "flexibility": {
+                        "type": "number",
+                        "minimum": 0
+                      },
+                      "at": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "location": {
+                        "type": "object",
+                        "required": [
+                          "type",
+                          "coordinates"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "const": "Point"
+                          },
+                          "coordinates": {
+                            "type": "array",
+                            "minItems": 2,
+                            "maxItems": 2,
+                            "items": {
+                              "type": "number"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "accepted_seats": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "compensation": {
+                "type": "number"
+              },
+              "capacity": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          },
+          "riders": {
+            "type": "object",
+            "additionalProperties": false,
+            "patternProperties": {
+              "^u:\\d+$": {
+                "type": "object",
+                "required": [
+                  "id",
+                  "cost",
+                  "seats",
+                  "trip",
+                  "pickup",
+                  "drop_off",
+                  "locations",
+                  "verification",
+                  "dispute",
+                  "compensation"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "cost": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "seats": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "trip": {
+                    "type": "object",
+                    "required": [
+                      "origin",
+                      "destination"
+                    ],
+                    "additionalProperties": false,
+                    "properties": {
+                      "origin": {
+                        "type": "object",
+                        "required": [
+                          "at",
+                          "location",
+                          "flexibility"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "flexibility": {
+                            "type": "number",
+                            "minimum": 0
+                          },
+                          "at": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "location": {
+                            "type": "object",
+                            "required": [
+                              "type",
+                              "coordinates"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "const": "Point"
+                              },
+                              "coordinates": {
+                                "type": "array",
+                                "minItems": 2,
+                                "maxItems": 2,
+                                "items": {
+                                  "type": "number"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "destination": {
+                        "type": "object",
+                        "required": [
+                          "at",
+                          "location",
+                          "flexibility"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "flexibility": {
+                            "type": "number",
+                            "minimum": 0
+                          },
+                          "at": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "location": {
+                            "type": "object",
+                            "required": [
+                              "type",
+                              "coordinates"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "const": "Point"
+                              },
+                              "coordinates": {
+                                "type": "array",
+                                "minItems": 2,
+                                "maxItems": 2,
+                                "items": {
+                                  "type": "number"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "pickup": {
+                    "type": "object",
+                    "required": [
+                      "at",
+                      "reminder_id",
+                      "zone",
+                      "window"
+                    ],
+                    "additionalProperties": false,
+                    "properties": {
+                      "at": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "reminder_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "zone": {
+                        "type": "object",
+                        "required": [
+                          "radius",
+                          "location"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "radius": {
+                            "type": "number",
+                            "minimum": 200
+                          },
+                          "location": {
+                            "type": "object",
+                            "required": [
+                              "type",
+                              "coordinates"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "const": "Point"
+                              },
+                              "coordinates": {
+                                "type": "array",
+                                "minItems": 2,
+                                "maxItems": 2,
+                                "items": {
+                                  "type": "number"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "window": {
+                        "start": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "end": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      }
+                    }
+                  },
+                  "drop_off": {
+                    "type": "object",
+                    "required": [
+                      "at",
+                      "reminder_id",
+                      "zone",
+                      "window"
+                    ],
+                    "additionalProperties": false,
+                    "properties": {
+                      "at": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "reminder_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "zone": {
+                        "type": "object",
+                        "required": [
+                          "radius",
+                          "location"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "radius": {
+                            "type": "number",
+                            "minimum": 200
+                          },
+                          "location": {
+                            "type": "object",
+                            "required": [
+                              "type",
+                              "coordinates"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "const": "Point"
+                              },
+                              "coordinates": {
+                                "type": "array",
+                                "minItems": 2,
+                                "maxItems": 2,
+                                "items": {
+                                  "type": "number"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "window": {
+                        "start": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "end": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      }
+                    }
+                  },
+                  "locations": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "at",
+                        "location"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "accuracy": {
+                          "type": "number"
+                        },
+                        "at": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "location": {
+                          "type": "object",
+                          "required": [
+                            "type",
+                            "coordinates"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "const": "Point"
+                            },
+                            "coordinates": {
+                              "type": "array",
+                              "minItems": 2,
+                              "maxItems": 2,
+                              "items": {
+                                "type": "number"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "verification": {
+                    "type": "object",
+                    "required": [
+                      "pin",
+                      "masked"
+                    ],
+                    "additionalProperties": false,
+                    "properties": {
+                      "pin": {
+                        "type": "string",
+                        "pattern": "^\\d{6}$"
+                      },
+                      "masked": {
+                        "type": "string",
+                        "pattern": "^(?=(?:.*_){3})(?=(?:.*\\d){3})[\\d_]{6}$"
+                      }
+                    }
+                  },
+                  "compensation": {
+                    "type": "number"
+                  },
+                  "dispute": {
+                    "type": "object",
+                    "required": [
+                      "driver",
+                      "rider",
+                      "refund"
+                    ],
+                    "additionalProperties": false,
+                    "properties": {
+                      "driver": {
+                        "type": "boolean",
+                        "default": false
+                      },
+                      "rider": {
+                        "type": "boolean",
+                        "default": false
+                      },
+                      "refund": {
+                        "type": "number",
+                        "minimum": 0
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
       "on_enter": {
         "effects": [
           {
-            "title": "Compute Driver Payout",
-            "description": "Computes aggregate driver payout from onboard and non-disputed riders.",
+            "title": "Compute Settlement Totals",
+            "description": "Normalizes dispute payloads and computes per-rider settlement amounts.",
             "type": "update.contract",
-            "update": {
-              "$set": {
-                "local.accepted_without_dispute_count": {
-                  "$size": {
-                    "$filter": {
-                      "input": {
-                        "$objectToArray": {
-                          "$ifNull": [
-                            "$states",
-                            {}
-                          ]
-                        }
-                      },
-                      "as": "sv",
-                      "cond": {
-                        "$and": [
-                          {
-                            "$eq": [
-                              "$$sv.v",
-                              "ACCEPTED"
+            "update": [
+              {
+                "$set": {
+                  "context.riders": {
+                    "$arrayToObject": {
+                      "$map": {
+                        "input": {
+                          "$objectToArray": {
+                            "$ifNull": [
+                              "$context.riders",
+                              {}
                             ]
-                          },
-                          {
-                            "$eq": [
-                              {
-                                "$size": {
-                                  "$filter": {
-                                    "input": {
-                                      "$objectToArray": {
-                                        "$ifNull": [
-                                          "$context.riders",
-                                          {}
-                                        ]
-                                      }
-                                    },
-                                    "as": "rv",
-                                    "cond": {
-                                      "$and": [
-                                        {
-                                          "$eq": [
-                                            "$$rv.k",
-                                            "$$sv.k"
-                                          ]
-                                        },
-                                        {
-                                          "$eq": [
-                                            {
-                                              "$ifNull": [
-                                                "$$rv.v.dispute",
-                                                false
-                                              ]
-                                            },
-                                            true
-                                          ]
+                          }
+                        },
+                        "as": "rv",
+                        "in": {
+                          "k": "$$rv.k",
+                          "v": {
+                            "$let": {
+                              "vars": {
+                                "state": {
+                                  "$first": {
+                                    "$map": {
+                                      "input": {
+                                        "$filter": {
+                                          "input": {
+                                            "$objectToArray": "$states"
+                                          },
+                                          "as": "kv",
+                                          "cond": {
+                                            "$eq": [
+                                              "$$kv.k",
+                                              "$$rv.k"
+                                            ]
+                                          }
                                         }
-                                      ]
+                                      },
+                                      "as": "kv",
+                                      "in": "$$kv.v"
                                     }
                                   }
                                 }
                               },
-                              0
-                            ]
+                              "in": {
+                                "$let": {
+                                  "vars": {
+                                    "reimbursed": {
+                                      "$and": [
+                                        {
+                                          "$eq": [
+                                            "$$state",
+                                            "ACCEPTED"
+                                          ]
+                                        },
+                                        {
+                                          "$or": [
+                                            {
+                                              "$eq": [
+                                                "$$rv.v.dispute.rider",
+                                                true
+                                              ]
+                                            },
+                                            {
+                                              "$eq": [
+                                                "$$rv.v.dispute.driver",
+                                                true
+                                              ]
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "$or": [
+                                            {
+                                              "$not": {
+                                                "$anyElementTrue": {
+                                                  "$map": {
+                                                    "input": {
+                                                      "$ctx": "doc.context.driver_route.locations"
+                                                    },
+                                                    "as": "loc",
+                                                    "in": {
+                                                      "$let": {
+                                                        "vars": {
+                                                          "cLon": {
+                                                            "$arrayElemAt": [
+                                                              "$$rv.v.pickup.zone.location.coordinates",
+                                                              0
+                                                            ]
+                                                          },
+                                                          "cLat": {
+                                                            "$arrayElemAt": [
+                                                              "$$rv.v.pickup.zone.location.coordinates",
+                                                              1
+                                                            ]
+                                                          },
+                                                          "pLon": {
+                                                            "$arrayElemAt": [
+                                                              "$$loc.location.coordinates",
+                                                              0
+                                                            ]
+                                                          },
+                                                          "pLat": {
+                                                            "$arrayElemAt": [
+                                                              "$$loc.location.coordinates",
+                                                              1
+                                                            ]
+                                                          },
+                                                          "r": "$$rv.v.pickup.zone.radius",
+                                                          "earth_radius": 6371000,
+                                                          "t": {
+                                                            "$toDate": "$$loc.at"
+                                                          },
+                                                          "tStart": {
+                                                            "$toDate": "$$rv.v.pickup.window.start"
+                                                          },
+                                                          "tEnd": {
+                                                            "$toDate": "$$rv.v.pickup.window.end"
+                                                          }
+                                                        },
+                                                        "in": {
+                                                          "$and": [
+                                                            {
+                                                              "$and": [
+                                                                {
+                                                                  "$gte": [
+                                                                    "$$t",
+                                                                    "$$tStart"
+                                                                  ]
+                                                                },
+                                                                {
+                                                                  "$lte": [
+                                                                    "$$t",
+                                                                    "$$tEnd"
+                                                                  ]
+                                                                }
+                                                              ]
+                                                            },
+                                                            {
+                                                              "$lte": [
+                                                                {
+                                                                  "$multiply": [
+                                                                    "$$earth_radius",
+                                                                    {
+                                                                      "$acos": {
+                                                                        "$add": [
+                                                                          {
+                                                                            "$multiply": [
+                                                                              {
+                                                                                "$sin": {
+                                                                                  "$degreesToRadians": "$$cLat"
+                                                                                }
+                                                                              },
+                                                                              {
+                                                                                "$sin": {
+                                                                                  "$degreesToRadians": "$$pLat"
+                                                                                }
+                                                                              }
+                                                                            ]
+                                                                          },
+                                                                          {
+                                                                            "$multiply": [
+                                                                              {
+                                                                                "$cos": {
+                                                                                  "$degreesToRadians": "$$cLat"
+                                                                                }
+                                                                              },
+                                                                              {
+                                                                                "$cos": {
+                                                                                  "$degreesToRadians": "$$pLat"
+                                                                                }
+                                                                              },
+                                                                              {
+                                                                                "$cos": {
+                                                                                  "$subtract": [
+                                                                                    {
+                                                                                      "$degreesToRadians": "$$pLon"
+                                                                                    },
+                                                                                    {
+                                                                                      "$degreesToRadians": "$$cLon"
+                                                                                    }
+                                                                                  ]
+                                                                                }
+                                                                              }
+                                                                            ]
+                                                                          }
+                                                                        ]
+                                                                      }
+                                                                    }
+                                                                  ]
+                                                                },
+                                                                "$$r"
+                                                              ]
+                                                            }
+                                                          ]
+                                                        }
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            },
+                                            {
+                                              "$anyElementTrue": {
+                                                "$map": {
+                                                  "input": "$$rv.v.locations",
+                                                  "as": "loc",
+                                                  "in": {
+                                                    "$let": {
+                                                      "vars": {
+                                                        "cLon": {
+                                                          "$arrayElemAt": [
+                                                            "$$rv.v.pickup.zone.location.coordinates",
+                                                            0
+                                                          ]
+                                                        },
+                                                        "cLat": {
+                                                          "$arrayElemAt": [
+                                                            "$$rv.v.pickup.zone.location.coordinates",
+                                                            1
+                                                          ]
+                                                        },
+                                                        "pLon": {
+                                                          "$arrayElemAt": [
+                                                            "$$loc.location.coordinates",
+                                                            0
+                                                          ]
+                                                        },
+                                                        "pLat": {
+                                                          "$arrayElemAt": [
+                                                            "$$loc.location.coordinates",
+                                                            1
+                                                          ]
+                                                        },
+                                                        "r": "$$rv.v.pickup.zone.radius",
+                                                        "earth_radius": 6371000,
+                                                        "t": {
+                                                          "$toDate": "$$loc.at"
+                                                        },
+                                                        "tStart": {
+                                                          "$toDate": "$$rv.v.pickup.window.start"
+                                                        },
+                                                        "tEnd": {
+                                                          "$toDate": "$$rv.v.pickup.window.end"
+                                                        }
+                                                      },
+                                                      "in": {
+                                                        "$and": [
+                                                          {
+                                                            "$and": [
+                                                              {
+                                                                "$gte": [
+                                                                  "$$t",
+                                                                  "$$tStart"
+                                                                ]
+                                                              },
+                                                              {
+                                                                "$lte": [
+                                                                  "$$t",
+                                                                  "$$tEnd"
+                                                                ]
+                                                              }
+                                                            ]
+                                                          },
+                                                          {
+                                                            "$lte": [
+                                                              {
+                                                                "$multiply": [
+                                                                  "$$earth_radius",
+                                                                  {
+                                                                    "$acos": {
+                                                                      "$add": [
+                                                                        {
+                                                                          "$multiply": [
+                                                                            {
+                                                                              "$sin": {
+                                                                                "$degreesToRadians": "$$cLat"
+                                                                              }
+                                                                            },
+                                                                            {
+                                                                              "$sin": {
+                                                                                "$degreesToRadians": "$$pLat"
+                                                                              }
+                                                                            }
+                                                                          ]
+                                                                        },
+                                                                        {
+                                                                          "$multiply": [
+                                                                            {
+                                                                              "$cos": {
+                                                                                "$degreesToRadians": "$$cLat"
+                                                                              }
+                                                                            },
+                                                                            {
+                                                                              "$cos": {
+                                                                                "$degreesToRadians": "$$pLat"
+                                                                              }
+                                                                            },
+                                                                            {
+                                                                              "$cos": {
+                                                                                "$subtract": [
+                                                                                  {
+                                                                                    "$degreesToRadians": "$$pLon"
+                                                                                  },
+                                                                                  {
+                                                                                    "$degreesToRadians": "$$cLon"
+                                                                                  }
+                                                                                ]
+                                                                              }
+                                                                            }
+                                                                          ]
+                                                                        }
+                                                                      ]
+                                                                    }
+                                                                  }
+                                                                ]
+                                                              },
+                                                              "$$r"
+                                                            ]
+                                                          }
+                                                        ]
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    },
+                                    "refund": {
+                                      "$multiply": [
+                                        "$$rv.v.cost",
+                                        1.1
+                                      ]
+                                    }
+                                  },
+                                  "in": {
+                                    "$mergeObjects": [
+                                      "$$rv.v",
+                                      {
+                                        "compensation": {
+                                          "$cond": [
+                                            {
+                                              "$in": [
+                                                "$$state",
+                                                [
+                                                  "ACCEPTED",
+                                                  "ONBOARD"
+                                                ]
+                                              ]
+                                            },
+                                            {
+                                              "$cond": [
+                                                "$$reimbursed",
+                                                {
+                                                  "$subtract": [
+                                                    "$$rv.v.cost",
+                                                    "$$refund"
+                                                  ]
+                                                },
+                                                {
+                                                  "$multiply": [
+                                                    "$$rv.v.cost",
+                                                    0.7
+                                                  ]
+                                                }
+                                              ]
+                                            },
+                                            0
+                                          ]
+                                        },
+                                        "dispute": {
+                                          "$mergeObjects": [
+                                            "$$rv.v.dispute",
+                                            {
+                                              "refund": {
+                                                "$cond": [
+                                                  "$$reimbursed",
+                                                  "$$refund",
+                                                  0
+                                                ]
+                                              }
+                                            }
+                                          ]
+                                        }
+                                      }
+                                    ]
+                                  }
+                                }
+                              }
+                            }
                           }
-                        ]
+                        }
                       }
                     }
                   }
-                },
-                "local.driver_total_payout": {
-                  "$add": [
-                    {
-                      "$multiply": [
-                        {
-                          "$ifNull": [
-                            "$local.accepted_without_dispute_count",
-                            0
-                          ]
-                        },
-                        10
-                      ]
-                    },
-                    {
-                      "$ifNull": [
-                        "$context.driver_route.compensation",
-                        0
-                      ]
-                    }
-                  ]
                 }
-              }
-            }
-          },
-          {
-            "title": "Check Driver Payout",
-            "description": "Checks whether payout is positive before charging driver wallet.",
-            "type": "update.contract",
-            "update": {
-              "$set": {
-                "local.has_driver_payout": {
-                  "$gt": [
-                    {
-                      "$ifNull": [
-                        "$local.driver_total_payout",
-                        0
-                      ]
-                    },
-                    0
-                  ]
-                }
-              }
-            }
-          },
-          {
-            "title": "Pay Driver If Any",
-            "description": "Pays aggregate driver amount when positive.",
-            "type": "if.else",
-            "condition": {
-              "$ctx": "doc.local.has_driver_payout"
-            },
-            "then_effects": [
+              },
               {
-                "title": "Charge Driver",
-                "description": "Credits driver wallet with aggregate payout.",
-                "type": "charge.credits",
-                "credit": {
-                  "product": "coin",
-                  "user_id": {
-                    "$ctx": "doc.context.driver"
+                "$set": {
+                  "local.disputed_refund_credits": {
+                    "$arrayToObject": {
+                      "$map": {
+                        "input": {
+                          "$filter": {
+                            "input": {
+                              "$objectToArray": "$context.riders"
+                            },
+                            "as": "rv",
+                            "cond": {
+                              "$gt": [
+                                "$$rv.v.dispute.refund",
+                                0
+                              ]
+                            }
+                          }
+                        },
+                        "as": "rv",
+                        "in": {
+                          "k": "$$rv.k",
+                          "v": {
+                            "product": "credit",
+                            "user_id": "$$rv.k",
+                            "amount": "$$rv.v.dispute.refund"
+                          }
+                        }
+                      }
+                    }
                   },
-                  "amount": {
-                    "$ctx": "local.driver_total_payout"
+                  "context.driver_route.compensation": {
+                    "$add": [
+                      "$context.driver_route.compensation",
+                      {
+                        "$sum": {
+                          "$map": {
+                            "input": {
+                              "$objectToArray": "$context.riders"
+                            },
+                            "as": "rv",
+                            "in": "$$rv.v.compensation"
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "$set": {
+                  "local.payment_rider_targets": {
+                    "$arrayToObject": {
+                      "$map": {
+                        "input": {
+                          "$objectToArray": "$local.disputed_refund_credits"
+                        },
+                        "as": "kv",
+                        "in": {
+                          "k": "$$kv.k",
+                          "v": [
+                            "in_app",
+                            "push"
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "$set": {
+                  "local.has_disputed_refunds": {
+                    "$gt": [
+                      {
+                        "$size": {
+                          "$objectToArray": {
+                            "$ifNull": [
+                              "$local.payment_rider_targets",
+                              {}
+                            ]
+                          }
+                        }
+                      },
+                      0
+                    ]
                   }
                 }
               }
             ]
           },
           {
-            "title": "Complete Contract",
-            "description": "Stores payment decision before settlement notifications.",
-            "type": "update.contract",
-            "update": {
-              "$set": {
-                "context.payment_decision": {
-                  "driver_total_payout": {
-                    "$ifNull": [
-                      "$local.driver_total_payout",
-                      0
-                    ]
-                  },
-                  "driver_compensation": {
-                    "$ifNull": [
-                      "$context.driver_route.compensation",
-                      0
-                    ]
-                  }
-                }
-              }
-            }
-          },
-          {
-            "title": "Notify Driver Payment Settlement",
-            "description": "Notifies driver with final payment settlement summary.",
-            "type": "notify",
-            "notify": {
-              "event": "contracts.payment_settled_driver",
-              "targets": {
-                "$$ctx.doc.context.driver": [
-                  "in_app",
-                  "push"
-                ]
-              },
-              "payload": {
-                "contract_id": {
-                  "$ctx": "doc._id"
-                },
-                "driver_total_payout": {
-                  "$ifNull": [
-                    "$local.driver_total_payout",
-                    0
-                  ]
-                },
-                "driver_compensation": {
-                  "$ifNull": [
-                    "$context.driver_route.compensation",
-                    0
-                  ]
-                }
-              }
-            }
-          },
-          {
-            "title": "Build Rider Settlement Targets",
-            "description": "Builds rider notification targets for settlement outcomes.",
-            "type": "update.contract",
-            "update": {
-              "$set": {
-                "local.payment_rider_targets": {
-                  "$arrayToObject": {
-                    "$map": {
-                      "input": {
-                        "$ifNull": [
-                          {
-                            "$map": {
-                              "input": {
-                                "$objectToArray": {
-                                  "$ifNull": [
-                                    "$context.riders",
-                                    {}
-                                  ]
-                                }
-                              },
-                              "as": "rv",
-                              "in": "$$rv.k"
-                            }
-                          },
-                          []
-                        ]
-                      },
-                      "as": "p",
-                      "in": {
-                        "k": "$$p",
-                        "v": [
-                          "in_app",
-                          "push"
-                        ]
-                      }
-                    }
-                  }
-                },
-                "local.has_payment_rider_targets": {
-                  "$gt": [
-                    {
-                      "$size": {
-                        "$objectToArray": {
-                          "$ifNull": [
-                            "$context.riders",
-                            {}
-                          ]
-                        }
-                      }
-                    },
-                    0
-                  ]
-                }
-              }
-            }
-          },
-          {
-            "title": "Notify Rider Payment Settlement",
-            "description": "Notifies riders with settlement summary payload.",
+            "title": "Refund Disputed Riders",
+            "description": "Refunds riders marked as disputed during IN_PROGRESS.",
             "type": "if.else",
             "condition": {
-              "$ctx": "doc.local.has_payment_rider_targets"
+              "$ctx": "doc.local.has_disputed_refunds"
             },
             "then_effects": [
+              {
+                "type": "charge.credits",
+                "credits": {
+                  "$ctx": "local.disputed_refund_credits"
+                }
+              },
               {
                 "title": "Dispatch Rider Settlement",
                 "description": "Sends rider settlement notification to all rider targets.",
                 "type": "notify",
                 "notify": {
-                  "event": "contracts.payment_settled_rider",
+                  "event": "contracts.payment_dispute_rider",
                   "targets": {
                     "$ctx": "doc.local.payment_rider_targets"
                   },
                   "payload": {
                     "contract_id": {
                       "$ctx": "doc._id"
-                    },
-                    "driver_total_payout": {
-                      "$ifNull": [
-                        "$local.driver_total_payout",
-                        0
-                      ]
-                    },
-                    "driver_compensation": {
-                      "$ifNull": [
-                        "$context.driver_route.compensation",
-                        0
-                      ]
-                    },
-                    "disputes": {
-                      "$map": {
-                        "input": {
-                          "$filter": {
-                            "input": {
-                              "$objectToArray": {
-                                "$ifNull": [
-                                  "$context.riders",
-                                  {}
-                                ]
-                              }
-                            },
-                            "as": "rv",
-                            "cond": {
-                              "$eq": [
-                                {
-                                  "$ifNull": [
-                                    "$$rv.v.dispute",
-                                    false
-                                  ]
-                                },
-                                true
-                              ]
-                            }
-                          }
-                        },
-                        "as": "rv",
-                        "in": "$$rv.k"
-                      }
                     }
                   }
                 }
               }
             ]
+          },
+          {
+            "title": "Execute PayDriver",
+            "description": "Runs shared payout settlement after dispute refunds are applied.",
+            "type": "execute.event",
+            "event_name": "PayDriver"
           },
           {
             "title": "Mark Contract Completed",

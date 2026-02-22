@@ -777,7 +777,7 @@ class ContractsE2ETest(unittest.TestCase):
                 self.route_by_principal[principal] = route_id
 
                 wallet = get_wallet(uid)
-                wallet.charge(product="coin", credits=100)
+                wallet.charge(product="credit", credits=100)
 
         self.httpx = httpx.Client(
             transport=httpx.WSGITransport(app=self.app),
@@ -999,7 +999,7 @@ class ContractsE2ETest(unittest.TestCase):
                 )
             )
 
-    def _wallet_balance(self, actor: str, product: str = "coin") -> float:
+    def _wallet_balance(self, actor: str, product: str = "credit") -> float:
         with self.app.app_context():
             from schedula.utils.form.server.credits import get_wallet
 
@@ -1845,7 +1845,7 @@ class ContractsE2ETest(unittest.TestCase):
                 user = self._create_user(email)
                 bootstrap_user(user.id)
                 wallet = get_wallet(user.id)
-                wallet.charge(product="coin", credits=100, session=_db.session)
+                wallet.charge(product="credit", credits=100, session=_db.session)
                 _db.session.commit()
                 self.user_ids[rider] = user.id
             self.tokens[rider] = self._login_token(email)
@@ -2024,6 +2024,11 @@ class ContractsE2ETest(unittest.TestCase):
 
         payment_decision = (c.get("context") or {}).get("payment_decision") or {}
         self.assertEqual(payment_decision.get("driver_total_payout"), 20)
+        self.assertEqual(payment_decision.get("disputed_refund_total"), 30)
+        self.assertCountEqual(
+            payment_decision.get("disputes") or [],
+            [rider_principals["p3"], rider_principals["p4"], rider_principals["p6"]],
+        )
         self.assertEqual(
             ((c.get("context") or {}).get("driver_route") or {}).get("compensation"),
             20,
@@ -2033,10 +2038,10 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(after_driver, before_balances["d1"] + 20)
         self.assertEqual(self._wallet_balance("p1"), before_balances["p1"] - 10)
         self.assertEqual(self._wallet_balance("p2"), before_balances["p2"] + 1)
-        self.assertEqual(self._wallet_balance("p3"), before_balances["p3"] - 10)
-        self.assertEqual(self._wallet_balance("p4"), before_balances["p4"] - 10)
+        self.assertEqual(self._wallet_balance("p3"), before_balances["p3"])
+        self.assertEqual(self._wallet_balance("p4"), before_balances["p4"])
         self.assertEqual(self._wallet_balance("p5"), before_balances["p5"] - 10)
-        self.assertEqual(self._wallet_balance("p6"), before_balances["p6"] - 10)
+        self.assertEqual(self._wallet_balance("p6"), before_balances["p6"])
         self.assertEqual(self._wallet_balance("p7"), before_balances["p7"] - 10)
 
     def test_start_driver_accept_start_uses_payload_riders_only(self) -> None:
@@ -3016,7 +3021,14 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(
             self._wallet_balance("d1"), d1_balance_before_completed_payment
         )
-        self.assertEqual(self._wallet_balance("p4"), p4_balance_after_created_completed)
+        self.assertGreaterEqual(
+            self._wallet_balance("p4"), p4_balance_after_created_completed + 10
+        )
+        completed_payment_decision = (
+            (completed_doc.get("context") or {}).get("payment_decision") or {}
+        )
+        self.assertEqual(completed_payment_decision.get("disputes"), [p4_complete_principal])
+        self.assertEqual(completed_payment_decision.get("disputed_refund_total"), 10)
 
         # ONBOARDING terminal events tested in same journey on dedicated contracts.
         created_ready = self._create_contract(
