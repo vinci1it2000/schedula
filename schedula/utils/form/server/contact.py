@@ -12,7 +12,6 @@ It provides functions to build the contact service.
 import logging
 import os
 
-import rst2txt
 import schedula as sh
 from docutils.core import publish_string
 from flask import flash, Blueprint, redirect, request, current_app as ca
@@ -38,7 +37,7 @@ bp = Blueprint('contact', __name__)
 
 
 def prepare_message(boby, subject, recipients, reply_to=None, **kwargs):
-    body = publish_string(boby, writer=rst2txt.Writer()).decode()
+    body = publish_string(boby, writer="text").decode()
     html = publish_string(boby, writer_name='html').decode()
     return Message(
         body=body, html=html, subject=subject, recipients=recipients,

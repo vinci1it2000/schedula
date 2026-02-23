@@ -7,9 +7,11 @@ python-dateutil
 setuptools
 pytest
 httpx
+mongomock
 pymongo
 testcontainers[mongodb]
 testcontainers[mysql]
 PyMySQL
 numpy
 pymoo
+schemathesis

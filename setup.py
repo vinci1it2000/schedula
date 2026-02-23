@@ -6,9 +6,9 @@
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
+import collections
 import io
 import os
-import collections
 import os.path as osp
 
 name = "schedula"
@@ -105,7 +105,6 @@ if __name__ == "__main__":
     }
     extras["form"] = extras["web"] + [
         "itsdangerous",
-        "rst2txt",
         "flask-sqlalchemy",
         "sqlalchemy",
         "docutils",
@@ -121,10 +120,16 @@ if __name__ == "__main__":
         "flask-mail",
         "flask-security[common]>=5.6.0",
         "boto3",
+        "casbin",
+        "sqlalchemy_adapter",
+        "pydash",
+        "apprise",
+        "mongo_schema",
+        "flask_caching",
+        "filelock",
         "jsonschema",
         "flask-pymongo",
         "python-dateutil",
-        "flask-caching",
         "stripe",
         "sqlalchemy-file"
     ]
@@ -218,7 +223,7 @@ if __name__ == "__main__":
         author="Vincenzo Arcidiacono",
         author_email="vinci1it2000@gmail.com",
         description="Produce a plan that dispatches calls based on a graph of "
-        "functions, satisfying data dependencies.",
+                    "functions, satisfying data dependencies.",
         long_description=long_description,
         keywords=[
             "flow-based programming",

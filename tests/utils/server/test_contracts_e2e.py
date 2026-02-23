@@ -28,7 +28,6 @@ from schedula.utils.form.server.security.casbin.bootstrap import (
 )
 from schedula.utils.form.server.security.casbin.helpers import ADMIN_DOMAIN, ANON_USER
 from schedula.utils.form.server.security.casbin.models import Group
-from schedula.utils.form.server.security.casbin.models import ensure_public_group
 from tests.utils.server.conftest import DummySitemap
 
 
@@ -582,6 +581,8 @@ class ContractsE2ETest(unittest.TestCase):
         self.mongo_client = MongoClient(self.mongo_uri)
         config = dict(
             TESTING=True,
+            DEBUG=True,
+            PROPAGATE_EXCEPTIONS=True,
             SQLALCHEMY_DATABASE_URI=self.__class__._sqlalchemy_uri,
             SQLALCHEMY_TRACK_MODIFICATIONS=False,
             SECURITY_ENABLED=True,

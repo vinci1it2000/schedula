@@ -1,6 +1,7 @@
 -r base.pip
 -r plot.pip
 -r web.pip
+-r form.pip
 -r sphinx.pip
 -r parallel.pip
 -r io.pip
