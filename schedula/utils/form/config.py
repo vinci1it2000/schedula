@@ -34,12 +34,7 @@ class Config:
         self.SECURITY_ENABLED = (
                 os.environ.get("SECURITY_ENABLED", "true").lower() == "true"
         )
-        self.ADMIN_ENABLED = (
-                os.environ.get(
-                    "ADMIN_ENABLED", self.SECURITY_ENABLED and "true" or "false"
-                ).lower()
-                == "true"
-        )
+
         self.CONTACT_ENABLED = (
                 os.environ.get("CONTACT_ENABLED", "true").lower() == "true"
         )
@@ -70,7 +65,6 @@ class Config:
         self.CONTRACTS_ENABLED = (
                 os.environ.get("CONTRACTS_ENABLED", "false").lower() == "true"
         )
-        self.CONTRACTS_ACTION_TYPES = os.environ.get("CONTRACTS_ACTION_TYPES", "noop")
 
         # reCAPTCHA configuration
         self.RECAPTCHA_PUBLIC_KEY = os.environ.get(
@@ -109,3 +103,4 @@ class Config:
         self.SQLALCHEMY_TRACK_MODIFICATIONS = (
                 os.environ.get("SQLALCHEMY_TRACK_MODIFICATIONS", "false").lower() == "true"
         )
+

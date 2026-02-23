@@ -37,53 +37,41 @@ class Notifications:
         settings_coll_id = config_get(
             "NOTIF_SETTINGS_COLLECTION", "notification_settings", app=app
         )
-        _ = mongo[settings_coll_id]
+
         mongo_command(
             mongo,
-            "collMod",
             settings_coll_id,
-            validator=_settings_validator(),
-            validationLevel="moderate",
-            validationAction="error",
+            validator=_settings_validator()
         )
 
         watchers_coll_id = config_get(
             "NOTIF_WATCHERS_COLLECTION", "notification_watchers", app=app
         )
-        _ = mongo[watchers_coll_id]
+
         mongo_command(
             mongo,
-            "collMod",
             watchers_coll_id,
-            validator=_watchers_validator(),
-            validationLevel="moderate",
-            validationAction="error",
+            validator=_watchers_validator()
         )
 
         templates_coll_id = config_get(
             "NOTIF_TEMPLATES_COLLECTION", "notification_templates", app=app
         )
-        _ = mongo[templates_coll_id]
+
         mongo_command(
             mongo,
-            "collMod",
             templates_coll_id,
             validator=_templates_validator(),
-            validationLevel="moderate",
-            validationAction="error",
         )
 
         push_tokens_coll_id = config_get(
             "NOTIF_PUSH_TOKENS_COLLECTION", "notification_push_tokens", app=app
         )
-        _ = mongo[push_tokens_coll_id]
+
         mongo_command(
             mongo,
-            "collMod",
             push_tokens_coll_id,
             validator=_push_tokens_validator(),
-            validationLevel="moderate",
-            validationAction="error",
         )
 
         push_tokens_coll = get_mongo(

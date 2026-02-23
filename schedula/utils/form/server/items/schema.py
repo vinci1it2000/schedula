@@ -226,9 +226,8 @@ def _sync_items_validator(
     try:
         mongo_res = mongo_command(
             mongo_db,
-            "collMod",
             config_get("ITEMS_COLLECTION", "items"),
-            validator=validator,
+            validator,
             validationLevel=level,
             validationAction=action,
         )

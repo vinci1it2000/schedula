@@ -7,7 +7,9 @@
 """Contracts API service (workflow JSON a stati)."""
 
 import click
+
 from ..extensions import db
+
 
 class Contracts:
     def __init__(self, app=None, *args, **kwargs):
@@ -17,7 +19,6 @@ class Contracts:
     def init_app(self, app, *args, **kwargs):
         app.extensions = getattr(app, "extensions", {})
         defaults = {
-            "CONTRACTS_ACTION_TYPES": "noop",
             "CONTRACTS_ENABLED": False,
         }
         for k, v in defaults.items():

@@ -315,8 +315,17 @@ def mongo_count_documents(coll, *args, **kwargs):
     return coll.count_documents(*args, maxTimeMS=get_mongo_maxtime_ms(), **kwargs)
 
 
-def mongo_command(db, *args, **kwargs):
-    return db.command(*args, **kwargs)
+def mongo_command(db, coll_id, validator, validationLevel="moderate",
+                  validationAction="error", **kwargs):
+    from pymongo.errors import CollectionInvalid
+    try:
+        db.create_collection(coll_id)
+    except CollectionInvalid:
+        pass
+    return db.command(
+        "collMod", coll_id, validator=validator, validationLevel=validationLevel, validationAction=validationAction,
+        **kwargs
+    )
 
 
 def configure_sherlock():
@@ -326,7 +335,13 @@ def configure_sherlock():
     try:
         lock_config.client
     except ValueError as ex:
-        if lock_config.backend is None:
-            sherlock.configure(backend=sherlock.backends.FILE)
-        else:
-            raise ex
+        try:
+            from redis import StrictRedis
+            sherlock.configure(client=StrictRedis.from_url(os.environ.get(
+                'REDIS_LOCK_URL', "redis://localhost:6379"
+            )))
+        except Exception:
+            if lock_config.backend is None:
+                sherlock.configure(backend=sherlock.backends.FILE)
+            else:
+                raise ex
