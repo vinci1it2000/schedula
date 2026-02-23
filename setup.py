@@ -282,7 +282,8 @@ if __name__ == "__main__":
             "schedula.utils.form": [
                 "server/locale/translations/**/antd.po",
                 "server/locale/translations/**/*.mo",
-                "server/security/translations/**/*.mo",
+                "server/security/casbin/model.conf",
+                "server/openapi/**/*",
                 "static/schedula/forms/*",
                 "static/schedula/**/*.gz",
                 "static/schedula/**/*.LICENSE.txt",

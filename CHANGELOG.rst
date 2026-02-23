@@ -1,6 +1,422 @@
 Changelog
 =========
 
+v1.6.0 (2026-02-23)
+-------------------
+
+Feat
+~~~~
+- (server): Introduce per-actor states, enhance `availableActions`
+  logic, and update related tests.
+
+- (server): Add contracts service with templates support and
+  configurable access control.
+
+- (server): Move `RefResolver` to `utils.py` and add `$ctx` support for
+  enhanced context-based resolution.
+
+- (server): Simplify notification target validation and enhance error
+  handling in tasks and admin API.
+
+- (server): Add Notifications system.
+
+- (server): Add Notifications system.
+
+- (server): Add Notifications system.
+
+- (items): Add CAS.
+
+
+Fix
+~~~
+- (server): Fix indentation in `RefResolver`, enhance readability in
+  placeholder logic, and clean up formatting in Mongo helpers.
+
+- (server): Correct dictionary comprehension in notification service.
+
+- (server): Update schema to include `_id` and fix import formatting in
+  notifications storage module.
+
+
+Other
+~~~~~
+- Refactor(blueprints): Remove unused `set_bp_error_handlers` calls and
+  update imports for improved clarity. Add support for Celery-based
+  notification tasks with exception handling fallback logic.
+
+- Refactor(dependencies): Update and expand `form.pip` and `test.pip`
+  dependencies; remove `rst2txt` usage and replace with alternative
+  writer.
+
+- Refactor(core): Remove unused `ensure_public_group` calls, replace
+  `sqlalchemy-dlock` with `sherlock`, and update seed logic.
+
+- Refactor(contracts): Add `custom.function` effect type, update schema
+  and validation, and implement function registry system.
+
+- Refactor(server/contracts): Add `execute.event` and `iter.effects`
+  effect types, update schema definitions, and enhance event processing
+  logic.
+
+- Refactor(tests/server): Simplify over-capacity refund logic,
+  streamline route unlinking flows, prune unused calculations, and
+  enhance local sync field tracking.
+
+- Refactor(tests/server): Update cleanup route credit handling, prune
+  rider snapshots, and enhance rejection flow assertions.
+
+- Refactor(tests/server): Simplify cleanup refund logic, streamline
+  rider route unlinking flows, and enhance contract update schema.
+
+- Refactor(tests/server): Rename SYNC_CHAT state to SYNC, update flag
+  handling, streamline state definitions, and enhance local sync logic.
+
+- Refactor(tests/server): Add wallet balance and route data assertions,
+  enhance rejection and cancellation flow tests, and introduce E2E test
+  for no-refund on linked route.
+
+- Refactor(tests/server): Update rider state transitions, adjust
+  cancellation logic to handle REQUESTING state, and refine schema
+  definitions for flexible member operations.
+
+- Refactor(tests/server): Update SYNC_CHAT state handling to add pruning
+  flag, adjust wallet balance assertions, and simplify redundant schema
+  definitions.
+
+- Refactor(tests/server): Update contract state transitions to replace
+  PAYMENT with COMPLETED, streamline state definitions, and refine
+  associated effects.
+
+- Refactor(tests/server): Update refund bonus to 30%, streamline dispute
+  handling logic, and refine conditional effects for rider and driver
+  disputes.
+
+- Refactor(tests/server): Simplify refund logic, streamline rider route
+  unlinking flows, improve sync chat cleanup handling, and refine
+  contract state updates.
+
+- Refactor(tests/server): Update seat handling to default to 0, improve
+  chat sync descriptions, and streamline rider reconciliation effects.
+
+- Refactor(tests/server): Add E2E tests for invite acceptance with
+  insufficient and partial balance, refine rider route credit handling,
+  and streamline contract update schema.
+
+- Refactor(tests/server): Simplify rider invitation and cancellation
+  logic, streamline refund and reconciliation flows, and refine
+  SYNC_CHAT flag handling.
+
+- Refactor(tests/server): Simplify rider capacity validation, remove
+  over-capacity pruning logic, and streamline refund schema handling.
+
+- Refactor(tests/server): Add E2E test for driver partial refund on
+  excess reserved credits, enhance rider refund logic, and update schema
+  to support flexible credit validation and pruning refunds.
+
+- Refactor(tests/server): Extract rider PIN logic into reusable helper,
+  replace redundant inline retrievals, correct payload structure, and
+  align contract state transitions with updated schema.
+
+- Refactor(tests/server): Refine rider and trip cancellation route
+  logic, streamline event unscheduling, enhance projection handling, and
+  improve MongoDB query structure.
+
+- Refactor(tests/server): Improve E2E test readability with consistent
+  formatting, refine rider verification logic, streamline dispute
+  handling, and enhance schema structure for contracts and routes.
+
+- Refactor(tests/server): Enhance E2E tests with location schema
+  updates, refine contract dispute and cancellation flows, add new
+  notification tests, and improve context and payload validation logic.
+
+- Refactor(tests/server): Enhance E2E tests with in-progress rider-
+  dispute scenarios, refine payload schema validation, and streamline
+  contract and route handling logic.
+
+- Refactor(tests/server): Add pre-departure gate E2E tests, enhance
+  contract state transition handling, improve chat sync logic, and
+  schedule timed checkpoints.
+
+- Refactor(tests/server): Enhance E2E tests with balance tracking,
+  refine rider route logic, improve validation error handling, and
+  streamline notification and refund flows.
+
+- Refactor(tests/server): Introduce `lru_cache` for gherkin definition,
+  replace inline templates with JSON file, and simplify context schema
+  handling.
+
+- Refactor(tests/server): Enhance E2E tests with cross-contract
+  rejection logic, refine update payload handling, and sanitize local
+  state values for MongoDB operations.
+
+- Refactor(tests/server): Replace `ObjectId` with string-based UUIDs,
+  remove redundant test case, and refine mock patching for S3 file
+  handling.
+
+- Refactor(tests/server): Replace `ObjectId` with string-based UUIDs,
+  enhance rider contract schema, refine over-capacity handling, and
+  streamline notification and refund logic.
+
+- Refactor(server): Remove `ObjectId` usage, adopt string-based IDs,
+  streamline notification and file handling logic, and refine schema
+  updates.
+
+- Refactor(server/contracts): Refine schema validation, enhance route
+  logic, consolidate update handling, and sanitize payloads for Mongo
+  operations.
+
+- Refactor(tests/server): Streamline E2E tests by refining conditional
+  logic, consolidating context schema references, and simplifying state
+  updates and contract transitions.
+
+- Refactor(tests/server): Streamline E2E tests by refining over-capacity
+  rider handling, enhancing invite logic, simplifying notification and
+  refund flows, and updating contract schema.
+
+- Refactor(tests/server): Streamline E2E tests by refining driver
+  rejection flow, enhancing schema validation, simplifying refund logic,
+  and improving rider rejection notifications.
+
+- Refactor(tests/server): Streamline E2E tests by introducing
+  `get.contract`, refining contract linking, enhancing rider
+  notification flows, and consolidating update logic.
+
+- Refactor(tests/server): Streamline E2E tests by refining context
+  schema, updating branch logic, enhancing rider capacity checks, and
+  simplifying notification and contract update flows.
+
+- Refactor(tests/server): Streamline E2E tests by refining invite flow,
+  updating context schema, simplifying state transitions, and adding new
+  driver and rider contract routes.
+
+- Refactor(tests/server): Streamline E2E tests by introducing InviteUser
+  route, refining invite eligibility logic, updating context schema, and
+  simplifying contract updates.
+
+- Refactor(tests/server): Streamline E2E tests by consolidating route
+  handling, refining context schema, enhancing capacity checks, and
+  simplifying contract updates.
+
+- Refactor(tests/server): Streamline E2E tests by enhancing route credit
+  logic, refining context schema, consolidating update logic, and
+  improving contract state handling.
+
+- Refactor(tests/server): Streamline E2E tests by updating contract
+  logic, refining context schema references, simplifying route handling,
+  and enhancing credit and scheduling operations.
+
+- Refactor(server): Streamline contract schema by consolidating update
+  logic, removing redundant properties, and enhancing credits and
+  scheduling support.
+
+- Refactor(tests/server): Streamline E2E test logic by enhancing context
+  schema, simplifying contract updates, and refining notification and
+  refund handling.
+
+- Refactor(tests/server): Streamline contract update structures, context
+  schema references, and notification handling in E2E tests.
+
+- Refactor(tests/server): Simplify E2E test logic by streamlining
+  context schema, contract updates, and notification handling.
+
+- Refactor(tests/server): Streamline route handling for driver and rider
+  contracts, simplify context schema, and enhance E2E tests with new
+  route-based logic.
+
+- Refactor(tests/server): Simplify invite target handling, update
+  context schema references, and streamline rider promotion logic in E2E
+  tests.
+
+- Refactor(tests/server): Simplify and streamline context schema,
+  notification logic, and contract state effect handling in E2E tests.
+
+- Refactor(server): Adjust schema to allow `else_effects` as an
+  alternative to `then_effects` in `if.else` contracts.
+
+- Refactor(tests): Update schema validations and notification logic to
+  include `at` property, enhance push notification targets, and replace
+  `contract_code` with `contract_id` in payloads.
+
+- Refactor(server): Transition from `cron` to `at`-based scheduling,
+  enhance job processing logic, and update related tests.
+
+- Refactor(server): Enhance event processing by introducing contract-
+  level events, adding database locks, and streamlining trigger matching
+  logic.
+
+- Refactor(server): Simplify effect handling, enhance
+  `on_enter`/`on_exit` logic, and improve context schema validations in
+  contract states.
+
+- Refactor(server): Add invalid push token handling, improve token
+  upsertion logic, and streamline tests.
+
+- Refactor(server): Optimize notification delivery and simplify push
+  token logic.
+
+- Refactor(server): Simplify push token handling by adding `prev_token`
+  support, removing platform/device-specific fields, and deprecating
+  token listing/deletion APIs.
+
+- Refactor(server): Extract reusable seat calculation functions,
+  streamline contract update and effect handling logic.
+
+- Refactor(server): Implement push token upsert, deletion, and listing;
+  overhaul schema validation and remove redundant schema checks.
+
+- Refactor(server): Enhance contract update logic, support array-based
+  update operations, and improve `$unset` handling in schemas and tests.
+
+- Refactor(server): Simplify contract update logic, enhance `$unset`
+  schema validation, and improve `let` handling.
+
+- Refactor(server): Improve context path resolution logic in form
+  utilities and update MongoDB configuration handling.
+
+- Refactor(server): Replace `seats` and `trips` arrays with nested
+  `riders` object, extend schema validation, and update contract
+  handling logic to align with new structure.
+
+- Refactor(server): Add trip schema validation, extend contract payload
+  handling, and improve trip-related effect conditions.
+
+- Refactor(server): Add support for credit-based operations, extend
+  schema validation, and enhance effect handling logic.
+
+- Refactor(server): Extend contract update logic to handle `local`
+  field, improve unset operations, and clean up close contract handling.
+
+- Refactor(server): Add new driver and rider trip handling operations,
+  including `DriverCancelInvite`, `DriverStartTrip`, `DriverCancelTrip`,
+  `DriverAtPickup`, and `DriverMarkPickedUp`, enhance associated effects
+  and schema validation.
+
+- Refactor(server): Refactor contract handling logic, add
+  `CancelJoinRequest`, `CancelUser`, and `DriverRemoveUser` operations,
+  improve effect conditions and schema validation.
+
+- Refactor(server): Enhance `update_one` and `update_many` validation,
+  ensure compatibility with `let` usage, and improve schema handling in
+  contract tests.
+
+- Refactor(server): Separate `$unset` stage from `$update` in
+  `update.contract`, improve update logic and handling.
+
+- Refactor(server): Add `if.else` effect type, extend schema validation,
+  and enhance effect processing logic.
+
+- Refactor(server): Add `schedule.event` and `unschedule.event` effect
+  types, extend schema validation, and enhance cron trigger processing.
+
+- Refactor(server): Simplify resolver signatures, replace `doc` with
+  `ctx`, and improve context handling in event processing.
+
+- Refactor(server): Enhance `$ctx` string handling with regex support,
+  improve ACL loops, and clean up Mongo URI formatting.
+
+- Refactor(server): Rename `doc` to `ctx`, adjust resolver logic, and
+  enhance nested key handling in `RefResolver`.
+
+- Refactor(server): Add cron trigger processing, support nested JSON
+  references in schemas, and improve event handling logic.
+
+- Refactor(server): Introduce `event_trigger` schema, restructure
+  `event` handling, and enhance API, cron, and DB trigger support.
+
+- Refactor(server): Remove `update.item` type, enhance `update.group`
+  schema with conditional fields, and fix formatting in validation
+  logic.
+
+- Refactor(server): Extend effect types, enhance schemas, and implement
+  `create`, `update`, `delete` logic for items and groups.
+
+- Refactor(server): Add `local` context for effect steps, streamline
+  resolver usage, and simplify effect processing logic.
+
+- Refactor(server): Use `sub` instead of `current_user.id` for
+  creator/updater fields and normalize user ID handling.
+
+- Refactor(server): Rename `update_payload` to `update_operation`,
+  adjust schema for MongoDB operator support, and refine enum
+  definitions.
+
+- Refactor(tests): Simplify contract E2E test structure, remove unused
+  definitions, and clean up event/state logic.
+
+- Refactor(server): Normalize schema properties, relocate helpers, and
+  standardize naming conventions in contract and template logic.
+
+- Refactor(server): Update index creation for contracts and templates,
+  enhance validation formatting, and fix minor syntax issues.
+
+- Refactor(server): Extract and relocate contract processing logic to
+  the engine module for better organization.
+
+- Refactor(server): Rename `item.db` effect type to `update.item` for
+  consistency.
+
+- Refactor(server): Simplify contract routes. Adjust HTTP verbs,
+  refactor payload defaults, and remove unused endpoints.
+
+- Refactor(server): Pass `doc` to resolver calls and remove unused state
+  final check.
+
+- Refactor(server): Remove unused contracts action registry and
+  associated effects logic. Simplify event processing and enhance
+  initial state validation for templates.
+
+- Refactor(server): Disable default enabling of contracts and OpenAPI
+  for better configurability.
+
+- Refactor(server): Enhance indentation consistency, streamline tests,
+  and formalize template handling logic.
+
+- Refactor(server): Replace `contextUpdate` with `context.update` effect
+  type and refactor related logic.
+
+- Refactor(server): Adjust indentation for consistency and deduplicate
+  key resolution logic.
+
+- Refactor(server): Replace `allowedRoles` with `allowedPrincipals` and
+  remove `allowedActors` checks.
+
+- Refactor(server): Simplify role-check logic in ACL enforcement and
+  update tests with `g:anonymous` role.
+
+- Refactor(server): Remove redundant `_ensure_indexes` calls and
+  initialize them during app setup.
+
+- Refactor(server): Move `get_current_sub` import inside function and
+  add exception handling in notifications.
+
+- Refactor(server): Remove unused `_filter_policies` function from
+  Casbin admin panel.
+
+- Refactor(server): Simplify `$ref` resolution and remove unused `scope`
+  extraction in notifications module.
+
+- Refactor(server): Consolidate Apprise channel handling and simplify
+  notification URL rendering logic.
+
+- Refactor(server): Simplify Apprise URL construction and enhance
+  notification target handling.
+
+- Refactor(server): Simplify principal info resolution and `$ref`
+  walking logic.
+
+- Refactor(server): Use `db.session.get` for consistent ORM queries in
+  notifications module.
+
+- Refactor(server): Simplify template rendering and consolidate
+  duplicate logic in notifications module.
+
+- Refactor(server): Simplify access control logic and consolidate
+  duplicate code in notifications and items modules.
+
+- Chore(refactor): Consolidate imports and fix formatting
+  inconsistencies.
+
+
 v1.5.78 (2026-01-17)
 --------------------
 
