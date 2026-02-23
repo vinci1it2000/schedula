@@ -1,6 +1,16 @@
 Changelog
 =========
 
+v1.6.1 (2026-02-23)
+-------------------
+- Refactor(blueprints): apply `set_bp_error_handlers` to multiple
+  blueprints for consistent JSON error handling; update test cases to
+  validate error responses comprehensively.
+
+- Refactor(server): simplify config handling, enhance `mongo_command`
+  logic, and remove redundant collection validations.
+
+
 v1.6.0 (2026-02-23)
 -------------------
 
