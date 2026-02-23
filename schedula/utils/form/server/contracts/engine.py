@@ -16,7 +16,7 @@ import pydash
 import requests
 from jsonschema import Draft202012Validator
 from pymongo import ReturnDocument
-from sqlalchemy_dlock import create_sadlock
+from sherlock import Lock
 
 from ..extensions import db
 from ..security.casbin import (
@@ -571,7 +571,7 @@ def _process_event(
         body_payload: Dict[str, Any],
         event_name: Optional[str] = None,
 ) -> Tuple[Dict[str, Any], int]:
-    with create_sadlock(db.session, contract_id):
+    with Lock(contract_id):
         doc = _get_contract(contract_id)
         if not doc:
             abort_json(404, "Contract not found")

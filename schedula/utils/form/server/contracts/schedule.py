@@ -7,9 +7,8 @@ from typing import Any, Dict, List
 
 import pydash
 from pymongo import ReturnDocument
-from sqlalchemy_dlock import create_sadlock
+from sherlock import Lock
 
-from ..extensions import db
 from ..utils import now_utc, get_mongo, config_get, mongo_delete_many
 
 UTC = timezone.utc
@@ -281,7 +280,7 @@ def _func(contract_id, event_name, payload, actor_id):
     from .routes import _get_contract
     from .engine import _run_event
 
-    with create_sadlock(db.session, contract_id):
+    with Lock(contract_id):
         doc = _get_contract(contract_id)
         if not doc:
             return {"status": "ERROR", "message": f"Contract not found: {contract_id}"}

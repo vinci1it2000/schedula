@@ -64,7 +64,6 @@ class TestNotificationsE2E(unittest.TestCase):
         with self.app.app_context():
             basic_app(DummySitemap(), self.app, config)
             _db.create_all()
-            ensure_public_group()
 
         self.client = self.app.test_client(use_cookies=False)
 

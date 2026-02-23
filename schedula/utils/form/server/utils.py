@@ -338,3 +338,16 @@ def mongo_count_documents(coll, *args, **kwargs):
 
 def mongo_command(db, *args, **kwargs):
     return db.command(*args, **kwargs)
+
+
+def configure_sherlock():
+    import sherlock
+
+    lock_config = sherlock._configuration
+    try:
+        lock_config.client
+    except ValueError as ex:
+        if lock_config.backend is None:
+            sherlock.configure(backend=sherlock.backends.FILE)
+        else:
+            raise ex

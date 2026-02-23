@@ -71,7 +71,6 @@ class TestGroupsApis(unittest.TestCase):
         with self.app.app_context():
             basic_app(DummySitemap(), self.app, config)
             _db.create_all()
-            ensure_public_group()
 
             admin_user = self._create_user("groupadmin@gmail.com")
             bootstrap_user(admin_user.id)

@@ -7,8 +7,9 @@
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
 
-import sys
 import os
+import sys
+
 from schedula._version import __version__
 
 sys.path.append(os.path.abspath('.'))

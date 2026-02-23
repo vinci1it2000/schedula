@@ -456,20 +456,9 @@ class Security:
         # Casbin bootstrap (public role/group)
         # -------------------------
 
-        def _casbin_bootstrap():
-            try:
-                from .casbin import ensure_public_group
+        from .casbin import ensure_public_group
 
-                ensure_public_group()
-            except Exception:
-                pass
-
-        if hasattr(app, "before_first_request"):
-            app.before_first_request(_casbin_bootstrap)
-        elif hasattr(app, "before_app_first_request"):
-            app.before_app_first_request(_casbin_bootstrap)
-        else:
-            app.before_request(_casbin_bootstrap)
+        db.add_seed(ensure_public_group)
 
         # -------------------------
         # Plasmic session lifecycle

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import contextlib
 import hashlib
 import hmac
 import json
@@ -12,6 +11,7 @@ import sys
 import time
 import unittest
 from datetime import datetime
+from types import SimpleNamespace
 from unittest.mock import patch
 from urllib.parse import urlparse
 
@@ -26,11 +26,49 @@ from schedula.utils.form.server import basic_app
 from schedula.utils.form.server.extensions import db as _db
 from schedula.utils.form.server.security import User
 from schedula.utils.form.server.security.casbin.bootstrap import bootstrap_user
-from schedula.utils.form.server.security.casbin.models import ensure_public_group
 from tests.utils.server.utils.mongo_validation import ValidatingMongoDatabase
 
 
 class TestStripeApis(unittest.TestCase):
+    _mysql_container = None
+    _sqlalchemy_uri = ""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        desktop_sock = os.path.join(
+            os.path.expanduser("~"), ".docker", "run", "docker.sock"
+        )
+        if not os.environ.get("DOCKER_HOST") and os.path.exists(desktop_sock):
+            os.environ["DOCKER_HOST"] = f"unix://{desktop_sock}"
+        try:
+            from testcontainers.mysql import MySqlContainer
+        except Exception as ex:  # pragma: no cover
+            raise unittest.SkipTest(
+                "stripe api tests require testcontainers[mysql]"
+            ) from ex
+        try:
+            cls._mysql_container = MySqlContainer("mysql:8.0")
+            cls._mysql_container.start()
+            uri = str(cls._mysql_container.get_connection_url())
+            if uri.startswith("mysql://"):
+                uri = "mysql+pymysql://" + uri[len("mysql://"):]
+            cls._sqlalchemy_uri = uri
+        except Exception as ex:  # pragma: no cover
+            raise unittest.SkipTest(
+                "stripe api tests require a runnable MySQL container"
+            ) from ex
+
+    @classmethod
+    def tearDownClass(cls):
+        try:
+            if cls._mysql_container is not None:
+                cls._mysql_container.stop()
+        finally:
+            cls._mysql_container = None
+            cls._sqlalchemy_uri = ""
+            super().tearDownClass()
+
     def setUp(self):
         self.stripe_base = os.environ.get("STRIPE_MOCK_URL", "http://localhost:12111")
         self._ensure_stripe_mock_available(self.stripe_base)
@@ -48,7 +86,7 @@ class TestStripeApis(unittest.TestCase):
 
         config = dict(
             TESTING=True,
-            SQLALCHEMY_DATABASE_URI="sqlite+pysqlite:///:memory:",
+            SQLALCHEMY_DATABASE_URI=self.__class__._sqlalchemy_uri,
             SQLALCHEMY_TRACK_MODIFICATIONS=False,
             SECURITY_ENABLED=True,
             SECURITY_REGISTERABLE=True,
@@ -82,7 +120,6 @@ class TestStripeApis(unittest.TestCase):
         with self.app.app_context():
             basic_app(DummySitemap(), self.app, config)
             _db.create_all()
-            ensure_public_group()
 
             user = User(
                 email="stripe_user@gmail.com",
@@ -101,15 +138,12 @@ class TestStripeApis(unittest.TestCase):
         self.client = self.app.test_client()
         self.token = self._login_token("stripe_user@gmail.com")
         stripe.api_base = self.stripe_base
+
         self._patchers = [
             patch(
-                "schedula.utils.form.server.credits.Lock",
-                new=lambda *_args, **_kwargs: contextlib.nullcontext(),
-            ),
-            patch(
-                "schedula.utils.form.server.credits.Wallet.subscription",
-                return_value={},
-            ),
+                "stripe.Product.list_features",
+                return_value=SimpleNamespace(data=[]),
+            )
         ]
         for patcher in self._patchers:
             patcher.start()
@@ -118,6 +152,10 @@ class TestStripeApis(unittest.TestCase):
         with self.app.app_context():
             _db.session.remove()
             _db.drop_all()
+            try:
+                _db.engine.dispose()
+            except Exception:
+                pass
         if getattr(self, "mm_client", None) is not None:
             self.mm_client.close()
         if getattr(self, "_patchers", None):

@@ -82,8 +82,6 @@ class TestItemsAclApis(unittest.TestCase):
 
         with self.app.app_context():
             _db.create_all()
-            ensure_public_group()
-            get_enforcer()
 
             creator = self._create_user("creator@gmail.com")
             bootstrap_user(creator.id)

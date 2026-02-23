@@ -7,7 +7,7 @@
 """Contracts API service (workflow JSON a stati)."""
 
 import click
-
+from ..extensions import db
 
 class Contracts:
     def __init__(self, app=None, *args, **kwargs):
@@ -37,3 +37,5 @@ class Contracts:
 
         app.register_blueprint(bp)
         app.extensions["contracts"] = self
+        from ..utils import configure_sherlock
+        db.add_seed(configure_sherlock)

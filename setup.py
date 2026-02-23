@@ -117,7 +117,7 @@ if __name__ == "__main__":
         "click",
         "gunicorn",
         "click_log",
-        "sqlalchemy-dlock",
+        "sherlock",
         "flask-mail",
         "flask-security[common]>=5.6.0",
         "boto3",
@@ -150,6 +150,8 @@ if __name__ == "__main__":
         "numpy",
         "pymoo",
         "testcontainers[mongodb]",
+        "testcontainers[mysql]",
+        "PyMySQL",
         "translators",
         "livereload>=2.6.3",
     ]
@@ -267,6 +269,8 @@ if __name__ == "__main__":
             "numpy",
             "pymoo",
             "testcontainers[mongodb]",
+            "testcontainers[mysql]",
+            "PyMySQL",
         ],
         package_data={
             "schedula.utils.drw": ["templates/*", "index/js/*", "index/css/*", "viz/*"],

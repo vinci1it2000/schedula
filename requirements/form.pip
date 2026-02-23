@@ -17,7 +17,7 @@ click
 click_log
 gunicorn
 asteval
-sqlalchemy-dlock
+sherlock
 sqlalchemy-file
 fasteners
 python-dateutil

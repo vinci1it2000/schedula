@@ -117,7 +117,6 @@ class BaseNotificationsTaskApiTest(unittest.TestCase):
         with self.app.app_context():
             basic_app(DummySitemap(), self.app, config)
             _db.create_all()
-            ensure_public_group()
 
             admin = self._create_user("notify_admin@gmail.com")
             bootstrap_user(admin.id)
@@ -204,8 +203,8 @@ class TestNotificationsTasksWithoutCelery(BaseNotificationsTaskApiTest):
         }
 
         with patch(
-            "schedula.utils.form.server.notifications.tasks.apprise.Apprise",
-            FakeApprise,
+                "schedula.utils.form.server.notifications.tasks.apprise.Apprise",
+                FakeApprise,
         ):
             r = self.client.post(
                 "/admin/notification/notify",
@@ -245,8 +244,8 @@ class TestNotificationsTasksWithoutCelery(BaseNotificationsTaskApiTest):
         }
 
         with patch(
-            "schedula.utils.form.server.notifications.tasks.apprise.Apprise",
-            FakeApprise,
+                "schedula.utils.form.server.notifications.tasks.apprise.Apprise",
+                FakeApprise,
         ):
             r = self.client.post(
                 "/admin/notification/notify",
@@ -281,8 +280,8 @@ class TestNotificationsTasksWithoutCelery(BaseNotificationsTaskApiTest):
         }
 
         with patch(
-            "schedula.utils.form.server.notifications.tasks.apprise.Apprise",
-            FakeApprise,
+                "schedula.utils.form.server.notifications.tasks.apprise.Apprise",
+                FakeApprise,
         ):
             r = self.client.post(
                 "/admin/notification/notify",
@@ -329,8 +328,8 @@ class TestNotificationsTasksWithoutCelery(BaseNotificationsTaskApiTest):
         }
 
         with patch(
-            "schedula.utils.form.server.notifications.tasks.apprise.Apprise",
-            FakeApprise,
+                "schedula.utils.form.server.notifications.tasks.apprise.Apprise",
+                FakeApprise,
         ):
             r = self.client.post(
                 "/admin/notification/notify",
@@ -372,8 +371,8 @@ class TestNotificationsTasksWithoutCelery(BaseNotificationsTaskApiTest):
         }
 
         with patch(
-            "schedula.utils.form.server.notifications.tasks.apprise.Apprise",
-            FakeApprise,
+                "schedula.utils.form.server.notifications.tasks.apprise.Apprise",
+                FakeApprise,
         ):
             r = self.client.post(
                 "/admin/notification/notify",
@@ -433,8 +432,8 @@ class TestNotificationsTasksWithoutCelery(BaseNotificationsTaskApiTest):
         }
 
         with patch(
-            "schedula.utils.form.server.notifications.tasks.apprise.Apprise",
-            InvalidPushApprise,
+                "schedula.utils.form.server.notifications.tasks.apprise.Apprise",
+                InvalidPushApprise,
         ):
             r = self.client.post(
                 "/admin/notification/notify",
@@ -474,13 +473,13 @@ class TestNotificationsTasksWithCelery(BaseNotificationsTaskApiTest):
             return object()
 
         with patch(
-            "schedula.utils.form.server.notifications.tasks.apprise.Apprise",
-            FakeApprise,
+                "schedula.utils.form.server.notifications.tasks.apprise.Apprise",
+                FakeApprise,
         ):
             with patch.object(
-                notif_tasks.deliver_apprise_task,
-                "apply_async",
-                side_effect=_fake_apply_async,
+                    notif_tasks.deliver_apprise_task,
+                    "apply_async",
+                    side_effect=_fake_apply_async,
             ):
                 r = self.client.post(
                     "/admin/notification/notify",
@@ -531,13 +530,13 @@ class TestNotificationsTasksWithCelery(BaseNotificationsTaskApiTest):
             return object()
 
         with patch(
-            "schedula.utils.form.server.notifications.tasks.apprise.Apprise",
-            FakeApprise,
+                "schedula.utils.form.server.notifications.tasks.apprise.Apprise",
+                FakeApprise,
         ):
             with patch.object(
-                notif_tasks.deliver_apprise_task,
-                "apply_async",
-                side_effect=_fake_apply_async,
+                    notif_tasks.deliver_apprise_task,
+                    "apply_async",
+                    side_effect=_fake_apply_async,
             ):
                 r = self.client.post(
                     "/admin/notification/notify",

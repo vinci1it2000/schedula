@@ -75,10 +75,6 @@ class TestCasbinAdminApis(unittest.TestCase):
             if "casbin_enforcer" in self.app.extensions:
                 del self.app.extensions["casbin_enforcer"]
             _db.create_all()
-            get_enforcer()
-            _db.session.execute(_db.text("DELETE FROM casbin_rule"))
-            _db.session.commit()
-            ensure_public_group()
 
             admin_user = self._create_user("casbin_admin@gmail.com")
             bootstrap_user(admin_user.id)

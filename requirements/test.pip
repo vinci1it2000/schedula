@@ -9,5 +9,7 @@ pytest
 httpx
 pymongo
 testcontainers[mongodb]
+testcontainers[mysql]
+PyMySQL
 numpy
 pymoo

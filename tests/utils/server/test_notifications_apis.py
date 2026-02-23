@@ -73,7 +73,6 @@ class TestNotificationsApis(unittest.TestCase):
         with self.app.app_context():
             basic_app(DummySitemap(), self.app, config)
             _db.create_all()
-            ensure_public_group()
 
             admin = self._create_user("notify_admin@gmail.com")
             bootstrap_user(admin.id)

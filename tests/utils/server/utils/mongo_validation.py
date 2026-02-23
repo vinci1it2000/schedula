@@ -58,9 +58,9 @@ class ValidatingMongoCollection(Collection):
         if doc is not None:
             new_doc = dict(doc)
             if (
-                isinstance(update, dict)
-                and "$set" in update
-                and isinstance(update["$set"], dict)
+                    isinstance(update, dict)
+                    and "$set" in update
+                    and isinstance(update["$set"], dict)
             ):
                 new_doc.update(update["$set"])
             self._validate_doc(new_doc)
@@ -72,9 +72,9 @@ class ValidatingMongoCollection(Collection):
         for doc in self._c.find(filter):
             new_doc = dict(doc)
             if (
-                isinstance(update, dict)
-                and "$set" in update
-                and isinstance(update["$set"], dict)
+                    isinstance(update, dict)
+                    and "$set" in update
+                    and isinstance(update["$set"], dict)
             ):
                 new_doc.update(update["$set"])
             self._validate_doc(new_doc)

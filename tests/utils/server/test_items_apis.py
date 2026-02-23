@@ -90,7 +90,6 @@ class TestItemsApis(unittest.TestCase):
         with self.app.app_context():
             basic_app(DummySitemap(), self.app, config)
             _db.create_all()
-            ensure_public_group()
 
             self.user = self._create_user("items_user@gmail.com")
             bootstrap_user(self.user.id)

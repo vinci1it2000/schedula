@@ -1,7 +1,6 @@
 # coding: utf-8
 from __future__ import annotations
 
-import contextlib
 import datetime as dt
 import json
 import os
@@ -510,6 +509,8 @@ def _gherkin_definition() -> Dict[str, Any]:
 class ContractsE2ETest(unittest.TestCase):
     _mongo_container: Any = None
     _mongo_base_uri: str = ""
+    _mysql_container: Any = None
+    _sqlalchemy_uri: str = ""
 
     @classmethod
     def setUpClass(cls) -> None:
@@ -521,18 +522,25 @@ class ContractsE2ETest(unittest.TestCase):
             os.environ["DOCKER_HOST"] = f"unix://{desktop_sock}"
         try:
             from testcontainers.mongodb import MongoDbContainer
+            from testcontainers.mysql import MySqlContainer
         except Exception as ex:  # pragma: no cover - environment dependent
             raise unittest.SkipTest(
-                "contracts e2e requires testcontainers[mongodb]"
+                "contracts e2e requires testcontainers[mongodb,mysql]"
             ) from ex
 
         try:
             cls._mongo_container = MongoDbContainer("mongo:7.0")
             cls._mongo_container.start()
             cls._mongo_base_uri = str(cls._mongo_container.get_connection_url())
+            cls._mysql_container = MySqlContainer("mysql:8.0")
+            cls._mysql_container.start()
+            mysql_uri = str(cls._mysql_container.get_connection_url())
+            if mysql_uri.startswith("mysql://"):
+                mysql_uri = "mysql+pymysql://" + mysql_uri[len("mysql://"):]
+            cls._sqlalchemy_uri = mysql_uri
         except Exception as ex:  # pragma: no cover - environment dependent
             raise unittest.SkipTest(
-                "contracts e2e requires Docker with a runnable MongoDB container"
+                "contracts e2e requires Docker with runnable MongoDB and MySQL containers"
             ) from ex
 
     @classmethod
@@ -540,9 +548,13 @@ class ContractsE2ETest(unittest.TestCase):
         try:
             if cls._mongo_container is not None:
                 cls._mongo_container.stop()
+            if cls._mysql_container is not None:
+                cls._mysql_container.stop()
         finally:
             cls._mongo_container = None
             cls._mongo_base_uri = ""
+            cls._mysql_container = None
+            cls._sqlalchemy_uri = ""
             super().tearDownClass()
 
     def _test_mongo_uri(self) -> str:
@@ -570,7 +582,7 @@ class ContractsE2ETest(unittest.TestCase):
         self.mongo_client = MongoClient(self.mongo_uri)
         config = dict(
             TESTING=True,
-            SQLALCHEMY_DATABASE_URI="sqlite+pysqlite:///:memory:",
+            SQLALCHEMY_DATABASE_URI=self.__class__._sqlalchemy_uri,
             SQLALCHEMY_TRACK_MODIFICATIONS=False,
             SECURITY_ENABLED=True,
             SECURITY_REGISTERABLE=True,
@@ -603,26 +615,8 @@ class ContractsE2ETest(unittest.TestCase):
         setattr(sitemap, "stripe_event_handler", staticmethod(lambda _event: None))
         basic_app(sitemap, self.app, config)
 
-        self._patchers = [
-            patch(
-                "schedula.utils.form.server.credits.Lock",
-                new=lambda *_args, **_kwargs: contextlib.nullcontext(),
-            ),
-            patch(
-                "schedula.utils.form.server.contracts.engine.create_sadlock",
-                new=lambda *_args, **_kwargs: contextlib.nullcontext(),
-            ),
-            patch(
-                "schedula.utils.form.server.contracts.schedule.create_sadlock",
-                new=lambda *_args, **_kwargs: contextlib.nullcontext(),
-            ),
-        ]
-        for patcher in self._patchers:
-            patcher.start()
-
         with self.app.app_context():
             _db.create_all()
-            ensure_public_group()
             owner = self._create_user("owner-1@gmail.com")
             user = self._create_user("u1@gmail.com")
             admin = self._create_user("admin@gmail.com")
@@ -803,8 +797,10 @@ class ContractsE2ETest(unittest.TestCase):
         with self.app.app_context():
             _db.session.remove()
             _db.drop_all()
-        for patcher in getattr(self, "_patchers", []):
-            patcher.stop()
+            try:
+                _db.engine.dispose()
+            except Exception:
+                pass
         try:
             from pymongo import MongoClient
 
@@ -3144,8 +3140,8 @@ class ContractsE2ETest(unittest.TestCase):
             round(
                 (self._wallet_balance("d1") - d1_balance_before_completed_payment)
                 + (
-                    self._wallet_balance("d1", "coin")
-                    - d1_coin_before_completed_payment
+                        self._wallet_balance("d1", "coin")
+                        - d1_coin_before_completed_payment
                 ),
                 6,
             ),

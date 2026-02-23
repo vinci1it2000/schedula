@@ -5,6 +5,8 @@ from __future__ import annotations
 
 import logging
 
+from sqlalchemy.exc import OperationalError
+
 from .enforcer import get_enforcer
 from .helpers import (
     SYSTEM_ADMIN_ROLE,
@@ -29,7 +31,10 @@ def bootstrap_platform():
     """
     # nothing to add in p by default; system admin checks are via grouping to SYSTEM_ADMIN_ROLE
     # Ensure the role exists by adding a self grouping (optional, harmless)
-    e = get_enforcer()
+    try:
+        e = get_enforcer()
+    except OperationalError:
+        e = get_enforcer()
     e.add_grouping_policy(ANON_USER, PUBLIC_ROLE)
 
     # Platform-wide admin permissions.
