@@ -43,9 +43,10 @@ from botocore.config import Config as BotoConfig
 from flask import Blueprint, current_app, Response, stream_with_context
 
 from ..security.casbin import get_current_sub, authorize_item, ANON_USER
-from ..utils import abort_json, mongo_find_one, get_mongo, config_get
+from ..utils import abort_json, mongo_find_one, set_bp_error_handlers, get_mongo, config_get
 
 bp = Blueprint("item_files", __name__)  # /item-file/<item_id>/<file_name>
+set_bp_error_handlers(bp)
 
 
 # ---------------------------------------------------------------------------

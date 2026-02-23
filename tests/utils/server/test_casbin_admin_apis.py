@@ -120,7 +120,8 @@ class TestCasbinAdminApis(unittest.TestCase):
             headers=self._auth_headers(self.admin_token),
         )
         self.assertEqual(r.status_code, 400)
-        self.assertIn("Cannot remove the last system admin", r.text)
+        data = r.get_json(silent=True) or {}
+        self.assertEqual(data.get("error"), "Cannot remove the last system admin")
 
     def tearDown(self):
         with self.app.app_context():
@@ -168,7 +169,9 @@ class TestCasbinAdminApis(unittest.TestCase):
             "/admin/casbin/policies", headers=self._auth_headers(self.member_token)
         )
         self.assertEqual(r.status_code, 403)
-        self.assertIn("Forbidden", r.text)
+        data = r.get_json(silent=True) or {}
+        self.assertIn("error", data)
+        self.assertEqual(data.get("error"), "Forbidden")
 
     def test_grouping_requires_system_admin(self):
         # Call grouping list as non-admin user.
@@ -176,7 +179,9 @@ class TestCasbinAdminApis(unittest.TestCase):
             "/admin/casbin/grouping", headers=self._auth_headers(self.member_token)
         )
         self.assertEqual(r.status_code, 403)
-        self.assertIn("Forbidden", r.text)
+        data = r.get_json(silent=True) or {}
+        self.assertIn("error", data)
+        self.assertEqual(data.get("error"), "Forbidden")
 
     def test_policies_list_contains_admin_policy(self):
         # Call policies list as admin user.
@@ -273,7 +278,9 @@ class TestCasbinAdminApis(unittest.TestCase):
             headers=self._auth_headers(self.admin_token),
         )
         self.assertEqual(r.status_code, 400)
-        self.assertIn("Invalid payload", r.text)
+        data = r.get_json(silent=True) or {}
+        self.assertIn("error", data)
+        self.assertEqual(data.get("error"), "Invalid payload")
 
         # Call policies create with missing sub field.
         r = self.admin_client.post(
@@ -282,7 +289,9 @@ class TestCasbinAdminApis(unittest.TestCase):
             headers=self._auth_headers(self.admin_token),
         )
         self.assertEqual(r.status_code, 400)
-        self.assertIn("Missing policy field 'sub'", r.text)
+        data = r.get_json(silent=True) or {}
+        self.assertIn("error", data)
+        self.assertEqual(data.get("error"), "Missing policy field &#39;sub&#39;")
 
     def test_grouping_crud(self):
         payload = [{"sub": f"u:{self.member_user_id}", "role": "g:test"}]
@@ -342,7 +351,9 @@ class TestCasbinAdminApis(unittest.TestCase):
             headers=self._auth_headers(self.admin_token),
         )
         self.assertEqual(r.status_code, 400)
-        self.assertIn("Invalid payload", r.text)
+        data = r.get_json(silent=True) or {}
+        self.assertIn("error", data)
+        self.assertEqual(data.get("error"), "Invalid payload")
 
         # Call grouping create with missing role field.
         r = self.admin_client.post(
@@ -351,7 +362,9 @@ class TestCasbinAdminApis(unittest.TestCase):
             headers=self._auth_headers(self.admin_token),
         )
         self.assertEqual(r.status_code, 400)
-        self.assertEqual("Missing group field &#39;role&#39;", r.text)
+        data = r.get_json(silent=True) or {}
+        self.assertIn("error", data)
+        self.assertIn(data.get("error"), "Missing group field 'role'")
 
     def test_rules_set_in_enforcer(self):
         with self.app.app_context():

@@ -23,11 +23,13 @@ from ..utils import (
     parse_pagination_args,
     mongo_count_documents,
     mongo_find,
+    set_bp_error_handlers,
     get_mongo,
     config_get,
 )
 
 bp = Blueprint("item_notifications", __name__)
+set_bp_error_handlers(bp)
 
 
 @bp.get("")

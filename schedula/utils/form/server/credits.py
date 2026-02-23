@@ -17,10 +17,11 @@ import copy
 import datetime
 import itertools
 import json
+import math
 import os
 import re
 
-import math
+import schedula as sh
 import stripe
 from dateutil.relativedelta import relativedelta
 from dateutil.rrule import (
@@ -39,7 +40,6 @@ from flask_security import current_user as cu, auth_required
 from sherlock import Lock
 from sqlalchemy import Column, String, Integer, DateTime, JSON, or_, event, desc, asc
 
-import schedula as sh
 from . import json_secrets
 from .csrf import csrf
 from .extensions import db

@@ -225,7 +225,9 @@ class TestServerGroupsAndPagination(unittest.TestCase):
         # Call group list with invalid sort field.
         r = self.client.get("/groups/?sort=name", headers=headers)
         self.assertEqual(r.status_code, 400)
-        self.assertIn("Invalid sort field", r.text)
+        data = r.get_json(silent=True) or {}
+        self.assertIn("error", data)
+        self.assertIn("Invalid sort field", data.get("error", ""))
 
         # Call group get by id.
         r = self.client.get(f"/groups/{gid1}", headers=headers)
@@ -245,7 +247,8 @@ class TestServerGroupsAndPagination(unittest.TestCase):
         # Call group update via PUT with invalid payload.
         r = self.client.put(f"/groups/{gid2}", json={}, headers=headers)
         self.assertEqual(r.status_code, 400)
-        self.assertIn("Invalid 'name'", r.text)
+        data = r.get_json(silent=True) or {}
+        self.assertEqual(data.get("error"), "Invalid 'name'")
 
 
 if __name__ == "__main__":

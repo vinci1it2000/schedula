@@ -7,7 +7,7 @@ from typing import Set
 
 from flask import Blueprint, jsonify, request
 
-from ..utils import parse_pagination_args, parse_sort_arg, abort_json
+from ..utils import parse_pagination_args, parse_sort_arg, set_bp_error_handlers, abort_json
 
 try:
     from flask_security import current_user as cu
@@ -31,6 +31,7 @@ from .casbin import (
 )
 
 bp = Blueprint("groups", __name__)
+set_bp_error_handlers(bp)
 
 
 @bp.post("/")

@@ -6,7 +6,8 @@ from dataclasses import dataclass
 from typing import Tuple, Any
 
 import pydash
-from flask import abort, current_app, request
+from flask import abort, current_app, jsonify, request
+from werkzeug.exceptions import HTTPException
 
 
 def now_utc() -> dt.datetime:
@@ -199,6 +200,18 @@ def get_mongo(app=None, collection=None):
 
 def abort_json(code: int, msg: str):
     abort(code, description=msg)
+
+
+def set_bp_error_handlers(bp):
+    @bp.errorhandler(HTTPException)
+    def _handle_http_exc(e: HTTPException):
+        """
+        Ensure Werkzeug/Flask HTTP exceptions are returned in JSON form.
+        """
+        payload = {"error": e.description or e.name}
+        return jsonify(payload), (e.code or 500)
+
+    return bp
 
 
 # ---------------------------------------------------------------------------
