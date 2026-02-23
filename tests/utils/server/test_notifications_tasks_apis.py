@@ -24,7 +24,6 @@ from schedula.utils.form.server.security.casbin.bootstrap import (
     set_system_admin,
 )
 from schedula.utils.form.server.security.casbin.enforcer import get_enforcer
-from schedula.utils.form.server.security.casbin.models import ensure_public_group
 from schedula.utils.form.server.utils import config_get, get_mongo
 from tests.utils.server.utils.mongo_validation import ValidatingMongoDatabase
 
@@ -477,7 +476,7 @@ class TestNotificationsTasksWithCelery(BaseNotificationsTaskApiTest):
                 FakeApprise,
         ):
             with patch.object(
-                    notif_tasks.deliver_apprise_task,
+                    notif_tasks.celery.deliver_apprise_task,
                     "apply_async",
                     side_effect=_fake_apply_async,
             ):
@@ -534,7 +533,7 @@ class TestNotificationsTasksWithCelery(BaseNotificationsTaskApiTest):
                 FakeApprise,
         ):
             with patch.object(
-                    notif_tasks.deliver_apprise_task,
+                    notif_tasks.celery.deliver_apprise_task,
                     "apply_async",
                     side_effect=_fake_apply_async,
             ):

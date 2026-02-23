@@ -32,7 +32,6 @@ from schedula.utils.form.server.security.casbin.helpers import (
     u,
 )
 from schedula.utils.form.server.items.crud import prune_nulls
-from schedula.utils.form.server.security.casbin.models import ensure_public_group
 from tests.utils.server.utils.mongo_validation import ValidatingMongoDatabase
 from tests.utils.server.utils.factories import item_payload, item_patch_payload
 

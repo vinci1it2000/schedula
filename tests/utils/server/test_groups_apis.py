@@ -8,6 +8,7 @@ from datetime import datetime
 import mongomock
 from flask import Flask
 from flask_security.utils import hash_password
+
 from schedula.utils.form.server import basic_app
 from schedula.utils.form.server.extensions import db as _db
 from schedula.utils.form.server.security import User
@@ -21,7 +22,6 @@ from schedula.utils.form.server.security.casbin.helpers import (
     g_admin,
     u,
 )
-from schedula.utils.form.server.security.casbin.models import ensure_public_group
 from tests.utils.server.utils.mongo_validation import ValidatingMongoDatabase
 
 

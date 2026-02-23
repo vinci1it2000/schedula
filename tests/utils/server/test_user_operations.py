@@ -23,7 +23,6 @@ from schedula.utils.form.server.security.casbin.bootstrap import (
 )
 from schedula.utils.form.server.security.casbin.enforcer import get_enforcer
 from schedula.utils.form.server.security.casbin.helpers import SYSTEM_ADMIN_ROLE, u
-from schedula.utils.form.server.security.casbin.models import ensure_public_group
 from tests.utils.server.utils.mongo_validation import ValidatingMongoDatabase
 
 

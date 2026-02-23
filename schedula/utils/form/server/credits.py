@@ -17,11 +17,10 @@ import copy
 import datetime
 import itertools
 import json
-import math
 import os
 import re
 
-import schedula as sh
+import math
 import stripe
 from dateutil.relativedelta import relativedelta
 from dateutil.rrule import (
@@ -40,6 +39,7 @@ from flask_security import current_user as cu, auth_required
 from sherlock import Lock
 from sqlalchemy import Column, String, Integer, DateTime, JSON, or_, event, desc, asc
 
+import schedula as sh
 from . import json_secrets
 from .csrf import csrf
 from .extensions import db
@@ -131,7 +131,7 @@ class Wallet(db.Model):
             subscriptions[subscription.id] = {k: v for k, v in subs.items() if v}
         return subscriptions
 
-    def balance(self, product=None, day=None, session=db.session):
+    def _balance(self, product=None, day=None, session=db.session):
         day = datetime.datetime.today() if day is None else day
         balance = {}
         for r in (
@@ -172,11 +172,15 @@ class Wallet(db.Model):
             balance = balance.get(product, 0)
         return balance
 
+    def balance(self, product=None, day=None, session=db.session):
+        with self.lock():
+            return self._balance(product, day, session)
+
     def use(self, product, credits, session=db.session, created_by=None, negative=False):
         assert credits >= 0, "Credits to be consumed have to be positive."
         if credits > 0:
             with self.lock():
-                assert negative or self.balance(product, session=session) >= credits, (
+                assert negative or self._balance(product, session=session) >= credits, (
                     "Insufficient balance."
                 )
                 t = Txn(
@@ -212,7 +216,7 @@ class Wallet(db.Model):
             assert to_wallet, "Destination wallet not found."
             assert to_wallet, "Destination wallet not found."
             with self.lock(), to_wallet.lock():
-                assert negative or self.balance(product, session=session) >= credits, (
+                assert negative or self._balance(product, session=session) >= credits, (
                     "Insufficient balance."
                 )
                 session.add_all([tran_from, tran_to])

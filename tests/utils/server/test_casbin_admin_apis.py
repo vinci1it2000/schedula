@@ -8,23 +8,16 @@ from datetime import datetime
 import mongomock
 from flask import Flask
 from flask_security.utils import hash_password
+
 from schedula.utils.form.server import basic_app
 from schedula.utils.form.server.extensions import db as _db
 from schedula.utils.form.server.security import User
-from schedula.utils.form.server.security.admin_panel import (
-    bp as admin_bp,
-)
 from schedula.utils.form.server.security.casbin.bootstrap import (
     bootstrap_user,
     set_system_admin,
 )
 from schedula.utils.form.server.security.casbin.enforcer import get_enforcer
-from schedula.utils.form.server.security.casbin.models import ensure_public_group
-from schedula.utils.form.server.utils import set_bp_error_handlers
 from tests.utils.server.utils.mongo_validation import ValidatingMongoDatabase
-
-if not getattr(admin_bp, "_got_registered_once", False):
-    set_bp_error_handlers(admin_bp)
 
 
 class TestCasbinAdminApis(unittest.TestCase):

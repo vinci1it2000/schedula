@@ -326,10 +326,9 @@ def _enqueue_deliveries(notification: str | Dict[str, Any]) -> None:
     Otherwise, deliveries are executed synchronously in-process.
     """
     if current_app.extensions.get("celery"):
-        from . import tasks as notif_tasks
+        from .tasks.celery import deliver_apprise_task
 
-        task = cast(Any, notif_tasks.deliver_apprise_task)
-        task.apply_async(args=[notification], queue="notifications")
+        deliver_apprise_task.apply_async(args=[notification], queue="notifications")
     else:
         # Fallback: sync execution (keeps all features working in minimal setups)
         from .tasks import deliver_apprise_sync

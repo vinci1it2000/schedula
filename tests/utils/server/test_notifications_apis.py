@@ -22,7 +22,6 @@ from schedula.utils.form.server.security.casbin.bootstrap import (
 )
 from schedula.utils.form.server.security.casbin.enforcer import get_enforcer
 from schedula.utils.form.server.utils import get_mongo, config_get
-from schedula.utils.form.server.security.casbin.models import ensure_public_group
 from tests.utils.server.utils.mongo_validation import ValidatingMongoDatabase
 
 

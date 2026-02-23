@@ -36,14 +36,11 @@ from ..utils import (
     get_mongo,
     parse_pagination_args,
     parse_sort_arg,
-    set_bp_error_handlers,
 )
 
 admin_bp = Blueprint("item_notifications_admin", __name__)
-set_bp_error_handlers(admin_bp)
 
 templates_bp = Blueprint("notification_templates", __name__)
-set_bp_error_handlers(templates_bp)
 
 
 def _principal_user_id(principal: Optional[str]) -> Optional[int]:

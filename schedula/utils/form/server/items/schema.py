@@ -69,7 +69,6 @@ from ..security.casbin import require_system_admin, u
 from ..utils import (
     now_utc,
     abort_json,
-    set_bp_error_handlers,
     get_mongo,
     config_get,
     mongo_command,
@@ -80,7 +79,6 @@ from ..utils import (
 )
 
 bp = Blueprint("schemas", __name__)
-set_bp_error_handlers(bp)
 
 SCHEMAS_COLL = "item_schemas"
 SEMVER_RE = re.compile(r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$")

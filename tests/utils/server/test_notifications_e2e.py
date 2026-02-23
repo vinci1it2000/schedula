@@ -13,7 +13,6 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 
 from schedula.utils.form.server import basic_app
 from schedula.utils.form.server.extensions import db as _db
-from schedula.utils.form.server.security.casbin.models import ensure_public_group
 from tests.utils.server.utils.mongo_validation import ValidatingMongoDatabase
 
 

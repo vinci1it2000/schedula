@@ -11,6 +11,7 @@ import mongomock
 from flask_security.confirmable import generate_confirmation_token
 from flask_security.recoverable import generate_reset_password_token
 from flask_security.utils import hash_password
+
 from schedula.utils.form.server import basic_app
 from schedula.utils.form.server.extensions import db as _db
 from schedula.utils.form.server.security import User

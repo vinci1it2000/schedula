@@ -35,11 +35,9 @@ from ..utils import (
     mongo_insert_one,
     mongo_update_one,
     now_utc,
-    set_bp_error_handlers,
 )
 
 bp = Blueprint("contracts", __name__)
-set_bp_error_handlers(bp)
 
 TEMPLATE_CREATE_SCHEMA = {
     "title": "ContractTemplateCreate",

@@ -131,9 +131,12 @@ class Notifications:
         app.register_blueprint(templates_bp, url_prefix="/admin/notification/templates")
 
         if app.config.get("NOTIF_CELERY_ENABLED") and "celery" not in app.extensions:
-            from .tasks import make_celery
+            try:
+                from .tasks.celery import make_celery
 
-            app.extensions["celery"] = make_celery(app)
+                app.extensions["celery"] = make_celery(app)
+            except ImportError:
+                pass
 
 
 def notify_item_event_safe(*, event: str, item_doc: dict) -> None:

@@ -17,6 +17,7 @@ import httpx
 import pydash
 from flask import Flask
 from flask_security.utils import hash_password
+
 from schedula.utils.form.server import basic_app
 from schedula.utils.form.server.contracts.engine import register_function
 from schedula.utils.form.server.extensions import db as _db
@@ -999,8 +1000,9 @@ class ContractsE2ETest(unittest.TestCase):
     def _wallet_balance(self, actor: str, product: str = "credit") -> float:
         with self.app.app_context():
             from schedula.utils.form.server.credits import get_wallet
-
             wallet = get_wallet(self.user_ids[actor])
+            import time
+            time.sleep(1)
             bal = wallet.balance(product=product, session=_db.session)
             if isinstance(bal, dict):
                 return float(bal.get(product, 0) or 0)

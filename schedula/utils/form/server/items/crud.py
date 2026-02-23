@@ -46,10 +46,10 @@ import json
 import uuid
 from typing import Dict, Set, Tuple
 
-import schedula as sh
 from flask import request, jsonify, Blueprint
 from flask_security import current_user as cu
 
+import schedula as sh
 from . import normalize_category
 from .files import store_uploaded_file, delete_files_meta, normalize_file_name
 from ..notifications import notify_item_event_safe
@@ -77,14 +77,12 @@ from ..utils import (
     get_mongo,
     config_get,
     now_utc,
-    set_bp_error_handlers,
     parse_pagination_args,
     parse_sort_arg,
     abort_json
 )
 
 bp = Blueprint("items", __name__)
-set_bp_error_handlers(bp)
 
 
 # ---------------------------------------------------------------------------

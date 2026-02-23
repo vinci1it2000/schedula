@@ -21,7 +21,6 @@ from schedula.utils.form.server.security.casbin.bootstrap import (
     bootstrap_user,
     set_system_admin,
 )
-from schedula.utils.form.server.security.casbin.models import ensure_public_group
 from tests.utils.server.utils.mongo_validation import ValidatingMongoDatabase
 
 

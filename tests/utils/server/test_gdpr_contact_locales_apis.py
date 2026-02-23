@@ -12,7 +12,6 @@ from flask import Flask
 
 from schedula.utils.form.server import basic_app
 from schedula.utils.form.server.extensions import db as _db
-from schedula.utils.form.server.security.casbin.models import ensure_public_group
 
 
 class BaseApiTestCase(unittest.TestCase):

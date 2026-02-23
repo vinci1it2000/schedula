@@ -56,10 +56,9 @@ from ..security.casbin import (
     authorize_item,
     set_item_public_read,
 )
-from ..utils import mongo_find_one, set_bp_error_handlers, get_mongo, config_get, abort_json
+from ..utils import mongo_find_one, get_mongo, config_get, abort_json
 
 bp = Blueprint("items_acl", __name__)
-set_bp_error_handlers(bp)
 
 
 # ---------------------------------------------------------------------------
