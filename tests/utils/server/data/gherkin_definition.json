@@ -1235,6 +1235,7 @@
               "type": "use.credits",
               "credit": {
                 "product": "credit",
+                "negative": true,
                 "user_id": {
                   "$ctx": "doc.context.driver"
                 },
@@ -4859,10 +4860,10 @@
                         "$context.driver_route.compensation",
                         {
                           "$subtract": [
-                            "$local.rejection_refund_amount",
                             {
                               "$ctx": "doc.context.riders.$$ctx.payload.rider.cost"
-                            }
+                            },
+                            "$local.rejection_refund_amount"
                           ]
                         }
                       ]

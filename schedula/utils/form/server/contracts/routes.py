@@ -728,6 +728,7 @@ TEMPLATE_CREATE_SCHEMA = {
                 "to_user_id": {
                     "anyOf": [{"type": "integer"}, {"$ref": "#/$defs/json_with_refs"}],
                 },
+                "negative": {"anyOf": [{"type": "boolean", "default": False}, {"$ref": "#/$defs/json_with_refs"}]},
                 "product": {
                     "anyOf": [
                         {"type": "string", "minLength": 1},
@@ -1389,8 +1390,8 @@ def _validate_schema(payload: Dict[str, Any], schema: Dict[str, Any]) -> List[st
 
 
 def _validate_allowed_initial_states(
-    definition: Dict[str, Any],
-    allowed_initial_states: Any,
+        definition: Dict[str, Any],
+        allowed_initial_states: Any,
 ) -> List[str]:
     if allowed_initial_states is None:
         return []

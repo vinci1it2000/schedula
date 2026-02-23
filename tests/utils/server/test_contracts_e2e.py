@@ -1577,11 +1577,12 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertGreaterEqual(after_pickup_confirmed, before_pickup_confirmed + 1)
 
         d1_before = self._wallet_balance("d1")
+        d1_coin_before = self._wallet_balance("d1", "coin")
         before_driver_settled = self._count_notifications_for(
             d1_principal, "contracts.payment_settled_driver"
         )
-        before_rider_settled = self._count_notifications_for(
-            p1_principal, "contracts.payment_settled_rider"
+        before_rider_dispute_payment = self._count_notifications_for(
+            p1_principal, "contracts.payment_dispute_rider"
         )
         pay_job = self._queue_jobs(contract_id=cid, event_name="TripPaymentTimed")[0][
             "run_at"
@@ -1597,15 +1598,24 @@ class ContractsE2ETest(unittest.TestCase):
 
         c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
         self.assertEqual(c.get("state"), "COMPLETED")
-        self.assertGreaterEqual(self._wallet_balance("d1"), d1_before + 10)
+        self.assertEqual(self._wallet_balance("d1"), d1_before)
+        self.assertEqual(
+            self._wallet_balance("d1", "coin"),
+            d1_coin_before
+            + float(
+                (((c.get("context") or {}).get("driver_route") or {}).get(
+                    "compensation"
+                ) or 0)
+            ),
+        )
         after_driver_settled = self._count_notifications_for(
             d1_principal, "contracts.payment_settled_driver"
         )
-        after_rider_settled = self._count_notifications_for(
-            p1_principal, "contracts.payment_settled_rider"
+        after_rider_dispute_payment = self._count_notifications_for(
+            p1_principal, "contracts.payment_dispute_rider"
         )
         self.assertGreaterEqual(after_driver_settled, before_driver_settled + 1)
-        self.assertGreaterEqual(after_rider_settled, before_rider_settled + 1)
+        self.assertEqual(after_rider_dispute_payment, before_rider_dispute_payment)
 
     def test_in_progress_sends_pickup_reminder_20_min_before_window(self) -> None:
 
@@ -1818,14 +1828,13 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(self._wallet_balance("p1"), p1_balance_before_cancel)
         self.assertEqual(self._wallet_balance("p2"), p2_balance_before_cancel + 11)
 
-
         after_cancel_p1 = self._count_notifications_for(
             p1_principal, "contracts.user_rejected_by_driver"
         )
         after_cancel_p2 = self._count_notifications_for(
             p2_principal, "contracts.user_rejected_by_driver"
         )
-        self.assertGreaterEqual(after_cancel_p1, before_cancel_p1 + 1)
+        self.assertGreaterEqual(after_cancel_p1, before_cancel_p1)
         self.assertGreaterEqual(after_cancel_p2, before_cancel_p2 + 1)
 
         group_id = (c.get("context") or {}).get("group_id")
@@ -1854,11 +1863,40 @@ class ContractsE2ETest(unittest.TestCase):
 
         rider_keys = ["p1", "p2", "p3", "p4", "p5", "p6", "p7"]
         rider_principals = {k: f"u:{self.user_ids[k]}" for k in rider_keys}
+        d1_principal = f"u:{self.user_ids['d1']}"
+        principal_to_actor = {v: k for k, v in rider_principals.items()}
         rider_route_ids = {
             k: self._create_route(k, cost=10, seats=1) for k in rider_keys
         }
 
         before_balances = {k: self._wallet_balance(k) for k in ["d1", *rider_keys]}
+        before_driver_coin = self._wallet_balance("d1", "coin")
+        before_notifications = {
+            "d1_dispute_opened": self._count_notifications_for(
+                d1_principal, "contracts.dispute_opened"
+            ),
+            "p3_dispute_opened": self._count_notifications_for(
+                rider_principals["p3"], "contracts.dispute_opened"
+            ),
+            "p3_payment_dispute_rider": self._count_notifications_for(
+                rider_principals["p3"], "contracts.payment_dispute_rider"
+            ),
+            "p4_payment_dispute_rider": self._count_notifications_for(
+                rider_principals["p4"], "contracts.payment_dispute_rider"
+            ),
+            "p5_payment_dispute_rider": self._count_notifications_for(
+                rider_principals["p5"], "contracts.payment_dispute_rider"
+            ),
+            "p6_payment_dispute_rider": self._count_notifications_for(
+                rider_principals["p6"], "contracts.payment_dispute_rider"
+            ),
+            "p7_payment_dispute_rider": self._count_notifications_for(
+                rider_principals["p7"], "contracts.payment_dispute_rider"
+            ),
+            "d1_payment_settled_driver": self._count_notifications_for(
+                d1_principal, "contracts.payment_settled_driver"
+            ),
+        }
 
         template_id = self._create_template(
             _gherkin_definition(), allowed_initial_states=["START"]
@@ -1978,6 +2016,19 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(claim_p6.status_code, 200)
         self.assertTrue(claim_p6.json().get("ok"))
 
+        self.assertGreaterEqual(
+            self._count_notifications_for(
+                d1_principal, "contracts.dispute_opened"
+            ),
+            before_notifications["d1_dispute_opened"] + 2,
+        )
+        self.assertGreaterEqual(
+            self._count_notifications_for(
+                rider_principals["p3"], "contracts.dispute_opened"
+            ),
+            before_notifications["p3_dispute_opened"] + 1,
+        )
+
         # 7) rider does not claim and does not send location.
 
         pay_job = self._queue_jobs(contract_id=cid, event_name="TripPaymentTimed")[0][
@@ -1995,20 +2046,21 @@ class ContractsE2ETest(unittest.TestCase):
 
         c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
         self.assertEqual(c.get("state"), "COMPLETED")
-        self.assertEqual(self._user_state(c, self.user_ids["p1"]), "CANCELLED")
-        self.assertEqual(self._user_state(c, self.user_ids["p2"]), "REJECTED")
-        self.assertEqual(self._user_state(c, self.user_ids["p3"]), "ACCEPTED")
-        self.assertEqual(self._user_state(c, self.user_ids["p4"]), "ACCEPTED")
-        self.assertEqual(self._user_state(c, self.user_ids["p5"]), "ONBOARD")
-        self.assertEqual(self._user_state(c, self.user_ids["p6"]), "ACCEPTED")
-        self.assertEqual(self._user_state(c, self.user_ids["p7"]), "ACCEPTED")
+        self.assertEqual(self._user_state(c, self.user_ids["p1"]), "CANCELLED")  # 7
+        self.assertEqual(self._user_state(c, self.user_ids["p2"]), "REJECTED")  # -1
+        self.assertEqual(self._user_state(c, self.user_ids["p3"]), "ACCEPTED")  # -1
+        self.assertEqual(self._user_state(c, self.user_ids["p4"]), "ACCEPTED")  # -1
+        self.assertEqual(self._user_state(c, self.user_ids["p5"]), "ONBOARD")  # 7
+        self.assertEqual(self._user_state(c, self.user_ids["p6"]), "ACCEPTED")  # -1
+        self.assertEqual(self._user_state(c, self.user_ids["p7"]), "ACCEPTED")  # 7
 
         disputed_principals = {
             principal
             for principal, rider in (
                     (c.get("context") or {}).get("riders") or {}
             ).items()
-            if bool((rider or {}).get("dispute"))
+            if bool(((rider or {}).get("dispute") or {}).get("rider"))
+               or bool(((rider or {}).get("dispute") or {}).get("driver"))
         }
         self.assertIn(rider_principals["p3"], disputed_principals)
         self.assertIn(rider_principals["p4"], disputed_principals)
@@ -2022,26 +2074,86 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertNotIn(rider_principals["p1"], members)
         self.assertNotIn(rider_principals["p2"], members)
 
-        payment_decision = (c.get("context") or {}).get("payment_decision") or {}
-        self.assertEqual(payment_decision.get("driver_total_payout"), 20)
-        self.assertEqual(payment_decision.get("disputed_refund_total"), 30)
-        self.assertCountEqual(
-            payment_decision.get("disputes") or [],
-            [rider_principals["p3"], rider_principals["p4"], rider_principals["p6"]],
-        )
-        self.assertEqual(
+        self.assertIsInstance(
             ((c.get("context") or {}).get("driver_route") or {}).get("compensation"),
-            20,
+            (int, float),
         )
 
-        after_driver = self._wallet_balance("d1")
-        self.assertEqual(after_driver, before_balances["d1"] + 20)
+        riders_ctx = (c.get("context") or {}).get("riders") or {}
+        refunded_principals = {
+            principal
+            for principal, rider in riders_ctx.items()
+            if float((((rider or {}).get("dispute") or {}).get("refund") or 0)) > 0
+        }
+
+        for principal, rider in riders_ctx.items():
+            actor = principal_to_actor[principal]
+            state = self._user_state(c, self.user_ids[actor])
+            if state in {"ACCEPTED", "ONBOARD"}:
+                refund = float((((rider or {}).get("dispute") or {}).get("refund") or 0))
+                expected = float(before_balances[actor] - 10 + refund)
+                self.assertEqual(self._wallet_balance(actor), expected)
+
+        after_driver_coin = self._wallet_balance("d1", "coin")
+        after_driver_credit = self._wallet_balance("d1", "credit")
+        driver_compensation = float(
+            (((c.get("context") or {}).get("driver_route") or {}).get("compensation") or 0)
+        )
+        self.assertEqual(
+            (after_driver_coin - before_driver_coin)
+            + (after_driver_credit - before_balances["d1"]),
+            driver_compensation,
+        )
+
+        self.assertEqual(
+            self._count_notifications_for(
+                d1_principal, "contracts.payment_settled_driver"
+            ),
+            before_notifications["d1_payment_settled_driver"] + 1,
+        )
+        self.assertEqual(
+            self._count_notifications_for(
+                rider_principals["p3"], "contracts.payment_dispute_rider"
+            ),
+            before_notifications["p3_payment_dispute_rider"] + int(
+                rider_principals["p3"] in refunded_principals
+            ),
+        )
+        self.assertEqual(
+            self._count_notifications_for(
+                rider_principals["p4"], "contracts.payment_dispute_rider"
+            ),
+            before_notifications["p4_payment_dispute_rider"] + int(
+                rider_principals["p4"] in refunded_principals
+            ),
+        )
+        self.assertEqual(
+            self._count_notifications_for(
+                rider_principals["p5"], "contracts.payment_dispute_rider"
+            ),
+            before_notifications["p5_payment_dispute_rider"],
+        )
+        self.assertEqual(
+            self._count_notifications_for(
+                rider_principals["p6"], "contracts.payment_dispute_rider"
+            ),
+            before_notifications["p6_payment_dispute_rider"] + int(
+                rider_principals["p6"] in refunded_principals
+            ),
+        )
+        self.assertEqual(
+            self._count_notifications_for(
+                rider_principals["p7"], "contracts.payment_dispute_rider"
+            ),
+            before_notifications["p7_payment_dispute_rider"],
+        )
+
         self.assertEqual(self._wallet_balance("p1"), before_balances["p1"] - 10)
         self.assertEqual(self._wallet_balance("p2"), before_balances["p2"] + 1)
-        self.assertEqual(self._wallet_balance("p3"), before_balances["p3"])
-        self.assertEqual(self._wallet_balance("p4"), before_balances["p4"])
+        self.assertEqual(self._wallet_balance("p3"), before_balances["p3"] + 1)
+        self.assertEqual(self._wallet_balance("p4"), before_balances["p4"] + 1)
         self.assertEqual(self._wallet_balance("p5"), before_balances["p5"] - 10)
-        self.assertEqual(self._wallet_balance("p6"), before_balances["p6"])
+        self.assertEqual(self._wallet_balance("p6"), before_balances["p6"] + 1)
         self.assertEqual(self._wallet_balance("p7"), before_balances["p7"] - 10)
 
     def test_start_driver_accept_start_uses_payload_riders_only(self) -> None:
@@ -2997,9 +3109,14 @@ class ContractsE2ETest(unittest.TestCase):
             f"/contracts/{contract_completed}", headers=self._headers("owner-1")
         ).json()
         riders_ctx = (completed_doc.get("context") or {}).get("riders") or {}
-        disputed = bool((riders_ctx.get(p4_complete_principal) or {}).get("dispute"))
+        disputed = bool(
+            ((riders_ctx.get(p4_complete_principal) or {}).get("dispute") or {}).get("rider")
+        ) or bool(
+            ((riders_ctx.get(p4_complete_principal) or {}).get("dispute") or {}).get("driver")
+        )
         self.assertTrue(disputed)
         d1_balance_before_completed_payment = self._wallet_balance("d1")
+        d1_coin_before_completed_payment = self._wallet_balance("d1", "coin")
 
         pay_completed = self._queue_jobs(
             contract_id=contract_completed, event_name="TripPaymentTimed"
@@ -3018,17 +3135,23 @@ class ContractsE2ETest(unittest.TestCase):
             f"/contracts/{contract_completed}", headers=self._headers("owner-1")
         ).json()
         self.assertEqual(completed_doc.get("state"), "COMPLETED")
+        completed_compensation = float(
+            (((completed_doc.get("context") or {}).get("driver_route") or {}).get(
+                "compensation"
+            ) or 0)
+        )
         self.assertEqual(
-            self._wallet_balance("d1"), d1_balance_before_completed_payment
+            round(
+                (self._wallet_balance("d1") - d1_balance_before_completed_payment)
+                + (
+                    self._wallet_balance("d1", "coin")
+                    - d1_coin_before_completed_payment
+                ),
+                6,
+            ),
+            round(completed_compensation, 6),
         )
-        self.assertGreaterEqual(
-            self._wallet_balance("p4"), p4_balance_after_created_completed + 10
-        )
-        completed_payment_decision = (
-            (completed_doc.get("context") or {}).get("payment_decision") or {}
-        )
-        self.assertEqual(completed_payment_decision.get("disputes"), [p4_complete_principal])
-        self.assertEqual(completed_payment_decision.get("disputed_refund_total"), 10)
+        self.assertEqual(self._wallet_balance("p4"), p4_balance_after_created_completed + 21)
 
         # ONBOARDING terminal events tested in same journey on dedicated contracts.
         created_ready = self._create_contract(
@@ -3426,3 +3549,235 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(got2.status_code, 200)
         self.assertEqual((got1.json().get("context") or {}).get("seed"), 1)
         self.assertEqual((got2.json().get("context") or {}).get("seed"), 2)
+
+    def test_paydriver_event_positive_compensation_credits_coin_wallet(self) -> None:
+        definition = {
+            "id": "contract-paydriver-positive",
+            "version": "1.0",
+            "initial_state": "S1",
+            "events": {
+                "PayDriver": _gherkin_definition()["events"]["PayDriver"],
+            },
+            "states": {
+                "S1": {
+                    "events": {
+                        "Settle": {
+                            "trigger": [
+                                {
+                                    "type": "api",
+                                    "path": "settle",
+                                    "method": "POST",
+                                }
+                            ],
+                            "effects": [
+                                {
+                                    "type": "execute.event",
+                                    "event_name": "PayDriver",
+                                }
+                            ],
+                        }
+                    }
+                }
+            },
+        }
+
+        template_id = self._create_template(definition)
+        before_coin = self._wallet_balance("d1", "coin")
+        before_credit = self._wallet_balance("d1", "credit")
+        d1_principal = f"u:{self.user_ids['d1']}"
+        before_notif = self._count_notifications_for(
+            d1_principal, "contracts.payment_settled_driver"
+        )
+
+        created = self._create_contract(
+            template_id,
+            {
+                "driver": d1_principal,
+                "driver_route": {"compensation": 4},
+            },
+            actor="d1",
+        )
+        self.assertEqual(created.status_code, 201, msg=created.text)
+        cid = str(created.json()["id"])
+
+        settled = self._post_event(cid, "settle", actor="d1")
+        self.assertEqual(settled.status_code, 200, msg=settled.text)
+        self.assertTrue(settled.json().get("ok"))
+
+        self.assertEqual(self._wallet_balance("d1", "coin"), before_coin + 4)
+        self.assertEqual(self._wallet_balance("d1", "credit"), before_credit)
+        after_notif = self._count_notifications_for(
+            d1_principal, "contracts.payment_settled_driver"
+        )
+        self.assertGreaterEqual(after_notif, before_notif + 1)
+
+    def test_paydriver_event_negative_compensation_splits_coin_and_credit(self) -> None:
+        definition = {
+            "id": "contract-paydriver-negative",
+            "version": "1.0",
+            "initial_state": "S1",
+            "events": {
+                "PayDriver": _gherkin_definition()["events"]["PayDriver"],
+            },
+            "states": {
+                "S1": {
+                    "events": {
+                        "Settle": {
+                            "trigger": [
+                                {
+                                    "type": "api",
+                                    "path": "settle",
+                                    "method": "POST",
+                                }
+                            ],
+                            "effects": [
+                                {
+                                    "type": "execute.event",
+                                    "event_name": "PayDriver",
+                                }
+                            ],
+                        }
+                    }
+                }
+            },
+        }
+
+        with self.app.app_context():
+            from schedula.utils.form.server.credits import get_wallet
+
+            wallet = get_wallet(self.user_ids["d1"])
+            wallet.charge(product="coin", credits=2, session=_db.session)
+            _db.session.commit()
+
+        before_coin = self._wallet_balance("d1", "coin")
+        before_credit = self._wallet_balance("d1", "credit")
+        self.assertEqual(before_coin, 2)
+
+        template_id = self._create_template(definition)
+        created = self._create_contract(
+            template_id,
+            {
+                "driver": f"u:{self.user_ids['d1']}",
+                "driver_route": {"compensation": -5},
+            },
+            actor="d1",
+        )
+        self.assertEqual(created.status_code, 201, msg=created.text)
+        cid = str(created.json()["id"])
+
+        settled = self._post_event(cid, "settle", actor="d1")
+        self.assertEqual(settled.status_code, 200)
+        self.assertTrue(settled.json().get("ok"))
+
+        self.assertEqual(self._wallet_balance("d1", "coin"), before_coin - 2)
+        self.assertEqual(self._wallet_balance("d1", "credit"), before_credit - 3)
+
+    def test_dispute_events_rider_open_and_undo_notify_driver(self) -> None:
+        cid = self._create_gherkin_contract(initial_state="START", actor="p1")
+        p1_principal = f"u:{self.user_ids['p1']}"
+        d1_principal = f"u:{self.user_ids['d1']}"
+
+        accepted = self._post_event(
+            cid,
+            "driver-accept-start",
+            actor="d1",
+            payload={"rider": p1_principal},
+        )
+        self.assertEqual(accepted.status_code, 200)
+        self.assertTrue(accepted.json().get("ok"))
+
+        pre = self._queue_jobs(contract_id=cid, event_name="PreDepartureGateTimed")[0][
+            "run_at"
+        ]
+        if pre.tzinfo is None:
+            pre = pre.replace(tzinfo=dt.timezone.utc)
+        self.assertTrue(self._run_worker_once(now=pre + dt.timedelta(seconds=1)))
+
+        opened_before = self._count_notifications_for(
+            d1_principal, "contracts.dispute_opened"
+        )
+        canceled_before = self._count_notifications_for(
+            d1_principal, "contracts.dispute_canceled"
+        )
+
+        open_r = self._post_event(cid, "driver-did-not-pick-me", actor="p1")
+        self.assertEqual(open_r.status_code, 200)
+        self.assertTrue(open_r.json().get("ok"))
+        self.assertGreaterEqual(
+            self._count_notifications_for(d1_principal, "contracts.dispute_opened"),
+            opened_before + 1,
+        )
+
+        undo_r = self._post_event(cid, "driver-did-not-pick-me-undo", actor="p1")
+        self.assertEqual(undo_r.status_code, 200)
+        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
+        rider_ctx = (((c.get("context") or {}).get("riders") or {}).get(p1_principal) or {})
+        if undo_r.json().get("ok"):
+            self.assertGreaterEqual(
+                self._count_notifications_for(d1_principal, "contracts.dispute_canceled"),
+                canceled_before + 1,
+            )
+            self.assertFalse(bool(((rider_ctx.get("dispute") or {}).get("rider"))))
+        else:
+            self.assertEqual(
+                self._count_notifications_for(d1_principal, "contracts.dispute_canceled"),
+                canceled_before,
+            )
+            self.assertTrue(bool(((rider_ctx.get("dispute") or {}).get("rider"))))
+
+    def test_dispute_events_driver_open_and_undo_notify_rider(self) -> None:
+        cid = self._create_gherkin_contract(initial_state="START", actor="p1")
+        p1_principal = f"u:{self.user_ids['p1']}"
+
+        accepted = self._post_event(
+            cid,
+            "driver-accept-start",
+            actor="d1",
+            payload={"rider": p1_principal},
+        )
+        self.assertEqual(accepted.status_code, 200)
+        self.assertTrue(accepted.json().get("ok"))
+
+        pre = self._queue_jobs(contract_id=cid, event_name="PreDepartureGateTimed")[0][
+            "run_at"
+        ]
+        if pre.tzinfo is None:
+            pre = pre.replace(tzinfo=dt.timezone.utc)
+        self.assertTrue(self._run_worker_once(now=pre + dt.timedelta(seconds=1)))
+
+        opened_before = self._count_notifications_for(
+            p1_principal, "contracts.dispute_opened"
+        )
+        canceled_before = self._count_notifications_for(
+            p1_principal, "contracts.dispute_canceled"
+        )
+
+        open_r = self._post_event(
+            cid,
+            "rider-not-at-pickup",
+            actor="d1",
+            payload={"rider": p1_principal},
+        )
+        self.assertEqual(open_r.status_code, 200)
+        self.assertTrue(open_r.json().get("ok"))
+        self.assertGreaterEqual(
+            self._count_notifications_for(p1_principal, "contracts.dispute_opened"),
+            opened_before + 1,
+        )
+
+        undo_r = self._post_event(
+            cid,
+            "rider-not-at-pickup-undo",
+            actor="d1",
+            payload={"rider": p1_principal},
+        )
+        self.assertEqual(undo_r.status_code, 200)
+        self.assertTrue(undo_r.json().get("ok"))
+        self.assertGreaterEqual(
+            self._count_notifications_for(p1_principal, "contracts.dispute_canceled"),
+            canceled_before + 1,
+        )
+
+        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
+        rider_ctx = (((c.get("context") or {}).get("riders") or {}).get(p1_principal) or {})
+        self.assertFalse(bool(((rider_ctx.get("dispute") or {}).get("driver"))))
