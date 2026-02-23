@@ -37,8 +37,8 @@ from dateutil.rrule import (
 from flask import jsonify, flash, Blueprint, abort
 from flask_caching import Cache
 from flask_security import current_user as cu, auth_required
-from sherlock import Lock
 from sqlalchemy import Column, String, Integer, DateTime, JSON, or_, event, desc, asc
+from sqlalchemy_dlock import create_sadlock
 
 from . import json_secrets
 from .csrf import csrf
@@ -96,7 +96,7 @@ class Wallet(db.Model):
         return f"{self.user.firstname or ''} {self.user.lastname or ''}"
 
     def lock(self):
-        return Lock(f"wallet-{self.id}")
+        return create_sadlock(db.session, f"wallet-{self.id}")
 
     def subscription(self, day=None, session=db.session):
         from flask import current_app as ca
@@ -436,7 +436,8 @@ def user2stripe_customer(user=cu):
 
     api_key = ca.config["STRIPE_SECRET_KEY"]
     key = f"Stripe-customer-{user.id}"
-    with Lock(key, timeout=30):
+
+    with create_sadlock(db.session, key, contextual_timeout=30):
         customer = ca.extensions["schedula_cache"].get(key)
         if customer:
             return customer
@@ -475,7 +476,7 @@ def stripe_customer2user(customer):
 
 
 def get_wallet(user_id, session=db.session):
-    with Lock(f"wallet-user-{user_id}"):
+    with create_sadlock(db.session, f"wallet-user-{user_id}"):
         wallet = session.query(Wallet).filter_by(user_id=user_id).one_or_none()
         if not wallet:
             wallet = Wallet(user_id=user_id)
@@ -775,7 +776,7 @@ def checkout_session_completed(session_id):
     from flask import current_app as ca
     from stripe.checkout import Session
 
-    with Lock(f"Txn-stripe-{session_id}"):
+    with create_sadlock(db.session, f"Txn-stripe-{session_id}"):
         if db.session.query(
                 Txn.query.filter_by(stripe_id=session_id).exists()
         ).scalar():
@@ -848,7 +849,7 @@ def checkout_session_completed(session_id):
 
 
 def refund_charge(stripe_id, start_time, session, type_ids=(CHARGE,)):
-    with Lock(f"Txn-stripe-{stripe_id}"):
+    with create_sadlock(db.session, f"Txn-stripe-{stripe_id}"):
         base = Txn.query.filter_by(stripe_id=stripe_id).filter(
             or_(*(Txn.type_id == type_id for type_id in type_ids))
         )
@@ -871,7 +872,7 @@ def subscription_invoice_paid(event):
         return
     from flask import current_app as ca
 
-    with Lock(f"Txn-stripe-{invoice.id}"):
+    with create_sadlock(db.session, f"Txn-stripe-{invoice.id}"):
         if db.session.query(
                 Txn.query.filter_by(stripe_id=invoice.id).exists()
         ).scalar():
@@ -1102,14 +1103,3 @@ class Credits:
         app.register_blueprint(bp, url_prefix="/stripe")
         app.extensions["schedula_credits"] = self
         app.extensions["schedula_cache"] = Cache(app)
-
-        import sherlock
-
-        lock_config = sherlock._configuration
-        try:
-            lock_config.client
-        except ValueError as ex:
-            if lock_config.backend is None:
-                sherlock.configure(backend=sherlock.backends.FILE)
-            else:
-                raise ex

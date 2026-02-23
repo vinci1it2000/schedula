@@ -160,6 +160,21 @@ Admin notify:
 |---------|------------------------------|------------------------------|
 | `POST`  | `/admin/notification/notify` | `notifications/admin_api.py` |
 
+## Contracts
+
+Contracts API routes are mounted from the contracts service blueprint.
+
+| Methods      | Path                                      | Source                |
+|--------------|-------------------------------------------|-----------------------|
+| `POST`       | `/contracts/templates`                    | `contracts/routes.py` |
+| `GET`        | `/contracts/templates`                    | `contracts/routes.py` |
+| `GET`        | `/contracts/templates/<template_id>`      | `contracts/routes.py` |
+| `PUT`        | `/contracts/templates/<template_id>`      | `contracts/routes.py` |
+| `POST`       | `/contracts/<template_id>`                | `contracts/routes.py` |
+| `GET`        | `/contracts/<contract_id>`                | `contracts/routes.py` |
+| `DELETE`     | `/contracts/<contract_id>`                | `contracts/routes.py` |
+| `POST, GET`  | `/contracts/<contract_id>/<path:dyn_path>` | `contracts/routes.py` |
+
 ## Export
 
 Available only if `SCHEDULA_EXPORT_FORM_ENABLED` is enabled.

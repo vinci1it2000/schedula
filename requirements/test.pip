@@ -5,3 +5,9 @@ coveralls
 cryptography
 python-dateutil
 setuptools
+pytest
+httpx
+pymongo
+testcontainers[mongodb]
+numpy
+pymoo

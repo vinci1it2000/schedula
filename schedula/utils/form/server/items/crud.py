@@ -354,7 +354,7 @@ def parse_request_payload():
     Parse incoming request payload for create/update.
 
     Returns:
-        (data, uploads)
+        (data, uploads, public)
 
     Supported formats:
     - multipart/form-data:
@@ -367,6 +367,7 @@ def parse_request_payload():
 
     if content_type.startswith("multipart/form-data"):
         data_str = request.form.get("data")
+        public = request.form.get("public")
         if data_str:
             try:
                 data = json.loads(data_str)
@@ -377,14 +378,15 @@ def parse_request_payload():
 
         uploads = {normalize_file_name(k): v for k, v in request.files.items()}
 
-        return data, uploads
+    else:
 
-    # JSON
-    body = request.get_json(silent=True) or {}
-    data = body.get("data", {}) or {}
-    uploads = {}
+        # JSON
+        body = request.get_json(silent=True) or {}
+        data = body.get("data", {}) or {}
+        public = body.get("public")
+        uploads = {}
 
-    return data, uploads
+    return data, uploads, public
 
 
 def collect_file_names_in_data(data):
@@ -534,7 +536,7 @@ def parse_data(db_mongo, sub):
     - every uploaded file must be referenced somewhere in `data` via $ref "/files/<name>"
     - every referenced file must be present in uploads
     """
-    data, uploads = parse_request_payload()
+    data, uploads, public = parse_request_payload()
     data = prune_nulls(data)
 
     referenced = collect_file_names_in_data(data)
@@ -559,7 +561,7 @@ def parse_data(db_mongo, sub):
             abort_json(400, exe.message)
         abort_json(500, "File storage error")
 
-    return data, files_meta
+    return data, files_meta, public
 
 
 # ---------------------------------------------------------------------------
@@ -617,7 +619,7 @@ def item_create(category):
 
     enforce_or_403(sub, acl_dom, item_obj(category, "*"), "create")
 
-    data, files_meta = parse_data(db_mongo, sub)
+    data, files_meta, public = parse_data(db_mongo, sub)
     now = now_utc()
 
     doc = {
@@ -626,6 +628,7 @@ def item_create(category):
         "data": data,
         "files": files_meta,
         "acl_dom": str(acl_dom),
+        "public": public or False,
         "created_by": sub,
         "updated_by": sub,
         "created_at": now,
@@ -670,7 +673,7 @@ def _item_get(category, item_id, act, sub, enforce_acl=True):
     if not doc:
         abort_json(404, "Item not found")
 
-    if enforce_acl and not authorize_item(sub=sub, item_doc=doc, act=act):
+    if enforce_acl and not ((act == "read" and doc.get("public")) or authorize_item(sub=sub, item_doc=doc, act=act)):
         abort_json(403, "Forbidden")
 
     return doc
@@ -723,7 +726,10 @@ def item_list(category):
     # Apply ACL restriction
     principal = group_id if group_id else sub
     acl_filter = build_listing_filter(category, principal, mode)
+
     if acl_filter:
+        if mode == "read":
+            acl_filter = {"$or": [{"public": True}, acl_filter]}
         filters.append(acl_filter)
 
     mongo_query = parse_mq_arg()
@@ -791,7 +797,7 @@ def item_update(category, item_id):
     old_data = doc.get("data") or {}
     old_files = doc.get("files") or {}
 
-    new_data, uploads = parse_request_payload()
+    new_data, uploads, public = parse_request_payload()
 
     merged_data = prune_nulls(
         sh.combine_nested_dicts(old_data, new_data) if method == "PATCH" else new_data
@@ -834,6 +840,8 @@ def item_update(category, item_id):
         "updated_at": now_utc(),
         "updated_by": sub,
     }
+    if public is not None:
+        update_doc["public"] = public
     coll = db_mongo[config_get("ITEMS_COLLECTION", "items")]
     try:
         res = mongo_update_one(

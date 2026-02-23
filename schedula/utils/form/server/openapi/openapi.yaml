@@ -23,6 +23,7 @@ tags:
   - name: Files
   - name: Notifications
   - name: Templates
+  - name: Contracts
 components:
   securitySchemes:
     bearerAuth:
@@ -555,6 +556,119 @@ components:
           type: string
         is_enabled:
           type: boolean
+    ContractTemplate:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        definition:
+          type: object
+          additionalProperties: true
+        metadata:
+          type: object
+          additionalProperties: true
+        is_enabled:
+          type: boolean
+        allowed_subjects:
+          type: array
+          items:
+            type: string
+        allowed_initial_states:
+          type: array
+          items:
+            type: string
+        created_at:
+          type: string
+        updated_at:
+          type: string
+    ContractTemplateListResponse:
+      type: object
+      properties:
+        templates:
+          type: array
+          items:
+            $ref: '#/components/schemas/ContractTemplate'
+    ContractTemplateCreateRequest:
+      type: object
+      required:
+        - name
+        - definition
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        definition:
+          type: object
+          additionalProperties: true
+        metadata:
+          type: object
+          additionalProperties: true
+        is_enabled:
+          type: boolean
+        allowed_subjects:
+          type: array
+          items:
+            type: string
+        allowed_initial_states:
+          type: array
+          items:
+            type: string
+      additionalProperties: true
+    ContractCreateRequest:
+      type: object
+      properties:
+        context:
+          type: object
+          additionalProperties: true
+        initial_state:
+          type: string
+      additionalProperties: false
+    ContractDocument:
+      type: object
+      properties:
+        id:
+          type: string
+        template_id:
+          type: string
+          nullable: true
+        state:
+          type: string
+          nullable: true
+        status:
+          type: string
+        owner_id:
+          type: string
+          nullable: true
+        context:
+          type: object
+          additionalProperties: true
+        states:
+          type: object
+          additionalProperties: true
+        local:
+          type: object
+          additionalProperties: true
+        created_at:
+          type: string
+        updated_at:
+          type: string
+      additionalProperties: true
+    ContractEventRequest:
+      type: object
+      properties:
+        payload:
+          type: object
+          additionalProperties: true
+      additionalProperties: false
+    ContractEventResponse:
+      type: object
+      additionalProperties: true
 security:
   - bearerAuth: [ ]
   - cookieAuth: [ ]
@@ -5144,3 +5258,380 @@ paths:
       parameters:
         - *id018
         - *id019
+  /contracts/templates:
+    post:
+      tags:
+        - Contracts
+      summary: Create contract template (admin only)
+      description: >
+        Creates a new workflow template for contracts. Requires system admin
+        permissions on contracts templates.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContractTemplateCreateRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContractTemplate'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Invalid payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    get:
+      tags:
+        - Contracts
+      summary: List contract templates (admin only)
+      description: Lists all contract templates.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContractTemplateListResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /contracts/templates/{template_id}:
+    get:
+      tags:
+        - Contracts
+      summary: Get contract template (admin only)
+      description: Returns one contract template by id.
+      parameters:
+        - name: template_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContractTemplate'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    put:
+      tags:
+        - Contracts
+      summary: Update contract template (admin only)
+      description: Partially updates fields of an existing contract template.
+      parameters:
+        - name: template_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContractTemplate'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Invalid payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /contracts/{id}:
+    post:
+      tags:
+        - Contracts
+      summary: Create contract from template
+      description: >
+        Creates a contract instance using the template id in path. Optional
+        payload fields are context and initial_state.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContractCreateRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContractDocument'
+        '404':
+          description: Template not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Invalid payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    get:
+      tags:
+        - Contracts
+      summary: Get contract by id
+      description: Returns the serialized contract document.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContractDocument'
+        '404':
+          description: Contract not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      tags:
+        - Contracts
+      summary: Cancel contract
+      description: Marks contract status as CANCELED.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContractDocument'
+        '404':
+          description: Contract not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /contracts/{contract_id}/{dyn_path}:
+    post:
+      tags:
+        - Contracts
+      summary: Fire contract event
+      description: >
+        Resolves and executes an API-triggered event for the contract using
+        dyn_path. Event payload must be sent in the payload object.
+      parameters:
+        - name: contract_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: dyn_path
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContractEventRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContractEventResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Invalid payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    get:
+      tags:
+        - Contracts
+      summary: Fire contract event via GET
+      description: >
+        Same behavior as POST variant. Supports integrations that call event
+        paths with GET.
+      parameters:
+        - name: contract_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: dyn_path
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContractEventResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Invalid payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'

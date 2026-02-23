@@ -114,11 +114,10 @@ if __name__ == "__main__":
         "flask-admin",
         "flask-principal",
         "asteval",
-        "fasteners",
         "click",
         "gunicorn",
         "click_log",
-        "sherlock",
+        "sqlalchemy-dlock",
         "flask-mail",
         "flask-security[common]>=5.6.0",
         "boto3",
@@ -127,7 +126,7 @@ if __name__ == "__main__":
         "python-dateutil",
         "flask-caching",
         "stripe",
-        "sqlalchemy-file",
+        "sqlalchemy-file"
     ]
     extras["sphinx"] = ["sphinx>=9.0.4", "sphinx-click"] + extras["plot"]
     extras["all"] = sorted(functools.reduce(set.union, extras.values(), set()))
@@ -145,6 +144,11 @@ if __name__ == "__main__":
         "readthedocs-sphinx-ext",
         "twine",
         "ddt",
+        "pytest",
+        "httpx",
+        "pymongo",
+        "numpy",
+        "pymoo",
         "testcontainers[mongodb]",
         "translators",
         "livereload>=2.6.3",
@@ -253,7 +257,17 @@ if __name__ == "__main__":
         ],
         install_requires=[],
         extras_require=extras,
-        tests_require=["requests", "cryptography", "ddt", "testcontainers[mongodb]"],
+        tests_require=[
+            "requests",
+            "cryptography",
+            "ddt",
+            "pytest",
+            "httpx",
+            "pymongo",
+            "numpy",
+            "pymoo",
+            "testcontainers[mongodb]",
+        ],
         package_data={
             "schedula.utils.drw": ["templates/*", "index/js/*", "index/css/*", "viz/*"],
             "schedula.utils.form": [
