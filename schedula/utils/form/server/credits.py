@@ -1092,7 +1092,7 @@ class Credits:
                 "STRIPE_WEBHOOK_SECRET_KEY",
         ):
             app.config[k] = app.config.get(k, os.environ.get(k))
-            #assert app.config[k], f"`{k}` is required!"
+            assert app.config[k], f"`{k}` is required!"
 
         stripe_api_base = app.config.get("STRIPE_API_BASE")
         if stripe_api_base:

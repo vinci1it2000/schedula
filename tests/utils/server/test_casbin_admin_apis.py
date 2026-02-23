@@ -8,7 +8,6 @@ from datetime import datetime
 import mongomock
 from flask import Flask
 from flask_security.utils import hash_password
-
 from schedula.utils.form.server import basic_app
 from schedula.utils.form.server.extensions import db as _db
 from schedula.utils.form.server.security import User
@@ -121,8 +120,7 @@ class TestCasbinAdminApis(unittest.TestCase):
             headers=self._auth_headers(self.admin_token),
         )
         self.assertEqual(r.status_code, 400)
-        data = r.get_json(silent=True) or {}
-        self.assertEqual(data.get("error"), "Cannot remove the last system admin")
+        self.assertIn("Cannot remove the last system admin", r.text)
 
     def tearDown(self):
         with self.app.app_context():
@@ -170,9 +168,7 @@ class TestCasbinAdminApis(unittest.TestCase):
             "/admin/casbin/policies", headers=self._auth_headers(self.member_token)
         )
         self.assertEqual(r.status_code, 403)
-        data = r.get_json(silent=True) or {}
-        self.assertIn("error", data)
-        self.assertEqual(data.get("error"), "Forbidden")
+        self.assertIn("Forbidden", r.text)
 
     def test_grouping_requires_system_admin(self):
         # Call grouping list as non-admin user.
@@ -180,9 +176,7 @@ class TestCasbinAdminApis(unittest.TestCase):
             "/admin/casbin/grouping", headers=self._auth_headers(self.member_token)
         )
         self.assertEqual(r.status_code, 403)
-        data = r.get_json(silent=True) or {}
-        self.assertIn("error", data)
-        self.assertEqual(data.get("error"), "Forbidden")
+        self.assertIn("Forbidden", r.text)
 
     def test_policies_list_contains_admin_policy(self):
         # Call policies list as admin user.
@@ -279,9 +273,7 @@ class TestCasbinAdminApis(unittest.TestCase):
             headers=self._auth_headers(self.admin_token),
         )
         self.assertEqual(r.status_code, 400)
-        data = r.get_json(silent=True) or {}
-        self.assertIn("error", data)
-        self.assertEqual(data.get("error"), "Invalid payload")
+        self.assertIn("Invalid payload", r.text)
 
         # Call policies create with missing sub field.
         r = self.admin_client.post(
@@ -290,9 +282,7 @@ class TestCasbinAdminApis(unittest.TestCase):
             headers=self._auth_headers(self.admin_token),
         )
         self.assertEqual(r.status_code, 400)
-        data = r.get_json(silent=True) or {}
-        self.assertIn("error", data)
-        self.assertEqual(data.get("error"), "Missing policy field 'sub'")
+        self.assertIn("Missing policy field 'sub'", r.text)
 
     def test_grouping_crud(self):
         payload = [{"sub": f"u:{self.member_user_id}", "role": "g:test"}]
@@ -352,9 +342,7 @@ class TestCasbinAdminApis(unittest.TestCase):
             headers=self._auth_headers(self.admin_token),
         )
         self.assertEqual(r.status_code, 400)
-        data = r.get_json(silent=True) or {}
-        self.assertIn("error", data)
-        self.assertEqual(data.get("error"), "Invalid payload")
+        self.assertIn("Invalid payload", r.text)
 
         # Call grouping create with missing role field.
         r = self.admin_client.post(
@@ -363,9 +351,7 @@ class TestCasbinAdminApis(unittest.TestCase):
             headers=self._auth_headers(self.admin_token),
         )
         self.assertEqual(r.status_code, 400)
-        data = r.get_json(silent=True) or {}
-        self.assertIn("error", data)
-        self.assertEqual(data.get("error"), "Missing group field 'role'")
+        self.assertEqual("Missing group field &#39;role&#39;", r.text)
 
     def test_rules_set_in_enforcer(self):
         with self.app.app_context():

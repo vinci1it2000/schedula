@@ -335,13 +335,10 @@ def configure_sherlock():
     try:
         lock_config.client
     except ValueError as ex:
-        try:
+        if "REDIS_LOCK_URL" in os.environ:
             from redis import StrictRedis
-            sherlock.configure(client=StrictRedis.from_url(os.environ.get(
-                'REDIS_LOCK_URL', "redis://localhost:6379"
-            )))
-        except Exception:
-            if lock_config.backend is None:
-                sherlock.configure(backend=sherlock.backends.FILE)
-            else:
-                raise ex
+            sherlock.configure(client=StrictRedis.from_url(os.environ["REDIS_LOCK_URL"]))
+        elif lock_config.backend is None:
+            sherlock.configure(backend=sherlock.backends.FILE)
+        else:
+            raise ex
