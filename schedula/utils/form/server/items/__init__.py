@@ -55,3 +55,9 @@ class Items:
             [("category", 1), ("acl_dom", 1), ("updated_at", -1)]
         )
         coll.create_index([("category", 1), ("_id", -1)])
+        coll.create_index([("category", 1), ("public", 1), ("updated_at", -1)])
+        coll.create_index([("category", 1), ("created_at", -1)])
+
+        fs_files = get_mongo(app, collection="fs.files")
+        fs_files.create_index("user_id")
+        fs_files.create_index("uploadDate")

@@ -390,25 +390,26 @@ def edit_members(gid: str):
         # store as set of tuples (type, id)
         data[key] = {tuple(x.split(":")[:2]) for x in v}
         data[key] = {("user" if t == "u" else "group", p) for t, p in data[key]}
+    try:
+        # apply operations (order matters for admin constraint)
+        for t, p in sorted(data["add_members"]):
+            group.add_member(p, subject_type=t)
 
-    # apply operations (order matters for admin constraint)
-    for t, p in sorted(data["add_members"]):
-        group.add_member(p, subject_type=t)
+        for t, p in sorted(data["promote_admins"]):
+            group.promote_admin(p, subject_type=t)
 
-    for t, p in sorted(data["promote_admins"]):
-        group.promote_admin(p, subject_type=t)
+        for t, p in sorted(data["demote_admins"]):
+            group.demote_admin(p, subject_type=t)
 
-    for t, p in sorted(data["demote_admins"]):
-        group.demote_admin(p, subject_type=t)
+        for t, p in sorted(data["remove_members"]):
+            group.remove_member(p, subject_type=t)
 
-    for t, p in sorted(data["remove_members"]):
-        group.remove_member(p, subject_type=t)
+        for t, p in sorted(data["ban_members"]):
+            group.ban_member(p, subject_type=t)
 
-    for t, p in sorted(data["ban_members"]):
-        group.ban_member(p, subject_type=t)
-
-    for t, p in sorted(data["unban_members"]):
-        group.unban_member(p, subject_type=t)
-
+        for t, p in sorted(data["unban_members"]):
+            group.unban_member(p, subject_type=t)
+    except ValueError as exc:
+        abort_json(400, str(exc))
     db.session.commit()
     return jsonify({"ok": True}), 200

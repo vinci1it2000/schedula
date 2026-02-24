@@ -204,9 +204,9 @@ class TestGroupsApis(unittest.TestCase):
             json={"remove_members": [f"u:{self.admin_user_id}"]},
             headers=self._auth_headers(self.admin_token),
         )
-        self.assertEqual(r.status_code, 500)
+        self.assertEqual(r.status_code, 400)
         data = r.get_json(silent=True) or {}
-        self.assertEqual(data.get("error"), "Internal server error")
+        self.assertEqual(data.get("error"), "Cannot remove the last group admin")
 
     def test_group_cannot_be_member_of_itself(self):
         r = self.api_client.post(
@@ -223,9 +223,9 @@ class TestGroupsApis(unittest.TestCase):
             json={"add_members": [f"g:{gid}"]},
             headers=self._auth_headers(self.admin_token),
         )
-        self.assertEqual(r.status_code, 500)
+        self.assertEqual(r.status_code, 400)
         data = r.get_json(silent=True) or {}
-        self.assertEqual(data.get("error"), "Internal server error")
+        self.assertEqual(data.get("error"), "A group cannot be a member of itself")
 
     def test_add_group_to_group(self):
         r = self.api_client.post(

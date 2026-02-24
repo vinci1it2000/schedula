@@ -224,7 +224,7 @@ class TestNotificationsTasksWithoutCelery(BaseNotificationsTaskApiTest):
             coll = get_mongo(collection=config_get("NOTIF_COLLECTION", "notifications"))
             doc = coll.find_one({"_id": nid})
             self.assertIsNotNone(doc)
-            status = (doc or {}).get("status", {}).get("apprise", {})
+            status = (doc or {}).get("status", {})
             self.assertEqual(status.get("state"), "sent")
 
     def test_apprise_delivery_errors_without_celery(self):
@@ -261,7 +261,7 @@ class TestNotificationsTasksWithoutCelery(BaseNotificationsTaskApiTest):
             coll = get_mongo(collection=config_get("NOTIF_COLLECTION", "notifications"))
             doc = coll.find_one({"_id": nid})
             self.assertIsNotNone(doc)
-            status = (doc or {}).get("status", {}).get("apprise", {})
+            status = (doc or {}).get("status", {})
             self.assertEqual(status.get("state"), "partial")
             results = status.get("results") or []
             states = {r.get("state") for r in results if isinstance(r, dict)}
@@ -503,7 +503,7 @@ class TestNotificationsTasksWithCelery(BaseNotificationsTaskApiTest):
             coll = get_mongo(collection=config_get("NOTIF_COLLECTION", "notifications"))
             doc = coll.find_one({"_id": nid})
             self.assertIsNotNone(doc)
-            status = (doc or {}).get("status", {}).get("apprise", {})
+            status = (doc or {}).get("status", {})
             self.assertEqual(status.get("state"), "sent")
 
     def test_apprise_delivery_errors_with_celery(self):
@@ -556,7 +556,7 @@ class TestNotificationsTasksWithCelery(BaseNotificationsTaskApiTest):
             coll = get_mongo(collection=config_get("NOTIF_COLLECTION", "notifications"))
             doc = coll.find_one({"_id": nid})
             self.assertIsNotNone(doc)
-            status = (doc or {}).get("status", {}).get("apprise", {})
+            status = (doc or {}).get("status", {})
             self.assertEqual(status.get("state"), "partial")
             results = status.get("results") or []
             states = {r.get("state") for r in results if isinstance(r, dict)}

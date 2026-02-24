@@ -199,7 +199,7 @@ def deliver_apprise_sync(notification: str | Dict[str, Any]):
             {"_id": notification},
             {
                 "$set": {
-                    "status.apprise": {
+                    "status": {
                         "state": "sent" if ok_all else "partial",
                         "results": results,
                         "ts": now_utc(),

@@ -419,9 +419,9 @@ class TestItemsAclApis(unittest.TestCase):
             json={"ban_members": [f"g:{self.group_id}"]},
             headers=self._auth_headers(self.creator_token),
         )
-        self.assertEqual(r.status_code, 500)
+        self.assertEqual(r.status_code, 400)
         data = r.get_json(silent=True) or {}
-        self.assertEqual(data.get("error"), "Internal server error")
+        self.assertEqual(data.get("error"), "A group cannot ban itself")
 
     def test_item_creation_triggers_notify_policies(self):
         dom = acl_group(self.group_id)
