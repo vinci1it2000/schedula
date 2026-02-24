@@ -1479,45 +1479,6 @@ paths:
             schema:
               type: object
               additionalProperties: true
-  /user/notifications/devices:
-    post:
-      tags:
-        - Security
-      summary: Set push device ids
-      description: >
-        Stores push device ids for the current user inside settings.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                device_ids:
-                  type: array
-                  items:
-                    type: string
-      responses:
-        '200':
-          description: OK
-        '400':
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '500':
-          description: Server Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
     patch:
       tags:
         - Security
@@ -1536,18 +1497,6 @@ paths:
                 $ref: '#/components/schemas/Error'
         '401':
           description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '403':
-          description: Forbidden
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '404':
-          description: Not Found
           content:
             application/json:
               schema:
@@ -2495,165 +2444,6 @@ paths:
       parameters:
         - *id008
         - *id010
-  /items/{category}:
-    get:
-      tags:
-        - Items
-      summary: List items (/items)
-      description: >
-        Lists items for a given category using the /items alias. Results are
-        filtered by Casbin ACLs and optional mq filters. Supports pagination.
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ItemListResponse'
-      parameters:
-        - *id008
-        - name: mode
-          in: query
-          required: false
-          schema:
-            type: string
-            enum:
-              - read
-              - write
-        - name: group_id
-          in: query
-          required: false
-          schema:
-            type: string
-        - *id009
-        - *id012
-        - *id002
-        - *id003
-        - *id004
-        - *id005
-        - *id007
-    post:
-      tags:
-        - Items
-      summary: Create item (/items)
-      description: >
-        Creates a new item using the /items alias. Requires create permission
-        in the target domain. Returns the created item.
-      responses:
-        '201':
-          description: Created
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Item'
-      parameters:
-        - *id008
-        - *id009
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ItemCreate'
-          multipart/form-data:
-            schema:
-              type: object
-              properties:
-                acl_dom:
-                  type: string
-                group_id:
-                  type: string
-                data:
-                  type: string
-                  description: JSON string of {data} (optional)
-              additionalProperties: true
-  /items/{category}/{item_id}:
-    get:
-      tags:
-        - Items
-      summary: Get item (/items)
-      description: >
-        Fetches a single item using the /items alias. Requires read permission
-        on the item's ACL domain. Returns the item document.
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Item'
-      parameters:
-        - *id008
-        - *id010
-        - *id009
-    put:
-      tags:
-        - Items
-      summary: Replace item data (/items)
-      description: >
-        Replaces item data using the /items alias. Requires write permission and
-        returns the updated item document.
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Item'
-      parameters:
-        - *id008
-        - *id010
-        - *id009
-      requestBody: &id013
-        required: false
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ItemUpdate'
-          multipart/form-data:
-            schema:
-              type: object
-              properties:
-                data:
-                  type: string
-                  description: JSON string
-              additionalProperties: true
-    patch:
-      tags:
-        - Items
-      summary: Patch item data (/items)
-      description: >
-        Applies a partial update to item data using the /items alias. Requires
-        write permission. Returns the updated item.
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Item'
-      parameters:
-        - *id008
-        - *id010
-        - *id009
-      requestBody: *id013
-    delete:
-      tags:
-        - Items
-      summary: Delete item (/items)
-      description: >
-        Deletes an item using the /items alias. Requires manage permission and
-        returns a status payload.
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Status'
-      parameters:
-        - *id008
-        - *id010
   /item/{category}/{item_id}/acl/share:
     put:
       tags:
@@ -2764,116 +2554,6 @@ paths:
       parameters:
         - *id008
         - *id010
-  /items/{category}/{item_id}/acl/share:
-    put:
-      tags:
-        - Item ACL
-      summary: Replace share ACL (/items)
-      description: >
-        Replaces the share ACL entries using the /items alias. Requires manage
-        permission on the item domain. Returns the updated ACL entries.
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  ok:
-                    type: boolean
-      parameters:
-        - *id008
-        - *id010
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ShareReplacePayload'
-    get:
-      tags:
-        - Item ACL
-      summary: List share ACL (/items)
-      description: >
-        Lists the share ACL entries using the /items alias. Requires manage
-        permission on the item domain. Returns the ACL entry list.
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ShareListResponse'
-      parameters:
-        - *id008
-        - *id010
-  /items/{category}/{item_id}/acl/publish:
-    post:
-      tags:
-        - Item ACL
-      summary: Publish item (public read) (/items)
-      description: >
-        Grants public read access using the /items alias. Requires manage
-        permission and returns publish status.
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  ok:
-                    type: boolean
-                  public:
-                    type: boolean
-      parameters:
-        - *id008
-        - *id010
-    get:
-      tags:
-        - Item ACL
-      summary: Check publish status (/items)
-      description: >
-        Returns publish status using the /items alias. Requires manage
-        permission on the item domain. Returns a published flag.
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  public:
-                    type: boolean
-      parameters:
-        - *id008
-        - *id010
-  /items/{category}/{item_id}/acl/unpublish:
-    post:
-      tags:
-        - Item ACL
-      summary: Unpublish item (/items)
-      description: >
-        Revokes public read access using the /items alias. Requires manage
-        permission on the item domain. Returns publish status.
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  ok:
-                    type: boolean
-                  public:
-                    type: boolean
-      parameters:
-        - *id008
-        - *id010
   /item-file/{item_id}/{file_name}:
     get:
       tags:
@@ -2898,25 +2578,6 @@ paths:
           required: true
           schema:
             type: string
-  /items-file/{item_id}/{file_name}:
-    get:
-      tags:
-        - Item Files
-      summary: Download item file (/items-file)
-      description: >
-        Downloads a file using the /items-file alias. Requires read permission
-        on the item and returns the file content.
-      responses:
-        '200':
-          description: File content
-          content:
-            application/octet-stream:
-              schema:
-                type: string
-                format: binary
-      parameters:
-        - *id010
-        - *id014
   /admin/item-schema/:
     get:
       tags:
@@ -3858,7 +3519,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-  /notification/read/{nid}:
+  /notification/read/{notification_id}:
     post:
       tags:
         - Notifications
@@ -3869,7 +3530,7 @@ paths:
         a simple status payload.
       parameters:
         - in: path
-          name: nid
+          name: notification_id
           required: true
           schema:
             type: string
@@ -3904,6 +3565,57 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UnreadCountResponse'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /notification/tokens:
+    put:
+      tags:
+        - Notifications
+      summary: Upsert push token
+      description: >
+        Registers or replaces the current user's push token used by notification
+        delivery channels.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                token:
+                  type: string
+                prev_token:
+                  type: string
+                app_version:
+                  type: string
+              required:
+                - token
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '401':
           description: Authentication required
           content:
@@ -4288,46 +4000,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-    delete:
-      tags:
-        - Notifications
-      summary: Delete notification rule (admin only)
-      description: >
-        Deletes a notification rule. Returns a status payload.
-      parameters:
-        - in: path
-          name: rule_id
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  ok:
-                    type: boolean
-        '403':
-          description: Forbidden
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '404':
-          description: Not Found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '500':
-          description: Server Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
   /admin/notification/templates:
     get:
       tags:
@@ -4443,7 +4115,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-  /admin/notification/templates/{templateId}:
+  /admin/notification/templates/{template_id}:
     get:
       tags:
         - Templates
@@ -4453,7 +4125,7 @@ paths:
         privileges. Returns 404 when the template does not exist.
       parameters:
         - in: path
-          name: templateId
+          name: template_id
           required: true
           schema:
             type: string
@@ -4492,7 +4164,7 @@ paths:
         privileges. Returns the upserted template document.
       parameters:
         - in: path
-          name: templateId
+          name: template_id
           required: true
           schema:
             type: string
@@ -4541,7 +4213,7 @@ paths:
         status payload indicating success.
       parameters:
         - in: path
-          name: templateId
+          name: template_id
           required: true
           schema:
             type: string
@@ -5419,7 +5091,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-  /contracts/{id}:
+  /contracts/{template_id}:
     post:
       tags:
         - Contracts
@@ -5428,7 +5100,7 @@ paths:
         Creates a contract instance using the template id in path. Optional
         payload fields are context and initial_state.
       parameters:
-        - name: id
+        - name: template_id
           in: path
           required: true
           schema:
@@ -5458,13 +5130,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+  /contracts/{contract_id}:
     get:
       tags:
         - Contracts
       summary: Get contract by id
       description: Returns the serialized contract document.
       parameters:
-        - name: id
+        - name: contract_id
           in: path
           required: true
           schema:
@@ -5488,7 +5161,7 @@ paths:
       summary: Cancel contract
       description: Marks contract status as CANCELED.
       parameters:
-        - name: id
+        - name: contract_id
           in: path
           required: true
           schema:
