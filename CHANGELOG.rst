@@ -1,6 +1,33 @@
 Changelog
 =========
 
+v1.6.2 (2026-02-24)
+-------------------
+
+Fix
+~~~
+- (test): Correct skipping test cases.
+
+
+Other
+~~~~~
+- Refactor(openapi): remove unused endpoints for items and
+  notifications, standardize path parameters, and clean up schema
+  definitions.
+
+- Refactor(server): enhance error handling for group and item
+  operations, standardize HTTP status codes; improve MongoDB indexing
+  and notification status handling.
+
+- Refactor(notifications): add `notifications_validator` for JSON schema
+  validation, enhance notification collection initialization with
+  indexes, and apply `set_bp_error_handlers` to `casbin_admin`
+  blueprint.
+
+- Refactor(server): enhance `public` field handling and authorization
+  logic for file access and CRUD operations.
+
+
 v1.6.1 (2026-02-23)
 -------------------
 - Refactor(blueprints): apply `set_bp_error_handlers` to multiple
