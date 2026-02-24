@@ -224,6 +224,48 @@ def _templates_validator() -> Dict[str, Any]:
     }
 
 
+def _notifications_validator() -> Dict[str, Any]:
+    """Return JSON schema validator for persisted notifications."""
+    return {
+        "$jsonSchema": {
+            "bsonType": "object",
+            "required": [
+                "_id",
+                "event",
+                "targets",
+                "severity",
+                "payload",
+                "persist",
+                "created_at",
+                "read_by",
+                "status",
+                "rendered",
+            ],
+            "properties": {
+                "_id": {"bsonType": "string"},
+                "event": {"bsonType": "string", "minLength": 1},
+                "sender_principal": {"bsonType": ["string", "null"]},
+                "targets": {"bsonType": "object"},
+                "severity": {
+                    "bsonType": "string",
+                    "enum": ["info", "warning", "error", "critical"],
+                },
+                "payload": {"bsonType": "object"},
+                "persist": {"bsonType": "bool"},
+                "created_by": {"bsonType": ["string", "null"]},
+                "created_at": {},
+                "read_by": {
+                    "bsonType": "array",
+                    "items": {"bsonType": "string"},
+                },
+                "status": {"bsonType": "object"},
+                "rendered": {"bsonType": "object"},
+            },
+            "additionalProperties": False,
+        }
+    }
+
+
 def list_rules(
         *,
         category: Optional[str] = None,

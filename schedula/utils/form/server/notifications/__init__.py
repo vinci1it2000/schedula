@@ -30,6 +30,7 @@ class Notifications:
             _watchers_validator,
             _templates_validator,
             _push_tokens_validator,
+            _notifications_validator,
         )
 
         mongo = get_mongo(app=app)
@@ -74,6 +75,16 @@ class Notifications:
             validator=_push_tokens_validator(),
         )
 
+        notifications_coll_id = config_get(
+            "NOTIF_COLLECTION", "notifications", app=app
+        )
+
+        mongo_command(
+            mongo,
+            notifications_coll_id,
+            validator=_notifications_validator(),
+        )
+
         push_tokens_coll = get_mongo(
             app=app,
             collection=push_tokens_coll_id,
@@ -113,6 +124,16 @@ class Notifications:
         templates_coll.create_index("event")
         templates_coll.create_index("updated_at")
         templates_coll.create_index([("event", 1), ("enabled", 1), ("updated_at", -1)])
+
+        notifications_coll = get_mongo(
+            app=app,
+            collection=notifications_coll_id,
+        )
+        notifications_coll.create_index("created_at")
+        notifications_coll.create_index("event")
+        notifications_coll.create_index("persist")
+        notifications_coll.create_index([("event", 1), ("created_at", -1)])
+        notifications_coll.create_index([("persist", 1), ("created_at", -1)])
 
         app.register_blueprint(bp, url_prefix="/notification")
         app.register_blueprint(admin_bp, url_prefix="/admin/notification")

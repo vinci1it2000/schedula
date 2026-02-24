@@ -291,7 +291,7 @@ class TestCasbinAdminApis(unittest.TestCase):
         self.assertEqual(r.status_code, 400)
         data = r.get_json(silent=True) or {}
         self.assertIn("error", data)
-        self.assertEqual(data.get("error"), "Missing policy field &#39;sub&#39;")
+        self.assertEqual(data.get("error"), "Missing policy field 'sub'")
 
     def test_grouping_crud(self):
         payload = [{"sub": f"u:{self.member_user_id}", "role": "g:test"}]

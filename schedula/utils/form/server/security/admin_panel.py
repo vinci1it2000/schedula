@@ -41,7 +41,7 @@ from flask import Blueprint, jsonify, request
 
 from .casbin import set_system_admin, require_system_admin, get_enforcer, SYSTEM_ADMIN_ROLE
 from ..extensions import db
-from ..utils import abort_json, parse_pagination_args, parse_sort_arg
+from ..utils import abort_json, parse_pagination_args, parse_sort_arg, set_bp_error_handlers
 
 _ALLOWED_SORT_FIELDS_P = {
     "sub": 0,
@@ -96,6 +96,7 @@ def _parse_rows(
 
 
 bp = Blueprint("casbin_admin", __name__)
+set_bp_error_handlers(bp)
 
 
 @bp.get("/policies")
