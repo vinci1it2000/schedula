@@ -16,6 +16,11 @@ from .utils.mongo_validation import ValidatingMongoDatabase
 from .utils.seed import seed_admin_user, seed_regular_user, try_login_for_token
 
 
+EXTRAS = os.environ.get("EXTRAS", "all")
+if EXTRAS not in ("all", "form"):
+    pytest.skip("Not for extra %s." % EXTRAS, allow_module_level=True)
+
+
 @dataclass
 class TestUsers:
     admin: Dict[str, Any]
