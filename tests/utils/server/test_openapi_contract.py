@@ -74,7 +74,7 @@ class TestOpenApiContract(unittest.TestCase):
             SECURITY_URL_PREFIX="/user",
             WTF_CSRF_ENABLED=False,
             SCHEDULA_CSRF_ENABLED=False,
-            ITEMS_STORAGE_ENABLED=True,
+            ITEMS_STORAGE_ENABLED=False,
             FILES_STORAGE_ENABLED=False,
             S3_ITEMS_FILE_STORAGE=False,
             CONTACT_ENABLED=False,

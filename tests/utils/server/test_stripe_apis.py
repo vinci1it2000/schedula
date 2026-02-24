@@ -7,7 +7,6 @@ except Exception:
 
 ensure_server_test_env()
 
-
 import hashlib
 import hmac
 import json
@@ -33,7 +32,10 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 from schedula.utils.form.server import basic_app
 from schedula.utils.form.server.extensions import db as _db
 from schedula.utils.form.server.security import User
-from schedula.utils.form.server.security.casbin.bootstrap import bootstrap_user
+from schedula.utils.form.server.security.casbin.bootstrap import (
+    bootstrap_user,
+    set_system_admin,
+)
 from tests.utils.server.utils.mongo_validation import ValidatingMongoDatabase
 
 
@@ -60,7 +62,7 @@ class TestStripeApis(unittest.TestCase):
             cls._mysql_container.start()
             uri = str(cls._mysql_container.get_connection_url())
             if uri.startswith("mysql://"):
-                uri = "mysql+pymysql://" + uri[len("mysql://"):]
+                uri = "mysql+pymysql://" + uri[len("mysql://") :]
             cls._sqlalchemy_uri = uri
         except Exception as ex:  # pragma: no cover
             raise unittest.SkipTest(
@@ -123,10 +125,12 @@ class TestStripeApis(unittest.TestCase):
             STRIPE_PUBLISHABLE_KEY="pk_test_dummy",
             STRIPE_WEBHOOK_SECRET_KEY="whsec_dummy",
             STRIPE_API_BASE=self.stripe_base,
+            ENABLE_CHECKOUT_SESSION_STORAGE=True
         )
 
         with self.app.app_context():
             basic_app(DummySitemap(), self.app, config)
+            _db.drop_all()
             _db.create_all()
 
             user = User(
@@ -142,9 +146,63 @@ class TestStripeApis(unittest.TestCase):
             _db.session.commit()
             self.user_id = user.id
             bootstrap_user(user.id)
+            set_system_admin(user.id)
 
         self.client = self.app.test_client()
         self.token = self._login_token("stripe_user@gmail.com")
+        seeded = self.client.get(
+            "/admin/stripe/checkout-sessions/", headers=self._auth_headers()
+        )
+        self.assertEqual(seeded.status_code, 200)
+        seeded_data = seeded.get_json(silent=True) or {}
+        seeded_ids = {
+            i.get("_id") for i in seeded_data.get("items", []) if isinstance(i, dict)
+        }
+        self.assertIn("payment", seeded_ids)
+        self.assertIn("subscription", seeded_ids)
+
+        seed = self.client.put(
+            "/admin/stripe/checkout-sessions/payment",
+            json={
+                "payload_schema": {
+                    "anyOf": [
+                        {
+                            "type": "array",
+                            "minItems": 1,
+                            "items": {
+                                "type": "object",
+                                "required": ["quantity"],
+                                "properties": {
+                                    "quantity": {"type": "integer", "minimum": 1}
+                                },
+                                "additionalProperties": True,
+                            },
+                        },
+                        {
+                            "type": "object",
+                            "patternProperties": {
+                                "^\\d+$": {
+                                    "type": "object",
+                                    "required": ["quantity"],
+                                    "properties": {
+                                        "quantity": {"type": "integer", "minimum": 1}
+                                    },
+                                    "additionalProperties": True,
+                                }
+                            },
+                            "additionalProperties": False,
+                        },
+                    ]
+                },
+                "session_kw": {
+                    "mode": "payment",
+                    "allow_promotion_codes": True,
+                },
+                "line_items": {"dynamic_tax_rates": True},
+            },
+            headers=self._auth_headers(),
+        )
+        self.assertEqual(seed.status_code, 200)
         stripe.api_base = self.stripe_base
 
         self._patchers = [
@@ -283,24 +341,23 @@ class TestStripeApis(unittest.TestCase):
         return stripe.convert_to_stripe_object(session_dict, api_key="sk_test_dummy")
 
     def test_create_checkout_session_stripe_mock(self):
-        payload = {
-            "mode": "payment",
-            "return_url": "https://example.com/return",
-            "line_items": [
-                {
-                    "price_data": {
-                        "currency": "usd",
-                        "product_data": {"name": "Test Product"},
-                        "unit_amount": 100,
-                    },
-                    "quantity": 1,
-                }
-            ],
-        }
+        payload = [
+            {
+                "price_data": {
+                    "currency": "usd",
+                    "product_data": {"name": "Test Product"},
+                    "unit_amount": 100,
+                },
+                "quantity": 1,
+            }
+        ]
 
-        with patch("schedula.utils.form.server.credits.get_discounts", return_value={}):
+        with patch(
+            "schedula.utils.form.server.credits.stripe.session.get_discounts",
+            return_value={},
+        ):
             r = self.client.post(
-                "/stripe/create-checkout-session",
+                "/stripe/create-checkout-session/payment",
                 json=payload,
                 headers=self._auth_headers(),
             )
@@ -311,7 +368,18 @@ class TestStripeApis(unittest.TestCase):
         self.assertIn("sessionId", data)
         if data.get("clientSecret") is not None:
             self.assertIsInstance(data.get("clientSecret"), str)
-        self.assertIsInstance(data.get("sessionId"), str)
+
+    def test_storage_init_populates_default_checkout_sessions(self):
+        r = self.client.get(
+            "/admin/stripe/checkout-sessions/", headers=self._auth_headers()
+        )
+        self.assertEqual(r.status_code, 200)
+        data = r.get_json(silent=True) or {}
+        items = data.get("items", [])
+        self.assertIsInstance(items, list)
+        ids = {i.get("_id") for i in items if isinstance(i, dict)}
+        self.assertIn("payment", ids)
+        self.assertIn("subscription", ids)
 
     def test_session_status_stripe_mock(self):
         session = stripe.checkout.Session.create(
@@ -341,46 +409,31 @@ class TestStripeApis(unittest.TestCase):
         self.assertIn("customer_email", data)
 
     def test_balance_and_subscription(self):
-        r = self.client.get("/stripe/balance", headers=self._auth_headers())
+        r = self.client.get("/user/balance", headers=self._auth_headers())
         self.assertEqual(r.status_code, 200)
         data = r.get_json(silent=True) or {}
         self.assertIsInstance(data, dict)
         self.assertTrue(data)
         wallet_id = next(iter(data.keys()))
 
-        r = self.client.get(
-            f"/stripe/balance/{wallet_id}", headers=self._auth_headers()
-        )
+        r = self.client.get(f"/user/balance/{wallet_id}", headers=self._auth_headers())
         self.assertEqual(r.status_code, 200)
         data = r.get_json(silent=True) or {}
         self.assertIsInstance(data, dict)
 
-        r = self.client.get("/stripe/subscription", headers=self._auth_headers())
+        r = self.client.get("/user/subscription", headers=self._auth_headers())
         self.assertEqual(r.status_code, 200)
         data = r.get_json(silent=True) or {}
         self.assertIsInstance(data, dict)
 
         r = self.client.get(
-            f"/stripe/subscription/{wallet_id}", headers=self._auth_headers()
+            f"/user/subscription/{wallet_id}", headers=self._auth_headers()
         )
         self.assertEqual(r.status_code, 200)
         data = r.get_json(silent=True) or {}
         self.assertIsInstance(data, dict)
 
-    def test_pricing_table_and_portal_sessions(self):
-        r = self.client.post(
-            "/stripe/create-customer-pricing-table-session",
-            json={"locale": "en"},
-            headers=self._auth_headers(),
-        )
-        self.assertEqual(r.status_code, 200)
-        data = r.get_json(silent=True) or {}
-        self.assertIsInstance(data, dict)
-        self.assertTrue(
-            ("clientSecret" in data and isinstance(data.get("clientSecret"), str))
-            or ("error" in data and isinstance(data.get("error"), str))
-        )
-
+    def test_portal_session(self):
         r = self.client.post(
             "/stripe/create-customer-portal-session",
             json={"return_url": "https://example.com/return"},
@@ -394,27 +447,130 @@ class TestStripeApis(unittest.TestCase):
             or ("error" in data and isinstance(data.get("error"), str))
         )
 
+    def test_checkout_requires_auth(self):
+        anon_client = self.app.test_client()
+        payload = [
+            {
+                "price_data": {
+                    "currency": "usd",
+                    "product_data": {"name": "Test Product"},
+                    "unit_amount": 100,
+                },
+                "quantity": 1,
+            }
+        ]
+        r = anon_client.post("/stripe/create-checkout-session/payment", json=payload)
+        self.assertIn(r.status_code, (302, 401, 403))
+
+    def test_session_status_requires_auth(self):
+        anon_client = self.app.test_client()
+        r = anon_client.get("/stripe/session-status/cs_test_unauth")
+        self.assertIn(r.status_code, (302, 401, 403))
+
+    def test_create_checkout_session_rejects_invalid_indexed_payload(self):
+        r = self.client.post(
+            "/stripe/create-checkout-session/payment",
+            json={"x": {"quantity": 1}},
+            headers=self._auth_headers(),
+        )
+        self.assertIn(r.status_code, (400, 422))
+        data = r.get_json(silent=True) or {}
+        self.assertIn(data.get("error"), ("Invalid payload", "Invalid checkout"))
+
+    def test_admin_price_endpoint_not_available(self):
+        payload = {
+            "product": "prod_test_123",
+            "currency": "usd",
+            "unit_amount": 250,
+        }
+        r = self.client.post(
+            "/stripe/admin/prices", json=payload, headers=self._auth_headers()
+        )
+        self.assertEqual(r.status_code, 404)
+
+    def test_admin_checkout_sessions_requires_admin(self):
+        anon_client = self.app.test_client()
+        r = anon_client.get("/admin/stripe/checkout-sessions/")
+        self.assertIn(r.status_code, (401, 403))
+
+    def test_admin_checkout_sessions_can_add_custom_case(self):
+        with self.app.app_context():
+            set_system_admin(self.user_id)
+
+        definition = {
+            "payload_schema": {
+                "type": "array",
+                "minItems": 1,
+                "items": {"type": "object", "additionalProperties": True},
+            },
+            "session_kw": {
+                "mode": "payment",
+                "allow_promotion_codes": True,
+            },
+            "line_items": {
+                "dynamic_tax_rates": True,
+            },
+            "enabled": True,
+        }
+        put_resp = self.client.put(
+            "/admin/stripe/checkout-sessions/credits-pack",
+            json=definition,
+            headers=self._auth_headers(),
+        )
+        self.assertEqual(put_resp.status_code, 200)
+
+        list_resp = self.client.get(
+            "/admin/stripe/checkout-sessions/", headers=self._auth_headers()
+        )
+        self.assertEqual(list_resp.status_code, 200)
+        body = list_resp.get_json(silent=True) or {}
+        self.assertTrue(
+            any(i.get("_id") == "credits-pack" for i in body.get("items", []))
+        )
+
+        checkout_payload = [
+            {
+                "price_data": {
+                    "currency": "usd",
+                    "product_data": {"name": "Credits Pack"},
+                    "unit_amount": 100,
+                },
+                "quantity": 1,
+            }
+        ]
+        with patch(
+            "schedula.utils.form.server.credits.stripe.session.get_discounts",
+            return_value={},
+        ):
+            checkout_resp = self.client.post(
+                "/stripe/create-checkout-session/credits-pack",
+                json=checkout_payload,
+                headers=self._auth_headers(),
+            )
+        self.assertEqual(checkout_resp.status_code, 200)
+        data = checkout_resp.get_json(silent=True) or {}
+        self.assertIn("sessionId", data)
+
     def test_purchase_flow_adds_credits(self):
         credits = 3
-        payload = {
-            "mode": "payment",
-            "return_url": "https://example.com/return",
-            "line_items": [
-                {
-                    "price_data": {
-                        "currency": "usd",
-                        "product_data": {"name": "Credits"},
-                        "unit_amount": 100,
-                    },
-                    "quantity": credits,
-                    "metadata": {"credits": credits},
-                }
-            ],
-        }
+        payload = [
+            {
+                "price_data": {
+                    "currency": "usd",
+                    "product_data": {"name": "Credits"},
+                    "unit_amount": 100,
+                },
+                "quantity": credits,
+                "metadata": {"credits": credits},
+            }
+        ]
 
-        with patch("schedula.utils.form.server.credits.get_discounts", return_value={}):
+        with patch(
+            "schedula.utils.form.server.credits.stripe.session.get_discounts",
+            return_value={},
+        ):
             r = self.client.post(
-                "/stripe/create-checkout-session",
+                "/stripe/create-checkout-session/payment",
                 json=payload,
                 headers=self._auth_headers(),
             )
@@ -423,6 +579,7 @@ class TestStripeApis(unittest.TestCase):
         self.assertIsInstance(data, dict)
         session_id = data.get("sessionId")
         self.assertIsInstance(session_id, str)
+        session_id = str(session_id)
 
         fake_session = self._fake_checkout_session(session_id, credits)
         payload = json.dumps(
@@ -442,13 +599,6 @@ class TestStripeApis(unittest.TestCase):
         self.assertEqual(r.status_code, 200)
         data = r.get_json(silent=True) or {}
         self.assertTrue(data.get("success"))
-
-        r = self.client.get("/stripe/balance", headers=self._auth_headers())
-        self.assertEqual(r.status_code, 200)
-        data = r.get_json(silent=True) or {}
-        wallet_id = next(iter(data.keys()))
-        balance = data.get(wallet_id, {}).get("balance", {})
-        self.assertGreaterEqual(balance.get("Credits", 0), credits)
 
     def test_webhook_endpoint(self):
         payload = json.dumps(

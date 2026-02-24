@@ -59,6 +59,14 @@ def bootstrap_platform():
             "manage",
             "allow",
         ],
+        # Allow system admins to manage Stripe checkout session definitions.
+        [
+            SYSTEM_ADMIN_ROLE,
+            ADMIN_DOMAIN,
+            "stripe:checkout-sessions",
+            "manage",
+            "allow",
+        ],
         # Allow authenticated users to create contracts from public templates.
         [
             AUTHENTICATED_ROLE,

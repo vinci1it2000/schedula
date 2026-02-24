@@ -3,11 +3,24 @@ import json
 import os
 import re
 from dataclasses import dataclass
-from typing import Tuple, Any
+from typing import Any, Dict, List, Optional, Tuple
 
 import pydash
 from flask import abort, current_app, jsonify, request
+from jsonschema import Draft202012Validator
 from werkzeug.exceptions import HTTPException
+
+
+def validate_payload(
+        payload_schema: Optional[Dict[str, Any]], payload: Any
+) -> List[str]:
+    if payload_schema is None:
+        return []
+    try:
+        v = Draft202012Validator(payload_schema)
+        return [e.message for e in v.iter_errors(payload)]
+    except Exception as e:
+        return [str(e)]
 
 
 def now_utc() -> dt.datetime:
@@ -212,6 +225,116 @@ def set_bp_error_handlers(bp):
         return jsonify(payload), (e.code or 500)
 
     return bp
+
+
+# ---------------------------------------------------------------------------
+# MQ SANITIZATION (safe operators)
+# ---------------------------------------------------------------------------
+# MQ ("mongo query") is user-provided JSON used to refine listing results.
+# Threat model:
+# - prevent operator injection (e.g. $where, $function, server-side JS)
+# - prevent filtering by protected fields that could bypass ACL/category constraints
+# - prevent pathological queries (deep nesting, huge key count, long regex patterns)
+# IMPORTANT:
+# - ACL/category constraints are always applied outside mq (via $and in item_list)
+# - Protected fields are removed anywhere within mq, even deep-nested
+# ---------------------------------------------------------------------------
+
+_SAFE_MQ_OPS = {
+    "$and",
+    "$or",
+    "$nor",
+    "$eq",
+    "$ne",
+    "$gt",
+    "$gte",
+    "$lt",
+    "$lte",
+    "$in",
+    "$nin",
+    "$exists",
+    "$regex",
+    "$options",
+}
+
+_MAX_MQ_DEPTH = 10
+_MAX_MQ_KEYS = 200
+_MAX_REGEX_LEN = 128
+
+
+def _sanitize_mq(node, depth=0, _counter=None, _PROTECTED_FIELDS=()):
+    """
+    Recursively sanitize a MongoDB query dict.
+
+    Rules:
+    - Allow only a restricted set of $operators.
+    - Forbid any key starting with '$' unless in allowlist.
+    - Remove protected fields anywhere (category/_id/acl_dom/grants_ref).
+    - Limit depth and key count.
+    - Limit regex pattern length.
+
+    Returns:
+        A sanitized query structure.
+    """
+    if _counter is None:
+        _counter = {"keys": 0}
+
+    if depth > _MAX_MQ_DEPTH:
+        abort_json(400, "mq too deep")
+
+    if isinstance(node, dict):
+        out = {}
+        for k, v in node.items():
+            _counter["keys"] += 1
+            if _counter["keys"] > _MAX_MQ_KEYS:
+                abort_json(400, "mq too large")
+
+            if not isinstance(k, str):
+                abort_json(400, "mq contains invalid key")
+
+            # drop protected fields anywhere
+            if k in _PROTECTED_FIELDS:
+                continue
+
+            if k.startswith("$"):
+                if k not in _SAFE_MQ_OPS:
+                    abort_json(400, f"mq operator not allowed: {k}")
+                out[k] = _sanitize_mq(v, depth + 1, _counter, _PROTECTED_FIELDS)
+                continue
+
+            out[k] = _sanitize_mq(v, depth + 1, _counter, _PROTECTED_FIELDS)
+
+        # regex hardening
+        if "$regex" in out:
+            pat = out.get("$regex")
+            if isinstance(pat, str) and len(pat) > _MAX_REGEX_LEN:
+                abort_json(400, "mq regex too long")
+
+        return out
+
+    if isinstance(node, list):
+        return [_sanitize_mq(v, depth + 1, _counter, _PROTECTED_FIELDS) for v in node]
+
+    return node
+
+
+def parse_mq_arg(_PROTECTED_FIELDS):
+    """
+    Parse and sanitize ?mq=<json> parameter.
+
+    Returns:
+        dict: sanitized mongo query or {} if not provided.
+    """
+    mq_raw = request.args.get("mq")
+    if not mq_raw:
+        return {}
+    try:
+        mongo_query = json.loads(mq_raw)
+    except ValueError:
+        abort_json(400, "Invalid mq JSON")
+    if not isinstance(mongo_query, dict):
+        abort_json(400, "mq must be a JSON dict")
+    return _sanitize_mq(mongo_query, _PROTECTED_FIELDS=_PROTECTED_FIELDS)
 
 
 # ---------------------------------------------------------------------------

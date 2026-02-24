@@ -14,7 +14,6 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import pydash
 import requests
-from jsonschema import Draft202012Validator
 from pymongo import ReturnDocument
 from sherlock import Lock
 
@@ -38,6 +37,7 @@ from ..utils import (
     now_utc,
     mongo_delete_one,
     mongo_delete_many,
+    validate_payload
 )
 
 REGISTERED_FUNCTIONS: Dict[str, Any] = {}
@@ -59,18 +59,6 @@ def _templates_coll():
 
 def _get_contract(contract_id: str) -> Optional[Dict[str, Any]]:
     return mongo_find_one(_contracts_coll(), {"_id": contract_id})
-
-
-def validate_payload(
-        payload_schema: Optional[Dict[str, Any]], payload: Any
-) -> List[str]:
-    if payload_schema is None:
-        return []
-    try:
-        v = Draft202012Validator(payload_schema)
-        return [e.message for e in v.iter_errors(payload)]
-    except Exception as e:
-        return [str(e)]
 
 
 def _get_wallet(wallet_id, user_id):

@@ -129,6 +129,7 @@ if __name__ == "__main__":
         "filelock",
         "jsonschema",
         "flask-pymongo",
+        "fasteners",
         "python-dateutil",
         "stripe",
         "sqlalchemy-file"

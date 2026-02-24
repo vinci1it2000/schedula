@@ -189,14 +189,14 @@ Available only if `SCHEDULA_CREDITS_ENABLED` is enabled.
 
 | Methods | Path                                            | Source       |
 |---------|-------------------------------------------------|--------------|
-| `GET`   | `/stripe/balance`                               | `credits.py` |
-| `GET`   | `/stripe/balance/<int:wallet_id>`               | `credits.py` |
+| `GET`   | `/user/balance`                               | `credits.py` |
+| `GET`   | `/user/balance/<int:wallet_id>`               | `credits.py` |
 | `POST`  | `/stripe/create-checkout-session`               | `credits.py` |
 | `POST`  | `/stripe/create-customer-portal-session`        | `credits.py` |
 | `POST`  | `/stripe/create-customer-pricing-table-session` | `credits.py` |
 | `GET`   | `/stripe/session-status/<session_id>`           | `credits.py` |
-| `GET`   | `/stripe/subscription`                          | `credits.py` |
-| `GET`   | `/stripe/subscription/<int:wallet_id>`          | `credits.py` |
+| `GET`   | `/user/subscription`                          | `credits.py` |
+| `GET`   | `/user/subscription/<int:wallet_id>`          | `credits.py` |
 | `POST`  | `/stripe/webhooks`                              | `credits.py` |
 
 ## GDPR
