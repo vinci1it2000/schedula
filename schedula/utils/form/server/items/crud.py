@@ -367,7 +367,7 @@ def parse_request_payload():
 
     if content_type.startswith("multipart/form-data"):
         data_str = request.form.get("data")
-        public = request.form.get("public")
+        public = request.form.get("public", request.form.get("is_public", "false"))
         if data_str:
             try:
                 data = json.loads(data_str)
@@ -383,9 +383,10 @@ def parse_request_payload():
         # JSON
         body = request.get_json(silent=True) or {}
         data = body.get("data", {}) or {}
-        public = body.get("public")
-        uploads = {}
+        public = body.get("public", body.get("is_public", "false"))
 
+        uploads = {}
+    public = str(public).lower() in ("1", "true", "yes", "y")
     return data, uploads, public
 
 

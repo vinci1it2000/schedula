@@ -307,7 +307,7 @@ def download_file(item_id, file_name):
         abort_json(404, "File not found")
 
     sub = get_current_sub()
-    if not authorize_item(sub=sub, item_doc=item, act="read"):
+    if not (item.get("public") or authorize_item(sub=sub, item_doc=item, act="read")):
         abort_json(403 if sub != ANON_USER else 401, "Access denied")
 
     backend = get_file_backend()
