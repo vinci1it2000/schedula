@@ -1,6 +1,14 @@
 # coding: utf-8
 from __future__ import annotations
 
+try:
+    from tests.utils.server._unittest_guard import ensure_server_test_env
+except Exception:
+    from _unittest_guard import ensure_server_test_env
+
+ensure_server_test_env()
+
+
 import io
 import os
 import sys
@@ -221,6 +229,26 @@ class TestItemsFilesApis(unittest.TestCase):
         data = r.get_json(silent=True) or {}
         self.assertIn("error", data)
         self.assertEqual(data.get("error"), "Access denied")
+
+    def test_download_file_anonymous_allowed_when_item_public_flag_true(self):
+        with self.app.app_context():
+            self.vdb.items.update_one(
+                {"_id": self.item_id},
+                {"$set": {"public": True}},
+            )
+
+        # Anonymous can read the item when `public` data flag is enabled.
+        item_r = self.anon_client.get(f"/item/note/{self.item_id}")
+        self.assertEqual(item_r.status_code, 200)
+        item_data = item_r.get_json(silent=True) or {}
+        self.assertEqual(item_data.get("id"), self.item_id)
+
+        # Anonymous can also download related files.
+        file_r = self.anon_client.get(
+            f"/item-file/{self.item_id}/report.txt", buffered=True
+        )
+        self.assertEqual(file_r.status_code, 200)
+        self.assertEqual(file_r.data, b"hello world")
 
     def test_download_file_s3_success(self):
         # Call file download with S3 backend enabled.

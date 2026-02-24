@@ -358,6 +358,12 @@ def settings():
     return jsonify(resp), 200
 
 
+@bp.route("/me", methods=["GET"])
+@auth_required()
+def me():
+    return jsonify(cu.get_security_payload()), 200
+
+
 @bp.route("/plasmic", methods=["GET"])
 def plasmic():
     """

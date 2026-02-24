@@ -1,5 +1,13 @@
 from __future__ import annotations
 
+try:
+    from tests.utils.server._unittest_guard import ensure_server_test_env
+except Exception:
+    from _unittest_guard import ensure_server_test_env
+
+ensure_server_test_env()
+
+
 import importlib.util
 import os
 import sys

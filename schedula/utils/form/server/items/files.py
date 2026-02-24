@@ -293,7 +293,7 @@ def download_file(item_id, file_name):
         item = mongo_find_one(
             mongo_db[config_get("ITEMS_COLLECTION", "items")],
             {"_id": item_id},
-            {"category": 1, "acl_dom": 1, "files": 1},
+            {"category": 1, "acl_dom": 1, "files": 1, "public": 1},
         )
     except Exception:
         abort_json(500, "Database error")
