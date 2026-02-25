@@ -45,9 +45,9 @@ from flask_security import (
     Security as _Security,
     SQLAlchemyUserDatastore,
     current_user as cu,
-    auth_required,
 )
 from flask_login import user_logged_in, user_logged_out
+from .casbin import get_auth_sub, u2id
 
 bp = Blueprint("schedula_security", __name__)
 
@@ -291,8 +291,8 @@ class ExtendedRegisterForm(RegisterFormV2, EditForm):
 
 
 @bp.route("/edit", methods=["POST", "PATCH"])
-@auth_required()
 def edit():
+    sub = get_auth_sub()
     if request.is_json:
         data = MultiDict(request.get_json())
     else:
@@ -316,8 +316,8 @@ def _parse_include():
 
 
 @bp.route("/settings", methods=["GET", "POST", "PATCH", "PUT"])
-@auth_required()
 def settings():
+    sub = get_auth_sub()
     include = _parse_include()
 
     if request.method != "GET":
@@ -359,8 +359,8 @@ def settings():
 
 
 @bp.route("/me", methods=["GET"])
-@auth_required()
 def me():
+    sub = get_auth_sub()
     return jsonify(cu.get_security_payload()), 200
 
 

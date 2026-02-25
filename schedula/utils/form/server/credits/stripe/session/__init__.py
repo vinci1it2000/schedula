@@ -20,10 +20,10 @@ import math
 import schedula as sh
 import stripe
 from flask import jsonify, flash, current_app as ca, request, session, Blueprint
-from flask_security import current_user as cu, auth_required
+from flask_security import current_user as cu
 from stripe.billing_portal import Session as BillingPortalSession
 from stripe.checkout import Session as CheckoutSession
-
+from ....security.casbin import get_auth_sub, u2id
 from .. import user2stripe_customer
 from ..tax import get_tax_rates
 from ...wallet import get_wallet
@@ -286,8 +286,8 @@ def get_checkout_session(checkout):
 
 
 @bp.route("/create-checkout-session/<checkout>", methods=["POST"])
-@auth_required()
 def create_payment(checkout):
+    user_id = u2id(get_auth_sub())
     payload = request.get_json(silent=True) if request.is_json else dict(request.form)
     checkout = get_checkout_session(checkout)
     if not checkout:
@@ -369,8 +369,8 @@ def create_payment(checkout):
 
 
 @bp.route("/create-customer-portal-session", methods=["POST"])
-@auth_required()
 def create_portal():
+    user_id = u2id(get_auth_sub())
     try:
         customer = user2stripe_customer()
         api_key = ca.config["STRIPE_SECRET_KEY"]
@@ -396,8 +396,8 @@ def create_portal():
 
 
 @bp.route("/session-status/<session_id>", methods=["GET"])
-@auth_required()
 def session_status(session_id):
+    user_id = u2id(get_auth_sub())
     session = CheckoutSession.retrieve(
         session_id, api_key=ca.config["STRIPE_SECRET_KEY"]
     )
