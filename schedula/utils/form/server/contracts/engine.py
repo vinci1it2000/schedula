@@ -57,8 +57,8 @@ def _templates_coll():
     )
 
 
-def _get_contract(contract_id: str) -> Optional[Dict[str, Any]]:
-    return mongo_find_one(_contracts_coll(), {"_id": contract_id})
+def _get_contract(contract_id: str, **kwargs) -> Optional[Dict[str, Any]]:
+    return mongo_find_one(_contracts_coll(), {"_id": contract_id, **kwargs})
 
 
 def _get_wallet(wallet_id, user_id):

@@ -25,16 +25,19 @@ from .engine import (
 )
 from ..security.casbin import (
     get_auth_sub,
-    get_current_sub,
     require_system_admin,
 )
 from ..utils import (
     abort_json,
+    mongo_count_documents,
     mongo_find,
     mongo_find_one,
     mongo_insert_one,
     mongo_update_one,
     now_utc,
+    parse_mq_arg,
+    parse_pagination_args,
+    parse_sort_arg,
     set_bp_error_handlers,
 )
 
@@ -728,7 +731,12 @@ TEMPLATE_CREATE_SCHEMA = {
                 "to_user_id": {
                     "anyOf": [{"type": "integer"}, {"$ref": "#/$defs/json_with_refs"}],
                 },
-                "negative": {"anyOf": [{"type": "boolean", "default": False}, {"$ref": "#/$defs/json_with_refs"}]},
+                "negative": {
+                    "anyOf": [
+                        {"type": "boolean", "default": False},
+                        {"$ref": "#/$defs/json_with_refs"},
+                    ]
+                },
                 "product": {
                     "anyOf": [
                         {"type": "string", "minLength": 1},
@@ -1339,15 +1347,15 @@ def _ensure_indexes():
 
 
 def _serialize_contract(doc: Dict[str, Any]) -> Dict[str, Any]:
+    created_at = doc.get("created_at")
+    updated_at = doc.get("updated_at")
     return {
         "id": doc.get("_id"),
         "status": doc.get("status"),
         "state": doc.get("state"),
-        "version": doc.get("version"),
-        "context": doc.get("context") or {},
-        "states": doc.get("states") or {},
-        "user_state": pydash.get(doc, f"states.{get_current_sub()}"),
-        "last_error": doc.get("last_error"),
+        "user_state": pydash.get(doc, f"states.{get_auth_sub()}"),
+        "created_at": created_at.isoformat() if isinstance(created_at, datetime) else None,
+        "updated_at": updated_at.isoformat() if isinstance(updated_at, datetime) else None,
     }
 
 
@@ -1356,6 +1364,44 @@ def _parse_json_body() -> Dict[str, Any]:
     if not isinstance(payload, dict):
         abort_json(400, "Invalid JSON payload")
     return payload
+
+
+@bp.get("/contracts")
+def list_contracts_for_user():
+    actor_sub = get_auth_sub()
+    mq = parse_mq_arg(())
+    query: Dict[str, Any] = {f"states.{actor_sub}": {"$exists": True}}
+    if mq:
+        query = {"$and": [query, mq]}
+
+    limit, offset = parse_pagination_args(default_limit=50, max_limit=200)
+
+    sort_field, sort_dir = parse_sort_arg(
+        allowed_fields=("_id", "created_at", "updated_at", "state", "status"),
+        default_field="updated_at",
+    )
+    if not (request.args.get("sort") or "").strip():
+        sort_dir = -1
+
+    total = mongo_count_documents(_contracts_coll(), query)
+    docs = list(
+        mongo_find(_contracts_coll(), query)
+        .sort(sort_field, sort_dir)
+        .skip(offset)
+        .limit(limit)
+    )
+
+    next_offset = offset + len(docs)
+    if next_offset >= total:
+        next_offset = None
+
+    return jsonify({
+        "items": [_serialize_contract(d) for d in docs],
+        "total": total,
+        "limit": limit,
+        "offset": offset,
+        "next_offset": next_offset,
+    })
 
 
 def _serialize_template(doc: Dict[str, Any]) -> Dict[str, Any]:
@@ -1524,33 +1570,17 @@ def create_contract(template_id: str):
 
 @bp.get("/contracts/<contract_id>")
 def get_contract(contract_id: str):
-    doc = _get_contract(contract_id)
+    query = {f"states.{get_auth_sub()}": {"$exists": True}}
+    doc = _get_contract(contract_id, **query)
     if not doc:
         abort_json(404, "Contract not found")
-    return jsonify(_serialize_contract(doc)), 200
-
-
-@bp.delete("/contracts/<contract_id>")
-def cancel_contract(contract_id: str):
-    now = now_utc()
-    res = mongo_update_one(
-        _contracts_coll(),
-        {"_id": contract_id, "status": {"$ne": "CANCELED"}},
-        {"$set": {"status": "CANCELED", "updated_at": now}},
-    )
-    if res.matched_count != 1:
-        abort_json(404, "Contract not found")
-    doc = _get_contract(contract_id)
-    if not doc:
-        abort_json(404, "Contract not found")
-    assert doc is not None
     return jsonify(_serialize_contract(doc)), 200
 
 
 @bp.route("/contracts/<contract_id>/<path:dyn_path>", methods=["POST", "GET"])
 def contract_api_event(contract_id: str, dyn_path: str):
     payload = _parse_json_body()
-    actor_id = get_current_sub()
+    actor_id = get_auth_sub()
     body_payload = payload.get("payload") or {}
 
     if not isinstance(body_payload, dict):

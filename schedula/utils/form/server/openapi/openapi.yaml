@@ -756,30 +756,20 @@ components:
       properties:
         id:
           type: string
-        template_id:
-          type: string
-          nullable: true
         state:
           type: string
           nullable: true
         status:
           type: string
-        owner_id:
+        user_state:
           type: string
           nullable: true
-        context:
-          type: object
-          additionalProperties: true
-        states:
-          type: object
-          additionalProperties: true
-        local:
-          type: object
-          additionalProperties: true
         created_at:
           type: string
+          nullable: true
         updated_at:
           type: string
+          nullable: true
       additionalProperties: true
     ContractEventRequest:
       type: object
@@ -5647,6 +5637,80 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+  /contracts:
+    get:
+      operationId: get_contracts
+      tags:
+        - Contracts
+      summary: List contracts for current user
+      description: >
+        Returns paginated contracts where the authenticated user is present in
+        contract states. Supports mq filtering, sort and pagination.
+      parameters:
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+            description: 'Allowed fields: _id, created_at, updated_at, state, status. Prefix with - for descending.'
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+        - name: mq
+          in: query
+          required: false
+          schema:
+            type: string
+          description: JSON Mongo-like query merged with enforced user visibility filter (states.<current_user> exists).
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ContractDocument'
+                  total:
+                    type: integer
+                  limit:
+                    type: integer
+                  offset:
+                    type: integer
+                  next_offset:
+                    type: integer
+                    nullable: true
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
   /contracts/{id}:
     post:
       operationId: post_contracts_by_id
@@ -5675,6 +5739,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ContractDocument'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '404':
           description: Template not found
           content:
@@ -5706,31 +5776,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ContractDocument'
-        '404':
-          description: Contract not found
+        '401':
+          description: Unauthorized
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-    delete:
-      operationId: delete_contracts_by_id
-      tags:
-        - Contracts
-      summary: Cancel contract
-      description: Marks contract status as CANCELED.
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ContractDocument'
         '404':
           description: Contract not found
           content:

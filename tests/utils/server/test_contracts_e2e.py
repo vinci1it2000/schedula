@@ -8,7 +8,6 @@ except Exception:
 
 ensure_server_test_env()
 
-
 import datetime as dt
 import json
 import os
@@ -40,7 +39,9 @@ from schedula.utils.form.server.security.casbin.models import Group
 from tests.utils.server.conftest import DummySitemap
 
 
-def get_riders_order(doc: Dict[str, Any], pop_size: int = 200, n_gen: int = 300) -> Dict[str, Any]:
+def get_riders_order(
+        doc: Dict[str, Any], pop_size: int = 200, n_gen: int = 300
+) -> Dict[str, Any]:
     """
     GA permutation optimizer for Pickup&Delivery with time windows.
 
@@ -108,14 +109,18 @@ def get_riders_order(doc: Dict[str, Any], pop_size: int = 200, n_gen: int = 300)
 
     # ---------------- build coordinates and duration matrix ----------------
     start_coords = origin["location"]["coordinates"]
-    end_coords = context["driver_route"]["trip"]["destination"]["location"]["coordinates"]
+    end_coords = context["driver_route"]["trip"]["destination"]["location"][
+        "coordinates"
+    ]
 
     coords_list = [fmt(start_coords), fmt(end_coords)]
     for _j, (_rid, r) in enumerate(riders_items):
-        coords_list.extend([
-            fmt(r["trip"]["origin"]["location"]["coordinates"]),
-            fmt(r["trip"]["destination"]["location"]["coordinates"]),
-        ])
+        coords_list.extend(
+            [
+                fmt(r["trip"]["origin"]["location"]["coordinates"]),
+                fmt(r["trip"]["destination"]["location"]["coordinates"]),
+            ]
+        )
     coordinates = ";".join(coords_list)
 
     matrix = requests.get(
@@ -129,7 +134,9 @@ def get_riders_order(doc: Dict[str, Any], pop_size: int = 200, n_gen: int = 300)
     # D *= 60.0
 
     internal = np.arange(2, 2 + 2 * n_riders, dtype=int)
-    s = np.zeros(D.shape[0], dtype=float)  # service times per node (seconds). Fill if you have them.
+    s = np.zeros(
+        D.shape[0], dtype=float
+    )  # service times per node (seconds). Fill if you have them.
 
     # ---------------- precedence repair ----------------
     # Perm genes are in [0..2*n_riders-1] => internal[gene] is a global node index.
@@ -170,7 +177,7 @@ def get_riders_order(doc: Dict[str, Any], pop_size: int = 200, n_gen: int = 300)
 
             eb = tw_abs_earliest.get(b)
             if eb is not None and t < eb:
-                total_wait += (eb - t)
+                total_wait += eb - t
                 t = eb
 
             t_service_abs[b] = t
@@ -183,7 +190,9 @@ def get_riders_order(doc: Dict[str, Any], pop_size: int = 200, n_gen: int = 300)
         return t_service_abs, lateness, total_travel, total_wait
 
     def is_feasible_start(start_epoch: float, full: np.ndarray) -> bool:
-        _t_service_abs, lateness, _travel, _wait = simulate_with_start(start_epoch, full)
+        _t_service_abs, lateness, _travel, _wait = simulate_with_start(
+            start_epoch, full
+        )
         return max(lateness.values() or [0.0]) <= 0.0
 
     # ---------------- GA: hard then soft fallback ----------------
@@ -215,14 +224,18 @@ def get_riders_order(doc: Dict[str, Any], pop_size: int = 200, n_gen: int = 300)
             F = np.zeros(pop)
             G = np.zeros((pop, self.n_ieq_constr))
 
-            start_nominal = driver_start_min  # fixed for GA eval; optimized after route chosen
+            start_nominal = (
+                driver_start_min  # fixed for GA eval; optimized after route chosen
+            )
 
             for i in range(pop):
                 perm = repair_perm(X[i])
                 route_internal = internal[perm]
                 full = np.concatenate(([0], route_internal, [1]))
 
-                t_service_abs, _lateness, travel_cost, _wait = simulate_with_start(start_nominal, full)
+                t_service_abs, _lateness, travel_cost, _wait = simulate_with_start(
+                    start_nominal, full
+                )
                 F[i] = travel_cost
 
                 c = 0
@@ -274,7 +287,9 @@ def get_riders_order(doc: Dict[str, Any], pop_size: int = 200, n_gen: int = 300)
                 route_internal = internal[perm]
                 full = np.concatenate(([0], route_internal, [1]))
 
-                _t_service_abs, lateness, travel_cost, total_wait = simulate_with_start(start_nominal, full)
+                _t_service_abs, lateness, travel_cost, total_wait = simulate_with_start(
+                    start_nominal, full
+                )
 
                 late_sum = 0.0
                 for node in route_internal:
@@ -337,8 +352,12 @@ def get_riders_order(doc: Dict[str, Any], pop_size: int = 200, n_gen: int = 300)
         start_opt = driver_start_max if mode == "soft" else driver_start_min
 
     # Final simulation at optimized start
-    t_service_abs, lateness_abs, travel_cost, total_wait = simulate_with_start(start_opt, full)
-    lateness_values = [float(lateness_abs.get(int(node), 0.0)) for node in route_internal]
+    t_service_abs, lateness_abs, travel_cost, total_wait = simulate_with_start(
+        start_opt, full
+    )
+    lateness_values = [
+        float(lateness_abs.get(int(node), 0.0)) for node in route_internal
+    ]
     total_lateness = float(np.sum(lateness_values))
     max_lateness = float(np.max(lateness_values)) if lateness_values else 0.0
     feasible_final = (mode == "hard") and (max_lateness <= 0.0)
@@ -365,17 +384,23 @@ def get_riders_order(doc: Dict[str, Any], pop_size: int = 200, n_gen: int = 300)
     for idx in full:
         idx = int(idx)
         if idx == 0:
-            stops.append({
-                "type": "origin",
-                "location": context["driver_route"]["trip"]["origin"]["location"],
-                "at": epoch_to_iso(start_opt),
-            })
+            stops.append(
+                {
+                    "type": "origin",
+                    "location": context["driver_route"]["trip"]["origin"]["location"],
+                    "at": epoch_to_iso(start_opt),
+                }
+            )
         elif idx == 1:
-            stops.append({
-                "type": "destination",
-                "location": context["driver_route"]["trip"]["destination"]["location"],
-                "at": epoch_to_iso(t_service_abs.get(1, start_opt)),
-            })
+            stops.append(
+                {
+                    "type": "destination",
+                    "location": context["driver_route"]["trip"]["destination"][
+                        "location"
+                    ],
+                    "at": epoch_to_iso(t_service_abs.get(1, start_opt)),
+                }
+            )
         else:
             stop_type, rid = idx_to_stop[idx]
             rider = context["riders"][rid]
@@ -428,14 +453,15 @@ def get_riders_order(doc: Dict[str, Any], pop_size: int = 200, n_gen: int = 300)
         riders_out[rid] = {
             "pickup": {
                 "reminder_id": schedule_event_at(
-                    datetime.fromtimestamp(t_service_abs[p_idx] - 20 * 60, tz=timezone.utc), {
+                    datetime.fromtimestamp(
+                        t_service_abs[p_idx] - 20 * 60, tz=timezone.utc
+                    ),
+                    {
                         "contract_id": contract_id,
                         "event_name": "RiderPickupReminderTimed",
-                        "payload": {
-                            "principal": rid
-                        },
+                        "payload": {"principal": rid},
                         "actor_id": "system:cron",
-                    }
+                    },
                 ),
                 "at": epoch_to_iso(t_service_abs[p_idx]),
                 "zone": {
@@ -449,14 +475,15 @@ def get_riders_order(doc: Dict[str, Any], pop_size: int = 200, n_gen: int = 300)
             },
             "drop_off": {
                 "reminder_id": schedule_event_at(
-                    datetime.fromtimestamp(t_service_abs[d_idx] + 20 * 60, tz=timezone.utc), {
+                    datetime.fromtimestamp(
+                        t_service_abs[d_idx] + 20 * 60, tz=timezone.utc
+                    ),
+                    {
                         "contract_id": contract_id,
                         "event_name": "RiderDropOffReminderTimed",
-                        "payload": {
-                            "principal": rid
-                        },
+                        "payload": {"principal": rid},
                         "actor_id": "system:cron",
-                    }
+                    },
                 ),
                 "at": epoch_to_iso(t_service_abs[d_idx]),
                 "zone": {
@@ -476,25 +503,29 @@ def get_riders_order(doc: Dict[str, Any], pop_size: int = 200, n_gen: int = 300)
             "start": {
                 "at": epoch_to_iso(start_opt),
                 "reminder_id": schedule_event_at(
-                    datetime.fromtimestamp(start_opt - 60 * 60, tz=timezone.utc), {
+                    datetime.fromtimestamp(start_opt - 60 * 60, tz=timezone.utc),
+                    {
                         "contract_id": contract_id,
                         "event_name": "TripDepartureReminderTimed",
                         "actor_id": "system:cron",
-                        "payload": {}
-                    }
+                        "payload": {},
+                    },
                 ),
             },
             "end": {
                 "at": epoch_to_iso(t_service_abs[1]),
                 "reminder_id": schedule_event_at(
-                    datetime.fromtimestamp(t_service_abs[1] + 2 * 60 * 60, tz=timezone.utc), {
+                    datetime.fromtimestamp(
+                        t_service_abs[1] + 2 * 60 * 60, tz=timezone.utc
+                    ),
+                    {
                         "contract_id": contract_id,
                         "event_name": "TripPaymentTimed",
                         "actor_id": "system:cron",
-                        "payload": {}
-                    }
+                        "payload": {},
+                    },
                 ),
-            }
+            },
         },
         "riders": riders_out,
         "summary": summary,
@@ -655,100 +686,148 @@ class ContractsE2ETest(unittest.TestCase):
             self._locations = {
                 "owner-1": {
                     "origin": {
-                        "location": {"type": "Point", "coordinates": [7.6869, 45.0703]},  # Torino
+                        "location": {
+                            "type": "Point",
+                            "coordinates": [7.6869, 45.0703],
+                        },  # Torino
                         "at": "2026-02-20T08:00:00+01:00",
-                        "flexibility": 3600
+                        "flexibility": 3600,
                     },
                     "destination": {
-                        "location": {"type": "Point", "coordinates": [9.1900, 45.4642]},  # Milano
+                        "location": {
+                            "type": "Point",
+                            "coordinates": [9.1900, 45.4642],
+                        },  # Milano
                         "at": "2026-02-20T10:04:00+01:00",
-                        "flexibility": 3600
-                    }
+                        "flexibility": 3600,
+                    },
                 },
                 "u1": {
                     "origin": {
-                        "location": {"type": "Point", "coordinates": [8.8470, 45.4627]},  # Novara
+                        "location": {
+                            "type": "Point",
+                            "coordinates": [8.8470, 45.4627],
+                        },  # Novara
                         "at": "2026-02-20T09:13:00+01:00",
-                        "flexibility": 3600
+                        "flexibility": 3600,
                     },
                     "destination": {
-                        "location": {"type": "Point", "coordinates": [10.2118, 45.5416]},  # Brescia
+                        "location": {
+                            "type": "Point",
+                            "coordinates": [10.2118, 45.5416],
+                        },  # Brescia
                         "at": "2026-02-20T11:44:00+01:00",
-                        "flexibility": 3600
-                    }
+                        "flexibility": 3600,
+                    },
                 },
                 "admin": {
                     "origin": {
-                        "location": {"type": "Point", "coordinates": [9.1900, 45.4642]},  # Milano
+                        "location": {
+                            "type": "Point",
+                            "coordinates": [9.1900, 45.4642],
+                        },  # Milano
                         "at": "2026-02-20T10:04:00+01:00",
-                        "flexibility": 3600
+                        "flexibility": 3600,
                     },
                     "destination": {
-                        "location": {"type": "Point", "coordinates": [10.9916, 45.4384]},  # Verona
+                        "location": {
+                            "type": "Point",
+                            "coordinates": [10.9916, 45.4384],
+                        },  # Verona
                         "at": "2026-02-20T12:43:00+01:00",
-                        "flexibility": 3600
-                    }
+                        "flexibility": 3600,
+                    },
                 },
                 "p1": {
                     "origin": {
-                        "location": {"type": "Point", "coordinates": [9.6773, 45.6983]},  # Bergamo
+                        "location": {
+                            "type": "Point",
+                            "coordinates": [9.6773, 45.6983],
+                        },  # Bergamo
                         "at": "2026-02-20T10:56:00+01:00",
-                        "flexibility": 3600
+                        "flexibility": 3600,
                     },
                     "destination": {
-                        "location": {"type": "Point", "coordinates": [11.8768, 45.4064]},  # Padova
+                        "location": {
+                            "type": "Point",
+                            "coordinates": [11.8768, 45.4064],
+                        },  # Padova
                         "at": "2026-02-20T13:48:00+01:00",
-                        "flexibility": 3600
-                    }
+                        "flexibility": 3600,
+                    },
                 },
                 "p2": {
                     "origin": {
-                        "location": {"type": "Point", "coordinates": [10.2118, 45.5416]},  # Brescia
+                        "location": {
+                            "type": "Point",
+                            "coordinates": [10.2118, 45.5416],
+                        },  # Brescia
                         "at": "2026-02-20T11:44:00+01:00",
-                        "flexibility": 3600
+                        "flexibility": 3600,
                     },
                     "destination": {
-                        "location": {"type": "Point", "coordinates": [12.3155, 45.4408]},  # Venezia
+                        "location": {
+                            "type": "Point",
+                            "coordinates": [12.3155, 45.4408],
+                        },  # Venezia
                         "at": "2026-02-20T14:30:00+01:00",
-                        "flexibility": 3600
-                    }
+                        "flexibility": 3600,
+                    },
                 },
                 "p3": {
                     "origin": {
-                        "location": {"type": "Point", "coordinates": [10.9916, 45.4384]},  # Verona
+                        "location": {
+                            "type": "Point",
+                            "coordinates": [10.9916, 45.4384],
+                        },  # Verona
                         "at": "2026-02-20T12:43:00+01:00",
-                        "flexibility": 3600
+                        "flexibility": 3600,
                     },
                     "destination": {
-                        "location": {"type": "Point", "coordinates": [12.3155, 45.4408]},  # Venezia
+                        "location": {
+                            "type": "Point",
+                            "coordinates": [12.3155, 45.4408],
+                        },  # Venezia
                         "at": "2026-02-20T14:30:00+01:00",
-                        "flexibility": 3600
-                    }
+                        "flexibility": 3600,
+                    },
                 },
                 "p4": {
                     "origin": {
-                        "location": {"type": "Point", "coordinates": [11.8768, 45.4064]},  # Padova
+                        "location": {
+                            "type": "Point",
+                            "coordinates": [11.8768, 45.4064],
+                        },  # Padova
                         "at": "2026-02-20T13:48:00+01:00",
-                        "flexibility": 3600
+                        "flexibility": 3600,
                     },
                     "destination": {
-                        "location": {"type": "Point", "coordinates": [12.3155, 45.4408]},  # Venezia
+                        "location": {
+                            "type": "Point",
+                            "coordinates": [12.3155, 45.4408],
+                        },  # Venezia
                         "at": "2026-02-20T14:30:00+01:00",
-                        "flexibility": 3600
-                    }
+                        "flexibility": 3600,
+                    },
                 },
                 "d1": {
                     "origin": {
-                        "location": {"type": "Point", "coordinates": [7.6869, 45.0703]},  # Torino
+                        "location": {
+                            "type": "Point",
+                            "coordinates": [7.6869, 45.0703],
+                        },  # Torino
                         "at": "2026-02-20T08:00:00+01:00",
-                        "flexibility": 3600 * 5
+                        "flexibility": 3600 * 5,
                     },
                     "destination": {
-                        "location": {"type": "Point", "coordinates": [12.3155, 45.4408]},  # Venezia
+                        "location": {
+                            "type": "Point",
+                            "coordinates": [12.3155, 45.4408],
+                        },  # Venezia
                         "at": "2026-02-20T14:30:00+01:00",
-                        "flexibility": 3600 * 5
-                    }
-                }
+                        "flexibility": 3600 * 5,
+                    },
+                },
             }
 
             from schedula.utils.form.server.credits import get_wallet
@@ -765,7 +844,7 @@ class ContractsE2ETest(unittest.TestCase):
                     "cost": 10,
                     "capacity": 3,
                     "user_id": principal,
-                    **locations[k]
+                    **locations[k],
                 }
                 items_coll.insert_one(
                     {
@@ -1008,8 +1087,10 @@ class ContractsE2ETest(unittest.TestCase):
     def _wallet_balance(self, actor: str, product: str = "credit") -> float:
         with self.app.app_context():
             from schedula.utils.form.server.credits import get_wallet
+
             wallet = get_wallet(self.user_ids[actor])
             import time
+
             time.sleep(1)
             bal = wallet.balance(product=product, session=_db.session)
             if isinstance(bal, dict):
@@ -1050,6 +1131,14 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(resp.status_code, 200, msg=resp.text)
         return resp.json() or {}
 
+    def _get_contract_doc(self, contract_id: str) -> Dict[str, Any]:
+        from schedula.utils.form.server.contracts.engine import _contracts_coll
+
+        with self.app.app_context():
+            doc = _contracts_coll().find_one({"_id": contract_id})
+        self.assertIsNotNone(doc)
+        return doc or {}
+
     def shift_locations(self, departure: dt.datetime) -> None:
         """
         Shift semplice:
@@ -1066,7 +1155,9 @@ class ContractsE2ETest(unittest.TestCase):
             locations[actor] = new_d = {}
             for point in ("origin", "destination"):
                 new_d[point] = d[point].copy()
-                new_d[point]["at"] = (dt.datetime.fromisoformat(d[point]["at"]) + diff).isoformat()
+                new_d[point]["at"] = (
+                        dt.datetime.fromisoformat(d[point]["at"]) + diff
+                ).isoformat()
         return locations
 
     def _create_route(self, actor: str, **updates: Any) -> str:
@@ -1077,12 +1168,8 @@ class ContractsE2ETest(unittest.TestCase):
             "capacity": 3,
             "seats": 1,
             "user_id": principal,
-            "origin": {
-                **locations["origin"]
-            },
-            "destination": {
-                **locations["destination"]
-            },
+            "origin": {**locations["origin"]},
+            "destination": {**locations["destination"]},
         }
         data.update(updates)
         resp = self.httpx.post(
@@ -1155,7 +1242,7 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(
             self._post_event(cid, "accept-user", actor="p1").status_code, 200
         )
-        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
+        c = self._get_contract_doc(cid)
         self.assertEqual(c["state"], "ONBOARDING")
         gid = str((c.get("context") or {}).get("group_id") or "")
         self.assertTrue(gid)
@@ -1191,15 +1278,122 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(
             self._post_event(cid, "accept-user", actor="p3").status_code, 200
         )
-        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
+        c = self._get_contract_doc(cid)
         self.assertEqual(c["state"], "READY")
         return gid
+
+    def test_list_contracts_filters_by_actor_contract_and_user_state(self) -> None:
+        requesting_a_cid = self._create_gherkin_contract(
+            initial_state="START", actor="p1"
+        )
+        requesting_b_cid = self._create_gherkin_contract(
+            initial_state="START", actor="p1"
+        )
+
+        definition = _gherkin_definition()
+        template_id = self._create_template(
+            definition, allowed_initial_states=["START"]
+        )
+        excluded_created = self._create_contract(
+            template_id,
+            self._gherkin_context_for("d1", ["p2"]),
+            initial_state="START",
+            actor="p2",
+        )
+        self.assertEqual(excluded_created.status_code, 201)
+        excluded_cid = str(excluded_created.json()["id"])
+
+        listed = self.httpx.get("/contracts", headers=self._headers("p1"))
+        self.assertEqual(listed.status_code, 200, msg=listed.text)
+        payload = listed.json() or {}
+        ids = {str(i.get("id")) for i in (payload.get("items") or [])}
+        self.assertIn(requesting_a_cid, ids)
+        self.assertIn(requesting_b_cid, ids)
+        self.assertNotIn(excluded_cid, ids)
+
+        filtered = self.httpx.get(
+            "/contracts",
+            params={
+                "mq": json.dumps(
+                    {
+                        "state": "ONBOARDING",
+                        f"states.u:{self.user_ids['p1']}": "REQUESTING",
+                    }
+                )
+            },
+            headers=self._headers("p1"),
+        )
+        self.assertEqual(filtered.status_code, 200, msg=filtered.text)
+        payload = filtered.json() or {}
+        ids = [str(i.get("id")) for i in (payload.get("items") or [])]
+        self.assertIn(requesting_a_cid, ids)
+        self.assertIn(requesting_b_cid, ids)
+
+    def test_list_contracts_supports_date_range_and_sort(self) -> None:
+        older_cid = self._create_gherkin_contract(initial_state="START", actor="p1")
+        newer_cid = self._create_gherkin_contract(initial_state="START", actor="p1")
+
+        from schedula.utils.form.server.contracts.engine import _contracts_coll
+
+        base = dt.datetime.now(dt.timezone.utc)
+        old_ts = base - dt.timedelta(days=2)
+        new_ts = base - dt.timedelta(days=1)
+
+        with self.app.app_context():
+            _contracts_coll().update_one(
+                {"_id": older_cid},
+                {
+                    "$set": {
+                        "created_at": old_ts.isoformat(),
+                        "updated_at": old_ts.isoformat(),
+                    }
+                },
+            )
+            _contracts_coll().update_one(
+                {"_id": newer_cid},
+                {
+                    "$set": {
+                        "created_at": new_ts.isoformat(),
+                        "updated_at": new_ts.isoformat(),
+                    }
+                },
+            )
+
+        listed = self.httpx.get(
+            "/contracts",
+            params={"sort": "created_at", "limit": 10},
+            headers=self._headers("p1"),
+        )
+        self.assertEqual(listed.status_code, 200, msg=listed.text)
+        payload = listed.json() or {}
+        ids = [str(i.get("id")) for i in (payload.get("items") or [])]
+        self.assertLess(ids.index(older_cid), ids.index(newer_cid))
+
+        ranged = self.httpx.get(
+            "/contracts",
+            params={
+                "mq": json.dumps(
+                    {
+                        "created_at": {
+                            "$gte": (base - dt.timedelta(days=1, hours=12)).isoformat(),
+                            "$lte": base.isoformat(),
+                        }
+                    }
+                ),
+            },
+            headers=self._headers("p1"),
+        )
+        self.assertEqual(ranged.status_code, 200, msg=ranged.text)
+        payload = ranged.json() or {}
+        ids = {str(i.get("id")) for i in (payload.get("items") or [])}
+        self.assertIn(newer_cid, ids)
+        self.assertNotIn(older_cid, ids)
 
     def test_start_user_initiated_sets_pending_driver_and_requesting_rider(
             self,
     ) -> None:
         cid = self._create_gherkin_contract(initial_state="START", actor="p1")
-        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
+        c = self._get_contract_doc(cid)
 
         self.assertEqual(c["state"], "ONBOARDING")
         self.assertEqual(self._user_state(c, self.user_ids["d1"]), "PENDING_DRIVER")
@@ -1272,16 +1466,14 @@ class ContractsE2ETest(unittest.TestCase):
         )
         self.assertEqual(created.status_code, 201, msg=created.text)
         cid = str(created.json()["id"])
-        created_doc = self.httpx.get(
-            f"/contracts/{cid}", headers=self._headers("owner-1")
-        ).json()
+        created_doc = self._get_contract_doc(cid)
         self.assertEqual(
             ((created_doc.get("context") or {}).get("driver_route") or {}).get(
                 "capacity"
             ),
             10,
         )
-        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
+        c = self._get_contract_doc(cid)
         self.assertIsInstance(
             (c.get("context") or {}).get("pre_departure_check_id"), str
         )
@@ -1318,7 +1510,7 @@ class ContractsE2ETest(unittest.TestCase):
 
         self.assertTrue(self._run_worker_once(now=run_at + dt.timedelta(seconds=1)))
 
-        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
+        c = self._get_contract_doc(cid)
         self.assertEqual(c.get("state"), "IN_PROGRESS")
         self.assertEqual(self._user_state(c, self.user_ids["p1"]), "ACCEPTED")
         self.assertEqual(self._user_state(c, self.user_ids["p4"]), "")
@@ -1402,7 +1594,7 @@ class ContractsE2ETest(unittest.TestCase):
             run_at = run_at.replace(tzinfo=dt.timezone.utc)
         self.assertTrue(self._run_worker_once(now=run_at + dt.timedelta(seconds=1)))
 
-        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
+        c = self._get_contract_doc(cid)
         self.assertEqual(c.get("state"), "IN_PROGRESS")
         self.assertEqual(self._user_state(c, self.user_ids["p1"]), "ACCEPTED")
         self.assertEqual(self._user_state(c, self.user_ids["p2"]), "")
@@ -1430,7 +1622,6 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertNotIn(p4_principal, riders_ctx)
 
     def test_start_pre_departure_gate_moves_cancelled_when_no_accepted(self) -> None:
-
         driver_route_id = self._create_route("d1")
 
         p1_principal = f"u:{self.user_ids['p1']}"
@@ -1458,7 +1649,7 @@ class ContractsE2ETest(unittest.TestCase):
 
         self.assertTrue(self._run_worker_once(now=run_at + dt.timedelta(seconds=1)))
 
-        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
+        c = self._get_contract_doc(cid)
         self.assertEqual(c.get("state"), "CANCELLED")
 
     def test_in_progress_on_start_generates_pickup_pins_and_notifications(self) -> None:
@@ -1504,7 +1695,7 @@ class ContractsE2ETest(unittest.TestCase):
             run_at = run_at.replace(tzinfo=dt.timezone.utc)
         self.assertTrue(self._run_worker_once(now=run_at + dt.timedelta(seconds=1)))
 
-        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
+        c = self._get_contract_doc(cid)
         self.assertEqual(c.get("state"), "IN_PROGRESS")
         rider = (((c.get("context") or {}).get("riders") or {}).get(p1_principal)) or {}
         pin = str(pydash.get(rider, "verification.pin") or "")
@@ -1559,7 +1750,7 @@ class ContractsE2ETest(unittest.TestCase):
             pre = pre.replace(tzinfo=dt.timezone.utc)
         self.assertTrue(self._run_worker_once(now=pre + dt.timedelta(seconds=1)))
 
-        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
+        c = self._get_contract_doc(cid)
         pin = self._rider_pin(c, p1_principal)
         self.assertRegex(pin, r"^\d{6}$")
 
@@ -1576,7 +1767,7 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(confirm.status_code, 200)
         self.assertTrue(confirm.json().get("ok"))
 
-        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
+        c = self._get_contract_doc(cid)
         self.assertEqual(self._user_state(c, self.user_ids["p1"]), "ONBOARD")
         after_pickup_confirmed = self._count_notifications_for(
             p1_principal, "contracts.pickup_confirmed"
@@ -1598,21 +1789,22 @@ class ContractsE2ETest(unittest.TestCase):
             pay_job = pay_job.replace(tzinfo=dt.timezone.utc)
         for _ in range(20):
             self._run_worker_once(now=pay_job + dt.timedelta(seconds=1))
-            if not self._queue_jobs(
-                    contract_id=cid, event_name="TripPaymentTimed"
-            ):
+            if not self._queue_jobs(contract_id=cid, event_name="TripPaymentTimed"):
                 break
 
-        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
+        c = self._get_contract_doc(cid)
         self.assertEqual(c.get("state"), "COMPLETED")
         self.assertEqual(self._wallet_balance("d1"), d1_before)
         self.assertEqual(
             self._wallet_balance("d1", "coin"),
             d1_coin_before
             + float(
-                (((c.get("context") or {}).get("driver_route") or {}).get(
-                    "compensation"
-                ) or 0)
+                (
+                        ((c.get("context") or {}).get("driver_route") or {}).get(
+                            "compensation"
+                        )
+                        or 0
+                )
             ),
         )
         after_driver_settled = self._count_notifications_for(
@@ -1625,7 +1817,6 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(after_rider_dispute_payment, before_rider_dispute_payment)
 
     def test_in_progress_sends_pickup_reminder_20_min_before_window(self) -> None:
-
         driver_route_id = self._create_route("d1", capacity=10)
 
         template_id = self._create_template(
@@ -1669,8 +1860,12 @@ class ContractsE2ETest(unittest.TestCase):
         before = self._count_notifications_for(
             f"u:{self.user_ids['d1']}", "contracts.trip_departure_reminder"
         )
-        self.assertTrue(self._run_worker_once(now=run_at + dt.timedelta(seconds=1)))  # 'TripDepartureReminderTimed'
-        after = self._count_notifications_for(f"u:{self.user_ids['d1']}", "contracts.trip_departure_reminder")
+        self.assertTrue(
+            self._run_worker_once(now=run_at + dt.timedelta(seconds=1))
+        )  # 'TripDepartureReminderTimed'
+        after = self._count_notifications_for(
+            f"u:{self.user_ids['d1']}", "contracts.trip_departure_reminder"
+        )
         self.assertGreaterEqual(after, before + 1)
         before = self._count_notifications_for(
             p1_principal, "contracts.pickup_reminder"
@@ -1687,7 +1882,6 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertIn("pickup", payload)
 
     def test_in_progress_dispute_events_notify_counterpart(self) -> None:
-
         driver_route_id = self._create_route("d1", capacity=10)
         template_id = self._create_template(
             _gherkin_definition(), allowed_initial_states=["START"]
@@ -1751,7 +1945,10 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertGreaterEqual(after_rider_dispute, before_rider_dispute + 1)
 
     def test_in_progress_driver_cancel_trip_refunds_only_non_onboard(self) -> None:
-        driver_route_id = self._create_route("d1", capacity=10, )
+        driver_route_id = self._create_route(
+            "d1",
+            capacity=10,
+        )
         p1_principal = f"u:{self.user_ids['p1']}"
         p2_principal = f"u:{self.user_ids['p2']}"
         p2_route_id = self._create_route("p2", cost=10, seats=1)
@@ -1797,7 +1994,7 @@ class ContractsE2ETest(unittest.TestCase):
             pre = pre.replace(tzinfo=dt.timezone.utc)
         self.assertTrue(self._run_worker_once(now=pre + dt.timedelta(seconds=1)))
 
-        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
+        c = self._get_contract_doc(cid)
         self.assertEqual(c.get("state"), "IN_PROGRESS")
         p1_pin = self._rider_pin(c, p1_principal)
         self.assertRegex(p1_pin, r"^\d{6}$")
@@ -1811,7 +2008,7 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(confirm.status_code, 200)
         self.assertTrue(confirm.json().get("ok"))
 
-        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
+        c = self._get_contract_doc(cid)
         self.assertEqual(self._user_state(c, self.user_ids["p1"]), "ONBOARD")
         self.assertEqual(self._user_state(c, self.user_ids["p2"]), "ACCEPTED")
 
@@ -1830,7 +2027,7 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(cancel_trip.status_code, 200)
         self.assertTrue(cancel_trip.json().get("ok"))
 
-        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
+        c = self._get_contract_doc(cid)
         self.assertEqual(c.get("state"), "CANCELLED")
         self.assertEqual(self._wallet_balance("p1"), p1_balance_before_cancel)
         self.assertEqual(self._wallet_balance("p2"), p2_balance_before_cancel + 11)
@@ -1954,7 +2151,7 @@ class ContractsE2ETest(unittest.TestCase):
             ):
                 break
 
-        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
+        c = self._get_contract_doc(cid)
         self.assertEqual(c.get("state"), "IN_PROGRESS")
 
         # 1) rider cancels during IN_PROGRESS.
@@ -2004,7 +2201,7 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertTrue(claim_p4.json().get("ok"))
 
         # 5) rider picked up and PIN confirmed, then tries to claim.
-        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
+        c = self._get_contract_doc(cid)
         p5_pin = self._rider_pin(c, rider_principals["p5"])
         self.assertRegex(p5_pin, r"^\d{6}$")
         confirm_p5 = self._post_event(
@@ -2024,9 +2221,7 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertTrue(claim_p6.json().get("ok"))
 
         self.assertGreaterEqual(
-            self._count_notifications_for(
-                d1_principal, "contracts.dispute_opened"
-            ),
+            self._count_notifications_for(d1_principal, "contracts.dispute_opened"),
             before_notifications["d1_dispute_opened"] + 2,
         )
         self.assertGreaterEqual(
@@ -2045,13 +2240,11 @@ class ContractsE2ETest(unittest.TestCase):
             pay_job = pay_job.replace(tzinfo=dt.timezone.utc)
         for _ in range(30):
             self._run_worker_once(now=pay_job + dt.timedelta(seconds=1))
-            current = self.httpx.get(
-                f"/contracts/{cid}", headers=self._headers("owner-1")
-            ).json()
+            current = self._get_contract_doc(cid)
             if current.get("state") == "COMPLETED":
                 break
 
-        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
+        c = self._get_contract_doc(cid)
         self.assertEqual(c.get("state"), "COMPLETED")
         self.assertEqual(self._user_state(c, self.user_ids["p1"]), "CANCELLED")  # 7
         self.assertEqual(self._user_state(c, self.user_ids["p2"]), "REJECTED")  # -1
@@ -2097,14 +2290,19 @@ class ContractsE2ETest(unittest.TestCase):
             actor = principal_to_actor[principal]
             state = self._user_state(c, self.user_ids[actor])
             if state in {"ACCEPTED", "ONBOARD"}:
-                refund = float((((rider or {}).get("dispute") or {}).get("refund") or 0))
+                refund = float(
+                    (((rider or {}).get("dispute") or {}).get("refund") or 0)
+                )
                 expected = float(before_balances[actor] - 10 + refund)
                 self.assertEqual(self._wallet_balance(actor), expected)
 
         after_driver_coin = self._wallet_balance("d1", "coin")
         after_driver_credit = self._wallet_balance("d1", "credit")
         driver_compensation = float(
-            (((c.get("context") or {}).get("driver_route") or {}).get("compensation") or 0)
+            (
+                    ((c.get("context") or {}).get("driver_route") or {}).get("compensation")
+                    or 0
+            )
         )
         self.assertEqual(
             (after_driver_coin - before_driver_coin)
@@ -2122,17 +2320,15 @@ class ContractsE2ETest(unittest.TestCase):
             self._count_notifications_for(
                 rider_principals["p3"], "contracts.payment_dispute_rider"
             ),
-            before_notifications["p3_payment_dispute_rider"] + int(
-                rider_principals["p3"] in refunded_principals
-            ),
+            before_notifications["p3_payment_dispute_rider"]
+            + int(rider_principals["p3"] in refunded_principals),
         )
         self.assertEqual(
             self._count_notifications_for(
                 rider_principals["p4"], "contracts.payment_dispute_rider"
             ),
-            before_notifications["p4_payment_dispute_rider"] + int(
-                rider_principals["p4"] in refunded_principals
-            ),
+            before_notifications["p4_payment_dispute_rider"]
+            + int(rider_principals["p4"] in refunded_principals),
         )
         self.assertEqual(
             self._count_notifications_for(
@@ -2144,9 +2340,8 @@ class ContractsE2ETest(unittest.TestCase):
             self._count_notifications_for(
                 rider_principals["p6"], "contracts.payment_dispute_rider"
             ),
-            before_notifications["p6_payment_dispute_rider"] + int(
-                rider_principals["p6"] in refunded_principals
-            ),
+            before_notifications["p6_payment_dispute_rider"]
+            + int(rider_principals["p6"] in refunded_principals),
         )
         self.assertEqual(
             self._count_notifications_for(
@@ -2180,7 +2375,7 @@ class ContractsE2ETest(unittest.TestCase):
             200,
         )
 
-        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
+        c = self._get_contract_doc(cid)
         self.assertEqual(c["state"], "ONBOARDING")
         self.assertEqual(self._user_state(c, self.user_ids["d1"]), "DRIVER")
         self.assertEqual(self._user_state(c, self.user_ids["p1"]), "ACCEPTED")
@@ -2206,7 +2401,7 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(r.status_code, 200)
         self.assertTrue(r.json().get("ok"))
 
-        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
+        c = self._get_contract_doc(cid)
         self.assertEqual(c["state"], "ONBOARDING")
         self.assertEqual(pydash.get(c, "context.driver_route.accepted_seats"), 2)
 
@@ -2225,7 +2420,7 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(r.status_code, 200)
         self.assertFalse(r.json().get("ok"))
 
-        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
+        c = self._get_contract_doc(cid)
         self.assertEqual(c["state"], "ONBOARDING")
         self.assertEqual(self._user_state(c, self.user_ids["d1"]), "PENDING_DRIVER")
         self.assertEqual(self._user_state(c, self.user_ids["p1"]), "REQUESTING")
@@ -2244,7 +2439,7 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(rejected.status_code, 200)
         self.assertTrue(rejected.json().get("ok"))
 
-        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
+        c = self._get_contract_doc(cid)
         self.assertEqual(c["state"], "ONBOARDING")
         self.assertEqual(self._user_state(c, self.user_ids["p1"]), "REJECTED")
         self.assertNotIn(p1_principal, (c.get("context") or {}).get("riders") or {})
@@ -2289,7 +2484,7 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(cancel.status_code, 200)
         self.assertTrue(cancel.json().get("ok"))
 
-        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
+        c = self._get_contract_doc(cid)
         self.assertEqual(c["state"], "ONBOARDING")
         self.assertEqual(self._user_state(c, self.user_ids["p2"]), "")
 
@@ -2319,7 +2514,7 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(accepted.status_code, 200)
         self.assertTrue(accepted.json().get("ok"))
 
-        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
+        c = self._get_contract_doc(cid)
         self.assertEqual(c["state"], "ONBOARDING")
         self.assertEqual(self._user_state(c, self.user_ids["p2"]), "ACCEPTED")
         self.assertEqual(pydash.get(c, "context.driver_route.accepted_seats"), 2)
@@ -2343,7 +2538,7 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(accepted.status_code, 200)
         self.assertFalse(accepted.json().get("ok"))
 
-        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
+        c = self._get_contract_doc(cid)
         self.assertEqual(c["state"], "ONBOARDING")
         self.assertEqual(self._user_state(c, self.user_ids["p2"]), "PENDING")
         self.assertEqual(self._wallet_balance("p2"), balance_before_accept)
@@ -2423,7 +2618,7 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(rejected.status_code, 200)
         self.assertTrue(rejected.json().get("ok"))
 
-        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
+        c = self._get_contract_doc(cid)
         self.assertEqual(c["state"], "ONBOARDING")
         self.assertEqual(self._user_state(c, self.user_ids["p2"]), "REJECTED")
 
@@ -2450,15 +2645,14 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(r.status_code, 200)
         self.assertFalse(r.json().get("ok"))
 
-        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
+        c = self._get_contract_doc(cid)
         self.assertEqual(c["state"], "ONBOARDING")
         self.assertEqual(self._user_state(c, self.user_ids["p1"]), "REQUESTING")
         self.assertIn(p1_principal, (c.get("context") or {}).get("riders") or {})
         self.assertEqual(self._wallet_balance("p1"), p1_balance_before)
         with self.app.app_context():
             route_data_after = (
-                                       self.app.config["MONGO_DB"]["items"].find_one({"_id": p1_route_id})
-                                       or {}
+                                       self.app.config["MONGO_DB"]["items"].find_one({"_id": p1_route_id}) or {}
                                ).get("data") or {}
         self.assertEqual(route_data_after, route_data_before)
         self.assertEqual(
@@ -2475,7 +2669,7 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(r.status_code, 200)
         self.assertTrue(r.json().get("ok"))
 
-        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
+        c = self._get_contract_doc(cid)
         self.assertEqual(c["state"], "CANCELLED")
         self.assertEqual((c.get("context") or {}).get("riders") or {}, {})
 
@@ -2497,7 +2691,7 @@ class ContractsE2ETest(unittest.TestCase):
         r = self._post_event(cid, "cancel-user", actor="p1")
         self.assertIn(r.status_code, (403, 409))
 
-        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
+        c = self._get_contract_doc(cid)
         self.assertEqual(c["state"], "ONBOARDING")
         self.assertEqual(self._user_state(c, self.user_ids["p1"]), "REQUESTING")
         self.assertEqual(self._wallet_balance("p1"), p1_balance_before)
@@ -2528,7 +2722,7 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(r.status_code, 200)
         self.assertTrue(r.json().get("ok"))
 
-        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
+        c = self._get_contract_doc(cid)
         self.assertEqual(c["state"], "ONBOARDING")
         self.assertEqual(self._user_state(c, self.user_ids["p4"]), "REQUESTING")
         self.assertEqual(self._wallet_balance("p4"), p4_balance_before - 10)
@@ -2558,7 +2752,7 @@ class ContractsE2ETest(unittest.TestCase):
         r = self._post_event(cid, "request-join", actor="p4")
         self.assertEqual(r.status_code, 200)
 
-        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
+        c = self._get_contract_doc(cid)
         self.assertEqual(self._user_state(c, self.user_ids["p4"]), "")
 
     def test_start_cancel_join_request_last_user_re_notifies_driver(self) -> None:
@@ -2577,7 +2771,7 @@ class ContractsE2ETest(unittest.TestCase):
             self._post_event(cid, "cancel-join-request", actor="p1").status_code, 200
         )
 
-        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
+        c = self._get_contract_doc(cid)
         self.assertEqual(c["state"], "ONBOARDING")
         self.assertIn((c.get("context") or {}).get("riders_map"), ({}, None))
 
@@ -2651,9 +2845,7 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(created_a.status_code, 201, msg=created_a.text)
         contract_a = str(created_a.json()["id"])
 
-        contract_a_doc = self.httpx.get(
-            f"/contracts/{contract_a}", headers=self._headers("owner-1")
-        ).json()
+        contract_a_doc = self._get_contract_doc(contract_a)
         self.assertEqual(contract_a_doc["state"], "ONBOARDING")
         self.assertEqual(
             self._user_state(contract_a_doc, self.user_ids["d1"]), "PENDING_DRIVER"
@@ -2933,9 +3125,7 @@ class ContractsE2ETest(unittest.TestCase):
             [contract_a],
         )
 
-        contract_a_after_accept = self.httpx.get(
-            f"/contracts/{contract_a}", headers=self._headers("owner-1")
-        ).json()
+        contract_a_after_accept = self._get_contract_doc(contract_a)
         group_id = (contract_a_after_accept.get("context") or {}).get("group_id")
         self.assertIsInstance(group_id, str)
         assert isinstance(group_id, str)
@@ -2967,9 +3157,7 @@ class ContractsE2ETest(unittest.TestCase):
             other_rider_message.status_code, 201, msg=other_rider_message.text
         )
 
-        contract_c_doc = self.httpx.get(
-            f"/contracts/{contract_c}", headers=self._headers("owner-1")
-        ).json()
+        contract_c_doc = self._get_contract_doc(contract_c)
         self.assertEqual(self._user_state(contract_c_doc, self.user_ids["p2"]), "")
         self.assertNotIn(
             p2_principal, ((contract_c_doc.get("context") or {}).get("riders") or {})
@@ -3036,9 +3224,7 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(chat_members, {f"u:{self.user_ids['d1']}"})
         self.assertIn(f"u:{self.user_ids['d1']}", self._group_admin_ids(group_id))
 
-        contract_a_doc = self.httpx.get(
-            f"/contracts/{contract_a}", headers=self._headers("owner-1")
-        ).json()
+        contract_a_doc = self._get_contract_doc(contract_a)
         self.assertEqual(
             self._user_state(contract_a_doc, self.user_ids["p2"]), "REJECTED"
         )
@@ -3077,9 +3263,7 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(accept_start_completed.status_code, 200)
         self.assertTrue(accept_start_completed.json().get("ok"))
 
-        completed_onboarding_doc = self.httpx.get(
-            f"/contracts/{contract_completed}", headers=self._headers("owner-1")
-        ).json()
+        completed_onboarding_doc = self._get_contract_doc(contract_completed)
         self.assertEqual(completed_onboarding_doc.get("state"), "ONBOARDING")
         accepted_count = sum(
             1
@@ -3100,9 +3284,7 @@ class ContractsE2ETest(unittest.TestCase):
             ):
                 break
 
-        completed_doc = self.httpx.get(
-            f"/contracts/{contract_completed}", headers=self._headers("owner-1")
-        ).json()
+        completed_doc = self._get_contract_doc(contract_completed)
         self.assertEqual(completed_doc.get("state"), "IN_PROGRESS")
 
         rider_dispute = self._post_event(
@@ -3112,14 +3294,16 @@ class ContractsE2ETest(unittest.TestCase):
         )
         self.assertEqual(rider_dispute.status_code, 200)
         self.assertTrue(rider_dispute.json().get("ok"))
-        completed_doc = self.httpx.get(
-            f"/contracts/{contract_completed}", headers=self._headers("owner-1")
-        ).json()
+        completed_doc = self._get_contract_doc(contract_completed)
         riders_ctx = (completed_doc.get("context") or {}).get("riders") or {}
         disputed = bool(
-            ((riders_ctx.get(p4_complete_principal) or {}).get("dispute") or {}).get("rider")
+            ((riders_ctx.get(p4_complete_principal) or {}).get("dispute") or {}).get(
+                "rider"
+            )
         ) or bool(
-            ((riders_ctx.get(p4_complete_principal) or {}).get("dispute") or {}).get("driver")
+            ((riders_ctx.get(p4_complete_principal) or {}).get("dispute") or {}).get(
+                "driver"
+            )
         )
         self.assertTrue(disputed)
         d1_balance_before_completed_payment = self._wallet_balance("d1")
@@ -3132,20 +3316,19 @@ class ContractsE2ETest(unittest.TestCase):
             pay_completed = pay_completed.replace(tzinfo=dt.timezone.utc)
         for _ in range(20):
             self._run_worker_once(now=pay_completed + dt.timedelta(seconds=1))
-            current = self.httpx.get(
-                f"/contracts/{contract_completed}", headers=self._headers("owner-1")
-            ).json()
+            current = self._get_contract_doc(contract_completed)
             if current.get("state") == "COMPLETED":
                 break
 
-        completed_doc = self.httpx.get(
-            f"/contracts/{contract_completed}", headers=self._headers("owner-1")
-        ).json()
+        completed_doc = self._get_contract_doc(contract_completed)
         self.assertEqual(completed_doc.get("state"), "COMPLETED")
         completed_compensation = float(
-            (((completed_doc.get("context") or {}).get("driver_route") or {}).get(
-                "compensation"
-            ) or 0)
+            (
+                    ((completed_doc.get("context") or {}).get("driver_route") or {}).get(
+                        "compensation"
+                    )
+                    or 0
+            )
         )
         self.assertEqual(
             round(
@@ -3158,7 +3341,9 @@ class ContractsE2ETest(unittest.TestCase):
             ),
             round(completed_compensation, 6),
         )
-        self.assertEqual(self._wallet_balance("p4"), p4_balance_after_created_completed + 21)
+        self.assertEqual(
+            self._wallet_balance("p4"), p4_balance_after_created_completed + 21
+        )
 
         # ONBOARDING terminal events tested in same journey on dedicated contracts.
         created_ready = self._create_contract(
@@ -3173,9 +3358,7 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertIn(set_ready.status_code, (200, 409))
         if set_ready.status_code == 200:
             self.assertTrue(set_ready.json().get("ok"))
-            ready_doc = self.httpx.get(
-                f"/contracts/{contract_ready}", headers=self._headers("owner-1")
-            ).json()
+            ready_doc = self._get_contract_doc(contract_ready)
             self.assertIn(ready_doc["state"], ("READY", "IN_PROGRESS"))
 
         created_cancel_trip = self._create_contract(
@@ -3195,9 +3378,7 @@ class ContractsE2ETest(unittest.TestCase):
         )
         self.assertEqual(cancel_trip.status_code, 200)
         self.assertTrue(cancel_trip.json().get("ok"))
-        cancelled_trip_doc = self.httpx.get(
-            f"/contracts/{contract_cancel_trip}", headers=self._headers("owner-1")
-        ).json()
+        cancelled_trip_doc = self._get_contract_doc(contract_cancel_trip)
         self.assertEqual(cancelled_trip_doc["state"], "CANCELLED")
 
     def test_sync_keeps_driver_admin_across_membership_changes(self) -> None:
@@ -3218,7 +3399,7 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(accept_p2.status_code, 200)
         self.assertTrue(accept_p2.json().get("ok"))
 
-        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
+        c = self._get_contract_doc(cid)
         gid = (c.get("context") or {}).get("group_id")
         self.assertIsInstance(gid, str)
         assert isinstance(gid, str)
@@ -3303,9 +3484,7 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(route_data_after.get("reserved_credits"), 10)
         self.assertEqual(route_data_after.get("contract_ids") or [], ["other-contract"])
 
-        contract_doc = self.httpx.get(
-            f"/contracts/{cid}", headers=self._headers("owner-1")
-        ).json()
+        contract_doc = self._get_contract_doc(cid)
         self.assertEqual(
             self._user_state(contract_doc, self.user_ids["p2"]), "REJECTED"
         )
@@ -3374,10 +3553,9 @@ class ContractsE2ETest(unittest.TestCase):
         )
         self.assertEqual(r.status_code, 200)
 
-        got2 = self.httpx.get(f"/contracts/{cid2}", headers=self._headers("owner-1"))
-        self.assertEqual(got2.status_code, 200)
+        got2 = self._get_contract_doc(cid2)
         self.assertEqual(
-            (got2.json().get("context") or {}).get("bulk_marker"), "propagated"
+            (got2.get("context") or {}).get("bulk_marker"), "propagated"
         )
 
     def test_update_contract_effect_supports_update_pipeline_in_updates(self) -> None:
@@ -3446,13 +3624,14 @@ class ContractsE2ETest(unittest.TestCase):
         )
         self.assertEqual(r.status_code, 200)
 
-        got2 = self.httpx.get(f"/contracts/{cid2}", headers=self._headers("owner-1"))
-        self.assertEqual(got2.status_code, 200)
+        got2 = self._get_contract_doc(cid2)
         self.assertEqual(
-            (got2.json().get("context") or {}).get("bulk_marker"), "uniform"
+            (got2.get("context") or {}).get("bulk_marker"), "uniform"
         )
 
-    def test_execute_event_effect_fails_fast_when_event_missing_same_contract(self) -> None:
+    def test_execute_event_effect_fails_fast_when_event_missing_same_contract(
+            self,
+    ) -> None:
         definition = {
             "id": "contract-execute-event-failfast-local",
             "version": "1.0",
@@ -3489,11 +3668,12 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(r.status_code, 409)
         self.assertIn("Event not available in this state", r.text)
 
-        got = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1"))
-        self.assertEqual(got.status_code, 200)
+        got = self._get_contract_doc(cid)
         self.assertEqual(got.json().get("state"), "S1")
 
-    def test_execute_event_effect_fails_fast_when_event_missing_other_contract(self) -> None:
+    def test_execute_event_effect_fails_fast_when_event_missing_other_contract(
+            self,
+    ) -> None:
         definition = {
             "id": "contract-execute-event-failfast-remote",
             "version": "1.0",
@@ -3550,12 +3730,10 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(r.status_code, 409)
         self.assertIn("Event not available in this state", r.text)
 
-        got1 = self.httpx.get(f"/contracts/{cid1}", headers=self._headers("owner-1"))
-        got2 = self.httpx.get(f"/contracts/{cid2}", headers=self._headers("owner-1"))
-        self.assertEqual(got1.status_code, 200)
-        self.assertEqual(got2.status_code, 200)
-        self.assertEqual((got1.json().get("context") or {}).get("seed"), 1)
-        self.assertEqual((got2.json().get("context") or {}).get("seed"), 2)
+        got1 = self._get_contract_doc(cid1)
+        got2 = self._get_contract_doc(cid2)
+        self.assertEqual((got1.get("context") or {}).get("seed"), 1)
+        self.assertEqual((got2.get("context") or {}).get("seed"), 2)
 
     def test_paydriver_event_positive_compensation_credits_coin_wallet(self) -> None:
         definition = {
@@ -3717,17 +3895,23 @@ class ContractsE2ETest(unittest.TestCase):
 
         undo_r = self._post_event(cid, "driver-did-not-pick-me-undo", actor="p1")
         self.assertEqual(undo_r.status_code, 200)
-        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
-        rider_ctx = (((c.get("context") or {}).get("riders") or {}).get(p1_principal) or {})
+        c = self._get_contract_doc(cid)
+        rider_ctx = ((c.get("context") or {}).get("riders") or {}).get(
+            p1_principal
+        ) or {}
         if undo_r.json().get("ok"):
             self.assertGreaterEqual(
-                self._count_notifications_for(d1_principal, "contracts.dispute_canceled"),
+                self._count_notifications_for(
+                    d1_principal, "contracts.dispute_canceled"
+                ),
                 canceled_before + 1,
             )
             self.assertFalse(bool(((rider_ctx.get("dispute") or {}).get("rider"))))
         else:
             self.assertEqual(
-                self._count_notifications_for(d1_principal, "contracts.dispute_canceled"),
+                self._count_notifications_for(
+                    d1_principal, "contracts.dispute_canceled"
+                ),
                 canceled_before,
             )
             self.assertTrue(bool(((rider_ctx.get("dispute") or {}).get("rider"))))
@@ -3785,6 +3969,8 @@ class ContractsE2ETest(unittest.TestCase):
             canceled_before + 1,
         )
 
-        c = self.httpx.get(f"/contracts/{cid}", headers=self._headers("owner-1")).json()
-        rider_ctx = (((c.get("context") or {}).get("riders") or {}).get(p1_principal) or {})
+        c = self._get_contract_doc(cid)
+        rider_ctx = ((c.get("context") or {}).get("riders") or {}).get(
+            p1_principal
+        ) or {}
         self.assertFalse(bool(((rider_ctx.get("dispute") or {}).get("driver"))))
