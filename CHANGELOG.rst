@@ -1,6 +1,14 @@
 Changelog
 =========
 
+v1.6.4 (2026-02-25)
+-------------------
+
+Feat
+~~~~
+- (credits): Restructure and simplify credits.
+
+
 v1.6.3 (2026-02-24)
 -------------------
 
