@@ -1,6 +1,19 @@
 Changelog
 =========
 
+v1.6.6 (2026-02-26)
+-------------------
+
+Feat
+~~~~
+- (security): Avoid using auth_required.
+
+
+Fix
+~~~
+- (contracts): Align START/ONBOARDING flow and update tests.
+
+
 v1.6.5 (2026-02-25)
 -------------------
 
