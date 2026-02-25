@@ -1,6 +1,14 @@
 Changelog
 =========
 
+v1.6.5 (2026-02-25)
+-------------------
+
+Feat
+~~~~
+- (contracts): Update contracts API with security schema.
+
+
 v1.6.4 (2026-02-25)
 -------------------
 

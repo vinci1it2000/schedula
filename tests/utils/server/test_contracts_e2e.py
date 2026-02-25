@@ -3669,7 +3669,7 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertIn("Event not available in this state", r.text)
 
         got = self._get_contract_doc(cid)
-        self.assertEqual(got.json().get("state"), "S1")
+        self.assertEqual(got.get("state"), "S1")
 
     def test_execute_event_effect_fails_fast_when_event_missing_other_contract(
             self,
