@@ -1280,20 +1280,12 @@
         "context_schema": {
           "type": "object",
           "required": [
-            "driver_trip_id",
-            "riders"
+            "driver_trip_id"
           ],
           "properties": {
             "driver_trip_id": {
               "type": "string",
               "minLength": 1
-            },
-            "riders": {
-              "type": "array",
-              "items": {
-                "type": "string",
-                "minLength": 1
-              }
             }
           },
           "additionalProperties": false
@@ -1317,502 +1309,179 @@
             }
           },
           {
-            "title": "Load Rider Routes",
-            "description": "Loads rider route items from the initial route id list to hydrate rider identities and trips.",
-            "type": "get.item",
-            "item_id": "$$ctx.doc.context.riders",
-            "key": "rider_routes"
-          },
-          {
             "title": "Hydrate Route Inputs",
             "description": "Derives driver, capacity, driver trip and rider map from loaded route items before branching.",
             "type": "update.contract",
-            "update": [
-              {
-                "$set": {
-                  "context.driver_route": {
-                    "id": "$local.driver_route._id",
-                    "accepted_seats": 0,
-                    "compensation": 0,
-                    "trip": {
-                      "origin": "$local.driver_route.data.origin",
-                      "destination": "$local.driver_route.data.destination"
-                    },
-                    "capacity": {
-                      "$ifNull": [
-                        "$local.driver_route.data.capacity",
-                        0
-                      ]
-                    }
-                  },
-                  "context.driver": "$local.driver_route.data.user_id"
-                }
-              },
-              {
-                "$set": {
-                  "context.riders": {
-                    "$arrayToObject": {
-                      "$map": {
-                        "input": {
-                          "$filter": {
-                            "input": {
-                              "$map": {
-                                "input": {
-                                  "$objectToArray": {
-                                    "$ifNull": [
-                                      "$local.rider_routes",
-                                      {}
-                                    ]
-                                  }
-                                },
-                                "as": "rr",
-                                "in": "$$rr.v"
-                              }
-                            },
-                            "as": "r",
-                            "cond": {
-                              "$and": [
+            "update": {
+              "$set": {
+                "context.riders": {},
+                "context.driver_route": {
+                  "id": "$local.driver_route._id",
+                  "accepted_seats": 0,
+                  "compensation": 0,
+                  "trip": {
+                    "origin": {
+                      "location": {
+                        "type": "Point",
+                        "coordinates": [
+                          "$local.driver_route.data.from.lng",
+                          "$local.driver_route.data.from.lat"
+                        ]
+                      },
+                      "at": {
+                        "$toDate": {
+                          "$multiply": [
+                            {
+                              "$sum": [
+                                "$local.driver_route.data.schedule.datetime",
                                 {
-                                  "$ne": [
-                                    "$$r",
-                                    []
-                                  ]
-                                },
-                                {
-                                  "$lte": [
+                                  "$cond": [
                                     {
-                                      "$ifNull": [
-                                        "$$r.data.seats",
-                                        1
+                                      "$eq": [
+                                        "departure",
+                                        "$local.driver_route.data.schedule.time_type"
                                       ]
                                     },
+                                    0,
                                     {
-                                      "$ifNull": [
-                                        "$local.driver_route.data.capacity",
-                                        0
+                                      "$subtract": [
+                                        "$local.driver_route.data.schedule.sow_at_end",
+                                        "$local.driver_route.data.schedule.sow_at_start"
                                       ]
                                     }
                                   ]
-                                },
+                                }
+                              ]
+                            },
+                            1000
+                          ]
+                        }
+                      },
+                      "flexibility": {
+                        "$multiply": [
+                          "$local.driver_route.data.schedule.flexibility",
+                          60
+                        ]
+                      }
+                    },
+                    "destination": {
+                      "location": {
+                        "type": "Point",
+                        "coordinates": [
+                          "$local.driver_route.data.to.lng",
+                          "$local.driver_route.data.to.lat"
+                        ]
+                      },
+                      "at": {
+                        "$toDate": {
+                          "$multiply": [
+                            {
+                              "$sum": [
+                                "$local.driver_route.data.schedule.datetime",
                                 {
-                                  "$ne": [
-                                    "$$r.data.user_id",
-                                    "$local.driver_route.data.user_id"
+                                  "$cond": [
+                                    {
+                                      "$eq": [
+                                        "departure",
+                                        "$local.driver_route.data.schedule.time_type"
+                                      ]
+                                    },
+                                    {
+                                      "$subtract": [
+                                        "$local.driver_route.data.schedule.sow_at_start",
+                                        "$local.driver_route.data.schedule.sow_at_end"
+                                      ]
+                                    },
+                                    0
                                   ]
                                 }
                               ]
-                            }
-                          }
-                        },
-                        "as": "r",
-                        "in": {
-                          "k": {
-                            "$toString": "$$r.data.user_id"
-                          },
-                          "v": {
-                            "id": "$$r._id",
-                            "cost": {
-                              "$ifNull": [
-                                "$$r.data.cost",
-                                0
-                              ]
                             },
-                            "seats": {
-                              "$ifNull": [
-                                "$$r.data.seats",
-                                1
-                              ]
-                            },
-                            "trip": {
-                              "origin": "$$r.data.origin",
-                              "destination": "$$r.data.destination"
-                            }
-                          }
+                            1000
+                          ]
                         }
+                      },
+                      "flexibility": {
+                        "$multiply": [
+                          "$local.driver_route.data.schedule.flexibility",
+                          60
+                        ]
                       }
                     }
+                  },
+                  "capacity": {
+                    "$ifNull": [
+                      "$local.driver_route.data.available_seats",
+                      0
+                    ]
                   }
-                }
+                },
+                "context.driver": "$local.driver_route.created_by"
               }
-            ]
+            }
           },
           {
-            "title": "Compute Start Context",
-            "description": "Determines whether START was initiated by the driver or by a rider request.",
+            "title": "Set Driver Participation State",
+            "description": "Set driver to PENDING_DRIVER for onboarding.",
             "type": "update.contract",
             "update": {
               "$set": {
-                "local.start_initiated_by_driver": {
-                  "$eq": [
-                    "$$ctx.user",
-                    "$context.driver"
-                  ]
+                "states.$$ctx.doc.context.driver": "PENDING_DRIVER"
+              }
+            }
+          },
+          {
+            "title": "Compute Pre-Departure Check Time",
+            "description": "Computes the timed checkpoint two hours before planned departure.",
+            "type": "update.contract",
+            "update": {
+              "$set": {
+                "local.pre_departure_check_at": {
+                  "$dateSubtract": {
+                    "startDate": {
+                      "$toDate": "$context.driver_route.trip.origin.at"
+                    },
+                    "unit": "hour",
+                    "amount": 2
+                  }
                 }
               }
             }
           },
           {
-            "title": "Branch Start Flow",
-            "description": "Routes START initialization through driver-led or rider-led onboarding checks.",
-            "type": "if.else",
-            "condition": {
-              "$ctx": "local.start_initiated_by_driver"
-            },
-            "then_effects": [
-              {
-                "title": "Mark Initial Riders Pending",
-                "description": "Sets all initial riders to pending confirmation before onboarding begins.",
-                "type": "update.contract",
-                "update": {
-                  "$set": {
-                    "states": {
-                      "$arrayToObject": {
-                        "$map": {
-                          "input": {
-                            "$objectToArray": "$context.riders"
-                          },
-                          "as": "p",
-                          "in": {
-                            "k": "$$p.k",
-                            "v": "PENDING"
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
+            "title": "Create Pre-Departure Job",
+            "description": "Schedules a timed event that moves contract to IN_PROGRESS or CANCELLED.",
+            "type": "schedule.event",
+            "key": "pre_departure_check_id",
+            "event": {
+              "event_name": "PreDepartureGateTimed",
+              "at": {
+                "$ctx": "local.pre_departure_check_at"
               },
-              {
-                "title": "Confirm Driver Participation",
-                "description": "Marks the driver as active for the onboarding lifecycle.",
-                "type": "update.contract",
-                "update": {
-                  "$set": {
-                    "states.$$ctx.doc.context.driver": "DRIVER"
-                  }
-                }
-              },
-              {
-                "title": "Build Initial Invite Targets",
-                "description": "Builds notification targets for riders included in the initial START context.",
-                "type": "update.contract",
-                "update": {
-                  "$set": {
-                    "local.initial_invite_targets": {
-                      "$arrayToObject": {
-                        "$map": {
-                          "input": {
-                            "$objectToArray": "$context.riders"
-                          },
-                          "as": "p",
-                          "in": {
-                            "k": "$$p.k",
-                            "v": [
-                              "in_app",
-                              "push"
-                            ]
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              },
-              {
-                "title": "Notify Initial Riders",
-                "description": "Sends invitation notifications to all initial riders.",
-                "type": "notify",
-                "notify": {
-                  "event": "contracts.user_invited",
-                  "targets": {
-                    "$ctx": "local.initial_invite_targets"
-                  },
-                  "payload": {
-                    "contract_id": {
-                      "$ctx": "doc._id"
-                    }
-                  }
-                }
-              },
-              {
-                "title": "Compute Pre-Departure Check Time",
-                "description": "Computes the timed checkpoint two hours before planned departure.",
-                "type": "update.contract",
-                "update": {
-                  "$set": {
-                    "local.pre_departure_check_at": {
-                      "$dateSubtract": {
-                        "startDate": {
-                          "$toDate": "$context.driver_route.trip.origin.at"
-                        },
-                        "unit": "hour",
-                        "amount": 2
-                      }
-                    }
-                  }
-                }
-              },
-              {
-                "title": "Create Pre-Departure Job",
-                "description": "Schedules a timed event that moves contract to IN_PROGRESS or CANCELLED.",
-                "type": "schedule.event",
-                "key": "pre_departure_check_id",
-                "event": {
-                  "event_name": "PreDepartureGateTimed",
-                  "at": {
-                    "$ctx": "local.pre_departure_check_at"
-                  },
-                  "actor_id": "system:cron"
-                }
-              },
-              {
-                "title": "Store Pre-Departure Job Id",
-                "description": "Stores pre-departure scheduled job id for observability.",
-                "type": "update.contract",
-                "update": {
-                  "$set": {
-                    "context.pre_departure_check_id": {
-                      "$ctx": "local.pre_departure_check_id"
-                    }
-                  }
-                }
-              },
-              {
-                "title": "Move To Onboarding",
-                "description": "Transitions the contract to ONBOARDING when driver-initiated checks succeed.",
-                "type": "update.contract",
-                "update": {
-                  "$set": {
-                    "state": "ONBOARDING"
-                  }
+              "actor_id": "system:cron"
+            }
+          },
+          {
+            "title": "Store Pre-Departure Job Id",
+            "description": "Stores pre-departure scheduled job id for observability.",
+            "type": "update.contract",
+            "update": {
+              "$set": {
+                "context.pre_departure_check_id": {
+                  "$ctx": "local.pre_departure_check_id"
                 }
               }
-            ],
-            "else_effects": [
-              {
-                "title": "Load Rider Start Request",
-                "description": "Loads the requesting rider route from context for balance and feasibility validation.",
-                "type": "update.contract",
-                "update": {
-                  "$set": {
-                    "local.route": "$context.riders.$$ctx.user"
-                  }
-                }
-              },
-              {
-                "title": "Validate Rider Presence",
-                "description": "Continues only when the requesting rider route is present in START context.",
-                "type": "if.else",
-                "condition": {
-                  "$ctx": "local.route"
-                },
-                "then_effects": [
-                  {
-                    "title": "Read Requesting Rider Balance",
-                    "description": "Reads rider credits to validate the initial START reservation.",
-                    "type": "balance.credits",
-                    "key": "balance_credits",
-                    "credit": {
-                      "product": "credit"
-                    }
-                  },
-                  {
-                    "title": "Compute Rider Eligibility",
-                    "description": "Computes missing credits and validates rider affordability for START.",
-                    "type": "update.contract",
-                    "update": [
-                      {
-                        "$set": {
-                          "local.missing_credits": {
-                            "$max": [
-                              {
-                                "$subtract": [
-                                  "$local.route.cost",
-                                  {
-                                    "$ifNull": [
-                                      {
-                                        "$ref": "/items/route/$$ctx.local.route.id/data.reserved_credits"
-                                      },
-                                      0
-                                    ]
-                                  }
-                                ]
-                              },
-                              0
-                            ]
-                          }
-                        }
-                      },
-                      {
-                        "$set": {
-                          "local.has_balance": {
-                            "$gte": [
-                              {
-                                "$ifNull": [
-                                  "$local.balance_credits",
-                                  0
-                                ]
-                              },
-                              "$local.missing_credits"
-                            ]
-                          }
-                        }
-                      }
-                    ]
-                  },
-                  {
-                    "title": "Evaluate Rider Start Feasibility",
-                    "description": "Admits rider-initiated START only when credit reservation constraints are satisfied.",
-                    "type": "if.else",
-                    "condition": {
-                      "$ctx": "local.has_balance"
-                    },
-                    "then_effects": [
-                      {
-                        "title": "Reserve Rider Credits",
-                        "description": "Reserves the missing rider credits required to enter onboarding.",
-                        "type": "use.credits",
-                        "credit": {
-                          "product": "credit",
-                          "amount": {
-                            "$ctx": "local.missing_credits"
-                          }
-                        }
-                      },
-                      {
-                        "title": "Persist Route Credit Hold and Link Contract To Initial Route",
-                        "description": "Stores the retained START credits on the requester route item for reconciliation.",
-                        "type": "update.item",
-                        "item_id": {
-                          "$ctx": "local.route.id"
-                        },
-                        "update": {
-                          "$set": {
-                            "data.reserved_credits": {
-                              "$add": [
-                                {
-                                  "$ifNull": [
-                                    "$data.reserved_credits",
-                                    0
-                                  ]
-                                },
-                                {
-                                  "$ctx": "local.missing_credits"
-                                }
-                              ]
-                            },
-                            "data.contract_ids": {
-                              "$setUnion": [
-                                {
-                                  "$ifNull": [
-                                    "$data.contract_ids",
-                                    []
-                                  ]
-                                },
-                                [
-                                  {
-                                    "$ctx": "doc._id"
-                                  }
-                                ]
-                              ]
-                            }
-                          }
-                        }
-                      },
-                      {
-                        "title": "Set Initial Participant States",
-                        "description": "Sets rider to REQUESTING and driver to PENDING_DRIVER for onboarding.",
-                        "type": "update.contract",
-                        "update": [
-                          {
-                            "$set": {
-                              "states.$$ctx.user": "REQUESTING"
-                            }
-                          },
-                          {
-                            "$set": {
-                              "states.$$ctx.doc.context.driver": "PENDING_DRIVER"
-                            }
-                          }
-                        ]
-                      },
-                      {
-                        "title": "Notify Driver Of Start Request",
-                        "description": "Notifies the driver that a rider requested to start onboarding.",
-                        "type": "notify",
-                        "notify": {
-                          "event": "contracts.request_ride",
-                          "targets": {
-                            "$$ctx.doc.context.driver": [
-                              "in_app",
-                              "push"
-                            ]
-                          },
-                          "payload": {
-                            "contract_id": {
-                              "$ctx": "doc._id"
-                            }
-                          }
-                        }
-                      },
-                      {
-                        "title": "Compute Pre-Departure Check Time",
-                        "description": "Computes the timed checkpoint two hours before planned departure.",
-                        "type": "update.contract",
-                        "update": {
-                          "$set": {
-                            "local.pre_departure_check_at": {
-                              "$dateSubtract": {
-                                "startDate": {
-                                  "$toDate": "$context.driver_route.trip.origin.at"
-                                },
-                                "unit": "hour",
-                                "amount": 2
-                              }
-                            }
-                          }
-                        }
-                      },
-                      {
-                        "title": "Create Pre-Departure Job",
-                        "description": "Schedules a timed event that moves contract to IN_PROGRESS or CANCELLED.",
-                        "type": "schedule.event",
-                        "key": "pre_departure_check_id",
-                        "event": {
-                          "event_name": "PreDepartureGateTimed",
-                          "at": {
-                            "$ctx": "local.pre_departure_check_at"
-                          },
-                          "actor_id": "system:cron"
-                        }
-                      },
-                      {
-                        "title": "Store Pre-Departure Job Id",
-                        "description": "Stores pre-departure scheduled job id for observability.",
-                        "type": "update.contract",
-                        "update": {
-                          "$set": {
-                            "context.pre_departure_check_id": {
-                              "$ctx": "local.pre_departure_check_id"
-                            }
-                          }
-                        }
-                      },
-                      {
-                        "title": "Move To Onboarding",
-                        "description": "Transitions the contract to ONBOARDING after rider-initiated checks succeed.",
-                        "type": "update.contract",
-                        "update": {
-                          "$set": {
-                            "state": "ONBOARDING"
-                          }
-                        }
-                      }
-                    ]
-                  }
-                ]
+            }
+          },
+          {
+            "title": "Move To Onboarding",
+            "description": "Transitions the contract to ONBOARDING when driver-initiated checks succeed.",
+            "type": "update.contract",
+            "update": {
+              "$set": {
+                "state": "ONBOARDING"
               }
-            ]
+            }
           }
         ]
       }
@@ -2143,13 +1812,99 @@
                     },
                     "seats": {
                       "$ifNull": [
-                        "$local.join_route_item.data.seats",
+                        "$local.join_route_item.data.requested_seats",
                         1
                       ]
                     },
                     "trip": {
-                      "origin": "$local.join_route_item.data.origin",
-                      "destination": "$local.join_route_item.data.destination"
+                      "origin": {
+                        "location": {
+                          "type": "Point",
+                          "coordinates": [
+                            "$local.join_route_item.data.from.lng",
+                            "$local.join_route_item.data.from.lat"
+                          ]
+                        },
+                        "at": {
+                          "$toDate": {
+                            "$multiply": [
+                              {
+                                "$sum": [
+                                  "$local.join_route_item.data.schedule.datetime",
+                                  {
+                                    "$cond": [
+                                      {
+                                        "$eq": [
+                                          "departure",
+                                          "$local.join_route_item.data.schedule.time_type"
+                                        ]
+                                      },
+                                      0,
+                                      {
+                                        "$subtract": [
+                                          "$local.join_route_item.data.schedule.sow_at_end",
+                                          "$local.join_route_item.data.schedule.sow_at_start"
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              },
+                              1000
+                            ]
+                          }
+                        },
+                        "flexibility": {
+                          "$multiply": [
+                            "$local.join_route_item.data.schedule.flexibility",
+                            60
+                          ]
+                        }
+                      },
+                      "destination": {
+                        "location": {
+                          "type": "Point",
+                          "coordinates": [
+                            "$local.join_route_item.data.to.lng",
+                            "$local.join_route_item.data.to.lat"
+                          ]
+                        },
+                        "at": {
+                          "$toDate": {
+                            "$multiply": [
+                              {
+                                "$sum": [
+                                  "$local.join_route_item.data.schedule.datetime",
+                                  {
+                                    "$cond": [
+                                      {
+                                        "$eq": [
+                                          "departure",
+                                          "$local.join_route_item.data.schedule.time_type"
+                                        ]
+                                      },
+                                      {
+                                        "$subtract": [
+                                          "$local.join_route_item.data.schedule.sow_at_start",
+                                          "$local.join_route_item.data.schedule.sow_at_end"
+                                        ]
+                                      },
+                                      0
+                                    ]
+                                  }
+                                ]
+                              },
+                              1000
+                            ]
+                          }
+                        },
+                        "flexibility": {
+                          "$multiply": [
+                            "$local.join_route_item.data.schedule.flexibility",
+                            60
+                          ]
+                        }
+                      }
                     }
                   }
                 }
@@ -2830,7 +2585,13 @@
                 "$set": {
                   "local.invite_route": {
                     "id": "$$ctx.payload.route_id",
-                    "principal": "$local.invite_route_item.data.user_id",
+                    "principal": "$local.invite_route_item.created_by",
+                    "reserved_credits": {
+                      "$ifNull": [
+                        "$local.invite_route_item.data.reserved_credits",
+                        0
+                      ]
+                    },
                     "cost": {
                       "$ifNull": [
                         "$local.invite_route_item.data.cost",
@@ -2839,19 +2600,99 @@
                     },
                     "seats": {
                       "$ifNull": [
-                        "$local.invite_route_item.data.seats",
+                        "$local.invite_route_item.data.requested_seats",
                         1
                       ]
                     },
                     "trip": {
-                      "origin": "$local.invite_route_item.data.origin",
-                      "destination": "$local.invite_route_item.data.destination"
-                    },
-                    "reserved_credits": {
-                      "$ifNull": [
-                        "$local.invite_route_item.data.reserved_credits",
-                        0
-                      ]
+                      "origin": {
+                        "location": {
+                          "type": "Point",
+                          "coordinates": [
+                            "$local.invite_route_item.data.from.lng",
+                            "$local.invite_route_item.data.from.lat"
+                          ]
+                        },
+                        "at": {
+                          "$toDate": {
+                            "$multiply": [
+                              {
+                                "$sum": [
+                                  "$local.invite_route_item.data.schedule.datetime",
+                                  {
+                                    "$cond": [
+                                      {
+                                        "$eq": [
+                                          "departure",
+                                          "$local.invite_route_item.data.schedule.time_type"
+                                        ]
+                                      },
+                                      0,
+                                      {
+                                        "$subtract": [
+                                          "$local.invite_route_item.data.schedule.sow_at_end",
+                                          "$local.invite_route_item.data.schedule.sow_at_start"
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              },
+                              1000
+                            ]
+                          }
+                        },
+                        "flexibility": {
+                          "$multiply": [
+                            "$local.invite_route_item.data.schedule.flexibility",
+                            60
+                          ]
+                        }
+                      },
+                      "destination": {
+                        "location": {
+                          "type": "Point",
+                          "coordinates": [
+                            "$local.invite_route_item.data.to.lng",
+                            "$local.invite_route_item.data.to.lat"
+                          ]
+                        },
+                        "at": {
+                          "$toDate": {
+                            "$multiply": [
+                              {
+                                "$sum": [
+                                  "$local.invite_route_item.data.schedule.datetime",
+                                  {
+                                    "$cond": [
+                                      {
+                                        "$eq": [
+                                          "departure",
+                                          "$local.invite_route_item.data.schedule.time_type"
+                                        ]
+                                      },
+                                      {
+                                        "$subtract": [
+                                          "$local.invite_route_item.data.schedule.sow_at_start",
+                                          "$local.invite_route_item.data.schedule.sow_at_end"
+                                        ]
+                                      },
+                                      0
+                                    ]
+                                  }
+                                ]
+                              },
+                              1000
+                            ]
+                          }
+                        },
+                        "flexibility": {
+                          "$multiply": [
+                            "$local.invite_route_item.data.schedule.flexibility",
+                            60
+                          ]
+                        }
+                      }
                     }
                   }
                 }
