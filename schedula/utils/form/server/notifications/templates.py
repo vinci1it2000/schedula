@@ -14,7 +14,6 @@ from jinja2.sandbox import SandboxedEnvironment
 
 from ..extensions import db
 from ..security import User
-from ..security.casbin import Group
 from ..utils import config_get, get_mongo, RefResolver
 
 
@@ -32,6 +31,7 @@ def principal_info(p: Any) -> Dict[str, Any]:
                 return out
 
         if p.startswith("g:"):
+            from ..security.casbin import Group
             g = db.session.get(Group, p.split(":")[1])
             if g:
                 out = g.public_json()

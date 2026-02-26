@@ -110,6 +110,7 @@ def _safe_local(obj):
 def _apply_effect_step(
         *,
         doc: Dict[str, Any],
+        definition: Dict[str, Any],
         ef: Dict[str, Any],
         actor_id: str,
         payload: Dict[str, Any] = None,
@@ -214,6 +215,7 @@ def _apply_effect_step(
         return _apply_effects(
             {"effects": selected},
             doc,
+            definition,
             actor_id,
             payload=payload,
             local=local,
@@ -227,16 +229,18 @@ def _apply_effect_step(
                 contract_id=ef["contract_id"], dyn_path="", actor_id=actor_id, body_payload=payload, event_name=event
             )
         else:
-            events = dict(pydash.get(doc, f"definition.events", {}))
-            events.update(pydash.get(doc, f"definition.states.{ef.get('state', initial_state)}.events", {}))
+            events = dict(pydash.get(definition, f"events", {}))
+            events.update(pydash.get(definition, f"states.{ef.get('state', initial_state)}.events", {}))
             if event in events:
-                return _apply_effects(events[event], doc, actor_id, payload=payload, local=local, validate_schema=False)
+                return _apply_effects(
+                    events[event], doc, definition, actor_id, payload=payload, local=local, validate_schema=False
+                )
             abort_json(409, "Event not available in this state")
     elif ef_type == "iter.effects":
         effects = raw_ef["effects"] or []
         for d in ef.get("iter") or [{}]:
             changed, doc = _apply_effects(
-                {"effects": effects}, doc,
+                {"effects": effects}, doc, definition,
                 actor_id=d.get("actor_id", actor_id),
                 payload=d.get("payload", payload),
                 local=d.get("local", local),
@@ -454,11 +458,6 @@ def _apply_effect_step(
             missing = requested_ids - found_ids
             abort_json(404, f"Contracts not found: {[str(x) for x in missing]}")
 
-        # Keep local payloads safe for Mongo `let`: contract definitions contain
-        # template tokens such as "$$ctx.*" that Mongo interprets as runtime
-        # variables when passed through `let`, causing write failures.
-        docs = [{k: v for k, v in d.items() if k != "definition"} for d in docs]
-
         if isinstance(ef["contract_id"], str):
             docs = docs[0] if docs else None
         local[ef["key"]] = docs
@@ -472,6 +471,7 @@ def _apply_effect_step(
         return True, _apply_on_enter(
             doc=doc,
             actor_id=actor_id,
+            definition=definition,
             prev_state=initial_state,
             local=local,
             payload=payload,
@@ -479,8 +479,8 @@ def _apply_effect_step(
     return False, doc
 
 
-def _close_contract(doc):
-    if pydash.get(doc, f"definition.states.{doc.get('state')}.final", False):
+def _close_contract(doc, definition):
+    if pydash.get(definition, f"states.{doc.get('state')}.final", False):
         mongo_update_one(
             _contracts_coll(),
             {"_id": doc.get("_id")},
@@ -500,18 +500,18 @@ def validate_context_schema(doc, state):
 
 
 def _apply_effects(
-        event, doc, actor_id, payload=None, local=None, validate_schema=True
+        event, doc, definition, actor_id, payload=None, local=None, validate_schema=True
 ):
     for ef in event.get("effects", []):
         changed, doc = _apply_effect_step(
-            doc=doc, ef=ef, payload=payload, actor_id=actor_id, local=local
+            doc=doc, ef=ef, payload=payload, actor_id=actor_id, local=local, definition=definition
         )
         if changed:
-            doc = _close_contract(doc)
+            doc = _close_contract(doc, definition)
             return changed, doc
     if validate_schema:
         validate_context_schema(
-            doc, pydash.get(doc, f"definition.states.{doc['state']}")
+            doc, pydash.get(definition, f"states.{doc['state']}")
         )
     return False, doc
 
@@ -520,6 +520,7 @@ def _apply_on_enter(
         *,
         doc: dict[str, Any],
         actor_id: str,
+        definition: dict[str, Any],
         prev_state=None,
         payload=None,
         local=None,
@@ -530,10 +531,11 @@ def _apply_on_enter(
         local = {}
 
     if prev_state:
-        on_exit = pydash.get(doc, f"definition.states.{doc.get('state')}.on_exit", {})
+        on_exit = pydash.get(definition, f"states.{doc.get('state')}.on_exit", {})
         changed, doc = _apply_effects(
             on_exit,
             doc,
+            definition,
             actor_id=actor_id,
             payload=payload,
             local=local,
@@ -543,9 +545,9 @@ def _apply_on_enter(
             return doc
         validate_context_schema(doc, on_exit)
 
-    on_enter = pydash.get(doc, f"definition.states.{doc.get('state')}.on_enter", {})
+    on_enter = pydash.get(definition, f"states.{doc.get('state')}.on_enter", {})
     validate_context_schema(doc, on_enter)
-    _, doc = _apply_effects(on_enter, doc, actor_id, local=local, validate_schema=True)
+    _, doc = _apply_effects(on_enter, doc, definition, actor_id, local=local, validate_schema=True)
     if not _get_contract(str(doc.get("_id") or "")):
         abort_json(422, "Contract rejected by on_enter controls")
     return doc
@@ -563,13 +565,13 @@ def _process_event(
         doc = _get_contract(contract_id)
         if not doc:
             abort_json(404, "Contract not found")
-
+        definition = get_definition(doc)
         if doc.get("status") in ("DONE", "CANCELED"):
             abort_json(410, "Contract not accepting events")
 
         state = str(doc.get("state") or "")
-        events = dict(pydash.get(doc, f"definition.events", {}))
-        events.update(pydash.get(doc, f"definition.states.{state}.events", {}))
+        events = dict(pydash.get(definition, f"events", {}))
+        events.update(pydash.get(definition, f"states.{state}.events", {}))
         selected_edef: Optional[Dict[str, Any]] = None
         selected_trigger: Optional[Dict[str, Any]] = None
         if event_name is None:
@@ -594,6 +596,7 @@ def _process_event(
             selected_trigger = {}
         return _process_selected_event(
             doc=doc,
+            definition=definition,
             edef=selected_edef,
             selected_trigger=selected_trigger,
             actor_id=actor_id,
@@ -601,16 +604,17 @@ def _process_event(
         )
 
 
-def _run_event(edef, doc, actor_id, payload):
+def _run_event(edef, doc, actor_id, payload, definition):
     local = {}
-    changed, doc = _apply_effects(edef, doc, actor_id, payload=payload, local=local)
-    doc = _close_contract(doc)
+    changed, doc = _apply_effects(edef, doc, definition, actor_id, payload=payload, local=local)
+    doc = _close_contract(doc, definition)
     return changed, doc, local
 
 
 def _process_selected_event(
         *,
         doc: Dict[str, Any],
+        definition: Dict[str, Any],
         edef: Dict[str, Any],
         selected_trigger: Dict[str, Any],
         actor_id: str,
@@ -655,12 +659,16 @@ def _process_selected_event(
     if schema_errors:
         return {"error": "Invalid payload", "details": schema_errors}, 422
 
-    changed, doc, local = _run_event(edef, doc, actor_id, body_payload)
+    changed, doc, local = _run_event(edef, doc, actor_id, body_payload, definition)
 
     if resolve_response:
         ctx = {"local": local, "doc": doc, "user": actor_id, "payload": body_payload}
         return resolver(_src_get("response") or {"ok": True}, ctx), 200
     return {"ok": True}, 200
+
+
+def get_definition(doc):
+    return mongo_find_one(_templates_coll(), {"_id": doc["template_id"]})["definition"]
 
 
 def _create_contract_from_template_doc(
@@ -688,7 +696,6 @@ def _create_contract_from_template_doc(
         "state": state,
         "states": {},
         "context": context,
-        "definition": definition,
         "metadata": template.get("metadata") or {},
         "created_by": owner_id,
         "created_at": now,
@@ -697,4 +704,4 @@ def _create_contract_from_template_doc(
     }
     mongo_insert_one(_contracts_coll(), doc)
 
-    return _apply_on_enter(doc=_get_contract(contract_id), actor_id=str(owner_id))
+    return _apply_on_enter(doc=_get_contract(contract_id), actor_id=str(owner_id), definition=definition)

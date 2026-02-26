@@ -1329,32 +1329,40 @@
                         ]
                       },
                       "at": {
-                        "$toDate": {
-                          "$multiply": [
-                            {
-                              "$sum": [
-                                "$local.driver_route.data.schedule.datetime",
+                        "$dateToString": {
+                          "date": {
+                            "$toDate": {
+                              "$multiply": [
                                 {
-                                  "$cond": [
-                                    {
-                                      "$eq": [
-                                        "departure",
-                                        "$local.driver_route.data.schedule.time_type"
-                                      ]
-                                    },
-                                    0,
-                                    {
-                                      "$subtract": [
-                                        "$local.driver_route.data.schedule.sow_at_end",
-                                        "$local.driver_route.data.schedule.sow_at_start"
-                                      ]
-                                    }
-                                  ]
-                                }
+                                  "$toLong": {
+                                    "$sum": [
+                                      "$local.driver_route.data.schedule.datetime",
+                                      {
+                                        "$cond": [
+                                          {
+                                            "$eq": [
+                                              "departure",
+                                              "$local.driver_route.data.schedule.time_type"
+                                            ]
+                                          },
+                                          0,
+                                          {
+                                            "$subtract": [
+                                              "$local.driver_route.data.schedule.sow_at_end",
+                                              "$local.driver_route.data.schedule.sow_at_start"
+                                            ]
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                },
+                                1000
                               ]
-                            },
-                            1000
-                          ]
+                            }
+                          },
+                          "format": "%Y-%m-%dT%H:%M:%S.%LZ",
+                          "timezone": "UTC"
                         }
                       },
                       "flexibility": {
@@ -1373,32 +1381,40 @@
                         ]
                       },
                       "at": {
-                        "$toDate": {
-                          "$multiply": [
-                            {
-                              "$sum": [
-                                "$local.driver_route.data.schedule.datetime",
+                        "$dateToString": {
+                          "date": {
+                            "$toDate": {
+                              "$multiply": [
                                 {
-                                  "$cond": [
-                                    {
-                                      "$eq": [
-                                        "departure",
-                                        "$local.driver_route.data.schedule.time_type"
-                                      ]
-                                    },
-                                    {
-                                      "$subtract": [
-                                        "$local.driver_route.data.schedule.sow_at_start",
-                                        "$local.driver_route.data.schedule.sow_at_end"
-                                      ]
-                                    },
-                                    0
-                                  ]
-                                }
+                                  "$toLong": {
+                                    "$sum": [
+                                      "$local.driver_route.data.schedule.datetime",
+                                      {
+                                        "$cond": [
+                                          {
+                                            "$eq": [
+                                              "departure",
+                                              "$local.driver_route.data.schedule.time_type"
+                                            ]
+                                          },
+                                          {
+                                            "$subtract": [
+                                              "$local.driver_route.data.schedule.sow_at_start",
+                                              "$local.driver_route.data.schedule.sow_at_end"
+                                            ]
+                                          },
+                                          0
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                },
+                                1000
                               ]
-                            },
-                            1000
-                          ]
+                            }
+                          },
+                          "format": "%Y-%m-%dT%H:%M:%S.%LZ",
+                          "timezone": "UTC"
                         }
                       },
                       "flexibility": {
@@ -1826,32 +1842,40 @@
                           ]
                         },
                         "at": {
-                          "$toDate": {
-                            "$multiply": [
-                              {
-                                "$sum": [
-                                  "$local.join_route_item.data.schedule.datetime",
+                          "$dateToString": {
+                            "date": {
+                              "$toDate": {
+                                "$multiply": [
                                   {
-                                    "$cond": [
-                                      {
-                                        "$eq": [
-                                          "departure",
-                                          "$local.join_route_item.data.schedule.time_type"
-                                        ]
-                                      },
-                                      0,
-                                      {
-                                        "$subtract": [
-                                          "$local.join_route_item.data.schedule.sow_at_end",
-                                          "$local.join_route_item.data.schedule.sow_at_start"
-                                        ]
-                                      }
-                                    ]
-                                  }
+                                    "$toLong": {
+                                      "$sum": [
+                                        "$local.join_route_item.data.schedule.datetime",
+                                        {
+                                          "$cond": [
+                                            {
+                                              "$eq": [
+                                                "departure",
+                                                "$local.join_route_item.data.schedule.time_type"
+                                              ]
+                                            },
+                                            0,
+                                            {
+                                              "$subtract": [
+                                                "$local.join_route_item.data.schedule.sow_at_end",
+                                                "$local.join_route_item.data.schedule.sow_at_start"
+                                              ]
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  },
+                                  1000
                                 ]
-                              },
-                              1000
-                            ]
+                              }
+                            },
+                            "format": "%Y-%m-%dT%H:%M:%S.%LZ",
+                            "timezone": "UTC"
                           }
                         },
                         "flexibility": {
@@ -1870,32 +1894,40 @@
                           ]
                         },
                         "at": {
-                          "$toDate": {
-                            "$multiply": [
-                              {
-                                "$sum": [
-                                  "$local.join_route_item.data.schedule.datetime",
+                          "$dateToString": {
+                            "date": {
+                              "$toDate": {
+                                "$multiply": [
                                   {
-                                    "$cond": [
-                                      {
-                                        "$eq": [
-                                          "departure",
-                                          "$local.join_route_item.data.schedule.time_type"
-                                        ]
-                                      },
-                                      {
-                                        "$subtract": [
-                                          "$local.join_route_item.data.schedule.sow_at_start",
-                                          "$local.join_route_item.data.schedule.sow_at_end"
-                                        ]
-                                      },
-                                      0
-                                    ]
-                                  }
+                                    "$toLong": {
+                                      "$sum": [
+                                        "$local.join_route_item.data.schedule.datetime",
+                                        {
+                                          "$cond": [
+                                            {
+                                              "$eq": [
+                                                "departure",
+                                                "$local.join_route_item.data.schedule.time_type"
+                                              ]
+                                            },
+                                            {
+                                              "$subtract": [
+                                                "$local.join_route_item.data.schedule.sow_at_start",
+                                                "$local.join_route_item.data.schedule.sow_at_end"
+                                              ]
+                                            },
+                                            0
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  },
+                                  1000
                                 ]
-                              },
-                              1000
-                            ]
+                              }
+                            },
+                            "format": "%Y-%m-%dT%H:%M:%S.%LZ",
+                            "timezone": "UTC"
                           }
                         },
                         "flexibility": {
@@ -2277,7 +2309,7 @@
                   "description": "Notifies the driver that no rider requests remain after cancellation.",
                   "type": "notify",
                   "notify": {
-                    "event": "contracts.request_ride",
+                    "event": "contracts.no_request_ride",
                     "targets": {
                       "$$ctx.doc.context.driver": [
                         "in_app",
@@ -2614,32 +2646,40 @@
                           ]
                         },
                         "at": {
-                          "$toDate": {
-                            "$multiply": [
-                              {
-                                "$sum": [
-                                  "$local.invite_route_item.data.schedule.datetime",
+                          "$dateToString": {
+                            "date": {
+                              "$toDate": {
+                                "$multiply": [
                                   {
-                                    "$cond": [
-                                      {
-                                        "$eq": [
-                                          "departure",
-                                          "$local.invite_route_item.data.schedule.time_type"
-                                        ]
-                                      },
-                                      0,
-                                      {
-                                        "$subtract": [
-                                          "$local.invite_route_item.data.schedule.sow_at_end",
-                                          "$local.invite_route_item.data.schedule.sow_at_start"
-                                        ]
-                                      }
-                                    ]
-                                  }
+                                    "$toLong": {
+                                      "$sum": [
+                                        "$local.invite_route_item.data.schedule.datetime",
+                                        {
+                                          "$cond": [
+                                            {
+                                              "$eq": [
+                                                "departure",
+                                                "$local.invite_route_item.data.schedule.time_type"
+                                              ]
+                                            },
+                                            0,
+                                            {
+                                              "$subtract": [
+                                                "$local.invite_route_item.data.schedule.sow_at_end",
+                                                "$local.invite_route_item.data.schedule.sow_at_start"
+                                              ]
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  },
+                                  1000
                                 ]
-                              },
-                              1000
-                            ]
+                              }
+                            },
+                            "format": "%Y-%m-%dT%H:%M:%S.%LZ",
+                            "timezone": "UTC"
                           }
                         },
                         "flexibility": {
@@ -2658,32 +2698,40 @@
                           ]
                         },
                         "at": {
-                          "$toDate": {
-                            "$multiply": [
-                              {
-                                "$sum": [
-                                  "$local.invite_route_item.data.schedule.datetime",
+                          "$dateToString": {
+                            "date": {
+                              "$toDate": {
+                                "$multiply": [
                                   {
-                                    "$cond": [
-                                      {
-                                        "$eq": [
-                                          "departure",
-                                          "$local.invite_route_item.data.schedule.time_type"
-                                        ]
-                                      },
-                                      {
-                                        "$subtract": [
-                                          "$local.invite_route_item.data.schedule.sow_at_start",
-                                          "$local.invite_route_item.data.schedule.sow_at_end"
-                                        ]
-                                      },
-                                      0
-                                    ]
-                                  }
+                                    "$toLong": {
+                                      "$sum": [
+                                        "$local.invite_route_item.data.schedule.datetime",
+                                        {
+                                          "$cond": [
+                                            {
+                                              "$eq": [
+                                                "departure",
+                                                "$local.invite_route_item.data.schedule.time_type"
+                                              ]
+                                            },
+                                            {
+                                              "$subtract": [
+                                                "$local.invite_route_item.data.schedule.sow_at_start",
+                                                "$local.invite_route_item.data.schedule.sow_at_end"
+                                              ]
+                                            },
+                                            0
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  },
+                                  1000
                                 ]
-                              },
-                              1000
-                            ]
+                              }
+                            },
+                            "format": "%Y-%m-%dT%H:%M:%S.%LZ",
+                            "timezone": "UTC"
                           }
                         },
                         "flexibility": {

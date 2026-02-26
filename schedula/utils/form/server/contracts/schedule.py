@@ -278,23 +278,23 @@ def unschedule_events(job_ids: list[str]):
 
 def _func(contract_id, event_name, payload, actor_id):
     from .routes import _get_contract
-    from .engine import _run_event
+    from .engine import _run_event, get_definition
 
     with Lock(contract_id):
         doc = _get_contract(contract_id)
         if not doc:
             return {"status": "ERROR", "message": f"Contract not found: {contract_id}"}
-
+        definition = get_definition(doc)
         if doc.get("status") in ("DONE", "CANCELED"):
             return {"status": "SKIP", "message": f"Contract not accepting events"}
 
         state = str(doc.get("state") or "")
-        events = dict(pydash.get(doc, f"definition.events", {}))
-        events.update(pydash.get(doc, f"definition.states.{state}.events", {}))
+        events = dict(pydash.get(definition, f"events", {}))
+        events.update(pydash.get(definition, f"states.{state}.events", {}))
         edef = events.get(event_name)
         if edef is None:
             return {"status": "SKIP", "message": f"Event not found: {event_name}"}
-        _run_event(edef, doc, actor_id=actor_id, payload=payload)
+        _run_event(edef, doc, actor_id=actor_id, payload=payload, definition=definition)
     return {}
 
 

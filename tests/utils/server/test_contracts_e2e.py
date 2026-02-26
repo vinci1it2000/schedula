@@ -840,11 +840,27 @@ class ContractsE2ETest(unittest.TestCase):
             for k, uid in self.user_ids.items():
                 principal = f"u:{uid}"
                 route_id = str(uuid.uuid4())
+                loc = locations[k]
+                t_start = int(dt.datetime.fromisoformat(loc["origin"]["at"]).timestamp())
+                t_end = int(dt.datetime.fromisoformat(loc["destination"]["at"]).timestamp())
                 route_doc = {
                     "cost": 10,
-                    "capacity": 3,
-                    "user_id": principal,
-                    **locations[k],
+                    "available_seats": 3,
+                    "from": {
+                        "lat": loc["origin"]["location"]["coordinates"][1],
+                        "lng": loc["origin"]["location"]["coordinates"][0],
+                    },
+                    "to": {
+                        "lat": loc["destination"]["location"]["coordinates"][1],
+                        "lng": loc["destination"]["location"]["coordinates"][0],
+                    },
+                    "schedule": {
+                        "datetime": t_start,
+                        "sow_at_start": 0,
+                        "sow_at_end": t_end - t_start,
+                        "time_type": 'departure',
+                        "flexibility": loc["origin"]["flexibility"] / 60
+                    },
                 }
                 items_coll.insert_one(
                     {
@@ -1161,15 +1177,28 @@ class ContractsE2ETest(unittest.TestCase):
         return locations
 
     def _create_route(self, actor: str, **updates: Any) -> str:
-        principal = f"u:{self.user_ids[actor]}"
-        locations = self.locations.get(actor, self.locations["p1"])
+        loc = self.locations.get(actor, self.locations["p1"])
+        t_start = int(dt.datetime.fromisoformat(loc["origin"]["at"]).timestamp())
+        t_end = int(dt.datetime.fromisoformat(loc["destination"]["at"]).timestamp())
         data = {
             "cost": 10,
-            "capacity": 3,
-            "seats": 1,
-            "user_id": principal,
-            "origin": {**locations["origin"]},
-            "destination": {**locations["destination"]},
+            "available_seats": 3,
+            "requested_seats": 1,
+            "from": {
+                "lat": loc["origin"]["location"]["coordinates"][1],
+                "lng": loc["origin"]["location"]["coordinates"][0],
+            },
+            "to": {
+                "lat": loc["destination"]["location"]["coordinates"][1],
+                "lng": loc["destination"]["location"]["coordinates"][0],
+            },
+            "schedule": {
+                "datetime": t_start,
+                "sow_at_start": 0,
+                "sow_at_end": t_end - t_start,
+                "time_type": 'departure',
+                "flexibility": loc["origin"]["flexibility"] / 60
+            },
         }
         data.update(updates)
         resp = self.httpx.post(
@@ -1195,28 +1224,17 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(resp.status_code, 200, msg=resp.text)
         return resp.json() or {}
 
-    def _gherkin_context_for(self, driver: str, riders: List[str]) -> Dict[str, Any]:
+    def _gherkin_context_for(self, driver: str) -> Dict[str, Any]:
         driver_principal = f"u:{self.user_ids[driver]}"
-        rider_ids = [f"u:{self.user_ids[r]}" for r in riders]
-        rider_route_ids = [
-            self.route_by_principal[principal] for principal in rider_ids
-        ]
         return {
             "driver_trip_id": self.route_by_principal[driver_principal],
-            "riders": rider_route_ids,
         }
 
     def _gherkin_context(self, initial_state: str = "START") -> Dict[str, Any]:
         driver_uid = self.user_ids["d1"]
-        p1_uid = self.user_ids["p1"]
-        rider_ids = [f"u:{p1_uid}"]
         driver_principal = f"u:{driver_uid}"
-        rider_route_ids = [
-            self.route_by_principal[principal] for principal in rider_ids
-        ]
         return {
             "driver_trip_id": self.route_by_principal[driver_principal],
-            "riders": rider_route_ids,
         }
 
     def _create_gherkin_contract(self, initial_state: str = "START", actor="p1") -> str:
@@ -1232,7 +1250,12 @@ class ContractsE2ETest(unittest.TestCase):
             actor=actor,
         )
         self.assertEqual(created.status_code, 201)
-        return str(created.json()["id"])
+        cid = str(created.json()["id"])
+        if actor in self.user_ids and actor != "d1":
+            joined = self._post_event(cid, "request-join", actor=actor)
+            self.assertEqual(joined.status_code, 200, msg=joined.text)
+            self.assertTrue((joined.json() or {}).get("ok"), msg=joined.text)
+        return cid
 
     def _to_recruiting(self, cid: str) -> str:
         self.assertEqual(
@@ -1296,12 +1319,16 @@ class ContractsE2ETest(unittest.TestCase):
         )
         excluded_created = self._create_contract(
             template_id,
-            self._gherkin_context_for("d1", ["p2"]),
+            self._gherkin_context_for("d1"),
             initial_state="START",
             actor="p2",
         )
         self.assertEqual(excluded_created.status_code, 201)
         excluded_cid = str(excluded_created.json()["id"])
+
+        joined = self._post_event(excluded_cid, "request-join", actor="p2")
+        self.assertEqual(joined.status_code, 200, msg=joined.text)
+        self.assertTrue((joined.json() or {}).get("ok"), msg=joined.text)
 
         listed = self.httpx.get("/contracts", headers=self._headers("p1"))
         self.assertEqual(listed.status_code, 200, msg=listed.text)
@@ -1408,13 +1435,20 @@ class ContractsE2ETest(unittest.TestCase):
             template_id,
             {
                 "driver_trip_id": self.route_by_principal[f"u:{self.user_ids['d1']}"],
-                "riders": [self.route_by_principal[p1_principal]],
             },
             initial_state="START",
             actor="p1",
         )
         self.assertEqual(created.status_code, 201, msg=created.text)
         cid = str(created.json()["id"])
+        joined = self._post_event(
+            cid,
+            "request-join",
+            actor="p1",
+            payload={"route_id": self.route_by_principal[p1_principal]},
+        )
+        self.assertEqual(joined.status_code, 200, msg=joined.text)
+        self.assertTrue((joined.json() or {}).get("ok"), msg=joined.text)
 
         route_id = self.route_by_principal[p1_principal]
         with self.app.app_context():
@@ -1445,9 +1479,9 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(route_data_after.get("contract_ids") or [], [cid])
 
     def test_start_pre_departure_gate_moves_in_progress_when_has_accepted(self) -> None:
-        driver_route_id = self._create_route("d1", capacity=10)
+        driver_route_id = self._create_route("d1", available_seats=10)
         self.assertEqual(
-            (self._get_route("d1", driver_route_id).get("data") or {}).get("capacity"),
+            (self._get_route("d1", driver_route_id).get("data") or {}).get("available_seats"),
             10,
         )
 
@@ -1459,13 +1493,20 @@ class ContractsE2ETest(unittest.TestCase):
             template_id,
             {
                 "driver_trip_id": driver_route_id,
-                "riders": [self.route_by_principal[p1_principal]],
             },
             initial_state="START",
             actor="p1",
         )
         self.assertEqual(created.status_code, 201, msg=created.text)
         cid = str(created.json()["id"])
+        joined = self._post_event(
+            cid,
+            "request-join",
+            actor="p1",
+            payload={"route_id": self.route_by_principal[p1_principal]},
+        )
+        self.assertEqual(joined.status_code, 200, msg=joined.text)
+        self.assertTrue((joined.json() or {}).get("ok"), msg=joined.text)
         created_doc = self._get_contract_doc(cid)
         self.assertEqual(
             ((created_doc.get("context") or {}).get("driver_route") or {}).get(
@@ -1527,7 +1568,7 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertNotIn(p4_principal, riders_ctx)
 
     def test_start_pre_departure_gate_cleans_all_requesting_riders(self) -> None:
-        driver_route_id = self._create_route("d1", capacity=10)
+        driver_route_id = self._create_route("d1", available_seats=10)
 
         p1_principal = f"u:{self.user_ids['p1']}"
         p2_principal = f"u:{self.user_ids['p2']}"
@@ -1539,13 +1580,20 @@ class ContractsE2ETest(unittest.TestCase):
             template_id,
             {
                 "driver_trip_id": driver_route_id,
-                "riders": [self.route_by_principal[p1_principal]],
             },
             initial_state="START",
             actor="p1",
         )
         self.assertEqual(created.status_code, 201, msg=created.text)
         cid = str(created.json()["id"])
+        joined = self._post_event(
+            cid,
+            "request-join",
+            actor="p1",
+            payload={"route_id": self.route_by_principal[p1_principal]},
+        )
+        self.assertEqual(joined.status_code, 200, msg=joined.text)
+        self.assertTrue((joined.json() or {}).get("ok"), msg=joined.text)
 
         p2_before = self._wallet_balance("p2")
         p4_before = self._wallet_balance("p4")
@@ -1580,13 +1628,20 @@ class ContractsE2ETest(unittest.TestCase):
             template_id,
             {
                 "driver_trip_id": driver_route_id,
-                "riders": [self.route_by_principal[p4_principal]],
             },
             initial_state="START",
             actor="p4",
         )
         self.assertEqual(created_second.status_code, 201, msg=created.text)
         cid_second = str(created_second.json()["id"])
+        joined_second = self._post_event(
+            cid_second,
+            "request-join",
+            actor="p4",
+            payload={"route_id": self.route_by_principal[p4_principal]},
+        )
+        self.assertEqual(joined_second.status_code, 200, msg=joined_second.text)
+        self.assertTrue((joined_second.json() or {}).get("ok"), msg=joined_second.text)
         run_at = self._queue_jobs(contract_id=cid, event_name="PreDepartureGateTimed")[
             0
         ]["run_at"]
@@ -1632,13 +1687,20 @@ class ContractsE2ETest(unittest.TestCase):
             template_id,
             {
                 "driver_trip_id": driver_route_id,
-                "riders": [self.route_by_principal[p1_principal]],
             },
             initial_state="START",
             actor="p1",
         )
         self.assertEqual(created.status_code, 201, msg=created.text)
         cid = str(created.json()["id"])
+        joined = self._post_event(
+            cid,
+            "request-join",
+            actor="p1",
+            payload={"route_id": self.route_by_principal[p1_principal]},
+        )
+        self.assertEqual(joined.status_code, 200, msg=joined.text)
+        self.assertTrue((joined.json() or {}).get("ok"), msg=joined.text)
         jobs = self._queue_jobs(contract_id=cid, event_name="PreDepartureGateTimed")
         self.assertEqual(len(jobs), 1)
         run_at = jobs[0].get("run_at")
@@ -1664,13 +1726,20 @@ class ContractsE2ETest(unittest.TestCase):
             template_id,
             {
                 "driver_trip_id": driver_route_id,
-                "riders": [self.route_by_principal[p1_principal]],
             },
             initial_state="START",
             actor="p1",
         )
         self.assertEqual(created.status_code, 201, msg=created.text)
         cid = str(created.json()["id"])
+        joined = self._post_event(
+            cid,
+            "request-join",
+            actor="p1",
+            payload={"route_id": self.route_by_principal[p1_principal]},
+        )
+        self.assertEqual(joined.status_code, 200, msg=joined.text)
+        self.assertTrue((joined.json() or {}).get("ok"), msg=joined.text)
 
         before_rider_pin = self._count_notifications_for(
             p1_principal, "contracts.pickup_pin_created"
@@ -1726,13 +1795,20 @@ class ContractsE2ETest(unittest.TestCase):
             template_id,
             {
                 "driver_trip_id": driver_route_id,
-                "riders": [self.route_by_principal[p1_principal]],
             },
             initial_state="START",
             actor="p1",
         )
         self.assertEqual(created.status_code, 201, msg=created.text)
         cid = str(created.json()["id"])
+        joined = self._post_event(
+            cid,
+            "request-join",
+            actor="p1",
+            payload={"route_id": self.route_by_principal[p1_principal]},
+        )
+        self.assertEqual(joined.status_code, 200, msg=joined.text)
+        self.assertTrue((joined.json() or {}).get("ok"), msg=joined.text)
 
         accept = self._post_event(
             cid,
@@ -1817,7 +1893,7 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(after_rider_dispute_payment, before_rider_dispute_payment)
 
     def test_in_progress_sends_pickup_reminder_20_min_before_window(self) -> None:
-        driver_route_id = self._create_route("d1", capacity=10)
+        driver_route_id = self._create_route("d1", available_seats=10)
 
         template_id = self._create_template(
             _gherkin_definition(), allowed_initial_states=["START"]
@@ -1828,13 +1904,20 @@ class ContractsE2ETest(unittest.TestCase):
             template_id,
             {
                 "driver_trip_id": driver_route_id,
-                "riders": [self.route_by_principal[p1_principal]],
             },
             initial_state="START",
             actor="p1",
         )
         self.assertEqual(created.status_code, 201, msg=created.text)
         cid = str(created.json()["id"])
+        joined = self._post_event(
+            cid,
+            "request-join",
+            actor="p1",
+            payload={"route_id": self.route_by_principal[p1_principal]},
+        )
+        self.assertEqual(joined.status_code, 200, msg=joined.text)
+        self.assertTrue((joined.json() or {}).get("ok"), msg=joined.text)
 
         accept = self._post_event(
             cid,
@@ -1882,7 +1965,7 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertIn("pickup", payload)
 
     def test_in_progress_dispute_events_notify_counterpart(self) -> None:
-        driver_route_id = self._create_route("d1", capacity=10)
+        driver_route_id = self._create_route("d1", available_seats=10)
         template_id = self._create_template(
             _gherkin_definition(), allowed_initial_states=["START"]
         )
@@ -1893,13 +1976,20 @@ class ContractsE2ETest(unittest.TestCase):
             template_id,
             {
                 "driver_trip_id": driver_route_id,
-                "riders": [self.route_by_principal[p1_principal]],
             },
             initial_state="START",
             actor="p1",
         )
         self.assertEqual(created.status_code, 201, msg=created.text)
         cid = str(created.json()["id"])
+        joined = self._post_event(
+            cid,
+            "request-join",
+            actor="p1",
+            payload={"route_id": self.route_by_principal[p1_principal]},
+        )
+        self.assertEqual(joined.status_code, 200, msg=joined.text)
+        self.assertTrue((joined.json() or {}).get("ok"), msg=joined.text)
 
         accept = self._post_event(
             cid,
@@ -1945,13 +2035,10 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertGreaterEqual(after_rider_dispute, before_rider_dispute + 1)
 
     def test_in_progress_driver_cancel_trip_refunds_only_non_onboard(self) -> None:
-        driver_route_id = self._create_route(
-            "d1",
-            capacity=10,
-        )
+        driver_route_id = self._create_route("d1", available_seats=10)
         p1_principal = f"u:{self.user_ids['p1']}"
         p2_principal = f"u:{self.user_ids['p2']}"
-        p2_route_id = self._create_route("p2", cost=10, seats=1)
+        p2_route_id = self._create_route("p2", cost=10, requested_seats=1)
         template_id = self._create_template(
             _gherkin_definition(), allowed_initial_states=["START"]
         )
@@ -1960,13 +2047,20 @@ class ContractsE2ETest(unittest.TestCase):
             template_id,
             {
                 "driver_trip_id": driver_route_id,
-                "riders": [self.route_by_principal[p1_principal]],
             },
             initial_state="START",
             actor="p1",
         )
         self.assertEqual(created.status_code, 201, msg=created.text)
         cid = str(created.json()["id"])
+        join_p1 = self._post_event(
+            cid,
+            "request-join",
+            actor="p1",
+            payload={"route_id": self.route_by_principal[p1_principal]},
+        )
+        self.assertEqual(join_p1.status_code, 200)
+        self.assertTrue(join_p1.json().get("ok"))
 
         join_p2 = self._post_event(
             cid,
@@ -2063,14 +2157,14 @@ class ContractsE2ETest(unittest.TestCase):
                 self.user_ids[rider] = user.id
             self.tokens[rider] = self._login_token(email)
 
-        driver_route_id = self._create_route("d1", capacity=10)
+        driver_route_id = self._create_route("d1", available_seats=10)
 
         rider_keys = ["p1", "p2", "p3", "p4", "p5", "p6", "p7"]
         rider_principals = {k: f"u:{self.user_ids[k]}" for k in rider_keys}
         d1_principal = f"u:{self.user_ids['d1']}"
         principal_to_actor = {v: k for k, v in rider_principals.items()}
         rider_route_ids = {
-            k: self._create_route(k, cost=10, seats=1) for k in rider_keys
+            k: self._create_route(k, cost=10, requested_seats=1) for k in rider_keys
         }
 
         before_balances = {k: self._wallet_balance(k) for k in ["d1", *rider_keys]}
@@ -2109,13 +2203,20 @@ class ContractsE2ETest(unittest.TestCase):
             template_id,
             {
                 "driver_trip_id": driver_route_id,
-                "riders": [rider_route_ids["p1"]],
             },
             initial_state="START",
             actor="p1",
         )
         self.assertEqual(created.status_code, 201, msg=created.text)
         cid = str(created.json()["id"])
+        joined_p1 = self._post_event(
+            cid,
+            "request-join",
+            actor="p1",
+            payload={"route_id": rider_route_ids["p1"]},
+        )
+        self.assertEqual(joined_p1.status_code, 200)
+        self.assertTrue(joined_p1.json().get("ok"))
 
         for rider in ("p2", "p3", "p4", "p5", "p6", "p7"):
             joined = self._post_event(
@@ -2388,7 +2489,7 @@ class ContractsE2ETest(unittest.TestCase):
         route_id = self.route_by_principal[p1_principal]
         with self.app.app_context():
             self.app.config["MONGO_DB"]["items"].update_one(
-                {"_id": route_id}, {"$set": {"data.seats": 2}}
+                {"_id": route_id}, {"$set": {"data.requested_seats": 2}}
             )
 
         cid = self._create_gherkin_contract(initial_state="START", actor="p1")
@@ -2522,7 +2623,7 @@ class ContractsE2ETest(unittest.TestCase):
     def test_start_user_accept_invite_fails_when_balance_insufficient(self) -> None:
         cid = self._create_gherkin_contract(initial_state="START", actor="p1")
         p2_principal = f"u:{self.user_ids['p2']}"
-        low_credit_route_id = self._create_route("p2", cost=1000, seats=1)
+        low_credit_route_id = self._create_route("p2", cost=1000, requested_seats=1)
 
         invited = self._post_event(
             cid,
@@ -2550,7 +2651,7 @@ class ContractsE2ETest(unittest.TestCase):
     def test_start_user_accept_invite_charges_only_missing_delta(self) -> None:
         cid = self._create_gherkin_contract(initial_state="START", actor="p1")
         p2_principal = f"u:{self.user_ids['p2']}"
-        route_id = self._create_route("p2", cost=10, seats=1)
+        route_id = self._create_route("p2", cost=10, requested_seats=1)
 
         with self.app.app_context():
             self.app.config["MONGO_DB"]["items"].update_one(
@@ -2717,20 +2818,16 @@ class ContractsE2ETest(unittest.TestCase):
             driver_principal, "contracts.join_requested"
         )
 
-        cid = self._create_gherkin_contract(initial_state="START")
-        r = self._post_event(cid, "request-join", actor="p4")
-        self.assertEqual(r.status_code, 200)
-        self.assertTrue(r.json().get("ok"))
+        cid = self._create_gherkin_contract(initial_state="START", actor="p4")
 
         c = self._get_contract_doc(cid)
         self.assertEqual(c["state"], "ONBOARDING")
         self.assertEqual(self._user_state(c, self.user_ids["p4"]), "REQUESTING")
         self.assertEqual(self._wallet_balance("p4"), p4_balance_before - 10)
         with self.app.app_context():
-            p4_route_data = (
-                                    self.app.config["MONGO_DB"]["items"].find_one({"_id": p4_route_id})
-                                    or {}
-                            ).get("data") or {}
+            p4_route_data = self.app.config["MONGO_DB"]["items"].find_one({"_id": p4_route_id}) or {}
+            p4_route_data = p4_route_data.get("data") or {}
+
         self.assertEqual(p4_route_data.get("reserved_credits"), 10)
         self.assertIn(cid, p4_route_data.get("contract_ids") or [])
 
@@ -2758,12 +2855,15 @@ class ContractsE2ETest(unittest.TestCase):
     def test_start_cancel_join_request_last_user_re_notifies_driver(self) -> None:
         driver_principal = f"u:{self.user_ids['d1']}"
         before = self._count_notifications_for(
-            driver_principal, "contracts.request_ride"
+            driver_principal, "contracts.join_requested"
+        )
+        before_no = self._count_notifications_for(
+            driver_principal, "contracts.no_request_ride"
         )
 
         cid = self._create_gherkin_contract(initial_state="START", actor="p1")
         after_create = self._count_notifications_for(
-            driver_principal, "contracts.request_ride"
+            driver_principal, "contracts.join_requested"
         )
         self.assertEqual(after_create, before + 1)
 
@@ -2776,9 +2876,9 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertIn((c.get("context") or {}).get("riders_map"), ({}, None))
 
         after_cancel = self._count_notifications_for(
-            driver_principal, "contracts.request_ride"
+            driver_principal, "contracts.no_request_ride"
         )
-        self.assertEqual(after_cancel, before + 2)
+        self.assertEqual(after_cancel, before_no + 1)
 
     def test_onboarding_full_journey_all_apis_with_negatives_and_pruning(self) -> None:
         definition = _gherkin_definition()
@@ -2790,13 +2890,13 @@ class ContractsE2ETest(unittest.TestCase):
         p1_principal = f"u:{self.user_ids['p1']}"
         p2_principal = f"u:{self.user_ids['p2']}"
         p4_principal = f"u:{self.user_ids['p4']}"
-        p2_route_id = self._create_route("p2", cost=10, seats=1)
-        p2_route_low_credit = self._create_route("p2", cost=1000, seats=1)
-        p2_route_over_seats = self._create_route("p2", cost=10, seats=9)
-        p3_route_id = self._create_route("p3", cost=10, seats=1)
-        p4_route_id = self._create_route("p4", cost=10, seats=1)
-        p4_route_low_credit = self._create_route("p4", cost=1000, seats=1)
-        p4_route_over_seats = self._create_route("p4", cost=10, seats=9)
+        p2_route_id = self._create_route("p2", cost=10, requested_seats=1)
+        p2_route_low_credit = self._create_route("p2", cost=1000, requested_seats=1)
+        p2_route_over_seats = self._create_route("p2", cost=10, requested_seats=9)
+        p3_route_id = self._create_route("p3", cost=10, requested_seats=1)
+        p4_route_id = self._create_route("p4", cost=10, requested_seats=1)
+        p4_route_low_credit = self._create_route("p4", cost=1000, requested_seats=1)
+        p4_route_over_seats = self._create_route("p4", cost=10, requested_seats=9)
         d1_route_id = self._create_route("d1")
         extra_p2_balance_before = 10
         with self.app.app_context():
@@ -2838,12 +2938,16 @@ class ContractsE2ETest(unittest.TestCase):
 
         created_a = self._create_contract(
             template_id,
-            self._gherkin_context_for("d1", ["p1"]),
+            self._gherkin_context_for("d1"),
             initial_state="START",
             actor="p1",
         )
         self.assertEqual(created_a.status_code, 201, msg=created_a.text)
         contract_a = str(created_a.json()["id"])
+
+        joined = self._post_event(contract_a, "request-join", actor="p1")
+        self.assertEqual(joined.status_code, 200, msg=joined.text)
+        self.assertTrue((joined.json() or {}).get("ok"), msg=joined.text)
 
         contract_a_doc = self._get_contract_doc(contract_a)
         self.assertEqual(contract_a_doc["state"], "ONBOARDING")
@@ -2932,12 +3036,16 @@ class ContractsE2ETest(unittest.TestCase):
         # request-join / cancel-join-request exercised on a dedicated contract.
         created_req = self._create_contract(
             template_id,
-            self._gherkin_context_for("d1", ["p1"]),
+            self._gherkin_context_for("d1"),
             initial_state="START",
             actor="p1",
         )
         self.assertEqual(created_req.status_code, 201, msg=created_req.text)
         contract_req = str(created_req.json()["id"])
+
+        joined = self._post_event(contract_req, "request-join", actor="p1")
+        self.assertEqual(joined.status_code, 200, msg=joined.text)
+        self.assertTrue((joined.json() or {}).get("ok"), msg=joined.text)
 
         good_join = self._post_event(
             contract_req,
@@ -2967,7 +3075,7 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(p3_route_data_after_cancel_join.get("contract_ids") or [], [])
         self.assertEqual(
             self._count_notifications_for(d1_principal, "contracts.join_requested"),
-            d1_join_requested_before + 2,
+            d1_join_requested_before + 4,
         )
 
         # invite-user negatives.
@@ -3103,13 +3211,20 @@ class ContractsE2ETest(unittest.TestCase):
             template_id,
             {
                 "driver_trip_id": self.route_by_principal[f"u:{self.user_ids['p3']}"],
-                "riders": [p2_route_id],
             },
             initial_state="START",
             actor="p2",
         )
         self.assertEqual(created_c.status_code, 201, msg=created_c.text)
         contract_c = str(created_c.json()["id"])
+        joined_c = self._post_event(
+            contract_c,
+            "request-join",
+            actor="p2",
+            payload={"route_id": p2_route_id},
+        )
+        self.assertEqual(joined_c.status_code, 200, msg=joined_c.text)
+        self.assertTrue((joined_c.json() or {}).get("ok"), msg=joined_c.text)
 
         before_rider_unavailable_c = self._count_notifications_for(
             f"u:{self.user_ids['p3']}", "contracts.rider_unavailable"
@@ -3238,20 +3353,29 @@ class ContractsE2ETest(unittest.TestCase):
 
         # Full positive journey through IN_PROGRESS up to COMPLETED.
 
-        p4_complete_route_id = self._create_route("p4", cost=10, seats=1)
+        p4_complete_route_id = self._create_route("p4", cost=10, requested_seats=1)
         p4_complete_principal = f"u:{self.user_ids['p4']}"
         d1_route_complete_id = self._create_route("d1")
         created_completed = self._create_contract(
             template_id,
             {
                 "driver_trip_id": d1_route_complete_id,
-                "riders": [p4_complete_route_id],
             },
             initial_state="START",
             actor="p4",
         )
         self.assertEqual(created_completed.status_code, 201, msg=created_completed.text)
         contract_completed = str(created_completed.json()["id"])
+        joined_completed = self._post_event(
+            contract_completed,
+            "request-join",
+            actor="p4",
+            payload={"route_id": p4_complete_route_id},
+        )
+        self.assertEqual(joined_completed.status_code, 200, msg=joined_completed.text)
+        self.assertTrue(
+            (joined_completed.json() or {}).get("ok"), msg=joined_completed.text
+        )
         p4_balance_after_created_completed = self._wallet_balance("p4")
 
         accept_start_completed = self._post_event(
@@ -3348,12 +3472,17 @@ class ContractsE2ETest(unittest.TestCase):
         # ONBOARDING terminal events tested in same journey on dedicated contracts.
         created_ready = self._create_contract(
             template_id,
-            self._gherkin_context_for("d1", ["p4"]),
+            self._gherkin_context_for("d1"),
             initial_state="START",
             actor="p4",
         )
         self.assertEqual(created_ready.status_code, 201, msg=created_ready.text)
         contract_ready = str(created_ready.json()["id"])
+
+        joined = self._post_event(contract_ready, "request-join", actor="p4")
+        self.assertEqual(joined.status_code, 200, msg=joined.text)
+        self.assertTrue((joined.json() or {}).get("ok"), msg=joined.text)
+
         set_ready = self._post_event(contract_ready, "set-ready", actor="d1")
         self.assertIn(set_ready.status_code, (200, 409))
         if set_ready.status_code == 200:
@@ -3363,7 +3492,7 @@ class ContractsE2ETest(unittest.TestCase):
 
         created_cancel_trip = self._create_contract(
             template_id,
-            self._gherkin_context_for("d1", ["p4"]),
+            self._gherkin_context_for("d1"),
             initial_state="START",
             actor="p4",
         )
@@ -3371,6 +3500,11 @@ class ContractsE2ETest(unittest.TestCase):
             created_cancel_trip.status_code, 201, msg=created_cancel_trip.text
         )
         contract_cancel_trip = str(created_cancel_trip.json()["id"])
+
+        joined = self._post_event(contract_cancel_trip, "request-join", actor="p4")
+        self.assertEqual(joined.status_code, 200, msg=joined.text)
+        self.assertTrue((joined.json() or {}).get("ok"), msg=joined.text)
+
         cancel_trip = self._post_event(
             contract_cancel_trip,
             "driver-reject-trip",
@@ -3385,7 +3519,7 @@ class ContractsE2ETest(unittest.TestCase):
         cid = self._create_gherkin_contract(initial_state="START", actor="p1")
         d1_principal = f"u:{self.user_ids['d1']}"
 
-        p2_route_id = self._create_route("p2", cost=10, seats=1)
+        p2_route_id = self._create_route("p2", cost=10, requested_seats=1)
         invite_p2 = self._post_event(
             cid,
             "invite-user",
@@ -3405,7 +3539,7 @@ class ContractsE2ETest(unittest.TestCase):
         assert isinstance(gid, str)
         self.assertIn(d1_principal, self._group_admin_ids(gid))
 
-        p3_route_id = self._create_route("p3", cost=10, seats=1)
+        p3_route_id = self._create_route("p3", cost=10, requested_seats=1)
         invite_p3 = self._post_event(
             cid,
             "invite-user",
@@ -3438,7 +3572,7 @@ class ContractsE2ETest(unittest.TestCase):
     ) -> None:
         cid = self._create_gherkin_contract(initial_state="START", actor="p1")
         p2_principal = f"u:{self.user_ids['p2']}"
-        p2_route_id = self._create_route("p2", cost=10, seats=1)
+        p2_route_id = self._create_route("p2", cost=10, requested_seats=1)
 
         invited = self._post_event(
             cid,
