@@ -286,22 +286,6 @@
                   }
                 }
               }
-            },
-            {
-              "title": "Notify Accepted Rider",
-              "description": "Notifies accepted rider that reconciliation completed.",
-              "type": "notify",
-              "notify": {
-                "event": "contracts.accepted_request",
-                "targets": {
-                  "$ctx": "local.sync_accepted_rider_targets"
-                },
-                "payload": {
-                  "contract_id": {
-                    "$ctx": "doc._id"
-                  }
-                }
-              }
             }
           ]
         },
@@ -1490,6 +1474,21 @@
             }
           },
           {
+            "title": "Persist Route Hold And Contract Link",
+            "description": "Stores reserved credits and links this contract on the rider route item.",
+            "type": "update.item",
+            "item_id": {
+              "$ctx": "doc.context.driver_route.id"
+            },
+            "update": {
+              "$set": {
+                "data.contract_id": {
+                  "$ctx": "doc._id"
+                }
+              }
+            }
+          },
+          {
             "title": "Move To Onboarding",
             "description": "Transitions the contract to ONBOARDING when driver-initiated checks succeed.",
             "type": "update.contract",
@@ -1632,7 +1631,7 @@
                 }
               },
               "compensation": {
-                "type": "integer",
+                "type": "number",
                 "minimum": 0
               },
               "accepted_seats": {
@@ -1821,10 +1820,19 @@
                   "local.route": {
                     "id": "$$ctx.payload.route_id",
                     "cost": {
-                      "$ifNull": [
-                        "$local.join_route_item.data.cost",
-                        0
-                      ]
+                      "$toInt": {
+                        "$max": [
+                          1,
+                          {
+                            "$ceil": {
+                              "$ifNull": [
+                                "$local.join_route_item.data.cost",
+                                0
+                              ]
+                            }
+                          }
+                        ]
+                      }
                     },
                     "seats": {
                       "$ifNull": [
@@ -1986,7 +1994,7 @@
                             {
                               "$ifNull": [
                                 {
-                                  "$ref": "/items/route/$$ctx.local.route.id/data.reserved_credits"
+                                  "$ref": "/items/ride_posts/$$ctx.local.route.id/data.reserved_credits"
                                 },
                                 0
                               ]
@@ -2126,7 +2134,7 @@
                   "description": "Notifies the driver that a new rider requested to join.",
                   "type": "notify",
                   "notify": {
-                    "event": "contracts.join_requested",
+                    "event": "onboarding.driver-new-join-request",
                     "targets": {
                       "$$ctx.doc.context.driver": [
                         "in_app",
@@ -2134,9 +2142,10 @@
                       ]
                     },
                     "payload": {
-                      "contract_id": {
-                        "$ctx": "doc._id"
-                      }
+                      "route_name": {
+                        "$ref": "/items/ride_posts/$$ctx.doc.context.driver_route.id/data.name"
+                      },
+                      "rider": "$$ctx.user"
                     }
                   }
                 }
@@ -2226,7 +2235,7 @@
                         "$size": {
                           "$ifNull": [
                             {
-                              "$ref": "/items/route/$$ctx.local.route.id/data.contract_ids"
+                              "$ref": "/items/ride_posts/$$ctx.local.route.id/data.contract_ids"
                             },
                             []
                           ]
@@ -2253,7 +2262,7 @@
                   "credit": {
                     "product": "credit",
                     "amount": {
-                      "$ref": "/items/route/$$ctx.local.route.id/data.reserved_credits"
+                      "$ref": "/items/ride_posts/$$ctx.local.route.id/data.reserved_credits"
                     }
                   }
                 },
@@ -2309,7 +2318,7 @@
                   "description": "Notifies the driver that no rider requests remain after cancellation.",
                   "type": "notify",
                   "notify": {
-                    "event": "contracts.no_request_ride",
+                    "event": "onboarding.no-more-ride-requests",
                     "targets": {
                       "$$ctx.doc.context.driver": [
                         "in_app",
@@ -2317,8 +2326,8 @@
                       ]
                     },
                     "payload": {
-                      "contract_id": {
-                        "$ctx": "doc._id"
+                      "route_name": {
+                        "$ref": "/items/ride_posts/$$ctx.doc.context.driver_route.id/data.name"
                       }
                     }
                   }
@@ -2449,7 +2458,10 @@
                   "type": "update.contract",
                   "update": {
                     "$set": {
-                      "local.sync_accepted_rider": "$$ctx.payload.rider"
+                      "local.sync_accepted_rider": "$$ctx.payload.rider",
+                      "local.route": {
+                        "$ctx": "doc.context.riders.$$ctx.payload.rider"
+                      }
                     }
                   }
                 },
@@ -2458,6 +2470,26 @@
                   "description": "Triggers transient synchronization after rider status changes.",
                   "type": "execute.event",
                   "event_name": "Sync"
+                },
+                {
+                  "title": "Notify Stakeholders",
+                  "description": "Sends contracts.user_invited to the invited rider.",
+                  "type": "notify",
+                  "notify": {
+                    "event": "onboarding.accepted-join-request",
+                    "targets": {
+                      "$$ctx.payload.rider": [
+                        "in_app",
+                        "push"
+                      ]
+                    },
+                    "payload": {
+                      "driver": "$$ctx.doc.context.driver",
+                      "route_name": {
+                        "$ref": "/items/ride_posts/$$ctx.local.route.id/data.name"
+                      }
+                    }
+                  }
                 }
               ]
             }
@@ -2537,7 +2569,7 @@
                   "description": "Notifies the rider that the driver rejected the join request.",
                   "type": "notify",
                   "notify": {
-                    "event": "contracts.driver_rejected_start",
+                    "event": "onboarding.driver-rejected-start",
                     "targets": {
                       "$$ctx.payload.rider": [
                         "in_app",
@@ -2545,8 +2577,8 @@
                       ]
                     },
                     "payload": {
-                      "contract_id": {
-                        "$ctx": "doc._id"
+                      "route_name": {
+                        "$ref": "/items/ride_posts/$$ctx.local.reject_route_id/data.name"
                       }
                     }
                   }
@@ -2625,10 +2657,19 @@
                       ]
                     },
                     "cost": {
-                      "$ifNull": [
-                        "$local.invite_route_item.data.cost",
-                        0
-                      ]
+                      "$toInt": {
+                        "$max": [
+                          1,
+                          {
+                            "$ceil": {
+                              "$ifNull": [
+                                "$local.invite_route_item.data.cost",
+                                0
+                              ]
+                            }
+                          }
+                        ]
+                      }
                     },
                     "seats": {
                       "$ifNull": [
@@ -2852,7 +2893,7 @@
                   "description": "Sends contracts.user_invited to the invited rider.",
                   "type": "notify",
                   "notify": {
-                    "event": "contracts.user_invited",
+                    "event": "onboarding.user-invited",
                     "targets": {
                       "$$ctx.local.invite_route.principal": [
                         "in_app",
@@ -2860,8 +2901,9 @@
                       ]
                     },
                     "payload": {
-                      "contract_id": {
-                        "$ctx": "doc._id"
+                      "driver": "$$ctx.doc.context.driver",
+                      "route_name": {
+                        "$ref": "/items/ride_posts/$$ctx.local.invite_route.id/data.name"
                       }
                     }
                   }
@@ -2924,6 +2966,9 @@
                       },
                       "PENDING"
                     ]
+                  },
+                  "local.route": {
+                    "$ctx": "doc.context.riders.$$ctx.payload.rider"
                   }
                 }
               }
@@ -2954,7 +2999,7 @@
                   "description": "Notifies rider that the pending invite was cancelled by the driver.",
                   "type": "notify",
                   "notify": {
-                    "event": "contracts.driver_cancelled_invite",
+                    "event": "onboarding.driver-cancelled-invite",
                     "targets": {
                       "$$ctx.payload.rider": [
                         "in_app",
@@ -2962,8 +3007,9 @@
                       ]
                     },
                     "payload": {
-                      "contract_id": {
-                        "$ctx": "doc._id"
+                      "driver": "$$ctx.doc.context.driver",
+                      "route_name": {
+                        "$ref": "/items/ride_posts/$$ctx.local.route.id/data.name"
                       }
                     }
                   }
@@ -3214,6 +3260,26 @@
                   "description": "Triggers transient synchronization after rider status changes.",
                   "type": "execute.event",
                   "event_name": "Sync"
+                },
+                {
+                  "title": "Notify Driver",
+                  "description": "Notifies driver when invited rider rejects during onboarding.",
+                  "type": "notify",
+                  "notify": {
+                    "event": "onboarding.user-accepted-invite",
+                    "targets": {
+                      "$$ctx.doc.context.driver": [
+                        "in_app",
+                        "push"
+                      ]
+                    },
+                    "payload": {
+                      "rider": "$$ctx.user",
+                      "route_name": {
+                        "$ctx": "doc.local.accept_invite_route.data.name"
+                      }
+                    }
+                  }
                 }
               ]
             }
@@ -3247,7 +3313,10 @@
               "update": [
                 {
                   "$set": {
-                    "states.$$ctx.user": "REJECTED"
+                    "states.$$ctx.user": "REJECTED",
+                    "local.route": {
+                      "$ctx": "doc.context.riders.$$ctx.user"
+                    }
                   }
                 },
                 {
@@ -3262,7 +3331,7 @@
               "description": "Notifies driver when invited rider rejects during onboarding.",
               "type": "notify",
               "notify": {
-                "event": "contracts.user_rejected",
+                "event": "onboarding.user-rejected",
                 "targets": {
                   "$$ctx.doc.context.driver": [
                     "in_app",
@@ -3270,8 +3339,9 @@
                   ]
                 },
                 "payload": {
-                  "contract_id": {
-                    "$ctx": "doc._id"
+                  "rider": "$$ctx.user",
+                  "route_name": {
+                    "$ref": "/items/ride_posts/$$ctx.local.route.id/data.name"
                   }
                 }
               }
@@ -3372,7 +3442,10 @@
                   "type": "update.contract",
                   "update": {
                     "$set": {
-                      "states.$$ctx.payload.rider": "REJECTED"
+                      "states.$$ctx.payload.rider": "REJECTED",
+                      "local.route": {
+                        "$ctx": "doc.context.riders.$$ctx.payload.rider"
+                      }
                     }
                   }
                 },
@@ -3381,7 +3454,7 @@
                   "description": "Notifies user that the driver rejected their ride participation.",
                   "type": "notify",
                   "notify": {
-                    "event": "contracts.user_rejected_by_driver",
+                    "event": "onboarding.user-rejected-by-driver",
                     "targets": {
                       "$$ctx.payload.rider": [
                         "in_app",
@@ -3389,8 +3462,9 @@
                       ]
                     },
                     "payload": {
-                      "contract_id": {
-                        "$ctx": "doc._id"
+                      "driver": "$$ctx.doc.context.driver",
+                      "route_name": {
+                        "$ref": "/items/ride_posts/$$ctx.local.route.id/data.name"
                       }
                     }
                   }
@@ -3475,7 +3549,10 @@
               "update": [
                 {
                   "$set": {
-                    "states.$$ctx.user": "CANCELLED"
+                    "states.$$ctx.user": "CANCELLED",
+                    "local.route": {
+                      "$ctx": "doc.context.riders.$$ctx.user"
+                    }
                   }
                 }
               ]
@@ -3485,7 +3562,7 @@
               "description": "Notifies driver when user cancels ride during onboarding.",
               "type": "notify",
               "notify": {
-                "event": "contracts.user_cancelled",
+                "event": "onboarding.user-cancelled",
                 "targets": {
                   "$$ctx.doc.context.driver": [
                     "in_app",
@@ -3493,10 +3570,10 @@
                   ]
                 },
                 "payload": {
-                  "contract_id": {
-                    "$ctx": "doc._id"
-                  },
-                  "principal": "$$ctx.user"
+                  "rider": "$$ctx.user",
+                  "route_name": {
+                    "$ref": "/items/ride_posts/$$ctx.local.route.id/data.name"
+                  }
                 }
               }
             },
@@ -5501,7 +5578,7 @@
                           {
                             "$ifNull": [
                               {
-                                "$ctx": "context.riders.$$ctx.user.dispute.rider"
+                                "$ctx": "doc.context.riders.$$ctx.user.dispute.rider"
                               },
                               false
                             ]
@@ -5599,7 +5676,7 @@
                       {
                         "$eq": [
                           {
-                            "$ctx": "context.riders.$$ctx.user.dispute.rider"
+                            "$ctx": "doc.context.riders.$$ctx.user.dispute.rider"
                           },
                           true
                         ]
@@ -5696,7 +5773,7 @@
                     {
                       "$eq": [
                         {
-                          "$ctx": "context.riders.$$ctx.payload.rider.dispute.driver"
+                          "$ctx": "doc.context.riders.$$ctx.payload.rider.dispute.driver"
                         },
                         false
                       ]
@@ -5792,7 +5869,7 @@
                     {
                       "$eq": [
                         {
-                          "$ctx": "context.riders.$$ctx.payload.rider.dispute.driver"
+                          "$ctx": "doc.context.riders.$$ctx.payload.rider.dispute.driver"
                         },
                         true
                       ]

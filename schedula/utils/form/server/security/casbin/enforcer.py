@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import os
 import os.path as osp
 from contextlib import contextmanager
 
@@ -72,9 +73,10 @@ def get_enforcer() -> Enforcer:
     e.add_function("key_match", util.key_match)
     e.enable_auto_save(True)
     uri = app.config.get("MONGO_URI", None)
-    enable_watcher = app.config.get("CASBIN_WATCHER_ENABLED")
-    if enable_watcher is None:
-        enable_watcher = not app.config.get("TESTING", False)
+    enable_watcher = str(app.config.get(
+        "CASBIN_WATCHER_ENABLED", os.environ.get("CASBIN_WATCHER_ENABLED", "false")
+    )).lower() == "true"
+
     if uri and enable_watcher:
         watcher = new_watcher(uri)
         watcher.bind_enforcer(e)

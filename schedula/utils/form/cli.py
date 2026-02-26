@@ -203,5 +203,36 @@ def run(ctx, folder='.', app='app:app'):
     ).run()
 
 
+@cli.command('contracts-worker', short_help='Run contracts worker.')
+@click.option(
+    '--folder', '-f', default='.', required=False,
+    help="Main folder where app and src are contained.",
+    type=click.Path(writable=True, file_okay=False)
+)
+@click.option(
+    '--app', '-a',
+    help="The Flask application or factory function to load, in the form "
+         "'module:name'.",
+    default='app:app',
+    required=False
+)
+@click.option("--poll-interval", default=5.0, type=float)
+@click_log.simple_verbosity_option(logger)
+def run_contracts_worker(folder='.', app='app:app', poll_interval=5.0):
+    """
+    Building of src files within MAIN_FOLDER.
+
+    MAIN_FOLDER: Folder path. [default: .]
+    """
+    from .gapp import get_module
+    module, code = app.split(':')
+
+    from .server.contracts.schedule import worker_loop
+    worker_loop(
+        app=eval(code, get_module(module, (folder,))),
+        poll_interval_s=float(poll_interval)
+    ).run()
+
+
 if __name__ == '__main__':
     cli()

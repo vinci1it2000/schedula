@@ -198,13 +198,9 @@ def nack_retry(coll, job_id, err: Exception, delay_s=30):
     )
 
 
-def _worker_loop(coll, func, poll_interval_s=5):
-    while True:
-        job = claim_job(coll)
-        if not job:
-            time.sleep(poll_interval_s)
-            continue
-
+def loop_once(coll, func):
+    job = claim_job(coll)
+    if job:
         try:
             resp = func(**job["payload"])
             if job.get("kind") == "cron":
@@ -226,8 +222,14 @@ def _worker_loop(coll, func, poll_interval_s=5):
             else:
                 ack_done(coll, job["_id"], resp)
         except Exception as e:
-            # retry in 30s
             nack_retry(coll, job["_id"], e, delay_s=10)
+
+
+def _worker_loop(app, coll, func, poll_interval_s=5):
+    while True:
+        with app.app_context():
+            loop_once(coll, func)
+        time.sleep(poll_interval_s)
 
 
 def _schedule_event_at(coll, when_local: datetime, payload: dict):
@@ -298,5 +300,5 @@ def _func(contract_id, event_name, payload, actor_id):
     return {}
 
 
-def worker_loop(poll_interval_s=5):
-    return _worker_loop(_queue_coll(), _func, poll_interval_s)
+def worker_loop(app, poll_interval_s=5):
+    return _worker_loop(app, _queue_coll(), _func, poll_interval_s)

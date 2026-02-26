@@ -1353,6 +1353,7 @@ def _serialize_contract(doc: Dict[str, Any]) -> Dict[str, Any]:
         "id": doc.get("_id"),
         "status": doc.get("status"),
         "state": doc.get("state"),
+        "info": doc.get("info", {}),
         "user_state": pydash.get(doc, f"states.{get_auth_sub()}"),
         "created_at": created_at.isoformat() if isinstance(created_at, datetime) else None,
         "updated_at": updated_at.isoformat() if isinstance(updated_at, datetime) else None,
@@ -1366,7 +1367,7 @@ def _parse_json_body() -> Dict[str, Any]:
     return payload
 
 
-@bp.get("/contracts")
+@bp.get("/")
 def list_contracts_for_user():
     actor_sub = get_auth_sub()
     mq = parse_mq_arg(())
@@ -1456,7 +1457,7 @@ def _validate_allowed_initial_states(
     return errors
 
 
-@bp.post("/contracts/templates")
+@bp.post("/templates")
 @require_system_admin("contracts:templates", "manage")
 def create_template():
     payload = _parse_json_body()
@@ -1504,14 +1505,14 @@ def create_template():
     return jsonify(_serialize_template(doc)), 201
 
 
-@bp.get("/contracts/templates")
+@bp.get("/templates")
 @require_system_admin("contracts:templates", "manage")
 def list_templates():
     docs = list(mongo_find(_templates_coll(), {}))
     return jsonify({"templates": [_serialize_template(d) for d in docs]}), 200
 
 
-@bp.get("/contracts/templates/<template_id>")
+@bp.get("/templates/<template_id>")
 @require_system_admin("contracts:templates", "manage")
 def get_template(template_id: str):
     doc = mongo_find_one(_templates_coll(), {"_id": template_id})
@@ -1520,7 +1521,7 @@ def get_template(template_id: str):
     return jsonify(_serialize_template(doc)), 200
 
 
-@bp.put("/contracts/templates/<template_id>")
+@bp.put("/templates/<template_id>")
 @require_system_admin("contracts:templates", "manage")
 def update_template(template_id: str):
     payload = _parse_json_body()
@@ -1541,7 +1542,7 @@ def update_template(template_id: str):
     return jsonify(_serialize_template(doc)), 200
 
 
-@bp.post("/contracts/<template_id>")
+@bp.post("/<template_id>")
 def create_contract(template_id: str):
     payload = _parse_json_body()
     schema_errors = _validate_schema(payload, CONTRACT_CREATE_SCHEMA)
@@ -1568,7 +1569,7 @@ def create_contract(template_id: str):
     return jsonify(_serialize_contract(doc)), 201
 
 
-@bp.get("/contracts/<contract_id>")
+@bp.get("/<contract_id>")
 def get_contract(contract_id: str):
     query = {f"states.{get_auth_sub()}": {"$exists": True}}
     doc = _get_contract(contract_id, **query)
@@ -1577,7 +1578,7 @@ def get_contract(contract_id: str):
     return jsonify(_serialize_contract(doc)), 200
 
 
-@bp.route("/contracts/<contract_id>/<path:dyn_path>", methods=["POST", "GET"])
+@bp.route("/<contract_id>/<path:dyn_path>", methods=["POST", "GET"])
 def contract_api_event(contract_id: str, dyn_path: str):
     payload = _parse_json_body()
     actor_id = get_auth_sub()
