@@ -13,6 +13,7 @@ from .helpers import (
     u,
     g,
     u2id,
+    get_user,
     get_auth_sub,
     get_current_sub,
     g_admin,

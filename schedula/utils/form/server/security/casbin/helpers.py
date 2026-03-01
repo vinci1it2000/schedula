@@ -18,6 +18,8 @@ except Exception:  # pragma: no cover
 
 from .enforcer import get_enforcer
 from ...utils import abort_json
+from ...extensions import db
+from .. import User
 
 SYSTEM_ADMIN_ROLE = "g:system:admin"
 AUTHENTICATED_ROLE = "g:authenticated"
@@ -36,6 +38,10 @@ def u2id(uid) -> int:
     if isinstance(uid, str) and uid.startswith("u:"):
         return int(uid[2:])
     return uid
+
+
+def get_user(uid: str) -> User:
+    return db.session.get(User, u2id(uid))
 
 
 def g(gid) -> str:
