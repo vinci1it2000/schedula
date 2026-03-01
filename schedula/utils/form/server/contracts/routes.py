@@ -22,6 +22,7 @@ from .engine import (
     _templates_coll,
     _get_contract,
     _contracts_coll,
+    get_definition
 )
 from ..security.casbin import (
     get_auth_sub,
@@ -39,6 +40,7 @@ from ..utils import (
     parse_pagination_args,
     parse_sort_arg,
     set_bp_error_handlers,
+    RefResolver
 )
 
 bp = Blueprint("contracts", __name__)
@@ -1288,6 +1290,9 @@ TEMPLATE_CREATE_SCHEMA = {
                     "type": "object",
                     "additionalProperties": {"$ref": "#/$defs/event"},
                 },
+                "aggregate": {
+                    "$ref": "#/$defs/json_with_refs"
+                },
                 "context_schema": {
                     "type": "object",
                     "description": "Optional JSON Schema for contract context when this state is modified.",
@@ -1312,6 +1317,9 @@ TEMPLATE_CREATE_SCHEMA = {
                     "type": "object",
                     "additionalProperties": {"$ref": "#/$defs/event"},
                 },
+                "aggregate": {
+                    "$ref": "#/$defs/json_with_refs"
+                }
             },
             "required": ["initial_state", "states"],
             "additionalProperties": False,
@@ -1346,15 +1354,27 @@ def _ensure_indexes():
     templates.create_index([("name", 1), ("updated_at", -1)])
 
 
-def _serialize_contract(doc: Dict[str, Any]) -> Dict[str, Any]:
+def _serialize_contract(doc: Dict[str, Any], definition=None) -> Dict[str, Any]:
     created_at = doc.get("created_at")
     updated_at = doc.get("updated_at")
+    state = doc.get("state")
+    sub = get_auth_sub()
+    if definition is None:
+        definition = get_definition(doc)
+
+    ctx = {"doc": doc, "user": sub}
+
+    if pydash.has(definition, f"states.{state}.aggregate"):
+        aggregate = pydash.get(definition, f"states.{state}.aggregate", {})
+    else:
+        aggregate = dict(pydash.get(definition, f"aggregate", {}))
+
     return {
         "id": doc.get("_id"),
         "status": doc.get("status"),
-        "state": doc.get("state"),
-        "info": doc.get("info", {}),
-        "user_state": pydash.get(doc, f"states.{get_auth_sub()}"),
+        "state": state,
+        "aggregate_state": RefResolver(enforce_acl=False)(aggregate, ctx),
+        "user_state": pydash.get(doc, f"states.{sub}"),
         "created_at": created_at.isoformat() if isinstance(created_at, datetime) else None,
         "updated_at": updated_at.isoformat() if isinstance(updated_at, datetime) else None,
     }
@@ -1566,7 +1586,7 @@ def create_contract(template_id: str):
         owner_id=owner_id,
         initial_state=initial_state,
     )
-    return jsonify(_serialize_contract(doc)), 201
+    return jsonify(_serialize_contract(doc, template["definition"])), 201
 
 
 @bp.get("/<contract_id>")
