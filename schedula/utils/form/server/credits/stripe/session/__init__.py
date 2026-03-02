@@ -339,12 +339,12 @@ def create_payment(checkout):
         for i in ("dynamic_tax_rates", "tax_rates"):
             if i in d:
                 d[i] = get_tax_rates(d[i])
-            if "tiers" in d:
-                line_items.extend(
-                    compute_line_items(d.pop("quantity"), extra=d, **d.pop("tiers"))
-                )
-            else:
-                line_items.append(d)
+        if "tiers" in d:
+            line_items.extend(
+                compute_line_items(d.pop("quantity"), extra=d, **d.pop("tiers"))
+            )
+        else:
+            line_items.append(d)
 
     line_items = format_line_items(line_items)
     metadata["line_items"] = json.dumps([d.pop("metadata", None) for d in line_items])
