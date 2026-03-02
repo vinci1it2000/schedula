@@ -484,7 +484,7 @@ class TestNotificationsTasksWithCelery(BaseNotificationsTaskApiTest):
                 FakeApprise,
         ):
             with patch(
-                    "schedula.utils.form.server.notifications.tasks.celery.deliver_apprise_task.apply_async",
+                    "schedula.utils.form.server.notifications.tasks.task.deliver_apprise_task.apply_async",
                     _fake_apply_async,
             ):
                 r = self.client.post(
@@ -540,7 +540,7 @@ class TestNotificationsTasksWithCelery(BaseNotificationsTaskApiTest):
                 FakeApprise,
         ):
             with patch(
-                    "schedula.utils.form.server.notifications.tasks.celery.deliver_apprise_task.apply_async",
+                    "schedula.utils.form.server.notifications.tasks.task.deliver_apprise_task.apply_async",
                     _fake_apply_async,
             ):
                 r = self.client.post(

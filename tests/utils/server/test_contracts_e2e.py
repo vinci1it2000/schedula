@@ -1418,6 +1418,86 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertIn(newer_cid, ids)
         self.assertNotIn(older_cid, ids)
 
+    def test_list_contracts_uses_aggregate_and_state_aggregate(self) -> None:
+        global_definition = _gherkin_definition()
+        for state_def in (global_definition.get("states") or {}).values():
+            if isinstance(state_def, dict):
+                state_def.pop("aggregate", None)
+        global_definition["aggregate"] = {
+            "source": "global",
+            "state": {"$ctx": "doc.state"},
+            "user": {"$ctx": "user"},
+        }
+
+        global_template_id = self._create_template(
+            global_definition,
+            allowed_initial_states=["START"],
+        )
+
+        created_global = self._create_contract(
+            global_template_id,
+            self._gherkin_context_for("d1"),
+            initial_state="START",
+            actor="p1",
+        )
+        self.assertEqual(created_global.status_code, 201, msg=created_global.text)
+        global_cid = str(created_global.json()["id"])
+
+        global_join = self._post_event(global_cid, "request-join", actor="p1")
+        self.assertEqual(global_join.status_code, 200, msg=global_join.text)
+        self.assertTrue((global_join.json() or {}).get("ok"), msg=global_join.text)
+
+        state_definition = _gherkin_definition()
+        for state_def in (state_definition.get("states") or {}).values():
+            if isinstance(state_def, dict):
+                state_def.pop("aggregate", None)
+        state_definition["aggregate"] = {
+            "source": "global",
+            "state": {"$ctx": "doc.state"},
+            "user": {"$ctx": "user"},
+        }
+        state_definition["states"]["ONBOARDING"]["aggregate"] = {
+            "source": "state",
+            "state": {"$ctx": "doc.state"},
+            "user": {"$ctx": "user"},
+        }
+
+        state_template_id = self._create_template(
+            state_definition,
+            allowed_initial_states=["START"],
+        )
+
+        created_state = self._create_contract(
+            state_template_id,
+            self._gherkin_context_for("d1"),
+            initial_state="START",
+            actor="p1",
+        )
+        self.assertEqual(created_state.status_code, 201, msg=created_state.text)
+        state_cid = str(created_state.json()["id"])
+
+        state_join = self._post_event(state_cid, "request-join", actor="p1")
+        self.assertEqual(state_join.status_code, 200, msg=state_join.text)
+        self.assertTrue((state_join.json() or {}).get("ok"), msg=state_join.text)
+
+        listed_rider = self.httpx.get("/contracts/", headers=self._headers("p1"))
+        self.assertEqual(listed_rider.status_code, 200, msg=listed_rider.text)
+        by_id_rider = {
+            str(i.get("id")): i
+            for i in (listed_rider.json() or {}).get("items") or []
+            if isinstance(i, dict)
+        }
+        self.assertIn(global_cid, by_id_rider)
+        self.assertEqual(
+            (by_id_rider[global_cid].get("aggregate_state") or {}).get("source"),
+            "global",
+        )
+        self.assertIn(state_cid, by_id_rider)
+        self.assertEqual(
+            (by_id_rider[state_cid].get("aggregate_state") or {}).get("source"),
+            "state",
+        )
+
     def test_start_user_initiated_sets_pending_driver_and_requesting_rider(
             self,
     ) -> None:
