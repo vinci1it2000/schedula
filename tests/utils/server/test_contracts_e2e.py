@@ -1330,7 +1330,7 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(joined.status_code, 200, msg=joined.text)
         self.assertTrue((joined.json() or {}).get("ok"), msg=joined.text)
 
-        listed = self.httpx.get("/contracts", headers=self._headers("p1"))
+        listed = self.httpx.get("/contracts/", headers=self._headers("p1"))
         self.assertEqual(listed.status_code, 200, msg=listed.text)
         payload = listed.json() or {}
         ids = {str(i.get("id")) for i in (payload.get("items") or [])}
@@ -1339,7 +1339,7 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertNotIn(excluded_cid, ids)
 
         filtered = self.httpx.get(
-            "/contracts",
+            "/contracts/",
             params={
                 "mq": json.dumps(
                     {
@@ -1387,7 +1387,7 @@ class ContractsE2ETest(unittest.TestCase):
             )
 
         listed = self.httpx.get(
-            "/contracts",
+            "/contracts/",
             params={"sort": "created_at", "limit": 10},
             headers=self._headers("p1"),
         )
@@ -1397,7 +1397,7 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertLess(ids.index(older_cid), ids.index(newer_cid))
 
         ranged = self.httpx.get(
-            "/contracts",
+            "/contracts/",
             params={
                 "mq": json.dumps(
                     {
@@ -2729,7 +2729,7 @@ class ContractsE2ETest(unittest.TestCase):
         p1_route_id = self.route_by_principal[p1_principal]
         p1_balance_before = self._wallet_balance("p1")
         reject_notify_before = self._count_notifications_for(
-            p1_principal, "contracts.user_rejected_by_driver"
+            p1_principal, "onboarding.user-rejected-by-driver"
         )
         with self.app.app_context():
             route_data_before = (
@@ -2758,7 +2758,7 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(route_data_after, route_data_before)
         self.assertEqual(
             self._count_notifications_for(
-                p1_principal, "contracts.user_rejected_by_driver"
+                p1_principal, "onboarding.user-rejected-by-driver"
             ),
             reject_notify_before,
         )
@@ -2781,7 +2781,7 @@ class ContractsE2ETest(unittest.TestCase):
         p1_balance_before = self._wallet_balance("p1")
         driver_principal = f"u:{self.user_ids['d1']}"
         user_cancelled_before = self._count_notifications_for(
-            driver_principal, "contracts.user_cancelled"
+            driver_principal, "onboarding.user-cancelled"
         )
         with self.app.app_context():
             route_data_before = (
@@ -2803,7 +2803,7 @@ class ContractsE2ETest(unittest.TestCase):
                                ).get("data") or {}
         self.assertEqual(route_data_after, route_data_before)
         self.assertEqual(
-            self._count_notifications_for(driver_principal, "contracts.user_cancelled"),
+            self._count_notifications_for(driver_principal, "onboarding.user-cancelled"),
             user_cancelled_before,
         )
 
@@ -2815,7 +2815,7 @@ class ContractsE2ETest(unittest.TestCase):
         p4_route_id = self.route_by_principal[p4_principal]
         p4_balance_before = self._wallet_balance("p4")
         before = self._count_notifications_for(
-            driver_principal, "contracts.join_requested"
+            driver_principal, "onboarding.driver-new-join-request"
         )
 
         cid = self._create_gherkin_contract(initial_state="START", actor="p4")
@@ -2832,7 +2832,7 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertIn(cid, p4_route_data.get("contract_ids") or [])
 
         after = self._count_notifications_for(
-            driver_principal, "contracts.join_requested"
+            driver_principal, "onboarding.driver-new-join-request"
         )
         self.assertEqual(after, before + 1)
 
@@ -2855,15 +2855,15 @@ class ContractsE2ETest(unittest.TestCase):
     def test_start_cancel_join_request_last_user_re_notifies_driver(self) -> None:
         driver_principal = f"u:{self.user_ids['d1']}"
         before = self._count_notifications_for(
-            driver_principal, "contracts.join_requested"
+            driver_principal, "onboarding.driver-new-join-request"
         )
         before_no = self._count_notifications_for(
-            driver_principal, "contracts.no_request_ride"
+            driver_principal, "onboarding.no-more-ride-requests"
         )
 
         cid = self._create_gherkin_contract(initial_state="START", actor="p1")
         after_create = self._count_notifications_for(
-            driver_principal, "contracts.join_requested"
+            driver_principal, "onboarding.driver-new-join-request"
         )
         self.assertEqual(after_create, before + 1)
 
@@ -2876,7 +2876,7 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertIn((c.get("context") or {}).get("riders_map"), ({}, None))
 
         after_cancel = self._count_notifications_for(
-            driver_principal, "contracts.no_request_ride"
+            driver_principal, "onboarding.no-more-ride-requests"
         )
         self.assertEqual(after_cancel, before_no + 1)
 
@@ -2915,25 +2915,25 @@ class ContractsE2ETest(unittest.TestCase):
 
         d1_principal = f"u:{self.user_ids['d1']}"
         p2_invite_before = self._count_notifications_for(
-            p2_principal, "contracts.user_invited"
+            p2_principal, "onboarding.user-invited"
         )
         p3_invite_before = self._count_notifications_for(
-            f"u:{self.user_ids['p3']}", "contracts.user_invited"
+            f"u:{self.user_ids['p3']}", "onboarding.user-invited"
         )
         p3_cancel_invite_before = self._count_notifications_for(
-            f"u:{self.user_ids['p3']}", "contracts.driver_cancelled_invite"
+            f"u:{self.user_ids['p3']}", "onboarding.driver-cancelled-invite"
         )
         d1_join_requested_before = self._count_notifications_for(
-            d1_principal, "contracts.join_requested"
+            d1_principal, "onboarding.driver-new-join-request"
         )
         d1_user_rejected_before = self._count_notifications_for(
-            d1_principal, "contracts.user_rejected"
+            d1_principal, "onboarding.user-rejected"
         )
         d1_user_cancelled_before = self._count_notifications_for(
-            d1_principal, "contracts.user_cancelled"
+            d1_principal, "onboarding.user-cancelled"
         )
         p2_driver_rejected_before = self._count_notifications_for(
-            p2_principal, "contracts.user_rejected_by_driver"
+            p2_principal, "onboarding.user-rejected-by-driver"
         )
 
         created_a = self._create_contract(
@@ -3074,7 +3074,9 @@ class ContractsE2ETest(unittest.TestCase):
         )
         self.assertEqual(p3_route_data_after_cancel_join.get("contract_ids") or [], [])
         self.assertEqual(
-            self._count_notifications_for(d1_principal, "contracts.join_requested"),
+            self._count_notifications_for(
+                d1_principal, "onboarding.driver-new-join-request"
+            ),
             d1_join_requested_before + 4,
         )
 
@@ -3133,7 +3135,7 @@ class ContractsE2ETest(unittest.TestCase):
             contract_a, p2_route_data_after_invite.get("contract_ids") or []
         )
         self.assertEqual(
-            self._count_notifications_for(p2_principal, "contracts.user_invited"),
+            self._count_notifications_for(p2_principal, "onboarding.user-invited"),
             p2_invite_before + 2,
         )
 
@@ -3148,7 +3150,7 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(self._wallet_balance("p3"), p3_balance_before)
         self.assertEqual(
             self._count_notifications_for(
-                f"u:{self.user_ids['p3']}", "contracts.user_invited"
+                f"u:{self.user_ids['p3']}", "onboarding.user-invited"
             ),
             p3_invite_before + 1,
         )
@@ -3174,7 +3176,7 @@ class ContractsE2ETest(unittest.TestCase):
         )
         self.assertEqual(
             self._count_notifications_for(
-                f"u:{self.user_ids['p3']}", "contracts.driver_cancelled_invite"
+                f"u:{self.user_ids['p3']}", "onboarding.driver-cancelled-invite"
             ),
             p3_cancel_invite_before + 1,
         )
@@ -3190,7 +3192,7 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(self._wallet_balance("p3"), p3_balance_before)
         self.assertEqual(
             self._count_notifications_for(
-                f"u:{self.user_ids['p3']}", "contracts.user_invited"
+                f"u:{self.user_ids['p3']}", "onboarding.user-invited"
             ),
             p3_invite_before + 2,
         )
@@ -3202,7 +3204,7 @@ class ContractsE2ETest(unittest.TestCase):
         p3_route_data_after_reject = p3_route_after_reject.get("data") or {}
         self.assertEqual(p3_route_data_after_reject.get("contract_ids") or [], [])
         self.assertEqual(
-            self._count_notifications_for(d1_principal, "contracts.user_rejected"),
+            self._count_notifications_for(d1_principal, "onboarding.user-rejected"),
             d1_user_rejected_before + 1,
         )
 
@@ -3321,7 +3323,7 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(p2_route_data_after_driver_reject.get("reserved_credits"), 0)
         self.assertEqual(
             self._count_notifications_for(
-                p2_principal, "contracts.user_rejected_by_driver"
+                p2_principal, "onboarding.user-rejected-by-driver"
             ),
             p2_driver_rejected_before + 1,
         )
@@ -3332,7 +3334,7 @@ class ContractsE2ETest(unittest.TestCase):
         rider_cancel_p1 = self._post_event(contract_a, "cancel-user", actor="p1")
         self.assertIn(rider_cancel_p1.status_code, (403, 409))
         self.assertEqual(
-            self._count_notifications_for(d1_principal, "contracts.user_cancelled"),
+            self._count_notifications_for(d1_principal, "onboarding.user-cancelled"),
             d1_user_cancelled_before,
         )
         chat_members = self._group_member_ids(group_id)
