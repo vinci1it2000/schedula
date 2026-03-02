@@ -1,6 +1,31 @@
 Changelog
 =========
 
+v1.6.7 (2026-03-02)
+-------------------
+
+Feat
+~~~~
+- (contracts): Include aggregate metadata in serialized contract
+  responses.
+
+- (server): Agg user fetch to RefResolver.
+
+- (contracts): Add worker CLI, /contracts routes, and onboarding
+  workflow updates.
+
+
+Fix
+~~~
+- (security): Make name as property.
+
+- (contracts): Simplify contract_api_event payload structure.
+
+- (credits): Correct indentation.
+
+- (tests): Update notification names.
+
+
 v1.6.6 (2026-02-26)
 -------------------
 
