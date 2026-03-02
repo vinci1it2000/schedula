@@ -62,7 +62,7 @@ class TestStripeApis(unittest.TestCase):
             cls._mysql_container.start()
             uri = str(cls._mysql_container.get_connection_url())
             if uri.startswith("mysql://"):
-                uri = "mysql+pymysql://" + uri[len("mysql://") :]
+                uri = "mysql+pymysql://" + uri[len("mysql://"):]
             cls._sqlalchemy_uri = uri
         except Exception as ex:  # pragma: no cover
             raise unittest.SkipTest(
@@ -171,35 +171,67 @@ class TestStripeApis(unittest.TestCase):
                             "minItems": 1,
                             "items": {
                                 "type": "object",
-                                "required": ["quantity"],
+                                "additionalProperties": False,
+                                "required": [
+                                    "quantity",
+                                    "lookup_key"
+                                ],
                                 "properties": {
-                                    "quantity": {"type": "integer", "minimum": 1}
-                                },
-                                "additionalProperties": True,
-                            },
+                                    "quantity": {
+                                        "type": "integer",
+                                        "minimum": 1
+                                    },
+                                    "lookup_key": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
                         },
                         {
                             "type": "object",
                             "patternProperties": {
                                 "^\\d+$": {
                                     "type": "object",
-                                    "required": ["quantity"],
+                                    "additionalProperties": False,
+                                    "required": [
+                                        "quantity",
+                                        "lookup_key"
+                                    ],
                                     "properties": {
-                                        "quantity": {"type": "integer", "minimum": 1}
-                                    },
-                                    "additionalProperties": True,
+                                        "quantity": {
+                                            "type": "integer",
+                                            "minimum": 1
+                                        },
+                                        "lookup_key": {
+                                            "type": "string"
+                                        }
+                                    }
                                 }
                             },
-                            "additionalProperties": False,
-                        },
+                            "additionalProperties": False
+                        }
                     ]
                 },
                 "session_kw": {
-                    "mode": "payment",
                     "allow_promotion_codes": True,
+                    "mode": "payment",
+                    "invoice_creation": {
+                        "enabled": True
+                    },
+                    "billing_address_collection": "required",
+                    "automatic_tax": {
+                        "enabled": False
+                    },
+                    "tax_id_collection": {
+                        "enabled": True
+                    },
+                    "customer_update": {
+                        "name": "auto"
+                    }
                 },
-                "line_items": {"dynamic_tax_rates": True},
-            },
+                "line_items": {
+                    "dynamic_tax_rates": True
+                }},
             headers=self._auth_headers(),
         )
         self.assertEqual(seed.status_code, 200)
@@ -340,21 +372,47 @@ class TestStripeApis(unittest.TestCase):
         }
         return stripe.convert_to_stripe_object(session_dict, api_key="sk_test_dummy")
 
+    def _fake_price_with_lookup_key(
+            self,
+            lookup_key: str = "base_price",
+            price_id: str = "price_base_123",
+    ):
+        price_dict = {
+            "id": price_id,
+            "object": "price",
+            "lookup_key": lookup_key,
+            "currency": "usd",
+            "recurring": None,
+            "tax_behavior": "exclusive",
+            "unit_amount_decimal": "100",
+            "product": {
+                "id": "prod_base_123",
+                "object": "product",
+                "name": "Base Price",
+                "metadata": {},
+            },
+        }
+        return stripe.convert_to_stripe_object(price_dict, api_key="sk_test_dummy")
+
+    @staticmethod
+    def _fake_price_list(*prices):
+        return SimpleNamespace(auto_paging_iter=lambda: iter(prices))
+
     def test_create_checkout_session_stripe_mock(self):
         payload = [
             {
-                "price_data": {
-                    "currency": "usd",
-                    "product_data": {"name": "Test Product"},
-                    "unit_amount": 100,
-                },
+                "lookup_key": "base_price",
                 "quantity": 1,
             }
         ]
 
+        fake_price = self._fake_price_with_lookup_key("base_price")
         with patch(
             "schedula.utils.form.server.credits.stripe.session.get_discounts",
             return_value={},
+        ), patch(
+            "stripe.Price.list",
+            return_value=self._fake_price_list(fake_price),
         ):
             r = self.client.post(
                 "/stripe/create-checkout-session/payment",
@@ -539,8 +597,8 @@ class TestStripeApis(unittest.TestCase):
             }
         ]
         with patch(
-            "schedula.utils.form.server.credits.stripe.session.get_discounts",
-            return_value={},
+                "schedula.utils.form.server.credits.stripe.session.get_discounts",
+                return_value={},
         ):
             checkout_resp = self.client.post(
                 "/stripe/create-checkout-session/credits-pack",
@@ -555,19 +613,18 @@ class TestStripeApis(unittest.TestCase):
         credits = 3
         payload = [
             {
-                "price_data": {
-                    "currency": "usd",
-                    "product_data": {"name": "Credits"},
-                    "unit_amount": 100,
-                },
-                "quantity": credits,
-                "metadata": {"credits": credits},
+                "lookup_key": "base_price",
+                "quantity": credits
             }
         ]
 
+        fake_price = self._fake_price_with_lookup_key("base_price")
         with patch(
             "schedula.utils.form.server.credits.stripe.session.get_discounts",
             return_value={},
+        ), patch(
+            "stripe.Price.list",
+            return_value=self._fake_price_list(fake_price),
         ):
             r = self.client.post(
                 "/stripe/create-checkout-session/payment",

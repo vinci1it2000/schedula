@@ -1256,6 +1256,40 @@
           }
         }
       ]
+    },
+    "DriverInfo": {
+      "trigger": [
+        {
+          "type": "api",
+          "path": "driver-info",
+          "method": "GET",
+          "payload_schema": {
+            "type": "object",
+            "properties": {},
+            "additionalProperties": false
+          },
+          "response": {
+            "$ctx": "doc"
+          }
+        }
+      ]
+    },
+    "RiderInfo": {
+      "trigger": [
+        {
+          "type": "api",
+          "path": "rider-info",
+          "method": "GET",
+          "payload_schema": {
+            "type": "object",
+            "properties": {},
+            "additionalProperties": false
+          },
+          "response": {
+            "$ctx": "doc.context"
+          }
+        }
+      ]
     }
   },
   "states": {
@@ -1301,6 +1335,9 @@
                 "context.riders": {},
                 "context.driver_route": {
                   "id": "$local.driver_route._id",
+                  "actor_name": {
+                    "$ref": "/users/$$ctx.doc.local.driver_route.created_by/name"
+                  },
                   "accepted_seats": 0,
                   "compensation": 0,
                   "trip": {
@@ -1528,6 +1565,7 @@
             "type": "object",
             "required": [
               "id",
+              "actor_name",
               "trip",
               "capacity",
               "accepted_seats",
@@ -1536,6 +1574,9 @@
             "additionalProperties": false,
             "properties": {
               "id": {
+                "type": "string"
+              },
+              "actor_name": {
                 "type": "string"
               },
               "trip": {
@@ -1651,6 +1692,7 @@
                 "type": "object",
                 "required": [
                   "id",
+                  "actor_name",
                   "cost",
                   "seats",
                   "trip"
@@ -1658,6 +1700,9 @@
                 "additionalProperties": false,
                 "properties": {
                   "id": {
+                    "type": "string"
+                  },
+                  "actor_name": {
                     "type": "string"
                   },
                   "cost": {
@@ -1819,6 +1864,9 @@
                 "$set": {
                   "local.route": {
                     "id": "$$ctx.payload.route_id",
+                    "actor_name": {
+                      "$ref": "/users/$$ctx.user/name"
+                    },
                     "cost": {
                       "$toInt": {
                         "$max": [
@@ -2123,6 +2171,7 @@
                     "$set": {
                       "states.$$ctx.user": "REQUESTING",
                       "context.riders.$$ctx.user.id": "$local.route.id",
+                      "context.riders.$$ctx.user.actor_name": "$local.route.actor_name",
                       "context.riders.$$ctx.user.cost": "$local.route.cost",
                       "context.riders.$$ctx.user.seats": "$local.route.seats",
                       "context.riders.$$ctx.user.trip": "$local.route.trip"
@@ -2642,6 +2691,16 @@
               "key": "invite_route_item"
             },
             {
+              "title": "Derive Invite Principal",
+              "description": "Derives invite principal.",
+              "type": "update.contract",
+              "update": {
+                "$set": {
+                  "local.rider": "$local.invite_route_item.created_by"
+                }
+              }
+            },
+            {
               "title": "Derive Invite Inputs",
               "description": "Derives invite principal, seats, trip, and reserved credits from route data.",
               "type": "update.contract",
@@ -2649,7 +2708,10 @@
                 "$set": {
                   "local.invite_route": {
                     "id": "$$ctx.payload.route_id",
-                    "principal": "$local.invite_route_item.created_by",
+                    "actor_name": {
+                      "$ref": "/users/$$ctx.doc.local.rider/name"
+                    },
+                    "principal": "$local.rider",
                     "reserved_credits": {
                       "$ifNull": [
                         "$local.invite_route_item.data.reserved_credits",
@@ -2875,6 +2937,9 @@
                       "states.$$ctx.local.invite_route.principal": "PENDING",
                       "context.riders.$$ctx.local.invite_route.principal.id": {
                         "$ctx": "local.invite_route.id"
+                      },
+                      "context.riders.$$ctx.local.invite_route.principal.actor_name": {
+                        "$ctx": "local.invite_route.actor_name"
                       },
                       "context.riders.$$ctx.local.invite_route.principal.cost": {
                         "$ctx": "local.invite_route.cost"
@@ -3732,6 +3797,7 @@
             "type": "object",
             "required": [
               "id",
+              "actor_name",
               "trip",
               "capacity",
               "accepted_seats",
@@ -3742,6 +3808,9 @@
             "additionalProperties": false,
             "properties": {
               "id": {
+                "type": "string"
+              },
+              "actor_name": {
                 "type": "string"
               },
               "locations": {
@@ -4030,6 +4099,7 @@
                 "type": "object",
                 "required": [
                   "id",
+                  "actor_name",
                   "cost",
                   "seats",
                   "trip",
@@ -4042,6 +4112,9 @@
                 "additionalProperties": false,
                 "properties": {
                   "id": {
+                    "type": "string"
+                  },
+                  "actor_name": {
                     "type": "string"
                   },
                   "cost": {
@@ -6232,6 +6305,7 @@
             "type": "object",
             "required": [
               "id",
+              "actor_name",
               "trip",
               "capacity",
               "accepted_seats",
@@ -6242,6 +6316,9 @@
             "additionalProperties": false,
             "properties": {
               "id": {
+                "type": "string"
+              },
+              "actor_name": {
                 "type": "string"
               },
               "locations": {
@@ -6530,6 +6607,7 @@
                 "type": "object",
                 "required": [
                   "id",
+                  "actor_name",
                   "cost",
                   "seats",
                   "trip",
@@ -6543,6 +6621,9 @@
                 "additionalProperties": false,
                 "properties": {
                   "id": {
+                    "type": "string"
+                  },
+                  "actor_name": {
                     "type": "string"
                   },
                   "cost": {

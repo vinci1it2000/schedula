@@ -865,7 +865,7 @@ class ContractsE2ETest(unittest.TestCase):
                 items_coll.insert_one(
                     {
                         "_id": route_id,
-                        "category": "route",
+                        "category": "ride_posts",
                         "data": route_doc,
                         "created_by": principal,
                         "updated_by": principal,
@@ -923,6 +923,8 @@ class ContractsE2ETest(unittest.TestCase):
         user = User.query.filter_by(email=email).first()
         if not user:
             user = User(
+                firstname=email.split("@")[0],
+                lastname=email.split("@")[1],
                 email=email,
                 password=hash_password("UserPass123!"),
                 active=True,
@@ -987,7 +989,7 @@ class ContractsE2ETest(unittest.TestCase):
             payload = {"rider": f"u:{self.user_ids['p1']}"}
         return self.httpx.post(
             f"/contracts/{contract_id}/{path}",
-            json={"payload": payload or {}},
+            json=payload or {},
             headers=self._headers(actor),
         )
 
@@ -1143,7 +1145,7 @@ class ContractsE2ETest(unittest.TestCase):
             )
 
     def _get_route(self, actor: str, route_id: str) -> Dict[str, Any]:
-        resp = self.httpx.get(f"/item/route/{route_id}", headers=self._headers(actor))
+        resp = self.httpx.get(f"/item/ride_posts/{route_id}", headers=self._headers(actor))
         self.assertEqual(resp.status_code, 200, msg=resp.text)
         return resp.json() or {}
 
@@ -1202,7 +1204,7 @@ class ContractsE2ETest(unittest.TestCase):
         }
         data.update(updates)
         resp = self.httpx.post(
-            "/item/route",
+            "/item/ride_posts",
             json={"data": data},
             headers=self._headers(actor),
         )
@@ -1217,7 +1219,7 @@ class ContractsE2ETest(unittest.TestCase):
         data = dict(current.get("data") or {})
         data.update(updates)
         resp = self.httpx.patch(
-            f"/item/route/{route_id}",
+            f"/item/ride_posts/{route_id}",
             json={"data": data},
             headers=self._headers(actor),
         )
@@ -2603,6 +2605,7 @@ class ContractsE2ETest(unittest.TestCase):
                         f"states.{p2_principal}": "PENDING",
                         f"context.riders.{p2_principal}": {
                             "id": p2_route_id,
+                            "actor_name": "p2 use",
                             "cost": 10,
                             "seats": 2,
                             "trip": p2_trip,
