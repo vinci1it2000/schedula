@@ -1602,15 +1602,11 @@ def get_contract(contract_id: str):
 def contract_api_event(contract_id: str, dyn_path: str):
     payload = _parse_json_body()
     actor_id = get_auth_sub()
-    body_payload = payload.get("payload") or {}
-
-    if not isinstance(body_payload, dict):
-        abort_json(400, "payload must be object")
 
     result, status = _process_event(
         contract_id=contract_id,
         dyn_path=dyn_path,
         actor_id=actor_id,
-        body_payload=body_payload,
+        body_payload=payload,
     )
     return jsonify(result), status
