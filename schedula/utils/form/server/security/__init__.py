@@ -67,6 +67,7 @@ class User(db.Model, fsqla.FsUserMixin):
     custom_data = Column(JSON())
     settings = Column(JSON())
 
+    @property
     def name(self):
         return f"{self.firstname} {self.lastname}"
 
