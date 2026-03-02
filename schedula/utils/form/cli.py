@@ -231,7 +231,7 @@ def run_contracts_worker(folder='.', app='app:app', poll_interval=5.0):
     worker_loop(
         app=eval(code, get_module(module, (folder,))),
         poll_interval_s=float(poll_interval)
-    ).run()
+    )
 
 
 if __name__ == '__main__':

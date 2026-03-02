@@ -301,4 +301,6 @@ def _func(contract_id, event_name, payload, actor_id):
 
 
 def worker_loop(app, poll_interval_s=5):
-    return _worker_loop(app, _queue_coll(), _func, poll_interval_s)
+    with app.app_context():
+        coll = _queue_coll()
+    return _worker_loop(app, coll, _func, poll_interval_s)
