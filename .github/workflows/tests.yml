@@ -20,6 +20,7 @@ jobs:
             extra: all
             python-version: '3.12'
     env:
+      TZ: UTC
       ACTION: "true"
       EXTRAS: ${{ matrix.extra }}
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
