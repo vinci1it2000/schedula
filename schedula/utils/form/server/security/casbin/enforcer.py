@@ -8,6 +8,7 @@ import os.path as osp
 from contextlib import contextmanager
 
 import casbin
+import threading
 import sqlalchemy_adapter
 from casbin import util
 from flask import current_app, has_app_context
@@ -17,7 +18,7 @@ from ...extensions import db
 
 _EXT_KEY = "casbin_enforcer"
 
-
+_init_lock = threading.Lock()
 class Adapter(sqlalchemy_adapter.Adapter):
     @contextmanager
     def _session_scope(self):
@@ -62,27 +63,30 @@ def get_enforcer() -> Enforcer:
     app = current_app
     if _EXT_KEY in app.extensions:
         return app.extensions[_EXT_KEY]
+    with _init_lock:
+        if _EXT_KEY in app.extensions:
+            return app.extensions[_EXT_KEY]
+        adapter = Adapter(db.engine)
+        adapter.session_local = db.session
+        model_path = app.config.get(
+            "CASBIN_MODEL_CONF",
+            osp.join(osp.dirname(__file__), "model.conf"),
+        )
+        e = Enforcer(model_path, adapter)
+        e.add_function("key_match", util.key_match)
+        e.enable_auto_save(True)
+        uri = app.config.get("MONGO_URI", None)
+        enable_watcher = str(app.config.get(
+            "CASBIN_WATCHER_ENABLED", os.environ.get("CASBIN_WATCHER_ENABLED", "false")
+        )).lower() == "true"
 
-    adapter = Adapter(db.engine)
-    adapter.session_local = db.session
-    model_path = app.config.get(
-        "CASBIN_MODEL_CONF",
-        osp.join(osp.dirname(__file__), "model.conf"),
-    )
-    e = Enforcer(model_path, adapter)
-    e.add_function("key_match", util.key_match)
-    e.enable_auto_save(True)
-    uri = app.config.get("MONGO_URI", None)
-    enable_watcher = str(app.config.get(
-        "CASBIN_WATCHER_ENABLED", os.environ.get("CASBIN_WATCHER_ENABLED", "false")
-    )).lower() == "true"
+        if uri and enable_watcher:
+            watcher = new_watcher(uri)
+            watcher.bind_enforcer(e)
+            e.set_watcher(watcher)
+            watcher.start()
+        # Load from DB
+        e.load_policy()
 
-    if uri and enable_watcher:
-        watcher = new_watcher(uri)
-        watcher.bind_enforcer(e)
-        e.set_watcher(watcher)
-    # Load from DB
-    e.load_policy()
-
-    app.extensions[_EXT_KEY] = e
+        app.extensions[_EXT_KEY] = e
     return e

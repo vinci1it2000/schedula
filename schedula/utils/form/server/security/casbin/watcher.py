@@ -11,6 +11,8 @@ MongoDB Incremental Watcher (WatcherEx) for PyCasbin.
 from __future__ import annotations
 
 import logging
+import os
+import socket
 import threading
 import time
 import uuid
@@ -202,6 +204,7 @@ class MongoIncrementalWatcher(WatcherEx):
                 raise RuntimeError(
                     "MongoIncrementalWatcher: bind_enforcer(enforcer) must be called before start()."
                 )
+            self._node_id = f"{socket.gethostname()}:{os.getpid()}:{uuid.uuid4().hex}"
             self._stop.clear()
             self._thread = threading.Thread(target=self._watch_loop, daemon=True)
             self._thread.start()
@@ -327,7 +330,6 @@ class MongoIncrementalWatcher(WatcherEx):
         try:
             prev = e.is_auto_notify_watcher_enabled()
         except Exception:
-            # vecchie versioni potrebbero non avere getter, assumiamo True/False non recuperabile
             prev = None
 
         try:
