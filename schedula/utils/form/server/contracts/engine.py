@@ -238,7 +238,7 @@ def _apply_effect_step(
             abort_json(409, "Event not available in this state")
     elif ef_type == "iter.effects":
         effects = raw_ef["effects"] or []
-        for d in ef.get("iter") or [{}]:
+        for d in ef.get("iter", []):
             changed, doc = _apply_effects(
                 {"effects": effects}, doc, definition,
                 actor_id=d.get("actor_id", actor_id),

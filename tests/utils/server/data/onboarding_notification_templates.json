@@ -1,0 +1,170 @@
+[
+  {
+    "_id": "onboarding.driver-new-join-request-v1",
+    "event": "onboarding.driver-new-join-request",
+    "title": "Richiesta di adesione alla rotta",
+    "body": "L'utente {{ (payload.rider | principal_info).name }} ha richiesto di essere ammesso alla rotta \"{{ payload.route_name }}\".",
+    "enabled": true
+  },
+  {
+    "_id": "onboarding.driver-rejected-start-v1",
+    "event": "onboarding.driver-rejected-start",
+    "title": "Richiesta non accettata",
+    "body": "Il conducente non ha approvato la tua richiesta per la rotta \"{{ payload.route_name }}\".",
+    "enabled": true
+  },
+  {
+    "_id": "onboarding.user-invited-v1",
+    "event": "onboarding.user-invited",
+    "title": "Nuovo invito",
+    "body": "{{ (payload.driver | principal_info).name }} ti ha invitato a partecipare alla rotta \"{{ payload.route_name }}\".",
+    "enabled": true
+  },
+  {
+    "_id": "onboarding.driver-cancelled-invite-v1",
+    "event": "onboarding.driver-cancelled-invite",
+    "title": "Invito annullato",
+    "body": "{{ (payload.driver | principal_info).name }} ha annullato il tuo invito per \"{{ payload.route_name }}\".",
+    "enabled": true
+  },
+  {
+    "_id": "onboarding.no-more-ride-requests-v1",
+    "event": "onboarding.no-more-ride-requests",
+    "title": "Nessuna richiesta in attesa",
+    "body": "Tutte le richieste per \"{{ payload.route_name }}\" sono state gestite.",
+    "enabled": true
+  },
+  {
+    "_id": "onboarding.accepted-join-request-v1",
+    "event": "onboarding.accepted-join-request",
+    "title": "Richiesta accettata",
+    "body": "{{ (payload.driver | principal_info).name }} ha accettato la tua richiesta per \"{{ payload.route_name }}\".",
+    "enabled": true
+  },
+  {
+    "_id": "onboarding.user-accepted-invite-v1",
+    "event": "onboarding.user-accepted-invite",
+    "title": "Invito accettato",
+    "body": "{{ (payload.rider | principal_info).name }} ha accettato l'invito per \"{{ payload.route_name }}\".",
+    "enabled": true
+  },
+  {
+    "_id": "onboarding.user-rejected-v1",
+    "event": "onboarding.user-rejected",
+    "title": "Invito rifiutato",
+    "body": "{{ (payload.rider | principal_info).name }} ha rifiutato l'invito per \"{{ payload.route_name }}\".",
+    "enabled": true
+  },
+  {
+    "_id": "onboarding.user-rejected-by-driver-v1",
+    "event": "onboarding.user-rejected-by-driver",
+    "title": "Rimozione dalla rotta",
+    "body": "Il conducente ti ha rimosso dalla rotta \"{{ payload.route_name }}\".",
+    "enabled": true
+  },
+  {
+    "_id": "onboarding.user-cancelled-v1",
+    "event": "onboarding.user-cancelled",
+    "title": "Partecipazione annullata",
+    "body": "{{ (payload.rider | principal_info).name }} ha annullato la partecipazione alla rotta \"{{ payload.route_name }}\".",
+    "enabled": true
+  },
+  {
+    "_id": "in-progress-pickup-pin-created-v1",
+    "event": "in-progress.pickup-pin-created",
+    "title": "PIN di pickup disponibile",
+    "body": "Il PIN di pickup per la rotta \"{{ payload.route_name }}\" e' pronto.",
+    "enabled": true
+  },
+  {
+    "_id": "in-progress-pickup-pin-hint-v1",
+    "event": "in-progress.pickup-pin-hint",
+    "title": "Suggerimento PIN",
+    "body": "Sono disponibili i suggerimenti PIN dei rider per \"{{ payload.route_name }}\".",
+    "enabled": true
+  },
+  {
+    "_id": "in-progress-pickup-confirmed-v1",
+    "event": "in-progress.pickup-confirmed",
+    "title": "Pickup confermato",
+    "body": "Il pickup e' stato confermato per la rotta \"{{ payload.route_name }}\".",
+    "enabled": true
+  },
+  {
+    "_id": "in-progress-user-rejected-by-driver-v1",
+    "event": "in-progress.user-rejected-by-driver",
+    "title": "Rider rimosso",
+    "body": "Il conducente ha rimosso un rider dalla rotta \"{{ payload.route_name }}\".",
+    "enabled": true
+  },
+  {
+    "_id": "in-progress-user-cancelled-v1",
+    "event": "in-progress.user-cancelled",
+    "title": "Rider cancellato",
+    "body": "Un rider ha annullato la partecipazione alla rotta \"{{ payload.route_name }}\".",
+    "enabled": true
+  },
+  {
+    "_id": "in-progress-driver-trip-departure-reminder-v1",
+    "event": "in-progress.driver-trip-departure-reminder",
+    "title": "Promemoria partenza",
+    "body": "Promemoria: la corsa sta per partire per la rotta \"{{ payload.route_name }}\".",
+    "enabled": true
+  },
+  {
+    "_id": "in-progress-pickup-reminder-v1",
+    "event": "in-progress.pickup-reminder",
+    "title": "Promemoria pickup",
+    "body": "Ricorda di presentarti al pickup per la rotta \"{{ payload.route_name }}\".",
+    "enabled": true
+  },
+  {
+    "_id": "in-progress-drop-off-reminder-v1",
+    "event": "in-progress.drop-off-reminder",
+    "title": "Promemoria discesa",
+    "body": "Ricorda la fermata di drop-off per la rotta \"{{ payload.route_name }}\".",
+    "enabled": true
+  },
+  {
+    "_id": "in-progress-driver-opened-dispute-v1",
+    "event": "in-progress.driver-opened-dispute",
+    "title": "Contestazione aperta dal conducente",
+    "body": "Il conducente ha aperto una contestazione relativa alla corsa \"{{ payload.route_name }}\".",
+    "enabled": true
+  },
+  {
+    "_id": "in-progress-rider-opened-dispute-v1",
+    "event": "in-progress.rider-opened-dispute",
+    "title": "Contestazione aperta dal rider",
+    "body": "Un rider ha aperto una contestazione relativa alla corsa \"{{ payload.route_name }}\".",
+    "enabled": true
+  },
+  {
+    "_id": "in-progress-driver-canceled-dispute-v1",
+    "event": "in-progress.driver-canceled-dispute",
+    "title": "Contestazione annullata dal conducente",
+    "body": "Il conducente ha annullato una contestazione per la rotta \"{{ payload.route_name }}\".",
+    "enabled": true
+  },
+  {
+    "_id": "in-progress-rider-canceled-dispute-v1",
+    "event": "in-progress.rider-canceled-dispute",
+    "title": "Contestazione annullata dal rider",
+    "body": "Un rider ha annullato una contestazione per la rotta \"{{ payload.route_name }}\".",
+    "enabled": true
+  },
+  {
+    "_id": "final-driver-payment-settled-v1",
+    "event": "final.driver-payment-settled",
+    "title": "Pagamento conducente regolato",
+    "body": "Il saldo della corsa \"{{ payload.route_name }}\" e' stato regolato.",
+    "enabled": true
+  },
+  {
+    "_id": "final-rider-payment-dispute-v1",
+    "event": "final.rider-payment-dispute",
+    "title": "Pagamento rider in contestazione",
+    "body": "La corsa \"{{ payload.route_name }}\" e' stata chiusa con contestazione pagamento rider.",
+    "enabled": true
+  }
+]
