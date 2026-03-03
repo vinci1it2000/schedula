@@ -6,11 +6,13 @@ import socket
 import threading
 import time
 import uuid
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Any, Callable, Dict, List, Optional
 
 from casbin.persist.watcher_ex import WatcherEx
+from flask import has_app_context
 from pymongo import MongoClient, ASCENDING
 from pymongo.collection import Collection
 from pymongo.errors import PyMongoError
@@ -59,6 +61,7 @@ class MongoIncrementalWatcher(WatcherEx):
             cleanup_interval_s: int = 30,
             enable_cleanup: bool = True,
             logger: Optional[logging.Logger] = None,
+            app=None,
     ):
         self._dsn = dsn
         self.client = MongoClient(dsn)
@@ -74,6 +77,7 @@ class MongoIncrementalWatcher(WatcherEx):
 
         self._callback: Optional[Callable[..., Any]] = None
         self._enforcer = None  # type: ignore
+        self._app = app
 
         self._max_await_time_ms = max(50, int(max_await_time_ms))
         self._reconnect_initial_ms = max(50, int(reconnect_initial_ms))
@@ -448,59 +452,60 @@ class MongoIncrementalWatcher(WatcherEx):
             prev = None
 
         try:
-            try:
-                e.enable_auto_notify_watcher(False)
-            except Exception:
-                pass
+            with self._maybe_app_context():
+                try:
+                    e.enable_auto_notify_watcher(False)
+                except Exception:
+                    pass
 
-            if op == "add_policy":
-                if ptype and str(ptype).startswith("g"):
-                    e.add_named_grouping_policy(ptype, *params)
-                elif ptype:
-                    e.add_named_policy(ptype, *params)
+                if op == "add_policy":
+                    if ptype and str(ptype).startswith("g"):
+                        e.add_named_grouping_policy(ptype, *params)
+                    elif ptype:
+                        e.add_named_policy(ptype, *params)
+                    else:
+                        e.add_policy(*params)
+                elif op == "remove_policy":
+                    if ptype and str(ptype).startswith("g"):
+                        e.remove_named_grouping_policy(ptype, *params)
+                    elif ptype:
+                        e.remove_named_policy(ptype, *params)
+                    else:
+                        e.remove_policy(*params)
+                elif op == "add_policies":
+                    if ptype and str(ptype).startswith("g"):
+                        e.add_named_grouping_policies(ptype, rules)
+                    elif ptype:
+                        e.add_named_policies(ptype, rules)
+                    else:
+                        e.add_policies(rules)
+                elif op == "remove_policies":
+                    if ptype and str(ptype).startswith("g"):
+                        e.remove_named_grouping_policies(ptype, rules)
+                    elif ptype:
+                        e.remove_named_policies(ptype, rules)
+                    else:
+                        e.remove_policies(rules)
+                elif op == "remove_filtered_policy":
+                    idx = int(field_index) if field_index is not None else 0
+                    if ptype and str(ptype).startswith("g"):
+                        e.remove_filtered_named_grouping_policy(ptype, idx, *params)
+                    elif ptype:
+                        e.remove_filtered_named_policy(ptype, idx, *params)
+                    else:
+                        e.remove_filtered_policy(idx, *params)
+                elif op == "update_policy":
+                    if ptype and hasattr(e, "update_named_policy"):
+                        e.update_named_policy(ptype, old_rule, new_rule)
+                    else:
+                        e.update_policy(old_rule, new_rule)
+                elif op == "save_policy":
+                    self.logger.warning("Received save_policy marker; ignored for incremental mode.")
+                elif op == "update":
+                    self.logger.debug("Received generic update event; ignored.")
                 else:
-                    e.add_policy(*params)
-            elif op == "remove_policy":
-                if ptype and str(ptype).startswith("g"):
-                    e.remove_named_grouping_policy(ptype, *params)
-                elif ptype:
-                    e.remove_named_policy(ptype, *params)
-                else:
-                    e.remove_policy(*params)
-            elif op == "add_policies":
-                if ptype and str(ptype).startswith("g"):
-                    e.add_named_grouping_policies(ptype, rules)
-                elif ptype:
-                    e.add_named_policies(ptype, rules)
-                else:
-                    e.add_policies(rules)
-            elif op == "remove_policies":
-                if ptype and str(ptype).startswith("g"):
-                    e.remove_named_grouping_policies(ptype, rules)
-                elif ptype:
-                    e.remove_named_policies(ptype, rules)
-                else:
-                    e.remove_policies(rules)
-            elif op == "remove_filtered_policy":
-                idx = int(field_index) if field_index is not None else 0
-                if ptype and str(ptype).startswith("g"):
-                    e.remove_filtered_named_grouping_policy(ptype, idx, *params)
-                elif ptype:
-                    e.remove_filtered_named_policy(ptype, idx, *params)
-                else:
-                    e.remove_filtered_policy(idx, *params)
-            elif op == "update_policy":
-                if ptype and hasattr(e, "update_named_policy"):
-                    e.update_named_policy(ptype, old_rule, new_rule)
-                else:
-                    e.update_policy(old_rule, new_rule)
-            elif op == "save_policy":
-                self.logger.warning("Received save_policy marker; ignored for incremental mode.")
-            elif op == "update":
-                self.logger.debug("Received generic update event; ignored.")
-            else:
-                self.logger.debug("Unknown op=%s ignored.", op)
-            return True
+                    self.logger.debug("Unknown op=%s ignored.", op)
+                return True
 
         except Exception:
             self.logger.exception("Failed to apply remote op=%s doc=%s", op, doc)
@@ -513,6 +518,16 @@ class MongoIncrementalWatcher(WatcherEx):
                     e.enable_auto_notify_watcher(True)
             except Exception:
                 pass
+
+    @contextmanager
+    def _maybe_app_context(self):
+        app = self._app
+        if app is None or has_app_context():
+            yield
+            return
+
+        with app.app_context():
+            yield
 
 
 def new_watcher(

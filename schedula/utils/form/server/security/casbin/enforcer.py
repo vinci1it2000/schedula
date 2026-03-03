@@ -63,7 +63,7 @@ def get_enforcer() -> Enforcer:
 
     The enforcer is stored in `current_app.extensions['casbin_enforcer']`.
     """
-    app = current_app
+    app = current_app._get_current_object()
     if _EXT_KEY in app.extensions:
         return app.extensions[_EXT_KEY]
     with _init_lock:
@@ -84,7 +84,7 @@ def get_enforcer() -> Enforcer:
         )).lower() == "true"
 
         if uri and enable_watcher:
-            watcher = new_watcher(uri)
+            watcher = new_watcher(uri, app=app)
             watcher.bind_enforcer(e)
             e.set_watcher(watcher)
             watcher.start()

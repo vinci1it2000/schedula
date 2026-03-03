@@ -318,6 +318,49 @@ class TestCasbinWatcher(unittest.TestCase):
         watcher1.stop()
         watcher2.stop()
 
+    def test_watcher_applies_remote_event_with_flask_app_context(self):
+        module = _load_watcher_module()
+        shared_client = mongomock.MongoClient()
+
+        class _AppCtx:
+            def __init__(self, app):
+                self._app = app
+
+            def __enter__(self):
+                self._app.enter_count += 1
+                return self
+
+            def __exit__(self, exc_type, exc, tb):
+                return False
+
+        class _FakeApp:
+            def __init__(self):
+                self.enter_count = 0
+
+            def app_context(self):
+                return _AppCtx(self)
+
+        fake_app = _FakeApp()
+
+        with mock.patch.object(module, "MongoClient", return_value=shared_client):
+            watcher = module.MongoIncrementalWatcher("mongodb://mock", app=fake_app)
+
+        fake_enforcer = mock.MagicMock()
+        fake_enforcer.is_auto_notify_watcher_enabled.return_value = True
+        watcher.bind_enforcer(fake_enforcer)
+
+        with mock.patch("flask.has_app_context", return_value=False):
+            ok = watcher._apply_one(
+                {
+                    "node_id": "remote-node",
+                    "created_at": datetime.now(timezone.utc),
+                    "op": "update",
+                }
+            )
+
+        self.assertTrue(ok)
+        self.assertEqual(fake_app.enter_count, 1)
+
 
 if __name__ == "__main__":
     unittest.main()
