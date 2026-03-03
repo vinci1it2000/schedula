@@ -69,6 +69,7 @@
     "body": "{{ (payload.rider | principal_info).name }} ha annullato la partecipazione alla rotta \"{{ payload.route_name }}\".",
     "enabled": true
   },
+
   {
     "_id": "in-progress-pickup-pin-created-v1",
     "event": "in-progress.pickup-pin-created",
@@ -80,7 +81,7 @@
     "_id": "in-progress-pickup-pin-hint-v1",
     "event": "in-progress.pickup-pin-hint",
     "title": "Suggerimenti PIN pickup",
-    "body": "Rotta: \"{{ payload.route_name }}\"\n\n{%- if payload.riders_masked_pins %}{% for rider in payload.riders_masked_pins %}• {{ rider.actor_name }} — PIN: {{ rider.masked_pin }}{% if not loop.last %}\n{% endif %}{% endfor %}{%- else %}Nessun suggerimento PIN disponibile.{%- endif %}",
+    "body": "Rotta: \"{{ payload.route_name }}\"\n\n{%- if payload.masked_pins %}{% for rider in payload.masked_pins %}• {{ rider.actor_name }} — PIN: {{ rider.masked_pin }}{% if not loop.last %}\n{% endif %}{% endfor %}{%- else %}Nessun suggerimento PIN disponibile.{%- endif %}",
     "enabled": true
   },
   {
@@ -108,7 +109,7 @@
     "_id": "in-progress-driver-trip-departure-reminder-v1",
     "event": "in-progress.driver-trip-departure-reminder",
     "title": "Promemoria partenza",
-    "body": "Promemoria partenza rotta \"{{ payload.route_name }}\".\n\nPartenza: {{ payload.plan.start.at }}\nArrivo previsto: {{ payload.plan.end.at }}\nFermate: {{ payload.plan.stops | length }}\n\nDettaglio fermate:\n{%- for stop in payload.plan.stops %}• {{ stop.type | upper }} — {{ stop.at }}{% if stop.rider_id %} (Rider: {{ stop.rider_id }}){% endif %}{% if stop.lateness_sec is defined and stop.lateness_sec %} (Ritardo: {{ stop.lateness_sec | int }}s){% endif %}\n{%- endfor %}",
+    "body": "Promemoria partenza rotta \"{{ payload.route_name }}\".\n\nPartenza: {{ payload.plan.start.at }}\nArrivo previsto: {{ payload.plan.end.at }}\nFermate: {{ payload.plan.stops | length }}\n\nDettaglio fermate:\n{%- for stop in payload.plan.stops %}• {{ stop.type | upper }} — {{ stop.at }}{% if stop.get('rider_id') %} (Rider: {{ stop.rider_id }}){% endif %}{% if stop.lateness_sec is defined and stop.lateness_sec %} (Ritardo: {{ stop.lateness_sec | int }}s){% endif %}\n{%- endfor %}",
     "enabled": true
   },
   {
@@ -125,6 +126,7 @@
     "body": "Promemoria drop-off rotta \"{{ payload.route_name }}\".\n\nOrario drop-off: {{ payload.drop_off.at }}\nFinestra: {{ payload.drop_off.window.start }} → {{ payload.drop_off.window.end }}\nZona: raggio {{ payload.drop_off.zone.radius | int }} m\nPosizione: {{ payload.drop_off.zone.location.coordinates[1] }}, {{ payload.drop_off.zone.location.coordinates[0] }}",
     "enabled": true
   },
+
   {
     "_id": "in-progress-driver-opened-dispute-v1",
     "event": "in-progress.driver-opened-dispute",
@@ -153,6 +155,7 @@
     "body": "Il rider {{ (payload.rider | principal_info).name }} ha annullato la contestazione relativa alla rotta \"{{ payload.route_name }}\".",
     "enabled": true
   },
+
   {
     "_id": "final-driver-payment-settled-v1",
     "event": "final.driver-payment-settled",

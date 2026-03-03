@@ -999,32 +999,6 @@ class ContractsE2ETest(unittest.TestCase):
             expected_events = _notification_events_from_definition(_gherkin_definition())
             self.assertTrue(expected_events.issubset(seeded_events))
 
-    def test_all_definition_notification_events_are_rendered(self) -> None:
-        from schedula.utils.form.server.notifications.service import create_notification
-
-        p1_principal = f"u:{self.user_ids['p1']}"
-        d1_principal = f"u:{self.user_ids['d1']}"
-        events = sorted(_notification_events_from_definition(_gherkin_definition()))
-
-        with self.app.app_context():
-            for event in events:
-                create_notification(
-                    event=event,
-                    targets={p1_principal: ["in_app"]},
-                    created_by=d1_principal,
-                    payload={
-                        "route_name": "Test Route",
-                        "rider": p1_principal,
-                        "driver": d1_principal,
-                        "pickup": {"at": self.now.isoformat()},
-                        "drop_off": {"at": self.now.isoformat()},
-                        "trip": {"origin": {}, "destination": {}},
-                    },
-                )
-
-        for event in events:
-            self._assert_notification_rendered(p1_principal, event)
-
     def _assert_notification_rendered(self, principal: str, event: str) -> None:
         doc = self._latest_notification_doc(principal, event)
         self.assertIsNotNone(doc, msg=f"missing notification doc for {event} -> {principal}")
@@ -2006,6 +1980,8 @@ class ContractsE2ETest(unittest.TestCase):
         )
         self.assertEqual(after_rider_pin, before_rider_pin + 1)
         self.assertEqual(after_driver_hint, before_driver_hint + 1)
+        self._assert_notification_rendered(p1_principal, "in-progress.pickup-pin-created")
+        self._assert_notification_rendered(d1_principal, "in-progress.pickup-pin-hint")
 
     def test_in_progress_confirm_pin_and_payment_timeout_completes(self) -> None:
         driver_route_id = self._create_route("d1")
@@ -2073,6 +2049,7 @@ class ContractsE2ETest(unittest.TestCase):
             p1_principal, "in-progress.pickup-confirmed"
         )
         self.assertEqual(after_pickup_confirmed, before_pickup_confirmed + 1)
+        self._assert_notification_rendered(p1_principal, "in-progress.pickup-confirmed")
 
         d1_before = self._wallet_balance("d1")
         d1_coin_before = self._wallet_balance("d1", "coin")
@@ -2115,6 +2092,7 @@ class ContractsE2ETest(unittest.TestCase):
         )
         self.assertEqual(after_driver_settled, before_driver_settled + 1)
         self.assertEqual(after_rider_dispute_payment, before_rider_dispute_payment)
+        self._assert_notification_rendered(d1_principal, "final.driver-payment-settled")
 
     def test_in_progress_sends_pickup_reminder_20_min_before_window(self) -> None:
         driver_route_id = self._create_route("d1", available_seats=10)
@@ -2260,6 +2238,7 @@ class ContractsE2ETest(unittest.TestCase):
             d1_principal, "in-progress.rider-opened-dispute"
         )
         self.assertEqual(after_driver_dispute, before_driver_dispute + 1)
+        self._assert_notification_rendered(d1_principal, "in-progress.rider-opened-dispute")
 
         before_rider_dispute = self._count_notifications_for(
             p1_principal, "in-progress.driver-opened-dispute"
@@ -2276,6 +2255,7 @@ class ContractsE2ETest(unittest.TestCase):
             p1_principal, "in-progress.driver-opened-dispute"
         )
         self.assertEqual(after_rider_dispute, before_rider_dispute + 1)
+        self._assert_notification_rendered(p1_principal, "in-progress.driver-opened-dispute")
 
     def test_in_progress_cancel_user_notifies_user_cancelled(self) -> None:
         driver_route_id = self._create_route("d1", available_seats=10)
@@ -2429,6 +2409,9 @@ class ContractsE2ETest(unittest.TestCase):
         )
         self.assertEqual(after_cancel_p1, before_cancel_p1)
         self.assertEqual(after_cancel_p2, before_cancel_p2 + 1)
+        self._assert_notification_rendered(
+            p2_principal, "in-progress.user-rejected-by-driver"
+        )
 
         group_id = (c.get("context") or {}).get("group_id")
         self.assertIsInstance(group_id, str)
@@ -2622,11 +2605,15 @@ class ContractsE2ETest(unittest.TestCase):
             ),
             before_notifications["d1_dispute_opened"] + 2,
         )
+        self._assert_notification_rendered(d1_principal, "in-progress.rider-opened-dispute")
         self.assertEqual(
             self._count_notifications_for(
                 rider_principals["p3"], "in-progress.driver-opened-dispute"
             ),
             before_notifications["p3_dispute_opened"] + 1,
+        )
+        self._assert_notification_rendered(
+            rider_principals["p3"], "in-progress.driver-opened-dispute"
         )
 
         # 7) rider does not claim and does not send location.
@@ -2714,6 +2701,7 @@ class ContractsE2ETest(unittest.TestCase):
             ),
             before_notifications["d1_payment_settled_driver"] + 1,
         )
+        self._assert_notification_rendered(d1_principal, "final.driver-payment-settled")
         self.assertEqual(
             self._count_notifications_for(
                 rider_principals["p3"], "final.rider-payment-dispute"
@@ -2721,6 +2709,10 @@ class ContractsE2ETest(unittest.TestCase):
             before_notifications["p3_payment_dispute_rider"]
             + int(rider_principals["p3"] in refunded_principals),
         )
+        if rider_principals["p3"] in refunded_principals:
+            self._assert_notification_rendered(
+                rider_principals["p3"], "final.rider-payment-dispute"
+            )
         self.assertEqual(
             self._count_notifications_for(
                 rider_principals["p4"], "final.rider-payment-dispute"
@@ -2728,6 +2720,10 @@ class ContractsE2ETest(unittest.TestCase):
             before_notifications["p4_payment_dispute_rider"]
             + int(rider_principals["p4"] in refunded_principals),
         )
+        if rider_principals["p4"] in refunded_principals:
+            self._assert_notification_rendered(
+                rider_principals["p4"], "final.rider-payment-dispute"
+            )
         self.assertEqual(
             self._count_notifications_for(
                 rider_principals["p5"], "final.rider-payment-dispute"
@@ -2741,6 +2737,10 @@ class ContractsE2ETest(unittest.TestCase):
             before_notifications["p6_payment_dispute_rider"]
             + int(rider_principals["p6"] in refunded_principals),
         )
+        if rider_principals["p6"] in refunded_principals:
+            self._assert_notification_rendered(
+                rider_principals["p6"], "final.rider-payment-dispute"
+            )
         self.assertEqual(
             self._count_notifications_for(
                 rider_principals["p7"], "final.rider-payment-dispute"
@@ -3106,10 +3106,8 @@ class ContractsE2ETest(unittest.TestCase):
             driver_principal, "onboarding.user-cancelled"
         )
         with self.app.app_context():
-            route_data_before = (
-                                        self.app.config["MONGO_DB"]["items"].find_one({"_id": p1_route_id})
-                                        or {}
-                                ).get("data") or {}
+            route_data_before = self.app.config["MONGO_DB"]["items"].find_one({"_id": p1_route_id}) or {}
+            route_data_before = route_data_before.get("data") or {}
 
         r = self._post_event(cid, "cancel-user", actor="p1")
         self.assertIn(r.status_code, (403, 409))
@@ -3119,15 +3117,45 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(self._user_state(c, self.user_ids["p1"]), "REQUESTING")
         self.assertEqual(self._wallet_balance("p1"), p1_balance_before)
         with self.app.app_context():
-            route_data_after = (
-                                       self.app.config["MONGO_DB"]["items"].find_one({"_id": p1_route_id})
-                                       or {}
-                               ).get("data") or {}
+            route_data_after = self.app.config["MONGO_DB"]["items"].find_one({"_id": p1_route_id}) or {}
+            route_data_after = route_data_after.get("data") or {}
         self.assertEqual(route_data_after, route_data_before)
         self.assertEqual(
             self._count_notifications_for(driver_principal, "onboarding.user-cancelled"),
             user_cancelled_before,
         )
+
+    def test_onboarding_cancel_user_notifies_driver(self) -> None:
+        cid = self._create_gherkin_contract(initial_state="START", actor="p1")
+        driver_principal = f"u:{self.user_ids['d1']}"
+        p2_principal = f"u:{self.user_ids['p2']}"
+        p2_route_id = self.route_by_principal[p2_principal]
+        p2_trip = self.locations["p2"]
+
+        invite = self._post_event(
+            cid,
+            "invite-user",
+            actor="d1",
+            payload={"route_id": p2_route_id},
+        )
+        self.assertEqual(invite.status_code, 200, msg=invite.text)
+        self.assertTrue((invite.json() or {}).get("ok"), msg=invite.text)
+
+        accept = self._post_event(
+            cid,
+            "accept-user",
+            actor="p2"
+        )
+        self.assertEqual(accept.status_code, 200, msg=accept.text)
+        self.assertTrue((accept.json() or {}).get("ok"), msg=accept.text)
+
+        before = self._count_notifications_for(driver_principal, "onboarding.user-cancelled")
+        cancel = self._post_event(cid, "cancel-user", actor="p2")
+        self.assertEqual(cancel.status_code, 200, msg=cancel.text)
+        self.assertTrue((cancel.json() or {}).get("ok"), msg=cancel.text)
+        after = self._count_notifications_for(driver_principal, "onboarding.user-cancelled")
+        self.assertEqual(after, before + 1)
+        self._assert_notification_rendered(driver_principal, "onboarding.user-cancelled")
 
     def test_start_request_join_adds_requesting_user_when_capacity_and_credits_ok(
             self,
@@ -3201,6 +3229,9 @@ class ContractsE2ETest(unittest.TestCase):
             driver_principal, "onboarding.no-more-ride-requests"
         )
         self.assertEqual(after_cancel, before_no + 1)
+        self._assert_notification_rendered(
+            driver_principal, "onboarding.no-more-ride-requests"
+        )
 
     def test_onboarding_full_journey_all_apis_with_negatives_and_pruning(self) -> None:
         definition = _gherkin_definition()
@@ -3613,6 +3644,9 @@ class ContractsE2ETest(unittest.TestCase):
             f"u:{self.user_ids['p3']}", "onboarding.no-more-ride-requests"
         )
         self.assertEqual(after_rider_unavailable_c, before_rider_unavailable_c + 1)
+        self._assert_notification_rendered(
+            f"u:{self.user_ids['p3']}", "onboarding.no-more-ride-requests"
+        )
         self._post_event(
             contract_req,
             "request-join",
@@ -4363,6 +4397,7 @@ class ContractsE2ETest(unittest.TestCase):
             ),
             opened_before + 1,
         )
+        self._assert_notification_rendered(d1_principal, "in-progress.rider-opened-dispute")
 
         undo_r = self._post_event(cid, "driver-did-not-pick-me-undo", actor="p1")
         self.assertEqual(undo_r.status_code, 200)
@@ -4376,6 +4411,9 @@ class ContractsE2ETest(unittest.TestCase):
                     d1_principal, "in-progress.rider-canceled-dispute"
                 ),
                 canceled_before + 1,
+            )
+            self._assert_notification_rendered(
+                d1_principal, "in-progress.rider-canceled-dispute"
             )
             self.assertFalse(bool(((rider_ctx.get("dispute") or {}).get("rider"))))
         else:
@@ -4428,6 +4466,7 @@ class ContractsE2ETest(unittest.TestCase):
             ),
             opened_before + 1,
         )
+        self._assert_notification_rendered(p1_principal, "in-progress.driver-opened-dispute")
 
         undo_r = self._post_event(
             cid,
@@ -4443,6 +4482,7 @@ class ContractsE2ETest(unittest.TestCase):
             ),
             canceled_before + 1,
         )
+        self._assert_notification_rendered(p1_principal, "in-progress.driver-canceled-dispute")
 
         c = self._get_contract_doc(cid)
         rider_ctx = ((c.get("context") or {}).get("riders") or {}).get(

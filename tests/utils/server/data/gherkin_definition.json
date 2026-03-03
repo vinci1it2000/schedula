@@ -1421,12 +1421,7 @@
               "route_name": {
                 "$ref": "/items/ride_posts/$$ctx.doc.context.driver_route.id/data.name"
               },
-              "driver_compensation": {
-                "$ifNull": [
-                  "$context.driver_route.compensation",
-                  0
-                ]
-              }
+              "driver_compensation": "$$ctx.doc.context.driver_route.compensation"
             }
           }
         }
