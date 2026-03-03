@@ -157,9 +157,10 @@ def bootstrap_group(group_id: str, creator_id: str):
         ]
     )
 
-    # baseline: members can read/notify items; admins can read/write/share/manage/create/notify
+    # baseline: members can read/create/notify items; admins can read/write/share/manage/create/notify
     policies = [
         [member, dom, "item:*", "read", "allow"],
+        [member, dom, "item:*", "create", "allow"],
         [member, dom, "item:*", "notify", "allow"],
     ]
     policies.extend(
