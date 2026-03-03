@@ -1,6 +1,19 @@
 Changelog
 =========
 
+v1.6.13 (2026-03-03)
+--------------------
+
+Feat
+~~~~
+- (notification): document and validate bulk read API.
+
+
+Fix
+~~~
+- (contracts): Correct iter.effects.
+
+
 v1.6.12 (2026-03-03)
 --------------------
 

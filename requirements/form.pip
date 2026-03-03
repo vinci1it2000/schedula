@@ -17,6 +17,7 @@ flask_caching
 click
 pydash
 casbin
+celery
 sqlalchemy_adapter
 apprise
 mongo_schema
