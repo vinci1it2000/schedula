@@ -4540,6 +4540,22 @@
                         }
                       }
                     }
+                  },
+                  "local.rider_targets_iter": {
+                    "$map": {
+                      "input": {
+                        "$ifNull": [
+                          "$local.accepted_principals",
+                          []
+                        ]
+                      },
+                      "as": "e",
+                      "in": {
+                        "payload": {
+                          "principal": "$$e"
+                        }
+                      }
+                    }
                   }
                 }
               }
@@ -4755,19 +4771,36 @@
           },
           {
             "title": "Dispatch Rider Pin Notifications",
-            "description": "Sends pickup pin notifications to accepted riders.",
-            "type": "notify",
-            "notify": {
-              "event": "contracts.pickup_pin_created",
-              "targets": {
-                "$ctx": "doc.local.rider_targets"
-              },
-              "payload": {
-                "contract_id": {
-                  "$ctx": "doc._id"
+            "description": "Sends pickup pin notifications to accepted riders via per-target iteration.",
+            "type": "iter.effects",
+            "iter": {
+              "$ctx": "doc.local.rider_targets_iter"
+            },
+            "effects": [
+              {
+                "type": "notify",
+                "notify": {
+                  "event": "in-progress.pickup-pin-created",
+                  "targets": {
+                    "$$ctx.payload.principal": [
+                      "in_app",
+                      "push"
+                    ]
+                  },
+                  "payload": {
+                    "contract_id": {
+                      "$ctx": "doc._id"
+                    },
+                    "rider": {
+                      "$ctx": "doc.context.riders.$$ctx.payload.principal"
+                    },
+                    "driver_route": {
+                      "$ctx": "doc.context.driver_route"
+                    }
+                  }
                 }
               }
-            }
+            ]
           },
           {
             "title": "Dispatch Driver Pin Hints",
@@ -4784,6 +4817,13 @@
               "payload": {
                 "contract_id": {
                   "$ctx": "doc._id"
+                },
+                "driver": "$$ctx.doc.context.driver",
+                "riders": {
+                  "$ctx": "doc.context.riders"
+                },
+                "driver_route": {
+                  "$ctx": "doc.context.driver_route"
                 }
               }
             }

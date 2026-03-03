@@ -17,7 +17,7 @@ from .storage import (
     delete_watcher,
     upsert_push_token,
 )
-from ..security.casbin import get_auth_sub
+from ..security.casbin import get_auth_sub, get_user
 from ..utils import (
     abort_json,
     parse_pagination_args,
@@ -48,7 +48,8 @@ def list_my_notifications():
         "id": d["_id"],
         "event": d["event"],
         "payload": d.get("payload", {}),
-        "read_by": sorted(d.get("read_by", [])),
+        "read_by": [get_user(u).public_json() for u in sorted(d.get("read_by", []))],
+        "created_at": d["created_at"],
         **d["rendered"][p]["in_app"]
     } for d in cursor]
 

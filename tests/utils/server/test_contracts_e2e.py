@@ -1824,7 +1824,7 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertTrue((joined.json() or {}).get("ok"), msg=joined.text)
 
         before_rider_pin = self._count_notifications_for(
-            p1_principal, "contracts.pickup_pin_created"
+            p1_principal, "in-progress.pickup-pin-created"
         )
         before_driver_hint = self._count_notifications_for(
             d1_principal, "contracts.pickup_pin_hint"
@@ -1857,7 +1857,7 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertRegex(pin, f"^{masked.replace('_', '.')}$")
 
         after_rider_pin = self._count_notifications_for(
-            p1_principal, "contracts.pickup_pin_created"
+            p1_principal, "in-progress.pickup-pin-created"
         )
         after_driver_hint = self._count_notifications_for(
             d1_principal, "contracts.pickup_pin_hint"

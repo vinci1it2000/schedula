@@ -141,7 +141,7 @@ class Notifications:
 
         if app.config.get("NOTIF_CELERY_ENABLED") and "celery" not in app.extensions:
             try:
-                from .tasks.celery import make_celery
+                from .tasks.task import make_celery
 
                 app.extensions["celery"] = make_celery(app)
             except ImportError:

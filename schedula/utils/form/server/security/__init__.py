@@ -100,6 +100,7 @@ class User(db.Model, fsqla.FsUserMixin):
                 "id": self.id,
                 "firstname": self.firstname,
                 "lastname": self.lastname,
+                "name": self.name,
                 "avatar": self.avatar,
             }.items()
             if v is not None
