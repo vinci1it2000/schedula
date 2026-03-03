@@ -221,6 +221,60 @@ class TestNotificationsApis(unittest.TestCase):
             self.assertEqual(docs[0].get("token"), "tok-2")
             self.assertEqual(docs[0].get("app_version"), "2.0.0")
 
+    def test_mark_reads_bulk(self):
+        unread_before = self.client.get(
+            "/notification/unread-count",
+            headers=self._auth_headers(self.user_token),
+        )
+        self.assertEqual(unread_before.status_code, 200)
+        unread_before_count = int((unread_before.get_json(silent=True) or {}).get("unread") or 0)
+
+        created_ids = []
+        for idx in (1, 2):
+            r = self.client.post(
+                "/admin/notification/notify",
+                json={
+                    "event": f"bulk.read.{idx}",
+                    "targets": {f"u:{self.user_id}": ["in_app"]},
+                    "payload": {"title": f"Hello {idx}"},
+                    "persist": True,
+                },
+                headers=self._auth_headers(self.admin_token),
+            )
+            self.assertEqual(r.status_code, 200)
+            nid = (r.get_json(silent=True) or {}).get("id")
+            self.assertIsInstance(nid, str)
+            created_ids.append(nid)
+
+        unread_after_create = self.client.get(
+            "/notification/unread-count",
+            headers=self._auth_headers(self.user_token),
+        )
+        self.assertEqual(unread_after_create.status_code, 200)
+        unread_after_create_count = int(
+            (unread_after_create.get_json(silent=True) or {}).get("unread") or 0
+        )
+        self.assertEqual(unread_after_create_count, unread_before_count + 2)
+
+        r = self.client.post(
+            "/notification/read",
+            json={"notification_ids": created_ids},
+            headers=self._auth_headers(self.user_token),
+        )
+        self.assertEqual(r.status_code, 200)
+        data = r.get_json(silent=True) or {}
+        self.assertTrue(data.get("ok"))
+
+        unread_after_mark = self.client.get(
+            "/notification/unread-count",
+            headers=self._auth_headers(self.user_token),
+        )
+        self.assertEqual(unread_after_mark.status_code, 200)
+        unread_after_mark_count = int(
+            (unread_after_mark.get_json(silent=True) or {}).get("unread") or 0
+        )
+        self.assertEqual(unread_after_mark_count, unread_before_count)
+
     def test_templates_admin_only(self):
         r = self.client.get(
             "/admin/notification/templates",

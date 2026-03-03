@@ -998,6 +998,21 @@ class ContractsE2ETest(unittest.TestCase):
             expected_events = _notification_events_from_definition(_gherkin_definition())
             self.assertTrue(expected_events.issubset(seeded_events))
 
+    def _assert_notification_rendered(self, principal: str, event: str) -> None:
+        doc = self._latest_notification_doc(principal, event)
+        self.assertIsNotNone(doc, msg=f"missing notification doc for {event} -> {principal}")
+        rendered = (doc or {}).get("rendered") or {}
+        self.assertIsInstance(rendered, dict, msg=f"missing rendered map for {event}")
+        target = rendered.get(principal) or {}
+        self.assertIsInstance(target, dict, msg=f"missing rendered target for {event}")
+        in_app = target.get("in_app") or {}
+        self.assertIsInstance(in_app, dict, msg=f"missing rendered.in_app for {event}")
+        self.assertTrue(str(in_app.get("title") or "").strip(), msg=f"empty title for {event}")
+        self.assertTrue(str(in_app.get("body") or "").strip(), msg=f"empty body for {event}")
+        for k in ("none", "{", "["):
+            self.assertFalse(k in in_app["title"].lower(), msg=f"wrong title for {event}: {in_app['title']}")
+            self.assertTrue(k in in_app["body"].lower(), msg=f"wrong body for {event}: {in_app['body']}")
+
     def _create_template(self, definition: Dict[str, Any], **extra: Any) -> str:
         body = {
             "name": f"tpl-{uuid.uuid4()}",
@@ -3217,6 +3232,9 @@ class ContractsE2ETest(unittest.TestCase):
             ),
             d1_join_requested_before + 4,
         )
+        self._assert_notification_rendered(
+            d1_principal, "onboarding.driver-new-join-request"
+        )
 
         # invite-user negatives.
         bad_invite_self = self._post_event(
@@ -3276,6 +3294,7 @@ class ContractsE2ETest(unittest.TestCase):
             self._count_notifications_for(p2_principal, "onboarding.user-invited"),
             p2_invite_before + 2,
         )
+        self._assert_notification_rendered(p2_principal, "onboarding.user-invited")
 
         invite_p3 = self._post_event(
             contract_a,
@@ -3318,6 +3337,9 @@ class ContractsE2ETest(unittest.TestCase):
             ),
             p3_cancel_invite_before + 1,
         )
+        self._assert_notification_rendered(
+            f"u:{self.user_ids['p3']}", "onboarding.driver-cancelled-invite"
+        )
 
         invite_p3_again = self._post_event(
             contract_a,
@@ -3345,6 +3367,7 @@ class ContractsE2ETest(unittest.TestCase):
             self._count_notifications_for(d1_principal, "onboarding.user-rejected"),
             d1_user_rejected_before + 1,
         )
+        self._assert_notification_rendered(d1_principal, "onboarding.user-rejected")
 
         # Competitor contract used to verify pruning after user accept on contract A.
         created_c = self._create_contract(
@@ -3464,6 +3487,9 @@ class ContractsE2ETest(unittest.TestCase):
                 p2_principal, "onboarding.user-rejected-by-driver"
             ),
             p2_driver_rejected_before + 1,
+        )
+        self._assert_notification_rendered(
+            p2_principal, "onboarding.user-rejected-by-driver"
         )
         chat_members = self._group_member_ids(group_id)
         self.assertEqual(chat_members, {f"u:{self.user_ids['d1']}"})

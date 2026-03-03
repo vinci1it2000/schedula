@@ -29,7 +29,7 @@ from ..utils import (
     mongo_count_documents,
     mongo_find,
     mongo_insert_one,
-    mongo_update_one,
+    mongo_update_many,
     get_mongo,
     config_get,
     now_utc,
@@ -296,14 +296,17 @@ def create_notification(
     return n.id
 
 
-def mark_read(notification_id: str, principal: str) -> None:
+def mark_read(notification_id: str | list[str] | None, principal: str) -> None:
     """Mark a notification as read by a principal."""
     coll = get_mongo(collection=config_get("NOTIF_COLLECTION", "notifications"))
-    mongo_update_one(
-        coll,
-        {"_id": notification_id},
-        {"$addToSet": {"read_by": principal}},
-    )
+    if isinstance(notification_id, str):
+        notification_id = [notification_id]
+    if not notification_id:
+        return
+    mongo_update_many(coll, {
+        "_id": {"$in": notification_id},
+        f"targets.{principal}": {"$exists": True}
+    }, {"$addToSet": {"read_by": principal}})
 
 
 def unread_count(principal: str) -> int:

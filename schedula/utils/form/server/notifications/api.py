@@ -67,6 +67,15 @@ def mark_read_api(notification_id: str):
     return jsonify({"ok": True})
 
 
+@bp.post("/read")
+def mark_reads_api():
+    """Mark a notification as read for the current user."""
+    p = get_auth_sub()
+    notification_ids = (request.get_json(silent=True) or {})["notification_ids"]
+    mark_read(notification_ids, p)
+    return jsonify({"ok": True})
+
+
 @bp.get("/unread-count")
 def unread_count_api():
     """Return unread count for the current user."""

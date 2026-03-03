@@ -314,6 +314,16 @@ components:
         unread:
           type: integer
           example: 3
+    NotificationMarkReadRequest:
+      type: object
+      required:
+        - notification_ids
+      properties:
+        notification_ids:
+          type: array
+          items:
+            type: string
+          minItems: 1
     TemplateUpsertRequest:
       type: object
       properties:
@@ -4035,6 +4045,43 @@ paths:
       responses:
         '200':
           description: OK
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /notification/read:
+    post:
+      operationId: post_notification_read
+      tags:
+        - Notifications
+      summary: Mark notifications as read
+      description: >
+        Marks multiple notifications as read for the current user. Requires
+        authentication and records the principal in each matching notification.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotificationMarkReadRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
         '401':
           description: Authentication required
           content:
