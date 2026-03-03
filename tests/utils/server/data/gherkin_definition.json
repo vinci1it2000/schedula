@@ -1292,6 +1292,20 @@
       ]
     }
   },
+  "aggregate": {
+    "driver_trip": {
+      "$ctx": "doc.context.driver_route"
+    },
+    "rider_trip": {
+      "$ctx": "doc.context.riders.$$ctx.user"
+    },
+    "group_id": {
+      "$ctx": "doc.context.group_id"
+    },
+    "diver_name": {
+      "$ctx": "doc.context.driver_route.actor_name"
+    }
+  },
   "states": {
     "START": {
       "on_enter": {
@@ -1342,6 +1356,7 @@
                   "compensation": 0,
                   "trip": {
                     "origin": {
+                      "label": "$local.driver_route.data.from.label",
                       "location": {
                         "type": "Point",
                         "coordinates": [
@@ -1394,6 +1409,7 @@
                       }
                     },
                     "destination": {
+                      "label": "$local.driver_route.data.to.label",
                       "location": {
                         "type": "Point",
                         "coordinates": [
@@ -1604,6 +1620,9 @@
                         "type": "string",
                         "format": "date-time"
                       },
+                      "label": {
+                        "type": "string"
+                      },
                       "location": {
                         "type": "object",
                         "required": [
@@ -1644,6 +1663,9 @@
                       "at": {
                         "type": "string",
                         "format": "date-time"
+                      },
+                      "label": {
+                        "type": "string"
                       },
                       "location": {
                         "type": "object",
@@ -1738,6 +1760,9 @@
                             "type": "string",
                             "format": "date-time"
                           },
+                          "label": {
+                            "type": "string"
+                          },
                           "location": {
                             "type": "object",
                             "required": [
@@ -1778,6 +1803,9 @@
                           "at": {
                             "type": "string",
                             "format": "date-time"
+                          },
+                          "label": {
+                            "type": "string"
                           },
                           "location": {
                             "type": "object",
@@ -1890,6 +1918,7 @@
                     },
                     "trip": {
                       "origin": {
+                        "label": "$local.join_route_item.data.from.label",
                         "location": {
                           "type": "Point",
                           "coordinates": [
@@ -1942,6 +1971,7 @@
                         }
                       },
                       "destination": {
+                        "label": "$local.join_route_item.data.to.label",
                         "location": {
                           "type": "Point",
                           "coordinates": [
@@ -2741,6 +2771,7 @@
                     },
                     "trip": {
                       "origin": {
+                        "label": "$local.invite_route_item.data.from.label",
                         "location": {
                           "type": "Point",
                           "coordinates": [
@@ -2793,6 +2824,7 @@
                         }
                       },
                       "destination": {
+                        "label": "$local.invite_route_item.data.to.label",
                         "location": {
                           "type": "Point",
                           "coordinates": [
@@ -4011,6 +4043,9 @@
                         "type": "string",
                         "format": "date-time"
                       },
+                      "label": {
+                        "type": "string"
+                      },
                       "location": {
                         "type": "object",
                         "required": [
@@ -4051,6 +4086,9 @@
                       "at": {
                         "type": "string",
                         "format": "date-time"
+                      },
+                      "label": {
+                        "type": "string"
                       },
                       "location": {
                         "type": "object",
@@ -4150,6 +4188,9 @@
                             "type": "string",
                             "format": "date-time"
                           },
+                          "label": {
+                            "type": "string"
+                          },
                           "location": {
                             "type": "object",
                             "required": [
@@ -4190,6 +4231,9 @@
                           "at": {
                             "type": "string",
                             "format": "date-time"
+                          },
+                          "label": {
+                            "type": "string"
                           },
                           "location": {
                             "type": "object",
@@ -6519,6 +6563,9 @@
                         "type": "string",
                         "format": "date-time"
                       },
+                      "label": {
+                        "type": "string"
+                      },
                       "location": {
                         "type": "object",
                         "required": [
@@ -6559,6 +6606,9 @@
                       "at": {
                         "type": "string",
                         "format": "date-time"
+                      },
+                      "label": {
+                        "type": "string"
                       },
                       "location": {
                         "type": "object",
@@ -6659,6 +6709,9 @@
                             "type": "string",
                             "format": "date-time"
                           },
+                          "label": {
+                            "type": "string"
+                          },
                           "location": {
                             "type": "object",
                             "required": [
@@ -6699,6 +6752,9 @@
                           "at": {
                             "type": "string",
                             "format": "date-time"
+                          },
+                          "label": {
+                            "type": "string"
                           },
                           "location": {
                             "type": "object",

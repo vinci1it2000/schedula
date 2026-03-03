@@ -7,7 +7,6 @@ except Exception:
 
 ensure_server_test_env()
 
-
 import os
 import sys
 import unittest
@@ -482,16 +481,15 @@ class TestNotificationsTasksWithCelery(BaseNotificationsTaskApiTest):
         with patch(
                 "schedula.utils.form.server.notifications.tasks.apprise.Apprise",
                 FakeApprise,
+        ), patch(
+            "schedula.utils.form.server.notifications.tasks.task.deliver_apprise_task.apply_async",
+            _fake_apply_async,
         ):
-            with patch(
-                    "schedula.utils.form.server.notifications.tasks.task.deliver_apprise_task.apply_async",
-                    _fake_apply_async,
-            ):
-                r = self.client.post(
-                    "/admin/notification/notify",
-                    json=payload,
-                    headers=self._auth_headers(self.admin_token),
-                )
+            r = self.client.post(
+                "/admin/notification/notify",
+                json=payload,
+                headers=self._auth_headers(self.admin_token),
+            )
 
         self.assertEqual(r.status_code, 200)
         nid = (r.get_json(silent=True) or {}).get("id")
@@ -538,16 +536,15 @@ class TestNotificationsTasksWithCelery(BaseNotificationsTaskApiTest):
         with patch(
                 "schedula.utils.form.server.notifications.tasks.apprise.Apprise",
                 FakeApprise,
+        ), patch(
+            "schedula.utils.form.server.notifications.tasks.task.deliver_apprise_task.apply_async",
+            _fake_apply_async,
         ):
-            with patch(
-                    "schedula.utils.form.server.notifications.tasks.task.deliver_apprise_task.apply_async",
-                    _fake_apply_async,
-            ):
-                r = self.client.post(
-                    "/admin/notification/notify",
-                    json=payload,
-                    headers=self._auth_headers(self.admin_token),
-                )
+            r = self.client.post(
+                "/admin/notification/notify",
+                json=payload,
+                headers=self._auth_headers(self.admin_token),
+            )
 
         self.assertEqual(r.status_code, 200)
         nid = (r.get_json(silent=True) or {}).get("id")
