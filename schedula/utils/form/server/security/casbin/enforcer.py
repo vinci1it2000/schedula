@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import os
 import os.path as osp
+import atexit
 from contextlib import contextmanager
 
 import casbin
@@ -17,6 +18,8 @@ from .watcher import new_watcher
 from ...extensions import db
 
 _EXT_KEY = "casbin_enforcer"
+_WATCHER_KEY = "casbin_watcher"
+_WATCHER_ATEXIT_KEY = "casbin_watcher_atexit_registered"
 
 _init_lock = threading.Lock()
 class Adapter(sqlalchemy_adapter.Adapter):
@@ -85,6 +88,18 @@ def get_enforcer() -> Enforcer:
             watcher.bind_enforcer(e)
             e.set_watcher(watcher)
             watcher.start()
+            app.extensions[_WATCHER_KEY] = watcher
+            if not app.extensions.get(_WATCHER_ATEXIT_KEY):
+                def _shutdown_watcher() -> None:
+                    try:
+                        w = app.extensions.get(_WATCHER_KEY)
+                        if w is not None:
+                            w.stop()
+                    except Exception:
+                        pass
+
+                atexit.register(_shutdown_watcher)
+                app.extensions[_WATCHER_ATEXIT_KEY] = True
         # Load from DB
         e.load_policy()
 

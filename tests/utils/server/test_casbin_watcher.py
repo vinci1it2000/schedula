@@ -14,6 +14,7 @@ import sys
 import tempfile
 import time
 import unittest
+from datetime import datetime, timezone
 from unittest import mock
 
 import casbin
@@ -229,6 +230,49 @@ class TestCasbinWatcher(unittest.TestCase):
         watcher1.stop()
         watcher2.stop()
 
+    def test_watcher_applies_named_grouping_policy_events(self):
+        e1 = self._new_enforcer()
+        e2 = self._new_enforcer()
+        watcher1, watcher2 = self._attach_watchers(e1, e2)
+
+        group_rule = ["u:grp", "role:driver"]
+        self.assertFalse(e2.has_grouping_policy(*group_rule))
+
+        watcher2.collection.insert_one(
+            {
+                "node_id": "remote-node",
+                "created_at": datetime.now(timezone.utc),
+                "op": "add_policy",
+                "sec": "g",
+                "ptype": "g",
+                "params": group_rule,
+            }
+        )
+        for _ in range(50):
+            if e2.has_grouping_policy(*group_rule):
+                break
+            time.sleep(0.01)
+        self.assertTrue(e2.has_grouping_policy(*group_rule))
+
+        watcher2.collection.insert_one(
+            {
+                "node_id": "remote-node",
+                "created_at": datetime.now(timezone.utc),
+                "op": "remove_policy",
+                "sec": "g",
+                "ptype": "g",
+                "params": group_rule,
+            }
+        )
+        for _ in range(50):
+            if not e2.has_grouping_policy(*group_rule):
+                break
+            time.sleep(0.01)
+        self.assertFalse(e2.has_grouping_policy(*group_rule))
+
+        watcher1.stop()
+        watcher2.stop()
+
     def test_watcher_debounce_applies_after_delay(self):
         e1 = self._new_enforcer()
         e2 = self._new_enforcer()
@@ -239,9 +283,13 @@ class TestCasbinWatcher(unittest.TestCase):
 
         time.sleep(0.05)
         self.assertFalse(e2.has_policy(*rule))
+        row = watcher2.state.find_one({"node_id": watcher2._node_id}) or {}
+        self.assertIsNone(row.get("last_seen_id"))
 
         time.sleep(0.3)
         self.assertTrue(e2.has_policy(*rule))
+        row = watcher2.state.find_one({"node_id": watcher2._node_id}) or {}
+        self.assertIsNotNone(row.get("last_seen_id"))
 
         watcher1.stop()
         watcher2.stop()
