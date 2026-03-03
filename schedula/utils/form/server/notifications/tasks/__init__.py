@@ -61,6 +61,13 @@ def get_apprise_default_channels(app=None) -> Dict[str, str]:
             out["push"] = (
                 f"fcm://{apprise_fcm_api_key}/{{{{ push_device_ids | join('/') }}}}"
             )
+        else:
+            apprise_fcm_project = config_get("APPRISE_FCM_PROJECT", app=app)
+            apprise_fcm_keyfile = config_get("APPRISE_FCM_KEYFILE", app=app)
+            if apprise_fcm_project and apprise_fcm_keyfile:
+                out["push"] = (
+                    f"fcm://{apprise_fcm_project}/{{{{ push_device_ids | join('/') }}}}?keyfile={apprise_fcm_keyfile}"
+                )
     if "whatsapp" not in out:
         apprise_whatsapp_token = config_get("APPRISE_WHATSAPP_TOKEN", app=app)
         apprise_whatsapp_from_phone_id = config_get(
