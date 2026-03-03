@@ -1,6 +1,14 @@
 Changelog
 =========
 
+v1.6.12 (2026-03-03)
+--------------------
+
+Fix
+~~~
+- (notification): Correct and update notification service.
+
+
 v1.6.11 (2026-03-03)
 --------------------
 
