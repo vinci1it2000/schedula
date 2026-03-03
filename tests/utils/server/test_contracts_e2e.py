@@ -870,6 +870,7 @@ class ContractsE2ETest(unittest.TestCase):
                 t_start = int(dt.datetime.fromisoformat(loc["origin"]["at"]).timestamp())
                 t_end = int(dt.datetime.fromisoformat(loc["destination"]["at"]).timestamp())
                 route_doc = {
+                    "name": "route",
                     "cost": 10,
                     "available_seats": 3,
                     "from": {
@@ -998,20 +999,83 @@ class ContractsE2ETest(unittest.TestCase):
             expected_events = _notification_events_from_definition(_gherkin_definition())
             self.assertTrue(expected_events.issubset(seeded_events))
 
+    def test_all_definition_notification_events_are_rendered(self) -> None:
+        from schedula.utils.form.server.notifications.service import create_notification
+
+        p1_principal = f"u:{self.user_ids['p1']}"
+        d1_principal = f"u:{self.user_ids['d1']}"
+        events = sorted(_notification_events_from_definition(_gherkin_definition()))
+
+        with self.app.app_context():
+            for event in events:
+                create_notification(
+                    event=event,
+                    targets={p1_principal: ["in_app"]},
+                    created_by=d1_principal,
+                    payload={
+                        "route_name": "Test Route",
+                        "rider": p1_principal,
+                        "driver": d1_principal,
+                        "pickup": {"at": self.now.isoformat()},
+                        "drop_off": {"at": self.now.isoformat()},
+                        "trip": {"origin": {}, "destination": {}},
+                    },
+                )
+
+        for event in events:
+            self._assert_notification_rendered(p1_principal, event)
+
     def _assert_notification_rendered(self, principal: str, event: str) -> None:
         doc = self._latest_notification_doc(principal, event)
         self.assertIsNotNone(doc, msg=f"missing notification doc for {event} -> {principal}")
-        rendered = (doc or {}).get("rendered") or {}
+        assert doc is not None
+        self._assert_notification_doc_rendered(doc, event_hint=event)
+
+    def _assert_notification_doc_rendered(
+            self, doc: Dict[str, Any], *, event_hint: str | None = None
+    ) -> None:
+        event = event_hint or str(doc.get("event") or "<unknown>")
+        rendered = doc.get("rendered") or {}
         self.assertIsInstance(rendered, dict, msg=f"missing rendered map for {event}")
-        target = rendered.get(principal) or {}
-        self.assertIsInstance(target, dict, msg=f"missing rendered target for {event}")
-        in_app = target.get("in_app") or {}
-        self.assertIsInstance(in_app, dict, msg=f"missing rendered.in_app for {event}")
-        self.assertTrue(str(in_app.get("title") or "").strip(), msg=f"empty title for {event}")
-        self.assertTrue(str(in_app.get("body") or "").strip(), msg=f"empty body for {event}")
-        for k in ("none", "{", "["):
-            self.assertFalse(k in in_app["title"].lower(), msg=f"wrong title for {event}: {in_app['title']}")
-            self.assertTrue(k in in_app["body"].lower(), msg=f"wrong body for {event}: {in_app['body']}")
+
+        targets = doc.get("targets") or {}
+        self.assertIsInstance(targets, dict, msg=f"missing targets map for {event}")
+
+        for principal in targets.keys():
+            target_render = rendered.get(principal) or {}
+            self.assertIsInstance(
+                target_render,
+                dict,
+                msg=f"missing rendered target for {event} -> {principal}",
+            )
+            self.assertTrue(
+                bool(target_render),
+                msg=f"empty rendered target map for {event} -> {principal}",
+            )
+            for channel, payload in target_render.items():
+                self.assertIsInstance(
+                    payload,
+                    dict,
+                    msg=f"invalid rendered payload for {event} -> {principal} [{channel}]",
+                )
+                self.assertTrue(
+                    str(payload.get("title") or "").strip(),
+                    msg=f"empty title for {event} -> {principal} [{channel}]",
+                )
+                self.assertTrue(
+                    str(payload.get("body") or "").strip(),
+                    msg=f"empty body for {event} -> {principal} [{channel}]",
+                )
+                for k in ("none", "{", "["):
+                    self.assertFalse(k in payload["title"].lower(), msg=f"wrong title for {event}: {payload['title']}")
+                    self.assertFalse(k in payload["body"].lower(), msg=f"wrong body for {event}: {payload['body']}")
+
+    def _assert_all_notifications_rendered(self) -> None:
+        with self.app.app_context():
+            coll = self.app.config["MONGO_DB"]["notifications"]
+            docs = list(coll.find({}))
+        for doc in docs:
+            self._assert_notification_doc_rendered(doc)
 
     def _create_template(self, definition: Dict[str, Any], **extra: Any) -> str:
         body = {
@@ -1248,6 +1312,7 @@ class ContractsE2ETest(unittest.TestCase):
         t_start = int(dt.datetime.fromisoformat(loc["origin"]["at"]).timestamp())
         t_end = int(dt.datetime.fromisoformat(loc["destination"]["at"]).timestamp())
         data = {
+            "name": "route",
             "cost": 10,
             "available_seats": 3,
             "requested_seats": 1,
@@ -1575,6 +1640,9 @@ class ContractsE2ETest(unittest.TestCase):
 
     def test_driver_accept_start_refunds_excess_reserved_credits(self) -> None:
         p1_principal = f"u:{self.user_ids['p1']}"
+        before_accepted_join = self._count_notifications_for(
+            p1_principal, "onboarding.accepted-join-request"
+        )
         template_id = self._create_template(
             _gherkin_definition(), allowed_initial_states=["START"]
         )
@@ -1624,6 +1692,15 @@ class ContractsE2ETest(unittest.TestCase):
         route_data_after = route_after.get("data") or {}
         self.assertEqual(route_data_after.get("reserved_credits"), 10)
         self.assertEqual(route_data_after.get("contract_ids") or [], [cid])
+        self.assertEqual(
+            self._count_notifications_for(
+                p1_principal, "onboarding.accepted-join-request"
+            ),
+            before_accepted_join + 1,
+        )
+        self._assert_notification_rendered(
+            p1_principal, "onboarding.accepted-join-request"
+        )
 
     def test_start_pre_departure_gate_moves_in_progress_when_has_accepted(self) -> None:
         driver_route_id = self._create_route("d1", available_seats=10)
@@ -2097,12 +2174,31 @@ class ContractsE2ETest(unittest.TestCase):
             f"u:{self.user_ids['d1']}", "in-progress.driver-trip-departure-reminder"
         )
         self.assertEqual(after, before + 1)
+        self._assert_notification_rendered(
+            f"u:{self.user_ids['d1']}", "in-progress.driver-trip-departure-reminder"
+        )
         before = self._count_notifications_for(
             p1_principal, "in-progress.pickup-reminder"
         )
         self.assertTrue(self._run_worker_once(now=run_at + dt.timedelta(seconds=1)))
         after = self._count_notifications_for(p1_principal, "in-progress.pickup-reminder")
         self.assertEqual(after, before + 1)
+        self._assert_notification_rendered(p1_principal, "in-progress.pickup-reminder")
+
+        drop_jobs = self._queue_jobs(contract_id=cid, event_name="RiderDropOffReminderTimed")
+        self.assertGreaterEqual(len(drop_jobs), 1)
+        drop_run_at = drop_jobs[0]["run_at"]
+        if drop_run_at.tzinfo is None:
+            drop_run_at = drop_run_at.replace(tzinfo=dt.timezone.utc)
+        before_drop = self._count_notifications_for(
+            p1_principal, "in-progress.drop-off-reminder"
+        )
+        self.assertTrue(self._run_worker_once(now=drop_run_at + dt.timedelta(seconds=1)))
+        after_drop = self._count_notifications_for(
+            p1_principal, "in-progress.drop-off-reminder"
+        )
+        self.assertEqual(after_drop, before_drop + 1)
+        self._assert_notification_rendered(p1_principal, "in-progress.drop-off-reminder")
         latest_reminder = self._latest_notification_doc(
             p1_principal, "in-progress.pickup-reminder"
         )
@@ -2180,6 +2276,58 @@ class ContractsE2ETest(unittest.TestCase):
             p1_principal, "in-progress.driver-opened-dispute"
         )
         self.assertEqual(after_rider_dispute, before_rider_dispute + 1)
+
+    def test_in_progress_cancel_user_notifies_user_cancelled(self) -> None:
+        driver_route_id = self._create_route("d1", available_seats=10)
+        template_id = self._create_template(
+            _gherkin_definition(), allowed_initial_states=["START"]
+        )
+        p1_principal = f"u:{self.user_ids['p1']}"
+        d1_principal = f"u:{self.user_ids['d1']}"
+
+        created = self._create_contract(
+            template_id,
+            {
+                "driver_trip_id": driver_route_id,
+            },
+            initial_state="START",
+            actor="p1",
+        )
+        self.assertEqual(created.status_code, 201, msg=created.text)
+        cid = str(created.json()["id"])
+
+        joined = self._post_event(
+            cid,
+            "request-join",
+            actor="p1",
+            payload={"route_id": self.route_by_principal[p1_principal]},
+        )
+        self.assertEqual(joined.status_code, 200, msg=joined.text)
+        self.assertTrue((joined.json() or {}).get("ok"), msg=joined.text)
+
+        accepted = self._post_event(
+            cid,
+            "driver-accept-start",
+            actor="d1",
+            payload={"rider": p1_principal},
+        )
+        self.assertEqual(accepted.status_code, 200)
+        self.assertTrue(accepted.json().get("ok"))
+
+        pre = self._queue_jobs(contract_id=cid, event_name="PreDepartureGateTimed")[0][
+            "run_at"
+        ]
+        if pre.tzinfo is None:
+            pre = pre.replace(tzinfo=dt.timezone.utc)
+        self.assertTrue(self._run_worker_once(now=pre + dt.timedelta(seconds=1)))
+
+        before = self._count_notifications_for(d1_principal, "in-progress.user-cancelled")
+        canceled = self._post_event(cid, "cancel-user", actor="p1")
+        self.assertEqual(canceled.status_code, 200)
+        self.assertTrue(canceled.json().get("ok"))
+        after = self._count_notifications_for(d1_principal, "in-progress.user-cancelled")
+        self.assertEqual(after, before + 1)
+        self._assert_notification_rendered(d1_principal, "in-progress.user-cancelled")
 
     def test_in_progress_driver_cancel_trip_refunds_only_non_onboard(self) -> None:
         driver_route_id = self._create_route("d1", available_seats=10)
@@ -2679,6 +2827,9 @@ class ContractsE2ETest(unittest.TestCase):
     def test_start_driver_reject_start_sets_rejected_and_cleans_rider(self) -> None:
         cid = self._create_gherkin_contract(initial_state="START", actor="p1")
         p1_principal = f"u:{self.user_ids['p1']}"
+        before_rejected = self._count_notifications_for(
+            p1_principal, "onboarding.driver-rejected-start"
+        )
 
         rejected = self._post_event(
             cid,
@@ -2693,6 +2844,13 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(c["state"], "ONBOARDING")
         self.assertEqual(self._user_state(c, self.user_ids["p1"]), "REJECTED")
         self.assertIn(p1_principal, (c.get("context") or {}).get("riders") or {})
+        self.assertEqual(
+            self._count_notifications_for(p1_principal, "onboarding.driver-rejected-start"),
+            before_rejected + 1,
+        )
+        self._assert_notification_rendered(
+            p1_principal, "onboarding.driver-rejected-start"
+        )
 
     def test_start_driver_cancel_invite_user_clears_pending_state(self) -> None:
         cid = self._create_gherkin_contract(initial_state="START", actor="p1")
@@ -2741,6 +2899,10 @@ class ContractsE2ETest(unittest.TestCase):
     def test_start_user_accept_invite_moves_to_confirming(self) -> None:
         cid = self._create_gherkin_contract(initial_state="START", actor="p1")
         p2_principal = f"u:{self.user_ids['p2']}"
+        d1_principal = f"u:{self.user_ids['d1']}"
+        before_user_accepted = self._count_notifications_for(
+            d1_principal, "onboarding.user-accepted-invite"
+        )
         p2_route_id = self.route_by_principal[p2_principal]
         p2_trip = self.locations["p2"]
 
@@ -2769,6 +2931,13 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(c["state"], "ONBOARDING")
         self.assertEqual(self._user_state(c, self.user_ids["p2"]), "ACCEPTED")
         self.assertEqual(pydash.get(c, "context.driver_route.accepted_seats"), 2)
+        self.assertEqual(
+            self._count_notifications_for(d1_principal, "onboarding.user-accepted-invite"),
+            before_user_accepted + 1,
+        )
+        self._assert_notification_rendered(
+            d1_principal, "onboarding.user-accepted-invite"
+        )
 
     def test_start_user_accept_invite_fails_when_balance_insufficient(self) -> None:
         cid = self._create_gherkin_contract(initial_state="START", actor="p1")
@@ -3678,6 +3847,8 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertTrue(cancel_trip.json().get("ok"))
         cancelled_trip_doc = self._get_contract_doc(contract_cancel_trip)
         self.assertEqual(cancelled_trip_doc["state"], "CANCELLED")
+
+        self._assert_all_notifications_rendered()
 
     def test_sync_keeps_driver_admin_across_membership_changes(self) -> None:
         cid = self._create_gherkin_contract(initial_state="START", actor="p1")

@@ -3240,7 +3240,12 @@
                   "local.can_cancel_invite_user": {
                     "$eq": [
                       {
-                        "$ctx": "doc.states.$$ctx.payload.rider"
+                        "$ifNull": [
+                          {
+                            "$ctx": "doc.states.$$ctx.payload.rider"
+                          },
+                          ""
+                        ]
                       },
                       "PENDING"
                     ]
