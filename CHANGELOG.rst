@@ -1,6 +1,23 @@
 Changelog
 =========
 
+v1.6.8 (2026-03-03)
+-------------------
+
+Feat
+~~~~
+- (groups): Add create option to group members.
+
+- (notification): Add new FCM config.
+
+
+Fix
+~~~
+- (tests): Correct and incremet test cases.
+
+- (contracts): Correct worker loop.
+
+
 v1.6.7 (2026-03-02)
 -------------------
 
