@@ -1,6 +1,21 @@
 Changelog
 =========
 
+v1.6.14 (2026-03-04)
+--------------------
+
+Feat
+~~~~
+- (notification): add Apprise Socket.IO channel delivery.
+
+- (server): Add custom apis.
+
+
+Fix
+~~~
+- (test): Correct sherlock bug on UTC.
+
+
 v1.6.13 (2026-03-03)
 --------------------
 
