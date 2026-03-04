@@ -53,6 +53,7 @@ TEMPLATE_UPDATE_SCHEMA = {
 def use_apis_collection():
     from ..contracts.routes import _template_create_schema, _template_update_schema
     from ..contracts.engine import _contracts_collection, _templates_collection
+
     token_1 = _contracts_collection.set(config_get("APIS_COLLECTION", "apis"))
     token_2 = _templates_collection.set(config_get("API_TEMPLATES_COLLECTION", "api_templates"))
     token_3 = _template_create_schema.set(TEMPLATE_CREATE_SCHEMA)
@@ -67,12 +68,38 @@ def use_apis_collection():
 
 
 def _ensure_indexes():
-    contracts = _contracts_coll()
-    templates = _templates_coll()
-    contracts.create_index([("template_id", 1), ("created_at", -1)])
-    contracts.create_index([("status", 1), ("updated_at", -1)])
-    templates.create_index([("is_enabled", 1), ("updated_at", -1)])
-    templates.create_index([("name", 1), ("updated_at", -1)])
+    with use_apis_collection():
+        contracts = _contracts_coll()
+        templates = _templates_coll()
+        contracts.create_index(
+            [("template_id", 1), ("created_at", -1)],
+            name="apis_template_created_idx",
+        )
+        templates.create_index(
+            [("is_enabled", 1), ("updated_at", -1)],
+            name="apis_templates_enabled_updated_idx",
+        )
+        templates.create_index(
+            [("name", 1), ("updated_at", -1)],
+            name="apis_templates_name_updated_idx",
+        )
+
+        ttl_seconds = config_get("APIS_TEMP_DOC_TTL_SECONDS", 3600)
+        try:
+            ttl_seconds = int(ttl_seconds)
+        except Exception:
+            current_app.logger.warning(
+                "Invalid APIS_TEMP_DOC_TTL_SECONDS=%r, fallback to 3600",
+                ttl_seconds,
+            )
+            ttl_seconds = 3600
+
+        if ttl_seconds > 0:
+            contracts.create_index(
+                [("updated_at", 1)],
+                name="apis_temp_doc_ttl_idx",
+                expireAfterSeconds=ttl_seconds,
+            )
 
 
 def _parse_json_body() -> Dict[str, Any]:
@@ -118,6 +145,7 @@ def _validate_schema(payload: Dict[str, Any], schema: Dict[str, Any]) -> List[st
 def create_template():
     with use_apis_collection():
         from ..contracts.routes import create_template as _create_template
+
         return _create_template()
 
 
@@ -126,6 +154,7 @@ def create_template():
 def list_templates():
     with use_apis_collection():
         from ..contracts.routes import list_templates as _list_templates
+
         return _list_templates()
 
 
@@ -134,6 +163,7 @@ def list_templates():
 def get_template(template_id: str):
     with use_apis_collection():
         from ..contracts.routes import get_template as _get_template
+
         return _get_template(template_id)
 
 
@@ -142,6 +172,7 @@ def get_template(template_id: str):
 def update_template(template_id: str):
     with use_apis_collection():
         from ..contracts.routes import update_template as _update_template
+
         return _update_template(template_id)
 
 
@@ -150,6 +181,7 @@ def api_event(template_id: str, dyn_path: str):
     with use_apis_collection():
         from ..contracts.engine import _create_contract_from_template_doc
         from ..contracts.routes import contract_api_event
+
         owner_id = get_auth_sub()
         template = mongo_find_one(
             _templates_coll(), {"_id": template_id, "is_enabled": True}
@@ -158,10 +190,7 @@ def api_event(template_id: str, dyn_path: str):
             abort_json(404, "Template not found")
 
         doc = _create_contract_from_template_doc(
-            template=template,
-            template_id=template_id,
-            context={},
-            owner_id=owner_id
+            template=template, template_id=template_id, context={}, owner_id=owner_id
         )
         doc_id = doc["_id"]
 
