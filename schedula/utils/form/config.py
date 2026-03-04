@@ -65,6 +65,9 @@ class Config:
         self.CONTRACTS_ENABLED = (
                 os.environ.get("CONTRACTS_ENABLED", "false").lower() == "true"
         )
+        self.APIS_ENABLED = (
+                os.environ.get("APIS_ENABLED", "false").lower() == "true"
+        )
 
         # reCAPTCHA configuration
         self.RECAPTCHA_PUBLIC_KEY = os.environ.get(
@@ -103,4 +106,3 @@ class Config:
         self.SQLALCHEMY_TRACK_MODIFICATIONS = (
                 os.environ.get("SQLALCHEMY_TRACK_MODIFICATIONS", "false").lower() == "true"
         )
-

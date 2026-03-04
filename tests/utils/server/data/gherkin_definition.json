@@ -6341,20 +6341,6 @@
             }
           ]
         },
-        "TripPaymentTimed": {
-          "effects": [
-            {
-              "title": "Move To Payment",
-              "description": "Moves contract to COMPLETED after timed post-trip window.",
-              "type": "update.contract",
-              "update": {
-                "$set": {
-                  "state": "COMPLETED"
-                }
-              }
-            }
-          ]
-        },
         "DriverCancelTrip": {
           "trigger": [
             {
@@ -6389,6 +6375,20 @@
                   },
                   "state": "CANCELLED",
                   "status": "CANCELLED"
+                }
+              }
+            }
+          ]
+        },
+        "TripPaymentTimed": {
+          "effects": [
+            {
+              "title": "Move To Payment",
+              "description": "Moves contract to COMPLETED after timed post-trip window.",
+              "type": "update.contract",
+              "update": {
+                "$set": {
+                  "state": "COMPLETED"
                 }
               }
             }

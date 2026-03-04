@@ -113,6 +113,11 @@ def basic_app(sitemap, app, config=None):
 
         Contracts(app)
 
+    if app.config.get("APIS_ENABLED", False):
+        from .apis import APIs
+
+        APIs(app)
+
     # OpenAPI + Swagger UI
     if app.config.get("OPENAPI_ENABLED", False):
         from .openapi import OpenAPI

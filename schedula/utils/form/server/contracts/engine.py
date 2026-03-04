@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import datetime as dt
 import uuid
+from contextvars import ContextVar
 from typing import Any, Dict, List, Optional, Tuple
 
 import pydash
@@ -40,21 +41,30 @@ from ..utils import (
     validate_payload
 )
 
+_contracts_collection = ContextVar("contracts_collection", default=None)
+
+_templates_collection = ContextVar("contract_templates_collection", default=None)
+
+
+def _contracts_coll():
+    collection = _contracts_collection.get()
+    if collection is None:
+        collection = config_get("CONTRACTS_COLLECTION", "contracts")
+    return get_mongo(collection=collection)
+
+
+def _templates_coll():
+    collection = _templates_collection.get()
+    if collection is None:
+        collection = config_get("CONTRACT_TEMPLATES_COLLECTION", "contract_templates")
+    return get_mongo(collection=collection)
+
+
 REGISTERED_FUNCTIONS: Dict[str, Any] = {}
 
 
 def register_function(name: str, func: Any):
     REGISTERED_FUNCTIONS[name] = func
-
-
-def _contracts_coll():
-    return get_mongo(collection=config_get("CONTRACTS_COLLECTION", "contracts"))
-
-
-def _templates_coll():
-    return get_mongo(
-        collection=config_get("CONTRACT_TEMPLATES_COLLECTION", "contract_templates")
-    )
 
 
 def _get_contract(contract_id: str, **kwargs) -> Optional[Dict[str, Any]]:
@@ -491,7 +501,7 @@ def _close_contract(doc, definition):
 
 
 def validate_context_schema(doc, state):
-    if "context_schema" in state:
+    if state and "context_schema" in state:
         from .routes import _validate_schema
 
         schema_errors = _validate_schema(doc["context"], state["context_schema"])
@@ -629,32 +639,24 @@ def _process_selected_event(
     actor_state_before = pydash.get(doc, f"states.{actor_id}")
     resolver = RefResolver(enforce_acl=False)
     ctx = {"doc": doc, "user": actor_id, "payload": body_payload}
-    if (
-            _src_get("allow_user_states") is not None
-            and actor_state_before
-            not in set(resolver(_src_get("allow_user_states"), ctx) or [])
-    ) or (
-            _src_get("deny_user_states") is not None
-            and actor_state_before in set(resolver(_src_get("deny_user_states"), ctx) or [])
-    ):
-        abort_json(409, "Event not available for actor state")
-
-    if (
-            _src_get("allow_principals") is not None
-            or _src_get("deny_principals") is not None
-    ):
+    allow_principals = _src_get("allow_principals")
+    deny_principals = _src_get("deny_principals")
+    if allow_principals is not None or deny_principals is not None:
         enforcer = get_enforcer()
         roles = set(enforcer.get_roles_for_user(actor_id))
         roles.add(actor_id)
-        if _src_get("allow_principals") is not None and not roles.intersection(
-                set(resolver(_src_get("allow_principals"), ctx) or [])
-        ):
+        if allow_principals is not None and not roles.intersection(set(resolver(allow_principals, ctx) or [])):
             abort_json(403, "Subject not allowed")
-        if _src_get("deny_principals") is not None and roles.intersection(
-                set(resolver(_src_get("deny_principals"), ctx) or [])
-        ):
+        if deny_principals is not None and roles.intersection(set(resolver(deny_principals, ctx) or [])):
             abort_json(403, "Subject denied")
-
+    allow_user_states = _src_get("allow_user_states")
+    deny_user_states = _src_get("deny_user_states")
+    if (
+            allow_user_states is not None and actor_state_before not in set(resolver(allow_user_states, ctx) or [])
+    ) or (
+            deny_user_states is not None and actor_state_before in set(resolver(deny_user_states, ctx) or [])
+    ):
+        abort_json(409, "Event not available for actor state")
     schema_errors = validate_payload(_src_get("payload_schema"), body_payload)
     if schema_errors:
         return {"error": "Invalid payload", "details": schema_errors}, 422

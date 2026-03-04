@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 import uuid
+from contextvars import ContextVar
 from datetime import datetime
 from typing import Any, Dict, List
 
@@ -1344,6 +1345,19 @@ CONTRACT_CREATE_SCHEMA = {
     "additionalProperties": False,
 }
 
+_template_create_schema = ContextVar("template_create_schema", default=None)
+_template_update_schema = ContextVar("template_update_schema", default=None)
+
+
+def _TEMPLATE_CREATE_SCHEMA():
+    schema = _template_create_schema.get()
+    return TEMPLATE_CREATE_SCHEMA if schema is None else schema
+
+
+def _TEMPLATE_UPDATE_SCHEMA():
+    schema = _template_update_schema.get()
+    return TEMPLATE_UPDATE_SCHEMA if schema is None else schema
+
 
 def _ensure_indexes():
     contracts = _contracts_coll()
@@ -1481,7 +1495,7 @@ def _validate_allowed_initial_states(
 @require_system_admin("contracts:templates", "manage")
 def create_template():
     payload = _parse_json_body()
-    schema_errors = _validate_schema(payload, TEMPLATE_CREATE_SCHEMA)
+    schema_errors = _validate_schema(payload, _TEMPLATE_CREATE_SCHEMA())
     if schema_errors:
         return jsonify({"error": "Invalid payload", "details": schema_errors}), 422
 
@@ -1545,7 +1559,7 @@ def get_template(template_id: str):
 @require_system_admin("contracts:templates", "manage")
 def update_template(template_id: str):
     payload = _parse_json_body()
-    schema_errors = _validate_schema(payload, TEMPLATE_UPDATE_SCHEMA)
+    schema_errors = _validate_schema(payload, _TEMPLATE_UPDATE_SCHEMA())
     if schema_errors:
         return jsonify({"error": "Invalid payload", "details": schema_errors}), 422
     existing = mongo_find_one(_templates_coll(), {"_id": template_id})
@@ -1598,7 +1612,7 @@ def get_contract(contract_id: str):
     return jsonify(_serialize_contract(doc)), 200
 
 
-@bp.route("/<contract_id>/<path:dyn_path>", methods=["POST", "GET"])
+@bp.route("/<contract_id>/<path:dyn_path>", methods=["POST", "GET", "PUT", "PATCH", "DELETE"])
 def contract_api_event(contract_id: str, dyn_path: str):
     payload = _parse_json_body()
     actor_id = get_auth_sub()
