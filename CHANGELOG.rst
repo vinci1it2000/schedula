@@ -1,6 +1,14 @@
 Changelog
 =========
 
+v1.6.15 (2026-03-04)
+--------------------
+
+Fix
+~~~
+- (server): Correct indices of apis collections.
+
+
 v1.6.14 (2026-03-04)
 --------------------
 
