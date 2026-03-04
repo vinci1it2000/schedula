@@ -61,13 +61,15 @@ class Config:
         self.NOTIF_CELERY_ENABLED = (
                 os.environ.get("NOTIF_CELERY_ENABLED", "false").lower() == "true"
         )
+        self.NOTIF_SOCKET_ENABLED = (
+                os.environ.get("NOTIF_SOCKET_ENABLED", "true").lower() == "true"
+        )
+        self.NOTIF_SOCKET_NAMESPACE = os.environ.get("NOTIF_SOCKET_NAMESPACE", "/socket.io")
 
         self.CONTRACTS_ENABLED = (
                 os.environ.get("CONTRACTS_ENABLED", "false").lower() == "true"
         )
-        self.APIS_ENABLED = (
-                os.environ.get("APIS_ENABLED", "false").lower() == "true"
-        )
+        self.APIS_ENABLED = os.environ.get("APIS_ENABLED", "false").lower() == "true"
 
         # reCAPTCHA configuration
         self.RECAPTCHA_PUBLIC_KEY = os.environ.get(

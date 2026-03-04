@@ -19,8 +19,11 @@ def ensure_server_test_env() -> None:
         "yaml",
         "schemathesis",
         "stripe",
+        "flask_socketio",
     )
-    missing = [name for name in required_modules if importlib.util.find_spec(name) is None]
+    missing = [
+        name for name in required_modules if importlib.util.find_spec(name) is None
+    ]
     if missing:
         raise unittest.SkipTest(
             "Server tests skipped: missing optional dependencies: %s"

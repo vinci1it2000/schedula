@@ -26,6 +26,7 @@ gunicorn
 asteval
 sherlock
 sqlalchemy-file
+flask-socketio
 fasteners
 python-dateutil
 boto3

@@ -139,6 +139,10 @@ class Notifications:
         app.register_blueprint(admin_bp, url_prefix="/admin/notification")
         app.register_blueprint(templates_bp, url_prefix="/admin/notification/templates")
 
+        if app.config.get("NOTIF_SOCKET_ENABLED"):
+            from .socketio_rt import init_socketio
+            init_socketio(app)
+
         if app.config.get("NOTIF_CELERY_ENABLED") and "celery" not in app.extensions:
             try:
                 from .tasks.task import make_celery

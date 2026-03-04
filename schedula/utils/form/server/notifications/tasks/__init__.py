@@ -23,12 +23,14 @@ from ...utils import mongo_find_one, mongo_update_one, get_mongo, now_utc, confi
 
 def _settings_for_user(user: User) -> Dict[str, Any]:
     """Extract notification settings subdocument from a user."""
-    settings: Dict[str, Any] = {"email": quote(str(user.email))}
+    settings: Dict[str, Any] = {"email": quote(str(user.email)), "user": user}
     notifications = pydash.get(user, "settings.notifications", {})
 
     principal = f"u:{user.id}"
     settings.update(notifications)
-    settings["push_device_ids"] = [d["token"] for d in list_push_tokens(user_id=principal)]
+    settings["push_device_ids"] = [
+        d["token"] for d in list_push_tokens(user_id=principal)
+    ]
     return settings
 
 
@@ -91,6 +93,8 @@ def get_apprise_default_channels(app=None) -> Dict[str, str]:
                 "{{ telegram_chat_id }}"
                 "{% if telegram_topic %}:{{ telegram_topic }}{% endif %}/"
             )
+    if "socket" not in out:
+        out["socket"] = "socket://{{ user.id }}"
     return out
 
 
@@ -179,8 +183,13 @@ def deliver_apprise_sync(notification: str | Dict[str, Any]):
                 )
                 continue
             rendered_ch = rendered_target.get(ch, {})
-            title = rendered_ch.get("title", "")
-            body = rendered_ch.get("body", "")
+            notify_kw = {
+                "body": rendered_ch.get("body", ""), "title": rendered_ch.get("title", "")
+            }
+            if "body_format" in rendered_ch:
+                notify_kw["body_format"] = rendered_ch["body_format"]
+            if "attach" in rendered_ch:
+                notify_kw["attach"] = rendered_ch["attach"]
             apobj = apprise.Apprise()
             apobj.add(url)
             res = {
@@ -190,7 +199,7 @@ def deliver_apprise_sync(notification: str | Dict[str, Any]):
                 "ts": now_utc(),
             }
             try:
-                res["ok"] = apobj.notify(body=body, title=title)
+                res["ok"] = apobj.notify(**notify_kw)
             except Exception as exc:
                 res["ok"] = False
                 res["error"] = str(exc)

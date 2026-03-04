@@ -7,7 +7,6 @@ except Exception:
 
 ensure_server_test_env()
 
-
 import os
 import sys
 import unittest
@@ -30,6 +29,7 @@ from schedula.utils.form.server.security.casbin.bootstrap import (
 )
 from schedula.utils.form.server.security.casbin.enforcer import get_enforcer
 from schedula.utils.form.server.utils import get_mongo, config_get
+from schedula.utils.form.server.notifications.socketio_rt import DEFAULT_NAMESPACE
 from tests.utils.server.utils.mongo_validation import ValidatingMongoDatabase
 
 
@@ -75,6 +75,7 @@ class TestNotificationsApis(unittest.TestCase):
             OPENAPI_ENABLED=True,
             CASBIN_ADMIN_ENABLED=True,
             NOTIF_ENABLED=True,
+            NOTIF_SOCKET_ENABLED=True,
         )
 
         with self.app.app_context():
@@ -227,7 +228,9 @@ class TestNotificationsApis(unittest.TestCase):
             headers=self._auth_headers(self.user_token),
         )
         self.assertEqual(unread_before.status_code, 200)
-        unread_before_count = int((unread_before.get_json(silent=True) or {}).get("unread") or 0)
+        unread_before_count = int(
+            (unread_before.get_json(silent=True) or {}).get("unread") or 0
+        )
 
         created_ids = []
         for idx in (1, 2):
@@ -498,8 +501,80 @@ class TestNotificationsApis(unittest.TestCase):
             self.assertIsInstance(per_target, dict)
             in_app = per_target.get("in_app") if isinstance(per_target, dict) else None
             self.assertIsInstance(in_app, dict, "missing rendered.in_app")
+            if not isinstance(in_app, dict):
+                self.fail("rendered.in_app must be an object")
+                return
             self.assertIsInstance(in_app.get("title"), str)
             self.assertIsInstance(in_app.get("body"), str)
+
+    def test_socket_notification_sent_to_personal_room(self):
+        socketio = self.app.extensions.get("notifications_socketio")
+        self.assertIsNotNone(socketio)
+        if socketio is None:
+            self.fail("notifications_socketio extension missing")
+            return
+
+        user_ws = socketio.test_client(
+            self.app,
+            namespace=DEFAULT_NAMESPACE,
+            headers={"Authentication-Token": self.user_token},
+        )
+        admin_ws = socketio.test_client(
+            self.app,
+            namespace=DEFAULT_NAMESPACE,
+            headers={"Authentication-Token": self.admin_token},
+        )
+        self.assertTrue(user_ws.is_connected(DEFAULT_NAMESPACE))
+        self.assertTrue(admin_ws.is_connected(DEFAULT_NAMESPACE))
+
+        r = self.client.post(
+            "/admin/notification/notify",
+            json={
+                "event": "admin.socket.event",
+                "targets": {f"u:{self.user_id}": ["socket"]},
+                "payload": {"title": "Hello socket"},
+                "persist": False,
+            },
+            headers=self._auth_headers(self.admin_token),
+        )
+        self.assertEqual(r.status_code, 200)
+        notif_id = (r.get_json(silent=True) or {}).get("id")
+        self.assertIsInstance(notif_id, str)
+
+        user_events = [
+            e
+            for e in user_ws.get_received(DEFAULT_NAMESPACE)
+            if e.get("name") == "notification.created"
+        ]
+        admin_events = [
+            e
+            for e in admin_ws.get_received(DEFAULT_NAMESPACE)
+            if e.get("name") == "notification.created"
+        ]
+
+        self.assertEqual(len(user_events), 1)
+        self.assertEqual(len(admin_events), 0)
+        payload = (user_events[0].get("args") or [{}])[0]
+        if not isinstance(payload, dict):
+            self.fail("socket payload must be an object")
+            return
+        self.assertEqual(payload.get("target"), f"u:{self.user_id}")
+        self.assertIn("admin.socket.event", payload.get("title") or "")
+        self.assertIsInstance(payload.get("body"), str)
+        self.assertFalse((payload.get("body") or "").strip())
+        self.assertEqual(payload.get("channel"), "socket")
+
+        user_ws.disconnect(namespace=DEFAULT_NAMESPACE)
+        admin_ws.disconnect(namespace=DEFAULT_NAMESPACE)
+
+    def test_socket_connect_requires_auth(self):
+        socketio = self.app.extensions.get("notifications_socketio")
+        self.assertIsNotNone(socketio)
+        if socketio is None:
+            self.fail("notifications_socketio extension missing")
+            return
+        anon_ws = socketio.test_client(self.app, namespace=DEFAULT_NAMESPACE)
+        self.assertFalse(anon_ws.is_connected(DEFAULT_NAMESPACE))
 
     def test_admin_test_templates(self):
         for category in ("message", "event"):

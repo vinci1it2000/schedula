@@ -125,6 +125,7 @@ if __name__ == "__main__":
         "sqlalchemy_adapter",
         "pydash",
         "apprise",
+        "flask-socketio",
         "mongo_schema",
         "flask_caching",
         "filelock",
@@ -133,7 +134,7 @@ if __name__ == "__main__":
         "fasteners",
         "python-dateutil",
         "stripe",
-        "sqlalchemy-file"
+        "sqlalchemy-file",
     ]
     extras["sphinx"] = ["sphinx>=9.0.4", "sphinx-click"] + extras["plot"]
     extras["all"] = sorted(functools.reduce(set.union, extras.values(), set()))
@@ -225,7 +226,7 @@ if __name__ == "__main__":
         author="Vincenzo Arcidiacono",
         author_email="vinci1it2000@gmail.com",
         description="Produce a plan that dispatches calls based on a graph of "
-                    "functions, satisfying data dependencies.",
+        "functions, satisfying data dependencies.",
         long_description=long_description,
         keywords=[
             "flow-based programming",
