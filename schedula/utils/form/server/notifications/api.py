@@ -17,6 +17,7 @@ from .storage import (
     delete_watcher,
     upsert_push_token,
 )
+from .templates import render_for_target_channel
 from ..security.casbin import get_auth_sub, get_user
 from ..utils import (
     abort_json,
@@ -44,14 +45,21 @@ def list_my_notifications():
     query = {f"targets.{p}": "in_app", "persist": {"$ne": False}}
 
     cursor = mongo_find(coll, query).sort("created_at", -1).skip(offset).limit(limit)
-    out = [{
-        "id": d["_id"],
-        "event": d["event"],
-        "payload": d.get("payload", {}),
-        "read_by": [get_user(u).public_json() for u in sorted(d.get("read_by", []))],
-        "created_at": d["created_at"],
-        **d["rendered"][p]["in_app"]
-    } for d in cursor]
+    out = []
+    for d in cursor:
+        rendered = render_for_target_channel(d, viewer_principal=p, channel="in_app")
+        out.append(
+            {
+                "id": d["_id"],
+                "event": d["event"],
+                "payload": d.get("payload", {}),
+                "read_by": [
+                    get_user(u).public_json() for u in sorted(d.get("read_by", []))
+                ],
+                "created_at": d["created_at"],
+                **rendered,
+            }
+        )
 
     total = mongo_count_documents(coll, query)
     next_offset = offset + limit if offset + limit < total else None

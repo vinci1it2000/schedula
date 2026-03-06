@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, Optional
 
+from flask import g, has_request_context
 from jinja2 import StrictUndefined
 from jinja2.sandbox import SandboxedEnvironment
 
@@ -167,7 +168,12 @@ def _select_template(
     return doc or {}
 
 
-def render_title_body(n: Dict[str, Any], viewer_principal: str, channel: str) -> Dict[str, str]:
+def render_title_body(
+        n: Dict[str, Any],
+        viewer_principal: str,
+        channel: str,
+        viewer_language: Optional[str] = None,
+) -> Dict[str, str]:
     """Render title/body for a notification.
 
     - resolves {$ref: ...} in payload (in-process; ACL-aware for sender+viewer)
@@ -184,7 +190,12 @@ def render_title_body(n: Dict[str, Any], viewer_principal: str, channel: str) ->
     payload_raw = n.get("payload")
     payload: Dict[str, Any] = payload_raw if isinstance(payload_raw, dict) else {}
     dom = n.get("acl_dom") or payload.get("acl_dom")
-    tpl = _select_template(event=event, dom=dom, channel=channel)
+    tpl = _select_template(
+        event=event,
+        dom=dom,
+        channel=channel,
+        language=viewer_language,
+    )
 
     title = f"[{severity}] {event}"
     body = ""
@@ -200,3 +211,57 @@ def render_title_body(n: Dict[str, Any], viewer_principal: str, channel: str) ->
         title = env.from_string(str(title_t)).render(**n, viewer_principal=viewer_principal)
         body = env.from_string(str(body_t)).render(**n, viewer_principal=viewer_principal).strip()
     return {"title": title, "body": body}
+
+
+def _language_from_principal(principal: Optional[str]) -> Optional[str]:
+    if (
+            not principal
+            or not isinstance(principal, str)
+            or not principal.startswith("u:")
+    ):
+        return None
+    try:
+        user_id = int(principal.split(":", 1)[1])
+    except Exception:
+        return None
+    user = db.session.get(User, user_id)
+    if not user:
+        return None
+    settings = (user.settings or {}) if isinstance(user.settings, dict) else {}
+    return normalize_language(settings.get("language") or settings.get("locale"))
+
+
+def render_for_target_channel(
+        n: Dict[str, Any],
+        viewer_principal: str,
+        channel: str,
+) -> Dict[str, str]:
+    """Render notification payload for one principal/channel."""
+    cache_key = (
+        str(n.get("_id") or n.get("id") or ""),
+        str(n.get("event") or ""),
+        str(viewer_principal),
+        str(channel),
+    )
+    if has_request_context():
+        cache = getattr(g, "_notif_render_cache", None)
+        if not isinstance(cache, dict):
+            cache = {}
+            g._notif_render_cache = cache
+        cached = cache.get(cache_key)
+        if isinstance(cached, dict):
+            return dict(cached)
+
+    rendered = render_title_body(
+        n,
+        viewer_principal=viewer_principal,
+        channel=channel,
+        viewer_language=_language_from_principal(viewer_principal),
+    )
+
+    if has_request_context():
+        cache = getattr(g, "_notif_render_cache", None)
+        if isinstance(cache, dict):
+            cache[cache_key] = dict(rendered)
+
+    return rendered

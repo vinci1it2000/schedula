@@ -16,7 +16,7 @@ import pydash
 from flask import current_app
 
 from ..storage import list_push_tokens, delete_push_token
-from ..templates import make_env
+from ..templates import make_env, render_for_target_channel
 from ...security import User
 from ...utils import mongo_find_one, mongo_update_one, get_mongo, now_utc, config_get
 
@@ -151,7 +151,6 @@ def deliver_apprise_sync(notification: str | Dict[str, Any]):
     results = []
     ok_all = True
 
-    rendered = n.get("rendered", {})
     user_ids = set(int(p.split(":", 1)[1]) for p in targets)
     user_id_col = cast(Any, getattr(User, "id"))
     user_query = User.query.filter(user_id_col.in_(user_ids))
@@ -170,7 +169,6 @@ def deliver_apprise_sync(notification: str | Dict[str, Any]):
             )
             continue
 
-        rendered_target = rendered.get(principal, {})
         for ch, url, ctx in _yield_urls(user, channels):
             if not url:
                 results.append(
@@ -182,7 +180,11 @@ def deliver_apprise_sync(notification: str | Dict[str, Any]):
                     }
                 )
                 continue
-            rendered_ch = rendered_target.get(ch, {})
+            rendered_ch = render_for_target_channel(
+                n,
+                viewer_principal=principal,
+                channel=ch,
+            )
             notify_kw = {
                 "body": rendered_ch.get("body", ""), "title": rendered_ch.get("title", "")
             }

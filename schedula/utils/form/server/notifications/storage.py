@@ -240,7 +240,6 @@ def _notifications_validator() -> Dict[str, Any]:
                 "created_at",
                 "read_by",
                 "status",
-                "rendered",
             ],
             "properties": {
                 "_id": {"bsonType": "string"},

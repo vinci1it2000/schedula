@@ -17,7 +17,6 @@ from flask import current_app
 
 from .storage import list_rules
 from .tasks import get_apprise_channels
-from .templates import render_title_body
 from ..security import User
 from ..security.casbin import (
     get_enforcer,
@@ -229,23 +228,6 @@ def _normalize_persist(v: Optional[object], channels: Set[str]) -> bool:
     return not {"in_app"}.isdisjoint(channels)
 
 
-def _render_by_target_channel(
-        doc: Dict[str, Any],
-        targets: Dict[str, List[str]],
-) -> Dict[str, Dict[str, Dict[str, str]]]:
-    return {
-        target: {
-            ch: render_title_body(
-                doc,
-                channel=ch,
-                viewer_principal=target,
-            )
-            for ch in chs
-        }
-        for target, chs in targets.items()
-    }
-
-
 def create_notification(
         event: str,
         targets: Dict[str, List[str]],
@@ -282,7 +264,6 @@ def create_notification(
     deliver = channels.intersection(apprise_channels)
     if do_persist or deliver:
         doc = n.to_doc()
-        doc["rendered"] = _render_by_target_channel(doc, targets)
         if do_persist:
             coll = get_mongo(collection=config_get("NOTIF_COLLECTION", "notifications"))
             mongo_insert_one(coll, doc)
