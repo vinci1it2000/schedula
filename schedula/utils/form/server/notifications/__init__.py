@@ -122,6 +122,7 @@ class Notifications:
             collection=templates_coll_id,
         )
         templates_coll.create_index("event")
+        templates_coll.create_index("language")
         templates_coll.create_index("updated_at")
         templates_coll.create_index([("event", 1), ("enabled", 1), ("updated_at", -1)])
 

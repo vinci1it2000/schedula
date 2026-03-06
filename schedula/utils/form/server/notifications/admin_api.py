@@ -26,7 +26,7 @@ from .storage import (
     upsert_template,
     delete_template,
 )
-from .templates import make_env, render_title_body
+from .templates import make_env, render_title_body, normalize_language
 from ..extensions import db
 from ..security import User
 from ..security.casbin import require_system_admin, get_current_sub
@@ -250,6 +250,7 @@ def api_create_template():
         "event": data.get("event"),
         "scope": scope or None,
         "channel": data.get("channel"),
+        "language": normalize_language(data.get("language")),
         "enabled": data.get("enabled", True),
         "title": data.get("title") or "",
         "body": data.get("body") or "",
@@ -277,6 +278,7 @@ def api_put_template(template_id: str):
         "event": data.get("event"),
         "scope": scope or None,
         "channel": data.get("channel"),
+        "language": normalize_language(data.get("language")),
         "enabled": data.get("enabled", True),
         "title": data.get("title") or "",
         "body": data.get("body") or "",

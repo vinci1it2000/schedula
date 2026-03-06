@@ -212,6 +212,7 @@ def _templates_validator() -> Dict[str, Any]:
                 },
                 "event": {"bsonType": "string"},
                 "channel": {"bsonType": "string"},
+                "language": {"bsonType": "string"},
                 "title": {"bsonType": "string"},
                 "body": {"bsonType": "string"},
                 "enabled": {"bsonType": "bool"},

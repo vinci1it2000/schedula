@@ -60,7 +60,34 @@ def make_env(sender_principal, viewer_principal, enforce_acl) -> SandboxedEnviro
     return env
 
 
-def _select_template(*, event: Optional[str], dom: Optional[str], channel: Optional[str], ) -> Dict[str, Any]:
+def normalize_language(value: object) -> Optional[str]:
+    """Normalize language tags (e.g. it-IT -> it_it)."""
+    if not isinstance(value, str):
+        return None
+    lang = value.strip().replace("-", "_").lower()
+    if not lang or lang == "*":
+        return None
+    return lang or None
+
+
+def language_candidates(value: object) -> tuple[Optional[str], ...]:
+    """Return language lookup candidates ordered by specificity."""
+    lang = normalize_language(value)
+    if not lang:
+        return (None,)
+    base = lang.split("_", 1)[0]
+    if base and base != lang:
+        return lang, base, None
+    return lang, None
+
+
+def _select_template(
+        *,
+        event: Optional[str],
+        dom: Optional[str],
+        channel: Optional[str],
+        language: Optional[str],
+) -> Dict[str, Any]:
     """Pick the best matching template for the given scope."""
     if not event:
         return {}
@@ -70,6 +97,9 @@ def _select_template(*, event: Optional[str], dom: Optional[str], channel: Optio
     )
     dom_filter = [dom, "*"] if dom is not None else [None, "*"]
     channel_filter = [channel, "*"] if channel is not None else [None, "*"]
+    lang_filter = language_candidates(language)
+    lang_exact = normalize_language(language)
+    lang_base = (lang_exact or "").split("_", 1)[0]
 
     pipeline = [
         {
@@ -79,6 +109,7 @@ def _select_template(*, event: Optional[str], dom: Optional[str], channel: Optio
                 },
                 "_tpl_dom": {"$ifNull": ["$scope.dom", {"$ifNull": ["$dom", "*"]}]},
                 "_tpl_channel": {"$ifNull": ["$channel", "*"]},
+                "_tpl_language": {"$ifNull": ["$language", None]},
             }
         },
         {
@@ -88,6 +119,7 @@ def _select_template(*, event: Optional[str], dom: Optional[str], channel: Optio
                     {"$expr": {"$in": ["$_tpl_event", [event, "*"]]}},
                     {"$expr": {"$in": ["$_tpl_dom", dom_filter]}},
                     {"$expr": {"$in": ["$_tpl_channel", channel_filter]}},
+                    {"$expr": {"$in": ["$_tpl_language", lang_filter]}},
                 ]
             }
         },
@@ -95,6 +127,31 @@ def _select_template(*, event: Optional[str], dom: Optional[str], channel: Optio
             "$addFields": {
                 "_tpl_score": {
                     "$add": [
+                        {
+                            "$cond": [
+                                {
+                                    "$and": [
+                                        {"$ne": [lang_exact, None]},
+                                        {"$eq": ["$_tpl_language", lang_exact]},
+                                    ]
+                                },
+                                8,
+                                {
+                                    "$cond": [
+                                        {
+                                            "$and": [
+                                                {"$ne": [lang_exact, None]},
+                                                {"$ne": [lang_base, ""]},
+                                                {"$eq": ["$_tpl_language", lang_base]},
+                                                {"$ne": [lang_base, lang_exact]},
+                                            ]
+                                        },
+                                        7,
+                                        0,
+                                    ]
+                                },
+                            ]
+                        },
                         {"$cond": [{"$ne": ["$_tpl_event", "*"]}, 4, 0]},
                         {"$cond": [{"$ne": ["$_tpl_channel", "*"]}, 2, 0]},
                         {"$cond": [{"$ne": ["$_tpl_dom", "*"]}, 1, 0]},
