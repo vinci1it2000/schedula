@@ -101,13 +101,6 @@ def _validate_template_syntax(payload: Dict[str, Any]) -> None:
             abort_json(400, f"Invalid template syntax: {exc}")
 
 
-def _normalize_list(value: object) -> List[str]:
-    if not isinstance(value, list):
-        return []
-    out = [v.strip() for v in value if isinstance(v, str) and v.strip()]
-    return out
-
-
 def _apply_preferences(channels: Iterable[str], prefs: Dict[str, bool]) -> List[str]:
     out = []
     for ch in channels:
@@ -315,7 +308,7 @@ def api_test_templates():
     if not isinstance(event_format, str):
         abort_json(400, "event_format must be a string")
 
-    categories = _load_categories(_normalize_list(data.get("categories")))
+    categories = _load_categories(data.get("categories", []))
     if not categories:
         return jsonify(
             {"event": event, "event_format": event_format, "categories": []}
@@ -326,7 +319,7 @@ def api_test_templates():
     if not isinstance(payload, dict):
         abort_json(400, "payload must be an object")
 
-    channels_input = _normalize_list(data.get("channels"))
+    channels_input = data.get("channels", [])
 
     principal = data.get("principal") or get_current_sub()
     sender_principal = data.get("sender_principal") or principal
