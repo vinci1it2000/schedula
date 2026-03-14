@@ -109,7 +109,9 @@ def get_apprise_channels(app=None) -> Dict[str, str]:
     return cfg["APPRISE_CHANNELS"]
 
 
-def _yield_urls(user: User, channels: list[str] | set[str]) -> Generator[tuple[str, str | None, dict[str, Any]]]:
+def _yield_urls(
+        user: User, channels: list[str] | set[str]
+) -> Generator[tuple[str, str | None, dict[str, Any]]]:
     """Build Apprise URLs for a user and channel list."""
     notif_settings = _settings_for_user(user)
     apprise_channels = get_apprise_channels()
@@ -118,15 +120,24 @@ def _yield_urls(user: User, channels: list[str] | set[str]) -> Generator[tuple[s
         try:
             string = apprise_channels.get(ch, "")
             if "push_device_id" in string:
-                if "push_device_ids" not in string and "push_device_id" not in notif_settings:
+                if (
+                        "push_device_ids" not in string
+                        and "push_device_id" not in notif_settings
+                ):
                     for token in notif_settings["push_device_ids"]:
-                        yield ch, env.from_string(string).render(push_device_id=token, **notif_settings), {
-                            "push_device_ids": [token]
-                        }
+                        yield (
+                            ch,
+                            env.from_string(string).render(
+                                push_device_id=token, **notif_settings
+                            ),
+                            {"push_device_ids": [token]},
+                        )
                 else:
-                    yield ch, env.from_string(string).render(**notif_settings), {
-                        "push_device_ids": notif_settings["push_device_ids"]
-                    }
+                    yield (
+                        ch,
+                        env.from_string(string).render(**notif_settings),
+                        {"push_device_ids": notif_settings["push_device_ids"]},
+                    )
             else:
                 yield ch, env.from_string(string).render(**notif_settings), {}
         except Exception as exe:
@@ -186,7 +197,8 @@ def deliver_apprise_sync(notification: str | Dict[str, Any]):
                 channel=ch,
             )
             notify_kw = {
-                "body": rendered_ch.get("body", ""), "title": rendered_ch.get("title", "")
+                "body": rendered_ch.get("body", ""),
+                "title": rendered_ch.get("title", ""),
             }
             if "body_format" in rendered_ch:
                 notify_kw["body_format"] = rendered_ch["body_format"]

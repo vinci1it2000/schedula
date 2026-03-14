@@ -475,7 +475,9 @@ def update_watcher(
     if not update:
         return False
 
-    res = mongo_update_one(coll, {"_id": watcher_id, "user_id": user_id}, {"$set": update})
+    res = mongo_update_one(
+        coll, {"_id": watcher_id, "user_id": user_id}, {"$set": update}
+    )
     return bool(res.matched_count)
 
 

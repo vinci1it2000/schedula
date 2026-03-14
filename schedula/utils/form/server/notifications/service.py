@@ -18,12 +18,7 @@ from flask import current_app
 from .storage import list_rules
 from .tasks import get_apprise_channels
 from ..security import User
-from ..security.casbin import (
-    get_enforcer,
-    item_obj,
-    PUBLIC_DOMAIN,
-    SHARE_DOMAIN,
-)
+from ..security.casbin import get_enforcer, item_obj, PUBLIC_DOMAIN, SHARE_DOMAIN
 from ..utils import (
     mongo_count_documents,
     mongo_find,
@@ -171,10 +166,10 @@ def notify_item_event(
         if chs:
             watchers_by_user.setdefault(w.get("user_id"), set()).update(chs)
 
-    targets: Dict[str, Set[str]] = {}
+    target_channels: Dict[str, Set[str]] = {}
     if mandatory_channels:
         for user in readers:
-            targets.setdefault(user, set()).update(mandatory_channels)
+            target_channels.setdefault(user, set()).update(mandatory_channels)
     if watchers_by_user:
         users = sorted({int(p.split(":", 1)[1]) for p in watchers_by_user})
         user_id_col = cast(Any, getattr(User, "id"))
@@ -187,9 +182,9 @@ def notify_item_event(
             prf = user_prefs.get(uid, {})
             for ch in default_channels.union(chans):
                 if prf.get(ch, True):
-                    targets.setdefault(uid, set()).add(ch)
+                    target_channels.setdefault(uid, set()).add(ch)
     targets: Dict[str, list[str]] = {
-        target: sorted(set(chans)) for target, chans in targets.items() if chans
+        target: sorted(set(chans)) for target, chans in target_channels.items() if chans
     }
 
     if not targets:
@@ -284,10 +279,12 @@ def mark_read(notification_id: str | list[str] | None, principal: str) -> None:
         notification_id = [notification_id]
     if not notification_id:
         return
-    mongo_update_many(coll, {
-        "_id": {"$in": notification_id},
-        f"targets.{principal}": {"$exists": True}
-    }, {"$addToSet": {"read_by": principal}})
+    mongo_update_many(
+        coll,
+        {"_id": {"$in": notification_id}, f"targets.{principal}": {"$exists": True}},
+        {"$addToSet": {"read_by": principal}},
+    )
+    purge_expired_read_notifications()
 
 
 def unread_count(principal: str) -> int:

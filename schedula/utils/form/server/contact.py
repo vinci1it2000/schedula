@@ -12,7 +12,6 @@ It provides functions to build the contact service.
 import logging
 import os
 
-import schedula as sh
 from docutils.core import publish_string
 from flask import flash, Blueprint, redirect, request, current_app as ca
 from flask import render_template
@@ -29,6 +28,7 @@ from flask_security.utils import (
 from flask_wtf.recaptcha import RecaptchaField
 from werkzeug.datastructures import MultiDict
 
+import schedula as sh
 from .locale import lazy_gettext
 from .utils import now_utc
 

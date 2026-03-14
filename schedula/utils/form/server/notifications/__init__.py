@@ -39,21 +39,13 @@ class Notifications:
             "NOTIF_SETTINGS_COLLECTION", "notification_settings", app=app
         )
 
-        mongo_command(
-            mongo,
-            settings_coll_id,
-            validator=_settings_validator()
-        )
+        mongo_command(mongo, settings_coll_id, validator=_settings_validator())
 
         watchers_coll_id = config_get(
             "NOTIF_WATCHERS_COLLECTION", "notification_watchers", app=app
         )
 
-        mongo_command(
-            mongo,
-            watchers_coll_id,
-            validator=_watchers_validator()
-        )
+        mongo_command(mongo, watchers_coll_id, validator=_watchers_validator())
 
         templates_coll_id = config_get(
             "NOTIF_TEMPLATES_COLLECTION", "notification_templates", app=app
@@ -75,9 +67,7 @@ class Notifications:
             validator=_push_tokens_validator(),
         )
 
-        notifications_coll_id = config_get(
-            "NOTIF_COLLECTION", "notifications", app=app
-        )
+        notifications_coll_id = config_get("NOTIF_COLLECTION", "notifications", app=app)
 
         mongo_command(
             mongo,
@@ -142,6 +132,7 @@ class Notifications:
 
         if app.config.get("NOTIF_SOCKET_ENABLED"):
             from .socketio_rt import init_socketio
+
             init_socketio(app)
 
         if app.config.get("NOTIF_CELERY_ENABLED") and "celery" not in app.extensions:

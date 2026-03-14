@@ -22,7 +22,13 @@ def principal_info(p: Any) -> Dict[str, Any]:
     """Resolve principal info for users or groups."""
     if p and isinstance(p, str):
         if p == "u:anonymous":
-            return {"id": None, "firstname": "", "lastname": "", "avatar": None, "type": "anonymous"}
+            return {
+                "id": None,
+                "firstname": "",
+                "lastname": "",
+                "avatar": None,
+                "type": "anonymous",
+            }
 
         if p.startswith("u:"):
             u = db.session.get(User, int(p[2:]))
@@ -33,6 +39,7 @@ def principal_info(p: Any) -> Dict[str, Any]:
 
         if p.startswith("g:"):
             from ..security.casbin import Group
+
             g = db.session.get(Group, p.split(":")[1])
             if g:
                 out = g.public_json()
@@ -202,14 +209,20 @@ def render_title_body(
     if tpl:
         enforce_acl = tpl.get("enforce_acl")
         if enforce_acl is None:
-            enforce_acl = config_get("NOTIF_REF_ENFORCE_ACL", "true").lower().strip() in (
-                "1", "true", "yes", "on", "y"
-            )
+            enforce_acl = config_get(
+                "NOTIF_REF_ENFORCE_ACL", "true"
+            ).lower().strip() in ("1", "true", "yes", "on", "y")
         env = make_env(viewer_principal, n.get("sender_principal"), enforce_acl)
         title_t = tpl.get("title", title) or ""
         body_t = tpl.get("body", body) or ""
-        title = env.from_string(str(title_t)).render(**n, viewer_principal=viewer_principal)
-        body = env.from_string(str(body_t)).render(**n, viewer_principal=viewer_principal).strip()
+        title = env.from_string(str(title_t)).render(
+            **n, viewer_principal=viewer_principal
+        )
+        body = (
+            env.from_string(str(body_t))
+            .render(**n, viewer_principal=viewer_principal)
+            .strip()
+        )
     return {"title": title, "body": body}
 
 
