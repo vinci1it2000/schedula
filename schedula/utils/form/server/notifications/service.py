@@ -9,11 +9,12 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Set, Union, cast
 
 from casbin.util import key_match
 from flask import current_app
+from pymongo import UpdateOne
 
 from .storage import list_rules
 from .tasks import get_apprise_channels
@@ -28,6 +29,74 @@ from ..utils import (
     config_get,
     now_utc,
 )
+
+
+def resolve_retention_policy(event: str | None, severity: str | None) -> dict:
+    """Resolve notification retention policy from MongoDB for given event and severity."""
+    # Get the MongoDB collection for retention policies
+    coll = get_mongo(collection=config_get("NOTIF_RETENTION_COLLECTION", "notif_retention"))
+
+    clauses = [
+        {"event": None, "severity": None},
+        {"event": event, "severity": None},
+        {"event": None, "severity": severity},
+        {"event": event, "severity": severity},
+    ]
+
+    docs = list(
+        coll.find(
+            {
+                "$or": clauses,
+                "enabled": True,
+            },
+            {
+                "_id": 0,
+                "event": 1,
+                "severity": 1,
+                "max_days": 1,
+                "time_after_read_all": 1,
+            },
+        )
+    )
+
+    by_key = {
+        (doc.get("event"), doc.get("severity")): doc
+        for doc in docs
+    }
+
+    result = {}
+
+    for key in [
+        (None, None),
+        (None, severity),
+        (event, None),
+        (event, severity),
+    ]:
+        doc = by_key.get(key)
+        if doc:
+            result.update(doc)
+
+    return {
+        "max_days": result.get("max_days"),
+        "time_after_read_all": result.get("time_after_read_all"),
+    }
+
+
+def _calculate_expires_at(event: str | None, severity: str | None) -> datetime | None:
+    """Calculate expiration time based on retention policy.
+    
+    This function resolves the retention policy from notif_retention collection
+    and computes expiration date for a notification with given event and severity.
+    """
+
+    # Resolve the retention policy max days
+    max_days = resolve_retention_policy(event, severity).get("max_days")
+
+    if max_days is not None:
+        now = now_utc()
+        return now + timedelta(days=max_days)
+    else:
+        return None
 
 
 @dataclass
@@ -49,6 +118,7 @@ class Notification:
 
     created_by: Optional[str] = None
     created_at: datetime = field(default_factory=now_utc)
+    expires_at: datetime | None = None
     read_by: List[str] = field(default_factory=list)
     status: Dict[str, Dict[str, Any]] = field(default_factory=dict)
 
@@ -64,6 +134,7 @@ class Notification:
             "created_by": self.created_by,
             "created_at": self.created_at,
             "read_by": self.read_by,
+            "expires_at": self.expires_at,
             "status": self.status,
         }
 
@@ -258,6 +329,9 @@ def create_notification(
     apprise_channels = get_apprise_channels()
     deliver = channels.intersection(apprise_channels)
     if do_persist or deliver:
+        # Calculate and set the expiration time based on retention policy
+        n.expires_at = _calculate_expires_at(event, severity)
+
         doc = n.to_doc()
         if do_persist:
             coll = get_mongo(collection=config_get("NOTIF_COLLECTION", "notifications"))
@@ -279,12 +353,80 @@ def mark_read(notification_id: str | list[str] | None, principal: str) -> None:
         notification_id = [notification_id]
     if not notification_id:
         return
+    now = now_utc()
     mongo_update_many(
         coll,
         {"_id": {"$in": notification_id}, f"targets.{principal}": {"$exists": True}},
-        {"$addToSet": {"read_by": principal}},
+        {"$addToSet": {"read_by": principal}, "$set": {"updated_at": now}},
     )
-    purge_expired_read_notifications()
+    docs = list(
+        coll.find(
+            {
+                "_id": {"$in": notification_id},
+                f"targets.{principal}": {"$exists": True},
+                "$expr": {
+                    "$setIsSubset": [
+                        {
+                            "$map": {
+                                "input": {"$objectToArray": {"$ifNull": ["$targets", {}]}},
+                                "as": "t",
+                                "in": "$$t.k",
+                            }
+                        },
+                        {"$ifNull": ["$read_by", []]},
+                    ]
+                },
+            },
+            {
+                "_id": 1,
+                "event": 1,
+                "severity": 1,
+                "expires_at": 1,
+            },
+        )
+    )
+    if not docs:
+        return
+
+    ops = []
+    for doc in docs:
+        policy = resolve_retention_policy(
+            event=doc.get("event"),
+            severity=doc.get("severity"),
+        )
+
+        delay = policy.get("time_after_read_all")
+        if delay is None:
+            continue
+        expires_at = now + timedelta(seconds=delay)
+        current_expires_at = doc.get("expires_at")
+
+        if current_expires_at and current_expires_at.tzinfo is None:
+            current_expires_at = current_expires_at.replace(tzinfo=timezone.utc)
+        if current_expires_at and expires_at >= current_expires_at:
+            continue
+
+        ops.append(
+            UpdateOne(
+                {
+                    "_id": doc["_id"],
+                    "$or": [
+                        {"expires_at": {"$exists": False}},
+                        {"expires_at": None},
+                        {"expires_at": {"$gt": expires_at}},
+                    ],
+                },
+                {
+                    "$set": {
+                        "expires_at": expires_at,
+                        "updated_at": now,
+                    }
+                },
+            )
+        )
+
+    if ops:
+        coll.bulk_write(ops, ordered=False)
 
 
 def unread_count(principal: str) -> int:

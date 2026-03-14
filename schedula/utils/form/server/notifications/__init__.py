@@ -10,7 +10,7 @@ Package layout:
 
 from flask import current_app
 
-from ..utils import config_get, get_mongo, mongo_command
+from ..utils import config_get, get_mongo, mongo_command, now_utc
 
 
 class Notifications:
@@ -31,9 +31,19 @@ class Notifications:
             _templates_validator,
             _push_tokens_validator,
             _notifications_validator,
+            _retention_validator,
         )
 
         mongo = get_mongo(app=app)
+
+        retention_coll_id = config_get(
+            "NOTIF_RETENTION_COLLECTION", "notif_retention", app=app
+        )
+        mongo_command(
+            mongo,
+            retention_coll_id,
+            validator=_retention_validator(),
+        )
 
         settings_coll_id = config_get(
             "NOTIF_SETTINGS_COLLECTION", "notification_settings", app=app
@@ -125,6 +135,43 @@ class Notifications:
         notifications_coll.create_index("persist")
         notifications_coll.create_index([("event", 1), ("created_at", -1)])
         notifications_coll.create_index([("persist", 1), ("created_at", -1)])
+
+        # Create TTL index on notifications collection for expires_at field
+        notifications_coll.create_index("expires_at", expireAfterSeconds=0)
+
+        # Initialize retention policies collection
+        retention_coll = get_mongo(app=app, collection=retention_coll_id)
+        retention_coll.create_index([("event", 1), ("severity", 1)], unique=True)
+
+        # Bootstrap default policies if missing (idempotent)
+        sec_day = 24 * 60 * 60
+        DEFAULT_NOTIF_RETENTION = [
+            {"_id": "default", "event": None, "severity": None, "max_days": 30, "time_after_read_all": 3 * sec_day,
+             "enabled": True},
+            {"_id": "info", "event": None, "severity": "info", "max_days": 30, "time_after_read_all": 3 * sec_day,
+             "enabled": True},
+            {"_id": "warning", "event": None, "severity": "warning", "max_days": 90, "time_after_read_all": 7 * sec_day,
+             "enabled": True},
+            {"_id": "error", "event": None, "severity": "error", "max_days": 180, "time_after_read_all": 30 * sec_day,
+             "enabled": True},
+        ]
+
+        for policy in DEFAULT_NOTIF_RETENTION:
+            retention_coll.update_one(
+                {
+                    "_id": policy["_id"],
+                    "event": policy["event"],
+                    "severity": policy["severity"],
+                },
+                {
+                    "$setOnInsert": {
+                        **policy,
+                        "created_at": now_utc(),
+                        "updated_at": now_utc(),
+                    }
+                },
+                upsert=True
+            )
 
         app.register_blueprint(bp, url_prefix="/notification")
         app.register_blueprint(admin_bp, url_prefix="/admin/notification")

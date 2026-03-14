@@ -13,7 +13,8 @@ import unittest
 import uuid
 from datetime import datetime
 
-import mongomock
+from typing import Any
+from urllib.parse import urlsplit, urlunsplit
 from flask import Flask
 from flask_security.utils import hash_password
 
@@ -28,13 +29,51 @@ from schedula.utils.form.server.security.casbin.bootstrap import (
     set_system_admin,
 )
 from schedula.utils.form.server.security.casbin.enforcer import get_enforcer
+from schedula.utils.form.server.notifications.templates import render_for_target_channel
 from schedula.utils.form.server.utils import get_mongo, config_get
 from schedula.utils.form.server.notifications.socketio_rt import DEFAULT_NAMESPACE
-from tests.utils.server.utils.mongo_validation import ValidatingMongoDatabase
 
 
 class TestNotificationsApis(unittest.TestCase):
+    _mongo_container: Any = None
+    _mongo_base_uri: str = ""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        super().setUpClass()
+        desktop_sock = os.path.join(
+            os.path.expanduser("~"), ".docker", "run", "docker.sock"
+        )
+        if not os.environ.get("DOCKER_HOST") and os.path.exists(desktop_sock):
+            os.environ["DOCKER_HOST"] = f"unix://{desktop_sock}"
+        try:
+            from testcontainers.mongodb import MongoDbContainer
+        except Exception as ex:
+            raise unittest.SkipTest(
+                "apis service tests require testcontainers[mongodb]"
+            ) from ex
+
+        try:
+            cls._mongo_container = MongoDbContainer("mongo:7.0")
+            cls._mongo_container.start()
+            cls._mongo_base_uri = str(cls._mongo_container.get_connection_url())
+        except Exception as ex:
+            raise unittest.SkipTest(
+                "apis service tests require Docker with runnable MongoDB container"
+            ) from ex
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        try:
+            if cls._mongo_container is not None:
+                cls._mongo_container.stop()
+        finally:
+            cls._mongo_container = None
+            cls._mongo_base_uri = ""
+            super().tearDownClass()
+
     def setUp(self):
+        from pymongo import MongoClient
         os.environ.pop("MONGO_URI", None)
 
         self.app = Flask("schedula_test_app")
@@ -43,9 +82,9 @@ class TestNotificationsApis(unittest.TestCase):
             verify_file_handler = None
             basic_app_config = None
 
-        self.mm_client = mongomock.MongoClient()
-        mm_db = self.mm_client["schedula_test"]
-        vdb = ValidatingMongoDatabase(mm_db)
+        self.mongo_uri = self._test_mongo_uri()
+        self.mongo_client = MongoClient(self.mongo_uri)
+        mongo_db = self.mongo_client[self.mongo_db_name]
 
         config = dict(
             TESTING=True,
@@ -62,7 +101,7 @@ class TestNotificationsApis(unittest.TestCase):
             WTF_CSRF_ENABLED=False,
             SCHEDULA_CSRF_ENABLED=False,
             MONGO_URI="mongodb://mock",
-            MONGO_DB=vdb,
+            MONGO_DB=mongo_db,
             MAIL_SUPPRESS_SEND=True,
             ITEMS_STORAGE_ENABLED=True,
             FILES_STORAGE_ENABLED=False,
@@ -108,8 +147,28 @@ class TestNotificationsApis(unittest.TestCase):
         with self.app.app_context():
             _db.session.remove()
             _db.drop_all()
-        if getattr(self, "mm_client", None) is not None:
-            self.mm_client.close()
+
+        if getattr(self, "mongo_client", None) is not None:
+            try:
+                self.mongo_client.drop_database(self.mongo_db_name)
+            finally:
+                self.mongo_client.close()
+
+    def _test_mongo_uri(self) -> str:
+        self.mongo_db_name = f"schedula_apis_{uuid.uuid4().hex}"
+        parts = urlsplit(self.__class__._mongo_base_uri)
+        query = parts.query
+        if "authSource=" not in query:
+            query = f"{query}&authSource=admin" if query else "authSource=admin"
+        return urlunsplit(
+            (
+                parts.scheme,
+                parts.netloc,
+                f"/{self.mongo_db_name}",
+                query,
+                parts.fragment,
+            )
+        )
 
     def _create_user(self, email: str) -> User:
         user = User.query.filter_by(email=email).first()
@@ -142,6 +201,19 @@ class TestNotificationsApis(unittest.TestCase):
 
     def _auth_headers(self, token: str) -> dict:
         return {"Authentication-Token": token}
+
+    def _render_in_app(self, doc: dict, principal: str) -> dict:
+        return render_for_target_channel(
+            doc, viewer_principal=principal, channel="in_app"
+        )
+
+    def _set_user_settings(self, user_id: int, settings: dict) -> None:
+        with self.app.app_context():
+            user = User.query.filter_by(id=user_id).first()
+            if user is None:
+                return
+            user.settings = dict(settings)
+            _db.session.commit()
 
     def test_watchers_crud(self):
         payload = {
@@ -258,6 +330,12 @@ class TestNotificationsApis(unittest.TestCase):
             (unread_after_create.get_json(silent=True) or {}).get("unread") or 0
         )
         self.assertEqual(unread_after_create_count, unread_before_count + 2)
+        coll = self.mongo_client[self.mongo_db_name]["notifications"]
+
+        before_docs = {
+            d["_id"]: d.get("expires_at")
+            for d in coll.find({"_id": {"$in": created_ids}}, {"expires_at": 1})
+        }
 
         r = self.client.post(
             "/notification/read",
@@ -268,6 +346,13 @@ class TestNotificationsApis(unittest.TestCase):
         data = r.get_json(silent=True) or {}
         self.assertTrue(data.get("ok"))
 
+        after_docs = {
+            d["_id"]: d.get("expires_at")
+            for d in coll.find({"_id": {"$in": created_ids}}, {"expires_at": 1})
+        }
+
+        for _id in created_ids:
+            self.assertLess(after_docs[_id], before_docs[_id])
         unread_after_mark = self.client.get(
             "/notification/unread-count",
             headers=self._auth_headers(self.user_token),
@@ -287,7 +372,12 @@ class TestNotificationsApis(unittest.TestCase):
 
         r = self.client.post(
             "/admin/notification/templates",
-            json={"event": "custom.event", "title": "Title", "body": "Body"},
+            json={
+                "event": "custom.event",
+                "language": "IT-it",
+                "title": "Title",
+                "body": "Body",
+            },
             headers=self._auth_headers(self.admin_token),
         )
         self.assertEqual(r.status_code, 200)
@@ -318,6 +408,7 @@ class TestNotificationsApis(unittest.TestCase):
         self.assertEqual(r.status_code, 200)
         data = r.get_json(silent=True) or {}
         self.assertEqual(data.get("event"), "custom.event")
+        self.assertEqual(data.get("language"), "it_it")
 
         r = self.client.put(
             f"/admin/notification/templates/{template_id}",
@@ -491,18 +582,11 @@ class TestNotificationsApis(unittest.TestCase):
             coll = get_mongo(collection=config_get("NOTIF_COLLECTION", "notifications"))
             doc = coll.find_one({"_id": nid})
             self.assertIsNotNone(doc)
-            rendered = doc.get("rendered")
-            self.assertIsInstance(rendered, dict)
-            per_target = (
-                rendered.get(f"u:{self.user_id}")
-                if isinstance(rendered, dict)
-                else None
-            )
-            self.assertIsInstance(per_target, dict)
-            in_app = per_target.get("in_app") if isinstance(per_target, dict) else None
-            self.assertIsInstance(in_app, dict, "missing rendered.in_app")
+            self.assertNotIn("rendered", doc)
+            in_app = self._render_in_app(doc, f"u:{self.user_id}")
+            self.assertIsInstance(in_app, dict, "missing rendered in_app")
             if not isinstance(in_app, dict):
-                self.fail("rendered.in_app must be an object")
+                self.fail("rendered in_app must be an object")
                 return
             self.assertIsInstance(in_app.get("title"), str)
             self.assertIsInstance(in_app.get("body"), str)
@@ -711,9 +795,7 @@ class TestNotificationsApis(unittest.TestCase):
                 sort=[("created_at", -1)],
             )
             self.assertIsNotNone(doc)
-            rendered = (
-                doc.get("rendered", {}).get(f"u:{self.admin_id}", {}).get("in_app", {})
-            )
+            rendered = self._render_in_app(doc, f"u:{self.admin_id}")
             self.assertEqual(rendered.get("title"), "Tpl-InApp")
 
     def test_template_filters(self):
@@ -780,9 +862,7 @@ class TestNotificationsApis(unittest.TestCase):
                 sort=[("created_at", -1)],
             )
             self.assertIsNotNone(doc)
-            rendered = (
-                doc.get("rendered", {}).get(f"u:{self.admin_id}", {}).get("in_app", {})
-            )
+            rendered = self._render_in_app(doc, f"u:{self.admin_id}")
             title = rendered.get("title") or ""
             body = rendered.get("body") or ""
             self.assertIn("category message was creation by", title)
@@ -833,9 +913,7 @@ class TestNotificationsApis(unittest.TestCase):
             coll = get_mongo(collection=config_get("NOTIF_COLLECTION", "notifications"))
             doc = coll.find_one({"_id": nid})
             self.assertIsNotNone(doc)
-            rendered = (
-                doc.get("rendered", {}).get(f"u:{self.admin_id}", {}).get("in_app", {})
-            )
+            rendered = self._render_in_app(doc, f"u:{self.admin_id}")
             title = rendered.get("title") or ""
             body = rendered.get("body") or ""
             self.assertIn("GTest", title)
@@ -913,13 +991,63 @@ class TestNotificationsApis(unittest.TestCase):
             coll = get_mongo(collection=config_get("NOTIF_COLLECTION", "notifications"))
             doc = coll.find_one({"_id": nid})
             self.assertIsNotNone(doc)
-            rendered = (
-                doc.get("rendered", {}).get(f"u:{self.admin_id}", {}).get("in_app", {})
-            )
+            rendered = self._render_in_app(doc, f"u:{self.admin_id}")
             title = rendered.get("title") or ""
             body = rendered.get("body") or ""
             self.assertEqual("unknown u:999999 type unknown type anonymous", title)
             self.assertEqual("refs R1 R2 cycle R1 missing None invalid None", body)
+
+    def test_template_language_selected_from_user_settings(self):
+        self._set_user_settings(self.user_id, {"language": "it-IT"})
+
+        r = self.client.post(
+            "/admin/notification/templates",
+            json={
+                "event": "admin.language.event",
+                "dom": "*",
+                "channel": "in_app",
+                "language": "en",
+                "title": "EN title",
+                "body": "EN body",
+            },
+            headers=self._auth_headers(self.admin_token),
+        )
+        self.assertEqual(r.status_code, 200)
+
+        r = self.client.post(
+            "/admin/notification/templates",
+            json={
+                "event": "admin.language.event",
+                "dom": "*",
+                "channel": "in_app",
+                "language": "it",
+                "title": "Titolo IT",
+                "body": "Corpo IT",
+            },
+            headers=self._auth_headers(self.admin_token),
+        )
+        self.assertEqual(r.status_code, 200)
+
+        r = self.client.post(
+            "/admin/notification/notify",
+            json={
+                "event": "admin.language.event",
+                "targets": {f"u:{self.user_id}": ["in_app"]},
+                "persist": True,
+            },
+            headers=self._auth_headers(self.admin_token),
+        )
+        self.assertEqual(r.status_code, 200)
+        nid = (r.get_json(silent=True) or {}).get("id")
+        self.assertIsInstance(nid, str)
+
+        with self.app.app_context():
+            coll = get_mongo(collection=config_get("NOTIF_COLLECTION", "notifications"))
+            doc = coll.find_one({"_id": nid})
+            self.assertIsNotNone(doc)
+            rendered = self._render_in_app(doc, f"u:{self.user_id}")
+            self.assertEqual(rendered.get("title"), "Titolo IT")
+            self.assertEqual(rendered.get("body"), "Corpo IT")
 
 
 if __name__ == "__main__":

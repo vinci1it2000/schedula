@@ -254,12 +254,58 @@ def _notifications_validator() -> Dict[str, Any]:
                 "persist": {"bsonType": "bool"},
                 "created_by": {"bsonType": ["string", "null"]},
                 "created_at": {},
+                "updated_at": {},
+                "expires_at": {},
                 "read_by": {
                     "bsonType": "array",
                     "items": {"bsonType": "string"},
                 },
                 "status": {"bsonType": "object"},
                 "rendered": {"bsonType": "object"},
+            },
+            "additionalProperties": False,
+        }
+    }
+
+
+def _retention_validator() -> Dict[str, Any]:
+    return {
+        "$jsonSchema": {
+            "bsonType": "object",
+            "required": [
+                "_id",
+                "event",
+                "severity",
+                "created_at",
+                "updated_at",
+                "enabled",
+            ],
+            "properties": {
+                "_id": {"bsonType": "string"},
+                "event": {
+                    "bsonType": ["string", "null"],
+                },
+                "severity": {
+                    "bsonType": ["string", "null"],
+                    "enum": ["info", "warning", "error", "critical", None],
+                },
+                "max_days": {
+                    "bsonType": "int",
+                    "minimum": 0,
+                },
+                "time_after_read_all": {
+                    "bsonType": "int",
+                    "minimum": 0,
+                },
+                "enabled": {
+                    "bsonType": "bool",
+                },
+                "created_at": {
+                    "bsonType": "date",
+                },
+                "updated_at": {
+                    "bsonType": "date",
+                },
             },
             "additionalProperties": False,
         }
