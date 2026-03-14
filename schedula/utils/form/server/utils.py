@@ -474,7 +474,17 @@ def mongo_command(db, coll_id, validator, validationLevel="moderate",
 
 
 def configure_sherlock():
-    import sherlock
+    import datetime
+    import sherlock.lock
+
+    def _expiry_time(self) -> str:
+        expiry_time = datetime.datetime.max.replace(tzinfo=datetime.timezone.utc)
+        if self.expire is not None:
+            expiry_time = self._now() + datetime.timedelta(seconds=self.expire)
+        return expiry_time.isoformat()
+
+    # patch
+    sherlock.lock.Lock._expiry_time = _expiry_time
 
     lock_config = sherlock._configuration
     try:
