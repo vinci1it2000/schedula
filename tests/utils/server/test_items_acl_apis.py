@@ -34,6 +34,7 @@ from schedula.utils.form.server.security.casbin.helpers import (
     g_admin,
     u,
 )
+from schedula.utils.form.server.notifications.templates import render_for_target_channel
 from schedula.utils.form.server.utils import get_mongo, config_get
 from tests.utils.server.utils.mongo_validation import ValidatingMongoDatabase
 
@@ -213,11 +214,9 @@ class TestItemsAclApis(unittest.TestCase):
 
     def _assert_rendered(self, doc, target):
         self.assertIsInstance(doc, dict)
-        rendered = doc.get("rendered") if isinstance(doc, dict) else None
-        self.assertIsInstance(rendered, dict)
-        per_target = rendered.get(target) if isinstance(rendered, dict) else None
-        self.assertIsInstance(per_target, dict)
-        in_app = per_target.get("in_app") if isinstance(per_target, dict) else None
+        in_app = render_for_target_channel(
+            doc, viewer_principal=target, channel="in_app"
+        )
         self.assertIsInstance(in_app, dict, "missing rendered.in_app")
         self.assertIsInstance(in_app.get("title"), str)
         self.assertIsInstance(in_app.get("body"), str)

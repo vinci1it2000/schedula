@@ -26,12 +26,9 @@ from schedula.utils.form.server.security.casbin.bootstrap import (
     set_system_admin,
 )
 
-
 EVENTS_CUSTOM_TEMPLATE = {
     "name": "events-custom-apis",
     "description": "",
-    "metadata": {},
-    "is_enabled": True,
     "definition": {
         "id": "events-custom-apis",
         "version": "1.0",
@@ -46,10 +43,7 @@ EVENTS_CUSTOM_TEMPLATE = {
                             "type": "object",
                             "required": ["item_id"],
                             "properties": {
-                                "item_id": {
-                                    "type": "string",
-                                    "minLength": 1,
-                                }
+                                "item_id": {"type": "string", "minLength": 1}
                             },
                             "additionalProperties": False,
                         },
@@ -110,6 +104,20 @@ EVENTS_CUSTOM_TEMPLATE = {
                                 "type": "update.contract",
                                 "update": {"$set": {"local.join_ok": True}},
                             },
+                            {
+                                "title": "Notify Event Owner Join",
+                                "type": "notify",
+                                "notify": {
+                                    "event": "events.join_event",
+                                    "targets": {
+                                        "$$ctx.local.event_item.created_by": ["in_app"]
+                                    },
+                                    "payload": {
+                                        "item_id": "$$ctx.payload.item_id",
+                                        "actor": "$$ctx.user",
+                                    },
+                                },
+                            },
                         ],
                         "else_effects": [
                             {
@@ -137,10 +145,7 @@ EVENTS_CUSTOM_TEMPLATE = {
                             "type": "object",
                             "required": ["item_id"],
                             "properties": {
-                                "item_id": {
-                                    "type": "string",
-                                    "minLength": 1,
-                                }
+                                "item_id": {"type": "string", "minLength": 1}
                             },
                             "additionalProperties": False,
                         },
@@ -196,6 +201,20 @@ EVENTS_CUSTOM_TEMPLATE = {
                                 "type": "update.contract",
                                 "update": {"$set": {"local.unjoin_ok": True}},
                             },
+                            {
+                                "title": "Notify Event Owner Unjoin",
+                                "type": "notify",
+                                "notify": {
+                                    "event": "events.unjoin_event",
+                                    "targets": {
+                                        "$$ctx.local.event_item.created_by": ["in_app"]
+                                    },
+                                    "payload": {
+                                        "item_id": "$$ctx.payload.item_id",
+                                        "actor": "$$ctx.user",
+                                    },
+                                },
+                            },
                         ],
                         "else_effects": [
                             {
@@ -214,6 +233,23 @@ EVENTS_CUSTOM_TEMPLATE = {
             },
         },
     },
+    "metadata": {},
+    "is_enabled": True,
+}
+
+EVENT_ITEM_PAYLOAD = {
+    "data": {
+        "title": "Sagra dei Ceci e dello Zafferano di Navelli",
+        "description": "Evento di test per APIs join/unjoin.",
+        "date": "2026-08-20",
+        "time": "12:00",
+        "location": "Navelli, AQ",
+        "category": "Sagra",
+        "organizer_name": "Francesco Gatti",
+        "participants": [],
+        "max_participants": 5000,
+    },
+    "public": True,
 }
 
 
@@ -301,7 +337,7 @@ class TestApisService(unittest.TestCase):
             SCHEDULA_CSRF_ENABLED=False,
             MONGO_URI=self.mongo_uri,
             MONGO_DB=mongo_db,
-            ITEMS_STORAGE_ENABLED=False,
+            ITEMS_STORAGE_ENABLED=True,
             FILES_STORAGE_ENABLED=False,
             S3_ITEMS_FILE_STORAGE=False,
             CONTACT_ENABLED=False,
@@ -311,6 +347,7 @@ class TestApisService(unittest.TestCase):
             SCHEDULA_LOCALE_ENABLED=False,
             SCHEDULA_SECRETS_ENABLED=False,
             OPENAPI_ENABLED=False,
+            NOTIF_ENABLED=True,
             CASBIN_ADMIN_ENABLED=True,
             CONTRACTS_ENABLED=True,
             APIS_ENABLED=True,
@@ -383,6 +420,18 @@ class TestApisService(unittest.TestCase):
     def _auth_headers(token: str) -> dict:
         return {"Authentication-Token": token}
 
+    def _create_item(self, token: str, category: str, payload: dict) -> str:
+        r = self.client.post(
+            f"/item/{category}",
+            json=payload,
+            headers=self._auth_headers(token),
+        )
+        self.assertEqual(r.status_code, 201, msg=r.get_data(as_text=True))
+        body = r.get_json(silent=True) or {}
+        item_id = body.get("id")
+        self.assertTrue(item_id)
+        return str(item_id)
+
     def _create_events_template(self) -> str:
         r = self.client.post(
             "/apis/templates",
@@ -396,20 +445,17 @@ class TestApisService(unittest.TestCase):
 
     def test_apis_events_custom_template_join_unjoin_invalid_category(self):
         template_id = self._create_events_template()
-
-        with self.app.app_context():
-            self.app.config["MONGO_DB"]["items"].insert_one(
-                {
-                    "_id": "item-not-event",
-                    "data": {"category": "not-events", "participants": []},
-                    "created_at": datetime.utcnow(),
-                    "updated_at": datetime.utcnow(),
-                }
-            )
+        item_payload = deepcopy(EVENT_ITEM_PAYLOAD)
+        item_payload["data"]["category"] = "Sagra"
+        item_id = self._create_item(
+            self.admin_token,
+            "not-events",
+            item_payload,
+        )
 
         join_r = self.client.post(
             f"/apis/{template_id}/join-event",
-            json={"item_id": "item-not-event"},
+            json={"item_id": item_id},
             headers=self._auth_headers(self.user_token),
         )
         self.assertEqual(join_r.status_code, 200, msg=join_r.get_data(as_text=True))
@@ -419,7 +465,7 @@ class TestApisService(unittest.TestCase):
 
         unjoin_r = self.client.post(
             f"/apis/{template_id}/unjoin-event",
-            json={"item_id": "item-not-event"},
+            json={"item_id": item_id},
             headers=self._auth_headers(self.user_token),
         )
         self.assertEqual(unjoin_r.status_code, 200, msg=unjoin_r.get_data(as_text=True))
@@ -433,23 +479,24 @@ class TestApisService(unittest.TestCase):
                 self.app.config["MONGO_DB"]["contracts"].count_documents({}),
                 0,
             )
+            self.assertEqual(
+                self.app.config["MONGO_DB"]["notifications"].count_documents({}),
+                0,
+            )
 
     def test_apis_events_custom_template_join_unjoin_valid_category(self):
         template_id = self._create_events_template()
-
-        with self.app.app_context():
-            self.app.config["MONGO_DB"]["items"].insert_one(
-                {
-                    "_id": "item-event",
-                    "data": {"category": "events"},
-                    "created_at": datetime.utcnow(),
-                    "updated_at": datetime.utcnow(),
-                }
-            )
+        item_payload = deepcopy(EVENT_ITEM_PAYLOAD)
+        item_payload["data"]["category"] = "events"
+        item_id = self._create_item(
+            self.admin_token,
+            "events",
+            item_payload,
+        )
 
         join_r = self.client.post(
             f"/apis/{template_id}/join-event",
-            json={"item_id": "item-event"},
+            json={"item_id": item_id},
             headers=self._auth_headers(self.user_token),
         )
         self.assertEqual(join_r.status_code, 200, msg=join_r.get_data(as_text=True))
@@ -458,13 +505,13 @@ class TestApisService(unittest.TestCase):
         self.assertEqual(join_body.get("ok"), True)
 
         with self.app.app_context():
-            item = self.app.config["MONGO_DB"]["items"].find_one({"_id": "item-event"})
+            item = self.app.config["MONGO_DB"]["items"].find_one({"_id": item_id})
             participants = ((item or {}).get("data") or {}).get("participants") or []
             self.assertIn(f"u:{self.user.id}", participants)
 
         unjoin_r = self.client.post(
             f"/apis/{template_id}/unjoin-event",
-            json={"item_id": "item-event"},
+            json={"item_id": item_id},
             headers=self._auth_headers(self.user_token),
         )
         self.assertEqual(unjoin_r.status_code, 200, msg=unjoin_r.get_data(as_text=True))
@@ -473,7 +520,7 @@ class TestApisService(unittest.TestCase):
         self.assertEqual(unjoin_body.get("ok"), True)
 
         with self.app.app_context():
-            item = self.app.config["MONGO_DB"]["items"].find_one({"_id": "item-event"})
+            item = self.app.config["MONGO_DB"]["items"].find_one({"_id": item_id})
             participants = ((item or {}).get("data") or {}).get("participants") or []
             self.assertNotIn(f"u:{self.user.id}", participants)
             self.assertEqual(self.app.config["MONGO_DB"]["apis"].count_documents({}), 0)
@@ -481,6 +528,13 @@ class TestApisService(unittest.TestCase):
                 self.app.config["MONGO_DB"]["contracts"].count_documents({}),
                 0,
             )
+            notes = list(self.app.config["MONGO_DB"]["notifications"].find({}))
+            self.assertEqual(len(notes), 2)
+            events = {n.get("event") for n in notes}
+            self.assertEqual(events, {"events.join_event", "events.unjoin_event"})
+            for n in notes:
+                targets = n.get("targets") or {}
+                self.assertEqual(targets.get(f"u:{self.admin_user.id}"), ["in_app"])
 
 
 if __name__ == "__main__":

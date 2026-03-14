@@ -36,6 +36,7 @@ from schedula.utils.form.server.security.casbin.bootstrap import (
 )
 from schedula.utils.form.server.security.casbin.helpers import ADMIN_DOMAIN, ANON_USER
 from schedula.utils.form.server.security.casbin.models import Group
+from schedula.utils.form.server.notifications.templates import render_for_target_channel
 from tests.utils.server.conftest import DummySitemap
 
 
@@ -867,8 +868,12 @@ class ContractsE2ETest(unittest.TestCase):
                 principal = f"u:{uid}"
                 route_id = str(uuid.uuid4())
                 loc = locations[k]
-                t_start = int(dt.datetime.fromisoformat(loc["origin"]["at"]).timestamp())
-                t_end = int(dt.datetime.fromisoformat(loc["destination"]["at"]).timestamp())
+                t_start = int(
+                    dt.datetime.fromisoformat(loc["origin"]["at"]).timestamp()
+                )
+                t_end = int(
+                    dt.datetime.fromisoformat(loc["destination"]["at"]).timestamp()
+                )
                 route_doc = {
                     "name": "route",
                     "cost": 10,
@@ -885,8 +890,8 @@ class ContractsE2ETest(unittest.TestCase):
                         "datetime": t_start,
                         "sow_at_start": 0,
                         "sow_at_end": t_end - t_start,
-                        "time_type": 'departure',
-                        "flexibility": loc["origin"]["flexibility"] / 60
+                        "time_type": "departure",
+                        "flexibility": loc["origin"]["flexibility"] / 60,
                     },
                 }
                 items_coll.insert_one(
@@ -996,12 +1001,16 @@ class ContractsE2ETest(unittest.TestCase):
                 for d in coll.find({"enabled": True}, projection={"event": 1})
                 if isinstance(d.get("event"), str)
             }
-            expected_events = _notification_events_from_definition(_gherkin_definition())
+            expected_events = _notification_events_from_definition(
+                _gherkin_definition()
+            )
             self.assertTrue(expected_events.issubset(seeded_events))
 
     def _assert_notification_rendered(self, principal: str, event: str) -> None:
         doc = self._latest_notification_doc(principal, event)
-        self.assertIsNotNone(doc, msg=f"missing notification doc for {event} -> {principal}")
+        self.assertIsNotNone(
+            doc, msg=f"missing notification doc for {event} -> {principal}"
+        )
         assert doc is not None
         self._assert_notification_doc_rendered(doc, event_hint=event)
 
@@ -1009,40 +1018,50 @@ class ContractsE2ETest(unittest.TestCase):
             self, doc: Dict[str, Any], *, event_hint: str | None = None
     ) -> None:
         event = event_hint or str(doc.get("event") or "<unknown>")
-        rendered = doc.get("rendered") or {}
-        self.assertIsInstance(rendered, dict, msg=f"missing rendered map for {event}")
-
         targets = doc.get("targets") or {}
         self.assertIsInstance(targets, dict, msg=f"missing targets map for {event}")
-
-        for principal in targets.keys():
-            target_render = rendered.get(principal) or {}
-            self.assertIsInstance(
-                target_render,
-                dict,
-                msg=f"missing rendered target for {event} -> {principal}",
-            )
-            self.assertTrue(
-                bool(target_render),
-                msg=f"empty rendered target map for {event} -> {principal}",
-            )
-            for channel, payload in target_render.items():
+        with self.app.app_context():
+            for principal, channels in targets.items():
+                target_render = {
+                    str(channel): render_for_target_channel(
+                        doc,
+                        viewer_principal=str(principal),
+                        channel=str(channel),
+                    )
+                    for channel in channels
+                }
                 self.assertIsInstance(
-                    payload,
+                    target_render,
                     dict,
-                    msg=f"invalid rendered payload for {event} -> {principal} [{channel}]",
+                    msg=f"missing rendered target for {event} -> {principal}",
                 )
                 self.assertTrue(
-                    str(payload.get("title") or "").strip(),
-                    msg=f"empty title for {event} -> {principal} [{channel}]",
+                    bool(target_render),
+                    msg=f"empty rendered target map for {event} -> {principal}",
                 )
-                self.assertTrue(
-                    str(payload.get("body") or "").strip(),
-                    msg=f"empty body for {event} -> {principal} [{channel}]",
-                )
-                for k in ("none", "{", "["):
-                    self.assertFalse(k in payload["title"].lower(), msg=f"wrong title for {event}: {payload['title']}")
-                    self.assertFalse(k in payload["body"].lower(), msg=f"wrong body for {event}: {payload['body']}")
+                for channel, payload in target_render.items():
+                    self.assertIsInstance(
+                        payload,
+                        dict,
+                        msg=f"invalid rendered payload for {event} -> {principal} [{channel}]",
+                    )
+                    self.assertTrue(
+                        str(payload.get("title") or "").strip(),
+                        msg=f"empty title for {event} -> {principal} [{channel}]",
+                    )
+                    self.assertTrue(
+                        str(payload.get("body") or "").strip(),
+                        msg=f"empty body for {event} -> {principal} [{channel}]",
+                    )
+                    for k in ("none", "{", "["):
+                        self.assertFalse(
+                            k in payload["title"].lower(),
+                            msg=f"wrong title for {event}: {payload['title']}",
+                        )
+                        self.assertFalse(
+                            k in payload["body"].lower(),
+                            msg=f"wrong body for {event}: {payload['body']}",
+                        )
 
     def _assert_all_notifications_rendered(self) -> None:
         with self.app.app_context():
@@ -1248,7 +1267,9 @@ class ContractsE2ETest(unittest.TestCase):
             )
 
     def _get_route(self, actor: str, route_id: str) -> Dict[str, Any]:
-        resp = self.httpx.get(f"/item/ride_posts/{route_id}", headers=self._headers(actor))
+        resp = self.httpx.get(
+            f"/item/ride_posts/{route_id}", headers=self._headers(actor)
+        )
         self.assertEqual(resp.status_code, 200, msg=resp.text)
         return resp.json() or {}
 
@@ -1302,8 +1323,8 @@ class ContractsE2ETest(unittest.TestCase):
                 "datetime": t_start,
                 "sow_at_start": 0,
                 "sow_at_end": t_end - t_start,
-                "time_type": 'departure',
-                "flexibility": loc["origin"]["flexibility"] / 60
+                "time_type": "departure",
+                "flexibility": loc["origin"]["flexibility"] / 60,
             },
         }
         data.update(updates)
@@ -1679,7 +1700,9 @@ class ContractsE2ETest(unittest.TestCase):
     def test_start_pre_departure_gate_moves_in_progress_when_has_accepted(self) -> None:
         driver_route_id = self._create_route("d1", available_seats=10)
         self.assertEqual(
-            (self._get_route("d1", driver_route_id).get("data") or {}).get("available_seats"),
+            (self._get_route("d1", driver_route_id).get("data") or {}).get(
+                "available_seats"
+            ),
             10,
         )
 
@@ -1980,7 +2003,9 @@ class ContractsE2ETest(unittest.TestCase):
         )
         self.assertEqual(after_rider_pin, before_rider_pin + 1)
         self.assertEqual(after_driver_hint, before_driver_hint + 1)
-        self._assert_notification_rendered(p1_principal, "in-progress.pickup-pin-created")
+        self._assert_notification_rendered(
+            p1_principal, "in-progress.pickup-pin-created"
+        )
         self._assert_notification_rendered(d1_principal, "in-progress.pickup-pin-hint")
 
     def test_in_progress_confirm_pin_and_payment_timeout_completes(self) -> None:
@@ -2159,11 +2184,15 @@ class ContractsE2ETest(unittest.TestCase):
             p1_principal, "in-progress.pickup-reminder"
         )
         self.assertTrue(self._run_worker_once(now=run_at + dt.timedelta(seconds=1)))
-        after = self._count_notifications_for(p1_principal, "in-progress.pickup-reminder")
+        after = self._count_notifications_for(
+            p1_principal, "in-progress.pickup-reminder"
+        )
         self.assertEqual(after, before + 1)
         self._assert_notification_rendered(p1_principal, "in-progress.pickup-reminder")
 
-        drop_jobs = self._queue_jobs(contract_id=cid, event_name="RiderDropOffReminderTimed")
+        drop_jobs = self._queue_jobs(
+            contract_id=cid, event_name="RiderDropOffReminderTimed"
+        )
         self.assertGreaterEqual(len(drop_jobs), 1)
         drop_run_at = drop_jobs[0]["run_at"]
         if drop_run_at.tzinfo is None:
@@ -2171,12 +2200,16 @@ class ContractsE2ETest(unittest.TestCase):
         before_drop = self._count_notifications_for(
             p1_principal, "in-progress.drop-off-reminder"
         )
-        self.assertTrue(self._run_worker_once(now=drop_run_at + dt.timedelta(seconds=1)))
+        self.assertTrue(
+            self._run_worker_once(now=drop_run_at + dt.timedelta(seconds=1))
+        )
         after_drop = self._count_notifications_for(
             p1_principal, "in-progress.drop-off-reminder"
         )
         self.assertEqual(after_drop, before_drop + 1)
-        self._assert_notification_rendered(p1_principal, "in-progress.drop-off-reminder")
+        self._assert_notification_rendered(
+            p1_principal, "in-progress.drop-off-reminder"
+        )
         latest_reminder = self._latest_notification_doc(
             p1_principal, "in-progress.pickup-reminder"
         )
@@ -2238,7 +2271,9 @@ class ContractsE2ETest(unittest.TestCase):
             d1_principal, "in-progress.rider-opened-dispute"
         )
         self.assertEqual(after_driver_dispute, before_driver_dispute + 1)
-        self._assert_notification_rendered(d1_principal, "in-progress.rider-opened-dispute")
+        self._assert_notification_rendered(
+            d1_principal, "in-progress.rider-opened-dispute"
+        )
 
         before_rider_dispute = self._count_notifications_for(
             p1_principal, "in-progress.driver-opened-dispute"
@@ -2255,7 +2290,9 @@ class ContractsE2ETest(unittest.TestCase):
             p1_principal, "in-progress.driver-opened-dispute"
         )
         self.assertEqual(after_rider_dispute, before_rider_dispute + 1)
-        self._assert_notification_rendered(p1_principal, "in-progress.driver-opened-dispute")
+        self._assert_notification_rendered(
+            p1_principal, "in-progress.driver-opened-dispute"
+        )
 
     def test_in_progress_cancel_user_notifies_user_cancelled(self) -> None:
         driver_route_id = self._create_route("d1", available_seats=10)
@@ -2301,11 +2338,15 @@ class ContractsE2ETest(unittest.TestCase):
             pre = pre.replace(tzinfo=dt.timezone.utc)
         self.assertTrue(self._run_worker_once(now=pre + dt.timedelta(seconds=1)))
 
-        before = self._count_notifications_for(d1_principal, "in-progress.user-cancelled")
+        before = self._count_notifications_for(
+            d1_principal, "in-progress.user-cancelled"
+        )
         canceled = self._post_event(cid, "cancel-user", actor="p1")
         self.assertEqual(canceled.status_code, 200)
         self.assertTrue(canceled.json().get("ok"))
-        after = self._count_notifications_for(d1_principal, "in-progress.user-cancelled")
+        after = self._count_notifications_for(
+            d1_principal, "in-progress.user-cancelled"
+        )
         self.assertEqual(after, before + 1)
         self._assert_notification_rendered(d1_principal, "in-progress.user-cancelled")
 
@@ -2605,7 +2646,9 @@ class ContractsE2ETest(unittest.TestCase):
             ),
             before_notifications["d1_dispute_opened"] + 2,
         )
-        self._assert_notification_rendered(d1_principal, "in-progress.rider-opened-dispute")
+        self._assert_notification_rendered(
+            d1_principal, "in-progress.rider-opened-dispute"
+        )
         self.assertEqual(
             self._count_notifications_for(
                 rider_principals["p3"], "in-progress.driver-opened-dispute"
@@ -2696,9 +2739,7 @@ class ContractsE2ETest(unittest.TestCase):
         )
 
         self.assertEqual(
-            self._count_notifications_for(
-                d1_principal, "final.driver-payment-settled"
-            ),
+            self._count_notifications_for(d1_principal, "final.driver-payment-settled"),
             before_notifications["d1_payment_settled_driver"] + 1,
         )
         self._assert_notification_rendered(d1_principal, "final.driver-payment-settled")
@@ -2845,7 +2886,9 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(self._user_state(c, self.user_ids["p1"]), "REJECTED")
         self.assertIn(p1_principal, (c.get("context") or {}).get("riders") or {})
         self.assertEqual(
-            self._count_notifications_for(p1_principal, "onboarding.driver-rejected-start"),
+            self._count_notifications_for(
+                p1_principal, "onboarding.driver-rejected-start"
+            ),
             before_rejected + 1,
         )
         self._assert_notification_rendered(
@@ -2932,7 +2975,9 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(self._user_state(c, self.user_ids["p2"]), "ACCEPTED")
         self.assertEqual(pydash.get(c, "context.driver_route.accepted_seats"), 2)
         self.assertEqual(
-            self._count_notifications_for(d1_principal, "onboarding.user-accepted-invite"),
+            self._count_notifications_for(
+                d1_principal, "onboarding.user-accepted-invite"
+            ),
             before_user_accepted + 1,
         )
         self._assert_notification_rendered(
@@ -3011,12 +3056,12 @@ class ContractsE2ETest(unittest.TestCase):
             "origin": {
                 "at": "1970-01-01T00:00:00+00:00",
                 "location": {"type": "Point", "coordinates": [45.0, 9.0]},
-                "flexibility": 50
+                "flexibility": 50,
             },
             "destination": {
                 "at": "1970-01-01T00:00:00+00:00",
                 "location": {"type": "Point", "coordinates": [45.1, 9.1]},
-                "flexibility": 50
+                "flexibility": 50,
             },
         }
 
@@ -3075,7 +3120,8 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(self._wallet_balance("p1"), p1_balance_before)
         with self.app.app_context():
             route_data_after = (
-                                       self.app.config["MONGO_DB"]["items"].find_one({"_id": p1_route_id}) or {}
+                                       self.app.config["MONGO_DB"]["items"].find_one({"_id": p1_route_id})
+                                       or {}
                                ).get("data") or {}
         self.assertEqual(route_data_after, route_data_before)
         self.assertEqual(
@@ -3106,7 +3152,10 @@ class ContractsE2ETest(unittest.TestCase):
             driver_principal, "onboarding.user-cancelled"
         )
         with self.app.app_context():
-            route_data_before = self.app.config["MONGO_DB"]["items"].find_one({"_id": p1_route_id}) or {}
+            route_data_before = (
+                    self.app.config["MONGO_DB"]["items"].find_one({"_id": p1_route_id})
+                    or {}
+            )
             route_data_before = route_data_before.get("data") or {}
 
         r = self._post_event(cid, "cancel-user", actor="p1")
@@ -3117,11 +3166,16 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(self._user_state(c, self.user_ids["p1"]), "REQUESTING")
         self.assertEqual(self._wallet_balance("p1"), p1_balance_before)
         with self.app.app_context():
-            route_data_after = self.app.config["MONGO_DB"]["items"].find_one({"_id": p1_route_id}) or {}
+            route_data_after = (
+                    self.app.config["MONGO_DB"]["items"].find_one({"_id": p1_route_id})
+                    or {}
+            )
             route_data_after = route_data_after.get("data") or {}
         self.assertEqual(route_data_after, route_data_before)
         self.assertEqual(
-            self._count_notifications_for(driver_principal, "onboarding.user-cancelled"),
+            self._count_notifications_for(
+                driver_principal, "onboarding.user-cancelled"
+            ),
             user_cancelled_before,
         )
 
@@ -3141,21 +3195,23 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(invite.status_code, 200, msg=invite.text)
         self.assertTrue((invite.json() or {}).get("ok"), msg=invite.text)
 
-        accept = self._post_event(
-            cid,
-            "accept-user",
-            actor="p2"
-        )
+        accept = self._post_event(cid, "accept-user", actor="p2")
         self.assertEqual(accept.status_code, 200, msg=accept.text)
         self.assertTrue((accept.json() or {}).get("ok"), msg=accept.text)
 
-        before = self._count_notifications_for(driver_principal, "onboarding.user-cancelled")
+        before = self._count_notifications_for(
+            driver_principal, "onboarding.user-cancelled"
+        )
         cancel = self._post_event(cid, "cancel-user", actor="p2")
         self.assertEqual(cancel.status_code, 200, msg=cancel.text)
         self.assertTrue((cancel.json() or {}).get("ok"), msg=cancel.text)
-        after = self._count_notifications_for(driver_principal, "onboarding.user-cancelled")
+        after = self._count_notifications_for(
+            driver_principal, "onboarding.user-cancelled"
+        )
         self.assertEqual(after, before + 1)
-        self._assert_notification_rendered(driver_principal, "onboarding.user-cancelled")
+        self._assert_notification_rendered(
+            driver_principal, "onboarding.user-cancelled"
+        )
 
     def test_start_request_join_adds_requesting_user_when_capacity_and_credits_ok(
             self,
@@ -3175,7 +3231,10 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(self._user_state(c, self.user_ids["p4"]), "REQUESTING")
         self.assertEqual(self._wallet_balance("p4"), p4_balance_before - 10)
         with self.app.app_context():
-            p4_route_data = self.app.config["MONGO_DB"]["items"].find_one({"_id": p4_route_id}) or {}
+            p4_route_data = (
+                    self.app.config["MONGO_DB"]["items"].find_one({"_id": p4_route_id})
+                    or {}
+            )
             p4_route_data = p4_route_data.get("data") or {}
 
         self.assertEqual(p4_route_data.get("reserved_credits"), 10)
@@ -3712,7 +3771,9 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(
             self._user_state(contract_a_doc, self.user_ids["p2"]), "REJECTED"
         )
-        riders_ctx_after_reject = ((contract_a_doc.get("context") or {}).get("riders") or {})
+        riders_ctx_after_reject = (contract_a_doc.get("context") or {}).get(
+            "riders"
+        ) or {}
         self.assertIn(p2_principal, riders_ctx_after_reject)
         self.assertEqual(
             self._user_state(contract_a_doc, self.user_ids["p1"]), "REQUESTING"
@@ -4057,9 +4118,7 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(r.status_code, 200)
 
         got2 = self._get_contract_doc(cid2)
-        self.assertEqual(
-            (got2.get("context") or {}).get("bulk_marker"), "propagated"
-        )
+        self.assertEqual((got2.get("context") or {}).get("bulk_marker"), "propagated")
 
     def test_update_contract_effect_supports_update_pipeline_in_updates(self) -> None:
         definition = {
@@ -4128,9 +4187,7 @@ class ContractsE2ETest(unittest.TestCase):
         self.assertEqual(r.status_code, 200)
 
         got2 = self._get_contract_doc(cid2)
-        self.assertEqual(
-            (got2.get("context") or {}).get("bulk_marker"), "uniform"
-        )
+        self.assertEqual((got2.get("context") or {}).get("bulk_marker"), "uniform")
 
     def test_execute_event_effect_fails_fast_when_event_missing_same_contract(
             self,
@@ -4397,7 +4454,9 @@ class ContractsE2ETest(unittest.TestCase):
             ),
             opened_before + 1,
         )
-        self._assert_notification_rendered(d1_principal, "in-progress.rider-opened-dispute")
+        self._assert_notification_rendered(
+            d1_principal, "in-progress.rider-opened-dispute"
+        )
 
         undo_r = self._post_event(cid, "driver-did-not-pick-me-undo", actor="p1")
         self.assertEqual(undo_r.status_code, 200)
@@ -4466,7 +4525,9 @@ class ContractsE2ETest(unittest.TestCase):
             ),
             opened_before + 1,
         )
-        self._assert_notification_rendered(p1_principal, "in-progress.driver-opened-dispute")
+        self._assert_notification_rendered(
+            p1_principal, "in-progress.driver-opened-dispute"
+        )
 
         undo_r = self._post_event(
             cid,
@@ -4482,7 +4543,9 @@ class ContractsE2ETest(unittest.TestCase):
             ),
             canceled_before + 1,
         )
-        self._assert_notification_rendered(p1_principal, "in-progress.driver-canceled-dispute")
+        self._assert_notification_rendered(
+            p1_principal, "in-progress.driver-canceled-dispute"
+        )
 
         c = self._get_contract_doc(cid)
         rider_ctx = ((c.get("context") or {}).get("riders") or {}).get(

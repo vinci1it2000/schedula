@@ -7,36 +7,71 @@ except Exception:
 
 ensure_server_test_env()
 
-
 import io
 import os
 import sys
 import unittest
-
-import mongomock
-import mongomock.gridfs
+import uuid
+from typing import Any
+from urllib.parse import urlsplit, urlunsplit
 from flask import Flask
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 
 from schedula.utils.form.server import basic_app
 from schedula.utils.form.server.extensions import db as _db
-from tests.utils.server.utils.mongo_validation import ValidatingMongoDatabase
 
 
 class TestNotificationsE2E(unittest.TestCase):
+    _mongo_container: Any = None
+    _mongo_base_uri: str = ""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        super().setUpClass()
+        desktop_sock = os.path.join(
+            os.path.expanduser("~"), ".docker", "run", "docker.sock"
+        )
+        if not os.environ.get("DOCKER_HOST") and os.path.exists(desktop_sock):
+            os.environ["DOCKER_HOST"] = f"unix://{desktop_sock}"
+        try:
+            from testcontainers.mongodb import MongoDbContainer
+        except Exception as ex:
+            raise unittest.SkipTest(
+                "apis service tests require testcontainers[mongodb]"
+            ) from ex
+
+        try:
+            cls._mongo_container = MongoDbContainer("mongo:7.0")
+            cls._mongo_container.start()
+            cls._mongo_base_uri = str(cls._mongo_container.get_connection_url())
+        except Exception as ex:
+            raise unittest.SkipTest(
+                "apis service tests require Docker with runnable MongoDB container"
+            ) from ex
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        try:
+            if cls._mongo_container is not None:
+                cls._mongo_container.stop()
+        finally:
+            cls._mongo_container = None
+            cls._mongo_base_uri = ""
+            super().tearDownClass()
+
     def setUp(self):
+        from pymongo import MongoClient
         os.environ.pop("MONGO_URI", None)
-        mongomock.gridfs.enable_gridfs_integration()
         self.app = Flask("schedula_test_app")
 
         class DummySitemap:
             verify_file_handler = None
             basic_app_config = None
 
-        self.mm_client = mongomock.MongoClient()
-        mm_db = self.mm_client["schedula_test"]
-        vdb = ValidatingMongoDatabase(mm_db)
+        self.mongo_uri = self._test_mongo_uri()
+        self.mongo_client = MongoClient(self.mongo_uri)
+        mongo_db = self.mongo_client[self.mongo_db_name]
 
         config = dict(
             TESTING=True,
@@ -53,7 +88,7 @@ class TestNotificationsE2E(unittest.TestCase):
             WTF_CSRF_ENABLED=False,
             SCHEDULA_CSRF_ENABLED=False,
             MONGO_URI="mongodb://mock",
-            MONGO_DB=vdb,
+            MONGO_DB=mongo_db,
             MAIL_SUPPRESS_SEND=True,
             ITEMS_STORAGE_ENABLED=True,
             FILES_STORAGE_ENABLED=True,
@@ -78,8 +113,28 @@ class TestNotificationsE2E(unittest.TestCase):
         with self.app.app_context():
             _db.session.remove()
             _db.drop_all()
-        if getattr(self, "mm_client", None) is not None:
-            self.mm_client.close()
+
+        if getattr(self, "mongo_client", None) is not None:
+            try:
+                self.mongo_client.drop_database(self.mongo_db_name)
+            finally:
+                self.mongo_client.close()
+
+    def _test_mongo_uri(self) -> str:
+        self.mongo_db_name = f"schedula_apis_{uuid.uuid4().hex}"
+        parts = urlsplit(self.__class__._mongo_base_uri)
+        query = parts.query
+        if "authSource=" not in query:
+            query = f"{query}&authSource=admin" if query else "authSource=admin"
+        return urlunsplit(
+            (
+                parts.scheme,
+                parts.netloc,
+                f"/{self.mongo_db_name}",
+                query,
+                parts.fragment,
+            )
+        )
 
     def _register(self, email: str):
         payload = {
