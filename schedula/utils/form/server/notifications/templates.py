@@ -95,6 +95,7 @@ def _select_template(
         dom: Optional[str],
         channel: Optional[str],
         language: Optional[str],
+        severity: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Pick the best matching template for the given scope."""
     if not event:
@@ -108,6 +109,7 @@ def _select_template(
     lang_filter = language_candidates(language)
     lang_exact = normalize_language(language)
     lang_base = (lang_exact or "").split("_", 1)[0]
+    severity_filter = [severity, "*"] if severity is not None else [None, "*"]
 
     pipeline = [
         {
@@ -118,6 +120,7 @@ def _select_template(
                 "_tpl_dom": {"$ifNull": ["$scope.dom", {"$ifNull": ["$dom", "*"]}]},
                 "_tpl_channel": {"$ifNull": ["$channel", "*"]},
                 "_tpl_language": {"$ifNull": ["$language", None]},
+                "_tpl_severity": {"$ifNull": ["$severity", "*"]},
             }
         },
         {
@@ -128,6 +131,7 @@ def _select_template(
                     {"$expr": {"$in": ["$_tpl_dom", dom_filter]}},
                     {"$expr": {"$in": ["$_tpl_channel", channel_filter]}},
                     {"$expr": {"$in": ["$_tpl_language", lang_filter]}},
+                    {"$expr": {"$in": ["$_tpl_severity", severity_filter]}},
                 ]
             }
         },
@@ -135,6 +139,18 @@ def _select_template(
             "$addFields": {
                 "_tpl_score": {
                     "$add": [
+                        {
+                            "$cond": [
+                                {
+                                    "$and": [
+                                        {"$ne": [severity, None]},
+                                        {"$eq": ["$_tpl_severity", severity]},
+                                    ]
+                                },
+                                16,
+                                0,
+                            ]
+                        },
                         {
                             "$cond": [
                                 {
@@ -202,6 +218,7 @@ def render_title_body(
         dom=dom,
         channel=channel,
         language=viewer_language,
+        severity=severity,
     )
 
     title = f"[{severity}] {event}"

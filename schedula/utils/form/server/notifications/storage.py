@@ -3,13 +3,15 @@
 # Copyright 2015-2026, Vincenzo Arcidiacono;
 # Licensed under the EUPL (the 'Licence');
 
-"""Mongo-backed storage helpers for notification rules, watchers, and templates."""
+"""Mongo-backed storage helpers for notification rules, watchers, templates, and delivery triggers."""
 
 from __future__ import annotations
 
 import uuid
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, cast
+
+from pymongo import ReturnDocument
 
 from ..utils import (
     mongo_count_documents,
@@ -18,10 +20,57 @@ from ..utils import (
     mongo_find_one,
     mongo_insert_one,
     mongo_update_one,
+    mongo_update_many,
+    mongo_find_one_and_update,
     get_mongo,
     now_utc,
     config_get,
 )
+
+
+def normalize_template_dom(value: object) -> Optional[str]:
+    if not isinstance(value, str):
+        return None
+    dom = value.strip()
+    if not dom or dom == "*":
+        return None
+    return dom
+
+
+def normalize_template_language(value: object) -> Optional[str]:
+    if not isinstance(value, str):
+        return None
+    lang = value.strip().replace("-", "_").lower()
+    if not lang or lang == "*":
+        return None
+    return lang
+
+
+def normalize_template_severity(value: object) -> Optional[str]:
+    if not isinstance(value, str):
+        return None
+    sev = value.strip().lower()
+    if not sev:
+        return None
+    if sev not in ("info", "warning", "error", "critical"):
+        return None
+    return sev
+
+
+def normalized_template_identity(doc: Dict[str, Any]) -> Dict[str, Any]:
+    scope = doc.get("scope") if isinstance(doc.get("scope"), dict) else {}
+    event = doc.get("event") or scope.get("event")
+    return {
+        "event": str(event or "").strip(),
+        "dom": normalize_template_dom(scope.get("dom")),
+        "channel": str(doc.get("channel") or "").strip() or None,
+        "language": normalize_template_language(doc.get("language")),
+        "severity": normalize_template_severity(doc.get("severity")),
+    }
+
+
+def _delivery_triggers_collection_name() -> str:
+    return config_get("NOTIF_DELIVERY_TRIGGERS_COLLECTION", "notification_delivery_triggers")
 
 
 def _push_tokens_collection_name() -> str:
@@ -213,10 +262,101 @@ def _templates_validator() -> Dict[str, Any]:
                 "event": {"bsonType": "string"},
                 "channel": {"bsonType": "string"},
                 "language": {"bsonType": "string"},
+                "severity": {
+                    "bsonType": ["string", "null"],
+                    "enum": ["info", "warning", "error", "critical", None],
+                },
                 "title": {"bsonType": "string"},
                 "body": {"bsonType": "string"},
                 "enabled": {"bsonType": "bool"},
+                "digest": {
+                    "bsonType": ["bool", "object"],
+                    "properties": {
+                        "mode": {"bsonType": "string", "enum": ["debounce"]},
+                        "delay_minutes": {"bsonType": "int", "minimum": 1},
+                        "max_delay_minutes": {"bsonType": "int", "minimum": 1},
+                        "unread_only": {"bsonType": "bool"},
+                        "max_items": {"bsonType": "int", "minimum": 1},
+                        "result": {
+                            "bsonType": "object",
+                            "properties": {
+                                "mode": {
+                                    "bsonType": "string",
+                                    "enum": ["deliver_only", "create_notification"],
+                                },
+                                "event": {"bsonType": "string"},
+                            },
+                            "required": ["mode"],
+                            "additionalProperties": False,
+                        },
+                    },
+                    "additionalProperties": False,
+                },
                 "meta": {"bsonType": "object"},
+                "created_at": {},
+                "updated_at": {},
+            },
+            "additionalProperties": False,
+        }
+    }
+
+
+def _delivery_triggers_validator() -> Dict[str, Any]:
+    return {
+        "$jsonSchema": {
+            "bsonType": "object",
+            "required": [
+                "_id",
+                "kind",
+                "mode",
+                "principal",
+                "channel",
+                "status",
+                "next_run_at",
+                "notification_ids",
+                "attempts",
+                "created_at",
+                "updated_at",
+            ],
+            "properties": {
+                "_id": {"bsonType": "string"},
+                "kind": {"bsonType": "string", "enum": ["delivery", "digest"]},
+                "mode": {
+                    "bsonType": "string",
+                    "enum": ["immediate_async", "debounce"],
+                },
+                "principal": {"bsonType": "string"},
+                "channel": {"bsonType": "string"},
+                "template_id": {"bsonType": ["string", "null"]},
+                "status": {
+                    "bsonType": "string",
+                    "enum": ["pending", "running", "done", "cancelled", "error"],
+                },
+                "first_notification_at": {},
+                "last_notification_at": {},
+                "next_run_at": {},
+                "notification_ids": {
+                    "bsonType": "array",
+                    "items": {"bsonType": "string"},
+                },
+                "targets": {"bsonType": "object"},
+                "attempts": {"bsonType": "int", "minimum": 0},
+                "locked_until": {},
+                "locked_by": {"bsonType": ["string", "null"]},
+                "last_error": {"bsonType": ["string", "null"]},
+                "last_sent_at": {},
+                "result": {
+                    "bsonType": "object",
+                    "properties": {
+                        "mode": {
+                            "bsonType": "string",
+                            "enum": ["deliver_only", "create_notification"],
+                        },
+                        "event": {"bsonType": "string"},
+                    },
+                    "required": ["mode"],
+                    "additionalProperties": False,
+                },
                 "created_at": {},
                 "updated_at": {},
             },
@@ -604,6 +744,22 @@ def upsert_template(template_id: str, doc: Dict[str, Any]) -> None:
     now = now_utc()
     d = dict(doc or {})
     d.setdefault("enabled", True)
+    if "severity" in d:
+        d["severity"] = normalize_template_severity(d.get("severity"))
+    if "language" in d:
+        d["language"] = normalize_template_language(d.get("language"))
+    scope = d.get("scope") if isinstance(d.get("scope"), dict) else None
+    if isinstance(scope, dict):
+        scope = dict(scope)
+        dom = normalize_template_dom(scope.get("dom"))
+        if dom is None:
+            scope.pop("dom", None)
+        else:
+            scope["dom"] = dom
+        if scope:
+            d["scope"] = scope
+        else:
+            d.pop("scope", None)
     d["updated_at"] = now
     d = {k: v for k, v in d.items() if v is not None}
     mongo_update_one(
@@ -627,3 +783,226 @@ def delete_template(template_id: str) -> bool:
     )
     r = mongo_delete_one(coll, {"_id": template_id})
     return bool(getattr(r, "deleted_count", 0))
+
+
+def find_template_duplicate(
+        template_id: str,
+        doc: Dict[str, Any],
+) -> Optional[Dict[str, Any]]:
+    coll = get_mongo(
+        collection=config_get("NOTIF_TEMPLATES_COLLECTION", "notification_templates")
+    )
+    normalized = normalized_template_identity(doc)
+    q: Dict[str, Any] = {
+        "_id": {"$ne": template_id},
+        "$or": [{"event": normalized["event"]}, {"scope.event": normalized["event"]}],
+        "channel": normalized["channel"],
+        "language": normalized["language"],
+        "severity": normalized["severity"],
+    }
+    dom = normalized["dom"]
+    if dom is None:
+        q["$or"] = q.get("$or", [])
+        q["$and"] = [
+            {"$or": [{"event": normalized["event"]}, {"scope.event": normalized["event"]}]},
+            {"$or": [{"scope.dom": {"$exists": False}}, {"scope.dom": None}, {"scope.dom": "*"}]},
+        ]
+        q.pop("$or", None)
+    else:
+        q["$and"] = [
+            {"$or": [{"event": normalized["event"]}, {"scope.event": normalized["event"]}]},
+            {"scope.dom": dom},
+        ]
+    return mongo_find_one(coll, q)
+
+
+def enqueue_digest_trigger(
+        *,
+        principal: str,
+        channel: str,
+        template_id: str,
+        notification_id: str,
+        first_notification_at: datetime,
+        next_run_at: datetime,
+        result: Dict[str, Any],
+) -> str:
+    coll = get_mongo(collection=_delivery_triggers_collection_name())
+    now = now_utc()
+    trigger_id = str(uuid.uuid4())
+    doc = mongo_find_one_and_update(
+        coll,
+        {
+            "kind": "digest",
+            "mode": "debounce",
+            "principal": principal,
+            "channel": channel,
+            "template_id": template_id,
+            "status": "pending",
+        },
+        {
+            "$setOnInsert": {
+                "_id": trigger_id,
+                "kind": "digest",
+                "mode": "debounce",
+                "principal": principal,
+                "channel": channel,
+                "template_id": template_id,
+                "status": "pending",
+                "first_notification_at": first_notification_at,
+                "attempts": 0,
+                "result": dict(result or {"mode": "deliver_only"}),
+                "created_at": now,
+            },
+            "$set": {
+                "last_notification_at": first_notification_at,
+                "next_run_at": next_run_at,
+                "updated_at": now,
+            },
+            "$addToSet": {"notification_ids": notification_id},
+        },
+        upsert=True,
+        return_document=ReturnDocument.AFTER,
+    )
+    return str((doc or {}).get("_id") or trigger_id)
+
+
+def enqueue_delivery_trigger(
+        *,
+        notification_id: str,
+        targets: Dict[str, List[str]],
+        next_run_at: Optional[datetime] = None,
+) -> str:
+    coll = get_mongo(collection=_delivery_triggers_collection_name())
+    now = now_utc()
+    doc = {
+        "_id": str(uuid.uuid4()),
+        "kind": "delivery",
+        "mode": "immediate_async",
+        "principal": "*",
+        "channel": "*",
+        "template_id": None,
+        "status": "pending",
+        "next_run_at": next_run_at or now,
+        "notification_ids": [notification_id],
+        "targets": targets,
+        "attempts": 0,
+        "created_at": now,
+        "updated_at": now,
+    }
+    mongo_insert_one(coll, doc)
+    return str(doc["_id"])
+
+
+def claim_due_notification_trigger(*, worker_id: str, lease_s: int = 120) -> Optional[Dict[str, Any]]:
+    coll = get_mongo(collection=_delivery_triggers_collection_name())
+    now = now_utc()
+    return mongo_find_one_and_update(
+        coll,
+        {
+            "status": "pending",
+            "next_run_at": {"$lte": now},
+            "$or": [
+                {"locked_until": {"$exists": False}},
+                {"locked_until": None},
+                {"locked_until": {"$lte": now}},
+            ],
+        },
+        {
+            "$set": {
+                "status": "running",
+                "locked_by": worker_id,
+                "locked_until": now + timedelta(seconds=max(int(lease_s), 1)),
+                "updated_at": now,
+            },
+            "$inc": {"attempts": 1},
+        },
+        sort=[("next_run_at", 1), ("created_at", 1)],
+        return_document=ReturnDocument.AFTER,
+    )
+
+
+def complete_notification_trigger(trigger_id: str, *, status: str = "done", error: Optional[str] = None) -> None:
+    coll = get_mongo(collection=_delivery_triggers_collection_name())
+    now = now_utc()
+    update = {
+        "$set": {
+            "status": status,
+            "updated_at": now,
+            "last_error": error,
+            "last_sent_at": now if status == "done" else None,
+        },
+        "$unset": {"locked_until": "", "locked_by": ""},
+    }
+    mongo_update_one(coll, {"_id": trigger_id}, update)
+
+
+def release_notification_trigger(trigger_id: str, *, error: str, delay_s: int = 60) -> None:
+    coll = get_mongo(collection=_delivery_triggers_collection_name())
+    now = now_utc()
+    mongo_update_one(
+        coll,
+        {"_id": trigger_id},
+        {
+            "$set": {
+                "status": "pending",
+                "next_run_at": now + timedelta(seconds=max(int(delay_s), 0)),
+                "last_error": error,
+                "updated_at": now,
+            },
+            "$unset": {"locked_until": "", "locked_by": ""},
+        },
+    )
+
+
+def reconcile_stuck_notification_triggers(*, stale_before: datetime) -> int:
+    coll = get_mongo(collection=_delivery_triggers_collection_name())
+    result = mongo_update_many(
+        coll,
+        {
+            "status": "running",
+            "$or": [
+                {"locked_until": {"$exists": False}},
+                {"locked_until": None},
+                {"locked_until": {"$lte": stale_before}},
+            ],
+        },
+        {
+            "$set": {
+                "status": "pending",
+                "next_run_at": stale_before,
+                "last_error": "worker_lease_expired",
+                "updated_at": now_utc(),
+            },
+            "$unset": {"locked_until": "", "locked_by": ""},
+        },
+    )
+    return int(getattr(result, "modified_count", 0) or 0)
+
+
+def list_notification_triggers(*, kind: Optional[str] = None) -> List[Dict[str, Any]]:
+    coll = get_mongo(collection=_delivery_triggers_collection_name())
+    q: Dict[str, Any] = {}
+    if kind:
+        q["kind"] = kind
+    return list(mongo_find(coll, q).sort("created_at", 1))
+
+
+def count_notification_triggers(*, kind: Optional[str] = None, status: Optional[str] = None) -> int:
+    coll = get_mongo(collection=_delivery_triggers_collection_name())
+    q: Dict[str, Any] = {}
+    if kind:
+        q["kind"] = kind
+    if status:
+        q["status"] = status
+    return mongo_count_documents(coll, q)
+
+
+def cleanup_notification_triggers(*, older_than: datetime) -> int:
+    coll = get_mongo(collection=_delivery_triggers_collection_name())
+    result = coll.delete_many(
+        {
+            "status": {"$in": ["done", "cancelled", "error"]},
+            "updated_at": {"$lt": older_than},
+        }
+    )
+    return int(getattr(result, "deleted_count", 0) or 0)

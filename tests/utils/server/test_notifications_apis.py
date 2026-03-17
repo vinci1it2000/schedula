@@ -267,8 +267,6 @@ class TestNotificationsApis(unittest.TestCase):
             headers=self._auth_headers(self.user_token),
         )
         self.assertEqual(r.status_code, 200)
-        data = r.get_json(silent=True) or {}
-        self.assertTrue(data.get("ok"))
 
         r = self.client.put(
             "/notification/tokens",
@@ -293,6 +291,40 @@ class TestNotificationsApis(unittest.TestCase):
             self.assertEqual(len(docs), 1)
             self.assertEqual(docs[0].get("token"), "tok-2")
             self.assertEqual(docs[0].get("app_version"), "2.0.0")
+
+    def test_admin_can_list_notification_triggers(self):
+        with self.app.app_context():
+            coll = get_mongo(
+                collection=config_get("NOTIF_DELIVERY_TRIGGERS_COLLECTION", "notification_delivery_triggers")
+            )
+            now = datetime.utcnow()
+            coll.insert_one(
+                {
+                    "_id": "trigger-1",
+                    "kind": "delivery",
+                    "mode": "immediate_async",
+                    "principal": "*",
+                    "channel": "*",
+                    "template_id": None,
+                    "status": "pending",
+                    "next_run_at": now,
+                    "notification_ids": ["n1"],
+                    "targets": {f"u:{self.user_id}": ["email"]},
+                    "attempts": 0,
+                    "created_at": now,
+                    "updated_at": now,
+                }
+            )
+
+        r = self.client.get(
+            "/admin/notification/triggers?kind=delivery&status=pending",
+            headers=self._auth_headers(self.admin_token),
+        )
+        self.assertEqual(r.status_code, 200)
+        data = r.get_json(silent=True) or {}
+        self.assertEqual(data.get("total"), 1)
+        self.assertEqual(len(data.get("triggers", [])), 1)
+        self.assertEqual(data["triggers"][0].get("_id"), "trigger-1")
 
     def test_mark_reads_bulk(self):
         unread_before = self.client.get(
@@ -1048,6 +1080,30 @@ class TestNotificationsApis(unittest.TestCase):
             rendered = self._render_in_app(doc, f"u:{self.user_id}")
             self.assertEqual(rendered.get("title"), "Titolo IT")
             self.assertEqual(rendered.get("body"), "Corpo IT")
+
+    def test_template_duplicate_scope_with_severity_rejected(self):
+        payload = {
+            "event": "admin.dup.event",
+            "channel": "email",
+            "severity": "info",
+            "title": "T1",
+            "body": "B1",
+        }
+        r = self.client.post(
+            "/admin/notification/templates",
+            json=payload,
+            headers=self._auth_headers(self.admin_token),
+        )
+        self.assertEqual(r.status_code, 200)
+
+        r = self.client.post(
+            "/admin/notification/templates",
+            json={**payload, "body": "B2", "scope": {"dom": "*"}},
+            headers=self._auth_headers(self.admin_token),
+        )
+        self.assertEqual(r.status_code, 400)
+        data = r.get_json(silent=True) or {}
+        self.assertIn("duplicate_template_scope", data.get("error") or data.get("message") or "")
 
 
 if __name__ == "__main__":

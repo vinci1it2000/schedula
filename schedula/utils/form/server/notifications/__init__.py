@@ -5,7 +5,7 @@ Package layout:
 - admin_api: Admin-only routes (settings + templates)
 - service: Core notification logic + rendering
 - storage: Mongo helpers + schema
-- tasks: Celery tasks for external delivery channels
+- tasks: delivery helpers for external channels
 """
 
 from flask import current_app
@@ -14,7 +14,7 @@ from ..utils import config_get, get_mongo, mongo_command, now_utc
 
 
 class Notifications:
-    """Flask extension that wires notification blueprints and Celery."""
+    """Flask extension that wires notification blueprints and storage."""
 
     def __init__(self, app, *args, **kwargs):
         if app is not None:
@@ -32,6 +32,7 @@ class Notifications:
             _push_tokens_validator,
             _notifications_validator,
             _retention_validator,
+            _delivery_triggers_validator,
         )
 
         mongo = get_mongo(app=app)
@@ -78,11 +79,20 @@ class Notifications:
         )
 
         notifications_coll_id = config_get("NOTIF_COLLECTION", "notifications", app=app)
+        delivery_triggers_coll_id = config_get(
+            "NOTIF_DELIVERY_TRIGGERS_COLLECTION", "notification_delivery_triggers", app=app
+        )
 
         mongo_command(
             mongo,
             notifications_coll_id,
             validator=_notifications_validator(),
+        )
+
+        mongo_command(
+            mongo,
+            delivery_triggers_coll_id,
+            validator=_delivery_triggers_validator(),
         )
 
         push_tokens_coll = get_mongo(
@@ -123,6 +133,7 @@ class Notifications:
         )
         templates_coll.create_index("event")
         templates_coll.create_index("language")
+        templates_coll.create_index("severity")
         templates_coll.create_index("updated_at")
         templates_coll.create_index([("event", 1), ("enabled", 1), ("updated_at", -1)])
 
@@ -135,6 +146,12 @@ class Notifications:
         notifications_coll.create_index("persist")
         notifications_coll.create_index([("event", 1), ("created_at", -1)])
         notifications_coll.create_index([("persist", 1), ("created_at", -1)])
+        delivery_triggers_coll = get_mongo(app=app, collection=delivery_triggers_coll_id)
+        delivery_triggers_coll.create_index([("kind", 1), ("status", 1), ("next_run_at", 1)])
+        delivery_triggers_coll.create_index(
+            [("principal", 1), ("channel", 1), ("template_id", 1), ("kind", 1), ("status", 1)]
+        )
+        delivery_triggers_coll.create_index("locked_until")
 
         # Create TTL index on notifications collection for expires_at field
         notifications_coll.create_index("expires_at", expireAfterSeconds=0)
@@ -181,15 +198,6 @@ class Notifications:
             from .socketio_rt import init_socketio
 
             init_socketio(app)
-
-        if app.config.get("NOTIF_CELERY_ENABLED") and "celery" not in app.extensions:
-            try:
-                from .tasks.task import make_celery
-
-                app.extensions["celery"] = make_celery(app)
-            except ImportError:
-                pass
-
 
 def notify_item_event_safe(*, event: str, item_doc: dict) -> None:
     """Safely dispatch item notifications when enabled."""

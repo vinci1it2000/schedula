@@ -13,11 +13,11 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Set, Union, cast
 
 from casbin.util import key_match
-from flask import current_app
 from pymongo import UpdateOne
 
-from .storage import list_rules
+from .storage import enqueue_delivery_trigger, enqueue_digest_trigger, list_rules
 from .tasks import get_apprise_channels
+from .templates import _select_template, _language_from_principal
 from ..security import User
 from ..security.casbin import get_enforcer, item_obj, PUBLIC_DOMAIN, SHARE_DOMAIN
 from ..utils import (
@@ -294,6 +294,88 @@ def _normalize_persist(v: Optional[object], channels: Set[str]) -> bool:
     return not {"in_app"}.isdisjoint(channels)
 
 
+def _notification_dom(payload: Dict[str, Any]) -> Optional[str]:
+    dom = payload.get("acl_dom")
+    if not isinstance(dom, str):
+        return None
+    dom = dom.strip()
+    if not dom:
+        return None
+    return dom
+
+
+def _split_targets_by_delivery(
+        *,
+        event: str,
+        targets: Dict[str, List[str]],
+        payload: Dict[str, Any],
+        severity: str,
+) -> tuple[Dict[str, List[str]], List[Dict[str, Any]]]:
+    dom = _notification_dom(payload)
+    realtime_targets: Dict[str, List[str]] = {}
+    digest_entries: List[Dict[str, Any]] = []
+    for principal, channels in (targets or {}).items():
+        viewer_language = _language_from_principal(principal)
+        for channel in channels:
+            tpl = _select_template(
+                event=event,
+                dom=dom,
+                channel=channel,
+                language=viewer_language,
+                severity=severity,
+            )
+            digest = tpl.get("digest") if isinstance(tpl, dict) else False
+            if isinstance(digest, dict) and digest.get("mode") == "debounce":
+                digest_entries.append(
+                    {
+                        "principal": principal,
+                        "channel": channel,
+                        "template_id": str(tpl.get("_id") or ""),
+                        "digest": digest,
+                    }
+                )
+            else:
+                realtime_targets.setdefault(principal, []).append(channel)
+    realtime_targets = {
+        principal: sorted(set(channels))
+        for principal, channels in realtime_targets.items()
+        if channels
+    }
+    return realtime_targets, digest_entries
+
+
+def _enqueue_digest_triggers(n: Notification, digest_entries: List[Dict[str, Any]]) -> None:
+    if not digest_entries:
+        return
+    for entry in digest_entries:
+        digest = entry.get("digest") if isinstance(entry.get("digest"), dict) else {}
+        delay_minutes = int(digest.get("delay_minutes") or 5)
+        max_delay_minutes = int(digest.get("max_delay_minutes") or delay_minutes)
+        first_notification_at = n.created_at
+        next_run_at = min(
+            first_notification_at + timedelta(minutes=max(delay_minutes, 1)),
+            first_notification_at + timedelta(minutes=max(max_delay_minutes, 1)),
+        )
+        enqueue_digest_trigger(
+            principal=str(entry["principal"]),
+            channel=str(entry["channel"]),
+            template_id=str(entry["template_id"]),
+            notification_id=n.id,
+            first_notification_at=first_notification_at,
+            next_run_at=next_run_at,
+            result=dict(digest.get("result") or {"mode": "deliver_only"}),
+        )
+
+
+def _enqueue_delivery_triggers(notification_id: str, targets: Dict[str, List[str]]) -> None:
+    if not targets:
+        return
+    enqueue_delivery_trigger(
+        notification_id=notification_id,
+        targets=targets,
+    )
+
+
 def create_notification(
         event: str,
         targets: Dict[str, List[str]],
@@ -314,20 +396,32 @@ def create_notification(
     channels = {c for v in targets.values() for c in v}
     if not targets or not channels:
         raise ValueError("notification_targets_required")
-    do_persist = _normalize_persist(persist, channels)
+    payload_data = payload or {}
+    realtime_targets, digest_entries = _split_targets_by_delivery(
+        event=event,
+        targets=targets,
+        payload=payload_data,
+        severity=severity or "info",
+    )
+    do_persist = _normalize_persist(persist, channels) or bool(digest_entries)
 
     n = Notification(
         event=event,
         created_by=created_by,
         targets=targets,
-        payload=payload or {},
+        payload=payload_data,
         severity=severity or "info",
         persist=do_persist,
         sender_principal=sender_principal,
     )
 
     apprise_channels = get_apprise_channels()
-    deliver = channels.intersection(apprise_channels)
+    deliver_targets = {
+        principal: sorted(set(chs).intersection(apprise_channels))
+        for principal, chs in realtime_targets.items()
+    }
+    deliver_targets = {k: v for k, v in deliver_targets.items() if v}
+    deliver = {c for v in deliver_targets.values() for c in v}
     if do_persist or deliver:
         # Calculate and set the expiration time based on retention policy
         n.expires_at = _calculate_expires_at(event, severity)
@@ -337,11 +431,13 @@ def create_notification(
             coll = get_mongo(collection=config_get("NOTIF_COLLECTION", "notifications"))
             mongo_insert_one(coll, doc)
             if deliver:
-                _enqueue_deliveries(n.id)
+                _enqueue_deliveries(n.id, deliver_targets)
+            if digest_entries:
+                _enqueue_digest_triggers(n, digest_entries)
         else:
             # Ephemeral: still deliver, but do not store in Mongo.
             doc["created_at"] = doc["created_at"].isoformat()
-            _enqueue_deliveries(doc)
+            _enqueue_deliveries(doc, deliver_targets)
 
     return n.id
 
@@ -442,18 +538,21 @@ def unread_count(principal: str) -> int:
     )
 
 
-def _enqueue_deliveries(notification: str | Dict[str, Any]) -> None:
+def _enqueue_deliveries(
+        notification: str | Dict[str, Any],
+        targets: Optional[Dict[str, List[str]]] = None,
+) -> None:
     """Enqueue deliveries.
 
-    If Celery is configured in the host app, it will be used.
-    Otherwise, deliveries are executed synchronously in-process.
+    Persisted notifications are dispatched through the internal worker queue.
+    Ephemeral notifications are delivered synchronously in-process.
     """
-    if current_app.extensions.get("celery"):
-        from .tasks.task import deliver_apprise_task
-
-        deliver_apprise_task.apply_async(args=[notification], queue="notifications")
+    if isinstance(notification, str):
+        _enqueue_delivery_triggers(notification, targets or {})
     else:
-        # Fallback: sync execution (keeps all features working in minimal setups)
         from .tasks import deliver_apprise_sync
 
+        if targets is not None:
+            notification = dict(notification)
+            notification["targets"] = targets
         deliver_apprise_sync(notification)

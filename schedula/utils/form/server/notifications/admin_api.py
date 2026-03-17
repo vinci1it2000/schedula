@@ -8,13 +8,14 @@
 from __future__ import annotations
 
 import uuid
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any, Dict, Iterable, List, Optional, cast
 
 from flask import Blueprint, jsonify, request
 from jinja2 import TemplateSyntaxError
 
 from .service import create_notification
 from .storage import (
+    count_notification_triggers,
     create_rule,
     count_rules,
     delete_rule,
@@ -25,6 +26,9 @@ from .storage import (
     get_template,
     upsert_template,
     delete_template,
+    find_template_duplicate,
+    list_notification_triggers,
+    normalize_template_severity,
 )
 from .templates import make_env, render_title_body, normalize_language
 from ..extensions import db
@@ -99,6 +103,51 @@ def _validate_template_syntax(payload: Dict[str, Any]) -> None:
             env.parse(text)
         except TemplateSyntaxError as exc:
             abort_json(400, f"Invalid template syntax: {exc}")
+
+
+def _normalize_digest(value: object) -> object:
+    if value in (None, False):
+        return False
+    if value is True or not isinstance(value, dict):
+        abort_json(400, "digest must be false or an object")
+    value = dict(cast(Dict[str, Any], value))
+    out: Dict[str, Any] = {str(k): v for k, v in value.items()}
+    if out.get("mode") != "debounce":
+        abort_json(400, "digest.mode must be debounce")
+    for key in ("delay_minutes", "max_delay_minutes", "max_items"):
+        if key in out:
+            try:
+                out[key] = int(out[key])
+            except Exception:
+                abort_json(400, f"digest.{key} must be an integer")
+            if out[key] < 1:
+                abort_json(400, f"digest.{key} must be >= 1")
+    unread_only = out.get("unread_only")
+    if unread_only is not None:
+        b = _coerce_bool(unread_only)
+        if b is None:
+            abort_json(400, "digest.unread_only must be boolean")
+        out["unread_only"] = b
+    result = out.get("result") or {"mode": "deliver_only"}
+    if not isinstance(result, dict):
+        abort_json(400, "digest.result must be an object")
+    mode = result.get("mode") or "deliver_only"
+    if mode not in ("deliver_only", "create_notification"):
+        abort_json(400, "digest.result.mode invalid")
+    normalized_result = {"mode": mode}
+    if mode == "create_notification":
+        event = result.get("event")
+        if not isinstance(event, str) or not event.strip():
+            abort_json(400, "digest.result.event required")
+        normalized_result["event"] = str(event).strip()
+    out["result"] = normalized_result
+    return out
+
+
+def _validate_template_uniqueness(template_id: str, payload: Dict[str, Any]) -> None:
+    dup = find_template_duplicate(template_id, payload)
+    if dup:
+        abort_json(400, "duplicate_template_scope")
 
 
 def _apply_preferences(channels: Iterable[str], prefs: Dict[str, bool]) -> List[str]:
@@ -197,6 +246,33 @@ def delete_settings_rule(rule_id: str):
     return jsonify({"ok": True}), 200
 
 
+@admin_bp.get("/triggers")
+@require_system_admin("notification:settings", "manage")
+def list_delivery_triggers():
+    """List notification delivery triggers."""
+    kind = (request.args.get("kind") or "").strip() or None
+    status = (request.args.get("status") or "").strip() or None
+    limit, offset = parse_pagination_args(default_limit=50, max_limit=200)
+
+    raw_sort = (request.args.get("sort") or "").strip()
+    if raw_sort:
+        sort_field, sort_dir = parse_sort_arg(
+            ("created_at", "updated_at", "next_run_at", "kind", "status"),
+            "created_at",
+        )
+    else:
+        sort_field, sort_dir = "created_at", -1
+
+    docs = list_notification_triggers(kind=kind)
+    if status:
+        docs = [d for d in docs if d.get("status") == status]
+    docs.sort(key=lambda d: (d.get(sort_field) is None, str(d.get(sort_field))), reverse=sort_dir < 0)
+    total = count_notification_triggers(kind=kind, status=status)
+    rows = docs[offset: offset + limit]
+    next_offset = offset + limit if offset + limit < total else None
+    return jsonify({"triggers": rows, "total": total, "next_offset": next_offset}), 200
+
+
 @templates_bp.get("")
 @require_system_admin("notification:settings", "manage")
 def api_list_templates():
@@ -251,14 +327,17 @@ def api_create_template():
         "scope": scope or None,
         "channel": data.get("channel"),
         "language": normalize_language(data.get("language")),
+        "severity": normalize_template_severity(data.get("severity")),
         "enabled": data.get("enabled", True),
         "title": data.get("title") or "",
         "body": data.get("body") or "",
+        "digest": _normalize_digest(data.get("digest")),
         "meta": data.get("meta") or {},
     }
     if payload.get("scope") is None:
         payload.pop("scope")
     _validate_template_syntax(payload)
+    _validate_template_uniqueness(template_id, payload)
     upsert_template(template_id, payload)
     return jsonify({"ok": True, "id": template_id})
 
@@ -279,14 +358,17 @@ def api_put_template(template_id: str):
         "scope": scope or None,
         "channel": data.get("channel"),
         "language": normalize_language(data.get("language")),
+        "severity": normalize_template_severity(data.get("severity")),
         "enabled": data.get("enabled", True),
         "title": data.get("title") or "",
         "body": data.get("body") or "",
+        "digest": _normalize_digest(data.get("digest")),
         "meta": data.get("meta") or {},
     }
     if payload.get("scope") is None:
         payload.pop("scope")
     _validate_template_syntax(payload)
+    _validate_template_uniqueness(template_id, payload)
     upsert_template(template_id, payload)
     return jsonify({"ok": True, "id": template_id})
 
@@ -424,6 +506,7 @@ def admin_send_notification():
     if not isinstance(targets, dict) or not targets:
         abort_json(400, "targets_required")
 
+    nid = ""
     try:
         nid = create_notification(
             event=event,
