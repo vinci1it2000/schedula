@@ -10,6 +10,7 @@ from __future__ import annotations
 import socket
 import time
 import uuid
+from datetime import timedelta
 from typing import Any, Dict, List, Optional
 
 from flask import current_app
@@ -17,13 +18,15 @@ from flask import current_app
 from .service import create_notification
 from .storage import (
     claim_due_notification_trigger,
+    cleanup_notification_triggers,
     complete_notification_trigger,
     get_template,
+    reconcile_stuck_notification_triggers,
     release_notification_trigger,
 )
 from .tasks import deliver_apprise_sync
 from .templates import render_for_target_channel
-from ..utils import config_get, get_mongo, mongo_find_one
+from ..utils import config_get, get_mongo, mongo_find_one, now_utc
 
 
 def _worker_id() -> str:
@@ -189,12 +192,29 @@ def run_due_notification_once(*, worker_id: Optional[str] = None, lease_s: int =
     return True
 
 
+def reconcile_notification_triggers(*, lease_s: int = 120) -> int:
+    lease_seconds = int(current_app.config.get("NOTIF_TRIGGER_LEASE_SECONDS", lease_s) or lease_s)
+    return reconcile_stuck_notification_triggers(
+        stale_before=now_utc() - timedelta(seconds=max(lease_seconds, 1))
+    )
+
+
+def cleanup_old_notification_triggers(*, retention_days: Optional[int] = None) -> int:
+    if retention_days is None:
+        retention_days = int(current_app.config.get("NOTIF_TRIGGER_RETENTION_DAYS", 7) or 7)
+    return cleanup_notification_triggers(
+        older_than=now_utc() - timedelta(days=max(int(retention_days), 0))
+    )
+
+
 def worker_loop(app, poll_interval_s: float = 5.0, lease_s: int = 120) -> None:
     with app.app_context():
         worker_id = _worker_id()
         while True:
             processed = False
             try:
+                reconcile_notification_triggers(lease_s=lease_s)
+                cleanup_old_notification_triggers()
                 processed = run_due_notification_once(worker_id=worker_id, lease_s=lease_s)
             except Exception as exc:  # pragma: no cover
                 current_app.logger.exception(exc)

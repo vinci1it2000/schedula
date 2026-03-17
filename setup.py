@@ -121,7 +121,6 @@ if __name__ == "__main__":
         "flask-security[common]>=5.6.0",
         "boto3",
         "casbin",
-        "celery",
         "sqlalchemy_adapter",
         "pydash",
         "apprise",

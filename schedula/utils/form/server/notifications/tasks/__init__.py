@@ -224,9 +224,10 @@ def deliver_apprise_sync(notification: str | Dict[str, Any]):
 
     if n.get("persist"):
         coll = get_mongo(collection=config_get("NOTIF_COLLECTION", "notifications"))
+        notification_id = notification if isinstance(notification, str) else n.get("_id")
         mongo_update_one(
             coll,
-            {"_id": notification},
+            {"_id": notification_id},
             {
                 "$set": {
                     "status": {

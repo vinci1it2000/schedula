@@ -58,13 +58,16 @@ class Config:
         )
 
         self.NOTIF_ENABLED = os.environ.get("NOTIF_ENABLED", "false").lower() == "true"
-        self.NOTIF_CELERY_ENABLED = (
-                os.environ.get("NOTIF_CELERY_ENABLED", "false").lower() == "true"
-        )
         self.NOTIF_SOCKET_ENABLED = (
                 os.environ.get("NOTIF_SOCKET_ENABLED", "true").lower() == "true"
         )
         self.NOTIF_SOCKET_NAMESPACE = os.environ.get("NOTIF_SOCKET_NAMESPACE", "/socket.io")
+        self.NOTIF_TRIGGER_RETENTION_DAYS = int(
+            os.environ.get("NOTIF_TRIGGER_RETENTION_DAYS", "7")
+        )
+        self.NOTIF_TRIGGER_LEASE_SECONDS = int(
+            os.environ.get("NOTIF_TRIGGER_LEASE_SECONDS", "120")
+        )
 
         self.CONTRACTS_ENABLED = (
                 os.environ.get("CONTRACTS_ENABLED", "false").lower() == "true"

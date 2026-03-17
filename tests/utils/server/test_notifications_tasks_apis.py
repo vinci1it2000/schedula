@@ -12,7 +12,7 @@ import sys
 import unittest
 import uuid
 from datetime import datetime, timedelta, timezone
-from typing import Any, cast
+from typing import Any
 from unittest.mock import patch
 
 import mongomock
@@ -24,7 +24,11 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 
 from schedula.utils.form.server import basic_app
 from schedula.utils.form.server.extensions import db as _db
-from schedula.utils.form.server.notifications import tasks as notif_tasks
+from schedula.utils.form.server.notifications.worker import (
+    cleanup_old_notification_triggers,
+    reconcile_notification_triggers,
+    run_due_notification_once,
+)
 from schedula.utils.form.server.security import User
 from schedula.utils.form.server.security.casbin.bootstrap import (
     bootstrap_user,
@@ -63,8 +67,6 @@ class InvalidPushApprise(FakeApprise):
 
 
 class BaseNotificationsTaskApiTest(unittest.TestCase):
-    enable_celery = False
-
     def setUp(self):
         os.environ.pop("MONGO_URI", None)
         FakeApprise.notifications = []
@@ -107,18 +109,12 @@ class BaseNotificationsTaskApiTest(unittest.TestCase):
             OPENAPI_ENABLED=True,
             CASBIN_ADMIN_ENABLED=True,
             NOTIF_ENABLED=True,
-            NOTIF_CELERY_ENABLED=self.enable_celery,
             APPRISE_CHANNELS={
                 "email": "dummy://{{ email }}",
                 "sms": "dummy://{{ sms_phone }}",
                 "push": "{{ push_device_ids | join('/') }}",
             },
         )
-        if self.enable_celery:
-            config.update(
-                CELERY_BROKER_URL="memory://",
-                CELERY_RESULT_BACKEND="cache+memory://",
-            )
 
         with self.app.app_context():
             basic_app(DummySitemap(), self.app, config)
@@ -198,9 +194,23 @@ class BaseNotificationsTaskApiTest(unittest.TestCase):
         user.settings = {"notifications": dict(settings)}
         _db.session.commit()
 
+    def _run_notifications_worker(self):
+        with self.app.app_context():
+            while run_due_notification_once(worker_id="test"):
+                pass
 
-class TestNotificationsTasksWithoutCelery(BaseNotificationsTaskApiTest):
-    def test_apprise_delivery_multi_channel_without_celery(self):
+
+class TestNotificationsTasks(BaseNotificationsTaskApiTest):
+    def _create_template(self, payload: dict[str, Any]) -> str:
+        r = self.client.post(
+            "/admin/notification/templates",
+            json=payload,
+            headers=self._auth_headers(self.admin_token),
+        )
+        self.assertEqual(r.status_code, 200)
+        return str((r.get_json(silent=True) or {}).get("id"))
+
+    def test_apprise_delivery_multi_channel(self):
         payload = {
             "event": "admin.event",
             "targets": {f"u:{self.user_id}": ["email", "sms"]},
@@ -217,6 +227,7 @@ class TestNotificationsTasksWithoutCelery(BaseNotificationsTaskApiTest):
                 json=payload,
                 headers=self._auth_headers(self.admin_token),
             )
+            self._run_notifications_worker()
 
         self.assertEqual(r.status_code, 200)
         nid = (r.get_json(silent=True) or {}).get("id")
@@ -234,7 +245,7 @@ class TestNotificationsTasksWithoutCelery(BaseNotificationsTaskApiTest):
             status = (doc or {}).get("status", {})
             self.assertEqual(status.get("state"), "sent")
 
-    def test_apprise_delivery_errors_without_celery(self):
+    def test_apprise_delivery_errors(self):
         with self.app.app_context():
             self._set_user_notifications(self.user_id, {"sms_phone": "fail"})
 
@@ -258,6 +269,7 @@ class TestNotificationsTasksWithoutCelery(BaseNotificationsTaskApiTest):
                 json=payload,
                 headers=self._auth_headers(self.admin_token),
             )
+            self._run_notifications_worker()
 
         self.assertEqual(r.status_code, 200)
         nid = (r.get_json(silent=True) or {}).get("id")
@@ -273,7 +285,6 @@ class TestNotificationsTasksWithoutCelery(BaseNotificationsTaskApiTest):
             results = status.get("results") or []
             states = {r.get("state") for r in results if isinstance(r, dict)}
             self.assertIn("skipped_missing_user", states)
-            self.assertIn("skipped_no_channels", states)
             self.assertIn("skipped_no_urls", states)
             self.assertTrue(any(r.get("ok") is False for r in results))
 
@@ -294,6 +305,7 @@ class TestNotificationsTasksWithoutCelery(BaseNotificationsTaskApiTest):
                 json=payload,
                 headers=self._auth_headers(self.admin_token),
             )
+            self._run_notifications_worker()
 
         self.assertEqual(r.status_code, 400)
         data = r.get_json(silent=True) or {}
@@ -342,6 +354,7 @@ class TestNotificationsTasksWithoutCelery(BaseNotificationsTaskApiTest):
                 json=payload,
                 headers=self._auth_headers(self.admin_token),
             )
+            self._run_notifications_worker()
 
         self.assertEqual(r.status_code, 200)
         self.assertEqual(len(FakeApprise.notifications), 2)
@@ -385,6 +398,7 @@ class TestNotificationsTasksWithoutCelery(BaseNotificationsTaskApiTest):
                 json=payload,
                 headers=self._auth_headers(self.admin_token),
             )
+            self._run_notifications_worker()
 
         self.assertEqual(r.status_code, 200)
         self.assertEqual(len(FakeApprise.notifications), 1)
@@ -446,6 +460,8 @@ class TestNotificationsTasksWithoutCelery(BaseNotificationsTaskApiTest):
                 json=payload,
                 headers=self._auth_headers(self.admin_token),
             )
+            self._run_notifications_worker()
+            self._run_notifications_worker()
 
         self.assertEqual(r.status_code, 200)
         self.assertEqual(len(FakeApprise.notifications), 1)
@@ -459,31 +475,33 @@ class TestNotificationsTasksWithoutCelery(BaseNotificationsTaskApiTest):
             push_tokens = list(coll.find({"user_id": f"u:{self.user_id}"}))
             self.assertEqual(push_tokens, [])
 
+    def test_digest_channel_excluded_from_realtime_and_trigger_created(self):
+        self._create_template(
+            {
+                "event": "admin.event",
+                "channel": "email",
+                "severity": "info",
+                "title": "Digest {{ payload.count }}",
+                "body": "{% for n in payload.notifications %}{{ n.title }}{% endfor %}",
+                "digest": {
+                    "mode": "debounce",
+                    "delay_minutes": 5,
+                    "max_delay_minutes": 10,
+                    "unread_only": True,
+                    "max_items": 20,
+                },
+            }
+        )
 
-class TestNotificationsTasksWithCelery(BaseNotificationsTaskApiTest):
-    enable_celery = True
-
-    def test_apprise_delivery_multi_channel_with_celery(self):
         payload = {
             "event": "admin.event",
             "targets": {f"u:{self.user_id}": ["email", "sms"]},
             "payload": {"title": "Hello"},
-            "persist": True,
         }
-
-        calls: list[dict[str, Any]] = []
-
-        def _fake_apply_async(*, args=None, kwargs=None, queue=None, **_):
-            calls.append({"args": args or [], "kwargs": kwargs, "queue": queue})
-            notif_tasks.deliver_apprise_sync(cast(str, (args or [""])[0]))
-            return object()
 
         with patch(
                 "schedula.utils.form.server.notifications.tasks.apprise.Apprise",
                 FakeApprise,
-        ), patch(
-            "schedula.utils.form.server.notifications.tasks.task.deliver_apprise_task.apply_async",
-            _fake_apply_async,
         ):
             r = self.client.post(
                 "/admin/notification/notify",
@@ -492,53 +510,162 @@ class TestNotificationsTasksWithCelery(BaseNotificationsTaskApiTest):
             )
 
         self.assertEqual(r.status_code, 200)
-        nid = (r.get_json(silent=True) or {}).get("id")
-        self.assertIsInstance(nid, str)
-
-        self.assertEqual(len(calls), 1)
-        self.assertEqual(calls[0].get("queue"), "notifications")
-        self.assertEqual(calls[0].get("args"), [nid])
-
-        self.assertEqual(len(FakeApprise.notifications), 2)
-        for notif in FakeApprise.notifications:
-            self.assertIn("admin.event", notif.get("title") or "")
-            self.assertTrue(notif.get("urls"))
+        nid = str((r.get_json(silent=True) or {}).get("id"))
+        self.assertEqual(len(FakeApprise.notifications), 0)
 
         with self.app.app_context():
             coll = get_mongo(collection=config_get("NOTIF_COLLECTION", "notifications"))
             doc = coll.find_one({"_id": nid})
             self.assertIsNotNone(doc)
-            status = (doc or {}).get("status", {})
-            self.assertEqual(status.get("state"), "sent")
+            self.assertTrue((doc or {}).get("persist"))
+            triggers = get_mongo(
+                collection=config_get("NOTIF_DELIVERY_TRIGGERS_COLLECTION", "notification_delivery_triggers")
+            )
+            trigger = triggers.find_one({"principal": f"u:{self.user_id}", "channel": "email", "kind": "digest"})
+            self.assertIsNotNone(trigger)
+            self.assertEqual(trigger.get("notification_ids"), [nid])
 
-    def test_apprise_delivery_errors_with_celery(self):
+        with patch(
+                "schedula.utils.form.server.notifications.tasks.apprise.Apprise",
+                FakeApprise,
+        ):
+            self._run_notifications_worker()
+
+        self.assertEqual(len(FakeApprise.notifications), 1)
+        self.assertTrue(any("123" in "/".join(n.get("urls") or []) for n in FakeApprise.notifications))
+
+    def test_digest_trigger_closes_without_send_when_notifications_read(self):
+        self._create_template(
+            {
+                "event": "admin.event",
+                "channel": "email",
+                "severity": "info",
+                "title": "Digest {{ payload.count }}",
+                "body": "{{ payload.count }}",
+                "digest": {
+                    "mode": "debounce",
+                    "delay_minutes": 1,
+                    "max_delay_minutes": 1,
+                    "unread_only": True,
+                },
+            }
+        )
+        r = self.client.post(
+            "/admin/notification/notify",
+            json={
+                "event": "admin.event",
+                "targets": {f"u:{self.user_id}": ["email"]},
+                "payload": {"title": "Hello"},
+            },
+            headers=self._auth_headers(self.admin_token),
+        )
+        self.assertEqual(r.status_code, 200)
+        nid = str((r.get_json(silent=True) or {}).get("id"))
+
         with self.app.app_context():
-            self._set_user_notifications(self.user_id, {"sms_phone": "fail"})
+            coll = get_mongo(collection=config_get("NOTIF_COLLECTION", "notifications"))
+            coll.update_one({"_id": nid}, {"$addToSet": {"read_by": f"u:{self.user_id}"}})
+            triggers = get_mongo(
+                collection=config_get("NOTIF_DELIVERY_TRIGGERS_COLLECTION", "notification_delivery_triggers")
+            )
+            trigger = triggers.find_one({"principal": f"u:{self.user_id}", "channel": "email", "kind": "digest"})
+            self.assertIsNotNone(trigger)
+            triggers.update_one(
+                {"_id": trigger["_id"]},
+                {"$set": {"next_run_at": datetime.now(timezone.utc) - timedelta(minutes=1)}},
+            )
 
+        with self.app.app_context(), patch(
+                "schedula.utils.form.server.notifications.tasks.apprise.Apprise",
+                FakeApprise,
+        ):
+            processed = run_due_notification_once(worker_id="test")
+
+        self.assertTrue(processed)
+        self.assertEqual(len(FakeApprise.notifications), 0)
+        with self.app.app_context():
+            triggers = get_mongo(
+                collection=config_get("NOTIF_DELIVERY_TRIGGERS_COLLECTION", "notification_delivery_triggers")
+            )
+            trigger = triggers.find_one({"principal": f"u:{self.user_id}", "channel": "email", "kind": "digest"})
+            self.assertEqual((trigger or {}).get("status"), "cancelled")
+
+    def test_digest_trigger_can_create_followup_notification(self):
+        self._create_template(
+            {
+                "event": "admin.event",
+                "channel": "email",
+                "severity": "info",
+                "title": "Digest {{ payload.count }}",
+                "body": "{% for n in payload.notifications %}{{ n.title }}{% endfor %}",
+                "digest": {
+                    "mode": "debounce",
+                    "delay_minutes": 1,
+                    "max_delay_minutes": 1,
+                    "unread_only": True,
+                    "result": {"mode": "create_notification", "event": "system-reminder"},
+                },
+            }
+        )
+        self._create_template(
+            {
+                "event": "system-reminder",
+                "channel": "email",
+                "severity": "info",
+                "title": "Reminder {{ payload.count }}",
+                "body": "{% for n in payload.notifications %}{{ n.title }}{% endfor %}",
+                "digest": False,
+            }
+        )
+
+        r = self.client.post(
+            "/admin/notification/notify",
+            json={
+                "event": "admin.event",
+                "targets": {f"u:{self.user_id}": ["email"]},
+                "payload": {"title": "Hello"},
+            },
+            headers=self._auth_headers(self.admin_token),
+        )
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(len(FakeApprise.notifications), 0)
+
+        with self.app.app_context():
+            triggers = get_mongo(
+                collection=config_get("NOTIF_DELIVERY_TRIGGERS_COLLECTION", "notification_delivery_triggers")
+            )
+            trigger = triggers.find_one({"principal": f"u:{self.user_id}", "channel": "email", "kind": "digest"})
+            self.assertIsNotNone(trigger)
+            triggers.update_one(
+                {"_id": trigger["_id"]},
+                {"$set": {"next_run_at": datetime.now(timezone.utc) - timedelta(minutes=1)}},
+            )
+
+        with self.app.app_context(), patch(
+                "schedula.utils.form.server.notifications.tasks.apprise.Apprise",
+                FakeApprise,
+        ):
+            processed = run_due_notification_once(worker_id="test")
+            self._run_notifications_worker()
+
+        self.assertTrue(processed)
+        self.assertEqual(len(FakeApprise.notifications), 1)
+        with self.app.app_context():
+            coll = get_mongo(collection=config_get("NOTIF_COLLECTION", "notifications"))
+            reminder = coll.find_one({"event": "system-reminder"}, sort=[("created_at", -1)])
+            self.assertIsNotNone(reminder)
+
+    def test_reconcile_stuck_trigger_requeues_running_record(self):
         payload = {
             "event": "admin.event",
-            "targets": {
-                f"u:{self.user_id}": ["email", "sms", "push"],
-                f"u:{self.user2_id}": [],
-                "u:999999": ["email"],
-            },
+            "targets": {f"u:{self.user_id}": ["email"]},
             "payload": {"title": "Hello"},
             "persist": True,
         }
 
-        calls: list[dict[str, Any]] = []
-
-        def _fake_apply_async(*, args=None, kwargs=None, queue=None, **_):
-            calls.append({"args": args or [], "kwargs": kwargs, "queue": queue})
-            notif_tasks.deliver_apprise_sync(cast(str, (args or [""])[0]))
-            return object()
-
         with patch(
                 "schedula.utils.form.server.notifications.tasks.apprise.Apprise",
                 FakeApprise,
-        ), patch(
-            "schedula.utils.form.server.notifications.tasks.task.deliver_apprise_task.apply_async",
-            _fake_apply_async,
         ):
             r = self.client.post(
                 "/admin/notification/notify",
@@ -547,26 +674,71 @@ class TestNotificationsTasksWithCelery(BaseNotificationsTaskApiTest):
             )
 
         self.assertEqual(r.status_code, 200)
-        nid = (r.get_json(silent=True) or {}).get("id")
-        self.assertIsInstance(nid, str)
-
-        self.assertEqual(len(calls), 1)
-        self.assertEqual(calls[0].get("queue"), "notifications")
-        self.assertEqual(calls[0].get("args"), [nid])
-
-        self.assertEqual(len(FakeApprise.notifications), 2)
         with self.app.app_context():
-            coll = get_mongo(collection=config_get("NOTIF_COLLECTION", "notifications"))
-            doc = coll.find_one({"_id": nid})
-            self.assertIsNotNone(doc)
-            status = (doc or {}).get("status", {})
-            self.assertEqual(status.get("state"), "partial")
-            results = status.get("results") or []
-            states = {r.get("state") for r in results if isinstance(r, dict)}
-            self.assertIn("skipped_missing_user", states)
-            self.assertIn("skipped_no_channels", states)
-            self.assertIn("skipped_no_urls", states)
-            self.assertTrue(any(r.get("ok") is False for r in results))
+            triggers = get_mongo(
+                collection=config_get("NOTIF_DELIVERY_TRIGGERS_COLLECTION", "notification_delivery_triggers")
+            )
+            trigger = triggers.find_one({"kind": "delivery", "status": "pending"})
+            self.assertIsNotNone(trigger)
+            triggers.update_one(
+                {"_id": trigger["_id"]},
+                {
+                    "$set": {
+                        "status": "running",
+                        "locked_by": "stale-worker",
+                        "locked_until": datetime.now(timezone.utc) - timedelta(minutes=5),
+                    }
+                },
+            )
+
+            changed = reconcile_notification_triggers(lease_s=120)
+            self.assertEqual(changed, 1)
+            trigger = triggers.find_one({"_id": trigger["_id"]})
+            self.assertEqual(trigger.get("status"), "pending")
+            self.assertEqual(trigger.get("last_error"), "worker_lease_expired")
+
+        with patch(
+                "schedula.utils.form.server.notifications.tasks.apprise.Apprise",
+                FakeApprise,
+        ):
+            self._run_notifications_worker()
+
+        self.assertEqual(len(FakeApprise.notifications), 1)
+
+    def test_cleanup_old_finished_triggers_uses_configurable_retention(self):
+        self.app.config["NOTIF_TRIGGER_RETENTION_DAYS"] = 7
+        payload = {
+            "event": "admin.event",
+            "targets": {f"u:{self.user_id}": ["email"]},
+            "payload": {"title": "Hello"},
+            "persist": True,
+        }
+
+        with patch(
+                "schedula.utils.form.server.notifications.tasks.apprise.Apprise",
+                FakeApprise,
+        ):
+            r = self.client.post(
+                "/admin/notification/notify",
+                json=payload,
+                headers=self._auth_headers(self.admin_token),
+            )
+            self._run_notifications_worker()
+
+        self.assertEqual(r.status_code, 200)
+        with self.app.app_context():
+            triggers = get_mongo(
+                collection=config_get("NOTIF_DELIVERY_TRIGGERS_COLLECTION", "notification_delivery_triggers")
+            )
+            trigger = triggers.find_one({"kind": "delivery", "status": "done"})
+            self.assertIsNotNone(trigger)
+            triggers.update_one(
+                {"_id": trigger["_id"]},
+                {"$set": {"updated_at": datetime.now(timezone.utc) - timedelta(days=8)}},
+            )
+            deleted = cleanup_old_notification_triggers()
+            self.assertEqual(deleted, 1)
+            self.assertIsNone(triggers.find_one({"_id": trigger["_id"]}))
 
 
 if __name__ == "__main__":
