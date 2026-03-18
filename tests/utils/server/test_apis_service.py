@@ -19,13 +19,13 @@ from flask_security.utils import hash_password
 
 from schedula.utils.form.server import basic_app
 from schedula.utils.form.server.extensions import db as _db
+from schedula.utils.form.server.utils import now_utc
 from schedula.utils.form.server.security import User
 from schedula.utils.form.server.security.casbin import get_enforcer
 from schedula.utils.form.server.security.casbin.bootstrap import (
     bootstrap_user,
     set_system_admin,
 )
-
 EVENTS_CUSTOM_TEMPLATE = {
     "name": "events-custom-apis",
     "description": "",
@@ -364,14 +364,14 @@ class TestApisService(unittest.TestCase):
                 active=True,
                 fs_uniquifier=str(uuid.uuid4()),
             )
-            self.admin_user.confirmed_at = datetime.utcnow()
+            self.admin_user.confirmed_at = now_utc()
             self.user = User(
                 email="user_apis@gmail.com",
                 password=hash_password("UserPass123!"),
                 active=True,
                 fs_uniquifier=str(uuid.uuid4()),
             )
-            self.user.confirmed_at = datetime.utcnow()
+            self.user.confirmed_at = now_utc()
             _db.session.add(self.admin_user)
             _db.session.add(self.user)
             _db.session.commit()

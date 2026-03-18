@@ -32,6 +32,7 @@ from sqlalchemy_file.storage import StorageManager
 
 from .extensions import db
 from .security import is_admin
+from .utils import now_utc
 
 bp = Blueprint('files', __name__)
 
@@ -93,8 +94,8 @@ class File(db.Model):
         default=calculate_default_hash
     )
     data = Column(FileField(upload_storage='files'))
-    created_at = Column(DateTime(), default=datetime.datetime.utcnow)
-    updated_at = Column(DateTime(), onupdate=datetime.datetime.utcnow)
+    created_at = Column(DateTime(), default=now_utc)
+    updated_at = Column(DateTime(), onupdate=now_utc)
 
     def payload(self, data=False):
         res = {
@@ -176,8 +177,8 @@ class FileName(db.Model):
     meta = Column('meta', JSON)
     user_id = Column(Integer, ForeignKey('user.id'))
     user = db.relationship('User', foreign_keys=[user_id])
-    created_at = Column(DateTime(), default=datetime.datetime.utcnow)
-    updated_at = Column(DateTime(), onupdate=datetime.datetime.utcnow)
+    created_at = Column(DateTime(), default=now_utc)
+    updated_at = Column(DateTime(), onupdate=now_utc)
 
     @validates("file", include_backrefs=False)
     def validate_file(self, key, file):

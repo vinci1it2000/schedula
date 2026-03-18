@@ -20,6 +20,7 @@ from sherlock import Lock
 from sqlalchemy import Column, String, Integer, DateTime, JSON, event, asc
 
 from ..extensions import db
+from ..utils import now_utc
 
 users_wallet = db.Table(
     "users_wallet",
@@ -171,9 +172,9 @@ class Txn(db.Model):
     stripe_id = Column(String(255))
     raw_data = Column("raw_data", JSON)
     expired_at = Column(DateTime())
-    valid_from = Column(DateTime(), nullable=False, default=datetime.datetime.utcnow)
-    created_at = Column(DateTime(), nullable=False, default=datetime.datetime.utcnow)
-    updated_at = Column(DateTime(), nullable=True, onupdate=datetime.datetime.utcnow)
+    valid_from = Column(DateTime(), nullable=False, default=now_utc)
+    created_at = Column(DateTime(), nullable=False, default=now_utc)
+    updated_at = Column(DateTime(), nullable=True, onupdate=now_utc)
     created_by = db.Column(
         db.Integer,
         db.ForeignKey("user.id"),

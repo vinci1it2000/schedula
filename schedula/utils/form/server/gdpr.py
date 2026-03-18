@@ -10,7 +10,6 @@
 It provides functions to build the credit application services.
 """
 
-import datetime
 import uuid
 
 from flask import request, jsonify, Blueprint, after_this_request, current_app
@@ -19,6 +18,7 @@ from flask_security.utils import view_commit
 from sqlalchemy import Column, String, DateTime, JSON
 
 from .extensions import db
+from .utils import now_utc
 
 bp = Blueprint("schedula_gdpr", __name__)
 
@@ -27,8 +27,8 @@ class Consent(db.Model):
     __tablename__ = "consents"
     id = Column(String(36), default=lambda: str(uuid.uuid4()), primary_key=True)
     consents = Column(JSON(), nullable=False)
-    created_at = Column(DateTime(), nullable=False, default=datetime.datetime.utcnow)
-    updated_at = Column(DateTime(), nullable=True, onupdate=datetime.datetime.utcnow)
+    created_at = Column(DateTime(), nullable=False, default=now_utc)
+    updated_at = Column(DateTime(), nullable=True, onupdate=now_utc)
     created_by = db.Column(
         db.Integer,
         db.ForeignKey("user.id"),

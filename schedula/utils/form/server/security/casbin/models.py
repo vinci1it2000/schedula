@@ -2,7 +2,6 @@
 # coding=utf-8
 # -*- coding: UTF-8 -*-
 
-import datetime as dt
 import uuid
 from typing import Iterable, Literal, Dict, Any
 
@@ -22,6 +21,7 @@ from .helpers import (
 )
 from .. import User
 from ...extensions import db
+from ...utils import now_utc
 
 PrincipalKind = Literal["user", "group", "other"]
 OutputMode = Literal["principal", "ids", "models", "mixed"]
@@ -132,12 +132,12 @@ class Group(db.Model):
         nullable=True,
         onupdate=lambda: getattr(cu, "id", None),
     )
-    created_at = db.Column(db.DateTime, nullable=False, default=dt.datetime.utcnow)
+    created_at = db.Column(db.DateTime, nullable=False, default=now_utc)
     updated_at = db.Column(
         db.DateTime,
         nullable=False,
-        default=dt.datetime.utcnow,
-        onupdate=dt.datetime.utcnow,
+        default=now_utc,
+        onupdate=now_utc,
     )
 
     __table_args__ = (db.Index("ix_groups_type", "type"),)

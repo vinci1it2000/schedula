@@ -901,8 +901,8 @@ class ContractsE2ETest(unittest.TestCase):
                         "data": route_doc,
                         "created_by": principal,
                         "updated_by": principal,
-                        "created_at": dt.datetime.utcnow(),
-                        "updated_at": dt.datetime.utcnow(),
+                        "created_at": dt.datetime.now(dt.UTC),
+                        "updated_at": dt.datetime.now(dt.UTC),
                     }
                 )
                 self.route_by_principal[principal] = route_id
@@ -911,7 +911,7 @@ class ContractsE2ETest(unittest.TestCase):
                 wallet.charge(product="credit", credits=100)
 
             templates_coll = self.app.config["MONGO_DB"]["notification_templates"]
-            now_dt = dt.datetime.utcnow()
+            now_dt = dt.datetime.now(dt.UTC)
             templates_coll.insert_many(
                 [
                     {
@@ -976,7 +976,7 @@ class ContractsE2ETest(unittest.TestCase):
                 fs_uniquifier=str(uuid.uuid4()),
             )
             _db.session.add(user)
-        user.confirmed_at = dt.datetime.utcnow()
+        user.confirmed_at = dt.datetime.now(dt.UTC)
         _db.session.commit()
         return user
 
