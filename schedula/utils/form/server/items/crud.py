@@ -49,9 +49,17 @@ from typing import Dict, Set, Tuple
 import schedula as sh
 from flask import request, jsonify, Blueprint
 from flask_security import current_user as cu
+from werkzeug.exceptions import HTTPException
 
 from . import normalize_category
-from .files import store_uploaded_file, delete_files_meta, normalize_file_name
+from .files import (
+    delete_files_meta,
+    normalize_file_name,
+    parse_staging_ref,
+    remove_staging_cleanup,
+    resolve_staged_file_token,
+    store_uploaded_file,
+)
 from ..notifications import notify_item_event_safe
 from ..security.casbin import (
     g,
@@ -397,17 +405,22 @@ def collect_file_names_in_data(data):
         {"$ref": "/files/<name>"}  (or nested within a larger path after /files/)
 
     Returns:
-        set[str] of normalized filenames.
+        dict[str, dict] keyed by final logical file name.
     """
-    names = set()
+    names = {}
 
     def _walk(node):
         if isinstance(node, dict):
             ref = node.get("$ref")
-            if isinstance(ref, str) and "/files/" in ref:
+            staged = parse_staging_ref(ref) if isinstance(ref, str) else None
+            if staged:
+                token = staged["token"]
+                names.setdefault(token, {"mode": "staging", "token": token})
+            elif isinstance(ref, str) and "/files/" in ref:
                 fname = ref.split("/files/", 1)[1].split("/", 1)[0]
                 if fname:
-                    names.add(normalize_file_name(fname))
+                    fname = normalize_file_name(fname)
+                    names.setdefault(fname, {"mode": "upload", "name": fname})
             for v in node.values():
                 _walk(v)
         elif isinstance(node, list):
@@ -438,9 +451,10 @@ def parse_data(db_mongo, sub):
     data = prune_nulls(data)
 
     referenced = collect_file_names_in_data(data)
+    upload_names = {meta["name"] for meta in referenced.values() if meta.get("mode") == "upload"}
 
-    missing = referenced - set(uploads.keys())
-    orphan = set(uploads.keys()) - referenced
+    missing = upload_names - set(uploads.keys())
+    orphan = set(uploads.keys()) - upload_names
     if missing or orphan:
         abort_json(
             400,
@@ -449,17 +463,46 @@ def parse_data(db_mongo, sub):
 
     files_meta = {}
     try:
-        for fname in sorted(referenced):
+        for key in sorted(referenced):
+            ref_meta = referenced[key]
+            if ref_meta.get("mode") == "staging":
+                fname, meta = resolve_staged_file_token(ref_meta["token"], db_mongo, sub)
+                ref_meta["name"] = fname
+                ref_meta["storage_key"] = meta.get("storage_key")
+                files_meta[fname] = meta
+                continue
+            fname = ref_meta["name"]
             files_meta[fname] = meta = store_uploaded_file(fname, uploads[fname], db_mongo, sub)
             if meta["size"] <= 0:
                 raise FileEmptyError(fname)
     except Exception as exe:
         delete_files_meta(files_meta, db_mongo)
+        if isinstance(exe, HTTPException):
+            raise
         if isinstance(exe, FileEmptyError):
             abort_json(400, exe.message)
         abort_json(500, "File storage error")
 
+    rewrite_staged_refs(data, referenced)
+
     return data, files_meta, public
+
+
+def rewrite_staged_refs(node, referenced):
+    if isinstance(node, dict):
+        ref = node.get("$ref")
+        staged = parse_staging_ref(ref) if isinstance(ref, str) else None
+        if staged and staged["token"] in referenced:
+            ref_meta = referenced[staged["token"]]
+            node["$ref"] = f"/files/{ref_meta['name']}"
+            storage_key = ref_meta.get("storage_key")
+            if storage_key:
+                remove_staging_cleanup(storage_key=storage_key)
+        for value in node.values():
+            rewrite_staged_refs(value, referenced)
+    elif isinstance(node, list):
+        for value in node:
+            rewrite_staged_refs(value, referenced)
 
 
 # ---------------------------------------------------------------------------
@@ -700,24 +743,42 @@ def item_update(category, item_id):
     merged_data = prune_nulls(
         sh.combine_nested_dicts(old_data, new_data) if method == "PATCH" else new_data
     )
+    db_mongo = get_mongo()
 
     referenced = collect_file_names_in_data(merged_data)
 
-    merged_files = {k: v for k, v in old_files.items() if k in referenced}
-    dropped_files = {k: v for k, v in old_files.items() if k not in referenced}
+    referenced_names = set()
+    upload_names = set()
+    staging_tokens = []
+    for key, ref_meta in referenced.items():
+        if ref_meta.get("mode") == "upload":
+            upload_names.add(ref_meta["name"])
+            referenced_names.add(ref_meta["name"])
+        else:
+            staging_tokens.append(key)
+
+    merged_files = {k: v for k, v in old_files.items() if k in referenced_names}
+    dropped_files = {k: v for k, v in old_files.items() if k not in referenced_names}
     replaced_files = {}
     new_uploaded = {}
-    db_mongo = get_mongo()
 
-    missing = referenced - set(uploads.keys()) - set(merged_files.keys())
-    orphan = set(uploads.keys()) - referenced
+    missing = upload_names - set(uploads.keys()) - set(merged_files.keys())
+    orphan = set(uploads.keys()) - upload_names
     if missing or orphan:
         abort_json(
             400,
             f"File references validation failed: missing={missing}, orphan={orphan}",
         )
     try:
-        for fname in sorted(referenced):
+        for token in staging_tokens:
+            fname, meta = resolve_staged_file_token(token, db_mongo, sub)
+            referenced[token]["name"] = fname
+            referenced[token]["storage_key"] = meta.get("storage_key")
+            if fname in merged_files:
+                replaced_files[fname] = merged_files[fname]
+            new_uploaded[fname] = merged_files[fname] = meta
+
+        for fname in sorted(upload_names):
             if fname in uploads:
                 if fname in merged_files:
                     replaced_files[fname] = merged_files[fname]
@@ -725,12 +786,15 @@ def item_update(category, item_id):
                 new_uploaded[fname] = merged_files[fname] = meta
                 if meta["size"] <= 0:
                     raise FileEmptyError(fname)
-
     except Exception as exe:
         delete_files_meta(new_uploaded, db_mongo)
+        if isinstance(exe, HTTPException):
+            raise
         if isinstance(exe, FileEmptyError):
             abort_json(400, exe.message)
         abort_json(500, "File storage error")
+
+    rewrite_staged_refs(merged_data, referenced)
 
     update_doc = {
         "data": merged_data,

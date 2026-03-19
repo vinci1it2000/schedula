@@ -8,14 +8,13 @@ except Exception:
 
 ensure_server_test_env()
 
-
 import io
 import os
 import sys
 import urllib.request
 import unittest
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any, cast
 
 import boto3
@@ -108,8 +107,7 @@ class TestItemsFilesApis(MinioContainerMixin, MongoMySqlContainersMixin, unittes
                     "data": {"title": "hello"},
                     "files": {
                         file_name: {
-                            "id": str(file_id),
-                            "user_id": str(self.user.id),
+                            "storage_key": str(file_id),
                             "content_type": "text/plain",
                             "size": len(file_bytes),
                         }
@@ -284,9 +282,15 @@ class TestItemsFilesApis(MinioContainerMixin, MongoMySqlContainersMixin, unittes
     def test_download_file_s3_success(self):
         # Call file download with S3 backend enabled.
         self._enable_s3_backend()
-        file_id = "u:test/s3-object-id"
+        file_id = f"u:{self.user.id}/s3-object-id"
         file_name = "manual.pdf"
         file_bytes = b"s3-bytes"
+        self.s3_client.put_object(
+            Bucket=self.s3_bucket,
+            Key=file_id,
+            Body=file_bytes,
+            ContentType="application/pdf",
+        )
 
         with self.app.app_context():
             s3_item_id = str(uuid.uuid4())
@@ -297,8 +301,7 @@ class TestItemsFilesApis(MinioContainerMixin, MongoMySqlContainersMixin, unittes
                     "data": {"title": "s3"},
                     "files": {
                         file_name: {
-                            "id": file_id,
-                            "user_id": str(self.user.id),
+                            "storage_key": file_id,
                             "content_type": "application/pdf",
                             "size": len(file_bytes),
                         }
@@ -310,141 +313,304 @@ class TestItemsFilesApis(MinioContainerMixin, MongoMySqlContainersMixin, unittes
                     "updated_at": datetime.now(timezone.utc),
                 }
             )
-
-        class _Body:
-            def __init__(self, data: bytes):
-                self._data = data
-                self._read = False
-
-            def read(self, _n=-1):
-                if self._read:
-                    return b""
-                self._read = True
-                return self._data
-
-            def close(self):
-                return None
-
-        fake_client = Mock()
-        fake_client.get_object.return_value = {
-            "Body": _Body(file_bytes),
-            "ContentType": "application/pdf",
-        }
-
-        with patch(
-                "schedula.utils.form.server.items.files.get_s3_client_and_bucket",
-                return_value=(fake_client, "test-bucket", ""),
-        ):
-            # Call file download with valid S3 file metadata.
-            r = self.auth_client.get(
-                f"/item-file/{s3_item_id}/manual.pdf",
-                headers=self._auth_headers(),
-            )
+        r = self.auth_client.get(
+            f"/item-file/{s3_item_id}/{file_name}",
+            headers=self._auth_headers(),
+        )
 
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.headers.get("Content-Type"), "application/pdf")
-        self.assertIn("manual.pdf", r.headers.get("Content-Disposition", ""))
+        self.assertIn(file_name, r.headers.get("Content-Disposition", ""))
         self.assertEqual(r.data, file_bytes)
 
     def test_upload_file_s3_bucket_string_config(self):
-        self.app.config["S3_ITEMS_FILE_STORAGE"] = "test-bucket"
-        self.app.config["S3_ITEMS_FILE_ENDPOINT"] = "http://localhost:9000"
+        self._enable_s3_backend(prefix="items")
         self.app.config["S3_ITEMS_FILE_REGION"] = "eu-west-1"
-        self.app.config["S3_ITEMS_FILE_ACCESS_KEY"] = "access"
-        self.app.config["S3_ITEMS_FILE_SECRET_KEY"] = "secret"
-        self.app.config["S3_ITEMS_FILE_USE_SSL"] = False
-        self.app.config["S3_ITEMS_FILE_PREFIX"] = "items"
-
-        fake_client = Mock()
-        fake_client.upload_fileobj = Mock(
-            side_effect=lambda stream, *_args, **_kwargs: stream.read()
-        )
 
         data = {
-            "data": '{"doc": {"$ref": "/files/attachment"}}',
-            "attachment": (io.BytesIO(b"hello s3"), "upload.txt"),
+            "data": '{"doc": {"$ref": "/files/report.pdf"}}',
+            "report.pdf": (io.BytesIO(b"hello s3"), "upload.txt"),
         }
 
-        with patch("boto3.client", return_value=fake_client) as boto_client:
-            r = self.auth_client.post(
-                "/item/note?include_data=1",
-                data=data,
-                headers=self._auth_headers(),
-                content_type="multipart/form-data",
-            )
+        r = self.auth_client.post(
+            "/item/note?include_data=1",
+            data=data,
+            headers=self._auth_headers(),
+            content_type="multipart/form-data",
+        )
 
         self.assertEqual(r.status_code, 201)
         body = r.get_json(silent=True) or {}
         self.assertIn("files", body)
-        self.assertIn("attachment", body.get("files", {}))
+        self.assertIn("report.pdf", body.get("files", {}))
 
-        boto_client.assert_called_once()
-        _, kwargs = boto_client.call_args
-        self.assertEqual(kwargs.get("endpoint_url"), "http://localhost:9000")
-        self.assertEqual(kwargs.get("region_name"), "eu-west-1")
-        self.assertEqual(kwargs.get("aws_access_key_id"), "access")
-        self.assertEqual(kwargs.get("aws_secret_access_key"), "secret")
-        self.assertEqual(kwargs.get("use_ssl"), False)
-        self.assertIsInstance(kwargs.get("config"), BotoConfig)
-
-        upload_args, upload_kwargs = fake_client.upload_fileobj.call_args
-        self.assertEqual(upload_args[1], "test-bucket")
-        self.assertTrue(upload_args[2].startswith("items/"))
-        self.assertEqual(
-            upload_kwargs.get("ExtraArgs", {}).get("Metadata", {}).get("name"),
-            "attachment",
-        )
+        stored_item = self.vdb.items.find_one({"_id": body["id"]}) or {}
+        key = ((stored_item.get("files") or {}).get("report.pdf") or {}).get("storage_key")
+        obj = self.s3_client.get_object(Bucket=self.s3_bucket, Key=f"items/{key}")
+        self.assertEqual(obj["ContentType"], "text/plain")
+        self.assertEqual(obj["Metadata"].get("name"), "report.pdf")
+        self.assertEqual(obj["Body"].read(), b"hello s3")
 
     def test_upload_file_s3_dict_config(self):
         self.app.config["S3_ITEMS_FILE_STORAGE"] = {
-            "bucket": "test-bucket",
+            "bucket": self.s3_bucket,
             "prefix": "docs",
-            "endpoint_url": "http://localhost:9000",
+            "endpoint_url": self.__class__._minio_endpoint,
             "region_name": "us-east-1",
-            "aws_access_key_id": "access",
-            "aws_secret_access_key": "secret",
-            "use_ssl": True,
+            "aws_access_key_id": self.__class__._minio_access_key,
+            "aws_secret_access_key": self.__class__._minio_secret_key,
+            "use_ssl": False,
         }
-
-        fake_client = Mock()
-        fake_client.upload_fileobj = Mock(
-            side_effect=lambda stream, *_args, **_kwargs: stream.read()
-        )
 
         data = {
-            "data": '{"doc": {"$ref": "/files/attachment"}}',
-            "attachment": (io.BytesIO(b"hello s3"), "upload.txt"),
+            "data": '{"doc": {"$ref": "/files/report.pdf"}}',
+            "report.pdf": (io.BytesIO(b"hello s3"), "upload.txt"),
         }
 
-        with patch("boto3.client", return_value=fake_client) as boto_client:
-            r = self.auth_client.post(
-                "/item/note?include_data=1",
-                data=data,
-                headers=self._auth_headers(),
-                content_type="multipart/form-data",
-            )
+        r = self.auth_client.post(
+            "/item/note?include_data=1",
+            data=data,
+            headers=self._auth_headers(),
+            content_type="multipart/form-data",
+        )
 
         self.assertEqual(r.status_code, 201)
         body = r.get_json(silent=True) or {}
         self.assertIn("files", body)
-        self.assertIn("attachment", body.get("files", {}))
+        self.assertIn("report.pdf", body.get("files", {}))
 
-        boto_client.assert_called_once()
-        _, kwargs = boto_client.call_args
-        self.assertEqual(kwargs.get("endpoint_url"), "http://localhost:9000")
-        self.assertEqual(kwargs.get("region_name"), "us-east-1")
-        self.assertEqual(kwargs.get("aws_access_key_id"), "access")
-        self.assertEqual(kwargs.get("aws_secret_access_key"), "secret")
-        self.assertEqual(kwargs.get("use_ssl"), True)
-        self.assertIsInstance(kwargs.get("config"), BotoConfig)
+        stored_item = self.vdb.items.find_one({"_id": body["id"]}) or {}
+        key = ((stored_item.get("files") or {}).get("report.pdf") or {}).get("storage_key")
+        obj = self.s3_client.get_object(Bucket=self.s3_bucket, Key=f"docs/{key}")
+        self.assertEqual(obj["Metadata"].get("name"), "report.pdf")
+        self.assertEqual(obj["Body"].read(), b"hello s3")
 
-        upload_args, upload_kwargs = fake_client.upload_fileobj.call_args
-        self.assertEqual(upload_args[1], "test-bucket")
-        self.assertTrue(upload_args[2].startswith("docs/"))
-        self.assertEqual(
-            upload_kwargs.get("ExtraArgs", {}).get("Metadata", {}).get("name"),
-            "attachment",
+    def test_presign_s3_attach_staged_file(self):
+        self._enable_s3_backend(prefix="items")
+        presign = self.auth_client.post(
+            "/item-file/staging/presign/report.pdf",
+            headers=self._auth_headers(),
+            json={
+                "operations": ["put", "head"],
+                "mimetype": "application/pdf",
+            },
         )
+
+        self.assertEqual(presign.status_code, 200)
+        body = presign.get_json(silent=True) or {}
+        self.assertTrue((body.get("ref") or "").startswith("/files/staging/"))
+        self.assertIn("put", body.get("methods") or {})
+        put_headers = (body.get("methods") or {}).get("put", {}).get("headers") or {}
+        self.assertNotIn("x-amz-tagging", put_headers)
+        self.assertIn("x-amz-meta-name", put_headers)
+
+        request_obj = urllib.request.Request(
+            body["methods"]["put"]["url"],
+            data=b"hello staged s3 payload",
+            method="PUT",
+            headers=put_headers,
+        )
+        with urllib.request.urlopen(request_obj) as response:
+            self.assertLess(response.status, 300)
+
+        create = self.auth_client.post(
+            "/item/note?include_data=1",
+            headers=self._auth_headers(),
+            json={"data": {"doc": {"$ref": body["ref"]}}},
+        )
+
+        self.assertEqual(create.status_code, 201)
+        item = create.get_json(silent=True) or {}
+        self.assertEqual(item.get("data", {}).get("doc", {}).get("$ref"), "/files/report.pdf")
+        meta = (item.get("files") or {}).get("report.pdf") or {}
+        self.assertEqual(meta.get("content_type"), "application/pdf")
+
+        doc = self.vdb.items.find_one({"_id": item.get("id")}) or {}
+        stored = (doc.get("files") or {}).get("report.pdf") or {}
+        self.assertTrue(str(stored.get("storage_key", "")).startswith("u:"))
+        obj = self.s3_client.head_object(Bucket=self.s3_bucket, Key=f"items/{stored['storage_key']}")
+        self.assertEqual(obj["ContentType"], "application/pdf")
+        self.assertIsNone(
+            self.vdb["item_file_staging_cleanup"].find_one(
+                {"storage_key": stored.get("storage_key")}
+            )
+        )
+
+    def test_presign_gridfs_attach_staged_file(self):
+        presign = self.auth_client.post(
+            "/item-file/staging/presign/report.txt",
+            headers=self._auth_headers(),
+            json={
+                "operations": ["put", "get", "head", "delete"],
+                "mimetype": "text/plain",
+            },
+        )
+        self.assertEqual(presign.status_code, 200)
+        body = presign.get_json(silent=True) or {}
+        self.assertIn("ref", body)
+        self.assertIn("expires_at", body)
+        self.assertSetEqual(set(body.get("methods", ())), {"put", "get", "head", "delete"})
+        put = ((body.get("methods") or {}).get("put") or {}).get("url")
+        self.assertIsInstance(put, str)
+
+        upload = self.auth_client.put(
+            put,
+            data=b"hello staged",
+            headers={**self._auth_headers(), "Content-Type": "text/plain"},
+        )
+        self.assertEqual(upload.status_code, 200)
+
+        create = self.auth_client.post(
+            "/item/note?include_data=1",
+            headers=self._auth_headers(),
+            json={"data": {"doc": {"$ref": body["ref"]}}},
+        )
+        self.assertEqual(create.status_code, 201)
+        item = create.get_json(silent=True) or {}
+        self.assertEqual(item.get("data", {}).get("doc", {}).get("$ref"), "/files/report.txt")
+
+        doc = self.vdb.items.find_one({"_id": item.get("id")}) or {}
+        stored = (doc.get("files") or {}).get("report.txt") or {}
+        self.assertIsNone(
+            self.vdb["item_file_staging_cleanup"].find_one(
+                {"storage_key": stored.get("storage_key")}
+            )
+        )
+
+        download = self.auth_client.get(
+            f"/item-file/{item.get('id')}/report.txt",
+            headers=self._auth_headers(),
+        )
+        self.assertEqual(download.status_code, 200)
+        self.assertEqual(download.data, b"hello staged")
+
+    def test_presign_gridfs_forbids_other_user_attach(self):
+        presign = self.auth_client.post(
+            "/item-file/staging/presign/secret.txt",
+            headers=self._auth_headers(),
+            json={"operations": ["put"], "name": "secret", "mimetype": "text/plain"},
+        )
+        body = presign.get_json(silent=True) or {}
+        upload_url = ((body.get("methods") or {}).get("put") or {}).get("url")
+        upload = self.auth_client.put(
+            upload_url,
+            data=b"hello",
+            headers={**self._auth_headers(), "Content-Type": "text/plain"},
+        )
+        self.assertEqual(upload.status_code, 200)
+
+        create = self.auth_client.post(
+            "/item/note?include_data=1",
+            headers=self._other_headers(),
+            json={"data": {"doc": {"$ref": body["ref"]}}},
+        )
+        self.assertEqual(create.status_code, 403)
+
+    def test_cleanup_staging_cli_removes_expired_gridfs_files(self):
+        stale_id = f"u:{self.user.id}/{uuid.uuid4()}"
+        fresh_id = f"u:{self.user.id}/{uuid.uuid4()}"
+        fs = gridfs.GridFS(cast(Any, self.vdb))
+        fs.put(
+            b"stale",
+            _id=stale_id,
+            filename="stale.txt",
+            storage_key=f"u:{self.user.id}/stale.txt",
+        )
+        fs.put(
+            b"fresh",
+            _id=fresh_id,
+            filename="fresh.txt",
+            storage_key=f"u:{self.user.id}/fresh.txt",
+        )
+        cleanup = self.vdb["item_file_staging_cleanup"]
+        cleanup.insert_many([
+            {
+                "storage_key": stale_id,
+                "filename": "stale.txt",
+                "expires_at": datetime.now(timezone.utc) - timedelta(minutes=10),
+            },
+            {
+                "storage_key": fresh_id,
+                "filename": "fresh.txt",
+                "expires_at": datetime.now(timezone.utc) + timedelta(minutes=10),
+            },
+        ])
+
+        runner = self.app.test_cli_runner()
+        result = runner.invoke(args=["item-files-cleanup-staging"])
+
+        self.assertEqual(result.exit_code, 0)
+        self.assertIn("Deleted 1 expired staged file(s).", result.output)
+        self.assertIsNone(self.vdb["fs.files"].find_one({"_id": stale_id}))
+        self.assertIsNotNone(self.vdb["fs.files"].find_one({"_id": fresh_id}))
+        self.assertIsNone(cleanup.find_one({"storage_key": stale_id}))
+        self.assertIsNotNone(cleanup.find_one({"storage_key": fresh_id}))
+
+    def test_cleanup_staging_cli_removes_expired_s3_files(self):
+        self._enable_s3_backend(prefix="items")
+        self.s3_client.put_object(Bucket=self.s3_bucket, Key="items/u:1/old.txt", Body=b"old")
+        self.s3_client.put_object(Bucket=self.s3_bucket, Key="items/u:1/fresh.txt", Body=b"fresh")
+        cleanup = self.vdb["item_file_staging_cleanup"]
+        cleanup.insert_many([
+            {
+                "storage_key": "u:1/old.txt",
+                "filename": "old.txt",
+                "expires_at": datetime.now(timezone.utc) - timedelta(hours=2),
+            },
+            {
+                "storage_key": "u:1/fresh.txt",
+                "filename": "fresh.txt",
+                "expires_at": datetime.now(timezone.utc) + timedelta(hours=2),
+            },
+        ])
+
+        runner = self.app.test_cli_runner()
+        result = runner.invoke(args=["item-files-cleanup-staging"])
+
+        self.assertEqual(result.exit_code, 0)
+        self.assertIn("Deleted 1 expired staged file(s).", result.output)
+        with self.assertRaises(Exception):
+            self.s3_client.head_object(Bucket=self.s3_bucket, Key="items/u:1/old.txt")
+        self.s3_client.head_object(Bucket=self.s3_bucket, Key="items/u:1/fresh.txt")
+        self.assertIsNone(cleanup.find_one({"storage_key": "u:1/old.txt"}))
+        self.assertIsNotNone(cleanup.find_one({"storage_key": "u:1/fresh.txt"}))
+
+    def test_attach_staged_file_expired_returns_410(self):
+        signer = URLSafeSerializer(self.app.config["SECRET_KEY"], salt="item-files-staging")
+        token = signer.dumps({
+            "sub": f"u:{self.user.id}",
+            "filename": "expired.txt",
+            "mimetype": "text/plain",
+            "operations": ["put"],
+            "storage_key": f"u:{self.user.id}/{uuid.uuid4().hex}.txt",
+            "exp": 1,
+        })
+        create = self.auth_client.post(
+            "/item/note?include_data=1",
+            headers=self._auth_headers(),
+            json={"data": {"doc": {"$ref": f"/files/staging/{token}"}}},
+        )
+        self.assertEqual(create.status_code, 410)
+
+    def test_attach_missing_s3_staged_file_returns_404(self):
+        self._enable_s3_backend(prefix="items")
+
+        signer = URLSafeSerializer(self.app.config["SECRET_KEY"], salt="item-files-staging")
+        token = signer.dumps({
+            "sub": f"u:{self.user.id}",
+            "filename": "missing.txt",
+            "mimetype": "text/plain",
+            "operations": ["put"],
+            "storage_key": f"u:{self.user.id}/{uuid.uuid4().hex}.txt",
+            "exp": int(datetime.now(timezone.utc).timestamp()) + 3600,
+        })
+
+        create = self.auth_client.post(
+            "/item/note?include_data=1",
+            headers=self._auth_headers(),
+            json={"data": {"doc": {"$ref": f"/files/staging/{token}"}}},
+        )
+        self.assertEqual(create.status_code, 404)
 
 
 if __name__ == "__main__":

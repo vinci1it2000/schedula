@@ -5,6 +5,9 @@ from __future__ import annotations
 
 import os
 
+import click
+from flask.cli import with_appcontext
+
 from ..utils import abort_json, get_mongo, config_get
 
 
@@ -37,6 +40,7 @@ class Items:
             ("S3_ITEMS_FILE_SECRET_KEY", None),
             ("S3_ITEMS_FILE_USE_SSL", None),
             ("S3_ITEMS_FILE_PREFIX", ""),
+            ("ITEM_ARTIFACT_STAGING_TTL_SECONDS", 3600),
             ("MONGO_MAX_TIME_MS", 2000),
         ]:
             app.config[key] = app.config.get(key, os.environ.get(key, default))
@@ -58,6 +62,17 @@ class Items:
         coll.create_index([("category", 1), ("public", 1), ("updated_at", -1)])
         coll.create_index([("category", 1), ("created_at", -1)])
 
-        fs_files = get_mongo(app, collection="fs.files")
-        fs_files.create_index("user_id")
-        fs_files.create_index("uploadDate")
+        cleanup_coll = get_mongo(
+            app,
+            collection=config_get("ITEM_FILES_STAGING_CLEANUP_COLLECTION", "item_file_staging_cleanup", app=app),
+        )
+        cleanup_coll.create_index([("expires_at", 1)])
+        cleanup_coll.create_index([("storage_key", 1)], unique=True)
+
+        @app.cli.command("item-files-cleanup-staging")
+        @with_appcontext
+        def item_files_cleanup_staging_command():
+            from .files import cleanup_expired_staging_files_count
+
+            deleted = cleanup_expired_staging_files_count()
+            click.echo(f"Deleted {deleted} expired staged file(s).")

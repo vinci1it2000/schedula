@@ -10,11 +10,8 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 from copy import deepcopy
-from datetime import datetime
-from typing import Any, Dict, List
 
-from flask import Blueprint, request, current_app
-from jsonschema import Draft202012Validator
+from flask import Blueprint, current_app
 
 from ..contracts.engine import _contracts_coll, _templates_coll
 from ..contracts.routes import TEMPLATE_CREATE_SCHEMA as _TEMPLATE_CREATE_SCHEMA
@@ -100,44 +97,6 @@ def _ensure_indexes():
                 name="apis_temp_doc_ttl_idx",
                 expireAfterSeconds=ttl_seconds,
             )
-
-
-def _parse_json_body() -> Dict[str, Any]:
-    payload = request.get_json(force=True, silent=True) or {}
-    if not isinstance(payload, dict):
-        abort_json(400, "Invalid JSON payload")
-    return payload
-
-
-def _serialize_template(doc: Dict[str, Any]) -> Dict[str, Any]:
-    created_at = doc.get("created_at")
-    updated_at = doc.get("updated_at")
-    created_at_str = (
-        created_at.isoformat() if isinstance(created_at, datetime) else None
-    )
-    updated_at_str = (
-        updated_at.isoformat() if isinstance(updated_at, datetime) else None
-    )
-    return {
-        "id": doc.get("_id"),
-        "name": doc.get("name"),
-        "description": doc.get("description"),
-        "is_enabled": bool(doc.get("is_enabled", False)),
-        "allowed_subjects": doc.get("allowed_subjects") or [],
-        "allowed_initial_states": doc.get("allowed_initial_states") or [],
-        "definition": doc.get("definition") or {},
-        "metadata": doc.get("metadata") or {},
-        "created_at": created_at_str,
-        "updated_at": updated_at_str,
-    }
-
-
-def _validate_schema(payload: Dict[str, Any], schema: Dict[str, Any]) -> List[str]:
-    try:
-        v = Draft202012Validator(schema)
-        return [e.message for e in v.iter_errors(payload)]
-    except Exception as e:
-        return [str(e)]
 
 
 @bp.post("/templates")
