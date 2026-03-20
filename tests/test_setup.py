@@ -16,7 +16,7 @@ def rst2html(source):
     from docutils.core import publish_string
     return publish_string(
         source, reader_name='standalone', parser_name='restructuredtext',
-        writer_name='html', settings_overrides={'halt_level': 2}  # 2=WARN
+        writer='html', settings_overrides={'halt_level': 2}  # 2=WARN
     )[0]
 
 

@@ -61,6 +61,25 @@ components:
       type: apiKey
       in: header
       name: X-Notif-Secret
+  examples:
+    UnauthorizedError:
+      value:
+        error: unauthorized
+        message: Authentication required
+    ForbiddenError:
+      value:
+        error: forbidden
+        message: Access denied
+    NotFoundError:
+      value:
+        error: not_found
+        message: Resource not found
+    ValidationError:
+      value:
+        error: invalid_payload
+        message: Invalid payload
+        details:
+          field: name
   schemas:
     Error:
       type: object
@@ -72,11 +91,18 @@ components:
         details:
           type: object
           additionalProperties: true
+      example:
+        error: invalid_payload
+        message: Invalid payload
+        details:
+          field: name
     Status:
       type: object
       properties:
         status:
           type: string
+      example:
+        status: uploaded
     StripeCheckoutSessionResponse:
       type: object
       properties:
@@ -435,6 +461,8 @@ components:
                       type: string
     WatcherRequest:
       type: object
+      required:
+        - channels
       properties:
         event:
           type: string
@@ -455,14 +483,41 @@ components:
         enabled:
           type: boolean
           default: true
+      additionalProperties: false
+    Watcher:
+      type: object
+      properties:
+        id:
+          type: string
+        event:
+          type: string
+        category:
+          type: string
+        object_id:
+          type: string
+        dom:
+          type: string
+        channels:
+          type: array
+          items:
+            type: string
+        enabled:
+          type: boolean
+      additionalProperties: true
     WatcherListResponse:
       type: object
       properties:
         watchers:
           type: array
           items:
-            type: object
-            additionalProperties: true
+            $ref: '#/components/schemas/Watcher'
+    WatcherCreateResponse:
+      type: object
+      properties:
+        id:
+          type: string
+      required:
+        - id
     NotificationRuleInput:
       type: object
       properties:
@@ -495,6 +550,98 @@ components:
           properties:
             id:
               type: string
+    SecurityUserPayload:
+      type: object
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+        username:
+          type: string
+          nullable: true
+        firstname:
+          type: string
+          nullable: true
+        lastname:
+          type: string
+          nullable: true
+        avatar:
+          type: object
+          additionalProperties: true
+          nullable: true
+        settings:
+          type: object
+          additionalProperties: true
+          nullable: true
+        custom_data:
+          type: object
+          additionalProperties: true
+          nullable: true
+        roles:
+          type: array
+          items:
+            type: string
+        token:
+          type: string
+      additionalProperties: false
+      example:
+        id: 1
+        email: user@example.com
+        username: user@example.com
+        firstname: Mario
+        lastname: Rossi
+        avatar:
+          url: https://example.com/avatar.png
+        settings:
+          theme: light
+          language: it
+        custom_data:
+          timezone: Europe/Rome
+        roles: [user]
+        token: <auth-token>
+    UserSettingsResponse:
+      type: object
+      properties:
+        settings:
+          type: object
+          additionalProperties: true
+        user:
+          $ref: '#/components/schemas/SecurityUserPayload'
+      additionalProperties: false
+      example:
+        settings:
+          theme: dark
+          language: it
+        user:
+          id: 1
+          email: user@example.com
+          firstname: Mario
+          lastname: Rossi
+          roles: [user]
+          token: <auth-token>
+    PublicItemFile:
+      type: object
+      properties:
+        name:
+          type: string
+        url:
+          type: string
+        content_type:
+          type: string
+          nullable: true
+        size:
+          type: integer
+          nullable: true
+      required:
+        - name
+        - url
+      additionalProperties: false
+      example:
+        name: report.pdf
+        url: /item-file/123/report.pdf
+        content_type: application/pdf
+        size: 2048
     Item:
       type: object
       properties:
@@ -522,7 +669,27 @@ components:
           additionalProperties: true
         files:
           type: object
-          additionalProperties: true
+          additionalProperties:
+            $ref: '#/components/schemas/PublicItemFile'
+      example:
+        id: 123
+        category: note
+        acl_dom: acl:user:1
+        grants_ref: null
+        created_by: u:1
+        updated_by: u:1
+        created_at: '2026-03-20T10:00:00+00:00'
+        updated_at: '2026-03-20T10:05:00+00:00'
+        data:
+          title: Example note
+          doc:
+            $ref: /files/report.pdf
+        files:
+          report.pdf:
+            name: report.pdf
+            url: /item-file/123/report.pdf
+            content_type: application/pdf
+            size: 2048
     ItemCreate:
       type: object
       properties:
@@ -720,6 +887,25 @@ components:
           type: string
         updated_at:
           type: string
+          format: date-time
+      example:
+        id: tpl-1
+        name: onboarding
+        description: Driver onboarding workflow
+        is_enabled: true
+        allowed_subjects: [u:1, g:team]
+        allowed_initial_states: [START]
+        definition:
+          initial_state: START
+          states:
+            START:
+              on:
+                request-join:
+                  target: ONBOARDING
+        metadata:
+          version: 1
+        created_at: '2026-03-20T10:00:00+00:00'
+        updated_at: '2026-03-20T10:10:00+00:00'
     ContractTemplateListResponse:
       type: object
       properties:
@@ -768,31 +954,62 @@ components:
       properties:
         id:
           type: string
+        status:
+          type: string
         state:
           type: string
           nullable: true
-        status:
-          type: string
+        aggregate_state:
+          type: object
+          additionalProperties: true
+          nullable: true
         user_state:
           type: string
           nullable: true
         created_at:
           type: string
+          format: date-time
           nullable: true
         updated_at:
           type: string
+          format: date-time
           nullable: true
       additionalProperties: true
+      example:
+        id: contract-123
+        status: active
+        state: ONBOARDING
+        aggregate_state:
+          pending_users: 2
+        user_state: REQUESTING
+        created_at: '2026-03-20T10:00:00+00:00'
+        updated_at: '2026-03-20T10:15:00+00:00'
     ContractEventRequest:
       type: object
       properties:
+        item_id:
+          type: string
         payload:
           type: object
           additionalProperties: true
       additionalProperties: false
+      example:
+        payload:
+          item_id: contract-123
     ContractEventResponse:
       type: object
+      properties:
+        ok:
+          type: boolean
+        event:
+          type: string
+        error:
+          type: string
+          nullable: true
       additionalProperties: true
+      example:
+        ok: true
+        event: request-join
     ApiTemplate:
       type: object
       properties:
@@ -811,13 +1028,40 @@ components:
           additionalProperties: true
         is_enabled:
           type: boolean
+        allowed_subjects:
+          type: array
+          items:
+            type: string
+        allowed_initial_states:
+          type: array
+          items:
+            type: string
         created_at:
           type: string
+          format: date-time
           nullable: true
         updated_at:
           type: string
+          format: date-time
           nullable: true
       additionalProperties: true
+      example:
+        id: api-tpl-1
+        name: events
+        description: Event actions API template
+        is_enabled: true
+        allowed_subjects: []
+        allowed_initial_states: [START]
+        definition:
+          initial_state: START
+          states:
+            START:
+              on:
+                join-event:
+                  target: DONE
+        metadata: {}
+        created_at: '2026-03-20T10:00:00+00:00'
+        updated_at: '2026-03-20T10:10:00+00:00'
     ApiTemplateListResponse:
       type: object
       properties:
@@ -843,7 +1087,69 @@ components:
           additionalProperties: true
         is_enabled:
           type: boolean
+        allowed_subjects:
+          type: array
+          items:
+            type: string
+        allowed_initial_states:
+          type: array
+          items:
+            type: string
       additionalProperties: true
+      example:
+        name: events
+        description: Event actions API template
+        definition:
+          initial_state: START
+          states:
+            START:
+              on:
+                join-event:
+                  target: DONE
+        metadata: {}
+        is_enabled: true
+    ItemFileStagingMethod:
+      type: object
+      properties:
+        url:
+          type: string
+        headers:
+          type: object
+          additionalProperties:
+            type: string
+      required:
+        - url
+      example:
+        url: https://s3.example.com/presigned
+        headers:
+          Content-Type: application/pdf
+          x-amz-meta-name: report.pdf
+    ItemFileStagingPresignResponse:
+      type: object
+      properties:
+        ref:
+          type: string
+        expires_at:
+          type: string
+          format: date-time
+        methods:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/ItemFileStagingMethod'
+      required:
+        - ref
+        - expires_at
+        - methods
+      example:
+        ref: /files/staging/<token>
+        expires_at: '2026-03-20T11:00:00+00:00'
+        methods:
+          put:
+            url: https://s3.example.com/presigned-put
+            headers:
+              Content-Type: application/pdf
+          head:
+            url: https://s3.example.com/presigned-head
 security:
   - bearerAuth: [ ]
   - cookieAuth: [ ]
@@ -872,24 +1178,36 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                invalidPayload:
+                  $ref: '#/components/examples/ValidationError'
         '401':
           description: Unauthorized
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                unauthorized:
+                  $ref: '#/components/examples/UnauthorizedError'
         '403':
           description: Forbidden
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                forbidden:
+                  $ref: '#/components/examples/ForbiddenError'
         '404':
           description: Not Found
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                notFound:
+                  $ref: '#/components/examples/NotFoundError'
         '500':
           description: Server Error
           content:
@@ -921,24 +1239,36 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                invalidPayload:
+                  $ref: '#/components/examples/ValidationError'
         '401':
           description: Unauthorized
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                unauthorized:
+                  $ref: '#/components/examples/UnauthorizedError'
         '403':
           description: Forbidden
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                forbidden:
+                  $ref: '#/components/examples/ForbiddenError'
         '404':
           description: Not Found
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                notFound:
+                  $ref: '#/components/examples/NotFoundError'
         '500':
           description: Server Error
           content:
@@ -968,24 +1298,36 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                invalidPayload:
+                  $ref: '#/components/examples/ValidationError'
         '401':
           description: Unauthorized
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                unauthorized:
+                  $ref: '#/components/examples/UnauthorizedError'
         '403':
           description: Forbidden
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                forbidden:
+                  $ref: '#/components/examples/ForbiddenError'
         '404':
           description: Not Found
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                notFound:
+                  $ref: '#/components/examples/NotFoundError'
         '500':
           description: Server Error
           content:
@@ -1017,6 +1359,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                invalidPayload:
+                  $ref: '#/components/examples/ValidationError'
       requestBody:
         required: true
         content:
@@ -1058,24 +1403,36 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                invalidPayload:
+                  $ref: '#/components/examples/ValidationError'
         '401':
           description: Unauthorized
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                unauthorized:
+                  $ref: '#/components/examples/UnauthorizedError'
         '403':
           description: Forbidden
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                forbidden:
+                  $ref: '#/components/examples/ForbiddenError'
         '404':
           description: Not Found
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                notFound:
+                  $ref: '#/components/examples/NotFoundError'
         '500':
           description: Server Error
           content:
@@ -1112,18 +1469,27 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                unauthorized:
+                  $ref: '#/components/examples/UnauthorizedError'
         '403':
           description: Forbidden
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                forbidden:
+                  $ref: '#/components/examples/ForbiddenError'
         '404':
           description: Not Found
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                notFound:
+                  $ref: '#/components/examples/NotFoundError'
         '500':
           description: Server Error
           content:
@@ -1161,18 +1527,27 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                invalidPayload:
+                  $ref: '#/components/examples/ValidationError'
         '401':
           description: Unauthorized
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                unauthorized:
+                  $ref: '#/components/examples/UnauthorizedError'
         '403':
           description: Forbidden
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                forbidden:
+                  $ref: '#/components/examples/ForbiddenError'
         '404':
           description: Not Found
           content:
@@ -1585,6 +1960,16 @@ paths:
       responses:
         '200':
           description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserSettingsResponse'
+              examples:
+                settingsOnly:
+                  value:
+                    settings:
+                      theme: light
+                      language: it
         '400':
           description: Bad Request
           content:
@@ -1633,6 +2018,16 @@ paths:
       responses:
         '200':
           description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserSettingsResponse'
+              examples:
+                updated:
+                  value:
+                    settings:
+                      theme: light
+                      language: it
         '400':
           description: Bad Request
           content:
@@ -1676,6 +2071,9 @@ paths:
             schema:
               type: object
               additionalProperties: true
+            example:
+              theme: light
+              language: it
     patch:
       operationId: patch_user_settings
       tags:
@@ -1687,6 +2085,16 @@ paths:
       responses:
         '200':
           description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserSettingsResponse'
+              examples:
+                patched:
+                  value:
+                    settings:
+                      theme: dark
+                      language: it
         '400':
           description: Bad Request
           content:
@@ -1718,6 +2126,8 @@ paths:
             schema:
               type: object
               additionalProperties: true
+            example:
+              language: it
     put:
       operationId: put_user_settings
       tags:
@@ -1730,6 +2140,15 @@ paths:
       responses:
         '200':
           description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserSettingsResponse'
+              examples:
+                replaced:
+                  value:
+                    settings:
+                      theme: dark
         '400':
           description: Bad Request
           content:
@@ -1773,6 +2192,8 @@ paths:
             schema:
               type: object
               additionalProperties: true
+            example:
+              theme: dark
   /user/me:
     get:
       operationId: get_user_me
@@ -1789,8 +2210,15 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                additionalProperties: true
+                $ref: '#/components/schemas/SecurityUserPayload'
+              examples:
+                me:
+                  value:
+                    id: 1
+                    email: user@example.com
+                    firstname: Mario
+                    lastname: Rossi
+                    roles: [user]
         '400':
           description: Bad Request
           content:
@@ -2922,6 +3350,212 @@ paths:
           required: true
           schema:
             type: string
+  /item-file/staging/presign/{filename}:
+    post:
+      operationId: post_item_file_staging_presign_by_filename
+      tags:
+        - Item Files
+      summary: Create staged file upload URLs
+      description: >
+        Generates backend-specific staged upload URLs for an item file and returns
+        a temporary `$ref` that can later be used in item create or update payloads.
+        When S3 is configured the response contains presigned URLs; when GridFS is
+        configured the response contains application URLs for equivalent direct file
+        actions.
+      parameters:
+        - name: filename
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - operations
+              properties:
+                operations:
+                  type: array
+                  minItems: 1
+                  uniqueItems: true
+                  items:
+                    type: string
+                    enum: [put, get, delete, head]
+                mimetype:
+                  type: string
+                name:
+                  type: string
+              additionalProperties: false
+      responses:
+        '200':
+          description: Staging URLs generated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ItemFileStagingPresignResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                unauthorized:
+                  $ref: '#/components/examples/UnauthorizedError'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalidPayload:
+                  $ref: '#/components/examples/ValidationError'
+      security:
+        - authToken: []
+        - bearerAuth: []
+        - cookieAuth: []
+  /item-file/staging/blob/{token}:
+    get:
+      operationId: get_item_file_staging_blob_by_token
+      tags:
+        - Item Files
+      summary: Download staged GridFS blob
+      description: >
+        Backend-specific staging endpoint used when GridFS is the file backend.
+        Returns the staged blob content identified by the signed token.
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Blob content
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '403':
+          description: Operation not allowed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    put:
+      operationId: put_item_file_staging_blob_by_token
+      tags:
+        - Item Files
+      summary: Upload staged GridFS blob
+      description: >
+        Backend-specific staging endpoint used when GridFS is the file backend.
+        Uploads or replaces the staged blob identified by the signed token.
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Upload accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Status'
+        '400':
+          description: Missing file or invalid token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Operation not allowed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    head:
+      operationId: head_item_file_staging_blob_by_token
+      tags:
+        - Item Files
+      summary: Inspect staged GridFS blob
+      description: >
+        Returns headers for the staged blob identified by the signed token when
+        GridFS is the active backend.
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Blob metadata headers only
+        '403':
+          description: Operation not allowed
+        '404':
+          description: Not found
+    delete:
+      operationId: delete_item_file_staging_blob_by_token
+      tags:
+        - Item Files
+      summary: Delete staged GridFS blob
+      description: >
+        Deletes the staged blob identified by the signed token when GridFS is the
+        active backend.
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Blob deleted
+        '403':
+          description: Operation not allowed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
   /admin/item-schema:
     get:
       operationId: get_admin_item_schema
@@ -3823,6 +4457,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                invalidPayload:
+                  $ref: '#/components/examples/ValidationError'
       parameters:
         - name: checkout
           in: path
@@ -3854,6 +4491,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                invalidPayload:
+                  $ref: '#/components/examples/ValidationError'
         '401':
           description: Unauthorized
           content:
@@ -3872,6 +4512,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                notFound:
+                  $ref: '#/components/examples/NotFoundError'
       parameters:
         - name: checkout
           in: path
@@ -4073,6 +4716,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                unauthorized:
+                  $ref: '#/components/examples/UnauthorizedError'
         '500':
           description: Server Error
           content:
@@ -4104,6 +4750,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                unauthorized:
+                  $ref: '#/components/examples/UnauthorizedError'
         '500':
           description: Server Error
           content:
@@ -4141,6 +4790,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                unauthorized:
+                  $ref: '#/components/examples/UnauthorizedError'
         '500':
           description: Server Error
           content:
@@ -4216,12 +4868,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                invalidPayload:
+                  $ref: '#/components/examples/ValidationError'
         '401':
           description: Authentication required
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                unauthorized:
+                  $ref: '#/components/examples/UnauthorizedError'
         '500':
           description: Server Error
           content:
@@ -4262,6 +4920,17 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/WatcherListResponse'
+              examples:
+                listExample:
+                  value:
+                    watchers:
+                      - id: watcher-1
+                        event: update
+                        category: note
+                        object_id: "*"
+                        dom: "*"
+                        channels: [in_app]
+                        enabled: true
         '401':
           description: Authentication required
           content:
@@ -4289,19 +4958,30 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/WatcherRequest'
+            example:
+              event: update
+              category: note
+              object_id: "*"
+              dom: "*"
+              channels: [in_app]
       responses:
         '200':
           description: Created
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/NotificationCreateResponse'
+                $ref: '#/components/schemas/WatcherCreateResponse'
+              example:
+                id: watcher-1
         '401':
           description: Authentication required
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                unauthorized:
+                  $ref: '#/components/examples/UnauthorizedError'
         '500':
           description: Server Error
           content:
@@ -4345,12 +5025,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                unauthorized:
+                  $ref: '#/components/examples/UnauthorizedError'
         '404':
           description: Not found
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                notFound:
+                  $ref: '#/components/examples/NotFoundError'
         '500':
           description: Server Error
           content:
@@ -4387,12 +5073,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                unauthorized:
+                  $ref: '#/components/examples/UnauthorizedError'
         '404':
           description: Not found
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                notFound:
+                  $ref: '#/components/examples/NotFoundError'
         '500':
           description: Server Error
           content:
@@ -4439,6 +5131,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                forbidden:
+                  $ref: '#/components/examples/ForbiddenError'
         '500':
           description: Server Error
           content:
@@ -4570,6 +5265,84 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+  /admin/notification/triggers:
+    get:
+      operationId: get_admin_notification_triggers
+      tags:
+        - Notifications
+      summary: List delivery triggers (admin only)
+      description: >
+        Returns notification delivery triggers with optional filtering by kind and
+        status, plus pagination and sorting support. Requires system admin
+        privileges.
+      parameters:
+        - name: kind
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  triggers:
+                    type: array
+                    items:
+                      type: object
+                      additionalProperties: true
+                  total:
+                    type: integer
+                  next_offset:
+                    type: integer
+                    nullable: true
+              examples:
+                triggerList:
+                  value:
+                    triggers:
+                      - _id: trigger-1
+                        kind: delivery
+                        mode: immediate_async
+                        status: pending
+                        notification_ids: [n1]
+                        attempts: 0
+                    total: 1
+                    next_offset: null
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
   /admin/notification/notify:
     post:
       operationId: post_admin_notification_notify
@@ -4597,12 +5370,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                invalidPayload:
+                  $ref: '#/components/examples/ValidationError'
         '403':
           description: Forbidden
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                forbidden:
+                  $ref: '#/components/examples/ForbiddenError'
         '500':
           description: Server Error
           content:
@@ -5793,6 +6572,20 @@ paths:
                   next_offset:
                     type: integer
                     nullable: true
+              examples:
+                listContracts:
+                  value:
+                    items:
+                      - id: contract-a
+                        state: ONBOARDING
+                        status: active
+                      - id: contract-b
+                        state: ONBOARDING
+                        status: active
+                    total: 2
+                    limit: 10
+                    offset: 0
+                    next_offset: null
         '400':
           description: Bad Request
           content:
@@ -5876,6 +6669,15 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ContractDocument'
+              examples:
+                contract:
+                  value:
+                    id: contract-123
+                    status: active
+                    state: ONBOARDING
+                    aggregate_state:
+                      pending_users: 2
+                    user_state: REQUESTING
         '401':
           description: Unauthorized
           content:
@@ -5914,6 +6716,9 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/ContractEventRequest'
+            example:
+              payload:
+                item_id: contract-123
       responses:
         '200':
           description: OK
@@ -5921,24 +6726,38 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ContractEventResponse'
+              examples:
+                eventResult:
+                  value:
+                    ok: true
+                    event: request-join
         '400':
           description: Bad Request
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                invalidPayload:
+                  $ref: '#/components/examples/ValidationError'
         '403':
           description: Forbidden
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                forbidden:
+                  $ref: '#/components/examples/ForbiddenError'
         '404':
           description: Not Found
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                notFound:
+                  $ref: '#/components/examples/NotFoundError'
         '409':
           description: Conflict
           content:
@@ -6019,6 +6838,198 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+    put:
+      operationId: put_contracts_by_contract_id_by_dyn_path
+      tags:
+        - Contracts
+      summary: Fire contract event via PUT
+      description: Same behavior as POST variant.
+      parameters:
+        - name: contract_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: dyn_path
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContractEventRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContractEventResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Invalid payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    patch:
+      operationId: patch_contracts_by_contract_id_by_dyn_path
+      tags:
+        - Contracts
+      summary: Fire contract event via PATCH
+      description: Same behavior as POST variant.
+      parameters:
+        - name: contract_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: dyn_path
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContractEventRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContractEventResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Invalid payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      operationId: delete_contracts_by_contract_id_by_dyn_path
+      tags:
+        - Contracts
+      summary: Fire contract event via DELETE
+      description: Same behavior as POST variant.
+      parameters:
+        - name: contract_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: dyn_path
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContractEventResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Invalid payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
   /apis/templates:
     post:
       operationId: post_apis_templates
@@ -6041,6 +7052,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiTemplate'
+              examples:
+                createdTemplate:
+                  value:
+                    id: template-1
+                    name: events
+                    is_enabled: true
         '401':
           description: Unauthorized
           content:
@@ -6116,6 +7133,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiTemplate'
+              examples:
+                template:
+                  value:
+                    id: api-tpl-1
+                    name: events
+                    is_enabled: true
         '401':
           description: Unauthorized
           content:
@@ -6210,6 +7233,8 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/ContractEventRequest'
+            example:
+              item_id: item-1
       responses:
         '200':
           description: OK
@@ -6217,6 +7242,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ContractEventResponse'
+              examples:
+                apiEvent:
+                  value:
+                    ok: false
+                    event: join_event
         '401':
           description: Unauthorized
           content:
