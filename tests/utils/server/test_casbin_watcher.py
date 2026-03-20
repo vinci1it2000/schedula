@@ -7,44 +7,22 @@ except Exception:
 
 ensure_server_test_env()
 
-
-import importlib.util
 import os
 import sys
 import tempfile
 import time
 import unittest
+import uuid
 from datetime import datetime, timezone
 from unittest import mock
 
 import casbin
-import mongomock
+from pymongo import MongoClient
 
 # Add project root to Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 
-
-def _load_watcher_module():
-    watcher_path = os.path.join(
-        os.path.dirname(__file__),
-        "..",
-        "..",
-        "..",
-        "schedula",
-        "utils",
-        "form",
-        "server",
-        "security",
-        "casbin",
-        "watcher.py",
-    )
-    spec = importlib.util.spec_from_file_location("casbin_watcher", watcher_path)
-    if spec is None or spec.loader is None:
-        raise RuntimeError("Failed to load watcher module")
-    module = importlib.util.module_from_spec(spec)
-    sys.modules[spec.name] = module
-    spec.loader.exec_module(module)
-    return module
+from tests.utils.server.utils.testcontainers_support import MongoMySqlContainersMixin
 
 
 class FakeStream:
@@ -69,9 +47,12 @@ class FakeStream:
         return {"operationType": "insert", "fullDocument": doc}
 
 
-class TestCasbinWatcher(unittest.TestCase):
+class TestCasbinWatcher(MongoMySqlContainersMixin, unittest.TestCase):
     def setUp(self):
         self._tmp_files = []
+        self.mongo_uri = self._test_mongo_uri(f"schedula_casbin_watcher")
+        self.mongo_client = MongoClient(self.mongo_uri)
+        self.watcher_db_name = f"casbin_{uuid.uuid4().hex}"
 
     def tearDown(self):
         for path in self._tmp_files:
@@ -79,6 +60,11 @@ class TestCasbinWatcher(unittest.TestCase):
                 os.unlink(path)
             except OSError:
                 pass
+        try:
+            self.mongo_client.drop_database(self.mongo_db_name)
+        except Exception:
+            pass
+        self.mongo_client.close()
 
     def _model_path(self) -> str:
         return os.path.join(
@@ -105,16 +91,13 @@ class TestCasbinWatcher(unittest.TestCase):
         return e
 
     def _attach_watchers(self, e1, e2, debounce_ms=0):
-        module = _load_watcher_module()
-        shared_client = mongomock.MongoClient()
-
-        with mock.patch.object(module, "MongoClient", return_value=shared_client):
-            watcher1 = module.MongoIncrementalWatcher(
-                "mongodb://mock", debounce_ms=debounce_ms
-            )
-            watcher2 = module.MongoIncrementalWatcher(
-                "mongodb://mock", debounce_ms=debounce_ms
-            )
+        from schedula.utils.form.server.security.casbin.watcher import MongoIncrementalWatcher
+        watcher1 = MongoIncrementalWatcher(
+            self.mongo_uri, db_name=self.watcher_db_name, debounce_ms=debounce_ms
+        )
+        watcher2 = MongoIncrementalWatcher(
+            self.mongo_uri, db_name=self.watcher_db_name, debounce_ms=debounce_ms
+        )
 
         watcher2.bind_enforcer(e2)
         e1.set_watcher(watcher1)
@@ -319,8 +302,7 @@ class TestCasbinWatcher(unittest.TestCase):
         watcher2.stop()
 
     def test_watcher_applies_remote_event_with_flask_app_context(self):
-        module = _load_watcher_module()
-        shared_client = mongomock.MongoClient()
+        from schedula.utils.form.server.security.casbin.watcher import MongoIncrementalWatcher
 
         class _AppCtx:
             def __init__(self, app):
@@ -342,8 +324,7 @@ class TestCasbinWatcher(unittest.TestCase):
 
         fake_app = _FakeApp()
 
-        with mock.patch.object(module, "MongoClient", return_value=shared_client):
-            watcher = module.MongoIncrementalWatcher("mongodb://mock", app=fake_app)
+        watcher = MongoIncrementalWatcher(self.mongo_uri, db_name=self.watcher_db_name, app=fake_app)
 
         fake_enforcer = mock.MagicMock()
         fake_enforcer.is_auto_notify_watcher_enabled.return_value = True

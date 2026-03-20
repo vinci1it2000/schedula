@@ -22,11 +22,11 @@ from schedula.utils.form.server import basic_app
 from schedula.utils.form.server.extensions import db as _db
 from flask_security.utils import hash_password
 from schedula.utils.form.server.security import User
-from tests.utils.server.utils.mongo_validation import ValidatingMongoDatabase
-import mongomock
+from pymongo import MongoClient
+from tests.utils.server.utils.testcontainers_support import MongoMySqlContainersMixin
 
 
-class TestServerSecurityNegative(unittest.TestCase):
+class TestServerSecurityNegative(MongoMySqlContainersMixin, unittest.TestCase):
     def setUp(self):
         """Set up test fixtures for each test method."""
         # Ensure deterministic config for tests
@@ -36,15 +36,15 @@ class TestServerSecurityNegative(unittest.TestCase):
 
         self.app = Flask("schedula_test_app")
 
-        self.mm_client = mongomock.MongoClient()
-        mm_db = self.mm_client["schedula_test"]
-        vdb = ValidatingMongoDatabase(mm_db)
+        self.mongo_uri = self._test_mongo_uri("schedula_security_negative")
+        self.mongo_client = MongoClient(self.mongo_uri)
+        vdb = self.mongo_client[self.mongo_db_name]
 
         # Core test config
         config = dict(
             TESTING=True,
             # --- SQLAlchemy in-memory
-            SQLALCHEMY_DATABASE_URI="sqlite+pysqlite:///:memory:",
+            SQLALCHEMY_DATABASE_URI=self.__class__._sqlalchemy_uri,
             SQLALCHEMY_TRACK_MODIFICATIONS=False,
             # --- Security
             SECURITY_ENABLED=True,
@@ -71,7 +71,7 @@ class TestServerSecurityNegative(unittest.TestCase):
             OPENAPI_ENABLED=True,
             CASBIN_ADMIN_ENABLED=True,
             MAIL_SUPPRESS_SEND=True,
-            MONGO_URI="mongodb://mock",
+            MONGO_URI=self.mongo_uri,
             MONGO_DB=vdb,
         )
 
@@ -117,8 +117,12 @@ class TestServerSecurityNegative(unittest.TestCase):
         with self.app.app_context():
             _db.session.remove()
             _db.drop_all()
-        if getattr(self, "mm_client", None) is not None:
-            self.mm_client.close()
+        if getattr(self, "mongo_client", None) is not None:
+            try:
+                self.mongo_client.drop_database(self.mongo_db_name)
+            except Exception:
+                pass
+            self.mongo_client.close()
 
     def test_requires_auth_without_token(self):
         """Test that protected endpoints require authentication."""

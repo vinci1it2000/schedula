@@ -15,7 +15,7 @@ import unittest
 import uuid
 from datetime import datetime
 
-import mongomock
+from pymongo import MongoClient
 from flask_security.confirmable import generate_confirmation_token
 from flask_security.recoverable import generate_reset_password_token
 from flask_security.utils import hash_password
@@ -23,14 +23,14 @@ from flask_security.utils import hash_password
 from schedula.utils.form.server import basic_app
 from schedula.utils.form.server.extensions import db as _db
 from schedula.utils.form.server.security import User
-from tests.utils.server.utils.mongo_validation import ValidatingMongoDatabase
 from tests.utils.server.utils.seed import try_login_for_token
+from tests.utils.server.utils.testcontainers_support import MongoMySqlContainersMixin
 
 # Add project root to Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 
 
-class TestUserAuthApis(unittest.TestCase):
+class TestUserAuthApis(MongoMySqlContainersMixin, unittest.TestCase):
     """Functional tests for login/logout/confirm/reset/change/verify/settings/plasmic APIs."""
 
     def setUp(self):
@@ -42,13 +42,13 @@ class TestUserAuthApis(unittest.TestCase):
             verify_file_handler = None
             basic_app_config = None
 
-        self.mm_client = mongomock.MongoClient()
-        mm_db = self.mm_client["schedula_test"]
-        vdb = ValidatingMongoDatabase(mm_db)
+        self.mongo_uri = self._test_mongo_uri("schedula_user_auth")
+        self.mongo_client = MongoClient(self.mongo_uri)
+        vdb = self.mongo_client[self.mongo_db_name]
 
         config = dict(
             TESTING=True,
-            SQLALCHEMY_DATABASE_URI="sqlite+pysqlite:///:memory:",
+            SQLALCHEMY_DATABASE_URI=self.__class__._sqlalchemy_uri,
             SQLALCHEMY_TRACK_MODIFICATIONS=False,
             SECURITY_ENABLED=True,
             SECURITY_REGISTERABLE=True,
@@ -60,7 +60,7 @@ class TestUserAuthApis(unittest.TestCase):
             SECURITY_URL_PREFIX="/user",
             WTF_CSRF_ENABLED=False,
             SCHEDULA_CSRF_ENABLED=False,
-            MONGO_URI="mongodb://mock",
+            MONGO_URI=self.mongo_uri,
             MONGO_DB=vdb,
             MAIL_SUPPRESS_SEND=True,
             ITEMS_STORAGE_ENABLED=True,
@@ -116,8 +116,12 @@ class TestUserAuthApis(unittest.TestCase):
         with self.app.app_context():
             _db.session.remove()
             _db.drop_all()
-        if getattr(self, "mm_client", None) is not None:
-            self.mm_client.close()
+        if getattr(self, "mongo_client", None) is not None:
+            try:
+                self.mongo_client.drop_database(self.mongo_db_name)
+            except Exception:
+                pass
+            self.mongo_client.close()
 
     def test_login_valid_credentials(self):
         login_data = {"email": "confirmed@gmail.com", "password": "UserPass123!"}

@@ -22,7 +22,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 from urllib.parse import urlparse
 
-import mongomock
+from pymongo import MongoClient
 import stripe
 from flask import Flask
 from flask_security.utils import hash_password
@@ -36,48 +36,10 @@ from schedula.utils.form.server.security.casbin.bootstrap import (
     bootstrap_user,
     set_system_admin,
 )
-from tests.utils.server.utils.mongo_validation import ValidatingMongoDatabase
+from tests.utils.server.utils.testcontainers_support import MongoMySqlContainersMixin
 
 
-class TestStripeApis(unittest.TestCase):
-    _mysql_container = None
-    _sqlalchemy_uri = ""
-
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-        desktop_sock = os.path.join(
-            os.path.expanduser("~"), ".docker", "run", "docker.sock"
-        )
-        if not os.environ.get("DOCKER_HOST") and os.path.exists(desktop_sock):
-            os.environ["DOCKER_HOST"] = f"unix://{desktop_sock}"
-        try:
-            from testcontainers.mysql import MySqlContainer
-        except Exception as ex:  # pragma: no cover
-            raise unittest.SkipTest(
-                "stripe api tests require testcontainers[mysql]"
-            ) from ex
-        try:
-            cls._mysql_container = MySqlContainer("mysql:8.0")
-            cls._mysql_container.start()
-            uri = str(cls._mysql_container.get_connection_url())
-            if uri.startswith("mysql://"):
-                uri = "mysql+pymysql://" + uri[len("mysql://"):]
-            cls._sqlalchemy_uri = uri
-        except Exception as ex:  # pragma: no cover
-            raise unittest.SkipTest(
-                "stripe api tests require a runnable MySQL container"
-            ) from ex
-
-    @classmethod
-    def tearDownClass(cls):
-        try:
-            if cls._mysql_container is not None:
-                cls._mysql_container.stop()
-        finally:
-            cls._mysql_container = None
-            cls._sqlalchemy_uri = ""
-            super().tearDownClass()
+class TestStripeApis(MongoMySqlContainersMixin, unittest.TestCase):
 
     def setUp(self):
         self.stripe_base = os.environ.get("STRIPE_MOCK_URL", "http://localhost:12111")
@@ -90,9 +52,9 @@ class TestStripeApis(unittest.TestCase):
             basic_app_config = None
             stripe_event_handler = staticmethod(lambda _event: None)
 
-        self.mm_client = mongomock.MongoClient()
-        mm_db = self.mm_client["schedula_test"]
-        vdb = ValidatingMongoDatabase(mm_db)
+        self.mongo_uri = self._test_mongo_uri("schedula_stripe")
+        self.mongo_client = MongoClient(self.mongo_uri)
+        vdb = self.mongo_client[self.mongo_db_name]
 
         config = dict(
             TESTING=True,
@@ -108,7 +70,7 @@ class TestStripeApis(unittest.TestCase):
             SECURITY_URL_PREFIX="/user",
             WTF_CSRF_ENABLED=False,
             SCHEDULA_CSRF_ENABLED=False,
-            MONGO_URI="mongodb://mock",
+            MONGO_URI=self.mongo_uri,
             MONGO_DB=vdb,
             MAIL_SUPPRESS_SEND=True,
             ITEMS_STORAGE_ENABLED=False,
@@ -254,8 +216,12 @@ class TestStripeApis(unittest.TestCase):
                 _db.engine.dispose()
             except Exception:
                 pass
-        if getattr(self, "mm_client", None) is not None:
-            self.mm_client.close()
+        if getattr(self, "mongo_client", None) is not None:
+            try:
+                self.mongo_client.drop_database(self.mongo_db_name)
+            except Exception:
+                pass
+            self.mongo_client.close()
         if getattr(self, "_patchers", None):
             for patcher in self._patchers:
                 patcher.stop()

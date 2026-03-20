@@ -13,9 +13,9 @@ import unittest
 import uuid
 from datetime import datetime
 
-import mongomock
 from flask import Flask
 from flask_security.utils import hash_password
+from pymongo import MongoClient
 from schedula.utils.form.server import basic_app
 from schedula.utils.form.server.extensions import db as _db
 from schedula.utils.form.server.security import User
@@ -24,10 +24,10 @@ from schedula.utils.form.server.security.casbin.bootstrap import (
     set_system_admin,
 )
 from schedula.utils.form.server.security.casbin.enforcer import get_enforcer
-from tests.utils.server.utils.mongo_validation import ValidatingMongoDatabase
+from tests.utils.server.utils.testcontainers_support import MongoMySqlContainersMixin
 
 
-class TestCasbinAdminApis(unittest.TestCase):
+class TestCasbinAdminApis(MongoMySqlContainersMixin, unittest.TestCase):
     def setUp(self):
         self.app = Flask("schedula_test_app")
 
@@ -35,13 +35,13 @@ class TestCasbinAdminApis(unittest.TestCase):
             verify_file_handler = None
             basic_app_config = None
 
-        self.mm_client = mongomock.MongoClient()
-        mm_db = self.mm_client["schedula_test"]
-        vdb = ValidatingMongoDatabase(mm_db)
+        self.mongo_uri = self._test_mongo_uri("schedula_casbin_admin")
+        self.mongo_client = MongoClient(self.mongo_uri)
+        vdb = self.mongo_client[self.mongo_db_name]
 
         config = dict(
             TESTING=True,
-            SQLALCHEMY_DATABASE_URI="sqlite+pysqlite:///:memory:",
+            SQLALCHEMY_DATABASE_URI=self.__class__._sqlalchemy_uri,
             SQLALCHEMY_TRACK_MODIFICATIONS=False,
             SECURITY_ENABLED=True,
             SECURITY_REGISTERABLE=True,
@@ -53,7 +53,7 @@ class TestCasbinAdminApis(unittest.TestCase):
             SECURITY_URL_PREFIX="/user",
             WTF_CSRF_ENABLED=False,
             SCHEDULA_CSRF_ENABLED=False,
-            MONGO_URI="mongodb://mock",
+            MONGO_URI=self.mongo_uri,
             MONGO_DB=vdb,
             MAIL_SUPPRESS_SEND=True,
             ITEMS_STORAGE_ENABLED=True,
@@ -135,8 +135,12 @@ class TestCasbinAdminApis(unittest.TestCase):
         with self.app.app_context():
             _db.session.remove()
             _db.drop_all()
-        if getattr(self, "mm_client", None) is not None:
-            self.mm_client.close()
+        if getattr(self, "mongo_client", None) is not None:
+            try:
+                self.mongo_client.drop_database(self.mongo_db_name)
+            except Exception:
+                pass
+            self.mongo_client.close()
 
     def _create_user(self, email: str) -> User:
         user = User.query.filter_by(email=email).first()

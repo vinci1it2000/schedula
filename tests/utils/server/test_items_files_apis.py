@@ -12,18 +12,20 @@ ensure_server_test_env()
 import io
 import os
 import sys
+import urllib.request
 import unittest
 import uuid
 from datetime import datetime, timezone
 from typing import Any, cast
-from unittest.mock import Mock, patch
+
+import boto3
+from itsdangerous import URLSafeSerializer
 
 import gridfs
-import mongomock
-import mongomock.gridfs
 from botocore.config import Config as BotoConfig
 from flask import Flask
 from flask_security.utils import hash_password
+from pymongo import MongoClient
 
 # Add project root to Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", ".."))
@@ -32,17 +34,14 @@ from schedula.utils.form.server import basic_app
 from schedula.utils.form.server.extensions import db as _db
 from schedula.utils.form.server.security import User
 from schedula.utils.form.server.security.casbin.bootstrap import bootstrap_user
-from tests.utils.server.utils.mongo_validation import ValidatingMongoDatabase
+from tests.utils.server.utils.testcontainers_support import MinioContainerMixin, MongoMySqlContainersMixin
 
 
-class TestItemsFilesApis(unittest.TestCase):
+class TestItemsFilesApis(MinioContainerMixin, MongoMySqlContainersMixin, unittest.TestCase):
     """Functional tests for item file download endpoints."""
 
     def setUp(self):
         os.environ.pop("MONGO_URI", None)
-
-        # Enable GridFS integration for mongomock.
-        mongomock.gridfs.enable_gridfs_integration()
 
         self.app = Flask("schedula_test_app")
 
@@ -50,13 +49,14 @@ class TestItemsFilesApis(unittest.TestCase):
             verify_file_handler = None
             basic_app_config = None
 
-        self.mm_client = mongomock.MongoClient()
-        mm_db = self.mm_client["schedula_test"]
-        self.vdb = ValidatingMongoDatabase(mm_db)
+        self.mongo_uri = self._test_mongo_uri("schedula_items_files")
+        self.mongo_client = MongoClient(self.mongo_uri)
+        self.vdb = self.mongo_client[self.mongo_db_name]
+        self.s3_bucket = f"items-files-{uuid.uuid4().hex[:16]}"
 
         config = dict(
             TESTING=True,
-            SQLALCHEMY_DATABASE_URI="sqlite+pysqlite:///:memory:",
+            SQLALCHEMY_DATABASE_URI=self.__class__._sqlalchemy_uri,
             SQLALCHEMY_TRACK_MODIFICATIONS=False,
             SECURITY_ENABLED=True,
             SECURITY_REGISTERABLE=True,
@@ -68,7 +68,7 @@ class TestItemsFilesApis(unittest.TestCase):
             SECURITY_URL_PREFIX="/user",
             WTF_CSRF_ENABLED=False,
             SCHEDULA_CSRF_ENABLED=False,
-            MONGO_URI="mongodb://mock",
+            MONGO_URI=self.mongo_uri,
             MONGO_DB=self.vdb,
             MAIL_SUPPRESS_SEND=True,
             ITEMS_STORAGE_ENABLED=True,
@@ -98,7 +98,7 @@ class TestItemsFilesApis(unittest.TestCase):
             file_name = "report.txt"
             file_bytes = b"hello world"
 
-            fs = gridfs.GridFS(cast(Any, self.vdb._db))
+            fs = gridfs.GridFS(cast(Any, self.vdb))
             file_id = fs.put(file_bytes, filename=file_name, content_type="text/plain", _id=str(uuid.uuid4()))
 
             self.vdb.items.insert_one(
@@ -122,6 +122,16 @@ class TestItemsFilesApis(unittest.TestCase):
                 }
             )
 
+        self.s3_client = boto3.client(
+            "s3",
+            endpoint_url=self.__class__._minio_endpoint,
+            region_name="us-east-1",
+            aws_access_key_id=self.__class__._minio_access_key,
+            aws_secret_access_key=self.__class__._minio_secret_key,
+            config=BotoConfig(signature_version="s3v4", s3={"addressing_style": "path"}),
+        )
+        self.s3_client.create_bucket(Bucket=self.s3_bucket)
+
         self.auth_client = self.app.test_client()
         self.anon_client = self.app.test_client()
         self.user_token = self._login_token("files_user@gmail.com")
@@ -131,8 +141,29 @@ class TestItemsFilesApis(unittest.TestCase):
         with self.app.app_context():
             _db.session.remove()
             _db.drop_all()
-        if getattr(self, "mm_client", None) is not None:
-            self.mm_client.close()
+        if getattr(self, "mongo_client", None) is not None:
+            try:
+                self.mongo_client.drop_database(self.mongo_db_name)
+            except Exception:
+                pass
+            self.mongo_client.close()
+        if getattr(self, "s3_client", None) is not None:
+            try:
+                response = self.s3_client.list_objects_v2(Bucket=self.s3_bucket)
+                for obj in response.get("Contents", []) or []:
+                    self.s3_client.delete_object(Bucket=self.s3_bucket, Key=obj["Key"])
+                self.s3_client.delete_bucket(Bucket=self.s3_bucket)
+            except Exception:
+                pass
+
+    def _enable_s3_backend(self, prefix: str = "") -> None:
+        self.app.config["S3_ITEMS_FILE_STORAGE"] = self.s3_bucket
+        self.app.config["S3_ITEMS_FILE_ENDPOINT"] = self.__class__._minio_endpoint
+        self.app.config["S3_ITEMS_FILE_REGION"] = "us-east-1"
+        self.app.config["S3_ITEMS_FILE_ACCESS_KEY"] = self.__class__._minio_access_key
+        self.app.config["S3_ITEMS_FILE_SECRET_KEY"] = self.__class__._minio_secret_key
+        self.app.config["S3_ITEMS_FILE_USE_SSL"] = False
+        self.app.config["S3_ITEMS_FILE_PREFIX"] = prefix
 
     def _create_user(self, email: str) -> User:
         user = User.query.filter_by(email=email).first()
@@ -252,8 +283,8 @@ class TestItemsFilesApis(unittest.TestCase):
 
     def test_download_file_s3_success(self):
         # Call file download with S3 backend enabled.
-        self.app.config["S3_ITEMS_FILE_STORAGE"] = "test-bucket"
-        file_id = "s3-object-id"
+        self._enable_s3_backend()
+        file_id = "u:test/s3-object-id"
         file_name = "manual.pdf"
         file_bytes = b"s3-bytes"
 

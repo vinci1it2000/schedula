@@ -25,6 +25,8 @@ from schedula.utils.form.server.extensions import db as _db
 class TestNotificationsE2E(unittest.TestCase):
     _mongo_container: Any = None
     _mongo_base_uri: str = ""
+    _mysql_container: Any = None
+    _sqlalchemy_uri: str = ""
 
     @classmethod
     def setUpClass(cls) -> None:
@@ -36,18 +38,25 @@ class TestNotificationsE2E(unittest.TestCase):
             os.environ["DOCKER_HOST"] = f"unix://{desktop_sock}"
         try:
             from testcontainers.mongodb import MongoDbContainer
+            from testcontainers.mysql import MySqlContainer
         except Exception as ex:
             raise unittest.SkipTest(
-                "apis service tests require testcontainers[mongodb]"
+                "apis service tests require testcontainers[mongodb,mysql]"
             ) from ex
 
         try:
             cls._mongo_container = MongoDbContainer("mongo:7.0")
             cls._mongo_container.start()
             cls._mongo_base_uri = str(cls._mongo_container.get_connection_url())
+            cls._mysql_container = MySqlContainer("mysql:8.0")
+            cls._mysql_container.start()
+            mysql_uri = str(cls._mysql_container.get_connection_url())
+            if mysql_uri.startswith("mysql://"):
+                mysql_uri = "mysql+pymysql://" + mysql_uri[len("mysql://"):]
+            cls._sqlalchemy_uri = mysql_uri
         except Exception as ex:
             raise unittest.SkipTest(
-                "apis service tests require Docker with runnable MongoDB container"
+                "apis service tests require Docker with runnable MongoDB and MySQL containers"
             ) from ex
 
     @classmethod
@@ -55,9 +64,13 @@ class TestNotificationsE2E(unittest.TestCase):
         try:
             if cls._mongo_container is not None:
                 cls._mongo_container.stop()
+            if cls._mysql_container is not None:
+                cls._mysql_container.stop()
         finally:
             cls._mongo_container = None
             cls._mongo_base_uri = ""
+            cls._mysql_container = None
+            cls._sqlalchemy_uri = ""
             super().tearDownClass()
 
     def setUp(self):
@@ -75,7 +88,7 @@ class TestNotificationsE2E(unittest.TestCase):
 
         config = dict(
             TESTING=True,
-            SQLALCHEMY_DATABASE_URI="sqlite+pysqlite:///:memory:",
+            SQLALCHEMY_DATABASE_URI=self.__class__._sqlalchemy_uri,
             SQLALCHEMY_TRACK_MODIFICATIONS=False,
             SECURITY_ENABLED=True,
             SECURITY_REGISTERABLE=True,

@@ -14,17 +14,18 @@ import sys
 import unittest
 from typing import cast
 
+from pymongo import MongoClient
+
 # Add project root to Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 
 from schedula.utils.form.server import basic_app
 from schedula.utils.form.server.extensions import db as _db
 from schedula.utils.form.server.security import User
-from tests.utils.server.utils.mongo_validation import ValidatingMongoDatabase
-import mongomock
+from tests.utils.server.utils.testcontainers_support import MongoMySqlContainersMixin
 
 
-class TestUserRegistration(unittest.TestCase):
+class TestUserRegistration(MongoMySqlContainersMixin, unittest.TestCase):
     """Test user registration functionality including admin setup without email confirmation."""
 
     def setUp(self):
@@ -39,16 +40,12 @@ class TestUserRegistration(unittest.TestCase):
             verify_file_handler = None
             basic_app_config = None
 
-        # --- Mongo in-memory + validator emulation
-        self.mm_client = mongomock.MongoClient()
-        mm_db = self.mm_client["schedula_test"]
-        vdb = ValidatingMongoDatabase(
-            mm_db
-        )  # adds db.command(collMod) + JSONSchema validation
+        self.mongo_uri = self._test_mongo_uri("schedula_user_registration")
+        self.mongo_client = MongoClient(self.mongo_uri)
+        vdb = self.mongo_client[self.mongo_db_name]
         config = dict(
             TESTING=True,
-            # --- SQLAlchemy in-memory
-            SQLALCHEMY_DATABASE_URI="sqlite+pysqlite:///:memory:",
+            SQLALCHEMY_DATABASE_URI=self.__class__._sqlalchemy_uri,
             SQLALCHEMY_TRACK_MODIFICATIONS=False,
             # --- Security
             SECURITY_ENABLED=True,
@@ -57,7 +54,7 @@ class TestUserRegistration(unittest.TestCase):
             SECURITY_CONFIRMABLE=True,  # Disabilitato conferma email
             SECURITY_RECOVERABLE=True,
             SECURITY_CHANGEABLE=True,
-            MONGO_URI="mongodb://mock",
+            MONGO_URI=self.mongo_uri,
             MONGO_DB=vdb,
             SECURITY_LOGIN_AFTER_REGISTER=False,
             SECURITY_URL_PREFIX="/user",
@@ -93,8 +90,12 @@ class TestUserRegistration(unittest.TestCase):
         with self.app.app_context():
             _db.session.remove()
             _db.drop_all()
-        if getattr(self, "mm_client", None) is not None:
-            self.mm_client.close()
+        if getattr(self, "mongo_client", None) is not None:
+            try:
+                self.mongo_client.drop_database(self.mongo_db_name)
+            except Exception:
+                pass
+            self.mongo_client.close()
 
     def test_first_admin_registration_no_email_confirmation(self):
         """Test registration of first admin user without email confirmation requirement."""

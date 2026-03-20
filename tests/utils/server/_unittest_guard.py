@@ -13,7 +13,9 @@ def ensure_server_test_env() -> None:
     required_modules = (
         "flask",
         "flask_security",
-        "mongomock",
+        "pymongo",
+        "pymysql",
+        "testcontainers",
         "casbin",
         "apprise",
         "yaml",

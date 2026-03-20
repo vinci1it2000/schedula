@@ -15,9 +15,9 @@ import unittest
 import uuid
 from datetime import datetime
 
-import mongomock
 from flask import Flask
 from flask_security.utils import hash_password
+from pymongo import MongoClient
 
 # Add the project root to the Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", ".."))
@@ -26,22 +26,22 @@ from schedula.utils.form.server import basic_app
 from schedula.utils.form.server.extensions import db as _db
 from schedula.utils.form.server.security import User
 from schedula.utils.form.server.security.casbin.bootstrap import bootstrap_user
-from tests.utils.server.utils.mongo_validation import ValidatingMongoDatabase
+from tests.utils.server.utils.testcontainers_support import MongoMySqlContainersMixin
 
 
-class TestServerGroupsAndPagination(unittest.TestCase):
+class TestServerGroupsAndPagination(MongoMySqlContainersMixin, unittest.TestCase):
     def setUp(self):
         os.environ.pop("MONGO_URI", None)
 
         self.app = Flask("schedula_test_app")
 
-        self.mm_client = mongomock.MongoClient()
-        mm_db = self.mm_client["schedula_test"]
-        vdb = ValidatingMongoDatabase(mm_db)
+        self.mongo_uri = self._test_mongo_uri("schedula_groups_pagination")
+        self.mongo_client = MongoClient(self.mongo_uri)
+        vdb = self.mongo_client[self.mongo_db_name]
 
         config = dict(
             TESTING=True,
-            SQLALCHEMY_DATABASE_URI="sqlite+pysqlite:///:memory:",
+            SQLALCHEMY_DATABASE_URI=self.__class__._sqlalchemy_uri,
             SQLALCHEMY_TRACK_MODIFICATIONS=False,
             SECURITY_ENABLED=True,
             SECURITY_REGISTERABLE=True,
@@ -65,7 +65,7 @@ class TestServerGroupsAndPagination(unittest.TestCase):
             OPENAPI_ENABLED=True,
             CASBIN_ADMIN_ENABLED=True,
             MAIL_SUPPRESS_SEND=True,
-            MONGO_URI="mongodb://mock",
+            MONGO_URI=self.mongo_uri,
             MONGO_DB=vdb,
         )
 
@@ -94,8 +94,12 @@ class TestServerGroupsAndPagination(unittest.TestCase):
         with self.app.app_context():
             _db.session.remove()
             _db.drop_all()
-        if getattr(self, "mm_client", None) is not None:
-            self.mm_client.close()
+        if getattr(self, "mongo_client", None) is not None:
+            try:
+                self.mongo_client.drop_database(self.mongo_db_name)
+            except Exception:
+                pass
+            self.mongo_client.close()
 
     def _create_user(self, email: str) -> User:
         user = User.query.filter_by(email=email).first()

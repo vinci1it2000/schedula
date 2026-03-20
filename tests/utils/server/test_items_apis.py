@@ -16,13 +16,12 @@ import sys
 import unittest
 import uuid
 from datetime import datetime, timezone
-from unittest import mock
 from urllib.parse import quote
 
-import mongomock
-import mongomock.gridfs
+import boto3
 from flask import Flask
 from flask_security.utils import hash_password
+from pymongo import MongoClient
 
 # Add project root to Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", ".."))
@@ -40,16 +39,15 @@ from schedula.utils.form.server.security.casbin.helpers import (
     u,
 )
 from schedula.utils.form.server.items.crud import prune_nulls
-from tests.utils.server.utils.mongo_validation import ValidatingMongoDatabase
 from tests.utils.server.utils.factories import item_payload, item_patch_payload
+from tests.utils.server.utils.testcontainers_support import MinioContainerMixin, MongoMySqlContainersMixin
 
 
-class TestItemsApis(unittest.TestCase):
+class TestItemsApis(MinioContainerMixin, MongoMySqlContainersMixin, unittest.TestCase):
     """Functional tests for Items tag endpoints (no Item ACL tests)."""
 
     def setUp(self):
         os.environ.pop("MONGO_URI", None)
-        mongomock.gridfs.enable_gridfs_integration()
 
         self.app = Flask("schedula_test_app")
 
@@ -57,15 +55,14 @@ class TestItemsApis(unittest.TestCase):
             verify_file_handler = None
             basic_app_config = None
 
-        self.mm_client = mongomock.MongoClient()
-        mm_db = self.mm_client["schedula_test"]
-        self.mm_db = mm_db
-        vdb = ValidatingMongoDatabase(mm_db)
-        self.vdb = vdb
+        self.mongo_uri = self._test_mongo_uri("schedula_items")
+        self.mongo_client = MongoClient(self.mongo_uri)
+        self.vdb = self.mongo_client[self.mongo_db_name]
+        self.s3_bucket = f"items-api-{uuid.uuid4().hex[:16]}"
 
         config = dict(
             TESTING=True,
-            SQLALCHEMY_DATABASE_URI="sqlite+pysqlite:///:memory:",
+            SQLALCHEMY_DATABASE_URI=self.__class__._sqlalchemy_uri,
             SQLALCHEMY_TRACK_MODIFICATIONS=False,
             SECURITY_ENABLED=True,
             SECURITY_REGISTERABLE=True,
@@ -77,8 +74,8 @@ class TestItemsApis(unittest.TestCase):
             SECURITY_URL_PREFIX="/user",
             WTF_CSRF_ENABLED=False,
             SCHEDULA_CSRF_ENABLED=False,
-            MONGO_URI="mongodb://mock",
-            MONGO_DB=vdb,
+            MONGO_URI=self.mongo_uri,
+            MONGO_DB=self.vdb,
             MAIL_SUPPRESS_SEND=True,
             ITEMS_STORAGE_ENABLED=True,
             FILES_STORAGE_ENABLED=False,
@@ -93,7 +90,7 @@ class TestItemsApis(unittest.TestCase):
             CASBIN_ADMIN_ENABLED=True,
         )
 
-        self.app.config["MONGO_DB"] = vdb
+        self.app.config["MONGO_DB"] = self.vdb
         with self.app.app_context():
             basic_app(DummySitemap(), self.app, config)
             _db.create_all()
@@ -105,7 +102,7 @@ class TestItemsApis(unittest.TestCase):
             bootstrap_user(self.other_user.id)
 
             self.item_id = str(uuid.uuid4())
-            vdb.items.insert_one(
+            self.vdb.items.insert_one(
                 {
                     "_id": self.item_id,
                     "category": "note",
@@ -116,8 +113,17 @@ class TestItemsApis(unittest.TestCase):
                     "updated_by": str(self.user.id),
                     "created_at": datetime.now(timezone.utc),
                     "updated_at": datetime.now(timezone.utc),
-                }
+                    }
             )
+
+        self.s3_client = boto3.client(
+            "s3",
+            endpoint_url=self.__class__._minio_endpoint,
+            region_name="us-east-1",
+            aws_access_key_id=self.__class__._minio_access_key,
+            aws_secret_access_key=self.__class__._minio_secret_key,
+        )
+        self.s3_client.create_bucket(Bucket=self.s3_bucket)
 
         self.auth_client = self.app.test_client()
         self.anon_client = self.app.test_client()
@@ -129,8 +135,31 @@ class TestItemsApis(unittest.TestCase):
         with self.app.app_context():
             _db.session.remove()
             _db.drop_all()
-        if getattr(self, "mm_client", None) is not None:
-            self.mm_client.close()
+        if getattr(self, "mongo_client", None) is not None:
+            try:
+                self.mongo_client.drop_database(self.mongo_db_name)
+            except Exception:
+                pass
+            self.mongo_client.close()
+        if getattr(self, "s3_client", None) is not None:
+            try:
+                response = self.s3_client.list_objects_v2(Bucket=self.s3_bucket)
+                for obj in response.get("Contents", []) or []:
+                    self.s3_client.delete_object(Bucket=self.s3_bucket, Key=obj["Key"])
+                self.s3_client.delete_bucket(Bucket=self.s3_bucket)
+            except Exception:
+                pass
+
+    def _enable_s3_backend(self, prefix: str = ""):
+        self.app.config["S3_ITEMS_FILE_STORAGE"] = {
+            "bucket": self.s3_bucket,
+            "prefix": prefix,
+            "endpoint_url": self.__class__._minio_endpoint,
+            "region_name": "us-east-1",
+            "aws_access_key_id": self.__class__._minio_access_key,
+            "aws_secret_access_key": self.__class__._minio_secret_key,
+            "use_ssl": False,
+        }
 
     def _create_user(self, email: str) -> User:
         user = User.query.filter_by(email=email).first()
@@ -866,8 +895,8 @@ class TestItemsApis(unittest.TestCase):
         )
         self.assertEqual(r.status_code, 400)
 
-        files_count = self.mm_db["fs.files"].count_documents({})
-        chunks_count = self.mm_db["fs.chunks"].count_documents({})
+        files_count = self.vdb["fs.files"].count_documents({})
+        chunks_count = self.vdb["fs.chunks"].count_documents({})
         self.assertEqual(files_count, 0)
         self.assertEqual(chunks_count, 0)
 
@@ -893,8 +922,8 @@ class TestItemsApis(unittest.TestCase):
         )
         self.assertEqual(r.status_code, 400)
 
-        files_count = self.mm_db["fs.files"].count_documents({})
-        chunks_count = self.mm_db["fs.chunks"].count_documents({})
+        files_count = self.vdb["fs.files"].count_documents({})
+        chunks_count = self.vdb["fs.chunks"].count_documents({})
         self.assertEqual(files_count, 0)
         self.assertEqual(chunks_count, 0)
 
@@ -1007,108 +1036,74 @@ class TestItemsApis(unittest.TestCase):
             self.app.config["S3_ITEMS_FILE_STORAGE"] = old_cfg
 
     def test_item_create_error_does_not_store_files_s3(self):
-        class FakeS3:
-            def __init__(self):
-                self.objects = set()
-                self.uploaded = []
-                self.deleted = []
-
-            def upload_fileobj(self, fileobj, bucket, key, ExtraArgs=None):
-                fileobj.read()
-                self.objects.add((bucket, key))
-                self.uploaded.append((bucket, key))
-
-            def delete_object(self, Bucket, Key):
-                self.objects.discard((Bucket, Key))
-                self.deleted.append((Bucket, Key))
-
-        fake = FakeS3()
         old_cfg = self.app.config.get("S3_ITEMS_FILE_STORAGE")
-        self.app.config["S3_ITEMS_FILE_STORAGE"] = {"bucket": "test-bucket"}
+        self._enable_s3_backend()
         try:
-            with mock.patch(
-                    "schedula.utils.form.server.items.files.get_s3_client_and_bucket",
-                    return_value=(fake, "test-bucket", ""),
-            ):
-                payload = json.dumps(
-                    {
-                        "doc": {"$ref": "/files/f1"},
-                        "doc2": {"$ref": "/files/f2"},
-                        "doc3": {"$ref": "/files/f3"},
-                    }
-                )
-                data = {
-                    "data": payload,
-                    "f1": (io.BytesIO(b"good-1"), "ok1.txt"),
-                    "f2": (io.BytesIO(b"good-2"), "ok2.txt"),
-                    "f3": (io.BytesIO(b""), "bad.txt"),
+            payload = json.dumps(
+                {
+                    "doc": {"$ref": "/files/f1"},
+                    "doc2": {"$ref": "/files/f2"},
+                    "doc3": {"$ref": "/files/f3"},
                 }
-                before_count = self.vdb.items.count_documents({})
-                r = self.auth_client.post(
-                    "/item/note",
-                    data=data,
-                    headers=self._auth_headers(),
-                    content_type="multipart/form-data",
-                )
-                self.assertEqual(r.status_code, 400)
-                after_count = self.vdb.items.count_documents({})
-                self.assertEqual(before_count, after_count)
-                self.assertEqual(len(fake.uploaded), 3)
-                self.assertEqual(len(fake.deleted), 3)
-                self.assertEqual(fake.objects, set())
+            )
+            data = {
+                "data": payload,
+                "f1": (io.BytesIO(b"good-1"), "ok1.txt"),
+                "f2": (io.BytesIO(b"good-2"), "ok2.txt"),
+                "f3": (io.BytesIO(b""), "bad.txt"),
+            }
+            before_count = self.vdb.items.count_documents({})
+            r = self.auth_client.post(
+                "/item/note",
+                data=data,
+                headers=self._auth_headers(),
+                content_type="multipart/form-data",
+            )
+            self.assertEqual(r.status_code, 400)
+            after_count = self.vdb.items.count_documents({})
+            self.assertEqual(before_count, after_count)
+            listing = self.s3_client.list_objects_v2(Bucket=self.s3_bucket)
+            self.assertEqual(listing.get("KeyCount", 0), 0)
+            self.assertEqual(
+                self.vdb["item_file_staging_cleanup"].count_documents({}),
+                0,
+            )
         finally:
             self.app.config["S3_ITEMS_FILE_STORAGE"] = old_cfg
 
     def test_item_update_error_does_not_store_files_s3(self):
-        class FakeS3:
-            def __init__(self):
-                self.objects = set()
-                self.uploaded = []
-                self.deleted = []
-
-            def upload_fileobj(self, fileobj, bucket, key, ExtraArgs=None):
-                fileobj.read()
-                self.objects.add((bucket, key))
-                self.uploaded.append((bucket, key))
-
-            def delete_object(self, Bucket, Key):
-                self.objects.discard((Bucket, Key))
-                self.deleted.append((Bucket, Key))
-
-        fake = FakeS3()
         old_cfg = self.app.config.get("S3_ITEMS_FILE_STORAGE")
-        self.app.config["S3_ITEMS_FILE_STORAGE"] = {"bucket": "test-bucket"}
+        self._enable_s3_backend()
         try:
-            with mock.patch(
-                    "schedula.utils.form.server.items.files.get_s3_client_and_bucket",
-                    return_value=(fake, "test-bucket", ""),
-            ):
-                payload = json.dumps(
-                    {
-                        "doc": {"$ref": "/files/f1"},
-                        "doc2": {"$ref": "/files/f2"},
-                        "doc3": {"$ref": "/files/f3"},
-                    }
-                )
-                data = {
-                    "data": payload,
-                    "f1": (io.BytesIO(b"good-1"), "ok1.txt"),
-                    "f2": (io.BytesIO(b"good-2"), "ok2.txt"),
-                    "f3": (io.BytesIO(b""), "bad.txt"),
+            payload = json.dumps(
+                {
+                    "doc": {"$ref": "/files/f1"},
+                    "doc2": {"$ref": "/files/f2"},
+                    "doc3": {"$ref": "/files/f3"},
                 }
-                r = self.auth_client.patch(
-                    f"/item/note/{self.item_id}",
-                    data=data,
-                    headers=self._auth_headers(),
-                    content_type="multipart/form-data",
-                )
-                self.assertEqual(r.status_code, 400)
-                self.assertEqual(len(fake.uploaded), 3)
-                self.assertEqual(len(fake.deleted), 3)
-                self.assertEqual(fake.objects, set())
+            )
+            data = {
+                "data": payload,
+                "f1": (io.BytesIO(b"good-1"), "ok1.txt"),
+                "f2": (io.BytesIO(b"good-2"), "ok2.txt"),
+                "f3": (io.BytesIO(b""), "bad.txt"),
+            }
+            r = self.auth_client.patch(
+                f"/item/note/{self.item_id}",
+                data=data,
+                headers=self._auth_headers(),
+                content_type="multipart/form-data",
+            )
+            self.assertEqual(r.status_code, 400)
+            listing = self.s3_client.list_objects_v2(Bucket=self.s3_bucket)
+            self.assertEqual(listing.get("KeyCount", 0), 0)
+            self.assertEqual(
+                self.vdb["item_file_staging_cleanup"].count_documents({}),
+                0,
+            )
 
-                doc = self.vdb.items.find_one({"_id": self.item_id}) or {}
-                self.assertEqual(doc.get("files") or {}, {})
+            doc = self.vdb.items.find_one({"_id": self.item_id}) or {}
+            self.assertEqual(doc.get("files") or {}, {})
         finally:
             self.app.config["S3_ITEMS_FILE_STORAGE"] = old_cfg
 

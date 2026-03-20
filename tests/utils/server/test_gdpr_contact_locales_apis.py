@@ -20,9 +20,10 @@ from flask import Flask
 
 from schedula.utils.form.server import basic_app
 from schedula.utils.form.server.extensions import db as _db
+from tests.utils.server.utils.testcontainers_support import MongoMySqlContainersMixin
 
 
-class BaseApiTestCase(unittest.TestCase):
+class BaseApiTestCase(MongoMySqlContainersMixin, unittest.TestCase):
     def setUp(self):
         self.app = Flask("schedula_test_app")
 
@@ -32,7 +33,7 @@ class BaseApiTestCase(unittest.TestCase):
 
         config = dict(
             TESTING=True,
-            SQLALCHEMY_DATABASE_URI="sqlite+pysqlite:///:memory:",
+            SQLALCHEMY_DATABASE_URI=self.__class__._sqlalchemy_uri,
             SQLALCHEMY_TRACK_MODIFICATIONS=False,
             SECURITY_ENABLED=True,
             SECURITY_REGISTERABLE=True,
