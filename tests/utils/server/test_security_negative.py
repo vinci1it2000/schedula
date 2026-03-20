@@ -13,7 +13,7 @@ import os
 import sys
 import unittest
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 # Add the project root to the Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "..", ".."))
@@ -97,7 +97,7 @@ class TestServerSecurityNegative(MongoMySqlContainersMixin, unittest.TestCase):
                 active=True,
                 fs_uniquifier=str(uuid.uuid4()),
             )
-            admin_user.confirmed_at = datetime.utcnow()
+            admin_user.confirmed_at = datetime.now(timezone.utc)
             _db.session.add(admin_user)
 
             user = User(
@@ -106,7 +106,7 @@ class TestServerSecurityNegative(MongoMySqlContainersMixin, unittest.TestCase):
                 active=True,
                 fs_uniquifier=str(uuid.uuid4()),
             )
-            user.confirmed_at = datetime.utcnow()
+            user.confirmed_at = datetime.now(timezone.utc)
             _db.session.add(user)
             _db.session.commit()
 

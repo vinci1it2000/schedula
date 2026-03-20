@@ -94,7 +94,7 @@ def checkout_session_completed(session_id):
                     total=item.amount_total,
                     currency=item.currency,
                     stripe_id=session_id,
-                    raw_data=item.to_dict_recursive(),
+                    raw_data=dict(item),
                     created_by=user.id,
                     valid_from=current_time,
                     expired_at=expired_at,
@@ -139,7 +139,7 @@ FREQUENCIES = {
     "m": MINUTELY,
     "s": SECONDLY,
 }
-_re_freq = re.compile("^(?P<interval>[1-9]\d*)?(?P<freq>[MWDYhms])$")
+_re_freq = re.compile(r"^(?P<interval>[1-9]\d*)?(?P<freq>[MWDYhms])$")
 
 
 def date_range(start_time, end_time, freq):

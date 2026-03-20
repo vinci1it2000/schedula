@@ -19,6 +19,7 @@ from flask_security.utils import hash_password
 
 from schedula.utils.form.server import basic_app
 from schedula.utils.form.server.extensions import db as _db
+from tests.utils.server.utils.testcontainers_support import _ensure_docker_host, _wait_for_mongo, _wait_for_mysql
 from schedula.utils.form.server.utils import now_utc
 from schedula.utils.form.server.security import User
 from schedula.utils.form.server.security.casbin import get_enforcer
@@ -262,29 +263,34 @@ class TestApisService(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()
-        desktop_sock = os.path.join(
-            os.path.expanduser("~"), ".docker", "run", "docker.sock"
-        )
-        if not os.environ.get("DOCKER_HOST") and os.path.exists(desktop_sock):
-            os.environ["DOCKER_HOST"] = f"unix://{desktop_sock}"
+        _ensure_docker_host()
         try:
-            from testcontainers.mongodb import MongoDbContainer
-            from testcontainers.mysql import MySqlContainer
+            from testcontainers.core.container import DockerContainer
         except Exception as ex:
             raise unittest.SkipTest(
                 "apis service tests require testcontainers[mongodb,mysql]"
             ) from ex
 
         try:
-            cls._mongo_container = MongoDbContainer("mongo:7.0")
+            cls._mongo_container = DockerContainer("mongo:7.0").with_exposed_ports(27017)
             cls._mongo_container.start()
-            cls._mongo_base_uri = str(cls._mongo_container.get_connection_url())
-            cls._mysql_container = MySqlContainer("mysql:8.0")
+            mongo_host = cls._mongo_container.get_container_host_ip()
+            mongo_port = int(cls._mongo_container.get_exposed_port(27017))
+            cls._mongo_base_uri = f"mongodb://{mongo_host}:{mongo_port}"
+            _wait_for_mongo(cls._mongo_base_uri)
+            cls._mysql_container = (
+                DockerContainer("mysql:8.0")
+                .with_env("MYSQL_DATABASE", "schedula")
+                .with_env("MYSQL_USER", "test")
+                .with_env("MYSQL_PASSWORD", "test")
+                .with_env("MYSQL_ROOT_PASSWORD", "root")
+                .with_exposed_ports(3306)
+            )
             cls._mysql_container.start()
-            mysql_uri = str(cls._mysql_container.get_connection_url())
-            if mysql_uri.startswith("mysql://"):
-                mysql_uri = "mysql+pymysql://" + mysql_uri[len("mysql://"):]
-            cls._sqlalchemy_uri = mysql_uri
+            mysql_host = cls._mysql_container.get_container_host_ip()
+            mysql_port = int(cls._mysql_container.get_exposed_port(3306))
+            _wait_for_mysql(mysql_host, mysql_port, "test", "test", "schedula")
+            cls._sqlalchemy_uri = f"mysql+pymysql://test:test@{mysql_host}:{mysql_port}/schedula"
         except Exception as ex:
             raise unittest.SkipTest(
                 "apis service tests require Docker with runnable MongoDB and MySQL containers"

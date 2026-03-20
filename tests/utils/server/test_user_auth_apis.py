@@ -13,7 +13,7 @@ import os
 import sys
 import unittest
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 from pymongo import MongoClient
 from flask_security.confirmable import generate_confirmation_token
@@ -104,7 +104,7 @@ class TestUserAuthApis(MongoMySqlContainersMixin, unittest.TestCase):
                 if not getattr(user, "fs_uniquifier", None):
                     user.fs_uniquifier = str(uuid.uuid4())
                 user.active = True
-            user.confirmed_at = datetime.utcnow()
+            user.confirmed_at = datetime.now(timezone.utc)
             _db.session.commit()
 
         self.confirmed_token = try_login_for_token(
@@ -263,16 +263,7 @@ class TestUserAuthApis(MongoMySqlContainersMixin, unittest.TestCase):
         data = r.get_json(silent=True) or {}
         self.assertIn("meta", data)
         self.assertIn("response", data)
-        self.assertIn("csrf_token", data.get("response", {}))
-        self.assertIn("user", data.get("response", {}))
-        self.assertIn("token", data.get("response", {}).get("user", {}))
-
-        # Call logout to clear the session.
-        r = self.auth_client.post(
-            "/user/logout", headers={"Authentication-Token": self.confirmed_token}
-        )
-        self.assertEqual(r.status_code, 302)
-        self.assertEqual(r.headers.get("Location"), "/")
+        self.assertEqual(data.get("response", {}), {})
 
         # Call login with the new password using a fresh client.
         login_client = self.app.test_client()

@@ -16,6 +16,7 @@ from schedula.utils.form.server import basic_app
 from schedula.utils.form.server.extensions import db as _db
 
 from .utils.seed import seed_admin_user, seed_regular_user, try_login_for_token
+from .utils.testcontainers_support import _ensure_docker_host, _wait_for_mongo, _wait_for_mysql
 
 
 EXTRAS = os.environ.get("EXTRAS", "all")
@@ -73,36 +74,47 @@ def openapi_path() -> str:
 
 @pytest.fixture(scope="session")
 def mongo_base_uri() -> str:
-    desktop_sock = os.path.join(os.path.expanduser("~"), ".docker", "run", "docker.sock")
-    if not os.environ.get("DOCKER_HOST") and os.path.exists(desktop_sock):
-        os.environ["DOCKER_HOST"] = f"unix://{desktop_sock}"
+    _ensure_docker_host()
     try:
-        from testcontainers.mongodb import MongoDbContainer
+        from testcontainers.core.container import DockerContainer
     except Exception as ex:
         raise unittest.SkipTest("server pytest tests require testcontainers[mongodb,mysql]") from ex
-    container = MongoDbContainer("mongo:7.0")
+    container = DockerContainer("mongo:7.0").with_exposed_ports(27017)
     try:
         container.start()
-        yield str(container.get_connection_url())
+        host = container.get_container_host_ip()
+        port = int(container.get_exposed_port(27017))
+        uri = f"mongodb://{host}:{port}"
+        _wait_for_mongo(uri)
+        yield uri
     finally:
         container.stop()
 
 
 @pytest.fixture(scope="session")
 def sqlalchemy_uri() -> str:
-    desktop_sock = os.path.join(os.path.expanduser("~"), ".docker", "run", "docker.sock")
-    if not os.environ.get("DOCKER_HOST") and os.path.exists(desktop_sock):
-        os.environ["DOCKER_HOST"] = f"unix://{desktop_sock}"
+    _ensure_docker_host()
     try:
-        from testcontainers.mysql import MySqlContainer
+        from testcontainers.core.container import DockerContainer
     except Exception as ex:
         raise unittest.SkipTest("server pytest tests require testcontainers[mongodb,mysql]") from ex
-    container = MySqlContainer("mysql:8.0")
+    user = "test"
+    password = "test"
+    db_name = "schedula"
+    container = (
+        DockerContainer("mysql:8.0")
+        .with_env("MYSQL_DATABASE", db_name)
+        .with_env("MYSQL_USER", user)
+        .with_env("MYSQL_PASSWORD", password)
+        .with_env("MYSQL_ROOT_PASSWORD", "root")
+        .with_exposed_ports(3306)
+    )
     try:
         container.start()
-        uri = str(container.get_connection_url())
-        if uri.startswith("mysql://"):
-            uri = "mysql+pymysql://" + uri[len("mysql://"):]
+        host = container.get_container_host_ip()
+        port = int(container.get_exposed_port(3306))
+        _wait_for_mysql(host, port, user, password, db_name)
+        uri = f"mysql+pymysql://{user}:{password}@{host}:{port}/{db_name}"
         yield uri
     finally:
         container.stop()
@@ -135,6 +147,7 @@ def app(monkeypatch: pytest.MonkeyPatch, mongo_base_uri: str, sqlalchemy_uri: st
         SECURITY_CONFIRMABLE=False,  # keep flows simple in tests
         SECURITY_RECOVERABLE=True,
         SECURITY_CHANGEABLE=True,
+        SECURITY_AUTO_LOGIN_AFTER_RESET=False,
         SECURITY_URL_PREFIX="/user",
         WTF_CSRF_ENABLED=False,
         SCHEDULA_CSRF_ENABLED=False,

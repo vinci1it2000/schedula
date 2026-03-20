@@ -22,6 +22,61 @@ try:
     import flask_security
 except Exception:  # pragma: no cover
     flask_security = None
+
+try:  # pragma: no cover
+    import flask_security.confirmable as _fs_confirmable
+    import flask_security.utils as _fs_utils
+    if hasattr(_fs_utils, "get_max_age"):
+        def _confirmable_get_token_status(token, serializer, max_age=None, return_data=False):
+            serializer_obj = getattr(_fs_utils._security, serializer + "_serializer")
+            max_age_value = _fs_utils.get_max_age(max_age)
+            user, data = None, None
+            expired, invalid = False, False
+            try:
+                data = serializer_obj.loads(token, max_age=max_age_value)
+            except _fs_utils.SignatureExpired:
+                _decoded, data = serializer_obj.loads_unsafe(token)
+                expired = True
+            except (_fs_utils.BadSignature, TypeError, ValueError):
+                invalid = True
+            if data:
+                user = _fs_utils._datastore.find_user(fs_uniquifier=data[0])
+            expired = expired and (user is not None)
+            if return_data:
+                return expired, invalid, user, data
+            return expired, invalid, user
+
+        _fs_confirmable.get_token_status = _confirmable_get_token_status
+except Exception:
+    pass
+
+try:  # pragma: no cover
+    import flask_security.recoverable as _fs_recoverable
+    import flask_security.utils as _fs_utils
+    if hasattr(_fs_utils, "get_max_age"):
+        def _recoverable_get_token_status(token, serializer, max_age=None, return_data=False):
+            serializer_obj = getattr(_fs_utils._security, serializer + "_serializer")
+            max_age_value = _fs_utils.get_max_age(max_age)
+            user, data = None, None
+            expired, invalid = False, False
+            try:
+                data = serializer_obj.loads(token, max_age=max_age_value)
+            except _fs_utils.SignatureExpired:
+                _decoded, data = serializer_obj.loads_unsafe(token)
+                expired = True
+            except (_fs_utils.BadSignature, TypeError, ValueError):
+                invalid = True
+            if data:
+                user = _fs_utils._datastore.find_user(fs_uniquifier=data[0])
+            expired = expired and (user is not None)
+            if return_data:
+                return expired, invalid, user, data
+            return expired, invalid, user
+
+        _fs_recoverable.get_token_status = _recoverable_get_token_status
+except Exception:
+    pass
+
 import os.path as osp
 import requests
 
@@ -408,7 +463,7 @@ class Security:
             "SECURITY_CONFIRMABLE": True,
             "SECURITY_CHANGEABLE": True,
             "SECURITY_AUTO_LOGIN_AFTER_CONFIRM": False,
-            "SECURITY_AUTO_LOGIN_AFTER_RESET": True,
+            "SECURITY_AUTO_LOGIN_AFTER_RESET": False,
             "SECURITY_POST_CONFIRM_VIEW": "/#login",
             "SECURITY_CONFIRM_ERROR_VIEW": "/#login",
             "SECURITY_REGISTERABLE": True,

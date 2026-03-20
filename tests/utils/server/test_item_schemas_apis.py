@@ -137,7 +137,7 @@ class TestItemSchemasApis(MongoMySqlContainersMixin, unittest.TestCase):
             if not getattr(user, "fs_uniquifier", None):
                 user.fs_uniquifier = str(uuid.uuid4())
             user.active = True
-        user.confirmed_at = datetime.utcnow()
+        user.confirmed_at = datetime.now(timezone.utc)
         _db.session.commit()
         return user
 

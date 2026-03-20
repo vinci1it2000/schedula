@@ -14,7 +14,7 @@ import os
 import sys
 import unittest
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 from flask import Flask
 from flask_security.utils import hash_password
@@ -158,7 +158,7 @@ class TestItemsAclApis(MongoMySqlContainersMixin, unittest.TestCase):
             if not getattr(user, "fs_uniquifier", None):
                 user.fs_uniquifier = str(uuid.uuid4())
             user.active = True
-        user.confirmed_at = datetime.utcnow()
+        user.confirmed_at = datetime.now(timezone.utc)
         _db.session.commit()
         return user
 

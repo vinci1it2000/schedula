@@ -17,7 +17,7 @@ import subprocess
 import sys
 import time
 import unittest
-from datetime import datetime
+from datetime import datetime, timezone
 from types import SimpleNamespace
 from unittest.mock import patch
 from urllib.parse import urlparse
@@ -44,6 +44,8 @@ class TestStripeApis(MongoMySqlContainersMixin, unittest.TestCase):
     def setUp(self):
         self.stripe_base = os.environ.get("STRIPE_MOCK_URL", "http://localhost:12111")
         self._ensure_stripe_mock_available(self.stripe_base)
+        self._orig_http_client = getattr(stripe, "default_http_client", None)
+        stripe.default_http_client = stripe.RequestsClient()
 
         self.app = Flask("schedula_test_app")
 
@@ -103,7 +105,7 @@ class TestStripeApis(MongoMySqlContainersMixin, unittest.TestCase):
                 lastname="User",
                 fs_uniquifier="stripe-user-1",
             )
-            user.confirmed_at = datetime.utcnow()
+            user.confirmed_at = datetime.now(timezone.utc)
             _db.session.add(user)
             _db.session.commit()
             self.user_id = user.id
@@ -209,6 +211,7 @@ class TestStripeApis(MongoMySqlContainersMixin, unittest.TestCase):
             patcher.start()
 
     def tearDown(self):
+        stripe.default_http_client = self._orig_http_client
         with self.app.app_context():
             _db.session.remove()
             _db.drop_all()
