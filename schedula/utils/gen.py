@@ -13,9 +13,17 @@ These are python-specific utilities and hacks - general data-processing or
 numerical operations.
 """
 
-import itertools
-
 __author__ = 'Vincenzo Arcidiacono <vinci1it2000@gmail.com>'
+
+
+class _Counter:
+    def __init__(self, start=0, step=1):
+        self.value, self.step = start, step
+
+    def __call__(self):
+        value = self.value
+        self.value += self.step
+        return value
 
 
 def counter(start=0, step=1):
@@ -30,7 +38,7 @@ def counter(start=0, step=1):
         Step value.
     :type step: int, float, optional
     """
-    return itertools.count(start, step).__next__
+    return _Counter(start, step)
 
 
 class _Token:

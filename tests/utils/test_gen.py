@@ -7,6 +7,7 @@
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
 import os
+import pickle
 import unittest
 import schedula as sh
 from copy import copy, deepcopy
@@ -42,3 +43,29 @@ class TestUtils(unittest.TestCase):
 
         b = a
         self.assertEqual({a: 1, 1: 3}, {b: 1, 1: 3})
+
+    def test_counter(self):
+        c = sh.counter()
+        self.assertEqual([c(), c(), c()], [0, 1, 2])
+
+        c = sh.counter(10, 5)
+        self.assertEqual([c(), c(), c()], [10, 15, 20])
+
+    def test_counter_serialization(self):
+        c = sh.counter()
+        for _ in range(48):
+            c()
+
+        # The counter is stateful: a round-trip that restarted from `start`
+        # would make a restored dispatcher reuse already assigned node indices.
+        self.assertEqual(pickle.loads(pickle.dumps(c))(), 48)
+        self.assertEqual(copy(c)(), 48)
+        self.assertEqual(deepcopy(c)(), 48)
+        self.assertEqual(c(), 48)
+
+    def test_dispatcher_copy_preserves_counter(self):
+        dsp = sh.Dispatcher()
+        dsp.add_data('a')
+        i = dsp.counter()
+        self.assertEqual(dsp.copy().counter(), i + 1)
+        self.assertEqual(deepcopy(dsp).counter(), i + 1)
